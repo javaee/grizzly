@@ -432,10 +432,10 @@ public final class UDPNIOTransport extends AbstractNIOTransport
             }
 
             if (threadPool == null) {
-                threadPool = GrizzlyExecutorService.createInstance(
+                setThreadPool(GrizzlyExecutorService.createInstance(
                         ThreadPoolConfig.DEFAULT.clone().
                         setCorePoolSize(selectorRunnersCount * 2).
-                        setMaxPoolSize(selectorRunnersCount * 2));
+                        setMaxPoolSize(selectorRunnersCount * 2)));
             }
 
             if (strategy == null) {
@@ -556,7 +556,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         connection.configureStandalone(isStandalone);
         connection.setProcessor(processor);
         connection.setProcessorSelector(processorSelector);
-        connection.setMonitoringProbes(connectionProbes);
+        connection.setMonitoringProbes(connectionMonitoringConfig.getProbes());
         return connection;
     }
 

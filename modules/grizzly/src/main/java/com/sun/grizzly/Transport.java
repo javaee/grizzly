@@ -38,8 +38,11 @@
 
 package com.sun.grizzly;
 
+import com.sun.grizzly.monitoring.MonitoringAware;
 import com.sun.grizzly.attributes.AttributeBuilder;
 import com.sun.grizzly.memory.MemoryManager;
+import com.sun.grizzly.monitoring.MonitoringConfig;
+import com.sun.grizzly.threadpool.ThreadPoolProbe;
 import com.sun.grizzly.utils.StateHolder;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
@@ -372,62 +375,26 @@ public interface Transport extends MonitoringAware<TransportProbe> {
     public Writer getWriter(Connection connection);
 
     /**
-     * Add the {@link ConnectionProbe}s, which will be notified about
-     * <tt>Connection</tt> lifecycle events.
+     * Get the monitoring configuration for Transport {@link Connection}s.
      *
-     * @param probes the {@link ConnectionProbe}s.
+     * @param the monitoring configuration for Transport {@link Connection}s.
      */
-    public void addConnectionProbes(ConnectionProbe... probes);
+    public MonitoringConfig<ConnectionProbe> getConnectionMonitoringConfig();
 
     /**
-     * Remove the {@link ConnectionProbe}s.
+     * Get the monitoring configuration for Transport thread pool.
      *
-     * @param probes the {@link ConnectionProbe}s.
+     * @param the monitoring configuration for Transport thread pool.
      */
-    public boolean removeConnectionProbes(ConnectionProbe... probes);
+    public MonitoringConfig<ThreadPoolProbe> getThreadPoolMonitoringConfig();
 
     /**
-     * Get the {@link ConnectionProbe}s, which are registered on the <tt>Transport</tt> connections.
-     * Please note, it's not appropriate to modify the returned array's content.
-     * Please use {@link #addConnectionProbe(com.sun.grizzly.ConnectionProbe)} and
-     * {@link #removeConnectionProbe(com.sun.grizzly.ConnectionProbe)} instead.
+     * Get the <tt>Transport</tt> monitoring configuration {@link MonitoringConfig}.
      *
-     * @return the {@link ConnectionProbe}s, which are registered on the <tt>Transport</tt>'s connections.
-     */
-    public ConnectionProbe[] getConnectionProbes();
-
-    /**
-     * Clear all the {@link ConnectionProbe}s.
-     */
-    public void clearConnectionProbes();
-
-    /**
-     * Add the {@link TransportProbe}s, which will be notified about
-     * <tt>Transport</tt> lifecycle events.
-     *
-     * @param probes the {@link TransportProbe}s.
+     * @param the <tt>Transport</tt> monitoring configuration {@link MonitoringConfig}.
      */
     @Override
-    public void addProbes(TransportProbe... probes);
-
-    /**
-     * Remove the {@link TransportProbe}s.
-     *
-     * @param probes the {@link TransportProbes}.
-     */
-    @Override
-    public boolean removeProbes(TransportProbe... probes);
-
-    /**
-     * Get the {@link TransportProbe}s, which are registered on the <tt>Transport</tt>.
-     * Please note, it's not appropriate to modify the returned array's content.
-     * Please use {@link #addTransportProbe(com.sun.grizzly.TransportProbe)} and
-     * {@link #removeTransportProbe(com.sun.grizzly.TransportProbe)} instead.
-     *
-     * @return the {@link TransportProbe}s, which are registered on the <tt>Transport</tt>.
-     */
-    @Override
-    public TransportProbe[] getProbes();
+    public MonitoringConfig<TransportProbe> getMonitoringConfig();
 
     /**
      * Method gets invoked, when error occur during the <tt>Transport</tt> lifecycle.

@@ -39,7 +39,7 @@ package com.sun.grizzly.http.server.filecache;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.MonitoringAware;
+import com.sun.grizzly.monitoring.MonitoringAware;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
@@ -48,7 +48,8 @@ import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
-import com.sun.grizzly.utils.ArraySet;
+import com.sun.grizzly.monitoring.MonitoringConfig;
+import com.sun.grizzly.monitoring.MonitoringConfigImpl;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -137,8 +138,8 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
     /**
      * File cache probes
      */
-    protected final ArraySet<FileCacheProbe> monitoringProbes =
-            new ArraySet<FileCacheProbe>();
+    protected final MonitoringConfigImpl<FileCacheProbe> monitoringConfig =
+            new MonitoringConfigImpl<FileCacheProbe>(FileCacheProbe.class);
 
     public FileCache(MemoryManager memoryManager,
             ScheduledExecutorService scheduledExecutorService) {
@@ -714,46 +715,9 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
         return true;
     }
 
-    /**
-     * Add the {@link FileCacheProbe}s, which will be notified about
-     * <tt>FileCache</tt> lifecycle events.
-     *
-     * @param probes the {@link FileCacheProbe}s.
-     */
     @Override
-    public void addProbes(FileCacheProbe... probes) {
-        monitoringProbes.add(probes);
-    }
-
-    /**
-     * Remove the {@link FileCacheProbe}s.
-     *
-     * @param probes the {@link FileCacheProbe}s.
-     */
-    @Override
-    public boolean removeProbes(FileCacheProbe... probes) {
-        return monitoringProbes.remove(probes);
-    }
-
-    /**
-     * Get the {@link FileCacheProbe}s, which are registered on the <tt>FileCache</tt>.
-     * Please note, it's not appropriate to modify the returned array's content.
-     * Please use {@link #addMonitoringProbe(com.sun.grizzly.http.server.filecache.FileCacheProbe)}and
-     * {@link #removeMonitoringProbe(com.sun.grizzly.http.server.filecache.FileCacheProbe)} instead.
-     *
-     * @return the {@link FileCacheProbe}s, which are registered on the <tt>FileCache</tt>.
-     */
-    @Override
-    public FileCacheProbe[] getProbes() {
-        return monitoringProbes.obtainArrayCopy(FileCacheProbe.class);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void clearProbes() {
-        monitoringProbes.clear();
+    public MonitoringConfig<FileCacheProbe> getMonitoringConfig() {
+        return monitoringConfig;
     }
 
     /**
@@ -765,7 +729,7 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
     protected static void notifyProbesEntryAdded(final FileCache fileCache,
             final FileCacheEntry entry) {
         final FileCacheProbe[] probes =
-                fileCache.monitoringProbes.getArray();
+                fileCache.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (FileCacheProbe probe : probes) {
                 probe.onEntryAddedEvent(fileCache, entry);
@@ -782,7 +746,7 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
     protected static void notifyProbesEntryRemoved(final FileCache fileCache,
             final FileCacheEntry entry) {
         final FileCacheProbe[] probes =
-                fileCache.monitoringProbes.getArray();
+                fileCache.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (FileCacheProbe probe : probes) {
                 probe.onEntryRemovedEvent(fileCache, entry);
@@ -799,7 +763,7 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
     protected static void notifyProbesEntryHit(final FileCache fileCache,
             final FileCacheEntry entry) {
         final FileCacheProbe[] probes =
-                fileCache.monitoringProbes.getArray();
+                fileCache.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (FileCacheProbe probe : probes) {
                 probe.onEntryHitEvent(fileCache, entry);
@@ -818,7 +782,7 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
             final String host, final String requestURI) {
         
         final FileCacheProbe[] probes =
-                fileCache.monitoringProbes.getArray();
+                fileCache.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (FileCacheProbe probe : probes) {
                 probe.onEntryMissedEvent(fileCache, host, requestURI);
@@ -834,7 +798,7 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
     protected static void notifyProbesError(final FileCache fileCache,
             final Throwable error) {
         final FileCacheProbe[] probes =
-                fileCache.monitoringProbes.getArray();
+                fileCache.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (FileCacheProbe probe : probes) {
                 probe.onErrorEvent(fileCache, error);

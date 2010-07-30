@@ -36,43 +36,47 @@
 package com.sun.grizzly.http.server;
 
 import com.sun.grizzly.ConnectionProbe;
-import com.sun.grizzly.MonitoringAware;
 import com.sun.grizzly.TransportProbe;
 import com.sun.grizzly.http.HttpProbe;
 import com.sun.grizzly.http.server.filecache.FileCacheProbe;
 import com.sun.grizzly.memory.MemoryProbe;
-import com.sun.grizzly.utils.ArraySet;
+import com.sun.grizzly.monitoring.MonitoringConfig;
+import com.sun.grizzly.monitoring.MonitoringConfigImpl;
+import com.sun.grizzly.threadpool.ThreadPoolProbe;
 
 /**
  * Grizzly web server monitoring config.
  * 
  * @author Alexey Stashok
  */
-public final class MonitoringConfig {
-    private final MonitoringAware<MemoryProbe> memoryConfig =
-            new InternalMonitoringAware<MemoryProbe>(MemoryProbe.class);
+public final class WebServerMonitoringConfig {
+    private final MonitoringConfigImpl<MemoryProbe> memoryConfig =
+            new MonitoringConfigImpl<MemoryProbe>(MemoryProbe.class);
 
-    private final MonitoringAware<TransportProbe> transportConfig =
-            new InternalMonitoringAware<TransportProbe>(TransportProbe.class);
+    private final MonitoringConfigImpl<TransportProbe> transportConfig =
+            new MonitoringConfigImpl<TransportProbe>(TransportProbe.class);
 
-    private final MonitoringAware<ConnectionProbe> connectionConfig =
-            new InternalMonitoringAware<ConnectionProbe>(ConnectionProbe.class);
+    private final MonitoringConfigImpl<ConnectionProbe> connectionConfig =
+            new MonitoringConfigImpl<ConnectionProbe>(ConnectionProbe.class);
 
-    private final MonitoringAware<FileCacheProbe> fileCacheConfig =
-            new InternalMonitoringAware<FileCacheProbe>(FileCacheProbe.class);
+    private final MonitoringConfigImpl<ThreadPoolProbe> threadPoolConfig =
+            new MonitoringConfigImpl<ThreadPoolProbe>(ThreadPoolProbe.class);
 
-    private final MonitoringAware<HttpProbe> httpConfig =
-            new InternalMonitoringAware<HttpProbe>(HttpProbe.class);
+    private final MonitoringConfigImpl<FileCacheProbe> fileCacheConfig =
+            new MonitoringConfigImpl<FileCacheProbe>(FileCacheProbe.class);
 
-    private final MonitoringAware<WebServerProbe> webServerConfig =
-            new InternalMonitoringAware<WebServerProbe>(WebServerProbe.class);
+    private final MonitoringConfigImpl<HttpProbe> httpConfig =
+            new MonitoringConfigImpl<HttpProbe>(HttpProbe.class);
+
+    private final MonitoringConfigImpl<WebServerProbe> webServerConfig =
+            new MonitoringConfigImpl<WebServerProbe>(WebServerProbe.class);
 
     /**
      * Get the memory monitoring config.
      *
      * @return the memory monitoring config.
      */
-    public MonitoringAware<MemoryProbe> getMemoryConfig() {
+    public MonitoringConfig<MemoryProbe> getMemoryConfig() {
         return memoryConfig;
     }
 
@@ -81,8 +85,17 @@ public final class MonitoringConfig {
      *
      * @return the connection monitoring config.
      */
-    public MonitoringAware<ConnectionProbe> getConnectionConfig() {
+    public MonitoringConfig<ConnectionProbe> getConnectionConfig() {
         return connectionConfig;
+    }
+
+    /**
+     * Get the thread pool monitoring config.
+     *
+     * @return the thread pool monitoring config.
+     */
+    public MonitoringConfig<ThreadPoolProbe> getThreadPoolConfig() {
+        return threadPoolConfig;
     }
 
     /**
@@ -90,7 +103,7 @@ public final class MonitoringConfig {
      *
      * @return the transport monitoring config.
      */
-    public MonitoringAware<TransportProbe> getTransportConfig() {
+    public MonitoringConfig<TransportProbe> getTransportConfig() {
         return transportConfig;
     }
 
@@ -99,7 +112,7 @@ public final class MonitoringConfig {
      *
      * @return the file cache monitoring config.
      */
-    public MonitoringAware<FileCacheProbe> getFileCacheConfig() {
+    public MonitoringConfig<FileCacheProbe> getFileCacheConfig() {
         return fileCacheConfig;
     }
 
@@ -108,7 +121,7 @@ public final class MonitoringConfig {
      *
      * @return the http monitoring config.
      */
-    public MonitoringAware<HttpProbe> getHttpConfig() {
+    public MonitoringConfig<HttpProbe> getHttpConfig() {
         return httpConfig;
     }
 
@@ -117,55 +130,7 @@ public final class MonitoringConfig {
      *
      * @return the web server monitoring config.
      */
-    public MonitoringAware<WebServerProbe> getWebServerConfig() {
+    public MonitoringConfig<WebServerProbe> getWebServerConfig() {
         return webServerConfig;
-    }
-
-    /**
-     * Config container
-     * 
-     * @param <E> probe type
-     */
-    private static class InternalMonitoringAware<E> implements MonitoringAware<E> {
-        private final Class<E> clazz;
-
-        public InternalMonitoringAware(Class<E> clazz) {
-            this.clazz = clazz;
-        }
-
-        private final ArraySet<E> monitoringProbes =
-                new ArraySet<E>();
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void addProbes(E... probes) {
-            monitoringProbes.add(probes);
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public boolean removeProbes(E... probes) {
-            return monitoringProbes.remove(probes);
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public E[] getProbes() {
-            return monitoringProbes.obtainArrayCopy(clazz);
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void clearProbes() {
-            monitoringProbes.clear();
-        }
     }
 }

@@ -65,7 +65,7 @@ public class ServerConfiguration {
 
     private static final String[] ROOT_MAPPING = {"/"};
 
-    private final MonitoringConfig monitoringConfig = new MonitoringConfig();
+    private final WebServerMonitoringConfig monitoringConfig = new WebServerMonitoringConfig();
     
     // ------------------------------------------------------------ Constructors
 
@@ -170,7 +170,7 @@ public class ServerConfiguration {
      * 
      * @return the web server monitoring config.
      */
-    public MonitoringConfig getMonitoringConfig() {
+    public WebServerMonitoringConfig getMonitoringConfig() {
         return monitoringConfig;
     }
     

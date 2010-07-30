@@ -60,7 +60,7 @@ final class HttpProbeNotificator {
             final Connection connection,
             final Buffer buffer) {
 
-        final HttpProbe[] probes = httpFilter.monitoringProbes.getArray();
+        final HttpProbe[] probes = httpFilter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (HttpProbe probe : probes) {
                 probe.onDataReceivedEvent(connection, buffer);
@@ -79,7 +79,7 @@ final class HttpProbeNotificator {
             final Connection connection,
             final Buffer buffer) {
 
-        final HttpProbe[] probes = httpFilter.monitoringProbes.getArray();
+        final HttpProbe[] probes = httpFilter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (HttpProbe probe : probes) {
                 probe.onDataSentEvent(connection, buffer);
@@ -98,7 +98,7 @@ final class HttpProbeNotificator {
             final Connection connection,
             final HttpHeader header) {
 
-        final HttpProbe[] probes = httpFilter.monitoringProbes.getArray();
+        final HttpProbe[] probes = httpFilter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (HttpProbe probe : probes) {
                 probe.onHeaderParseEvent(connection, header);
@@ -117,7 +117,7 @@ final class HttpProbeNotificator {
             final Connection connection,
             final HttpHeader header) {
 
-        final HttpProbe[] probes = httpFilter.monitoringProbes.getArray();
+        final HttpProbe[] probes = httpFilter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (HttpProbe probe : probes) {
                 probe.onHeaderSerializeEvent(connection, header);
@@ -136,7 +136,7 @@ final class HttpProbeNotificator {
             final Connection connection,
             final HttpContent content) {
 
-        final HttpProbe[] probes = httpFilter.monitoringProbes.getArray();
+        final HttpProbe[] probes = httpFilter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (HttpProbe probe : probes) {
                 probe.onContentChunkParseEvent(connection, content);
@@ -155,7 +155,7 @@ final class HttpProbeNotificator {
             final Connection connection,
             final HttpContent content) {
 
-        final HttpProbe[] probes = httpFilter.monitoringProbes.getArray();
+        final HttpProbe[] probes = httpFilter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (HttpProbe probe : probes) {
                 probe.onContentChunkSerializeEvent(connection, content);
@@ -176,7 +176,7 @@ final class HttpProbeNotificator {
             final Connection connection, final HttpHeader header,
             final Buffer buffer, final ContentEncoding contentEncoding) {
 
-        final HttpProbe[] probes = httpFilter.monitoringProbes.getArray();
+        final HttpProbe[] probes = httpFilter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (HttpProbe probe : probes) {
                 probe.onContentEncodingParseEvent(connection, header, buffer,
@@ -198,7 +198,7 @@ final class HttpProbeNotificator {
             final Connection connection, final HttpHeader header,
             final Buffer buffer, final ContentEncoding contentEncoding) {
 
-        final HttpProbe[] probes = httpFilter.monitoringProbes.getArray();
+        final HttpProbe[] probes = httpFilter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (HttpProbe probe : probes) {
                 probe.onContentEncodingSerializeEvent(connection, header, buffer,
@@ -220,7 +220,7 @@ final class HttpProbeNotificator {
             final Connection connection, final HttpHeader header,
             final Buffer buffer, final TransferEncoding transferEncoding) {
 
-        final HttpProbe[] probes = httpFilter.monitoringProbes.getArray();
+        final HttpProbe[] probes = httpFilter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (HttpProbe probe : probes) {
                 probe.onTransferEncodingParseEvent(connection, header, buffer,
@@ -242,7 +242,7 @@ final class HttpProbeNotificator {
             final Connection connection, final HttpHeader header,
             final Buffer buffer, final TransferEncoding transferEncoding) {
 
-        final HttpProbe[] probes = httpFilter.monitoringProbes.getArray();
+        final HttpProbe[] probes = httpFilter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (HttpProbe probe : probes) {
                 probe.onTransferEncodingSerializeEvent(connection, header, buffer,
@@ -261,7 +261,7 @@ final class HttpProbeNotificator {
     static void notifyProbesError(final HttpCodecFilter httpFilter,
             final Connection connection,
             Throwable error) {
-        final HttpProbe[] probes = httpFilter.monitoringProbes.getArray();
+        final HttpProbe[] probes = httpFilter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             if (error == null) {
                 error = new IllegalStateException("Error in HTTP semantics");

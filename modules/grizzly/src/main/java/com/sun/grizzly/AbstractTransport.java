@@ -42,7 +42,11 @@ import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import com.sun.grizzly.attributes.AttributeBuilder;
 import com.sun.grizzly.memory.MemoryManager;
-import com.sun.grizzly.utils.ArraySet;
+import com.sun.grizzly.monitoring.MonitoringAware;
+import com.sun.grizzly.monitoring.MonitoringConfig;
+import com.sun.grizzly.monitoring.MonitoringConfigImpl;
+import com.sun.grizzly.threadpool.AbstractThreadPool;
+import com.sun.grizzly.threadpool.ThreadPoolProbe;
 import com.sun.grizzly.utils.StateHolder;
 
 /**
@@ -112,15 +116,20 @@ public abstract class AbstractTransport implements Transport {
     /**
      * Transport probes
      */
-    protected final ArraySet<TransportProbe> transportProbes =
-            new ArraySet<TransportProbe>();
+    protected final MonitoringConfigImpl<TransportProbe> transportMonitoringConfig =
+            new MonitoringConfigImpl<TransportProbe>(TransportProbe.class);
 
     /**
      * Connection probes
      */
-    protected final ArraySet<ConnectionProbe> connectionProbes =
-            new ArraySet<ConnectionProbe>();
+    protected final MonitoringConfigImpl<ConnectionProbe> connectionMonitoringConfig =
+            new MonitoringConfigImpl<ConnectionProbe>(ConnectionProbe.class);
     
+    /**
+     * Thread pool probes
+     */
+    protected final MonitoringConfigImpl<ThreadPoolProbe> threadPoolMonitoringConfig =
+            new MonitoringConfigImpl<ThreadPoolProbe>(ThreadPoolProbe.class);
 
     public AbstractTransport(String name) {
         this.name = name;
@@ -313,6 +322,11 @@ public abstract class AbstractTransport implements Transport {
      */
     @Override
     public void setThreadPool(ExecutorService threadPool) {
+        if (threadPool instanceof MonitoringAware) {
+            ((MonitoringAware<ThreadPoolProbe>) threadPool).getMonitoringConfig()
+                    .addProbes(threadPoolMonitoringConfig.getProbes());
+        }
+
         this.threadPool = threadPool;
     }
 
@@ -344,64 +358,24 @@ public abstract class AbstractTransport implements Transport {
      * {@inheritDoc}
      */
     @Override
-    public void addConnectionProbes(ConnectionProbe... probes) {
-        connectionProbes.add(probes);
+    public MonitoringConfig<ConnectionProbe> getConnectionMonitoringConfig() {
+        return connectionMonitoringConfig;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public boolean removeConnectionProbes(ConnectionProbe... probes) {
-        return connectionProbes.remove(probes);
+    public MonitoringConfig<TransportProbe> getMonitoringConfig() {
+        return transportMonitoringConfig;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public ConnectionProbe[] getConnectionProbes() {
-        return connectionProbes.obtainArrayCopy(ConnectionProbe.class);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void clearConnectionProbes() {
-        connectionProbes.clear();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void addProbes(TransportProbe... probes) {
-        transportProbes.add(probes);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean removeProbes(TransportProbe... probes) {
-        return transportProbes.remove(probes);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public TransportProbe[] getProbes() {
-        return transportProbes.obtainArrayCopy(TransportProbe.class);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void clearProbes() {
-        transportProbes.clear();
+    public MonitoringConfig<ThreadPoolProbe> getThreadPoolMonitoringConfig() {
+        return threadPoolMonitoringConfig;
     }
 
     /**

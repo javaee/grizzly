@@ -38,6 +38,9 @@
 
 package com.sun.grizzly.threadpool;
 
+import com.sun.grizzly.monitoring.MonitoringAware;
+import com.sun.grizzly.monitoring.MonitoringConfig;
+import com.sun.grizzly.monitoring.MonitoringConfigImpl;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.AbstractExecutorService;
@@ -48,12 +51,16 @@ import java.util.concurrent.TimeUnit;
  *
  * @author gustav trede
  */
-public class GrizzlyExecutorService extends AbstractExecutorService {
+public class GrizzlyExecutorService extends AbstractExecutorService
+        implements MonitoringAware<ThreadPoolProbe> {
 
     private final Object statelock = new Object();
     private volatile AbstractThreadPool pool;
     protected volatile ThreadPoolConfig config;
 
+    protected final MonitoringConfigImpl<ThreadPoolProbe> monitoringConfig =
+            new MonitoringConfigImpl<ThreadPoolProbe>(ThreadPoolProbe.class);
+    
     /**
      *
      * @return {@link GrizzlyExecutorService}
@@ -153,5 +160,13 @@ public class GrizzlyExecutorService extends AbstractExecutorService {
     public boolean awaitTermination(long timeout, TimeUnit unit)
             throws InterruptedException {
         return pool.awaitTermination(timeout, unit);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public MonitoringConfig<ThreadPoolProbe> getMonitoringConfig() {
+        return monitoringConfig;
     }
 }

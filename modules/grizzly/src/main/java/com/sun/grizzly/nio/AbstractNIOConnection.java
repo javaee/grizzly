@@ -64,7 +64,8 @@ import com.sun.grizzly.asyncqueue.AsyncReadQueueRecord;
 import com.sun.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import com.sun.grizzly.attributes.IndexedAttributeHolder;
 import com.sun.grizzly.impl.ReadyFutureImpl;
-import com.sun.grizzly.utils.ArraySet;
+import com.sun.grizzly.monitoring.MonitoringConfig;
+import com.sun.grizzly.monitoring.MonitoringConfigImpl;
 import com.sun.grizzly.utils.LinkedTransferQueue;
 import java.util.Queue;
 import java.util.logging.Level;
@@ -110,8 +111,8 @@ public abstract class AbstractNIOConnection implements NIOConnection {
     /**
      * Connection probes
      */
-    protected final ArraySet<ConnectionProbe> monitoringProbes =
-            new ArraySet<ConnectionProbe>();
+    protected final MonitoringConfigImpl<ConnectionProbe> monitoringConfig =
+            new MonitoringConfigImpl<ConnectionProbe>(ConnectionProbe.class);
 
     public AbstractNIOConnection(NIOTransport transport) {
         this.transport = transport;
@@ -385,37 +386,12 @@ public abstract class AbstractNIOConnection implements NIOConnection {
         notifyProbesError(this, error);
     }
 
-
     /**
      * {@inheritDoc}
      */
     @Override
-    public void addProbes(ConnectionProbe... probes) {
-        monitoringProbes.add(probes);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean removeProbes(ConnectionProbe... probes) {
-        return monitoringProbes.remove(probes);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public ConnectionProbe[] getProbes() {
-        return monitoringProbes.obtainArrayCopy(ConnectionProbe.class);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void clearProbes() {
-        monitoringProbes.clear();
+    public final MonitoringConfig<ConnectionProbe> getMonitoringConfig() {
+        return monitoringConfig;
     }
 
     /**
@@ -424,7 +400,7 @@ public abstract class AbstractNIOConnection implements NIOConnection {
      * @param connection the <tt>Connection</tt> event occurred on.
      */
     protected static void notifyProbesBind(AbstractNIOConnection connection) {
-        final ConnectionProbe[] probes = connection.monitoringProbes.getArray();
+        final ConnectionProbe[] probes = connection.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (ConnectionProbe probe : probes) {
                 probe.onBindEvent(connection);
@@ -439,7 +415,7 @@ public abstract class AbstractNIOConnection implements NIOConnection {
      */
     protected static void notifyProbesAccept(AbstractNIOConnection connection) {
         final ConnectionProbe[] probes =
-                connection.monitoringProbes.getArray();
+                connection.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (ConnectionProbe probe : probes) {
                 probe.onAcceptEvent(connection);
@@ -454,7 +430,7 @@ public abstract class AbstractNIOConnection implements NIOConnection {
      */
     protected static void notifyProbesConnect(AbstractNIOConnection connection) {
         final ConnectionProbe[] probes =
-                connection.monitoringProbes.getArray();
+                connection.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (ConnectionProbe probe : probes) {
                 probe.onConnectEvent(connection);
@@ -469,7 +445,7 @@ public abstract class AbstractNIOConnection implements NIOConnection {
             Buffer data, int size) {
         
         final ConnectionProbe[] probes =
-                connection.monitoringProbes.getArray();
+                connection.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (ConnectionProbe probe : probes) {
                 probe.onReadEvent(connection, data, size);
@@ -484,7 +460,7 @@ public abstract class AbstractNIOConnection implements NIOConnection {
             Buffer data, int size) {
         
         final ConnectionProbe[] probes =
-                connection.monitoringProbes.getArray();
+                connection.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (ConnectionProbe probe : probes) {
                 probe.onWriteEvent(connection, data, size);
@@ -499,7 +475,7 @@ public abstract class AbstractNIOConnection implements NIOConnection {
      */
     protected static void notifyProbesClose(AbstractNIOConnection connection) {
         final ConnectionProbe[] probes =
-                connection.monitoringProbes.getArray();
+                connection.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (ConnectionProbe probe : probes) {
                 probe.onCloseEvent(connection);
@@ -515,7 +491,7 @@ public abstract class AbstractNIOConnection implements NIOConnection {
     protected static void notifyProbesError(AbstractNIOConnection connection,
             Throwable error) {
         final ConnectionProbe[] probes =
-                connection.monitoringProbes.getArray();
+                connection.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (ConnectionProbe probe : probes) {
                 probe.onErrorEvent(connection, error);
@@ -539,7 +515,7 @@ public abstract class AbstractNIOConnection implements NIOConnection {
     protected abstract void preClose();
 
     @Override
-    public void enableIOEvent(IOEvent ioEvent) throws IOException {
+    public final void enableIOEvent(IOEvent ioEvent) throws IOException {
         final SelectionKeyHandler selectionKeyHandler =
                 transport.getSelectionKeyHandler();
         final int interest =
@@ -554,7 +530,7 @@ public abstract class AbstractNIOConnection implements NIOConnection {
     }
 
     @Override
-    public void disableIOEvent(IOEvent ioEvent) throws IOException {
+    public final void disableIOEvent(IOEvent ioEvent) throws IOException {
         final SelectionKeyHandler selectionKeyHandler =
                 transport.getSelectionKeyHandler();
         final int interest =

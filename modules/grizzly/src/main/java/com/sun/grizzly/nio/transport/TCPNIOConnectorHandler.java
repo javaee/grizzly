@@ -201,18 +201,12 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             connection.resetAddresses();
             
             // Unregister OP_CONNECT interest
-            tcpTransport.getSelectorHandler().unregisterKey(
-                    connection.getSelectorRunner(),
-                    connection.getSelectionKey(),
-                    SelectionKey.OP_CONNECT);
+            connection.disableIOEvent(IOEvent.CONNECTED);
 
             tcpTransport.configureChannel(channel);
 
             if (!connection.isStandalone()) {
-                tcpTransport.getSelectorHandler().registerKey(
-                        connection.getSelectorRunner(),
-                        connection.getSelectionKey(),
-                        SelectionKey.OP_READ);
+                connection.enableIOEvent(IOEvent.READ);
             }
 
             if (completionHandler != null) {

@@ -101,4 +101,32 @@ public interface ConnectionProbe {
      * @param connection {@link Connection}, the event belongs to.
      */
     public void onCloseEvent(Connection connection);
+
+    /**
+     * Method will be called, when {@link IOEvent} for the specific
+     * {@link Connection} gets ready.
+     *
+     * @param connection {@link Connection}, the event belongs to.
+     * @param ioEvent {@link IOEvent}.
+     */
+    public void onIOEventReadyEvent(Connection connection, IOEvent ioEvent);
+
+    /**
+     * Method will be called, when {@link IOEvent} for the specific
+     * {@link Connection} gets enabled.
+     *
+     * @param connection {@link Connection}, the event belongs to.
+     * @param ioEvent {@link IOEvent}.
+     */
+    public void onIOEventEnableEvent(Connection connection, IOEvent ioEvent);
+
+    /**
+     * Method will be called, when {@link IOEvent} for the specific
+     * {@link Connection} gets disabled.
+     *
+     * @param connection {@link Connection}, the event belongs to.
+     * @param ioEvent {@link IOEvent}.
+     */
+    public void onIOEventDisableEvent(Connection connection, IOEvent ioEvent);
+
 }

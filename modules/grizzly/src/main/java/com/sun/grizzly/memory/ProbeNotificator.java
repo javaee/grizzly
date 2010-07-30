@@ -38,7 +38,7 @@
 
 package com.sun.grizzly.memory;
 
-import com.sun.grizzly.utils.ArraySet;
+import com.sun.grizzly.monitoring.MonitoringConfigImpl;
 
 /**
  * Utility class, which has notificator methods for different
@@ -53,10 +53,11 @@ final class ProbeNotificator {
      *
      * @param size buffer size
      */
-    static void notifyBufferAllocated(final ArraySet<MemoryProbe> probeSet,
+    static void notifyBufferAllocated(
+            final MonitoringConfigImpl<MemoryProbe> config,
             final int size) {
 
-        final MemoryProbe[] probes = probeSet.getArray();
+        final MemoryProbe[] probes = config.getProbesUnsafe();
         if (probes != null) {
             for (MemoryProbe probe : probes) {
                 probe.onBufferAllocateEvent(size);
@@ -69,10 +70,11 @@ final class ProbeNotificator {
      *
      * @param size buffer size
      */
-    static void notifyBufferAllocatedFromPool(final ArraySet<MemoryProbe> probeSet,
+    static void notifyBufferAllocatedFromPool(
+            final MonitoringConfigImpl<MemoryProbe> config,
             final int size) {
 
-        final MemoryProbe[] probes = probeSet.getArray();
+        final MemoryProbe[] probes = config.getProbesUnsafe();
         if (probes != null) {
             for (MemoryProbe probe : probes) {
                 probe.onBufferAllocateFromPoolEvent(size);
@@ -85,10 +87,11 @@ final class ProbeNotificator {
      *
      * @param size buffer size
      */
-    static void notifyBufferReleasedToPool(final ArraySet<MemoryProbe> probeSet,
+    static void notifyBufferReleasedToPool(
+            final MonitoringConfigImpl<MemoryProbe> config,
             final int size) {
 
-        final MemoryProbe[] probes = probeSet.getArray();
+        final MemoryProbe[] probes = config.getProbesUnsafe();
         if (probes != null) {
             for (MemoryProbe probe : probes) {
                 probe.onBufferReleaseToPoolEvent(size);

@@ -1,9 +1,8 @@
 /*
- * 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
- * 
- * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
- * 
+ *
+ * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
+ *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
@@ -11,7 +10,7 @@
  * a copy of the License at https://glassfish.dev.java.net/public/CDDL+GPL.html
  * or glassfish/bootstrap/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
- * 
+ *
  * When distributing the software, include this License Header Notice in each
  * file and include the License file at glassfish/bootstrap/legal/LICENSE.txt.
  * Sun designates this particular file as subject to the "Classpath" exception
@@ -20,9 +19,9 @@
  * Header, with the fields enclosed by brackets [] replaced by your own
  * identifying information: "Portions Copyrighted [year]
  * [name of copyright owner]"
- * 
+ *
  * Contributor(s):
- * 
+ *
  * If you wish your version of this file to be governed by only the CDDL or
  * only the GPL Version 2, indicate your decision by adding "[Contributor]
  * elects to include this software in this distribution under the [CDDL or GPL
@@ -33,46 +32,66 @@
  * and therefore, elected the GPL Version 2 license, then the option applies
  * only if the new code is made subject to such option by the copyright
  * holder.
- *
  */
 
-package com.sun.grizzly.nio.transport;
+package com.sun.grizzly.monitoring;
 
-import com.sun.grizzly.WriteResult;
-import com.sun.grizzly.nio.AbstractNIOAsyncQueueWriter;
-import com.sun.grizzly.Connection;
-import com.sun.grizzly.nio.NIOTransport;
-import java.io.IOException;
-import java.net.SocketAddress;
-import com.sun.grizzly.Buffer;
-import com.sun.grizzly.IOEvent;
-import com.sun.grizzly.asyncqueue.AsyncQueueWriter;
-import com.sun.grizzly.nio.NIOConnection;
+import com.sun.grizzly.utils.ArraySet;
 
 /**
- * The UDP transport {@link AsyncQueueWriter} implementation, based on
- * the Java NIO
+ * Monitoring configuration.
  *
  * @author Alexey Stashok
  */
-public final class UDPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
+public final class MonitoringConfigImpl<E> implements MonitoringConfig<E> {
 
-    public UDPNIOAsyncQueueWriter(NIOTransport transport) {
-        super(transport);
+    private final Class<E> clazz;
+
+    private final ArraySet<E> monitoringProbes;
+
+    public MonitoringConfigImpl(Class<E> clazz) {
+        this.clazz = clazz;
+        monitoringProbes = new ArraySet<E>();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    protected int write0(Connection connection, SocketAddress dstAddress,
-            Buffer buffer,
-            WriteResult<Buffer, SocketAddress> currentResult)
-            throws IOException {
-        return ((UDPNIOTransport) transport).write((UDPNIOConnection) connection,
-                dstAddress, buffer, currentResult);
+    public void addProbes(E... probes) {
+        monitoringProbes.add(monitoringProbes);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    protected final void onReadyToWrite(Connection connection) throws IOException {
-        final NIOConnection nioConnection = (NIOConnection) connection;
-        nioConnection.enableIOEvent(IOEvent.WRITE);
+    public boolean removeProbes(E... probes) {
+        return monitoringProbes.remove(probes);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public E[] getProbes() {
+        return monitoringProbes.obtainArrayCopy(clazz);
+    }
+
+    /**
+     * Get the monitoring probes array (direct).
+     *
+     * @return the monitoring probes array (direct).
+     */
+    public E[] getProbesUnsafe() {
+        return monitoringProbes.getArray();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void clearProbes() {
+        monitoringProbes.clear();
     }
 }

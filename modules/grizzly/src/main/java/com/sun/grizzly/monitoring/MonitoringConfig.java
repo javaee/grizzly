@@ -34,14 +34,14 @@
  * holder.
  */
 
-package com.sun.grizzly;
+package com.sun.grizzly.monitoring;
 
 /**
- * General interface for the objects, which could be monitored during the lifecycle.
- * 
+ * General monitoring configuration interface.
+ *
  * @author Alexey Stashok
  */
-public interface MonitoringAware<E> {
+public interface MonitoringConfig<E> {
     /**
      * Add the monitoring probes, which will be notified about object's lifecycle events.
      *

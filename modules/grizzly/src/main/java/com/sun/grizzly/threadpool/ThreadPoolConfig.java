@@ -53,7 +53,7 @@ public class ThreadPoolConfig {
             null, AbstractThreadPool.DEFAULT_MAX_TASKS_QUEUED,
             AbstractThreadPool.DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT,
             TimeUnit.MILLISECONDS,
-            null, Thread.MAX_PRIORITY, null);
+            null, Thread.MAX_PRIORITY);
 
     protected String poolName;
     protected int corePoolSize;
@@ -63,15 +63,13 @@ public class ThreadPoolConfig {
     protected long keepAliveTimeMillis;
     protected ThreadFactory threadFactory;
     protected int priority = Thread.MAX_PRIORITY;
-    protected ThreadPoolMonitoringProbe monitoringProbe;
 
     public ThreadPoolConfig(
             String poolName,
             int corePoolSize, int maxPoolSize,
             Queue<Runnable> queue, int queueLimit,
             long keepAliveTime, TimeUnit timeUnit,
-            ThreadFactory threadFactory, int priority,
-            ThreadPoolMonitoringProbe monitoringProbe) {
+            ThreadFactory threadFactory, int priority) {
         this.poolName        = poolName;
         this.corePoolSize    = corePoolSize;
         this.maxPoolSize     = maxPoolSize;
@@ -86,7 +84,6 @@ public class ThreadPoolConfig {
 
         this.threadFactory   = threadFactory;
         this.priority        = priority;
-        this.monitoringProbe = monitoringProbe;
     }
 
     public ThreadPoolConfig(ThreadPoolConfig cfg) {
@@ -98,30 +95,12 @@ public class ThreadPoolConfig {
         this.queueLimit      = cfg.queueLimit;
         this.corePoolSize    = cfg.corePoolSize;
         this.keepAliveTimeMillis   = cfg.keepAliveTimeMillis;
-        this.monitoringProbe = cfg.monitoringProbe;
     }
 
     @Override
     public ThreadPoolConfig clone() {
         return new ThreadPoolConfig(this);
     }
-
-//    @SuppressWarnings("deprecation")
-//    protected ThreadPoolConfig updateFrom(AbstractThreadPool ep) {
-//        this.queue = ep.getQueue();
-//        this.threadFactory = ep.getThreadFactory();
-//        this.poolName = ep.getName();
-//        this.maxPoolSize = ep.getMaximumPoolSize();
-//
-//        //hiding internal values, due to they might not match configure
-//
-//        //this.queueLimit = ep.getMaxQueuedTasksCount();
-//        //this.corepoolsize = ep.getCorePoolSize();
-//        //this.keepAliveTime = keepAliveTime;
-//        //this.timeUnit = timeUnit;
-//        //this.monitoringProbe = monitoringProbe;
-//        return this;
-//    }
 
     /**
      * @return the queue
@@ -251,23 +230,6 @@ public class ThreadPoolConfig {
         return timeUnit.convert(keepAliveTimeMillis, TimeUnit.MILLISECONDS);
     }
 
-    /**
-     * @return the monitoringProbe
-     */
-    public ThreadPoolMonitoringProbe getMonitoringProbe() {
-        return monitoringProbe;
-    }
-
-    /**
-     *
-     * @param monitoringProbe
-     * @return
-     */
-    public ThreadPoolConfig setMonitoringProbe(ThreadPoolMonitoringProbe monitoringProbe) {
-        this.monitoringProbe = monitoringProbe;
-        return this;
-    }
-
     @Override
     public String toString() {
         return ThreadPoolConfig.class.getSimpleName() + " :\r\n"
@@ -278,7 +240,6 @@ public class ThreadPoolConfig {
                 + "  queueLimit: " + queueLimit + "\r\n"
                 + "  keepAliveTime (millis): " + keepAliveTimeMillis + "\r\n"
                 + "  threadFactory: " + threadFactory + "\r\n"
-                + "  priority: " + priority + "\r\n"
-                + "  monitoringProbe: " + monitoringProbe + "\r\n";
+                + "  priority: " + priority + "\r\n";
     }
 }

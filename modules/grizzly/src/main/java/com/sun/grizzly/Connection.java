@@ -38,8 +38,10 @@
 
 package com.sun.grizzly;
 
+import com.sun.grizzly.monitoring.MonitoringAware;
 import java.io.IOException;
 import com.sun.grizzly.attributes.AttributeStorage;
+import com.sun.grizzly.monitoring.MonitoringConfig;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -227,32 +229,12 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
     public void setWriteTimeout(long timeout, TimeUnit timeUnit);
 
     /**
-     * Add the {@link ConnectionProbe}s, which will be notified about
-     * <tt>Connection</tt> lifecycle events.
-     * 
-     * @param probes the {@link ConnectionProbe}s.
-     */
-    @Override
-    public void addProbes(ConnectionProbe... probes);
-
-    /**
-     * Remove the {@link ConnectionProbe}s.
+     * Get the <tt>Connection</tt> monitoring configuration {@link MonitoringConfig}.
      *
-     * @param probes the {@link ConnectionProbe}s.
+     * @param the <tt>Connection</tt> monitoring configuration {@link MonitoringConfig}.
      */
     @Override
-    public boolean removeProbes(ConnectionProbe... probes);
-
-    /**
-     * Get the {@link ConnectionProbe}s, which are registered on the <tt>Connection</tt>.
-     * Please note, it's not appropriate to modify the returned array's content.
-     * Please use {@link #addMonitoringProbe(com.sun.grizzly.ConnectionProbe)} and
-     * {@link #removeMonitoringProbe(com.sun.grizzly.ConnectionProbe)} instead.
-     * 
-     * @return the {@link ConnectionProbe}s, which are registered on the <tt>Connection</tt>.
-     */
-    @Override
-    public ConnectionProbe[] getProbes();
+    public MonitoringConfig<ConnectionProbe> getMonitoringConfig();
 
     /**
      * Add the {@link CloseListener}, which will be notified once <tt>Connection</tt>

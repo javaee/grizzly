@@ -39,7 +39,7 @@ package com.sun.grizzly.http.server;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.MonitoringAware;
+import com.sun.grizzly.monitoring.MonitoringAware;
 import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.FilterChainContext;
@@ -48,7 +48,8 @@ import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpResponsePacket;
-import com.sun.grizzly.utils.ArraySet;
+import com.sun.grizzly.monitoring.MonitoringConfig;
+import com.sun.grizzly.monitoring.MonitoringConfigImpl;
 
 import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
@@ -73,8 +74,8 @@ public class WebServerFilter extends BaseFilter
     /**
      * Web server probes
      */
-    protected final ArraySet<WebServerProbe> monitoringProbes =
-            new ArraySet<WebServerProbe>();
+    protected final MonitoringConfigImpl<WebServerProbe> monitoringConfig =
+            new MonitoringConfigImpl<WebServerProbe>(WebServerProbe.class);
 
     // ------------------------------------------------------------ Constructors
 
@@ -193,44 +194,10 @@ public class WebServerFilter extends BaseFilter
     }
 
     /**
-     * Add the {@link WebServerProbe}s, which will be notified about
-     * <tt>WebServerFilter</tt> lifecycle events.
-     *
-     * @param probes the {@link WebServerProbe}s.
-     */
-    @Override
-    public void addProbes(WebServerProbe... probes) {
-        monitoringProbes.add(probes);
-    }
-
-    /**
-     * Remove the {@link WebServerProbe}s.
-     *
-     * @param probes the {@link WebServerProbe}s.
-     */
-    @Override
-    public boolean removeProbes(WebServerProbe... probes) {
-        return monitoringProbes.remove(probes);
-    }
-
-    /**
-     * Get the {@link WebServerProbe}s, which are registered on the <tt>WebServerFilter</tt>.
-     * Please note, it's not appropriate to modify the returned array's content.
-     * Please use {@link #addMonitoringProbe(com.sun.grizzly.http.server.WebServerProbe)} and
-     * {@link #removeMonitoringProbe(com.sun.grizzly.http.server.WebServerProbe)} instead.
-     *
-     * @return the {@link WebServerProbe}s, which are registered on the <tt>WebServerFilter</tt>.
-     */
-    @Override
-    public WebServerProbe[] getProbes() {
-        return monitoringProbes.obtainArrayCopy(WebServerProbe.class);
-    }
-
-    /**
      * {@inheritDoc}
      */
     @Override
-    public void clearProbes() {
-        monitoringProbes.clear();
+    public MonitoringConfig<WebServerProbe> getMonitoringConfig() {
+        return monitoringConfig;
     }
 }

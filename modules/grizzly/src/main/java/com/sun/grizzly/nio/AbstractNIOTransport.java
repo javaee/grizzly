@@ -160,7 +160,7 @@ public abstract class AbstractNIOTransport extends AbstractTransport
     protected static void notifyProbesError(final AbstractNIOTransport transport,
             final Throwable error) {
         final TransportProbe[] probes =
-                transport.transportProbes.getArray();
+                transport.transportMonitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (TransportProbe probe : probes) {
                 probe.onErrorEvent(transport, error);
@@ -175,7 +175,7 @@ public abstract class AbstractNIOTransport extends AbstractTransport
      */
     protected static void notifyProbesStart(final AbstractNIOTransport transport) {
         final TransportProbe[] probes =
-                transport.transportProbes.getArray();
+                transport.transportMonitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (TransportProbe probe : probes) {
                 probe.onStartEvent(transport);
@@ -190,7 +190,7 @@ public abstract class AbstractNIOTransport extends AbstractTransport
      */
     protected static void notifyProbesStop(final AbstractNIOTransport transport) {
         final TransportProbe[] probes =
-                transport.transportProbes.getArray();
+                transport.transportMonitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (TransportProbe probe : probes) {
                 probe.onStopEvent(transport);
@@ -205,7 +205,7 @@ public abstract class AbstractNIOTransport extends AbstractTransport
      */
     protected static void notifyProbesPause(final AbstractNIOTransport transport) {
         final TransportProbe[] probes =
-                transport.transportProbes.getArray();
+                transport.transportMonitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (TransportProbe probe : probes) {
                 probe.onPauseEvent(transport);
@@ -220,7 +220,7 @@ public abstract class AbstractNIOTransport extends AbstractTransport
      */
     protected static void notifyProbesResume(final AbstractNIOTransport transport) {
         final TransportProbe[] probes =
-                transport.transportProbes.getArray();
+                transport.transportMonitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (TransportProbe probe : probes) {
                 probe.onResumeEvent(transport);

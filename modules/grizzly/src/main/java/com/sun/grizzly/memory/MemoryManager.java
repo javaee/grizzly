@@ -39,7 +39,7 @@
 package com.sun.grizzly.memory;
 
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.MonitoringAware;
+import com.sun.grizzly.monitoring.MonitoringAware;
 
 /**
  * <tt>MemoryManager</tt>, responsible for allocating and releasing memory,

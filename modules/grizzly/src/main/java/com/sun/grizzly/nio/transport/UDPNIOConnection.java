@@ -208,8 +208,8 @@ public class UDPNIOConnection extends AbstractNIOConnection {
      * Set the monitoringProbes array directly.
      * @param monitoringProbes
      */
-    void setMonitoringProbes(final ArraySet<ConnectionProbe> monitoringProbes) {
-        this.monitoringProbes.add(monitoringProbes);
+    void setMonitoringProbes(final ConnectionProbe[] monitoringProbes) {
+        this.monitoringConfig.addProbes(monitoringProbes);
     }
 }
     

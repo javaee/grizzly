@@ -57,7 +57,7 @@ final class WebServerProbeNotificator {
     static void notifyRequestReceived(final WebServerFilter filter,
             final Connection connection, final GrizzlyRequest request) {
 
-        final WebServerProbe[] probes = filter.monitoringProbes.getArray();
+        final WebServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (WebServerProbe probe : probes) {
                 probe.onRequestReceiveEvent(filter, connection, request);
@@ -75,7 +75,7 @@ final class WebServerProbeNotificator {
     static void notifyRequestCompleted(final WebServerFilter filter,
             final Connection connection, final GrizzlyResponse response) {
 
-        final WebServerProbe[] probes = filter.monitoringProbes.getArray();
+        final WebServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (WebServerProbe probe : probes) {
                 probe.onRequestCompleteEvent(filter, connection, response);
@@ -93,7 +93,7 @@ final class WebServerProbeNotificator {
     static void notifyRequestSuspended(final WebServerFilter filter,
             final Connection connection, final GrizzlyRequest request) {
 
-        final WebServerProbe[] probes = filter.monitoringProbes.getArray();
+        final WebServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (WebServerProbe probe : probes) {
                 probe.onRequestSuspendEvent(filter, connection, request);
@@ -111,7 +111,7 @@ final class WebServerProbeNotificator {
     static void notifyRequestResumed(final WebServerFilter filter,
             final Connection connection, final GrizzlyRequest request) {
 
-        final WebServerProbe[] probes = filter.monitoringProbes.getArray();
+        final WebServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (WebServerProbe probe : probes) {
                 probe.onRequestResumeEvent(filter, connection, request);
@@ -129,7 +129,7 @@ final class WebServerProbeNotificator {
     static void notifyRequestTimeout(final WebServerFilter filter,
             final Connection connection, final GrizzlyRequest request) {
 
-        final WebServerProbe[] probes = filter.monitoringProbes.getArray();
+        final WebServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (WebServerProbe probe : probes) {
                 probe.onRequestTimeoutEvent(filter, connection, request);
@@ -147,7 +147,7 @@ final class WebServerProbeNotificator {
     static void notifyRequestCancelled(final WebServerFilter filter,
             final Connection connection, final GrizzlyRequest request) {
 
-        final WebServerProbe[] probes = filter.monitoringProbes.getArray();
+        final WebServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (WebServerProbe probe : probes) {
                 probe.onRequestCancelEvent(filter, connection, request);

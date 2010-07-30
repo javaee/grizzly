@@ -59,7 +59,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
 
     public void testDispose() throws Exception {
         final DefaultMemoryManager mm = new DefaultMemoryManager();
-        mm.addProbes(new MyMemoryMonitoringProbe());
+        mm.getMonitoringConfig().addProbes(new MyMemoryMonitoringProbe());
         
         Runnable r = new Runnable() {
 
@@ -90,7 +90,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
 
     public void testTrimDispose() throws Exception {
         final DefaultMemoryManager mm = new DefaultMemoryManager();
-        mm.addProbes(new MyMemoryMonitoringProbe());
+        mm.getMonitoringConfig().addProbes(new MyMemoryMonitoringProbe());
         
         Runnable r = new Runnable() {
 
@@ -126,7 +126,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
 
     public void testReallocate() throws Exception {
         final DefaultMemoryManager mm = new DefaultMemoryManager();
-        mm.addProbes(new MyMemoryMonitoringProbe());
+        mm.getMonitoringConfig().addProbes(new MyMemoryMonitoringProbe());
 
         Runnable r = new Runnable() {
 
@@ -175,7 +175,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
 
     public void testSimpleAllocateHistory() throws Exception {
         final DefaultMemoryManager mm = new DefaultMemoryManager();
-        mm.addProbes(new MyMemoryMonitoringProbe());
+        mm.getMonitoringConfig().addProbes(new MyMemoryMonitoringProbe());
 
         Runnable r = new Runnable() {
 
@@ -237,7 +237,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
 
     public void testTrimAllocateHistory() throws Exception {
         final DefaultMemoryManager mm = new DefaultMemoryManager();
-        mm.addProbes(new MyMemoryMonitoringProbe());
+        mm.getMonitoringConfig().addProbes(new MyMemoryMonitoringProbe());
 
         Runnable r = new Runnable() {
 
@@ -291,7 +291,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
 
     public void testDisposeUnused() throws Exception {
         final DefaultMemoryManager mm = new DefaultMemoryManager();
-        mm.addProbes(new MyMemoryMonitoringProbe());
+        mm.getMonitoringConfig().addProbes(new MyMemoryMonitoringProbe());
 
         Runnable r = new Runnable() {
 
@@ -331,7 +331,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
 
     public void testCompositeBufferDispose() throws Exception {
         final DefaultMemoryManager mm = new DefaultMemoryManager();
-        mm.addProbes(new MyMemoryMonitoringProbe());
+        mm.getMonitoringConfig().addProbes(new MyMemoryMonitoringProbe());
 
         Runnable r = new Runnable() {
 

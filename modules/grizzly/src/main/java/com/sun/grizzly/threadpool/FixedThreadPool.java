@@ -70,6 +70,8 @@ public class FixedThreadPool extends AbstractThreadPool {
             (BlockingQueue) config.setQueue(new LinkedTransferQueue<Runnable>()).getQueue();
         
         int poolSize = config.getMaxPoolSize();
+
+        ProbeNotificator.notifyThreadPoolStarted(this);
         
         synchronized (stateLock) {
             while (poolSize-- > 0) {

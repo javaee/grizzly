@@ -80,6 +80,8 @@ public class SyncThreadPool extends AbstractThreadPool {
 
     public void start() {
         synchronized (stateLock) {
+            ProbeNotificator.notifyThreadPoolStarted(this);
+            
             while (currentPoolSize < config.getCorePoolSize()) {
                 startWorker(new SyncThreadWorker(true));
             }

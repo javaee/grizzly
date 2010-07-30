@@ -40,13 +40,13 @@
 
 package com.sun.grizzly.http.server;
 
+import com.sun.grizzly.ConnectionProbe;
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.MonitoringAware;
 import com.sun.grizzly.Processor;
-import com.sun.grizzly.Transport;
 import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.http.HttpServerFilter;
+import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.ssl.SSLContextConfigurator;
 import java.io.IOException;
 import java.util.Map;
@@ -55,11 +55,14 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.sun.grizzly.TransportFactory;
+import com.sun.grizzly.TransportProbe;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.memory.MemoryProbe;
+import com.sun.grizzly.monitoring.MonitoringConfig;
 import com.sun.grizzly.ssl.SSLEngineConfigurator;
 import com.sun.grizzly.ssl.SSLFilter;
 import com.sun.grizzly.threadpool.DefaultWorkerThread;
+import com.sun.grizzly.threadpool.ThreadPoolProbe;
 import com.sun.grizzly.utils.IdleTimeoutFilter;
 import java.util.Collections;
 import java.util.HashMap;
@@ -402,37 +405,51 @@ public class GrizzlyWebServer {
                                         : listener.getMaxHttpHeaderSize());
 
             final HttpServerFilter httpServerFilter = new HttpServerFilter(maxHeaderSize);
-            httpServerFilter.addProbes(
+            httpServerFilter.getMonitoringConfig().addProbes(
                     serverConfig.getMonitoringConfig().getHttpConfig().getProbes());
             builder.add(httpServerFilter);
 
             final FileCacheFilter fileCacheFilter = new FileCacheFilter(this);
-            fileCacheFilter.getFileCache().addProbes(
+            fileCacheFilter.getFileCache().getMonitoringConfig().addProbes(
                     serverConfig.getMonitoringConfig().getFileCacheConfig().getProbes());
             builder.add(fileCacheFilter);
 
             final WebServerFilter webServerFilter = new WebServerFilter(this);
-            webServerFilter.addProbes(
+            webServerFilter.getMonitoringConfig().addProbes(
                     serverConfig.getMonitoringConfig().getWebServerConfig().getProbes());
             builder.add(webServerFilter);
 
             chain = builder.build();
             listener.setFilterChain(chain);
         }
+        configureMonitoring(listener);
+    }
 
-        //------ Probes config --------
-        final Transport transport = listener.getTransport();
-        final MonitoringAware<MemoryProbe> mm = transport.getMemoryManager();
+    private void configureMonitoring(final GrizzlyListener listener) {
+        final TCPNIOTransport transport = listener.getTransport();
 
-        transport.clearProbes();
-        transport.clearConnectionProbes();
-        mm.clearProbes();
+        final MonitoringConfig<TransportProbe> transportMonitoringCfg =
+                transport.getMonitoringConfig();
+        final MonitoringConfig<ConnectionProbe> connectionMonitoringCfg =
+                transport.getConnectionMonitoringConfig();
+        final MonitoringConfig<MemoryProbe> memoryMonitoringCfg =
+                transport.getMemoryManager().getMonitoringConfig();
+        final MonitoringConfig<ThreadPoolProbe> threadPoolMonitoringCfg =
+                transport.getThreadPoolMonitoringConfig();
 
-        transport.addProbes(
-                serverConfig.getMonitoringConfig().getTransportConfig().getProbes());
-        transport.addConnectionProbes(
-                serverConfig.getMonitoringConfig().getConnectionConfig().getProbes());
-        mm.addProbes(serverConfig.getMonitoringConfig().getMemoryConfig().getProbes());
+        transportMonitoringCfg.clearProbes();
+        connectionMonitoringCfg.clearProbes();
+        memoryMonitoringCfg.clearProbes();
+        threadPoolMonitoringCfg.clearProbes();
+
+        transportMonitoringCfg.addProbes(serverConfig.getMonitoringConfig()
+                .getTransportConfig().getProbes());
+        connectionMonitoringCfg.addProbes(serverConfig.getMonitoringConfig()
+                .getConnectionConfig().getProbes());
+        memoryMonitoringCfg.addProbes(serverConfig.getMonitoringConfig()
+                .getMemoryConfig().getProbes());
+        threadPoolMonitoringCfg.addProbes(serverConfig.getMonitoringConfig()
+                .getThreadPoolConfig().getProbes());
     }
 
     private void configureScheduledThreadPool() {

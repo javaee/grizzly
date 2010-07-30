@@ -42,9 +42,9 @@ import com.sun.grizzly.nio.AbstractNIOAsyncQueueWriter;
 import com.sun.grizzly.nio.NIOTransport;
 import java.io.IOException;
 import java.net.SocketAddress;
-import java.nio.channels.SelectionKey;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.asyncqueue.AsyncQueueWriter;
 import com.sun.grizzly.nio.NIOConnection;
@@ -70,11 +70,8 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
     }
 
     @Override
-    protected void onReadyToWrite(Connection connection) throws IOException {
-        NIOConnection nioConnection = (NIOConnection) connection;
-
-        transport.getSelectorHandler().registerKey(
-                nioConnection.getSelectorRunner(),
-                nioConnection.getSelectionKey(), SelectionKey.OP_WRITE);
+    protected final void onReadyToWrite(Connection connection) throws IOException {
+        final NIOConnection nioConnection = (NIOConnection) connection;
+        nioConnection.enableIOEvent(IOEvent.WRITE);
     }
 }

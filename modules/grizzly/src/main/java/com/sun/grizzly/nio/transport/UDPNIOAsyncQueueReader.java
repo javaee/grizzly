@@ -42,10 +42,10 @@ import com.sun.grizzly.nio.AbstractNIOAsyncQueueReader;
 import com.sun.grizzly.nio.NIOTransport;
 import java.io.IOException;
 import java.net.SocketAddress;
-import java.nio.channels.SelectionKey;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.Interceptor;
 import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.asyncqueue.AsyncQueueReader;
@@ -85,10 +85,7 @@ public final class UDPNIOAsyncQueueReader extends AbstractNIOAsyncQueueReader {
 
     @Override
     protected void onReadyToRead(Connection connection) throws IOException {
-        NIOConnection nioConnection = (NIOConnection) connection;
-
-        transport.getSelectorHandler().registerKey(
-                nioConnection.getSelectorRunner(),
-                nioConnection.getSelectionKey(), SelectionKey.OP_READ);
+        final NIOConnection nioConnection = (NIOConnection) connection;
+        nioConnection.enableIOEvent(IOEvent.READ);
     }
 }

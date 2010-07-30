@@ -40,7 +40,7 @@ package com.sun.grizzly.http;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
-import com.sun.grizzly.MonitoringAware;
+import com.sun.grizzly.monitoring.MonitoringAware;
 import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.Filter;
 import com.sun.grizzly.filterchain.FilterChain;
@@ -52,6 +52,8 @@ import com.sun.grizzly.http.util.CacheableBufferChunk;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.memory.BufferUtils;
+import com.sun.grizzly.monitoring.MonitoringConfig;
+import com.sun.grizzly.monitoring.MonitoringConfigImpl;
 import com.sun.grizzly.ssl.SSLFilter;
 import com.sun.grizzly.utils.ArraySet;
 import java.io.IOException;
@@ -91,8 +93,8 @@ public abstract class HttpCodecFilter extends BaseFilter
     protected final ArraySet<ContentEncoding> contentEncodings =
             new ArraySet<ContentEncoding>();
 
-    protected final ArraySet<HttpProbe> monitoringProbes =
-            new ArraySet<HttpProbe>();
+    protected final MonitoringConfigImpl<HttpProbe> monitoringConfig =
+            new MonitoringConfigImpl<HttpProbe>(HttpProbe.class);
     
     /**
      * flag, which indicates whether this <tt>HttpCodecFilter</tt> is dealing with
@@ -1403,45 +1405,11 @@ public abstract class HttpCodecFilter extends BaseFilter
     }
 
     /**
-     * Add the {@link HttpProbe}s, which will be notified about
-     * <tt>HttpCodecFilter</tt> lifecycle events.
-     *
-     * @param probes the {@link HttpProbe}s.
-     */
-    @Override
-    public void addProbes(HttpProbe... probes) {
-        monitoringProbes.add(probes);
-    }
-
-    /**
-     * Remove the {@link HttpProbe}s.
-     *
-     * @param probes the {@link HttpProbe}s.
-     */
-    @Override
-    public boolean removeProbes(HttpProbe... probes) {
-        return monitoringProbes.remove(probes);
-    }
-
-    /**
-     * Get the {@link HttpProbe}, which are registered on the <tt>HttpCodecFilter</tt>.
-     * Please note, it's not appropriate to modify the returned array's content.
-     * Please use {@link #addMonitoringProbe(com.sun.grizzly.http.HttpProbe)}and
-     * {@link #removeMonitoringProbe(com.sun.grizzly.http.HttpProbe)} instead.
-     *
-     * @return the {@link HttpProbe}, which are registered on the <tt>HttpCodecFilter</tt>.
-     */
-    @Override
-    public HttpProbe[] getProbes() {
-        return monitoringProbes.obtainArrayCopy(HttpProbe.class);
-    }
-
-    /**
      * {@inheritDoc}
      */
     @Override
-    public void clearProbes() {
-        monitoringProbes.clear();
+    public MonitoringConfig<HttpProbe> getMonitoringConfig() {
+        return monitoringConfig;
     }
     
     protected static final class ContentParsingState {

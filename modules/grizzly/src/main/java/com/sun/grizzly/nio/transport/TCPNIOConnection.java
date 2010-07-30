@@ -53,7 +53,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.utils.ArraySet;
 import java.util.concurrent.Callable;
 
 /**
@@ -183,8 +182,8 @@ public class TCPNIOConnection extends AbstractNIOConnection {
      * Set the monitoringProbes array directly.
      * @param monitoringProbes
      */
-    void setMonitoringProbes(final ArraySet<ConnectionProbe> monitoringProbes) {
-        this.monitoringProbes.add(monitoringProbes);
+    void setMonitoringProbes(final ConnectionProbe[] monitoringProbes) {
+        this.monitoringConfig.addProbes(monitoringProbes);
     }
 }
     
