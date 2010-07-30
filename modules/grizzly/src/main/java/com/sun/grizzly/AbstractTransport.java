@@ -43,9 +43,7 @@ import java.util.concurrent.ExecutorService;
 import com.sun.grizzly.attributes.AttributeBuilder;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.utils.ArraySet;
-import com.sun.grizzly.utils.ArrayUtils;
 import com.sun.grizzly.utils.StateHolder;
-import java.util.Arrays;
 
 /**
  * Abstract {@link Transport}.
@@ -370,7 +368,15 @@ public abstract class AbstractTransport implements Transport {
      * {@inheritDoc}
      */
     @Override
-    public void addTransportMonitoringProbe(TransportMonitoringProbe probe) {
+    public void clearConnectionMonitoringProbes() {
+        connectionMonitoringProbes.clear();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void addMonitoringProbe(TransportMonitoringProbe probe) {
         transportMonitoringProbes.add(probe);
     }
 
@@ -378,7 +384,7 @@ public abstract class AbstractTransport implements Transport {
      * {@inheritDoc}
      */
     @Override
-    public boolean removeTransportMonitoringProbe(TransportMonitoringProbe probe) {
+    public boolean removeMonitoringProbe(TransportMonitoringProbe probe) {
         return transportMonitoringProbes.remove(probe);
     }
 
@@ -386,8 +392,16 @@ public abstract class AbstractTransport implements Transport {
      * {@inheritDoc}
      */
     @Override
-    public TransportMonitoringProbe[] getTransportMonitoringProbes() {
+    public TransportMonitoringProbe[] getMonitoringProbes() {
         return transportMonitoringProbes.obtainArrayCopy(TransportMonitoringProbe.class);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void clearMonitoringProbes() {
+        transportMonitoringProbes.clear();
     }
 
     /**

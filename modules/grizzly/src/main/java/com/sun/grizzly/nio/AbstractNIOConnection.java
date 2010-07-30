@@ -66,7 +66,6 @@ import com.sun.grizzly.attributes.IndexedAttributeHolder;
 import com.sun.grizzly.impl.ReadyFutureImpl;
 import com.sun.grizzly.utils.ArraySet;
 import com.sun.grizzly.utils.LinkedTransferQueue;
-import java.util.Arrays;
 import java.util.Queue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -409,6 +408,14 @@ public abstract class AbstractNIOConnection implements NIOConnection {
     @Override
     public ConnectionMonitoringProbe[] getMonitoringProbes() {
         return monitoringProbes.obtainArrayCopy(ConnectionMonitoringProbe.class);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void clearMonitoringProbes() {
+        monitoringProbes.clear();
     }
 
     /**

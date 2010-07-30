@@ -58,8 +58,9 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
     private static Logger logger = Grizzly.logger(DefaultMemoryManagerTest.class);
 
     public void testDispose() throws Exception {
-        final DefaultMemoryManager mm = new DefaultMemoryManager(
-                new MyMemoryMonitoringProbe());
+        final DefaultMemoryManager mm = new DefaultMemoryManager();
+        mm.addMonitoringProbe(new MyMemoryMonitoringProbe());
+        
         Runnable r = new Runnable() {
 
             @Override
@@ -88,8 +89,9 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
     }
 
     public void testTrimDispose() throws Exception {
-        final DefaultMemoryManager mm = new DefaultMemoryManager(
-                new MyMemoryMonitoringProbe());
+        final DefaultMemoryManager mm = new DefaultMemoryManager();
+        mm.addMonitoringProbe(new MyMemoryMonitoringProbe());
+        
         Runnable r = new Runnable() {
 
             @Override
@@ -123,8 +125,9 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
     }
 
     public void testReallocate() throws Exception {
-        final DefaultMemoryManager mm = new DefaultMemoryManager(
-                new MyMemoryMonitoringProbe());
+        final DefaultMemoryManager mm = new DefaultMemoryManager();
+        mm.addMonitoringProbe(new MyMemoryMonitoringProbe());
+
         Runnable r = new Runnable() {
 
             @Override
@@ -171,8 +174,9 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
     }
 
     public void testSimpleAllocateHistory() throws Exception {
-        final DefaultMemoryManager mm = new DefaultMemoryManager(
-                new MyMemoryMonitoringProbe());
+        final DefaultMemoryManager mm = new DefaultMemoryManager();
+        mm.addMonitoringProbe(new MyMemoryMonitoringProbe());
+
         Runnable r = new Runnable() {
 
             @Override
@@ -232,8 +236,9 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
     }
 
     public void testTrimAllocateHistory() throws Exception {
-        final DefaultMemoryManager mm = new DefaultMemoryManager(
-                new MyMemoryMonitoringProbe());
+        final DefaultMemoryManager mm = new DefaultMemoryManager();
+        mm.addMonitoringProbe(new MyMemoryMonitoringProbe());
+
         Runnable r = new Runnable() {
 
             @Override
@@ -285,8 +290,9 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
     }
 
     public void testDisposeUnused() throws Exception {
-        final DefaultMemoryManager mm = new DefaultMemoryManager(
-                new MyMemoryMonitoringProbe());
+        final DefaultMemoryManager mm = new DefaultMemoryManager();
+        mm.addMonitoringProbe(new MyMemoryMonitoringProbe());
+
         Runnable r = new Runnable() {
 
             @Override
@@ -324,8 +330,9 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
     }
 
     public void testCompositeBufferDispose() throws Exception {
-        final DefaultMemoryManager mm = new DefaultMemoryManager(
-                new MyMemoryMonitoringProbe());
+        final DefaultMemoryManager mm = new DefaultMemoryManager();
+        mm.addMonitoringProbe(new MyMemoryMonitoringProbe());
+
         Runnable r = new Runnable() {
 
             @Override
@@ -381,17 +388,17 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
     private static class MyMemoryMonitoringProbe implements MemoryProbe {
 
         @Override
-        public void allocateNewBufferEvent(int size) {
+        public void onBufferAllocateEvent(int size) {
             logger.info("allocateNewBufferEvent: " + size);
         }
 
         @Override
-        public void allocateBufferFromPoolEvent(int size) {
+        public void onBufferAllocateFromPoolEvent(int size) {
             logger.info("allocateBufferFromPoolEvent: " + size);
         }
 
         @Override
-        public void releaseBufferToPoolEvent(int size) {
+        public void onBufferReleaseToPoolEvent(int size) {
             logger.info("releaseBufferToPoolEvent: " + size);
         }
     }

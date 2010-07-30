@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 1997-2007 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -34,32 +34,40 @@
  * holder.
  */
 
-package com.sun.grizzly.memory;
+package com.sun.grizzly;
 
 /**
- * {@link MemoryManager} monitoring probe.
+ * General interface for the objects, which could be monitored during the lifecycle.
  * 
  * @author Alexey Stashok
  */
-public interface MemoryProbe {
+public interface MonitoringAware<E> {
     /**
-     * Called by {@link MemoryManager}, when new buffer gets allocated
-     * 
-     * @param size buffer size
+     * Add the monitoring probe, which will be notified about object's lifecycle events.
+     *
+     * @param probe the monitoring probe.
      */
-    public void onBufferAllocateEvent(int size);
+    public void addMonitoringProbe(E probe);
 
     /**
-     * Called by {@link MemoryManager}, when buffer gets allocated from some pool
+     * Remove the monitoring probe.
      *
-     * @param size buffer size
+     * @param probe the monitoring probe.
      */
-    public void onBufferAllocateFromPoolEvent(int size);
+    public boolean removeMonitoringProbe(E probe);
 
     /**
-     * Called by {@link MemoryManager}, when buffer gets releaed into a buffer pool
+     * Get the the monitoring probes, which are registered on the objet.
+     * Please note, it's not appropriate to modify the returned array's content.
+     * Please use {@link #addMonitoringProbe(java.lang.Object)} and
+     * {@link #removeMonitoringProbe(java.lang.Object)} instead.
      *
-     * @param size buffer size
+     * @return the the monitoring probes, which are registered on the object.
      */
-    public void onBufferReleaseToPoolEvent(int size);
+    public E[] getMonitoringProbes();
+
+    /**
+     * Removes all the monitoring probes, which are registered on the object.
+     */
+    public void clearMonitoringProbes();
 }

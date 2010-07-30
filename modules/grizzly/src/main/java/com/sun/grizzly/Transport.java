@@ -52,7 +52,8 @@ import java.util.concurrent.ExecutorService;
  *
  * @author Alexey Stashok
  */
-public interface Transport {
+public interface Transport extends MonitoringAware<TransportMonitoringProbe> {
+    
     public enum State {STARTING, START, PAUSE, STOPPING, STOP};
 
     public enum IOEventReg {REGISTER, DEREGISTER};
@@ -396,19 +397,26 @@ public interface Transport {
     public ConnectionMonitoringProbe[] getConnectionMonitoringProbes();
 
     /**
+     * Clear all the {@link ConnectionMonitoringProbe}s.
+     */
+    public void clearConnectionMonitoringProbes();
+
+    /**
      * Add the {@link TransportMonitoringProbe}, which will be notified about
      * <tt>Transport</tt> lifecycle events.
      *
      * @param probe the {@link TransportMonitoringProbe}.
      */
-    public void addTransportMonitoringProbe(TransportMonitoringProbe probe);
+    @Override
+    public void addMonitoringProbe(TransportMonitoringProbe probe);
 
     /**
      * Remove the {@link TransportMonitoringProbe}.
      *
      * @param probe the {@link TransportMonitoringProbe}.
      */
-    public boolean removeTransportMonitoringProbe(TransportMonitoringProbe probe);
+    @Override
+    public boolean removeMonitoringProbe(TransportMonitoringProbe probe);
 
     /**
      * Get the {@link TransportMonitoringProbe}s, which are registered on the <tt>Transport</tt>.
@@ -418,7 +426,8 @@ public interface Transport {
      *
      * @return the {@link TransportMonitoringProbe}s, which are registered on the <tt>Transport</tt>.
      */
-    public TransportMonitoringProbe[] getTransportMonitoringProbes();
+    @Override
+    public TransportMonitoringProbe[] getMonitoringProbes();
 
     /**
      * Method gets invoked, when error occur during the <tt>Transport</tt> lifecycle.

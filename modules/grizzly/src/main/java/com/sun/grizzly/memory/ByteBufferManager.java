@@ -38,6 +38,7 @@
 
 package com.sun.grizzly.memory;
 
+import com.sun.grizzly.utils.ArraySet;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -60,19 +61,14 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
      */
     protected boolean isDirect;
 
-    protected final MemoryProbe memoryProbe;
+    protected final ArraySet<MemoryProbe> monitoringProbes =
+            new ArraySet<MemoryProbe>();
     
     public ByteBufferManager() {
-        this(null);
+        this(false);
     }
 
-    public ByteBufferManager(MemoryProbe memoryProbe) {
-        this(memoryProbe, false);
-    }
-
-    public ByteBufferManager(MemoryProbe memoryProbe,
-            boolean isDirect) {
-        this.memoryProbe = memoryProbe;
+    public ByteBufferManager(boolean isDirect) {
         this.isDirect = isDirect;
     }
 
@@ -176,9 +172,7 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
      */
     @Override
     public ByteBuffer allocateByteBuffer(int size) {
-        if (memoryProbe != null) {
-            memoryProbe.allocateNewBufferEvent(size);
-        }
+        ProbeNotificator.notifyBufferAllocated(monitoringProbes, size);
 
         if (isDirect) {
             return ByteBuffer.allocateDirect(size);
@@ -196,5 +190,49 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
 
     @Override
     public void releaseByteBuffer(ByteBuffer byteBuffer) {
+    }
+
+    // ------- Monitoring section ----------------------
+
+    /**
+     * Add the {@link MemoryProbe}, which will be notified about
+     * <tt>MemoryManager</tt> lifecycle events.
+     *
+     * @param probe the {@link MemoryProbe}.
+     */
+    @Override
+    public final void addMonitoringProbe(MemoryProbe probe) {
+        monitoringProbes.add(probe);
+    }
+
+    /**
+     * Remove the {@link MemoryProbe}.
+     *
+     * @param probe the {@link MemoryProbe}.
+     */
+    @Override
+    public final boolean removeMonitoringProbe(MemoryProbe probe) {
+        return monitoringProbes.remove(probe);
+    }
+
+    /**
+     * Get the {@link MemoryProbe}s, which are registered on the <tt>MemoryManager</tt>.
+     * Please note, it's not appropriate to modify the returned array's content.
+     * Please use {@link #addMonitoringProbe(com.sun.grizzly.memory.MemoryProbe)} and
+     * {@link #removeMonitoringProbe(com.sun.grizzly.memory.MemoryProbe)} instead.
+     *
+     * @return the {@link MemoryProbe}s, which are registered on the <tt>MemoryManager</tt>.
+     */
+    @Override
+    public final MemoryProbe[] getMonitoringProbes() {
+        return monitoringProbes.obtainArrayCopy(MemoryProbe.class);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public final void clearMonitoringProbes() {
+        monitoringProbes.clear();
     }
 }

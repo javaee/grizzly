@@ -54,11 +54,7 @@ public final class DefaultMemoryManager extends ByteBufferManager {
             ThreadCache.obtainIndex(TrimAwareWrapper.class, 2);
 
     public DefaultMemoryManager() {
-        super(null);
-    }
-
-    public DefaultMemoryManager(MemoryProbe memoryProbe) {
-        super(memoryProbe);
+        super();
     }
 
     /**
@@ -173,10 +169,8 @@ public final class DefaultMemoryManager extends ByteBufferManager {
                     memoryPool.reallocate(oldByteBuffer, newSize);
             
             if (newBuffer != null) {
-                if (memoryProbe != null) {
-                    memoryProbe.allocateBufferFromPoolEvent(
-                            newSize - oldByteBuffer.capacity());
-                }
+                ProbeNotificator.notifyBufferAllocatedFromPool(monitoringProbes,
+                        newSize - oldByteBuffer.capacity());
 
                 return newBuffer;
             }
@@ -189,9 +183,7 @@ public final class DefaultMemoryManager extends ByteBufferManager {
     private ByteBuffer allocateFromPool(final ThreadLocalPool threadLocalCache,
             final int size) {
         if (threadLocalCache.remaining() >= size) {
-            if (memoryProbe != null) {
-                memoryProbe.allocateBufferFromPoolEvent(size);
-            }
+            ProbeNotificator.notifyBufferAllocatedFromPool(monitoringProbes, size);
             
             return threadLocalCache.allocate(size);
         }
@@ -214,9 +206,8 @@ public final class DefaultMemoryManager extends ByteBufferManager {
             ThreadLocalPool memoryPool = getThreadLocalPool();
 
             if (memoryPool.release((ByteBuffer) byteBuffer.clear())) {
-                if (memoryProbe != null) {
-                    memoryProbe.releaseBufferToPoolEvent(byteBuffer.capacity());
-                }
+                ProbeNotificator.notifyBufferReleasedToPool(monitoringProbes,
+                        byteBuffer.capacity());
 
                 return;
             }

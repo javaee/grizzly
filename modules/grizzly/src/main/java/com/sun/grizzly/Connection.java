@@ -49,7 +49,7 @@ import java.util.concurrent.TimeUnit;
  * @author Alexey Stashok
  */
 public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
-        AttributeStorage {
+        AttributeStorage, MonitoringAware<ConnectionMonitoringProbe> {
     /**
      * Get the {@link Transport}, to which this {@link Connection} belongs to.
      * @return the {@link Transport}, to which this {@link Connection} belongs to.
@@ -232,6 +232,7 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
      * 
      * @param probe the {@link ConnectionMonitoringProbe}.
      */
+    @Override
     public void addMonitoringProbe(ConnectionMonitoringProbe probe);
 
     /**
@@ -239,6 +240,7 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
      *
      * @param probe the {@link ConnectionMonitoringProbe}.
      */
+    @Override
     public boolean removeMonitoringProbe(ConnectionMonitoringProbe probe);
 
     /**
@@ -249,8 +251,9 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
      * 
      * @return the {@link ConnectionMonitoringProbe}, which are registered on the <tt>Connection</tt>.
      */
+    @Override
     public ConnectionMonitoringProbe[] getMonitoringProbes();
-    
+
     /**
      * Add the {@link CloseListener}, which will be notified once <tt>Connection</tt>
      * will be closed.
