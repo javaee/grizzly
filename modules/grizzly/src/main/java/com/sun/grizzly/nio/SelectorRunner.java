@@ -350,9 +350,12 @@ public final class SelectorRunner implements Runnable {
         final SelectionKeyHandler selectionKeyHandler = transport.getSelectionKeyHandler();
         final Strategy strategy = transport.getStrategy();
         final IOEvent[] ioEvents = selectionKeyHandler.getIOEvents(keyReadyOps);
-        final Connection connection = selectionKeyHandler.getConnectionForKey(key);
+        final AbstractNIOConnection connection =
+                (AbstractNIOConnection) selectionKeyHandler.getConnectionForKey(key);
 
-        for(IOEvent ioEvent : ioEvents) {
+        for (IOEvent ioEvent : ioEvents) {
+            AbstractNIOConnection.notifyIOEventReady(connection, ioEvent);
+            
             final int interest = selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent);
             keyReadyOps &= (~interest);
             if (selectionKeyHandler.onProcessInterest(key, interest)) {

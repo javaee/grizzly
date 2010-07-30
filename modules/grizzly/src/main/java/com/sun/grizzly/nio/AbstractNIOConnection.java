@@ -469,6 +469,57 @@ public abstract class AbstractNIOConnection implements NIOConnection {
     }
 
     /**
+     * Notify registered {@link ConnectionProbe}s about the IO Event ready event.
+     *
+     * @param connection the <tt>Connection</tt> event occurred on.
+     * @param ioEvent the {@link IOEvent}.
+     */
+    protected static void notifyIOEventReady(AbstractNIOConnection connection,
+            IOEvent ioEvent) {
+        final ConnectionProbe[] probes =
+                connection.monitoringConfig.getProbesUnsafe();
+        if (probes != null) {
+            for (ConnectionProbe probe : probes) {
+                probe.onIOEventReadyEvent(connection, ioEvent);
+            }
+        }
+    }
+
+    /**
+     * Notify registered {@link ConnectionProbe}s about the IO Event enabled event.
+     *
+     * @param connection the <tt>Connection</tt> event occurred on.
+     * @param ioEvent the {@link IOEvent}.
+     */
+    protected static void notifyIOEventEnabled(AbstractNIOConnection connection,
+            IOEvent ioEvent) {
+        final ConnectionProbe[] probes =
+                connection.monitoringConfig.getProbesUnsafe();
+        if (probes != null) {
+            for (ConnectionProbe probe : probes) {
+                probe.onIOEventEnableEvent(connection, ioEvent);
+            }
+        }
+    }
+
+    /**
+     * Notify registered {@link ConnectionProbe}s about the IO Event disabled event.
+     *
+     * @param connection the <tt>Connection</tt> event occurred on.
+     * @param ioEvent the {@link IOEvent}.
+     */
+    protected static void notifyIOEventDisabled(AbstractNIOConnection connection,
+            IOEvent ioEvent) {
+        final ConnectionProbe[] probes =
+                connection.monitoringConfig.getProbesUnsafe();
+        if (probes != null) {
+            for (ConnectionProbe probe : probes) {
+                probe.onIOEventDisableEvent(connection, ioEvent);
+            }
+        }
+    }
+    
+    /**
      * Notify registered {@link ConnectionProbe}s about the close event.
      *
      * @param connection the <tt>Connection</tt> event occurred on.
@@ -482,7 +533,7 @@ public abstract class AbstractNIOConnection implements NIOConnection {
             }
         }
     }
-
+    
     /**
      * Notify registered {@link ConnectionProbe}s about the error.
      *
@@ -523,6 +574,8 @@ public abstract class AbstractNIOConnection implements NIOConnection {
 
         if (interest == 0) return;
 
+        notifyIOEventEnabled(this, ioEvent);
+
         final SelectorHandler selectorHandler = transport.getSelectorHandler();
 
         selectorHandler.registerKey(selectorRunner, selectionKey,
@@ -538,6 +591,8 @@ public abstract class AbstractNIOConnection implements NIOConnection {
 
         if (interest == 0) return;
 
+        notifyIOEventDisabled(this, ioEvent);
+        
         final SelectorHandler selectorHandler = transport.getSelectorHandler();
 
         selectorHandler.unregisterKey(selectorRunner, selectionKey, interest);
