@@ -40,65 +40,49 @@ package com.sun.grizzly;
 
 /**
  * Monitoring probe providing callbacks that may be invoked by Grizzly
- * {@link Connection} implementations.
+ * {@link Transport} implementations.
  *
  * @author Alexey Stashok
  *
  * @since 2.0
  */
-public interface ConnectionMonitoringProbe {
+public interface TransportProbe {
+    /**
+     * Method will be called, when the {@link Transport} gets started.
+     *
+     * @param transport {@link Transport}, the event belongs to.
+     */
+    public void onStartEvent(Transport transport);
 
     /**
-     * Method will be called, when server side connection gets bound.
+     * Method will be called, when the {@link Transport} gets stopped.
      *
-     * @param connection {@link Connection}, the event belongs to.
+     * @param transport {@link Transport}, the event belongs to.
      */
-    public void onBindEvent(Connection connection);
+    public void onStopEvent(Transport transport);
 
     /**
-     * Method will be called, when server side connection gets accepted.
+     * Method will be called, when the {@link Transport} gets paused.
      *
-     * @param connection {@link Connection}, the event belongs to.
+     * @param transport {@link Transport}, the event belongs to.
      */
-    public void onAcceptEvent(Connection connection);
+    public void onPauseEvent(Transport transport);
 
     /**
-     * Method will be called, when client side connection gets connected (opened).
+     * Method will be called, when the {@link Transport} gets resumed.
      *
-     * @param connection {@link Connection}, the event belongs to.
+     * @param transport {@link Transport}, the event belongs to.
      */
-    public void onConnectEvent(Connection connection);
+    public void onResumeEvent(Transport transport);
+
 
     /**
-     * Method will be called, when the {@link Connection} has read data.
+     * Method will be called, when error occurs on the {@link Transport}.
      *
-     * @param connection {@link Connection}, the event belongs to.
-     * @param data {@link Buffer}, where the data gets read.
-     * @param size the data size.
-     */
-    public void onReadEvent(Connection connection, Buffer data, int size);
-
-    /**
-     * Method will be called, when the {@link Connection} has written data.
-     *
-     * @param connection {@link Connection}, the event belongs to.
-     * @param data {@link Buffer}, where the data gets writen.
-     * @param size the data size.
-     */
-    public void onWriteEvent(Connection connection, Buffer data, int size);
-    
-    /**
-     * Method will be called, when error occurs on the {@link Connection}.
-     *
-     * @param connection {@link Connection}, the event belongs to.
+     * @param transport {@link Transport}, the event belongs to.
      * @param error error
      */
-    public void onErrorEvent(Connection connection, Throwable error);
+    public void onErrorEvent(Transport transport, Throwable error);
 
-    /**
-     * Method will be called, when {@link Connection} gets closed.
-     *
-     * @param connection {@link Connection}, the event belongs to.
-     */
-    public void onCloseEvent(Connection connection);
+
 }

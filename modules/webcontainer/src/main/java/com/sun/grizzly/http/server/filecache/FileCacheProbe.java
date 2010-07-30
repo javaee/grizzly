@@ -45,7 +45,7 @@ package com.sun.grizzly.http.server.filecache;
  *
  * @since 2.0
  */
-public interface FileCacheMonitoringProbe {
+public interface FileCacheProbe {
     /**
      * Method will be called, when file cache entry gets added.
      *

@@ -49,7 +49,7 @@ import java.util.concurrent.TimeUnit;
  * @author Alexey Stashok
  */
 public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
-        AttributeStorage, MonitoringAware<ConnectionMonitoringProbe> {
+        AttributeStorage, MonitoringAware<ConnectionProbe> {
     /**
      * Get the {@link Transport}, to which this {@link Connection} belongs to.
      * @return the {@link Transport}, to which this {@link Connection} belongs to.
@@ -227,32 +227,32 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
     public void setWriteTimeout(long timeout, TimeUnit timeUnit);
 
     /**
-     * Add the {@link ConnectionMonitoringProbe}, which will be notified about
+     * Add the {@link ConnectionProbe}s, which will be notified about
      * <tt>Connection</tt> lifecycle events.
      * 
-     * @param probe the {@link ConnectionMonitoringProbe}.
+     * @param probes the {@link ConnectionProbe}s.
      */
     @Override
-    public void addMonitoringProbe(ConnectionMonitoringProbe probe);
+    public void addProbes(ConnectionProbe... probes);
 
     /**
-     * Remove the {@link ConnectionMonitoringProbe}.
+     * Remove the {@link ConnectionProbe}s.
      *
-     * @param probe the {@link ConnectionMonitoringProbe}.
+     * @param probes the {@link ConnectionProbe}s.
      */
     @Override
-    public boolean removeMonitoringProbe(ConnectionMonitoringProbe probe);
+    public boolean removeProbes(ConnectionProbe... probes);
 
     /**
-     * Get the {@link ConnectionMonitoringProbe}, which are registered on the <tt>Connection</tt>.
+     * Get the {@link ConnectionProbe}s, which are registered on the <tt>Connection</tt>.
      * Please note, it's not appropriate to modify the returned array's content.
-     * Please use {@link #addMonitoringProbe(com.sun.grizzly.ConnectionMonitoringProbe)} and
-     * {@link #removeMonitoringProbe(com.sun.grizzly.ConnectionMonitoringProbe)} instead.
+     * Please use {@link #addMonitoringProbe(com.sun.grizzly.ConnectionProbe)} and
+     * {@link #removeMonitoringProbe(com.sun.grizzly.ConnectionProbe)} instead.
      * 
-     * @return the {@link ConnectionMonitoringProbe}, which are registered on the <tt>Connection</tt>.
+     * @return the {@link ConnectionProbe}s, which are registered on the <tt>Connection</tt>.
      */
     @Override
-    public ConnectionMonitoringProbe[] getMonitoringProbes();
+    public ConnectionProbe[] getProbes();
 
     /**
      * Add the {@link CloseListener}, which will be notified once <tt>Connection</tt>

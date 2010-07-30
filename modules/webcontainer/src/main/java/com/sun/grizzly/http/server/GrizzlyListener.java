@@ -581,7 +581,5 @@ public class GrizzlyListener {
                                                           : "have a zero length")); // I18n
         }
 
-    }
-
-    
+    }    
 }

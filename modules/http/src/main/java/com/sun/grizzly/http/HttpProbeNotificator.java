@@ -43,14 +43,14 @@ import com.sun.grizzly.Connection;
 
 /**
  * Utility class, which has notificator methods for different
- * {@link HttpMonitoringProbe} events.
+ * {@link HttpProbe} events.
  *
  * @author Alexey Stashok
  */
 final class HttpProbeNotificator {
 
     /**
-     * Notify registered {@link HttpMonitoringProbe}s about the "data received" event.
+     * Notify registered {@link HttpProbe}s about the "data received" event.
      *
      * @param httpFilter the <tt>HttpCodecFilter</tt> event occurred on.
      * @param connection the <tt>Connection</tt> event occurred on.
@@ -60,16 +60,16 @@ final class HttpProbeNotificator {
             final Connection connection,
             final Buffer buffer) {
 
-        final HttpMonitoringProbe[] probes = httpFilter.monitoringProbes.getArray();
+        final HttpProbe[] probes = httpFilter.monitoringProbes.getArray();
         if (probes != null) {
-            for (HttpMonitoringProbe probe : probes) {
+            for (HttpProbe probe : probes) {
                 probe.onDataReceivedEvent(connection, buffer);
             }
         }
     }
 
     /**
-     * Notify registered {@link HttpMonitoringProbe}s about the "data sent" event.
+     * Notify registered {@link HttpProbe}s about the "data sent" event.
      *
      * @param httpFilter the <tt>HttpCodecFilter</tt> event occurred on.
      * @param connection the <tt>Connection</tt> event occurred on.
@@ -79,16 +79,16 @@ final class HttpProbeNotificator {
             final Connection connection,
             final Buffer buffer) {
 
-        final HttpMonitoringProbe[] probes = httpFilter.monitoringProbes.getArray();
+        final HttpProbe[] probes = httpFilter.monitoringProbes.getArray();
         if (probes != null) {
-            for (HttpMonitoringProbe probe : probes) {
+            for (HttpProbe probe : probes) {
                 probe.onDataSentEvent(connection, buffer);
             }
         }
     }
 
     /**
-     * Notify registered {@link HttpMonitoringProbe}s about the "header parsed" event.
+     * Notify registered {@link HttpProbe}s about the "header parsed" event.
      *
      * @param httpFilter the <tt>HttpCodecFilter</tt> event occurred on.
      * @param connection the <tt>Connection</tt> event occurred on.
@@ -98,16 +98,16 @@ final class HttpProbeNotificator {
             final Connection connection,
             final HttpHeader header) {
 
-        final HttpMonitoringProbe[] probes = httpFilter.monitoringProbes.getArray();
+        final HttpProbe[] probes = httpFilter.monitoringProbes.getArray();
         if (probes != null) {
-            for (HttpMonitoringProbe probe : probes) {
+            for (HttpProbe probe : probes) {
                 probe.onHeaderParseEvent(connection, header);
             }
         }
     }
 
     /**
-     * Notify registered {@link HttpMonitoringProbe}s about the "header serialized" event.
+     * Notify registered {@link HttpProbe}s about the "header serialized" event.
      *
      * @param httpFilter the <tt>HttpCodecFilter</tt> event occurred on.
      * @param connection the <tt>Connection</tt> event occurred on.
@@ -117,16 +117,16 @@ final class HttpProbeNotificator {
             final Connection connection,
             final HttpHeader header) {
 
-        final HttpMonitoringProbe[] probes = httpFilter.monitoringProbes.getArray();
+        final HttpProbe[] probes = httpFilter.monitoringProbes.getArray();
         if (probes != null) {
-            for (HttpMonitoringProbe probe : probes) {
+            for (HttpProbe probe : probes) {
                 probe.onHeaderSerializeEvent(connection, header);
             }
         }
     }
 
     /**
-     * Notify registered {@link HttpMonitoringProbe}s about the "content chunk parsed" event.
+     * Notify registered {@link HttpProbe}s about the "content chunk parsed" event.
      *
      * @param httpFilter the <tt>HttpCodecFilter</tt> event occurred on.
      * @param connection the <tt>Connection</tt> event occurred on.
@@ -136,16 +136,16 @@ final class HttpProbeNotificator {
             final Connection connection,
             final HttpContent content) {
 
-        final HttpMonitoringProbe[] probes = httpFilter.monitoringProbes.getArray();
+        final HttpProbe[] probes = httpFilter.monitoringProbes.getArray();
         if (probes != null) {
-            for (HttpMonitoringProbe probe : probes) {
+            for (HttpProbe probe : probes) {
                 probe.onContentChunkParseEvent(connection, content);
             }
         }
     }
 
     /**
-     * Notify registered {@link HttpMonitoringProbe}s about the "content chunk serialize" event.
+     * Notify registered {@link HttpProbe}s about the "content chunk serialize" event.
      *
      * @param httpFilter the <tt>HttpCodecFilter</tt> event occurred on.
      * @param connection the <tt>Connection</tt> event occurred on.
@@ -155,16 +155,16 @@ final class HttpProbeNotificator {
             final Connection connection,
             final HttpContent content) {
 
-        final HttpMonitoringProbe[] probes = httpFilter.monitoringProbes.getArray();
+        final HttpProbe[] probes = httpFilter.monitoringProbes.getArray();
         if (probes != null) {
-            for (HttpMonitoringProbe probe : probes) {
+            for (HttpProbe probe : probes) {
                 probe.onContentChunkSerializeEvent(connection, content);
             }
         }
     }
 
     /**
-     * Notify registered {@link HttpMonitoringProbe}s about the "content encoding parse" event.
+     * Notify registered {@link HttpProbe}s about the "content encoding parse" event.
      *
      * @param httpFilter the <tt>HttpCodecFilter</tt> event occurred on.
      * @param connection the <tt>Connection</tt> event occurred on.
@@ -176,9 +176,9 @@ final class HttpProbeNotificator {
             final Connection connection, final HttpHeader header,
             final Buffer buffer, final ContentEncoding contentEncoding) {
 
-        final HttpMonitoringProbe[] probes = httpFilter.monitoringProbes.getArray();
+        final HttpProbe[] probes = httpFilter.monitoringProbes.getArray();
         if (probes != null) {
-            for (HttpMonitoringProbe probe : probes) {
+            for (HttpProbe probe : probes) {
                 probe.onContentEncodingParseEvent(connection, header, buffer,
                         contentEncoding);
             }
@@ -186,7 +186,7 @@ final class HttpProbeNotificator {
     }
     
     /**
-     * Notify registered {@link HttpMonitoringProbe}s about the "content encoding serialize" event.
+     * Notify registered {@link HttpProbe}s about the "content encoding serialize" event.
      *
      * @param httpFilter the <tt>HttpCodecFilter</tt> event occurred on.
      * @param connection the <tt>Connection</tt> event occurred on.
@@ -198,9 +198,9 @@ final class HttpProbeNotificator {
             final Connection connection, final HttpHeader header,
             final Buffer buffer, final ContentEncoding contentEncoding) {
 
-        final HttpMonitoringProbe[] probes = httpFilter.monitoringProbes.getArray();
+        final HttpProbe[] probes = httpFilter.monitoringProbes.getArray();
         if (probes != null) {
-            for (HttpMonitoringProbe probe : probes) {
+            for (HttpProbe probe : probes) {
                 probe.onContentEncodingSerializeEvent(connection, header, buffer,
                         contentEncoding);
             }
@@ -208,7 +208,7 @@ final class HttpProbeNotificator {
     }
 
     /**
-     * Notify registered {@link HttpMonitoringProbe}s about the "transfer encoding parse" event.
+     * Notify registered {@link HttpProbe}s about the "transfer encoding parse" event.
      *
      * @param httpFilter the <tt>HttpCodecFilter</tt> event occurred on.
      * @param connection the <tt>Connection</tt> event occurred on.
@@ -220,9 +220,9 @@ final class HttpProbeNotificator {
             final Connection connection, final HttpHeader header,
             final Buffer buffer, final TransferEncoding transferEncoding) {
 
-        final HttpMonitoringProbe[] probes = httpFilter.monitoringProbes.getArray();
+        final HttpProbe[] probes = httpFilter.monitoringProbes.getArray();
         if (probes != null) {
-            for (HttpMonitoringProbe probe : probes) {
+            for (HttpProbe probe : probes) {
                 probe.onTransferEncodingParseEvent(connection, header, buffer,
                         transferEncoding);
             }
@@ -230,7 +230,7 @@ final class HttpProbeNotificator {
     }
 
     /**
-     * Notify registered {@link HttpMonitoringProbe}s about the "transfer encoding serialize" event.
+     * Notify registered {@link HttpProbe}s about the "transfer encoding serialize" event.
      *
      * @param httpFilter the <tt>HttpCodecFilter</tt> event occurred on.
      * @param connection the <tt>Connection</tt> event occurred on.
@@ -242,9 +242,9 @@ final class HttpProbeNotificator {
             final Connection connection, final HttpHeader header,
             final Buffer buffer, final TransferEncoding transferEncoding) {
 
-        final HttpMonitoringProbe[] probes = httpFilter.monitoringProbes.getArray();
+        final HttpProbe[] probes = httpFilter.monitoringProbes.getArray();
         if (probes != null) {
-            for (HttpMonitoringProbe probe : probes) {
+            for (HttpProbe probe : probes) {
                 probe.onTransferEncodingSerializeEvent(connection, header, buffer,
                         transferEncoding);
             }
@@ -252,7 +252,7 @@ final class HttpProbeNotificator {
     }
     
     /**
-     * Notify registered {@link HttpMonitoringProbe}s about the error.
+     * Notify registered {@link HttpProbe}s about the error.
      *
      * @param httpFilter the <tt>HttpCodecFilter</tt> event occurred on.
      * @param connection the <tt>Connection</tt> event occurred on.
@@ -261,13 +261,13 @@ final class HttpProbeNotificator {
     static void notifyProbesError(final HttpCodecFilter httpFilter,
             final Connection connection,
             Throwable error) {
-        final HttpMonitoringProbe[] probes = httpFilter.monitoringProbes.getArray();
+        final HttpProbe[] probes = httpFilter.monitoringProbes.getArray();
         if (probes != null) {
             if (error == null) {
                 error = new IllegalStateException("Error in HTTP semantics");
             }
             
-            for (HttpMonitoringProbe probe : probes) {
+            for (HttpProbe probe : probes) {
                 probe.onErrorEvent(connection, error);
             }
         }

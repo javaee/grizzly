@@ -40,6 +40,7 @@ package com.sun.grizzly.http;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.MonitoringAware;
 import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.Filter;
 import com.sun.grizzly.filterchain.FilterChain;
@@ -74,7 +75,8 @@ import java.util.List;
  * 
  * @author Alexey Stashok
  */
-public abstract class HttpCodecFilter extends BaseFilter {
+public abstract class HttpCodecFilter extends BaseFilter
+        implements MonitoringAware<HttpProbe> {
 
     public static final String HTTP_0_9 = "HTTP/0.9";
     public static final String HTTP_1_0 = "HTTP/1.0";
@@ -89,8 +91,8 @@ public abstract class HttpCodecFilter extends BaseFilter {
     protected final ArraySet<ContentEncoding> contentEncodings =
             new ArraySet<ContentEncoding>();
 
-    protected final ArraySet<HttpMonitoringProbe> monitoringProbes =
-            new ArraySet<HttpMonitoringProbe>();
+    protected final ArraySet<HttpProbe> monitoringProbes =
+            new ArraySet<HttpProbe>();
     
     /**
      * flag, which indicates whether this <tt>HttpCodecFilter</tt> is dealing with
@@ -1401,34 +1403,45 @@ public abstract class HttpCodecFilter extends BaseFilter {
     }
 
     /**
-     * Add the {@link HttpMonitoringProbe}, which will be notified about
+     * Add the {@link HttpProbe}s, which will be notified about
      * <tt>HttpCodecFilter</tt> lifecycle events.
      *
-     * @param probe the {@link HttpMonitoringProbe}.
+     * @param probes the {@link HttpProbe}s.
      */
-    public void addMonitoringProbe(HttpMonitoringProbe probe) {
-        monitoringProbes.add(probe);
+    @Override
+    public void addProbes(HttpProbe... probes) {
+        monitoringProbes.add(probes);
     }
 
     /**
-     * Remove the {@link HttpMonitoringProbe}.
+     * Remove the {@link HttpProbe}s.
      *
-     * @param probe the {@link HttpMonitoringProbe}.
+     * @param probes the {@link HttpProbe}s.
      */
-    public boolean removeMonitoringProbe(HttpMonitoringProbe probe) {
-        return monitoringProbes.remove(probe);
+    @Override
+    public boolean removeProbes(HttpProbe... probes) {
+        return monitoringProbes.remove(probes);
     }
 
     /**
-     * Get the {@link HttpMonitoringProbe}, which are registered on the <tt>HttpCodecFilter</tt>.
+     * Get the {@link HttpProbe}, which are registered on the <tt>HttpCodecFilter</tt>.
      * Please note, it's not appropriate to modify the returned array's content.
-     * Please use {@link #addMonitoringProbe(com.sun.grizzly.http.HttpMonitoringProbe)}and
-     * {@link #removeMonitoringProbe(com.sun.grizzly.http.HttpMonitoringProbe)} instead.
+     * Please use {@link #addMonitoringProbe(com.sun.grizzly.http.HttpProbe)}and
+     * {@link #removeMonitoringProbe(com.sun.grizzly.http.HttpProbe)} instead.
      *
-     * @return the {@link HttpMonitoringProbe}, which are registered on the <tt>HttpCodecFilter</tt>.
+     * @return the {@link HttpProbe}, which are registered on the <tt>HttpCodecFilter</tt>.
      */
-    public HttpMonitoringProbe[] getMonitoringProbes() {
-        return monitoringProbes.obtainArrayCopy(HttpMonitoringProbe.class);
+    @Override
+    public HttpProbe[] getProbes() {
+        return monitoringProbes.obtainArrayCopy(HttpProbe.class);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void clearProbes() {
+        monitoringProbes.clear();
     }
     
     protected static final class ContentParsingState {

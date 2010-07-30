@@ -39,7 +39,7 @@
 package com.sun.grizzly.nio.transport;
 
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.ConnectionMonitoringProbe;
+import com.sun.grizzly.ConnectionProbe;
 import com.sun.grizzly.nio.AbstractNIOConnection;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.nio.SelectorRunner;
@@ -183,7 +183,7 @@ public class TCPNIOConnection extends AbstractNIOConnection {
      * Set the monitoringProbes array directly.
      * @param monitoringProbes
      */
-    void setMonitoringProbes(final ArraySet<ConnectionMonitoringProbe> monitoringProbes) {
+    void setMonitoringProbes(final ArraySet<ConnectionProbe> monitoringProbes) {
         this.monitoringProbes.add(monitoringProbes);
     }
 }

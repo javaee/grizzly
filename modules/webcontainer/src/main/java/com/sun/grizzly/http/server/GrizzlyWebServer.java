@@ -41,7 +41,9 @@
 package com.sun.grizzly.http.server;
 
 import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.MonitoringAware;
 import com.sun.grizzly.Processor;
+import com.sun.grizzly.Transport;
 import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.http.HttpServerFilter;
@@ -54,6 +56,7 @@ import java.util.logging.Logger;
 
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.filterchain.TransportFilter;
+import com.sun.grizzly.memory.MemoryProbe;
 import com.sun.grizzly.ssl.SSLEngineConfigurator;
 import com.sun.grizzly.ssl.SSLFilter;
 import com.sun.grizzly.threadpool.DefaultWorkerThread;
@@ -324,11 +327,10 @@ public class GrizzlyWebServer {
         } finally {
             for (final GrizzlyListener listener : listeners.values()) {
                 final Processor p = listener.getTransport().getProcessor();
-            if (p instanceof FilterChain) {
-                ((FilterChain) p).clear();
+                if (p instanceof FilterChain) {
+                    ((FilterChain) p).clear();
+                }
             }
-        }
-            listeners.clear();
         }
 
     }
@@ -398,12 +400,39 @@ public class GrizzlyWebServer {
             final int maxHeaderSize = ((listener.getMaxHttpHeaderSize() == -1)
                                         ? HttpServerFilter.DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE
                                         : listener.getMaxHttpHeaderSize());
-            builder.add(new HttpServerFilter(maxHeaderSize));
-            builder.add(new FileCacheFilter(this));
-            builder.add(new WebServerFilter(this));
+
+            final HttpServerFilter httpServerFilter = new HttpServerFilter(maxHeaderSize);
+            httpServerFilter.addProbes(
+                    serverConfig.getMonitoringConfig().getHttpConfig().getProbes());
+            builder.add(httpServerFilter);
+
+            final FileCacheFilter fileCacheFilter = new FileCacheFilter(this);
+            fileCacheFilter.getFileCache().addProbes(
+                    serverConfig.getMonitoringConfig().getFileCacheConfig().getProbes());
+            builder.add(fileCacheFilter);
+
+            final WebServerFilter webServerFilter = new WebServerFilter(this);
+            webServerFilter.addProbes(
+                    serverConfig.getMonitoringConfig().getWebServerConfig().getProbes());
+            builder.add(webServerFilter);
+
             chain = builder.build();
             listener.setFilterChain(chain);
         }
+
+        //------ Probes config --------
+        final Transport transport = listener.getTransport();
+        final MonitoringAware<MemoryProbe> mm = transport.getMemoryManager();
+
+        transport.clearProbes();
+        transport.clearConnectionProbes();
+        mm.clearProbes();
+
+        transport.addProbes(
+                serverConfig.getMonitoringConfig().getTransportConfig().getProbes());
+        transport.addConnectionProbes(
+                serverConfig.getMonitoringConfig().getConnectionConfig().getProbes());
+        mm.addProbes(serverConfig.getMonitoringConfig().getMemoryConfig().getProbes());
     }
 
     private void configureScheduledThreadPool() {

@@ -52,7 +52,7 @@ import java.util.concurrent.ExecutorService;
  *
  * @author Alexey Stashok
  */
-public interface Transport extends MonitoringAware<TransportMonitoringProbe> {
+public interface Transport extends MonitoringAware<TransportProbe> {
     
     public enum State {STARTING, START, PAUSE, STOPPING, STOP};
 
@@ -372,62 +372,62 @@ public interface Transport extends MonitoringAware<TransportMonitoringProbe> {
     public Writer getWriter(Connection connection);
 
     /**
-     * Add the {@link ConnectionMonitoringProbe}, which will be notified about
+     * Add the {@link ConnectionProbe}s, which will be notified about
      * <tt>Connection</tt> lifecycle events.
      *
-     * @param probe the {@link ConnectionMonitoringProbe}.
+     * @param probes the {@link ConnectionProbe}s.
      */
-    public void addConnectionMonitoringProbe(ConnectionMonitoringProbe probe);
+    public void addConnectionProbes(ConnectionProbe... probes);
 
     /**
-     * Remove the {@link ConnectionMonitoringProbe}.
+     * Remove the {@link ConnectionProbe}s.
      *
-     * @param probe the {@link ConnectionMonitoringProbe}.
+     * @param probes the {@link ConnectionProbe}s.
      */
-    public boolean removeConnectionMonitoringProbe(ConnectionMonitoringProbe probe);
+    public boolean removeConnectionProbes(ConnectionProbe... probes);
 
     /**
-     * Get the {@link ConnectionMonitoringProbe}s, which are registered on the <tt>Transport</tt> connections.
+     * Get the {@link ConnectionProbe}s, which are registered on the <tt>Transport</tt> connections.
      * Please note, it's not appropriate to modify the returned array's content.
-     * Please use {@link #addConnectionMonitoringProbe(com.sun.grizzly.ConnectionMonitoringProbe)} and
-     * {@link #removeConnectionMonitoringProbe(com.sun.grizzly.ConnectionMonitoringProbe)} instead.
+     * Please use {@link #addConnectionProbe(com.sun.grizzly.ConnectionProbe)} and
+     * {@link #removeConnectionProbe(com.sun.grizzly.ConnectionProbe)} instead.
      *
-     * @return the {@link ConnectionMonitoringProbe}s, which are registered on the <tt>Transport</tt>'s connections.
+     * @return the {@link ConnectionProbe}s, which are registered on the <tt>Transport</tt>'s connections.
      */
-    public ConnectionMonitoringProbe[] getConnectionMonitoringProbes();
+    public ConnectionProbe[] getConnectionProbes();
 
     /**
-     * Clear all the {@link ConnectionMonitoringProbe}s.
+     * Clear all the {@link ConnectionProbe}s.
      */
-    public void clearConnectionMonitoringProbes();
+    public void clearConnectionProbes();
 
     /**
-     * Add the {@link TransportMonitoringProbe}, which will be notified about
+     * Add the {@link TransportProbe}s, which will be notified about
      * <tt>Transport</tt> lifecycle events.
      *
-     * @param probe the {@link TransportMonitoringProbe}.
+     * @param probes the {@link TransportProbe}s.
      */
     @Override
-    public void addMonitoringProbe(TransportMonitoringProbe probe);
+    public void addProbes(TransportProbe... probes);
 
     /**
-     * Remove the {@link TransportMonitoringProbe}.
+     * Remove the {@link TransportProbe}s.
      *
-     * @param probe the {@link TransportMonitoringProbe}.
+     * @param probes the {@link TransportProbes}.
      */
     @Override
-    public boolean removeMonitoringProbe(TransportMonitoringProbe probe);
+    public boolean removeProbes(TransportProbe... probes);
 
     /**
-     * Get the {@link TransportMonitoringProbe}s, which are registered on the <tt>Transport</tt>.
+     * Get the {@link TransportProbe}s, which are registered on the <tt>Transport</tt>.
      * Please note, it's not appropriate to modify the returned array's content.
-     * Please use {@link #addTransportMonitoringProbe(com.sun.grizzly.TransportMonitoringProbe)} and
-     * {@link #removeTransportMonitoringProbe(com.sun.grizzly.TransportMonitoringProbe)} instead.
+     * Please use {@link #addTransportProbe(com.sun.grizzly.TransportProbe)} and
+     * {@link #removeTransportProbe(com.sun.grizzly.TransportProbe)} instead.
      *
-     * @return the {@link TransportMonitoringProbe}s, which are registered on the <tt>Transport</tt>.
+     * @return the {@link TransportProbe}s, which are registered on the <tt>Transport</tt>.
      */
     @Override
-    public TransportMonitoringProbe[] getMonitoringProbes();
+    public TransportProbe[] getProbes();
 
     /**
      * Method gets invoked, when error occur during the <tt>Transport</tt> lifecycle.

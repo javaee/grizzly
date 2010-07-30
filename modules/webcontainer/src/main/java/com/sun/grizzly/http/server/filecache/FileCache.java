@@ -39,6 +39,7 @@ package com.sun.grizzly.http.server.filecache;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.MonitoringAware;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
@@ -68,7 +69,7 @@ import java.util.logging.Logger;
  * @author Jeanfrancois Arcand
  * @author Scott Oaks
  */
-public class FileCache {
+public class FileCache implements MonitoringAware<FileCacheProbe> {
     public enum CacheType {
         HEAP, MAPPED
     }
@@ -136,8 +137,8 @@ public class FileCache {
     /**
      * File cache probes
      */
-    protected final ArraySet<FileCacheMonitoringProbe> monitoringProbes =
-            new ArraySet<FileCacheMonitoringProbe>();
+    protected final ArraySet<FileCacheProbe> monitoringProbes =
+            new ArraySet<FileCacheProbe>();
 
     public FileCache(MemoryManager memoryManager,
             ScheduledExecutorService scheduledExecutorService) {
@@ -714,89 +715,100 @@ public class FileCache {
     }
 
     /**
-     * Add the {@link FileCacheMonitoringProbe}, which will be notified about
+     * Add the {@link FileCacheProbe}s, which will be notified about
      * <tt>FileCache</tt> lifecycle events.
      *
-     * @param probe the {@link FileCacheMonitoringProbe}.
+     * @param probes the {@link FileCacheProbe}s.
      */
-    public void addMonitoringProbe(FileCacheMonitoringProbe probe) {
-        monitoringProbes.add(probe);
+    @Override
+    public void addProbes(FileCacheProbe... probes) {
+        monitoringProbes.add(probes);
     }
 
     /**
-     * Remove the {@link FileCacheMonitoringProbe}.
+     * Remove the {@link FileCacheProbe}s.
      *
-     * @param probe the {@link FileCacheMonitoringProbe}.
+     * @param probes the {@link FileCacheProbe}s.
      */
-    public boolean removeMonitoringProbe(FileCacheMonitoringProbe probe) {
-        return monitoringProbes.remove(probe);
+    @Override
+    public boolean removeProbes(FileCacheProbe... probes) {
+        return monitoringProbes.remove(probes);
     }
 
     /**
-     * Get the {@link FileCacheMonitoringProbe}, which are registered on the <tt>FileCache</tt>.
+     * Get the {@link FileCacheProbe}s, which are registered on the <tt>FileCache</tt>.
      * Please note, it's not appropriate to modify the returned array's content.
-     * Please use {@link #addMonitoringProbe(com.sun.grizzly.http.server.filecache.FileCacheMonitoringProbe)}and
-     * {@link #removeMonitoringProbe(com.sun.grizzly.http.server.filecache.FileCacheMonitoringProbe)} instead.
+     * Please use {@link #addMonitoringProbe(com.sun.grizzly.http.server.filecache.FileCacheProbe)}and
+     * {@link #removeMonitoringProbe(com.sun.grizzly.http.server.filecache.FileCacheProbe)} instead.
      *
-     * @return the {@link FileCacheMonitoringProbe}, which are registered on the <tt>FileCache</tt>.
+     * @return the {@link FileCacheProbe}s, which are registered on the <tt>FileCache</tt>.
      */
-    public FileCacheMonitoringProbe[] getMonitoringProbes() {
-        return monitoringProbes.obtainArrayCopy(FileCacheMonitoringProbe.class);
+    @Override
+    public FileCacheProbe[] getProbes() {
+        return monitoringProbes.obtainArrayCopy(FileCacheProbe.class);
     }
 
     /**
-     * Notify registered {@link FileCacheMonitoringProbe}s about the "entry added" event.
+     * {@inheritDoc}
+     */
+    @Override
+    public void clearProbes() {
+        monitoringProbes.clear();
+    }
+
+    /**
+     * Notify registered {@link FileCacheProbe}s about the "entry added" event.
      *
      * @param fileCache the <tt>FileCache</tt> event occurred on.
      * @param entry entry been added
      */
     protected static void notifyProbesEntryAdded(final FileCache fileCache,
             final FileCacheEntry entry) {
-        final FileCacheMonitoringProbe[] probes =
+        final FileCacheProbe[] probes =
                 fileCache.monitoringProbes.getArray();
         if (probes != null) {
-            for (FileCacheMonitoringProbe probe : probes) {
+            for (FileCacheProbe probe : probes) {
                 probe.onEntryAddedEvent(fileCache, entry);
             }
         }
     }
 
     /**
-     * Notify registered {@link FileCacheMonitoringProbe}s about the "entry removed" event.
+     * Notify registered {@link FileCacheProbe}s about the "entry removed" event.
      *
      * @param fileCache the <tt>FileCache</tt> event occurred on.
      * @param entry entry been removed
      */
     protected static void notifyProbesEntryRemoved(final FileCache fileCache,
             final FileCacheEntry entry) {
-        final FileCacheMonitoringProbe[] probes =
+        final FileCacheProbe[] probes =
                 fileCache.monitoringProbes.getArray();
         if (probes != null) {
-            for (FileCacheMonitoringProbe probe : probes) {
+            for (FileCacheProbe probe : probes) {
                 probe.onEntryRemovedEvent(fileCache, entry);
             }
         }
     }
 
     /**
-     * Notify registered {@link FileCacheMonitoringProbe}s about the "entry hitted" event.
+     * Notify registered {@link FileCacheProbe}s about the "entry hitted" event.
      *
      * @param fileCache the <tt>FileCache</tt> event occurred on.
      * @param entry entry been hitted.
      */
     protected static void notifyProbesEntryHit(final FileCache fileCache,
             final FileCacheEntry entry) {
-        final FileCacheMonitoringProbe[] probes =
+        final FileCacheProbe[] probes =
                 fileCache.monitoringProbes.getArray();
         if (probes != null) {
-            for (FileCacheMonitoringProbe probe : probes) {
+            for (FileCacheProbe probe : probes) {
                 probe.onEntryHitEvent(fileCache, entry);
             }
         }
     }
 
     /**
-     * Notify registered {@link FileCacheMonitoringProbe}s about the "entry missed" event.
+     * Notify registered {@link FileCacheProbe}s about the "entry missed" event.
      *
      * @param fileCache the <tt>FileCache</tt> event occurred on.
      * @param host requested HTTP "Host" parameter.
@@ -805,26 +817,26 @@ public class FileCache {
     protected static void notifyProbesEntryMissed(final FileCache fileCache,
             final String host, final String requestURI) {
         
-        final FileCacheMonitoringProbe[] probes =
+        final FileCacheProbe[] probes =
                 fileCache.monitoringProbes.getArray();
         if (probes != null) {
-            for (FileCacheMonitoringProbe probe : probes) {
+            for (FileCacheProbe probe : probes) {
                 probe.onEntryMissedEvent(fileCache, host, requestURI);
             }
         }
     }
 
     /**
-     * Notify registered {@link FileCacheMonitoringProbe}s about the error.
+     * Notify registered {@link FileCacheProbe}s about the error.
      *
      * @param fileCache the <tt>FileCache</tt> event occurred on.
      */
     protected static void notifyProbesError(final FileCache fileCache,
             final Throwable error) {
-        final FileCacheMonitoringProbe[] probes =
+        final FileCacheProbe[] probes =
                 fileCache.monitoringProbes.getArray();
         if (probes != null) {
-            for (FileCacheMonitoringProbe probe : probes) {
+            for (FileCacheProbe probe : probes) {
                 probe.onErrorEvent(fileCache, error);
             }
         }

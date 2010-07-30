@@ -195,24 +195,24 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
     // ------- Monitoring section ----------------------
 
     /**
-     * Add the {@link MemoryProbe}, which will be notified about
+     * Add the {@link MemoryProbe}s, which will be notified about
      * <tt>MemoryManager</tt> lifecycle events.
      *
-     * @param probe the {@link MemoryProbe}.
+     * @param probes the {@link MemoryProbe}s.
      */
     @Override
-    public final void addMonitoringProbe(MemoryProbe probe) {
-        monitoringProbes.add(probe);
+    public final void addProbes(MemoryProbe... probes) {
+        monitoringProbes.add(probes);
     }
 
     /**
-     * Remove the {@link MemoryProbe}.
+     * Remove the {@link MemoryProbe}s.
      *
-     * @param probe the {@link MemoryProbe}.
+     * @param probes the {@link MemoryProbe}s.
      */
     @Override
-    public final boolean removeMonitoringProbe(MemoryProbe probe) {
-        return monitoringProbes.remove(probe);
+    public final boolean removeProbes(MemoryProbe... probes) {
+        return monitoringProbes.remove(probes);
     }
 
     /**
@@ -224,7 +224,7 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
      * @return the {@link MemoryProbe}s, which are registered on the <tt>MemoryManager</tt>.
      */
     @Override
-    public final MemoryProbe[] getMonitoringProbes() {
+    public final MemoryProbe[] getProbes() {
         return monitoringProbes.obtainArrayCopy(MemoryProbe.class);
     }
 
@@ -232,7 +232,7 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
      * {@inheritDoc}
      */
     @Override
-    public final void clearMonitoringProbes() {
+    public final void clearProbes() {
         monitoringProbes.clear();
     }
 }

@@ -48,7 +48,7 @@ import com.sun.grizzly.Connection;
  *
  * @since 2.0
  */
-public interface HttpMonitoringProbe {
+public interface HttpProbe {
     /**
      * Method will be called, when {@link Buffer} will come for processing to
      * the {@link HttpCodecFilter} (either request or response).

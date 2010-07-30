@@ -40,7 +40,7 @@ package com.sun.grizzly.nio;
 
 import com.sun.grizzly.AbstractTransport;
 import com.sun.grizzly.Connection;
-import com.sun.grizzly.TransportMonitoringProbe;
+import com.sun.grizzly.TransportProbe;
 import java.io.IOException;
 import java.nio.channels.Selector;
 
@@ -153,76 +153,76 @@ public abstract class AbstractNIOTransport extends AbstractTransport
     }
 
     /**
-     * Notify registered {@link TransportMonitoringProbe}s about the error.
+     * Notify registered {@link TransportProbe}s about the error.
      *
      * @param transport the <tt>Transport</tt> event occurred on.
      */
     protected static void notifyProbesError(final AbstractNIOTransport transport,
             final Throwable error) {
-        final TransportMonitoringProbe[] probes =
-                transport.transportMonitoringProbes.getArray();
+        final TransportProbe[] probes =
+                transport.transportProbes.getArray();
         if (probes != null) {
-            for (TransportMonitoringProbe probe : probes) {
+            for (TransportProbe probe : probes) {
                 probe.onErrorEvent(transport, error);
             }
         }
     }
 
     /**
-     * Notify registered {@link TransportMonitoringProbe}s about the start event.
+     * Notify registered {@link TransportProbe}s about the start event.
      *
      * @param transport the <tt>Transport</tt> event occurred on.
      */
     protected static void notifyProbesStart(final AbstractNIOTransport transport) {
-        final TransportMonitoringProbe[] probes =
-                transport.transportMonitoringProbes.getArray();
+        final TransportProbe[] probes =
+                transport.transportProbes.getArray();
         if (probes != null) {
-            for (TransportMonitoringProbe probe : probes) {
+            for (TransportProbe probe : probes) {
                 probe.onStartEvent(transport);
             }
         }
     }
     
     /**
-     * Notify registered {@link TransportMonitoringProbe}s about the stop event.
+     * Notify registered {@link TransportProbe}s about the stop event.
      *
      * @param transport the <tt>Transport</tt> event occurred on.
      */
     protected static void notifyProbesStop(final AbstractNIOTransport transport) {
-        final TransportMonitoringProbe[] probes =
-                transport.transportMonitoringProbes.getArray();
+        final TransportProbe[] probes =
+                transport.transportProbes.getArray();
         if (probes != null) {
-            for (TransportMonitoringProbe probe : probes) {
+            for (TransportProbe probe : probes) {
                 probe.onStopEvent(transport);
             }
         }
     }
 
     /**
-     * Notify registered {@link TransportMonitoringProbe}s about the pause event.
+     * Notify registered {@link TransportProbe}s about the pause event.
      *
      * @param transport the <tt>Transport</tt> event occurred on.
      */
     protected static void notifyProbesPause(final AbstractNIOTransport transport) {
-        final TransportMonitoringProbe[] probes =
-                transport.transportMonitoringProbes.getArray();
+        final TransportProbe[] probes =
+                transport.transportProbes.getArray();
         if (probes != null) {
-            for (TransportMonitoringProbe probe : probes) {
+            for (TransportProbe probe : probes) {
                 probe.onPauseEvent(transport);
             }
         }
     }
 
     /**
-     * Notify registered {@link TransportMonitoringProbe}s about the resume event.
+     * Notify registered {@link TransportProbe}s about the resume event.
      *
      * @param transport the <tt>Transport</tt> event occurred on.
      */
     protected static void notifyProbesResume(final AbstractNIOTransport transport) {
-        final TransportMonitoringProbe[] probes =
-                transport.transportMonitoringProbes.getArray();
+        final TransportProbe[] probes =
+                transport.transportProbes.getArray();
         if (probes != null) {
-            for (TransportMonitoringProbe probe : probes) {
+            for (TransportProbe probe : probes) {
                 probe.onResumeEvent(transport);
             }
         }

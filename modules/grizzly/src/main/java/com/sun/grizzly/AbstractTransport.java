@@ -112,14 +112,14 @@ public abstract class AbstractTransport implements Transport {
     /**
      * Transport probes
      */
-    protected final ArraySet<TransportMonitoringProbe> transportMonitoringProbes =
-            new ArraySet<TransportMonitoringProbe>();
+    protected final ArraySet<TransportProbe> transportProbes =
+            new ArraySet<TransportProbe>();
 
     /**
      * Connection probes
      */
-    protected final ArraySet<ConnectionMonitoringProbe> connectionMonitoringProbes =
-            new ArraySet<ConnectionMonitoringProbe>();
+    protected final ArraySet<ConnectionProbe> connectionProbes =
+            new ArraySet<ConnectionProbe>();
     
 
     public AbstractTransport(String name) {
@@ -344,64 +344,64 @@ public abstract class AbstractTransport implements Transport {
      * {@inheritDoc}
      */
     @Override
-    public void addConnectionMonitoringProbe(ConnectionMonitoringProbe probe) {
-        connectionMonitoringProbes.add(probe);
+    public void addConnectionProbes(ConnectionProbe... probes) {
+        connectionProbes.add(probes);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public boolean removeConnectionMonitoringProbe(ConnectionMonitoringProbe probe) {
-        return connectionMonitoringProbes.remove(probe);
+    public boolean removeConnectionProbes(ConnectionProbe... probes) {
+        return connectionProbes.remove(probes);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public ConnectionMonitoringProbe[] getConnectionMonitoringProbes() {
-        return connectionMonitoringProbes.obtainArrayCopy(ConnectionMonitoringProbe.class);
+    public ConnectionProbe[] getConnectionProbes() {
+        return connectionProbes.obtainArrayCopy(ConnectionProbe.class);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void clearConnectionMonitoringProbes() {
-        connectionMonitoringProbes.clear();
+    public void clearConnectionProbes() {
+        connectionProbes.clear();
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void addMonitoringProbe(TransportMonitoringProbe probe) {
-        transportMonitoringProbes.add(probe);
+    public void addProbes(TransportProbe... probes) {
+        transportProbes.add(probes);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public boolean removeMonitoringProbe(TransportMonitoringProbe probe) {
-        return transportMonitoringProbes.remove(probe);
+    public boolean removeProbes(TransportProbe... probes) {
+        return transportProbes.remove(probes);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public TransportMonitoringProbe[] getMonitoringProbes() {
-        return transportMonitoringProbes.obtainArrayCopy(TransportMonitoringProbe.class);
+    public TransportProbe[] getProbes() {
+        return transportProbes.obtainArrayCopy(TransportProbe.class);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void clearMonitoringProbes() {
-        transportMonitoringProbes.clear();
+    public void clearProbes() {
+        transportProbes.clear();
     }
 
     /**

@@ -51,7 +51,7 @@ import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.sun.grizzly.Connection;
-import com.sun.grizzly.ConnectionMonitoringProbe;
+import com.sun.grizzly.ConnectionProbe;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.utils.ArraySet;
 import java.util.concurrent.TimeUnit;
@@ -208,7 +208,7 @@ public class UDPNIOConnection extends AbstractNIOConnection {
      * Set the monitoringProbes array directly.
      * @param monitoringProbes
      */
-    void setMonitoringProbes(final ArraySet<ConnectionMonitoringProbe> monitoringProbes) {
+    void setMonitoringProbes(final ArraySet<ConnectionProbe> monitoringProbes) {
         this.monitoringProbes.add(monitoringProbes);
     }
 }

@@ -59,8 +59,8 @@ public abstract class AbstractSocketConnectorHandler
     private Processor processor;
     private ProcessorSelector processorSelector;
 
-    protected final Collection<ConnectionMonitoringProbe> probes =
-            new LinkedList<ConnectionMonitoringProbe>();
+    protected final Collection<ConnectionProbe> probes =
+            new LinkedList<ConnectionProbe>();
 
     public AbstractSocketConnectorHandler(Transport transport) {
         this.transport = transport;
@@ -120,18 +120,18 @@ public abstract class AbstractSocketConnectorHandler
     }
 
     @Override
-    public void addMonitoringProbe(ConnectionMonitoringProbe probe) {
+    public void addMonitoringProbe(ConnectionProbe probe) {
         probes.add(probe);
     }
 
     @Override
-    public boolean removeMonitoringProbe(ConnectionMonitoringProbe probe) {
+    public boolean removeMonitoringProbe(ConnectionProbe probe) {
         return probes.remove(probe);
     }
 
     @Override
-    public ConnectionMonitoringProbe[] getMonitoringProbes() {
-        return probes.toArray(new ConnectionMonitoringProbe[0]);
+    public ConnectionProbe[] getMonitoringProbes() {
+        return probes.toArray(new ConnectionProbe[0]);
     }
 
     /**

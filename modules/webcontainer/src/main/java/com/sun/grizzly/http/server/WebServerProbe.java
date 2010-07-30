@@ -47,7 +47,7 @@ import com.sun.grizzly.Connection;
  *
  * @since 2.0
  */
-public interface WebServerMonitoringProbe {
+public interface WebServerProbe {
     /**
      * Method will be called, when new {@link GrizzlyRequest} will come.
      *

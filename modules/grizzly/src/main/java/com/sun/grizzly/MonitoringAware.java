@@ -43,18 +43,18 @@ package com.sun.grizzly;
  */
 public interface MonitoringAware<E> {
     /**
-     * Add the monitoring probe, which will be notified about object's lifecycle events.
+     * Add the monitoring probes, which will be notified about object's lifecycle events.
      *
-     * @param probe the monitoring probe.
+     * @param probes the monitoring probes.
      */
-    public void addMonitoringProbe(E probe);
+    public void addProbes(E... probes);
 
     /**
-     * Remove the monitoring probe.
+     * Remove the monitoring probes.
      *
-     * @param probe the monitoring probe.
+     * @param probes the monitoring probes.
      */
-    public boolean removeMonitoringProbe(E probe);
+    public boolean removeProbes(E... probes);
 
     /**
      * Get the the monitoring probes, which are registered on the objet.
@@ -64,10 +64,10 @@ public interface MonitoringAware<E> {
      *
      * @return the the monitoring probes, which are registered on the object.
      */
-    public E[] getMonitoringProbes();
+    public E[] getProbes();
 
     /**
      * Removes all the monitoring probes, which are registered on the object.
      */
-    public void clearMonitoringProbes();
+    public void clearProbes();
 }
