@@ -104,6 +104,7 @@ import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.Collection;
+import java.util.Locale;
 import java.util.StringTokenizer;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -1435,7 +1436,7 @@ public class ProcessorTask extends TaskBase implements Processor,
             String encodingName;
             while (commaPos != -1) {
                 encodingName = transferEncodingValue.substring
-                    (startPos, commaPos).toLowerCase().trim();
+                    (startPos, commaPos).toLowerCase(Locale.ENGLISH).trim();
                 if (!addInputFilter(inputFilters, encodingName)) {
                     // Unsupported transfer encoding
                     error = true;
@@ -1446,7 +1447,7 @@ public class ProcessorTask extends TaskBase implements Processor,
                 commaPos = transferEncodingValue.indexOf(',', startPos);
             }
             encodingName = transferEncodingValue.substring(startPos)
-                .toLowerCase().trim();
+                .toLowerCase(Locale.ENGLISH).trim();
             if (!addInputFilter(inputFilters, encodingName)) {
                 // Unsupported transfer encoding
                 error = true;
