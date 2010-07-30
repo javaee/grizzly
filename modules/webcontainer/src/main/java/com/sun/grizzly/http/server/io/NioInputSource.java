@@ -48,12 +48,12 @@ import com.sun.grizzly.Buffer;
  *
  * @since 2.0
  */
-public interface NioInputSource {
+public interface NIOInputSource {
 
 
     /**
      * <p>
-     * Notify the specified {@link DataHandler} when any number of bytes
+     * Notify the specified {@link ReadHandler} when any number of bytes
      * can be read without blocking.
      * </p>
      *
@@ -61,31 +61,31 @@ public interface NioInputSource {
      * Invoking this method is equivalent to calling: notifyAvailable(handler, 0).
      * </p>
      *
-     * @param handler than {@link DataHandler} to notify.
+     * @param handler than {@link ReadHandler} to notify.
      *
-     * @see com.sun.grizzly.http.server.io.DataHandler#onDataAvailable()
-     * @see @see com.sun.grizzly.http.server.io.DataHandler#onAllDataRead()
+     * @see ReadHandler#onDataAvailable()
+     * @see @see com.sun.grizzly.http.server.io.ReadHandler#onAllDataRead()
      */
-    void notifyAvailable(final DataHandler handler);
+    void notifyAvailable(final ReadHandler handler);
 
 
     /**
      * <p>
-     * Notify the specified {@link DataHandler} when the number of bytes that
+     * Notify the specified {@link ReadHandler} when the number of bytes that
      * can be read without blocking is greater or equal to the specified
      * <code>size</code>.
      * </p>
      *
-     * @param handler the {@link DataHandler} to notify.
+     * @param handler the {@link ReadHandler} to notify.
      * @param size the least number of bytes that must be available before
-     *  the {@link DataHandler} is invoked.  If size is <code>0</code>, the
+     *  the {@link ReadHandler} is invoked.  If size is <code>0</code>, the
      *  handler will be notified as soon as data is available no matter the
      *  size.
      *
-     * @see com.sun.grizzly.http.server.io.DataHandler#onDataAvailable()
-     * @see com.sun.grizzly.http.server.io.DataHandler#onAllDataRead()
+     * @see ReadHandler#onDataAvailable()
+     * @see ReadHandler#onAllDataRead()
      */
-    void notifyAvailable(final DataHandler handler, final int size);
+    void notifyAvailable(final ReadHandler handler, final int size);
 
 
     /**
@@ -112,17 +112,17 @@ public interface NioInputSource {
     /**
      * <p>
      * Returns the underlying {@link Buffer} that backs this
-     *  <code>NioInputSource</code>.
+     *  <code>NIOInputSource</code>.
      * </p>
      *
      * <p>
-     * It should be noted that for character-based <code>NioInputSource</code>s,
+     * It should be noted that for character-based <code>NIOInputSource</code>s,
      * the {@link Buffer} is the raw bytes.  Any required character conversion
      * would have to be applied manually.
      * </p>
      *
      * @return the underlying {@link Buffer} that backs this
-     *  <code>NioInputSource</code>.
+     *  <code>NIOInputSource</code>.
      */
     Buffer getBuffer();
 

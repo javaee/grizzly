@@ -1,4 +1,4 @@
-/*
+package com.sun.grizzly.http.server.io;/*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  * 
  * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
@@ -34,77 +34,37 @@
  * holder.
  */
 
-package com.sun.grizzly.http.server.io;
-
-import java.io.IOException;
-import java.io.OutputStream;
-
-public class GrizzlyOutputStream extends OutputStream implements NIOOutputSink {
-
-
-    private final OutputBuffer outputBuffer;
-
-
-    // ------------------------------------------------------------ Constructors
-
-
-    public GrizzlyOutputStream(OutputBuffer outputBuffer) {
-        this.outputBuffer = outputBuffer;
-    }
-
-
-    // ----------------------------------------------- Methods from OutputStream
+/**
+ * <p>
+ * This class represents a call-back mechanism that will notify implementations
+ * as HTTP request data becomes available to read without blocking.
+ * </p>
+ *
+ * @since 2.0
+ */
+public interface ReadHandler {
 
     /**
-     * {@inheritDoc}
+     * <p>
+     * Invoked when data is available to be read without blocking.
+     * </p>
      */
-    @Override public void write(int b) throws IOException {
-        outputBuffer.writeByte(b);
-    }
+    void onDataAvailable();
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override public void write(byte[] b) throws IOException {
-        outputBuffer.write(b);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override public void write(byte[] b, int off, int len) throws IOException {
-        outputBuffer.write(b, off, len);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override public void flush() throws IOException {
-        outputBuffer.flush();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override public void close() throws IOException {
-        outputBuffer.close();
-    }
-
-
-    // ---------------------------------------------- Methods from NIOOutputSink
-
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override public boolean canWrite(final int length) {
-        return outputBuffer.canWrite(length);
-    }
-
-
-    @Override
-    public void notifyCanWrite(final WriteHandler handler, final int length) {
-        outputBuffer.notifyCanWrite(handler, length);
-    }
     
+    /**
+     * <p>
+     * Invoked when an error occurs processing the request asynchronously.
+     * </p>
+     */
+    void onError(final Throwable t);
+
+
+    /**
+     * <p>
+     * Invoked when all data for the current request has been read.
+     * </p>
+     */
+    void onAllDataRead();
+
 }

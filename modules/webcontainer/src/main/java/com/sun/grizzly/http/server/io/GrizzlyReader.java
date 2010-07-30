@@ -46,7 +46,7 @@ import java.nio.CharBuffer;
  * {@link Reader} implementation to be used to read character-based request
  * content.
  */
-public class GrizzlyReader extends Reader implements NioInputSource {
+public class GrizzlyReader extends Reader implements NIOInputSource {
 
     private final InputBuffer inputBuffer;
 
@@ -144,14 +144,14 @@ public class GrizzlyReader extends Reader implements NioInputSource {
     }
 
 
-    // --------------------------------------------- Methods from NioInputSource
+    // --------------------------------------------- Methods from NIOInputSource
 
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void notifyAvailable(DataHandler handler) {
+    public void notifyAvailable(ReadHandler handler) {
         inputBuffer.notifyAvailable(handler);
     }
 
@@ -160,7 +160,7 @@ public class GrizzlyReader extends Reader implements NioInputSource {
      * {@inheritDoc}
      */
     @Override
-    public void notifyAvailable(DataHandler handler, int size) {
+    public void notifyAvailable(ReadHandler handler, int size) {
         inputBuffer.notifyAvailable(handler, size);
     }
 

@@ -37,6 +37,9 @@
 package com.sun.grizzly.http.server.io;
 
 import com.sun.grizzly.Buffer;
+import com.sun.grizzly.Connection;
+import com.sun.grizzly.asyncqueue.AsyncQueueWriter;
+import com.sun.grizzly.asyncqueue.TaskQueue;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.http.Constants;
 import com.sun.grizzly.http.HttpContent;
@@ -44,7 +47,9 @@ import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.http.util.Utils;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
+import com.sun.grizzly.nio.AbstractNIOConnection;
 import com.sun.grizzly.tcp.FileOutputBuffer;
+import com.sun.grizzly.utils.conditions.Condition;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -451,6 +456,52 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
     @Override
     public boolean isOpen() {
         return !closed;
+    }
+
+
+    // -------------------------------------------------- General Public Methods
+
+
+    public boolean canWriteChar(final int length) {
+        if (length <= 0) {
+            return true;
+        }
+        CharsetEncoder e = getEncoder();
+        final int len = Float.valueOf(length * e.averageBytesPerChar()).intValue();
+        return canWrite(len);
+    }
+
+    /**
+     * @see AsyncQueueWriter#canWrite(com.sun.grizzly.Connection, int) 
+     */
+    public boolean canWrite(final int length) {
+        if (length <= 0) {
+            return true;
+        }
+        final Connection c = ctx.getConnection();
+        return ((AsyncQueueWriter) c.getTransport().getWriter(c)).canWrite(c, length);
+
+    }
+
+
+    public void notifyCanWrite(final WriteHandler handler, final int length) {
+
+        final Connection c = ctx.getConnection();
+        final TaskQueue tqueue = ((AbstractNIOConnection) c).getAsyncWriteQueue();
+        final AsyncQueueWriter awriter = ((AsyncQueueWriter) c.getTransport().getWriter(c));
+        tqueue.addQueueMonitor(new TaskQueue.QueueMonitor() {
+
+            @Override
+            public boolean shouldNotify() {
+                return ((awriter.getMaxPendingBytesPerConnection() - tqueue.spaceInBytes()) >= length);
+            }
+
+            @Override
+            public void onNotify() {
+                handler.onWritePossible();
+            }
+        });
+        
     }
 
 

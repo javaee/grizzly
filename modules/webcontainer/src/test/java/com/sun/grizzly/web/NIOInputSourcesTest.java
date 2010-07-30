@@ -55,7 +55,7 @@ import com.sun.grizzly.http.server.GrizzlyListener;
 import com.sun.grizzly.http.server.GrizzlyRequest;
 import com.sun.grizzly.http.server.GrizzlyResponse;
 import com.sun.grizzly.http.server.GrizzlyWebServer;
-import com.sun.grizzly.http.server.io.DataHandler;
+import com.sun.grizzly.http.server.io.ReadHandler;
 import com.sun.grizzly.http.server.io.GrizzlyInputStream;
 import com.sun.grizzly.http.server.io.GrizzlyReader;
 import com.sun.grizzly.impl.FutureImpl;
@@ -76,7 +76,7 @@ import java.util.logging.Logger;
 /**
  * Test case to exercise <code>AsyncStreamReader</code>.
  */
-public class AsyncInputSourcesTest extends TestCase {
+public class NIOInputSourcesTest extends TestCase {
 
     private static final char[] ALPHA = "abcdefghijklmnopqrstuvwxyz".toCharArray();
     private static final int PORT = 8030;
@@ -477,7 +477,7 @@ public class AsyncInputSourcesTest extends TestCase {
                     return;
                 }
                 final StringBuilder sb = new StringBuilder();
-                reader.notifyAvailable(new DataHandler() {
+                reader.notifyAvailable(new ReadHandler() {
 
                     @Override
                     public void onDataAvailable() {
@@ -576,7 +576,7 @@ public class AsyncInputSourcesTest extends TestCase {
                     return;
                 }
                 final StringBuilder sb = new StringBuilder();
-                reader.notifyAvailable(new DataHandler() {
+                reader.notifyAvailable(new ReadHandler() {
 
                     @Override
                     public void onDataAvailable() {

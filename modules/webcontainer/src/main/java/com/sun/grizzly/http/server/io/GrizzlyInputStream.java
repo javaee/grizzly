@@ -45,7 +45,7 @@ import java.io.InputStream;
  *
  * @since 2.0
  */
-public class GrizzlyInputStream extends InputStream implements NioInputSource {
+public class GrizzlyInputStream extends InputStream implements NIOInputSource {
 
     private final InputBuffer inputBuffer;
 
@@ -136,14 +136,14 @@ public class GrizzlyInputStream extends InputStream implements NioInputSource {
     }
 
 
-    // --------------------------------------------- Methods from NioInputSource
+    // --------------------------------------------- Methods from NIOInputSource
 
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void notifyAvailable(DataHandler handler) {
+    public void notifyAvailable(ReadHandler handler) {
         inputBuffer.notifyAvailable(handler);
     }
 
@@ -151,7 +151,7 @@ public class GrizzlyInputStream extends InputStream implements NioInputSource {
      * {@inheritDoc}
      */
     @Override
-    public void notifyAvailable(DataHandler handler, int size) {
+    public void notifyAvailable(ReadHandler handler, int size) {
         inputBuffer.notifyAvailable(handler, size);
     }
 

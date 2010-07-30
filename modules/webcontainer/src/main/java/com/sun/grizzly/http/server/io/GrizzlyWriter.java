@@ -40,9 +40,9 @@ import java.io.IOException;
 import java.io.Writer;
 
 
-public class GrizzlyWriter extends Writer {
+public class GrizzlyWriter extends Writer implements NIOOutputSink {
 
-    private OutputBuffer outputBuffer;
+    private final OutputBuffer outputBuffer;
 
     // ------------------------------------------------------------ Constructors
 
@@ -55,35 +55,84 @@ public class GrizzlyWriter extends Writer {
 
 
     // ----------------------------------------------------- Methods from Writer
+    
 
-
+    /**
+     * {@inheritDoc}
+     */
     @Override public void write(int c) throws IOException {
         outputBuffer.writeChar(c);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override public void write(char[] cbuf) throws IOException {
         outputBuffer.write(cbuf);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override public void write(char[] cbuf, int off, int len)
           throws IOException {
         outputBuffer.write(cbuf, off, len);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override public void write(String str) throws IOException {
         outputBuffer.write(str);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override public void write(String str, int off, int len)
           throws IOException {
         outputBuffer.write(str, off, len);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override public void flush() throws IOException {
         outputBuffer.flush();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override public void close() throws IOException {
         outputBuffer.close();
-    }    
+    }
+
+
+    // ---------------------------------------------- Methods from NIOOutputSink
+
+    /**
+     * @param length specifies the number of characters that require writing
+     *
+     * @return <code>true</code> if a write to this <code>NIOOutputSink</code>
+     *  will succeed, otherwise returns <code>false</code>.
+     */
+    @Override public boolean canWrite(final int length) {
+        return outputBuffer.canWriteChar(length);
+    }
+
+    /**
+     * Instructs the <code>NIOOutputSink</code> to invoke the provided
+     * {@link WriteHandler} when it is possible to write <code>length</code>
+     * characters.
+     *
+     * @param handler the {@link WriteHandler} that should be notified
+     *  when it's possible to write <code>length</code> characters.
+     * @param length the number of characters that require writing.
+     */
+    @Override
+    public void notifyCanWrite(final WriteHandler handler, final int length) {
+        outputBuffer.notifyCanWrite(handler, length);
+    }
+    
 }

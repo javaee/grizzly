@@ -1,4 +1,4 @@
-package com.sun.grizzly.http.server.io;/*
+/*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  * 
  * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
@@ -34,37 +34,40 @@ package com.sun.grizzly.http.server.io;/*
  * holder.
  */
 
+package com.sun.grizzly.http.server.io;
+
+
 /**
  * <p>
- * This class represents a call-back mechanism that will notify implementations
- * as HTTP request data becomes available to read without blocking.
+ * This interface defines methods to allow an {@link java.io.InputStream} or
+ * {@link java.io.Reader} to allow the developer to check with the runtime
+ * whether or not it's possible to write a certain amount of data, or if it's
+ * not possible, to be notified when it is.
  * </p>
  *
  * @since 2.0
  */
-public interface DataHandler {
-
-    /**
-     * <p>
-     * Invoked when data is available to be read without blocking.
-     * </p>
-     */
-    void onDataAvailable();
-
-    
-    /**
-     * <p>
-     * Invoked when an error occurs processing the request asynchronously.
-     * </p>
-     */
-    void onError(final Throwable t);
+public interface NIOOutputSink {
 
 
     /**
-     * <p>
-     * Invoked when all data for the current request has been read.
-     * </p>
+     * Instructs the <code>NIOOutputSink</code> to invoke the provided
+     * {@link WriteHandler} when it is possible to write <code>length</code>
+     * bytes.
+     *
+     * @param handler the {@link WriteHandler} that should be notified
+     *  when it's possible to write <code>length</code> bytes.
+     * @param length the number of bytes that require writing.
      */
-    void onAllDataRead();
+    void notifyCanWrite(final WriteHandler handler, final int length);
+
+
+    /**
+     * @param length specifies the number of bytes that require writing
+     *
+     * @return <code>true</code> if a write to this <code>NIOOutputSink</code>
+     *  will succeed, otherwise returns <code>false</code>.
+     */
+    boolean canWrite(final int length);
 
 }

@@ -149,7 +149,7 @@ public class InputBuffer {
     /**
      * TODO: Documentation
      */
-    private DataHandler handler;
+    private ReadHandler handler;
 
     /**
      * TODO: Documentation
@@ -599,7 +599,7 @@ public class InputBuffer {
      *
      * @param handler
      */
-    public void notifyAvailable(final DataHandler handler) {
+    public void notifyAvailable(final ReadHandler handler) {
         notifyAvailable(handler, 0);
     }
 
@@ -610,7 +610,7 @@ public class InputBuffer {
      * @param handler
      * @param size
      */
-    public void notifyAvailable(final DataHandler handler,
+    public void notifyAvailable(final ReadHandler handler,
                                 final int size) {
 
         if (closed) {
