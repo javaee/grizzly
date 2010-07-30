@@ -206,7 +206,7 @@ public class GrizzlyResponse {
      */
     // START OF SJSAS 6231069
     // protected GrizzlyWriter writer = new GrizzlyWriter(outputBuffer);
-    protected PrintWriter writer;
+    protected GrizzlyWriter writer;
     // END OF SJSAS 6231069
 
 
@@ -753,7 +753,7 @@ public class GrizzlyResponse {
      *  already been called for this response
      * @exception java.io.IOException if an input/output error occurs
      */
-    public PrintWriter getWriter()
+    public GrizzlyWriter getWriter()
         throws IOException {
 
         if (usingOutputStream)
@@ -779,7 +779,7 @@ public class GrizzlyResponse {
         //outputBuffer.checkConverter();
         if (writer == null) {
             outputBuffer.processingChars();
-            writer = new PrintWriter(new GrizzlyWriter(outputBuffer));
+            writer = new GrizzlyWriter(outputBuffer);
         }
         return writer;
 

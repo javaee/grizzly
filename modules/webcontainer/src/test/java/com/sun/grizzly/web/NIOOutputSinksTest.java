@@ -56,10 +56,12 @@ import com.sun.grizzly.http.server.GrizzlyRequest;
 import com.sun.grizzly.http.server.GrizzlyResponse;
 import com.sun.grizzly.http.server.GrizzlyWebServer;
 import com.sun.grizzly.http.server.io.GrizzlyOutputStream;
+import com.sun.grizzly.http.server.io.GrizzlyWriter;
 import com.sun.grizzly.http.server.io.WriteHandler;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.nio.AbstractNIOConnection;
+import com.sun.grizzly.nio.PendingWriteQueueLimitExceededException;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import junit.framework.TestCase;
 
@@ -220,5 +222,258 @@ public class NIOOutputSinksTest extends TestCase {
             TransportFactory.getInstance().close();
         }
 
+    }
+    
+    
+    public void testCharacterOutputSink() throws Exception {
+
+        final GrizzlyWebServer server = new GrizzlyWebServer();
+        final GrizzlyListener listener =
+                new GrizzlyListener("Grizzly",
+                                    GrizzlyListener.DEFAULT_NETWORK_HOST,
+                                    PORT);
+        final AsyncQueueWriter asyncQueueWriter =
+                listener.getTransport().getAsyncQueueIO().getWriter();
+        final int LENGTH = 256000;
+        final int MAX_LENGTH = LENGTH * 2;
+        asyncQueueWriter.setMaxPendingBytesPerConnection(MAX_LENGTH);
+        server.addListener(listener);
+        final FutureImpl<Integer> parseResult = SafeFutureImpl.create();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new HttpClientFilter());
+        filterChainBuilder.add(new BaseFilter() {
+
+            private final StringBuilder sb = new StringBuilder();
+
+            @Override
+            public NextAction handleConnect(FilterChainContext ctx) throws IOException {
+                // Build the HttpRequestPacket, which will be sent to a server
+                // We construct HTTP request version 1.1 and specifying the URL of the
+                // resource we want to download
+                final HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("GET")
+                        .uri("/path").protocol(HttpCodecFilter.HTTP_1_1)
+                        .header("Host", "localhost:" + PORT).build();
+
+                // Write the request asynchronously
+                ctx.write(httpRequest);
+
+                // Return the stop action, which means we don't expect next filter to process
+                // connect event
+                return ctx.getStopAction();
+            }
+
+            @Override
+            public NextAction handleRead(FilterChainContext ctx) throws IOException {
+
+                HttpContent message = (HttpContent) ctx.getMessage();
+                Buffer b = message.getContent();
+                if (b.remaining() > 0) {
+                    sb.append(b.toStringContent());
+                } 
+                if (message.isLast()) {
+                    parseResult.result(sb.length());
+                }
+                return ctx.getStopAction();
+            }
+        });
+
+
+        final TCPNIOTransport clientTransport = TransportFactory.getInstance().createTCPTransport();
+        clientTransport.setProcessor(filterChainBuilder.build());
+        final AtomicInteger writeCounter = new AtomicInteger();
+        final AtomicBoolean callbackInvoked = new AtomicBoolean(false);
+        final GrizzlyAdapter ga = new GrizzlyAdapter() {
+
+            @Override
+            public void service(final GrizzlyRequest request, final GrizzlyResponse response) throws Exception {
+                
+                clientTransport.pause();
+                response.setContentType("text/plain");
+                final GrizzlyWriter out = response.getWriter();
+
+                while (out.canWrite(LENGTH)) {
+                    char[] c = new char[LENGTH];
+                    Arrays.fill(c, 'a');
+                    writeCounter.addAndGet(c.length);
+                    out.write(c);
+                    out.flush();
+                }
+
+                Connection c = request.getContext().getConnection();
+                final TaskQueue tqueue = ((AbstractNIOConnection) c).getAsyncWriteQueue();
+
+                out.notifyCanWrite(new WriteHandler() {
+                    @Override
+                    public void onWritePossible() {
+                        callbackInvoked.compareAndSet(false, true);
+                        try {
+                            clientTransport.pause();
+                        } catch (IOException ioe) {
+                            ioe.printStackTrace();
+                        }
+
+                        assertTrue(MAX_LENGTH - tqueue.spaceInBytes() >= LENGTH);
+
+                        try {
+                            clientTransport.resume();
+                        } catch (IOException ioe) {
+                            ioe.printStackTrace();
+                        }
+                        try {
+                            char[] c = new char[LENGTH];
+                            Arrays.fill(c, 'a');
+                            writeCounter.addAndGet(c.length);
+                            out.write(c);
+                            out.flush();
+                            out.close();
+                        } catch (IOException ioe) {
+                            ioe.printStackTrace();
+                        }
+                        response.resume();
+
+                    }
+                }, (LENGTH));
+
+                clientTransport.resume();
+                response.suspend();
+            }
+
+        };
+
+
+        server.getServerConfiguration().addGrizzlyAdapter(ga, "/path");
+
+        try {
+            server.start();
+            clientTransport.start();
+
+            Future<Connection> connectFuture = clientTransport.connect("localhost", PORT);
+            Connection connection = null;
+            try {
+                connection = connectFuture.get(10, TimeUnit.SECONDS);
+                int length = parseResult.get(10, TimeUnit.SECONDS);
+                assertEquals(writeCounter.get(), length);
+                assertTrue(callbackInvoked.get());
+            } finally {
+                // Close the client connection
+                if (connection != null) {
+                    connection.close();
+                }
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            fail();
+        } finally {
+            clientTransport.stop();
+            server.stop();
+            TransportFactory.getInstance().close();
+        }
+
+    }
+
+
+    public void testWriteExceptionPropagation() throws Exception {
+
+        final GrizzlyWebServer server = new GrizzlyWebServer();
+        final GrizzlyListener listener =
+                new GrizzlyListener("Grizzly",
+                                    GrizzlyListener.DEFAULT_NETWORK_HOST,
+                                    PORT);
+        final AsyncQueueWriter asyncQueueWriter =
+                listener.getTransport().getAsyncQueueIO().getWriter();
+        final int LENGTH = 256000;
+        final int MAX_LENGTH = LENGTH * 2;
+        asyncQueueWriter.setMaxPendingBytesPerConnection(MAX_LENGTH);
+        server.addListener(listener);
+        final FutureImpl<Boolean> parseResult = SafeFutureImpl.create();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new HttpClientFilter());
+        filterChainBuilder.add(new BaseFilter() {
+
+            @Override
+            public NextAction handleConnect(FilterChainContext ctx) throws IOException {
+                // Build the HttpRequestPacket, which will be sent to a server
+                // We construct HTTP request version 1.1 and specifying the URL of the
+                // resource we want to download
+                final HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("GET")
+                        .uri("/path").protocol(HttpCodecFilter.HTTP_1_1)
+                        .header("Host", "localhost:" + PORT).build();
+
+                // Write the request asynchronously
+                ctx.write(httpRequest);
+
+                // Return the stop action, which means we don't expect next filter to process
+                // connect event
+                return ctx.getStopAction();
+            }
+
+            @Override
+            public NextAction handleRead(FilterChainContext ctx) throws IOException {
+                return ctx.getStopAction();
+            }
+        });
+
+        final TCPNIOTransport clientTransport = TransportFactory.getInstance().createTCPTransport();
+        clientTransport.setProcessor(filterChainBuilder.build());
+        final GrizzlyAdapter ga = new GrizzlyAdapter() {
+
+            @Override
+            public void service(final GrizzlyRequest request, final GrizzlyResponse response) throws Exception {
+
+                //clientTransport.pause();
+                response.setContentType("text/plain");
+                final GrizzlyWriter out = response.getWriter();
+
+                for(;;) {
+                    char[] c = new char[LENGTH];
+                    Arrays.fill(c, 'a');
+                    try {
+                        out.write(c);
+                    } catch (PendingWriteQueueLimitExceededException p) {
+                        parseResult.result(Boolean.TRUE);
+                        break;
+                    } catch (Exception e) {
+                        parseResult.failure(e);
+                        break;
+                    }
+                    out.flush();
+                }
+
+            }
+
+        };
+
+
+        server.getServerConfiguration().addGrizzlyAdapter(ga, "/path");
+
+        try {
+            server.start();
+            clientTransport.start();
+
+            Future<Connection> connectFuture = clientTransport.connect("localhost", PORT);
+            Connection connection = null;
+            try {
+                connection = connectFuture.get(10, TimeUnit.SECONDS);
+                boolean exceptionThrown = parseResult.get(10, TimeUnit.SECONDS);
+                assertTrue("Unexpected Exception thrown.", exceptionThrown);
+            } finally {
+                // Close the client connection
+                if (connection != null) {
+                    connection.close();
+                }
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            fail();
+        } finally {
+            clientTransport.stop();
+            server.stop();
+            TransportFactory.getInstance().close();
+        }
+        
     }
 }

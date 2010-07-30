@@ -55,6 +55,7 @@ import com.sun.grizzly.http.server.GrizzlyRequest;
 import com.sun.grizzly.http.server.GrizzlyResponse;
 import com.sun.grizzly.http.server.GrizzlyWebServer;
 import com.sun.grizzly.http.server.GrizzlyAdapter;
+import com.sun.grizzly.http.server.io.GrizzlyWriter;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.ByteBufferWrapper;
@@ -66,7 +67,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintWriter;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
@@ -74,7 +74,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -136,7 +135,7 @@ public class FileCacheTest {
                         error = exception.getMessage();
                     }
 
-                    final PrintWriter writer = res.getWriter();
+                    final GrizzlyWriter writer = res.getWriter();
                     writer.write(error == null ?
                         "Hello not cached data" :
                         "Error happened: " + error);
@@ -197,7 +196,7 @@ public class FileCacheTest {
                         error = exception.getMessage();
                     }
 
-                    final PrintWriter writer = res.getWriter();
+                    final GrizzlyWriter writer = res.getWriter();
                     writer.write(error == null ?
                         "Hello not cached data" :
                         "Error happened: " + error);

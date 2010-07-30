@@ -38,6 +38,7 @@ package com.sun.grizzly.http.server.io;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.EmptyCompletionHandler;
 import com.sun.grizzly.asyncqueue.AsyncQueueWriter;
 import com.sun.grizzly.asyncqueue.TaskQueue;
 import com.sun.grizzly.filterchain.FilterChainContext;
@@ -49,7 +50,6 @@ import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
 import com.sun.grizzly.nio.AbstractNIOConnection;
 import com.sun.grizzly.tcp.FileOutputBuffer;
-import com.sun.grizzly.utils.conditions.Condition;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -513,7 +513,16 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
             HttpContent.Builder builder = response.httpContentBuilder();
             buf.flip();
             builder.content(buf);
-            ctx.write(builder.build());
+            final WriteCompletionHandler handler = new WriteCompletionHandler();
+            ctx.write(builder.build(), handler);
+            if (handler.operationFailed()) {
+                Throwable t = handler.getCause();
+                if (t instanceof IOException) {
+                    throw (IOException) t;
+                } else {
+                    throw new IOException(t);
+                }
+            }
             if (!includeTrailer) {
                 buf = memoryManager.allocate(DEFAULT_BUFFER_SIZE);
             }
@@ -595,4 +604,39 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
             ctx.write(response);
         }
     }
+
+
+    // ---------------------------------------------------------- Nested Classes
+
+    /**
+     * TODO : Look into reusing
+     */
+    private static final class WriteCompletionHandler extends EmptyCompletionHandler {
+
+        private Throwable t;
+
+
+        // -------------------------------------- Methods from CompletionHandler
+
+
+        @Override
+        public void failed(Throwable throwable) {
+            super.failed(throwable);
+            t = throwable;
+        }
+
+
+        // ------------------------------------------------------ Public Methods
+
+
+        public boolean operationFailed() {
+            return (t != null);
+        }
+
+
+        public Throwable getCause() {
+            return t;
+        }
+
+    } // END WriteCompletionHandler
 }
