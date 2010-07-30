@@ -55,6 +55,7 @@
 package com.sun.grizzly.util.http;
 
 import java.text.MessageFormat;
+import java.util.Locale;
 import java.util.ResourceBundle;
 
 /**
@@ -248,7 +249,7 @@ public class Cookie implements Cloneable {
      */
 
     public void setDomain(String pattern) {
-	domain = pattern.toLowerCase();	// IE allegedly needs this
+	domain = pattern.toLowerCase(Locale.ENGLISH);	// IE allegedly needs this
     }
     
     
