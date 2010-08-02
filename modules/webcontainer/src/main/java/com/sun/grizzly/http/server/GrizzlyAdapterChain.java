@@ -54,30 +54,12 @@ import java.util.logging.Logger;
  * The GrizzlyAdapterChain class allows the invocation of multiple {@link GrizzlyAdapter}s
  * every time a new HTTP request is ready to be handled. Requests are mapped
  * to their associated {@link GrizzlyAdapter} at runtime using the mapping
- * information configured when invoking the {@link com.sun.grizzly.http.server.apapter.GrizzlyAdapterChain#addGrizzlyAdapter
- * (com.sun.grizzly.tcp.http11.GrizzlyAdapter, java.lang.String[])
+ * information configured when invoking the {@link com.sun.grizzly.http.server.GrizzlyAdapterChain#addGrizzlyAdapter
+ * (com.sun.grizzly.http.server.GrizzlyAdapter, java.lang.String[])}
  *
- * Below is a simple example using two {@link Servlet}
- * <pre><code>
  *
-GrizzlyWebServer ws = new GrizzlyWebServer(path);
-ServletAdapter sa = new ServletAdapter();
-sa.setRootFolder(".");
-sa.setServletInstance(new ServletTest("Adapter-1"));
-ws.addGrizzlyAdapter(sa, new String[]{"/Adapter-1"});
-
-ServletAdapter sa2 = new ServletAdapter();
-sa2.setRootFolder("/tmp");
-sa2.setServletInstance(new ServletTest("Adapter-2"));
-ws.addGrizzlyAdapter(sa2, new String[]{"/Adapter-2"});
-
-System.out.println("Grizzly WebServer listening on port 8080");
-ws.start();
- *
- * </code></pre>
- *
- * Note: This class is <strong>NOT</strong> thread-safe, so make sure you synchronize
- *       when dynamically adding and removing {@link GrizzlyAdapter }
+ * Note: This class is <strong>NOT</strong> thread-safe, so make sure synchronization
+ *  is performed when dynamically adding and removing {@link GrizzlyAdapter}
  *
  * @author Jeanfrancois Arcand
  */
@@ -104,6 +86,7 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
      * Use the deprecated mechanism.
      */
     private boolean oldMappingAlgorithm = false;
+
     /**
      * Flag indicating this GrizzlyAdapter has been started.  Any subsequent
      * GrizzlyAdapter instances added to this chain after is has been started
@@ -149,7 +132,7 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
             }
         } else {
             //Request req = request.getRequest();
-            MappingData mappingData = null;
+            MappingData mappingData;
             try {
                 RequestURIRef uriRef = request.getRequest().getRequestURIRef();
                 BufferChunk decodedURI = uriRef.getDecodedRequestURIBC();
@@ -186,7 +169,7 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
                 decURI.setString(decodedURI.toString());
                 mapper.map(serverName, decURI, mappingData);
 
-                GrizzlyAdapter adapter = null;
+                GrizzlyAdapter adapter;
                 if (mappingData.context != null && mappingData.context instanceof GrizzlyAdapter) {
                     if (mappingData.wrapper != null) {
                         adapter = (GrizzlyAdapter) mappingData.wrapper;
@@ -218,8 +201,8 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
 
     /**
      * Add a {@link GrizzlyAdapter} to the chain.
-     * @param {@link GrizzlyAdapter} to the chain.
-     * @deprecated - uses {@link com.sun.grizzly.http.server.apapter.GrizzlyAdapterChain#addGrizzlyAdapter(GrizzlyAdapter , String[])}
+     * @param adapter {@link GrizzlyAdapter} to the chain.
+     * @deprecated - use {@link com.sun.grizzly.http.server.GrizzlyAdapterChain#addGrizzlyAdapter(GrizzlyAdapter , String[])}
      */
     public void addGrizzlyAdapter(GrizzlyAdapter adapter) {
         oldMappingAlgorithm = true;
@@ -240,7 +223,7 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
         }
 
         if (mappings.length == 0) {
-            addGrizzlyAdapter(adapter);
+            addGrizzlyAdapter(adapter, new String[]{""});
         } else {
             adapter.start();
             adapters.put(adapter, mappings);
@@ -254,7 +237,7 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
     }
 
     private String getContextPath(String mapping) {
-        String ctx = "";
+        String ctx;
         int slash = mapping.indexOf("/", 1);
         if (slash != -1) {
             ctx = mapping.substring(0, slash);
@@ -278,6 +261,7 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
         for (Entry<GrizzlyAdapter, String[]> adapter : adapters.entrySet()) {
             adapter.getKey().destroy();
         }
+        started = false;
     }
 
     /**

@@ -586,8 +586,8 @@ public class InputBuffer {
 
 
     /**
-     * TODO: Documentation
-     * @return
+     * @return <code>true</code> if all request data has been read, otherwise
+     *  returns <code>false</code>
      */
     public boolean isFinished() {
         return contentRead;
@@ -623,16 +623,18 @@ public class InputBuffer {
 
 
     /**
-     * TODO: Documentation
+     * Appends the specified {@link Buffer} to the internal composite
+     * {@link Buffer}.
      *
-     * @param buffer
+     * @param buffer the {@link Buffer} to append
      *
-     * @return
+     * @return <code>true</code> if {@link ReadHandler#onDataAvailable()}
+     *  callback was invoked, otherwise returns <code>false</code>/
      */
     public boolean append(final Buffer buffer) {
 
         if (buffer == null) {
-            return true;
+            return false;
         }
 
         if (closed) {

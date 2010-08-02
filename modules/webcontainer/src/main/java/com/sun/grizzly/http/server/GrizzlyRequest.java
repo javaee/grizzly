@@ -881,9 +881,9 @@ public class GrizzlyRequest {
 
 
     /**
-     * TODO: Documentation
-     *
-     * @return
+     * @return <code>true</code> if {@link #getInputStream(boolean)} or
+     *  {@link #getReader(boolean)} were invoked with an argument value of
+     *   <code>true</code>
      */
     public boolean asyncInput() {
 

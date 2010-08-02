@@ -97,10 +97,10 @@ public class ServerConfiguration {
 
     /**
      * TODO: Update docs
-     * Add a {@link com.sun.grizzly.http.server.adapter.GrizzlyAdapter} with its associated mapping. A request will
-     * be dispatched to a {@link com.sun.grizzly.http.server.adapter.GrizzlyAdapter} based on its mapping value.
+     * Add a {@link com.sun.grizzly.http.server.GrizzlyAdapter} with its associated mapping. A request will
+     * be dispatched to a {@link com.sun.grizzly.http.server.GrizzlyAdapter} based on its mapping value.
      *
-     * @param grizzlyAdapter a {@link com.sun.grizzly.http.server.adapter.GrizzlyAdapter}
+     * @param grizzlyAdapter a {@link com.sun.grizzly.http.server.GrizzlyAdapter}
      * @param mapping        An array contains the context path mapping information.
      */
     public void addGrizzlyAdapter(GrizzlyAdapter grizzlyAdapter,
@@ -114,7 +114,7 @@ public class ServerConfiguration {
 
     /**
      * TODO: Update docs
-     * Remove a {@link com.sun.grizzly.http.server.adapter.GrizzlyAdapter}
+     * Remove a {@link com.sun.grizzly.http.server.GrizzlyAdapter}
      * return <tt>true</tt>, if the operation was successful.
      */
     public boolean removeGrizzlyAdapter(GrizzlyAdapter grizzlyAdapter) {
@@ -123,18 +123,18 @@ public class ServerConfiguration {
 
 
     /**
-     * TODO Docs
-     * @return
+     * @return the {@link GrizzlyAdapter} to be used by this server instance.
+     *  This may be a single {@link GrizzlyAdapter} or a composite of multiple
+     *  {@link GrizzlyAdapter} instances wrapped by a {@link GrizzlyAdapterChain}.
      */
     protected GrizzlyAdapter buildAdapter() {
 
         if (adapters.isEmpty()) {
-            final GrizzlyAdapter ga = new GrizzlyAdapter(docRoot) {
+            return new GrizzlyAdapter(docRoot) {
                 @Override
                 public void service(GrizzlyRequest request, GrizzlyResponse response) {
                 }
             };
-            return ga;
         }
 
         final int adaptersNum = adapters.size();

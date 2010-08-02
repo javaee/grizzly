@@ -84,7 +84,8 @@ public class StaticResourcesHandler {
 
     /**
      * Based on the {@link GrizzlyRequest} URI, try to map the file from the
-     * {@link StaticResourcesHandler#docRootFolder}, and send it synchronously using send file.
+     * {@link StaticResourcesHandler#getDocRoot()}, and send it synchronously
+     * using send file.
      * @param req the {@link GrizzlyRequest}
      * @param res the {@link GrizzlyResponse}
      * @throws Exception

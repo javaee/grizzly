@@ -50,23 +50,20 @@ import java.util.logging.Logger;
 
 /**
  * Base class to use when GrizzlyRequest/Response/InputStream/OutputStream
- * are needed to implement a customized HTTP container/extendion to the
- * http module. The {@link ServletAdapter} demonstrate and easy and powerfull
- * way of how to extend this class.
+ * are needed to implement a customized HTTP container/extension to the
+ * HTTP module.
  *
- * The {@link com.sun.grizzly.http.server.apapter.GrizzlyAdapter} provides developpers with a simple and
- * consistent mechanism for extending the functionality of the HTTP WebServer and for bridging existing
- * http based technology like JRuby-on-Rail, Servlet, Bayeux Protocol or any
- * http based protocol.
+ * The {@link com.sun.grizzly.http.server.GrizzlyAdapter} provides developers
+ * with a simple and consistent mechanism for extending the functionality of the
+ * HTTP WebServer and for bridging existing http based technology like
+ * JRuby-on-Rail, Servlet, Bayeux Protocol or any HTTP based protocol.
  *
  * @author Jeanfrancois Arcand
  */
 public abstract class GrizzlyAdapter {
+    
     private final static Logger logger = Grizzly.logger(GrizzlyAdapter.class);
     
-    protected boolean chunkingDisabled = false;
-
-
     protected final StaticResourcesHandler staticResourcesHandler =
             new StaticResourcesHandler();
 
@@ -105,13 +102,14 @@ public abstract class GrizzlyAdapter {
     }
 
     /**
-     * Wrap a {@link Request} and {@link Response} with associated high level
-     * classes like {@link GrizzlyRequest} and {@link GrizzlyResponse}. The later
-     * objects offer more high level API like {@link GrizzlyInputStream},
-     * {@link GrizzlyRead} etc.
+     * Handles static resources if this adapter is configured to do so, otherwise
+     * invokes {@link #service(GrizzlyRequest, GrizzlyResponse)}.
+     *
      * @param request the {@link GrizzlyRequest}
      * @param response the {@link GrizzlyResponse}
-     * @throws java.lang.Exception
+     *
+     * @throws Exception if an error occurs serving a static resource or
+     *  from the invocation of {@link #service(GrizzlyRequest, GrizzlyResponse)}
      */
     public final void doService(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
 
@@ -138,33 +136,35 @@ public abstract class GrizzlyAdapter {
             logger.log(Level.SEVERE,"service exception", t);
             response.setStatus(500);
             response.setDetailMessage("Internal Error");
-            return;
         }
     }
     
 
     /**
-     * This method should contains the logic for any http extension to the
-     * Grizzly HTTP Webserver.
-     * @param request The  {@link GrizzlyRequest}
-     * @param response The  {@link GrizzlyResponse}
+     * This method should contain the logic for any HTTP extension to the
+     * Grizzly HTTP web server.
+     * @param request The {@link GrizzlyRequest}
+     * @param response The {@link GrizzlyResponse}
      */
     public abstract void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception;
 
 
     /**
-     * Called when the {@link com.sun.grizzly.http.server.apapter.GrizzlyAdapter}'s container is started by invoking
-     * {@link GrizzlyWebServer#start} or when {@linl SelectorThread.start}. By default,
-     * it does nothing.
+     * Called when the {@link com.sun.grizzly.http.server.GrizzlyAdapter}'s
+     * container is started by invoking {@link GrizzlyWebServer#start}.
+     *
+     * By default, it does nothing.
      */
     public void start() {
     }
 
 
     /**
-     * Invoked when the {@link GrizzlyWebServer} or {@link SelectorThread}
-     * is stopped or removed. By default, this method does nothing. Just override
-     * the method if you need to clean some resource.
+     * Invoked when the {@link GrizzlyWebServer} and may be overridden by custom
+     * implementations to perform implementation specific resource reclaimation
+     * tasks.
+     *
+     * By default, this method does nothing.
      */
     public void destroy() {
     }

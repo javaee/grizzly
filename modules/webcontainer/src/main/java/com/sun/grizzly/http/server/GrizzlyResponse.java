@@ -179,7 +179,8 @@ public class GrizzlyResponse {
     protected HttpResponsePacket response;
 
     /**
-     * Grizzly {@link FilterChain} context, related to this HTTP request/response
+     * Grizzly {@link com.sun.grizzly.filterchain.FilterChain} context,
+     * related to this HTTP request/response
      */
     protected FilterChainContext ctx;
 
@@ -805,8 +806,8 @@ public class GrizzlyResponse {
 
 
     /**
-     * TODO Docs
-     * @return
+     * @return the {@link OutputBuffer} associated with this
+     *  <code>GrizzlyResponse</code>.
      */
     public OutputBuffer getOutputBuffer() {
         return outputBuffer;
@@ -1816,7 +1817,7 @@ public class GrizzlyResponse {
 
     /**
      * Complete the {@link com.sun.grizzly.http.server.GrizzlyResponse} and finish/commit it. If a
-     * {@link com.sun.grizzly.tcp.CompletionHandler} has been defined, its {@link com.sun.grizzly.tcp.CompletionHandler#resumed(A)}
+     * {@link CompletionHandler} has been defined, its {@link CompletionHandler#completed(Object)}
      * will first be invoked, then the {@link com.sun.grizzly.http.server.GrizzlyResponse#finish()}.
      * Those operations commit the response.
      */
@@ -1855,7 +1856,7 @@ public class GrizzlyResponse {
 
     /**
      * Cancel the {@link com.sun.grizzly.http.server.GrizzlyResponse} and finish/commit it. If a
-     * {@link com.sun.grizzly.tcp.CompletionHandler} has been defined, its {@link com.sun.grizzly.tcp.CompletionHandler#cancelled(A)}
+     * {@link com.sun.grizzly.tcp.CompletionHandler} has been defined, its {@link CompletionHandler#cancelled()}
      * will first be invoked, then the {@link com.sun.grizzly.http.server.GrizzlyResponse#finish()}.
      * Those operations commit the response.
      */
