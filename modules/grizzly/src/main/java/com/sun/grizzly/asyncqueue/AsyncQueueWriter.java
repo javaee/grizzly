@@ -93,11 +93,11 @@ public interface AsyncQueueWriter<L>
             throws IOException;
 
     /**
-     * @param connection the {@link Connection} to test whether or not we can
-     *  successfully write
-     * @param size number of bytes we plan to write
+     * @param connection the {@link Connection} to test whether or not the
+     *  specified number of bytes can be written to.
+     * @param size number of bytes to write.
      * @return <code>true</code> if the queue has not exceeded it's maximum
-     *  number of pending writes, otherwise <code>false</code>
+     *  size in bytes of pending writes, otherwise <code>false</code>
      */
     boolean canWrite(final Connection connection, int size);
 

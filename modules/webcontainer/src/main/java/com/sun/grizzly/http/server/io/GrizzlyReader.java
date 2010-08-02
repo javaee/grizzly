@@ -43,8 +43,10 @@ import java.io.Reader;
 import java.nio.CharBuffer;
 
 /**
- * {@link Reader} implementation to be used to read character-based request
+ * Character stream implementation used to read character-based request
  * content.
+ *
+ * @since 2.0
  */
 public class GrizzlyReader extends Reader implements NIOInputSource {
 

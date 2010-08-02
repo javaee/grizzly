@@ -39,7 +39,11 @@ package com.sun.grizzly.http.server.io;
 import java.io.IOException;
 import java.io.Writer;
 
-
+/**
+ * Stream implementation for writing character content to an HTTP user-agent.
+ *
+ * @since 2.0
+ */
 public class GrizzlyWriter extends Writer implements NIOOutputSink {
 
     private final OutputBuffer outputBuffer;

@@ -41,7 +41,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * {@link InputStream} implementation to be used to read binary request content.
+ * Stream implementation to read binary request content.
  *
  * @since 2.0
  */

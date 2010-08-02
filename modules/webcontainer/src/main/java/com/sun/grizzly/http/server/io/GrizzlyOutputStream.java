@@ -41,6 +41,11 @@ import com.sun.grizzly.Buffer;
 import java.io.IOException;
 import java.io.OutputStream;
 
+/**
+ * Stream implementation for writing binary content to an HTTP user-agent.
+ *
+ * @since 2.0
+ */
 public class GrizzlyOutputStream extends OutputStream implements BinaryNIOOutputSink {
 
 
@@ -103,7 +108,9 @@ public class GrizzlyOutputStream extends OutputStream implements BinaryNIOOutput
         return outputBuffer.canWrite(length);
     }
 
-
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void notifyCanWrite(final WriteHandler handler, final int length) {
         outputBuffer.notifyCanWrite(handler, length);
@@ -113,6 +120,9 @@ public class GrizzlyOutputStream extends OutputStream implements BinaryNIOOutput
     // ---------------------------------------- Methods from BinaryNIOOutputSink
 
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void write(Buffer buffer) throws IOException {
         outputBuffer.writeBuffer(buffer);
