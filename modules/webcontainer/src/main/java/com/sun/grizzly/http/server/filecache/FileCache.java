@@ -326,6 +326,7 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
     /**
      * Send the cached resource.
      */
+    @SuppressWarnings({"unchecked"})
     protected HttpPacket makeResponse(FileCacheEntry entry,
             HttpRequestPacket request) throws IOException {
 
@@ -341,13 +342,10 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
             final ByteBuffer sliced = entry.bb.slice();
             final Buffer buffer = MemoryUtils.wrap(memoryManager, sliced);
 
-            final HttpContent content =
-                    HttpContent.builder(response)
+            return HttpContent.builder(response)
                     .content(buffer)
                     .last(true)
                     .build();
-
-            return content;
         } else {
             response.setChunked(false);
         }
