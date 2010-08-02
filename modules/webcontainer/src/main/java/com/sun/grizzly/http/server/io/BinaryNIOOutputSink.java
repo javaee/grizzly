@@ -1,4 +1,8 @@
-/*
+package com.sun.grizzly.http.server.io;
+
+import com.sun.grizzly.Buffer;
+
+import java.io.IOException;/*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  * 
  * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
@@ -34,88 +38,21 @@
  * holder.
  */
 
-package com.sun.grizzly.http.server.io;
 
-import com.sun.grizzly.Buffer;
-
-import java.io.IOException;
-import java.io.OutputStream;
-
-public class GrizzlyOutputStream extends OutputStream implements BinaryNIOOutputSink {
-
-
-    private final OutputBuffer outputBuffer;
-
-
-    // ------------------------------------------------------------ Constructors
-
-
-    public GrizzlyOutputStream(OutputBuffer outputBuffer) {
-        this.outputBuffer = outputBuffer;
-    }
-
-
-    // ----------------------------------------------- Methods from OutputStream
+/**
+ * Adds the ability for binary based {@link NIOOutputSink}s to write a 
+ * {@link Buffer} instead of having to convert to those types supported by
+ * {@link java.io.OutputStream}.
+ *
+ * @since 2.0
+ */
+public interface BinaryNIOOutputSink extends NIOOutputSink {
 
     /**
-     * {@inheritDoc}
+     * Writes the contents of the specified {@link com.sun.grizzly.Buffer}.
+     *
+     * @param buffer the {@link com.sun.grizzly.Buffer to write}
      */
-    @Override public void write(int b) throws IOException {
-        outputBuffer.writeByte(b);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override public void write(byte[] b) throws IOException {
-        outputBuffer.write(b);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override public void write(byte[] b, int off, int len) throws IOException {
-        outputBuffer.write(b, off, len);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override public void flush() throws IOException {
-        outputBuffer.flush();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override public void close() throws IOException {
-        outputBuffer.close();
-    }
-
-
-    // ---------------------------------------------- Methods from NIOOutputSink
-
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override public boolean canWrite(final int length) {
-        return outputBuffer.canWrite(length);
-    }
-
-
-    @Override
-    public void notifyCanWrite(final WriteHandler handler, final int length) {
-        outputBuffer.notifyCanWrite(handler, length);
-    }
-
-
-    // ---------------------------------------- Methods from BinaryNIOOutputSink
-
-
-    @Override
-    public void write(Buffer buffer) throws IOException {
-        outputBuffer.writeBuffer(buffer);
-    }
+    void write(Buffer buffer) throws IOException;
     
 }

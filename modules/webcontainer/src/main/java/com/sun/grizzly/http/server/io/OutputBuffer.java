@@ -394,21 +394,34 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
     @SuppressWarnings({"unchecked"})
     public void writeByteBuffer(ByteBuffer byteBuffer) throws IOException {
         Buffer w = MemoryUtils.wrap(memoryManager, byteBuffer);
-        int total = w.remaining();
-        int off = w.position();
+        writeBuffer(w);
+    }
+
+
+    /**
+     * <p>
+     * Writes the contents of the specified {@link Buffer} to the client.
+     * </p>
+     *
+     * @param buffer the {@link ByteBuffer} to write
+     * @throws IOException if an error occurs during the write
+     */
+    public void writeBuffer(Buffer buffer) throws IOException {
+        int total = buffer.remaining();
+        int off = buffer.position();
         do {
             int writeLen = requiresDrain(total);
             if (writeLen == CAPACITY_OK) {
-                buf.put(w, off, total);
+                buf.put(buffer, off, total);
                 total = 0;
             } else if (writeLen == DEFAULT_BUFFER_SIZE) {
-                buf.put(w, off, writeLen);
+                buf.put(buffer, off, writeLen);
                 total -= writeLen;
                 flush();
             } else {
-                buf.put(w, off, writeLen);
+                buf.put(buffer, off, writeLen);
                 flush();
-                buf.put(w, off + writeLen, total - writeLen);
+                buf.put(buffer, off + writeLen, total - writeLen);
                 total -= (total + total - writeLen);
             }
             if (buf.remaining() == 0) {
