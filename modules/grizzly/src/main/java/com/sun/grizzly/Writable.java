@@ -42,7 +42,7 @@ import java.io.IOException;
 import java.util.concurrent.Future;
 
 /**
- * Implementatios of this interface are able to write data from a {@link Buffer}.
+ * Implementations of this interface are able to write data from a {@link Buffer}.
  *
  * Grizzly {@link Connection} extends {@link Writable}.
  *
@@ -52,9 +52,7 @@ public interface Writable<L> extends Closeable {
     /**
      * Method writes the <tt>buffer</tt>.
      *
-     * @param buffer the buffer, from which the data will be written
-     * @param completionHandler {@link CompletionHandler},
-     *        which will get notified, when write will be completed
+     * @param message the buffer, from which the data will be written
      * @return {@link Future}, using which it's possible to check the
      *         result
      * @throws java.io.IOException
@@ -65,7 +63,7 @@ public interface Writable<L> extends Closeable {
     /**
      * Method writes the <tt>buffer</tt>.
      *
-     * @param buffer the buffer, from which the data will be written
+     * @param message the buffer, from which the data will be written
      * @param completionHandler {@link CompletionHandler},
      *        which will get notified, when write will be completed
      * @return {@link Future}, using which it's possible to check the
@@ -81,7 +79,7 @@ public interface Writable<L> extends Closeable {
      *
      * @param dstAddress the destination address the <tt>buffer</tt> will be
      *        sent to
-     * @param buffer the buffer, from which the data will be written
+     * @param message the buffer, from which the data will be written
      * @param completionHandler {@link CompletionHandler},
      *        which will get notified, when write will be completed
      * @return {@link Future}, using which it's possible to check the
