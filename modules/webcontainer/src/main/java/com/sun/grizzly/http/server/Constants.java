@@ -53,7 +53,7 @@
 
 package com.sun.grizzly.http.server;
 
-import com.sun.grizzly.util.buf.ByteChunk;
+import com.sun.grizzly.http.util.ByteChunk;
 
 /**
  * Constants. Inspired from class com.sun.grizzly.tcp.http11.Constants
@@ -284,4 +284,24 @@ public final class Constants {
     public static final int MAX_CACHE_ENTRIES = 1024;
     public static final long MAX_LARGE_FILE_CACHE_SIZE = 10485760;
     public static final int MAX_AGE_IN_SECONDS = 30;
+
+    // S1AS 4703023
+    public static final int DEFAULT_MAX_DISPATCH_DEPTH = 20;
+
+    /**
+     * Default header names.
+     */
+    public static final String AUTHORIZATION_HEADER = "authorization";
+
+    // TODO Grizzly 2.0, by default, parsed the request URI using UTF-8.
+    // We should probably do so with query parameters
+    public static final String DEFAULT_CHARACTER_ENCODING="ISO-8859-1";
+
+    // START SJSAS 6346226
+    public final static String JROUTE_COOKIE = "JROUTE";
+    // END SJSAS 6346226
+
+    // START SJSAS 6337561
+    public final static String PROXY_JROUTE = "proxy-jroute";
+    // END SJSAS 6337561
 }

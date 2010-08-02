@@ -43,7 +43,7 @@ import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.http.server.filecache.FileCache;
 import com.sun.grizzly.http.server.io.OutputBuffer;
-import com.sun.grizzly.util.http.MimeType;
+import com.sun.grizzly.http.server.util.MimeType;
 
 import java.io.File;
 import java.io.FileInputStream;

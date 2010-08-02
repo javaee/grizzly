@@ -59,7 +59,7 @@ import com.sun.grizzly.nio.transport.TCPNIOConnectorHandler;
 import com.sun.grizzly.ssl.SSLContextConfigurator;
 import com.sun.grizzly.ssl.SSLEngineConfigurator;
 import com.sun.grizzly.ssl.SSLFilter;
-import com.sun.grizzly.util.buf.ByteChunk;
+import com.sun.grizzly.http.util.ByteChunk;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Arrays;

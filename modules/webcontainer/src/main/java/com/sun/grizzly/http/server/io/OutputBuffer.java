@@ -49,7 +49,6 @@ import com.sun.grizzly.http.util.Utils;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
 import com.sun.grizzly.nio.AbstractNIOConnection;
-import com.sun.grizzly.tcp.FileOutputBuffer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -62,7 +61,8 @@ import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 
 /**
- * TODO DOCS
+ * Abstraction exposing both byte and character methods to write content
+ * to the HTTP messaging system in Grizzly.
  */
 public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
 

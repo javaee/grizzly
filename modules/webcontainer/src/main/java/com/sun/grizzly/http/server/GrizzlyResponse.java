@@ -56,6 +56,7 @@ package com.sun.grizzly.http.server;
 
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.http.HttpResponsePacket;
@@ -71,9 +72,6 @@ import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.http.util.ServerCookie;
 import com.sun.grizzly.http.util.StringManager;
 import com.sun.grizzly.http.util.UEncoder;
-import com.sun.grizzly.tcp.http11.Constants;
-import com.sun.grizzly.tcp.http11.GrizzlySession;
-import com.sun.grizzly.util.LoggerUtils;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -95,6 +93,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Wrapper object for the Coyote response.
@@ -105,6 +104,8 @@ import java.util.logging.Level;
  */
 
 public class GrizzlyResponse {
+
+    private static final Logger LOGGER = Grizzly.logger(GrizzlyResponse.class);
 
     private static final ThreadCache.CachedTypeIndex<GrizzlyResponse> CACHE_IDX =
             ThreadCache.obtainIndex(GrizzlyResponse.class, 2);
@@ -619,14 +620,12 @@ public class GrizzlyResponse {
         try {
             outputBuffer.endRequest();
         } catch(IOException e) {
-            if (LoggerUtils.getLogger().isLoggable(Level.FINEST)) {
-                LoggerUtils.getLogger().log(Level.FINEST,
-                        "ACTION_CLIENT_FLUSH", e);
+            if (LOGGER.isLoggable(Level.FINEST)) {
+                LOGGER.log(Level.FINEST, "ACTION_CLIENT_FLUSH", e);
             }
         } catch(Throwable t) {
-            if (LoggerUtils.getLogger().isLoggable(Level.WARNING)) {
-                LoggerUtils.getLogger().log(Level.WARNING,
-                        "ACTION_CLIENT_FLUSH", t);
+            if (LOGGER.isLoggable(Level.WARNING)) {
+                LOGGER.log(Level.WARNING, "ACTION_CLIENT_FLUSH", t);
             }
         }
     }

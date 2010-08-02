@@ -70,13 +70,11 @@ import com.sun.grizzly.http.util.Cookies;
 import com.sun.grizzly.http.util.FastHttpDateFormat;
 import com.sun.grizzly.http.util.Parameters;
 import com.sun.grizzly.http.util.ServerCookie;
-import com.sun.grizzly.tcp.http11.Constants;
-import com.sun.grizzly.tcp.http11.GrizzlySession;
-import com.sun.grizzly.util.http.Enumerator;
-import com.sun.grizzly.util.http.Globals;
-import com.sun.grizzly.util.http.ParameterMap;
-import com.sun.grizzly.util.http.StringParser;
-import com.sun.grizzly.util.res.StringManager;
+import com.sun.grizzly.http.server.util.Enumerator;
+import com.sun.grizzly.http.server.util.Globals;
+import com.sun.grizzly.http.server.util.ParameterMap;
+import com.sun.grizzly.http.server.util.StringParser;
+import com.sun.grizzly.http.util.StringManager;
 import java.io.CharConversionException;
 
 import javax.security.auth.Subject;
@@ -1930,9 +1928,8 @@ public class GrizzlyRequest {
             parameters.setQueryStringEncoding(enc);
         } else {
             parameters.setEncoding
-                (com.sun.grizzly.tcp.Constants.DEFAULT_CHARACTER_ENCODING);
-            parameters.setQueryStringEncoding
-                (com.sun.grizzly.tcp.Constants.DEFAULT_CHARACTER_ENCODING);
+                (Constants.DEFAULT_CHARACTER_ENCODING);
+            parameters.setQueryStringEncoding(Constants.DEFAULT_CHARACTER_ENCODING);
         }
 
         parameters.handleQueryParameters();

@@ -41,9 +41,9 @@ import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.RequestURIRef;
 import com.sun.grizzly.http.util.UDecoder;
-import com.sun.grizzly.util.buf.MessageBytes;
-import com.sun.grizzly.util.http.mapper.Mapper;
-import com.sun.grizzly.util.http.mapper.MappingData;
+import com.sun.grizzly.http.util.MessageBytes;
+import com.sun.grizzly.http.server.util.Mapper;
+import com.sun.grizzly.http.server.util.MappingData;
 
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;

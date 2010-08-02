@@ -41,7 +41,7 @@ package com.sun.grizzly.http.server;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.server.io.OutputBuffer;
-import com.sun.grizzly.util.http.HtmlHelper;
+import com.sun.grizzly.http.server.util.HtmlHelper;
 import java.io.CharConversionException;
 import java.io.File;
 import java.nio.ByteBuffer;
