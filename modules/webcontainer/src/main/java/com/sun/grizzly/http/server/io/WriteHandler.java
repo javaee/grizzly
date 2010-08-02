@@ -38,12 +38,16 @@ package com.sun.grizzly.http.server.io;
 
 
 /**
- * TODO: Docs
+ * Callback notification mechanism that signals the developer it's possible
+ * to write content.
+ *
+ * @since 2.0
  */
 public interface WriteHandler {
 
     /**
-     * TODO: Docs
+     * This callback will be invoked when the requirements as dictated
+     * by {@link NIOOutputSink#notifyCanWrite(WriteHandler, int)} are met.
      */
     void onWritePossible();
 
