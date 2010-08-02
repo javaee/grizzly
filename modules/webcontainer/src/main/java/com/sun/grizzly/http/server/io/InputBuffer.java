@@ -47,10 +47,12 @@ import com.sun.grizzly.http.util.Utils;
 import com.sun.grizzly.memory.BuffersBuffer;
 
 import java.io.IOException;
-import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.charset.*;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CoderResult;
+import java.nio.charset.CodingErrorAction;
 
 /**
  * Abstraction exposing both byte and character methods to read content
@@ -142,22 +144,24 @@ public class InputBuffer {
     private ByteBuffer remainder;
 
     /**
-     * TODO: Documentation
+     * Flag indicating all request content has been read.
      */
     private boolean contentRead;
 
     /**
-     * TODO: Documentation
+     * The {@link ReadHandler} to be notified as content is read.
      */
     private ReadHandler handler;
 
     /**
-     * TODO: Documentation
+     * The length of the content that must be read before notifying the
+     * {@link ReadHandler}.
      */
     private int requestedSize;
 
     /**
-     * TODO: Documentation
+     * Flag indicating whehter or not async operations are being used on the
+     * input streams.
      */
     private boolean asyncEnabled;
 
@@ -178,10 +182,10 @@ public class InputBuffer {
     public void initialize(HttpRequestPacket request, FilterChainContext ctx) {
 
         if (request == null) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("request cannot be null.");
         }
         if (ctx == null) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("ctx cannot be null.");
         }
         this.request = request;
         this.ctx = ctx;
@@ -348,7 +352,10 @@ public class InputBuffer {
         if (!processingChars) {
             throw new IllegalStateException();
         }
-        
+        if (target == null) {
+            throw new IllegalArgumentException("target cannot be null.");
+        }
+
         if (charBuf.remaining() == 0) {
             if (fillChar(target.capacity(), !asyncEnabled) == -1) {
                 return -1;
@@ -455,8 +462,9 @@ public class InputBuffer {
         if (processingChars) {
             throw new IllegalStateException();
         }
-        markPos = compositeBuffer.position();
+
         if (readAheadLimit > 0) {
+            markPos = compositeBuffer.position();
             this.readAheadLimit = readAheadLimit;
         }
 
@@ -521,9 +529,14 @@ public class InputBuffer {
 
 
     /**
-     * TODO: Documentation
+     * Skips the specified number of bytes/characters.
+     *
      * @see java.io.InputStream#skip(long)
      * @see java.io.Reader#skip(long)
+     *
+     * @throws IllegalStateException if the stream that is using this <code>InputBuffer</code>
+     *  is configured for asynchronous communication and the number of bytes/characters
+     *  being skipped exceeds the number of bytes available in the buffer.
      */
     public long skip(long n, boolean block) throws IOException {
 
@@ -555,7 +568,7 @@ public class InputBuffer {
             compositeBuffer.position(compositeBuffer.position() + (int) nlen);
             return nlen;
         } else {
-            if (n < 0) {
+            if (n < 0) { // required by java.io.Reader.skip()
                 throw new IllegalArgumentException();
             }
             if (n == 0) {
@@ -575,7 +588,10 @@ public class InputBuffer {
 
 
     /**
-     * TODO: Documentation
+     * When invoked, this method will call {@link com.sun.grizzly.http.server.io.ReadHandler#onAllDataRead()}
+     * on the current {@link ReadHandler} (if any).
+     *
+     * This method shouldn't be invoked by developers directly.
      */
     public void finished() {
         if (!contentRead) {
@@ -587,7 +603,7 @@ public class InputBuffer {
 
     /**
      * @return <code>true</code> if all request data has been read, otherwise
-     *  returns <code>false</code>
+     *  returns <code>false</code>.
      */
     public boolean isFinished() {
         return contentRead;
@@ -595,9 +611,10 @@ public class InputBuffer {
 
 
     /**
-     * TODO: Documentation
+     * Installs a {@link ReadHandler} that will be notified when any data
+     * becomes available to read without blocking.
      *
-     * @param handler
+     * @param handler the {@link ReadHandler} to invoke.
      */
     public void notifyAvailable(final ReadHandler handler) {
         notifyAvailable(handler, 0);
@@ -605,14 +622,22 @@ public class InputBuffer {
 
 
     /**
-     * TODO: Documentation
+     * Installs a {@link ReadHandler} that will be notified when the specified
+     * amount of data is available to be read without blocking.
      *
-     * @param handler
-     * @param size
+     * @param handler the {@link ReadHandler} to invoke.
+     * @param size the minimum number of bytes that must be available before
+     *  the {@link ReadHandler} is notified.
      */
     public void notifyAvailable(final ReadHandler handler,
                                 final int size) {
 
+        if (handler == null) {
+            throw new IllegalArgumentException("handler cannot be null.");
+        }
+        if (size < 0) {
+            throw new IllegalArgumentException("size cannot be negative");
+        }
         if (closed) {
             return;
         }
@@ -791,16 +816,5 @@ public class InputBuffer {
 
     }
 
-
-    /**
-     * TODO: Documentation
-     *
-     * @param sizeInBytes
-     */
-    private void arraySizeCheck(final int sizeInBytes) throws IOException {
-        if (sizeInBytes > available()) {
-            throw new BufferUnderflowException();
-        }
-    }
 
 }
