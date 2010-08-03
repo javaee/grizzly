@@ -38,9 +38,10 @@
 
 package com.sun.grizzly;
 
-import com.sun.grizzly.monitoring.MonitoringAware;
 import com.sun.grizzly.attributes.AttributeBuilder;
 import com.sun.grizzly.memory.MemoryManager;
+import com.sun.grizzly.monitoring.jmx.JmxMonitoringAware;
+import com.sun.grizzly.monitoring.jmx.JmxMonitoringConfig;
 import com.sun.grizzly.monitoring.MonitoringConfig;
 import com.sun.grizzly.threadpool.ThreadPoolProbe;
 import com.sun.grizzly.utils.StateHolder;
@@ -55,7 +56,7 @@ import java.util.concurrent.ExecutorService;
  *
  * @author Alexey Stashok
  */
-public interface Transport extends MonitoringAware<TransportProbe> {
+public interface Transport extends JmxMonitoringAware<TransportProbe> {
     
     public enum State {STARTING, START, PAUSE, STOPPING, STOP};
 
@@ -394,7 +395,7 @@ public interface Transport extends MonitoringAware<TransportProbe> {
      * @param the <tt>Transport</tt> monitoring configuration {@link MonitoringConfig}.
      */
     @Override
-    public MonitoringConfig<TransportProbe> getMonitoringConfig();
+    public JmxMonitoringConfig<TransportProbe> getMonitoringConfig();
 
     /**
      * Method gets invoked, when error occur during the <tt>Transport</tt> lifecycle.

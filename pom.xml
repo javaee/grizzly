@@ -69,14 +69,6 @@
             <url>http://download.java.net/maven/1</url>
             <layout>legacy</layout>
         </repository>
-        <!--
-        <repository>
-            <id>legacy.java.net</id>
-            <name>maven-repository.dev.java.net</name>
-            <url>https://maven-repository.dev.java.net/nonav/repository/</url>
-            <layout>legacy</layout>
-        </repository>
-        -->
         <repository>
             <id>codehaus</id>
             <name>repository.codehaus.org</name>
@@ -159,7 +151,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>2.1</version>
                 <configuration>
                     <archive>
                         <manifestEntries>
@@ -171,15 +162,6 @@
                     </archive>
                 </configuration>
             </plugin>
-<!--            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>cobertura-maven-plugin</artifactId>
-                <configuration>
-                    <formats>
-                        <format>xml</format>
-                    </formats>
-                </configuration>
-            </plugin>-->
         </plugins>
     </build>
     <profiles>
@@ -256,10 +238,6 @@
                     </reportSet>
                 </reportSets>
             </plugin>
-<!--            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>cobertura-maven-plugin</artifactId>
-            </plugin> -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>findbugs-maven-plugin</artifactId>
@@ -273,6 +251,16 @@
     </reporting>
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.glassfish.gmbal</groupId>
+                <artifactId>gmbal-api-only</artifactId>
+                <version>${gmbal.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.glassfish.gmbal</groupId>
+                <artifactId>gmbal</artifactId>
+                <version>${gmbal.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.apache.maven</groupId>
                 <artifactId>maven-plugin-tools-api</artifactId>
@@ -307,5 +295,6 @@
         <maven-plugin.version>1.0.0</maven-plugin.version>
         <servlet-version>2.5</servlet-version>
         <felix-version>1.4.3</felix-version>
+        <gmbal.version>3.0.0-b023</gmbal.version>
     </properties>
 </project>

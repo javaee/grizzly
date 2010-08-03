@@ -1,7 +1,8 @@
 /*
+ *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -32,20 +33,31 @@
  * and therefore, elected the GPL Version 2 license, then the option applies
  * only if the new code is made subject to such option by the copyright
  * holder.
+ *
  */
 
-package com.sun.grizzly.monitoring;
+package com.sun.grizzly.memory.jmx;
+
+import org.glassfish.gmbal.Description;
+import org.glassfish.gmbal.ManagedAttribute;
+import org.glassfish.gmbal.ManagedObject;
 
 /**
- * General interface for the objects, which could be monitored during the lifecycle.
- * 
+ * {@link com.sun.grizzly.memory.ByteBufferManager} JMX object.
+ *
  * @author Alexey Stashok
  */
-public interface MonitoringAware<E> {
-    /**
-     * Return the object associated {@link MonitoringConfig}.
-     *
-     * @return the object associated {@link MonitoringConfig}.
-     */
-    public MonitoringConfig<E> getMonitoringConfig();
+@ManagedObject
+@Description("Grizzly Memory Manager")
+public class ByteBufferManager extends MemoryManager {
+
+    public ByteBufferManager(com.sun.grizzly.memory.ByteBufferManager memoryManager) {
+        super(memoryManager);
+    }
+
+    @ManagedAttribute(id="is-direct")
+    @Description("Is memory manager uses direct ByteBuffers")
+    public boolean isDirect() {
+        return ((com.sun.grizzly.memory.ByteBufferManager) memoryManager).isDirect();
+    }
 }

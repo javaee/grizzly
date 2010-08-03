@@ -38,8 +38,9 @@
 
 package com.sun.grizzly.memory;
 
-import com.sun.grizzly.monitoring.MonitoringConfig;
-import com.sun.grizzly.monitoring.MonitoringConfigImpl;
+import com.sun.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
+import com.sun.grizzly.monitoring.jmx.JmxMonitoringConfig;
+import com.sun.grizzly.monitoring.jmx.JmxObject;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -62,8 +63,15 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
      */
     protected boolean isDirect;
 
-    protected final MonitoringConfigImpl<MemoryProbe> monitoringConfig =
-            new MonitoringConfigImpl<MemoryProbe>(MemoryProbe.class);
+    protected final AbstractJmxMonitoringConfig<MemoryProbe> monitoringConfig =
+            new AbstractJmxMonitoringConfig<MemoryProbe>(MemoryProbe.class) {
+
+        @Override
+        public JmxObject createManagmentObject() {
+            return createJmxManagmentObject();
+        }
+
+    };
     
     public ByteBufferManager() {
         this(false);
@@ -196,7 +204,16 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
     // ------- Monitoring section ----------------------
 
     @Override
-    public MonitoringConfig<MemoryProbe> getMonitoringConfig() {
+    public JmxMonitoringConfig<MemoryProbe> getMonitoringConfig() {
         return monitoringConfig;
+    }
+
+    /**
+     * Create the Memory Manager JMX managment object.
+     *
+     * @return the Memory Manager JMX managment object.
+     */
+    protected JmxObject createJmxManagmentObject() {
+        return new com.sun.grizzly.memory.jmx.ByteBufferManager(this);
     }
 }

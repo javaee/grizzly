@@ -1,7 +1,8 @@
 /*
+ *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -32,20 +33,59 @@
  * and therefore, elected the GPL Version 2 license, then the option applies
  * only if the new code is made subject to such option by the copyright
  * holder.
+ *
  */
 
-package com.sun.grizzly.monitoring;
+package com.sun.grizzly.nio.transport.jmx;
+
+import org.glassfish.gmbal.Description;
+import org.glassfish.gmbal.ManagedAttribute;
+import org.glassfish.gmbal.ManagedObject;
 
 /**
- * General interface for the objects, which could be monitored during the lifecycle.
+ * TCP NIO Transport JMX object.
  * 
  * @author Alexey Stashok
  */
-public interface MonitoringAware<E> {
-    /**
-     * Return the object associated {@link MonitoringConfig}.
-     *
-     * @return the object associated {@link MonitoringConfig}.
-     */
-    public MonitoringConfig<E> getMonitoringConfig();
+@ManagedObject
+@Description("Grizzly TCP NIO Transport")
+public class TCPNIOTransport extends NIOTransport {
+    public TCPNIOTransport(com.sun.grizzly.nio.transport.TCPNIOTransport transport) {
+        super(transport);
+    }
+
+    @ManagedAttribute(id="server-socket-so-timeout")
+    public int getServerSocketSoTimeout() {
+        return ((com.sun.grizzly.nio.transport.TCPNIOTransport) transport).getServerSocketSoTimeout();
+    }
+
+    @ManagedAttribute(id="client-socket-so-timeout")
+    public int getClientSocketSoTimeout() {
+        return ((com.sun.grizzly.nio.transport.TCPNIOTransport) transport).getClientSocketSoTimeout();
+    }
+
+    @ManagedAttribute(id="socket-tcp-no-delay")
+    public boolean getTcpNoDelay() {
+        return ((com.sun.grizzly.nio.transport.TCPNIOTransport) transport).isTcpNoDelay();
+    }
+
+    @ManagedAttribute(id="socket-reuse-address")
+    public boolean getReuseAddress() {
+        return ((com.sun.grizzly.nio.transport.TCPNIOTransport) transport).isReuseAddress();
+    }
+
+    @ManagedAttribute(id="socket-linger")
+    public int getLinger() {
+        return ((com.sun.grizzly.nio.transport.TCPNIOTransport) transport).getLinger();
+    }
+
+    @ManagedAttribute(id="socket-keep-alive")
+    public boolean getKeepAlive() {
+        return ((com.sun.grizzly.nio.transport.TCPNIOTransport) transport).isKeepAlive();
+    }
+
+    @ManagedAttribute(id="client-connect-timeout-millis")
+    public int getConnectTimeout() {
+        return ((com.sun.grizzly.nio.transport.TCPNIOTransport) transport).getConnectionTimeout();
+    }
 }

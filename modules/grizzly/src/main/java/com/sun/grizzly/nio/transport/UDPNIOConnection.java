@@ -53,7 +53,6 @@ import java.util.logging.Logger;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.ConnectionProbe;
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.utils.ArraySet;
 import java.util.concurrent.TimeUnit;
 
 /**

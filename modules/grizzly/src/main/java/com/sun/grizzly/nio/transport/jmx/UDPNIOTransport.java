@@ -1,7 +1,8 @@
 /*
+ *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -32,20 +33,34 @@
  * and therefore, elected the GPL Version 2 license, then the option applies
  * only if the new code is made subject to such option by the copyright
  * holder.
+ *
  */
 
-package com.sun.grizzly.monitoring;
+package com.sun.grizzly.nio.transport.jmx;
+
+import org.glassfish.gmbal.Description;
+import org.glassfish.gmbal.ManagedAttribute;
+import org.glassfish.gmbal.ManagedObject;
 
 /**
- * General interface for the objects, which could be monitored during the lifecycle.
- * 
+ * UDP NIO Transport JMX object.
+ *
  * @author Alexey Stashok
  */
-public interface MonitoringAware<E> {
-    /**
-     * Return the object associated {@link MonitoringConfig}.
-     *
-     * @return the object associated {@link MonitoringConfig}.
-     */
-    public MonitoringConfig<E> getMonitoringConfig();
+@ManagedObject
+@Description("Grizzly UDP NIO Transport")
+public class UDPNIOTransport extends NIOTransport {
+    public UDPNIOTransport(com.sun.grizzly.nio.transport.UDPNIOTransport transport) {
+        super(transport);
+    }
+
+    @ManagedAttribute(id="socket-reuse-address")
+    public boolean getReuseAddress() {
+        return ((com.sun.grizzly.nio.transport.UDPNIOTransport) transport).isReuseAddress();
+    }
+
+    @ManagedAttribute(id="client-connect-timeout-millis")
+    public int getConnectTimeout() {
+        return ((com.sun.grizzly.nio.transport.UDPNIOTransport) transport).getConnectionTimeout();
+    }
 }

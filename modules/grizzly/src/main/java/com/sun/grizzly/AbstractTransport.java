@@ -42,10 +42,12 @@ import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import com.sun.grizzly.attributes.AttributeBuilder;
 import com.sun.grizzly.memory.MemoryManager;
+import com.sun.grizzly.monitoring.jmx.JmxMonitoringConfig;
+import com.sun.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
+import com.sun.grizzly.monitoring.jmx.JmxObject;
 import com.sun.grizzly.monitoring.MonitoringAware;
 import com.sun.grizzly.monitoring.MonitoringConfig;
 import com.sun.grizzly.monitoring.MonitoringConfigImpl;
-import com.sun.grizzly.threadpool.AbstractThreadPool;
 import com.sun.grizzly.threadpool.ThreadPoolProbe;
 import com.sun.grizzly.utils.StateHolder;
 
@@ -116,8 +118,14 @@ public abstract class AbstractTransport implements Transport {
     /**
      * Transport probes
      */
-    protected final MonitoringConfigImpl<TransportProbe> transportMonitoringConfig =
-            new MonitoringConfigImpl<TransportProbe>(TransportProbe.class);
+    protected final AbstractJmxMonitoringConfig<TransportProbe> transportMonitoringConfig =
+            new AbstractJmxMonitoringConfig<TransportProbe>(TransportProbe.class) {
+
+        @Override
+        public JmxObject createManagmentObject() {
+            return createJmxManagmentObject();
+        }
+    };
 
     /**
      * Connection probes
@@ -150,6 +158,7 @@ public abstract class AbstractTransport implements Transport {
     @Override
     public void setName(String name) {
         this.name = name;
+        notifyProbesConfigChanged(this);
     }
 
     /**
@@ -166,6 +175,7 @@ public abstract class AbstractTransport implements Transport {
     @Override
     public void configureBlocking(boolean isBlocking) {
         this.isBlocking = isBlocking;
+        notifyProbesConfigChanged(this);
     }
 
     @Override
@@ -195,6 +205,7 @@ public abstract class AbstractTransport implements Transport {
     @Override
     public void setReadBufferSize(int readBufferSize) {
         this.readBufferSize = readBufferSize;
+        notifyProbesConfigChanged(this);
     }
 
     /**
@@ -211,6 +222,7 @@ public abstract class AbstractTransport implements Transport {
     @Override
     public void setWriteBufferSize(int writeBufferSize) {
         this.writeBufferSize = writeBufferSize;
+        notifyProbesConfigChanged(this);
     }
 
     /**
@@ -259,6 +271,7 @@ public abstract class AbstractTransport implements Transport {
     @Override
     public void setProcessor(Processor processor) {
         this.processor = processor;
+        notifyProbesConfigChanged(this);
     }
 
     /**
@@ -275,6 +288,7 @@ public abstract class AbstractTransport implements Transport {
     @Override
     public void setProcessorSelector(ProcessorSelector selector) {
         processorSelector = selector;
+        notifyProbesConfigChanged(this);
     }
 
     /**
@@ -291,6 +305,7 @@ public abstract class AbstractTransport implements Transport {
     @Override
     public void setStrategy(Strategy strategy) {
         this.strategy = strategy;
+        notifyProbesConfigChanged(this);
     }
 
     /**
@@ -307,6 +322,7 @@ public abstract class AbstractTransport implements Transport {
     @Override
     public void setMemoryManager(MemoryManager memoryManager) {
         this.memoryManager = memoryManager;
+        notifyProbesConfigChanged(this);
     }
 
     /**
@@ -328,6 +344,7 @@ public abstract class AbstractTransport implements Transport {
         }
 
         this.threadPool = threadPool;
+        notifyProbesConfigChanged(this);
     }
 
     /**
@@ -344,6 +361,7 @@ public abstract class AbstractTransport implements Transport {
     @Override
     public void setAttributeBuilder(AttributeBuilder attributeBuilder) {
         this.attributeBuilder = attributeBuilder;
+        notifyProbesConfigChanged(this);
     }
     
     /**
@@ -366,7 +384,7 @@ public abstract class AbstractTransport implements Transport {
      * {@inheritDoc}
      */
     @Override
-    public MonitoringConfig<TransportProbe> getMonitoringConfig() {
+    public JmxMonitoringConfig<TransportProbe> getMonitoringConfig() {
         return transportMonitoringConfig;
     }
 
@@ -378,6 +396,21 @@ public abstract class AbstractTransport implements Transport {
         return threadPoolMonitoringConfig;
     }
 
+    /**
+     * Notify registered {@link TransportProbe}s about the config changed event.
+     *
+     * @param transport the <tt>Transport</tt> event occurred on.
+     */
+    protected static void notifyProbesConfigChanged(final AbstractTransport transport) {
+        final TransportProbe[] probes =
+                transport.transportMonitoringConfig.getProbesUnsafe();
+        if (probes != null) {
+            for (TransportProbe probe : probes) {
+                probe.onConfigChangeEvent(transport);
+            }
+        }
+    }
+    
     /**
      * Starts the transport
      * 
@@ -409,4 +442,11 @@ public abstract class AbstractTransport implements Transport {
      */
     @Override
     public abstract void resume() throws IOException;
+
+    /**
+     * Create the Transport JMX managment object.
+     *
+     * @return the Transport JMX managment object.
+     */
+    protected abstract JmxObject createJmxManagmentObject();
 }

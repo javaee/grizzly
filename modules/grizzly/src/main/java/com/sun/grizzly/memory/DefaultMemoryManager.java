@@ -38,6 +38,7 @@ package com.sun.grizzly.memory;
 
 import com.sun.grizzly.Cacheable;
 import com.sun.grizzly.ThreadCache;
+import com.sun.grizzly.monitoring.jmx.JmxObject;
 import java.nio.ByteBuffer;
 import com.sun.grizzly.threadpool.DefaultWorkerThread;
 import java.util.Arrays;
@@ -236,6 +237,16 @@ public final class DefaultMemoryManager extends ByteBufferManager {
     @Override
     public ByteBufferWrapper wrap(ByteBuffer byteBuffer) {
         return createTrimAwareBuffer(this, byteBuffer);
+    }
+
+    /**
+     * Create the Memory Manager JMX managment object.
+     *
+     * @return the Memory Manager JMX managment object.
+     */
+    @Override
+    protected JmxObject createJmxManagmentObject() {
+        return new com.sun.grizzly.memory.jmx.DefaultMemoryManager(this);
     }
 
     /**

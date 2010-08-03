@@ -75,6 +75,7 @@ import com.sun.grizzly.asyncqueue.AsyncQueueReader;
 import com.sun.grizzly.asyncqueue.AsyncQueueWriter;
 import com.sun.grizzly.filterchain.Filter;
 import com.sun.grizzly.filterchain.FilterChainEnabledTransport;
+import com.sun.grizzly.monitoring.jmx.JmxObject;
 import com.sun.grizzly.nio.DefaultSelectionKeyHandler;
 import com.sun.grizzly.nio.DefaultSelectorHandler;
 import com.sun.grizzly.nio.NIOConnection;
@@ -205,17 +206,19 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         state.getStateLocker().writeLock().lock();
 
         try {
-            DatagramChannel serverSocketChannel = DatagramChannel.open();
+            DatagramChannel serverDatagramChannel = DatagramChannel.open();
+
             final UDPNIOServerConnection serverConnection =
-                    new UDPNIOServerConnection(this, serverSocketChannel);
+                    obtainServerNIOConnection(serverDatagramChannel);
+
             serverConnections.add(serverConnection);
 
-            DatagramSocket socket = serverSocketChannel.socket();
+            DatagramSocket socket = serverDatagramChannel.socket();
             socket.setReuseAddress(reuseAddress);
             socket.setSoTimeout(serverSocketSoTimeout);
             socket.bind(socketAddress);
 
-            serverSocketChannel.configureBlocking(false);
+            serverDatagramChannel.configureBlocking(false);
 
             if (!isStopped()) {
                 serverConnection.register();
@@ -550,16 +553,6 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         return transportFilter;
     }
 
-    protected NIOConnection obtainNIOConnection(DatagramChannel channel) {
-        final UDPNIOConnection connection = new UDPNIOConnection(this, channel);
-        connection.configureBlocking(isBlocking);
-        connection.configureStandalone(isStandalone);
-        connection.setProcessor(processor);
-        connection.setProcessorSelector(processorSelector);
-        connection.setMonitoringProbes(connectionMonitoringConfig.getProbes());
-        return connection;
-    }
-
     @Override
     public AsyncQueueIO getAsyncQueueIO() {
         return asyncQueueIO;
@@ -573,6 +566,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
     @Override
     public void setTemporarySelectorIO(TemporarySelectorIO temporarySelectorIO) {
         this.temporarySelectorIO = temporarySelectorIO;
+        notifyProbesConfigChanged(this);
     }
 
     public int getConnectionTimeout() {
@@ -581,6 +575,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
 
     public void setConnectionTimeout(int connectionTimeout) {
         this.connectionTimeout = connectionTimeout;
+        notifyProbesConfigChanged(this);
     }
 
     public boolean isReuseAddress() {
@@ -589,6 +584,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
 
     public void setReuseAddress(boolean reuseAddress) {
         this.reuseAddress = reuseAddress;
+        notifyProbesConfigChanged(this);
     }
 
     @Override
@@ -776,6 +772,37 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         }
 
         return written;
+    }
+
+
+    UDPNIOConnection obtainNIOConnection(DatagramChannel channel) {
+        UDPNIOConnection connection = new UDPNIOConnection(this, channel);
+        configureNIOConnection(connection);
+
+        return connection;
+    }
+
+    UDPNIOServerConnection obtainServerNIOConnection(DatagramChannel channel) {
+        UDPNIOServerConnection connection = new UDPNIOServerConnection(this, channel);
+        configureNIOConnection(connection);
+
+        return connection;
+    }
+
+    protected void configureNIOConnection(UDPNIOConnection connection) {
+        connection.configureBlocking(isBlocking);
+        connection.configureStandalone(isStandalone);
+        connection.setProcessor(processor);
+        connection.setProcessorSelector(processorSelector);
+        connection.setMonitoringProbes(connectionMonitoringConfig.getProbes());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected JmxObject createJmxManagmentObject() {
+        return new com.sun.grizzly.nio.transport.jmx.UDPNIOTransport(this);
     }
 
     private void resetByteBuffers(final ByteBuffer[] byteBuffers, int processed) {

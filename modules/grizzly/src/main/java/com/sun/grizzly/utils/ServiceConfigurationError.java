@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 1997-2007 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -34,18 +34,37 @@
  * holder.
  */
 
-package com.sun.grizzly.monitoring;
+package com.sun.grizzly.utils;
 
 /**
- * General interface for the objects, which could be monitored during the lifecycle.
- * 
- * @author Alexey Stashok
+ * Error thrown when something goes wrong while looking up service providers.
+ * In particular, this error will be thrown in the following situations:
+ *
+ *   <ul>
+ *   <li> A concrete provider class cannot be found,
+ *   <li> A concrete provider class cannot be instantiated,
+ *   <li> The format of a provider-configuration file is illegal, or
+ *   <li> An IOException occurs while reading a provider-configuration file.
+ *   </ul>
+ *
+ * @author Mark Reinhold
+ * @version 1.7, 03/12/19
+ * @since 1.3
  */
-public interface MonitoringAware<E> {
+public class ServiceConfigurationError extends Error {
+
     /**
-     * Return the object associated {@link MonitoringConfig}.
-     *
-     * @return the object associated {@link MonitoringConfig}.
+     * Constructs a new instance with the specified detail string.
      */
-    public MonitoringConfig<E> getMonitoringConfig();
+    public ServiceConfigurationError(String message) {
+        super(message);
+    }
+
+    /**
+     * Constructs a new instance that wraps the specified throwable.
+     */
+    public ServiceConfigurationError(Throwable throwable) {
+        super(throwable);
+    }
+
 }

@@ -81,6 +81,7 @@ import com.sun.grizzly.StandaloneProcessorSelector;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.Writer;
 import com.sun.grizzly.filterchain.Filter;
+import com.sun.grizzly.monitoring.jmx.JmxObject;
 import com.sun.grizzly.nio.SelectorRunner;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorIO;
 import com.sun.grizzly.strategies.WorkerThreadStrategy;
@@ -370,7 +371,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         try {
             ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
             final TCPNIOServerConnection serverConnection =
-                    new TCPNIOServerConnection(this, serverSocketChannel);
+                    obtainServerNIOConnection(serverSocketChannel);
 
             serverConnections.add(serverConnection);
             
@@ -381,6 +382,8 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             serverSocket.bind(socketAddress, backlog);
 
             serverSocketChannel.configureBlocking(false);
+
+            serverConnection.resetAddresses();
 
             if (!isStopped()) {
                 listenServerConnection(serverConnection);
@@ -548,17 +551,28 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         }
     }
 
-    protected NIOConnection obtainNIOConnection(SocketChannel channel) {
+    TCPNIOConnection obtainNIOConnection(SocketChannel channel) {
         TCPNIOConnection connection = new TCPNIOConnection(this, channel);
+        configureNIOConnection(connection);
+        
+        return connection;
+    }
+
+    TCPNIOServerConnection obtainServerNIOConnection(ServerSocketChannel channel) {
+        TCPNIOServerConnection connection = new TCPNIOServerConnection(this, channel);
+        configureNIOConnection(connection);
+
+        return connection;
+    }
+
+    protected void configureNIOConnection(TCPNIOConnection connection) {
         connection.configureBlocking(isBlocking);
         connection.configureStandalone(isStandalone);
         connection.setProcessor(processor);
         connection.setProcessorSelector(processorSelector);
         connection.setMonitoringProbes(connectionMonitoringConfig.getProbes());
-        
-        return connection;
     }
-
+    
     /**
      * Configuring <code>SocketChannel</code> according the transport settings
      * @param channel <code>SocketChannel</code> to configure
@@ -616,6 +630,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
     public void setLinger(int linger) {
         this.linger = linger;
+        notifyProbesConfigChanged(this);
     }
 
     public boolean isKeepAlive() {
@@ -624,6 +639,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
     public void setKeepAlive(boolean isKeepAlive) {
         this.isKeepAlive = isKeepAlive;
+        notifyProbesConfigChanged(this);
     }
 
     public boolean isReuseAddress() {
@@ -632,6 +648,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
     public void setReuseAddress(boolean reuseAddress) {
         this.reuseAddress = reuseAddress;
+        notifyProbesConfigChanged(this);
     }
 
     public int getClientSocketSoTimeout() {
@@ -640,6 +657,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
     public void setClientSocketSoTimeout(int socketTimeout) {
         this.clientSocketSoTimeout = socketTimeout;
+        notifyProbesConfigChanged(this);
     }
 
     public int getConnectionTimeout() {
@@ -648,6 +666,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
     public void setConnectionTimeout(int connectionTimeout) {
         this.connectionTimeout = connectionTimeout;
+        notifyProbesConfigChanged(this);
     }
 
     public boolean isTcpNoDelay() {
@@ -656,6 +675,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
     public void setTcpNoDelay(boolean tcpNoDelay) {
         this.tcpNoDelay = tcpNoDelay;
+        notifyProbesConfigChanged(this);
     }
 
     public int getServerSocketSoTimeout() {
@@ -664,6 +684,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
     public void setServerSocketSoTimeout(int serverSocketSoTimeout) {
         this.serverSocketSoTimeout = serverSocketSoTimeout;
+        notifyProbesConfigChanged(this);
     }
 
     @Override
@@ -679,6 +700,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
     @Override
     public void setTemporarySelectorIO(TemporarySelectorIO temporarySelectorIO) {
         this.temporarySelectorIO = temporarySelectorIO;
+        notifyProbesConfigChanged(this);
     }
 
     @Override
@@ -914,6 +936,14 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         }
 
         return written;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected JmxObject createJmxManagmentObject() {
+        return new com.sun.grizzly.nio.transport.jmx.TCPNIOTransport(this);
     }
 
     private static void resetByteBuffers(final ByteBuffer[] byteBuffers, int processed) {

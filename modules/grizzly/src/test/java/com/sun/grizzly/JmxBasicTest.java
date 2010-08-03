@@ -1,7 +1,8 @@
 /*
+ *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -32,20 +33,48 @@
  * and therefore, elected the GPL Version 2 license, then the option applies
  * only if the new code is made subject to such option by the copyright
  * holder.
+ *
  */
+package com.sun.grizzly;
 
-package com.sun.grizzly.monitoring;
+import com.sun.grizzly.monitoring.jmx.GrizzlyJmxManager;
+import com.sun.grizzly.monitoring.jmx.JmxObject;
+import com.sun.grizzly.nio.transport.TCPNIOTransport;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
 /**
- * General interface for the objects, which could be monitored during the lifecycle.
+ * Basic JMX initialization tests.
  * 
  * @author Alexey Stashok
  */
-public interface MonitoringAware<E> {
-    /**
-     * Return the object associated {@link MonitoringConfig}.
-     *
-     * @return the object associated {@link MonitoringConfig}.
-     */
-    public MonitoringConfig<E> getMonitoringConfig();
+public class JmxBasicTest {
+
+    @Test
+    public void transport() throws Exception {
+        GrizzlyJmxManager manager = GrizzlyJmxManager.instance();
+        final TCPNIOTransport transport1 = TransportFactory.getInstance().createTCPTransport();
+        final TCPNIOTransport transport2 = TransportFactory.getInstance().createTCPTransport();
+
+        try {
+            JmxObject jmxTransportObject1 =
+                    transport1.getMonitoringConfig().createManagmentObject();
+            
+            JmxObject jmxTransportObject2 =
+                    transport2.getMonitoringConfig().createManagmentObject();
+
+            manager.registerAtRoot(jmxTransportObject1, "Transport1");
+            manager.registerAtRoot(jmxTransportObject2, "Transport2");
+
+            transport1.start();
+
+            transport1.bind(7787);
+
+            assertTrue(true);
+        } finally {
+            transport1.stop();
+            transport2.stop();
+            TransportFactory.getInstance().close();
+        }
+    }
 }

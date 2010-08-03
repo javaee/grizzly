@@ -38,6 +38,7 @@
 
 package com.sun.grizzly.memory;
 
+import com.sun.grizzly.monitoring.jmx.JmxObject;
 import java.nio.ByteBuffer;
 
 /**
@@ -101,5 +102,32 @@ public class ByteBufferViewManager extends ByteBufferManager {
         ProbeNotificator.notifyBufferAllocatedFromPool(monitoringConfig, size);
         
         return BufferUtils.slice(largeByteBuffer, size);
+    }
+
+    /**
+     * Get the initial view size.
+     * @return the initial view size.
+     */
+    public int getViewSize() {
+        return capacity;
+    }
+
+    /**
+     * Get the number of bytes remaining in the view.
+     * @return the number of bytes remaining in the view.
+     */
+    public synchronized int getViewRemaining() {
+        final ByteBuffer view = largeByteBuffer;
+        return view != null ? view.remaining() : 0;
+    }
+
+    /**
+     * Create the Memory Manager JMX managment object.
+     *
+     * @return the Memory Manager JMX managment object.
+     */
+    @Override
+    protected JmxObject createJmxManagmentObject() {
+        return new com.sun.grizzly.memory.jmx.ByteBufferViewManager(this);
     }
 }

@@ -34,18 +34,29 @@
  * holder.
  */
 
-package com.sun.grizzly.monitoring;
+package com.sun.grizzly.monitoring.jmx;
+
+import org.glassfish.gmbal.GmbalMBean;
 
 /**
- * General interface for the objects, which could be monitored during the lifecycle.
+ * Class represents any kind of JMX object in Grizzly. All the abstractions in
+ * Grizzly, which have to be exposed via JMX, should extend this class.
  * 
  * @author Alexey Stashok
  */
-public interface MonitoringAware<E> {
+public abstract class JmxObject {
     /**
-     * Return the object associated {@link MonitoringConfig}.
-     *
-     * @return the object associated {@link MonitoringConfig}.
+     * Method will be called right after this <tt>JmxObject</tt> is registered by the JMX manager.
+     * 
+     * @param mom {@link GrizzlyJmxManager} Grizzly JMX manager.
+     * @param bean {@link GmbalMBean}, which represents the registration.
      */
-    public MonitoringConfig<E> getMonitoringConfig();
+    protected abstract void onRegister(GrizzlyJmxManager mom, GmbalMBean bean);
+
+    /**
+     * Method will be called right after this <tt>JmxObject</tt> is unregistered by the JMX manager.
+     *
+     * @param mom {@link GrizzlyJmxManager} Grizzly JMX manager.
+     */
+    protected abstract void onUnregister(GrizzlyJmxManager mom);
 }

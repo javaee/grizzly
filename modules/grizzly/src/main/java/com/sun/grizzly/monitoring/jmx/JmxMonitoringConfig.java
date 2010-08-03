@@ -34,18 +34,20 @@
  * holder.
  */
 
-package com.sun.grizzly.monitoring;
+package com.sun.grizzly.monitoring.jmx;
+
+import com.sun.grizzly.monitoring.MonitoringConfig;
 
 /**
- * General interface for the objects, which could be monitored during the lifecycle.
- * 
+ * JMX monitoring configuration interface.
+ *
  * @author Alexey Stashok
  */
-public interface MonitoringAware<E> {
+public interface JmxMonitoringConfig<E> extends MonitoringConfig<E> {
     /**
-     * Return the object associated {@link MonitoringConfig}.
+     * Create the {@link JmxObject}, which represents this object.
      *
-     * @return the object associated {@link MonitoringConfig}.
+     * @return the {@link JmxObject}, which represents this object.
      */
-    public MonitoringConfig<E> getMonitoringConfig();
+    public JmxObject createManagmentObject();
 }

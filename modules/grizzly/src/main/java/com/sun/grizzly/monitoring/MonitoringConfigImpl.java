@@ -43,7 +43,7 @@ import com.sun.grizzly.utils.ArraySet;
  *
  * @author Alexey Stashok
  */
-public final class MonitoringConfigImpl<E> implements MonitoringConfig<E> {
+public class MonitoringConfigImpl<E> implements MonitoringConfig<E> {
 
     private final Class<E> clazz;
 
@@ -59,7 +59,7 @@ public final class MonitoringConfigImpl<E> implements MonitoringConfig<E> {
      */
     @Override
     public void addProbes(E... probes) {
-        monitoringProbes.add(monitoringProbes);
+        monitoringProbes.add(probes);
     }
 
     /**

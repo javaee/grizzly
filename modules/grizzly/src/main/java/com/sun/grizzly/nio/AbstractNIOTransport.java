@@ -41,6 +41,7 @@ package com.sun.grizzly.nio;
 import com.sun.grizzly.AbstractTransport;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.TransportProbe;
+import com.sun.grizzly.monitoring.jmx.JmxObject;
 import java.io.IOException;
 import java.nio.channels.Selector;
 
@@ -71,6 +72,7 @@ public abstract class AbstractNIOTransport extends AbstractTransport
     @Override
     public void setSelectionKeyHandler(SelectionKeyHandler selectionKeyHandler) {
         this.selectionKeyHandler = selectionKeyHandler;
+        notifyProbesConfigChanged(this);
     }
 
     @Override
@@ -81,6 +83,7 @@ public abstract class AbstractNIOTransport extends AbstractTransport
     @Override
     public void setSelectorHandler(SelectorHandler selectorHandler) {
         this.selectorHandler = selectorHandler;
+        notifyProbesConfigChanged(this);
     }
 
     @Override
@@ -91,6 +94,7 @@ public abstract class AbstractNIOTransport extends AbstractTransport
     @Override
     public void setSelectorRunnersCount(int selectorRunnersCount) {
         this.selectorRunnersCount = selectorRunnersCount;
+        notifyProbesConfigChanged(this);
     }
 
     
@@ -138,6 +142,7 @@ public abstract class AbstractNIOTransport extends AbstractTransport
     public void setNioChannelDistributor(NIOChannelDistributor
             nioChannelDistributor) {
         this.nioChannelDistributor = nioChannelDistributor;
+        notifyProbesConfigChanged(this);
     }
 
     /**

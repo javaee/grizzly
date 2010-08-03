@@ -75,7 +75,13 @@ public interface TransportProbe {
      */
     public void onResumeEvent(Transport transport);
 
-
+    /**
+     * Method will be called, when the {@link Transport} configuration gets changed.
+     *
+     * @param transport {@link Transport}, the event belongs to.
+     */
+    public void onConfigChangeEvent(Transport transport);
+    
     /**
      * Method will be called, when error occurs on the {@link Transport}.
      *

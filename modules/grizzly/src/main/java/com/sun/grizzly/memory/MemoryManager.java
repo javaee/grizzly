@@ -39,7 +39,7 @@
 package com.sun.grizzly.memory;
 
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.monitoring.MonitoringAware;
+import com.sun.grizzly.monitoring.jmx.JmxMonitoringAware;
 
 /**
  * <tt>MemoryManager</tt>, responsible for allocating and releasing memory,
@@ -51,7 +51,7 @@ import com.sun.grizzly.monitoring.MonitoringAware;
  * @author Alexey Stashok
  */
 public interface MemoryManager<E extends Buffer>
-        extends MonitoringAware<MemoryProbe> {
+        extends JmxMonitoringAware<MemoryProbe> {
     /**
      * Allocated {@link Buffer} of the required size.
      *
