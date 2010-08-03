@@ -39,7 +39,6 @@ package com.sun.grizzly.http.server.filecache;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.monitoring.MonitoringAware;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
@@ -48,8 +47,11 @@ import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
-import com.sun.grizzly.monitoring.MonitoringConfig;
-import com.sun.grizzly.monitoring.MonitoringConfigImpl;
+import com.sun.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
+import com.sun.grizzly.monitoring.jmx.JmxMonitoringAware;
+import com.sun.grizzly.monitoring.jmx.JmxMonitoringConfig;
+import com.sun.grizzly.monitoring.jmx.JmxObject;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -70,7 +72,7 @@ import java.util.logging.Logger;
  * @author Jeanfrancois Arcand
  * @author Scott Oaks
  */
-public class FileCache implements MonitoringAware<FileCacheProbe> {
+public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
     public enum CacheType {
         HEAP, MAPPED
     }
@@ -116,8 +118,15 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
     /**
      * File cache probes
      */
-    protected final MonitoringConfigImpl<FileCacheProbe> monitoringConfig =
-            new MonitoringConfigImpl<FileCacheProbe>(FileCacheProbe.class);
+    protected final AbstractJmxMonitoringConfig<FileCacheProbe> monitoringConfig =
+            new AbstractJmxMonitoringConfig<FileCacheProbe>(FileCacheProbe.class) {
+
+        @Override
+        public JmxObject createManagmentObject() {
+            return createJmxManagmentObject();
+        }
+
+    };
 
     public FileCache(FileCacheConfiguration config,
                      MemoryManager memoryManager,
@@ -130,6 +139,15 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
 
 
     // ---------------------------------------------------- Methods ----------//
+
+
+    /**
+     * @return the {@link FileCacheConfiguration} for this <code>FileCache</code>.
+     */
+    public FileCacheConfiguration getConfig() {
+        return config;
+    }
+
     /**
      * Add a resource to the cache. Currently, only static resources served
      * by the DefaultServlet can be cached.
@@ -228,6 +246,10 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
         }
 
         notifyProbesEntryRemoved(this, entry);
+    }
+
+    protected JmxObject createJmxManagmentObject() {
+        return new com.sun.grizzly.http.server.filecache.jmx.FileCache(this);
     }
 
     /**
@@ -580,7 +602,7 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
     }
 
     @Override
-    public MonitoringConfig<FileCacheProbe> getMonitoringConfig() {
+    public JmxMonitoringConfig<FileCacheProbe> getMonitoringConfig() {
         return monitoringConfig;
     }
 
