@@ -268,36 +268,6 @@ public class GrizzlyWebServer {
         return adapter;
     }
 
-    /**
-     * Enable JMX Management by configuring the {@link Management}
-     * @param jmxManagement An instance of the {@link Management} interface
-     */
-//    public void enableJMX(Management jmxManagement){
-//        if (jmxManagement == null) return;
-//
-//        webFilter.getJmxManager().setManagement(jmxManagement);
-//        try {
-//            ObjectName sname = new ObjectName(mBeanName);
-//            webFilter.getJmxManager().registerComponent(webFilter, sname, null);
-//        } catch (Exception ex) {
-//            WebFilter.logger().log(Level.SEVERE, "Enabling JMX failed", ex);
-//        }
-//    }
-
-
-    /**
-     * Return a {@link Statistics} instance that can be used to gather
-     * statistics. By default, the {@link Statistics} object <strong>is not</strong>
-     * gathering statistics. Invoking {@link Statistics#startGatheringStatistics}
-     * will do it.
-     */
-//    public Statistics getStatistics() {
-//        if (statistics == null) {
-//            statistics = new Statistics(webFilter);
-//        }
-//
-//        return statistics;
-//    }
 
     /**
      * <p>
@@ -480,25 +450,4 @@ public class GrizzlyWebServer {
     }
 
 
-    // -------------------------------------------------------------------- MAIN
-
-    /**
-     * TODO - REMOVE later
-     * @param args
-     */
-    public static void main(String[] args) {
-
-        final GrizzlyWebServer server = GrizzlyWebServer.createSimpleServer("/tmp");
-        try {
-            server.start();
-            System.out.println("Press any key to stop the server...");
-            System.in.read();
-        } catch (IOException ioe) {
-            System.err.println(ioe.toString());
-            ioe.printStackTrace();
-        } finally {
-            server.stop();
-        }
-
-    }
 }

@@ -53,12 +53,6 @@ public class ServerConfiguration {
     private String docRoot = null;
 
 
-    /*
-     * Static file cache.
-     */
-    //private FileCache fileCache;
-
-
     // Non-exposed
 
     private Map<GrizzlyAdapter, String[]> adapters = new LinkedHashMap<GrizzlyAdapter, String[]>();
@@ -84,24 +78,15 @@ public class ServerConfiguration {
         this.docRoot = docRoot;
     }
 
-//        public FileCache getFileCache() {
-//            return fileCache;
-//        }
-//
-//        public void setFileCache(FileCache fileCache) {
-//            this.fileCache = fileCache;
-//        }
-
-
-
 
     /**
-     * TODO: Update docs
-     * Add a {@link com.sun.grizzly.http.server.GrizzlyAdapter} with its associated mapping. A request will
-     * be dispatched to a {@link com.sun.grizzly.http.server.GrizzlyAdapter} based on its mapping value.
+     * Adds the specified {@link com.sun.grizzly.http.server.GrizzlyAdapter}
+     * with its associated mapping(s). Requests will be dispatched to a
+     * {@link com.sun.grizzly.http.server.GrizzlyAdapter} based on these mapping
+     * values.
      *
      * @param grizzlyAdapter a {@link com.sun.grizzly.http.server.GrizzlyAdapter}
-     * @param mapping        An array contains the context path mapping information.
+     * @param mapping        context path mapping information.
      */
     public void addGrizzlyAdapter(GrizzlyAdapter grizzlyAdapter,
                                   String... mapping) {
@@ -113,9 +98,11 @@ public class ServerConfiguration {
     }
 
     /**
-     * TODO: Update docs
-     * Remove a {@link com.sun.grizzly.http.server.GrizzlyAdapter}
-     * return <tt>true</tt>, if the operation was successful.
+     *
+     * Removes the specified {@link com.sun.grizzly.http.server.GrizzlyAdapter}.
+     *
+     * @return <tt>true</tt>, if the operation was successful, otherwise
+     *  <tt>false</tt>
      */
     public boolean removeGrizzlyAdapter(GrizzlyAdapter grizzlyAdapter) {
         return (adapters.remove(grizzlyAdapter) != null);

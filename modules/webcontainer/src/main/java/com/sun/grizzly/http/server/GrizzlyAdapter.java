@@ -229,8 +229,8 @@ public abstract class GrizzlyAdapter {
 
     /**
      * Customize the error pahe
-     * @param req The {@link com.sun.grizzly.tcp.Request} object
-     * @param res The {@link com.sun.grizzly.tcp.Response} object
+     * @param req The {@link GrizzlyRequest} object
+     * @param res The {@link GrizzlyResponse} object
      * @throws Exception
      */
     protected void customizedErrorPage(GrizzlyRequest req, GrizzlyResponse res)

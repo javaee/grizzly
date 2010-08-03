@@ -75,7 +75,7 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
     private ConcurrentHashMap<GrizzlyAdapter, String[]> adapters =
             new ConcurrentHashMap<GrizzlyAdapter, String[]>();
     /**
-     * Internal {@link com.sun.grizzly.util.http.mapper.Mapper} used to Map request to their associated {@link GrizzlyAdapter}
+     * Internal {@link Mapper} used to Map request to their associated {@link GrizzlyAdapter}
      */
     private Mapper mapper = new Mapper();
     /**
@@ -109,9 +109,9 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
     }
 
     /**
-     * Map the {@link com.sun.grizzly.tcp.http11.GrizzlyRequest} to the proper {@link GrizzlyAdapter}
-     * @param request The {@link com.sun.grizzly.tcp.http11.GrizzlyRequest}
-     * @param response The {@link com.sun.grizzly.tcp.http11.GrizzlyResponse}
+     * Map the {@link GrizzlyRequest} to the proper {@link GrizzlyAdapter}
+     * @param request The {@link GrizzlyRequest}
+     * @param response The {@link GrizzlyResponse}
      */
     @Override
     public void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception {

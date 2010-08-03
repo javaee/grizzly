@@ -67,7 +67,7 @@ public class GrizzlyListener {
     /**
      * The network host to which the <code>GrizzlyWebServer<code> will
      * bind to in order to service <code>HTTP</code> requests.   If not
-     * explicitly set, the value of {@link DEFAULT_NETWORK_HOST} will be used.
+     * explicitly set, the value of {@link #DEFAULT_NETWORK_HOST} will be used.
      */
     private String host = DEFAULT_NETWORK_HOST;
 
@@ -75,7 +75,7 @@ public class GrizzlyListener {
     /**
      * The network port to which the <code>GrizzlyWebServer<code> will
      * bind to in order to service <code>HTTP</code> requests.  If not
-     * explicitly set, the value of {@link DEFAULT_NETWORK_PORT} will be used.
+     * explicitly set, the value of {@link #DEFAULT_NETWORK_PORT} will be used.
      */
     private int port = DEFAULT_NETWORK_PORT;
 

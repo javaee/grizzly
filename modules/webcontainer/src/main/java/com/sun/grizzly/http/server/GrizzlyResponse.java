@@ -1741,7 +1741,7 @@ public class GrizzlyResponse {
     }
 
     /**
-     * Suspend the {@link com.sun.grizzly.tcp.Response}. Suspending a {@link com.sun.grizzly.tcp.Response} will
+     * Suspend the {@link GrizzlyResponse}. Suspending a {@link GrizzlyResponse} will
      * tell the underlying container to avoid recycling objects associated with
      * the current instance, and also to avoid commiting response.
      */
@@ -1756,7 +1756,7 @@ public class GrizzlyResponse {
      *
      * @param timeout The maximum amount of time, in milliseconds,
      * a {@link com.sun.grizzly.http.server.GrizzlyResponse} can be suspended. When the timeout expires (because
-     * nothing has been written or because the {@link com.sun.grizzly.tcp.Response#resume()}
+     * nothing has been written or because the {@link GrizzlyResponse#resume()}
      * or {@link com.sun.grizzly.http.server.GrizzlyResponse#cancel()}), the {@link com.sun.grizzly.http.server.GrizzlyResponse} will be automatically
      * resumed and commited. Usage of any methods of a {@link com.sun.grizzly.http.server.GrizzlyResponse} that
      * times out will throw an {@link IllegalStateException}.
@@ -1769,21 +1769,21 @@ public class GrizzlyResponse {
     /**
      * Suspend the {@link com.sun.grizzly.http.server.GrizzlyResponse}. Suspending a {@link com.sun.grizzly.http.server.GrizzlyResponse} will
      * tell the underlying container to avoid recycling objects associated with
-     * the current instance, and also to avoid commiting response. When the
+     * the current instance, and also to avoid committing response. When the
      * {@link com.sun.grizzly.http.server.GrizzlyResponse#resume()} is invoked, the container will
-     * make sure {@link com.sun.grizzly.tcp.CompletionHandler#resumed}
-     * is invoked with the original <tt>attachement</tt>. When the
+     * make sure {@link CompletionHandler#completed(Object)}
+     * is invoked with the original <tt>attachment</tt>. When the
      * {@link com.sun.grizzly.http.server.GrizzlyResponse#cancel()} is invoked, the container will
-     * make sure {@link com.sun.grizzly.tcp.CompletionHandler#cancelled}
+     * make sure {@link com.sun.grizzly.CompletionHandler#cancelled()}
      * is invoked with the original <tt>attachement</tt>. If the timeout expires, the
-     * {@link com.sun.grizzly.tcp.CompletionHandler#cancelled} is invoked with the original <tt>attachement</tt> and
-     * the {@link com.sun.grizzly.tcp.Response} commited.
+     * {@link com.sun.grizzly.CompletionHandler#cancelled()} is invoked with the original <tt>attachment</tt> and
+     * the {@link GrizzlyResponse} committed.
      *
      * @param timeout The maximum amount of time, in milliseconds,
      * a {@link com.sun.grizzly.http.server.GrizzlyResponse} can be suspended. When the timeout expires (because
      * nothing has been written or because the {@link com.sun.grizzly.http.server.GrizzlyResponse#resume()}
      * or {@link com.sun.grizzly.http.server.GrizzlyResponse#cancel()}), the {@link com.sun.grizzly.http.server.GrizzlyResponse} will be automatically
-     * resumed and commited. Usage of any methods of a {@link com.sun.grizzly.tcp.Response} that
+     * resumed and committed. Usage of any methods of a {@link GrizzlyResponse} that
      * times out will throw an {@link IllegalStateException}.
      * @param competionHandler a {@link com.sun.grizzly.CompletionHandler}
      */
@@ -1855,7 +1855,7 @@ public class GrizzlyResponse {
 
     /**
      * Cancel the {@link com.sun.grizzly.http.server.GrizzlyResponse} and finish/commit it. If a
-     * {@link com.sun.grizzly.tcp.CompletionHandler} has been defined, its {@link CompletionHandler#cancelled()}
+     * {@link CompletionHandler} has been defined, its {@link CompletionHandler#cancelled()}
      * will first be invoked, then the {@link com.sun.grizzly.http.server.GrizzlyResponse#finish()}.
      * Those operations commit the response.
      */
@@ -1894,7 +1894,7 @@ public class GrizzlyResponse {
     }
     
     /**
-     * Make sure the {@link com.sun.grizzly.tcp.Response} object has been set.
+     * Make sure the {@link GrizzlyResponse} object has been set.
      */
     final void checkResponse(){
         if (response == null){
