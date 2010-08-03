@@ -74,16 +74,13 @@ public class BaseWebSocket implements WebSocket {
     }
 
     public void close() throws IOException {
-        if (connected.compareAndSet(true, false)) {
+        if (connected.get()) {
             send(new DataFrame(FrameType.CLOSING));
-            onClose();
-            listeners.clear();
         }
     }
 
     public void onClose() throws IOException {
-        synchronized (listeners) {
-            connected.set(false);
+        if (connected.compareAndSet(true, false)) {
             for (WebSocketListener listener : listeners) {
                 listener.onClose(this);
             }
