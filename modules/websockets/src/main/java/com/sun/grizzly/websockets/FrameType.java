@@ -88,7 +88,7 @@ public enum FrameType {
 
         @Override
         public void respond(WebSocket socket, DataFrame frame) throws IOException {
-            socket.close();
+            socket.onClose();
         }};
 
     public abstract boolean accept(NetworkHandler handler) throws IOException;

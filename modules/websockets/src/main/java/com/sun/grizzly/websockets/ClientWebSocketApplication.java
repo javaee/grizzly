@@ -46,10 +46,12 @@ import java.nio.channels.spi.SelectorProvider;
 import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -63,8 +65,10 @@ public class ClientWebSocketApplication extends WebSocketApplication {
     private final Thread selectorThread;
 
     protected volatile long selectTimeout = 1000;
+    private final String address;
 
-    public ClientWebSocketApplication() throws IOException {
+    public ClientWebSocketApplication(final String addr) throws IOException {
+        address = addr;
         selector = SelectorProvider.provider().openSelector();
         selectorThread = new Thread(new Runnable() {
             public void run() {
@@ -79,15 +83,27 @@ public class ClientWebSocketApplication extends WebSocketApplication {
         return new ClientWebSocket(handler, listeners);
     }
 
-    public Future<WebSocket> connect(final String address, final WebSocketListener... listeners) throws IOException {
+    public WebSocket connect(long timeout, TimeUnit unit, final WebSocketListener... listeners) throws IOException {
         synchronized (selectorThread) {
-            if(!selectorThread.isAlive()) {
+            if (!selectorThread.isAlive()) {
                 selectorThread.start();
             }
         }
         final FutureTask<WebSocket> command = new WebSocketConnectTask(this, address, listeners);
         executorService.execute(command);
-        return command;
+        try {
+            return command.get(timeout, unit);
+        } catch (InterruptedException e) {
+            throw new IOException(e.getMessage());
+        } catch (ExecutionException e) {
+            throw new IOException(e.getMessage());
+        } catch (TimeoutException e) {
+            throw new IOException(e.getMessage());
+        }
+    }
+
+    public WebSocket connect(final WebSocketListener... listeners) throws IOException {
+        return connect(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS, listeners);
     }
 
     public void stop() throws IOException {
@@ -102,11 +118,11 @@ public class ClientWebSocketApplication extends WebSocketApplication {
         handlers.add(handler);
         selector.wakeup();
     }
-    
+
     private void select() {
         while (running.get()) {
             try {
-                while(!handlers.isEmpty()) {
+                while (!handlers.isEmpty()) {
                     final ClientNetworkHandler handler = handlers.poll();
                     final SocketChannel socketChannel = handler.getChannel();
                     if (socketChannel.isConnected()) { // Channel was immediately connected
@@ -118,24 +134,24 @@ public class ClientWebSocketApplication extends WebSocketApplication {
                 }
 
                 final int count = selector.select(selectTimeout);
-                if (count == 0) continue;
-
-                Iterator<SelectionKey> selectedKeys = selector.selectedKeys().iterator();
-                while (selectedKeys.hasNext()) {
-                    SelectionKey key = selectedKeys.next();
-                    selectedKeys.remove();
-                    final ClientNetworkHandler handler = (ClientNetworkHandler) key.attachment();
-                    try {
-                        handler.process(key);
-                    } catch (IOException e) {
-                        handler.shutdown();
+                if (count != 0) {
+                    Iterator<SelectionKey> selectedKeys = selector.selectedKeys().iterator();
+                    while (selectedKeys.hasNext()) {
+                        SelectionKey key = selectedKeys.next();
+                        selectedKeys.remove();
+                        final ClientNetworkHandler handler = (ClientNetworkHandler) key.attachment();
+                        try {
+                            handler.process(key);
+                        } catch (IOException e) {
+                            handler.shutdown();
+                        }
                     }
                 }
             } catch (IOException e) {
                 if (logger.isLoggable(Level.WARNING)) {
                     logger.log(Level.WARNING,
-                               LogMessages.WARNING_GRIZZLY_WS_SELECT_ERROR(e.getMessage()),
-                               e);
+                            LogMessages.WARNING_GRIZZLY_WS_SELECT_ERROR(e.getMessage()),
+                            e);
                 }
             }
         }

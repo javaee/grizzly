@@ -42,6 +42,7 @@ import com.sun.grizzly.arp.AsyncProcessorTask;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
+import com.sun.grizzly.util.Utils;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
@@ -64,6 +65,15 @@ public class WebSocketEngine {
     private final Map<String, WebSocketApplication> applications = new HashMap<String, WebSocketApplication>();
     static final int INITIAL_BUFFER_SIZE = 8192;
     private final WebSocketCloseHandler closeHandler = new WebSocketCloseHandler();
+    public static final int DEFAULT_TIMEOUT;
+
+    static {
+        if(Utils.isDebugVM()) {
+            DEFAULT_TIMEOUT = 900;
+        } else {
+            DEFAULT_TIMEOUT = 30;
+        }
+    }
 
     private WebSocketEngine() {
         SecKey.init();

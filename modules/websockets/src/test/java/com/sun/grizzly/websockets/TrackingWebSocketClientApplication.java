@@ -43,7 +43,8 @@ public class TrackingWebSocketClientApplication extends ClientWebSocketApplicati
     private final AtomicInteger nameCount = new AtomicInteger(0);
     private final int count;
 
-    public TrackingWebSocketClientApplication(final int count) throws IOException {
+    public TrackingWebSocketClientApplication(String url, final int count) throws IOException {
+        super(url);
         this.count = count;
     }
 

@@ -61,10 +61,10 @@ public class ServerSideTest {
 
     public void synchronous() throws IOException, InstantiationException, ExecutionException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
-        ClientWebSocketApplication app = new TrackingWebSocketClientApplication(5 * ITERATIONS);
+        ClientWebSocketApplication app = new TrackingWebSocketClientApplication(String.format("ws://localhost:%s/echo", PORT), 5 * ITERATIONS);
         TrackingWebSocket socket = null;
         try {
-            socket = (TrackingWebSocket) app.connect(String.format("ws://localhost:%s/echo", PORT)).get();
+            socket = (TrackingWebSocket) app.connect();
             int count = 0;
             final Date start = new Date();
             while (count++ < ITERATIONS) {
@@ -93,11 +93,11 @@ public class ServerSideTest {
     @SuppressWarnings({"StringContatenationInLoop"})
     public void asynchronous() throws IOException, InstantiationException, InterruptedException, ExecutionException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
-        ClientWebSocketApplication app = new CountDownWebSocketClientApplication();
+        ClientWebSocketApplication app = new CountDownWebSocketClientApplication(String.format("ws://localhost:%s/echo", PORT));
 
         CountDownWebSocket socket = null;
         try {
-            socket = (CountDownWebSocket) app.connect(String.format("ws://localhost:%s/echo", PORT)).get();
+            socket = (CountDownWebSocket) app.connect();
             int count = 0;
             final Date start = new Date();
             while (count++ < ITERATIONS) {
@@ -125,13 +125,13 @@ public class ServerSideTest {
     @Test
     public void multipleClients() throws IOException, InstantiationException, ExecutionException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
-        TrackingWebSocketClientApplication app = new TrackingWebSocketClientApplication(5*ITERATIONS);
+        TrackingWebSocketClientApplication app = new TrackingWebSocketClientApplication(
+                String.format("ws://localhost:%s/echo", PORT), 5 * ITERATIONS);
 
         List<TrackingWebSocket> clients = new ArrayList<TrackingWebSocket>();
         try {
             for (int x = 0; x < 5; x++) {
-                final TrackingWebSocket webSocket =
-                        (TrackingWebSocket) app.connect(String.format("ws://localhost:%s/echo", PORT)).get();
+                final TrackingWebSocket webSocket = (TrackingWebSocket) app.connect();
                 clients.add(webSocket);
                 webSocket.setName(x);
             }
@@ -162,7 +162,7 @@ public class ServerSideTest {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
         final int count = 5;
         final CountDownLatch received = new CountDownLatch(count);
-        ClientWebSocketApplication app = new ClientWebSocketApplication() {
+        ClientWebSocketApplication app = new ClientWebSocketApplication(String.format("ws://localhost:%s/echo", PORT)) {
             @Override
             public WebSocket createSocket(NetworkHandler handler, WebSocketListener... listeners) {
                 return new ClientWebSocket(handler, listeners) {
@@ -176,7 +176,7 @@ public class ServerSideTest {
 
         WebSocket socket = null;
         try {
-            socket = app.connect(String.format("ws://localhost:%s/echo", PORT)).get();
+            socket = app.connect();
             StringBuilder sb = new StringBuilder();
             while (sb.length() < 10000) {
                 sb.append("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus quis lectus odio, et" +
@@ -208,9 +208,9 @@ public class ServerSideTest {
 
     private void time(String method, Date start, Date end) {
         final int total = 5 * ITERATIONS;
-        final long time = end.getTime() - start.getTime();
-        Utils.dumpOut(String.format("%s: sent %s messages in %s ms for %s msg/ms and %s ms/msg\n", method, total, time,
-                1.0 * total / time, 1.0 * time / total));
+        final double time = (end.getTime() - start.getTime()) / 1000.0;
+        System.out.printf("%s: sent %s messages in %.3fs for %.3f msg/s and %.4f s/msg\n", method, total, time,
+                total / time, time / total);
     }
 
     private SelectorThread createSelectorThread(final int port, final Adapter adapter)

@@ -44,9 +44,7 @@ import org.testng.annotations.Test;
 
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @Test
 public class LifecycleTest {
@@ -54,29 +52,30 @@ public class LifecycleTest {
 
     public void detectClosed() throws Exception {
         final CountDownLatch close = new CountDownLatch(1);
-        final SimpleWebSocketApplication app = new SimpleWebSocketApplication() {
+        final SimpleWebSocketApplication serverApp = new SimpleWebSocketApplication() {
             @Override
             public void onClose(WebSocket socket) throws IOException {
                 super.onClose(socket);
                 close.countDown();
             }
         };
-        WebSocketEngine.getEngine().register("/echo", app);
+        WebSocketEngine.getEngine().register("/echo", serverApp);
 
-        final SelectorThread thread =
-                WebSocketsTest.createSelectorThread(WebSocketsTest.PORT, new StaticResourcesAdapter());
+        final SelectorThread thread = WebSocketsTest.createSelectorThread(WebSocketsTest.PORT, new StaticResourcesAdapter());
 
         try {
-            Assert.assertEquals(app.getWebSockets().size(), 0, "There should be no clients connected");
-            ClientWebSocketApplication wsClient = new ClientWebSocketApplication();
-            final WebSocket client = wsClient.connect(ADDRESS).get();
+            Assert.assertEquals(serverApp.getWebSockets().size(), 0, "There should be no clients connected");
 
-            Assert.assertEquals(app.getWebSockets().size(), 1, "There should be 1 client connected");
+            BadClientWebSocketApplication clientApp = new BadClientWebSocketApplication(ADDRESS);
+            final BadWebSocketClient client = (BadWebSocketClient) clientApp.connect();
+
+            Assert.assertEquals(serverApp.getWebSockets().size(), 1, "There should be 1 client connected");
+            
             client.close();
-            Thread.sleep(3000);
-            close.await(30, TimeUnit.SECONDS);
-
-            Assert.assertEquals(app.getWebSockets().size(), 0, "There should be 0 clients connected");
+            client.waitForClosed();
+            close.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS);
+            
+            Assert.assertEquals(serverApp.getWebSockets().size(), 0, "There should be 0 clients connected");
         } finally {
             thread.stopEndpoint();
         }
@@ -98,18 +97,15 @@ public class LifecycleTest {
         final SelectorThread thread =
                 WebSocketsTest.createSelectorThread(WebSocketsTest.PORT, new ServletAdapter(servlet));
 
-        ClientWebSocketApplication wsClient = new BadClientWebSocketApplication();
+        ClientWebSocketApplication wsClient = new BadClientWebSocketApplication(ADDRESS);
         try {
             Assert.assertEquals(app.getWebSockets().size(), 0, "There should be no clients connected");
 
-            BadWebSocketClient client = (BadWebSocketClient) wsClient.connect(ADDRESS).get();
-
+            BadWebSocketClient client = (BadWebSocketClient) wsClient.connect();
             Assert.assertEquals(app.getWebSockets().size(), 1, "There should be 1 client connected");
 
             client.killConnection();
-
-            close.await(30, TimeUnit.SECONDS);
-
+            close.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS);
             Assert.assertEquals(app.getWebSockets().size(), 0, "There should be 0 clients connected");
         } finally {
             thread.stopEndpoint();
@@ -118,8 +114,7 @@ public class LifecycleTest {
 
     }
 
-    public void multipleClientClosing()
-            throws IOException, InstantiationException, ExecutionException, InterruptedException {
+    public void multipleClientClosing() throws Exception {
         final CountDownLatch close = new CountDownLatch(1);
         final SimpleWebSocketApplication app = new SimpleWebSocketApplication() {
             @Override
@@ -133,65 +128,66 @@ public class LifecycleTest {
         final SelectorThread thread =
                 WebSocketsTest.createSelectorThread(WebSocketsTest.PORT, new StaticResourcesAdapter());
 
-        final AtomicBoolean received = new AtomicBoolean(false);
         try {
-            cleanDisconnect(close, received);
-            dirtyDisconnect(received);
-            Assert.assertEquals(app.getWebSockets().size(), 0, "There should be 0 clients connected");
+            cleanDisconnect();
+            dirtyDisconnect();
         } finally {
             thread.stopEndpoint();
         }
 
     }
 
-    private void dirtyDisconnect(AtomicBoolean received) throws InterruptedException, ExecutionException, IOException {
+    private void dirtyDisconnect() throws Exception {
         boolean connected;
 
-        BadWebSocketClient badClient = (BadWebSocketClient) newClient(received);
-
-        WebSocket client2 = newClient(received);
+        final BadClientWebSocketApplication app1 = new BadClientWebSocketApplication(ADDRESS);
+        BadWebSocketClient badClient = newClient(app1);
+        BadWebSocketClient client2 = newClient(app1);
 
         badClient.killConnection();
-        Thread.sleep(3000);
-        checkSend(received, client2);
+
+        checkSend(client2);
         connected = client2.isConnected();
         client2.close();
         Assert.assertTrue(connected);
 
         Thread.sleep(3000);
+        Assert.assertEquals(app1.getWebSockets().size(), 0, "There should be 0 clients connected");
     }
 
-    private void cleanDisconnect(CountDownLatch close, AtomicBoolean received)
-            throws InterruptedException, ExecutionException, IOException {
-        WebSocket client = newClient(received);
+    private void cleanDisconnect() throws Exception {
 
-        WebSocket client2 = newClient(received);
+        final BadClientWebSocketApplication app = new BadClientWebSocketApplication(ADDRESS);
+        BadWebSocketClient client = newClient(app);
+        BadWebSocketClient client2 = newClient(app);
 
         client.close();
-        close.await(30, TimeUnit.SECONDS);
-        checkSend(received, client2);
-        boolean connected = client2.isConnected();
+        client.waitForClosed();
+        checkSend(client2);
+        Assert.assertTrue(client2.isConnected());
+
         client2.close();
-        Thread.sleep(1000);
-        Assert.assertTrue(connected);
+        client2.waitForClosed();
         Assert.assertFalse(client2.isConnected());
+
+        Assert.assertEquals(app.getWebSockets().size(), 0, "There should be 0 clients connected");
     }
 
-    private WebSocket newClient(AtomicBoolean received) throws InterruptedException, ExecutionException, IOException {
-        WebSocket client = new BadClientWebSocketApplication().connect(ADDRESS).get();
-        client.add(new BadWebSocketListener(received));
-        checkSend(received, client);
+    private BadWebSocketClient newClient(final BadClientWebSocketApplication app) throws Exception {
+        BadWebSocketClient client = (BadWebSocketClient) app.connect();
+        checkSend(client);
         return client;
     }
 
-    private void checkSend(AtomicBoolean received, WebSocket client) throws IOException, InterruptedException {
-        received.set(false);
+    private void checkSend(BadWebSocketClient client) throws IOException, InterruptedException {
         client.send("message");
-        Thread.sleep(1000);
-        Assert.assertTrue(received.get(), "Message should come back");
+        Assert.assertTrue(client.waitForMessage(), "Message should come back");
     }
 
     private static class BadWebSocketClient extends ClientWebSocket {
+        private CountDownLatch messages;
+        private final CountDownLatch closed = new CountDownLatch(1);
+
         public BadWebSocketClient(NetworkHandler handler, WebSocketListener... listeners) {
             super(handler, listeners);
         }
@@ -199,34 +195,44 @@ public class LifecycleTest {
         void killConnection() throws IOException {
             ((ClientNetworkHandler) getNetworkHandler()).shutdown();
         }
-    }
 
-    private static class BadClientWebSocketApplication extends ClientWebSocketApplication {
-        public BadClientWebSocketApplication() throws IOException {
+        @Override
+        public void send(String data) throws IOException {
+            messages = new CountDownLatch(1);
+            super.send(data);
         }
 
         @Override
-        public WebSocket createSocket(NetworkHandler handler, WebSocketListener... listeners)
-                throws IOException {
+        public void onClose() throws IOException {
+            super.onClose();
+            closed.countDown();
+        }
+
+        @Override
+        public void onMessage(DataFrame frame) throws IOException {
+            super.onMessage(frame);
+            messages.countDown();
+        }
+
+        public boolean waitForMessage() throws InterruptedException {
+            return messages.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS);
+        }
+
+        public boolean waitForClosed() throws InterruptedException {
+            return closed.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS);
+        }
+
+    }
+
+    private static class BadClientWebSocketApplication extends ClientWebSocketApplication {
+        public BadClientWebSocketApplication(String address) throws IOException {
+            super(address);
+        }
+
+        @Override
+        public WebSocket createSocket(NetworkHandler handler, WebSocketListener... listeners) throws IOException {
             return new BadWebSocketClient(handler, listeners);
         }
     }
 
-    private static class BadWebSocketListener implements WebSocketListener {
-        private final AtomicBoolean received;
-
-        public BadWebSocketListener(AtomicBoolean received) {
-            this.received = received;
-        }
-
-        public void onClose(WebSocket socket) throws IOException {
-        }
-
-        public void onConnect(WebSocket socket) throws IOException {
-        }
-
-        public void onMessage(WebSocket socket, DataFrame frame) throws IOException {
-            received.set(true);
-        }
-    }
 }

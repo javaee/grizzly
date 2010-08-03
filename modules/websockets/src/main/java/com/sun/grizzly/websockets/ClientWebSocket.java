@@ -36,21 +36,8 @@
 
 package com.sun.grizzly.websockets;
 
-import java.io.IOException;
-
 public class ClientWebSocket extends BaseWebSocket {
     public ClientWebSocket(NetworkHandler handler, WebSocketListener... listeners) {
         super(handler, listeners);
-    }
-
-    @Override
-    public void close() throws IOException {
-        if(isConnected()) {
-            try {
-                send(new DataFrame(FrameType.CLOSING));
-            } catch (IOException ignored) { // failed to send close frame
-            }
-        }
-        super.close();
     }
 }

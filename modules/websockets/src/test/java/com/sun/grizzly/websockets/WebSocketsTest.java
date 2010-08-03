@@ -85,7 +85,7 @@ public class WebSocketsTest {
     private final ClientWebSocketApplication wsClient;
 
     public WebSocketsTest() throws IOException {
-        wsClient = new ClientWebSocketApplication();
+        wsClient = new ClientWebSocketApplication("ws://localhost:" + PORT + "/echo");
     }
 
     public void securityKeys() {
@@ -116,27 +116,27 @@ public class WebSocketsTest {
 
         WebSocket client = null;
         try {
-            client = wsClient.connect("ws://localhost:" + PORT + "/echo",
-                new WebSocketListener() {
-                    public void onMessage(WebSocket socket, DataFrame data) {
-                        sent.remove(data.getTextPayload());
-                        received.countDown();
-                    }
+            client = wsClient.connect(new WebSocketListener() {
+                public void onMessage(WebSocket socket, DataFrame data) {
+                    sent.remove(data.getTextPayload());
+                    received.countDown();
+                }
 
-                    public void onConnect(WebSocket socket) {
-                        connected.countDown();
-                    }
+                public void onConnect(WebSocket socket) {
+                    connected.countDown();
+                }
 
-                    public void onClose(WebSocket socket) {
-                        Utils.dumpOut("closed");
-                    }
-                }).get();
+                public void onClose(WebSocket socket) {
+                    Utils.dumpOut("closed");
+                }
+            });
 
             for (int count = 0; count < MESSAGE_COUNT; count++) {
                 send(client, sent, "message " + count);
             }
 
-            Assert.assertTrue(received.await(60, TimeUnit.SECONDS), "Waited 60s for the messages to echo back");
+            Assert.assertTrue(received.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS),
+                    String.format("Waited %ss for the messages to echo back", WebSocketEngine.DEFAULT_TIMEOUT));
 
             Assert.assertEquals(0, sent.size(), String.format("Should have received all %s messages back.",
                     MESSAGE_COUNT));
@@ -144,7 +144,7 @@ public class WebSocketsTest {
             e.printStackTrace();
             throw new RuntimeException(e.getMessage(), e);
         } finally {
-            if(client != null) {
+            if (client != null) {
                 client.close();
             }
             thread.stopEndpoint();
@@ -158,7 +158,7 @@ public class WebSocketsTest {
             thread = createSelectorThread(PORT, new StaticResourcesAdapter());
             final Map<String, Object> messages = new ConcurrentHashMap<String, Object>();
             final CountDownLatch received = new CountDownLatch(MESSAGE_COUNT);
-            WebSocket client = wsClient.connect("ws://localhost:" + PORT + "/echo", new WebSocketListener() {
+            WebSocket client = wsClient.connect(new WebSocketListener() {
                 public void onMessage(WebSocket socket, DataFrame data) {
                     messages.remove(data.getTextPayload());
                     received.countDown();
@@ -170,14 +170,15 @@ public class WebSocketsTest {
                 public void onClose(WebSocket socket) {
                     Utils.dumpOut("closed");
                 }
-            }).get();
+            });
 
             for (int index = 0; index < MESSAGE_COUNT; index++) {
                 send(client, messages, "test " + index);
                 Thread.sleep(5000);
             }
 
-            Assert.assertTrue(received.await(60, TimeUnit.SECONDS), "Waited 60s for everything to come back");
+            Assert.assertTrue(received.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS),
+                    String.format("Waited %ss for everything to come back", WebSocketEngine.DEFAULT_TIMEOUT));
             Assert.assertTrue(messages.isEmpty(), "All messages should have been echoed back: " + messages);
         } finally {
             if (thread != null) {

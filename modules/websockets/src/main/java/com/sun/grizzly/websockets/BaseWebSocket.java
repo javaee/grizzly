@@ -37,8 +37,8 @@
 package com.sun.grizzly.websockets;
 
 import java.io.IOException;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
@@ -46,7 +46,7 @@ import java.util.logging.Logger;
 public class BaseWebSocket implements WebSocket {
     private final NetworkHandler networkHandler;
     protected static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
-    private final Set<WebSocketListener> listeners = new LinkedHashSet<WebSocketListener>();
+    private final List<WebSocketListener> listeners = new ArrayList<WebSocketListener>();
     private final AtomicBoolean connected = new AtomicBoolean(false);
 
     public BaseWebSocket(NetworkHandler handler, WebSocketListener... listeners) {
@@ -61,7 +61,7 @@ public class BaseWebSocket implements WebSocket {
         return networkHandler;
     }
 
-    public Set<WebSocketListener> getListeners() {
+    public List<WebSocketListener> getListeners() {
         return listeners;
     }
 
@@ -75,14 +75,19 @@ public class BaseWebSocket implements WebSocket {
 
     public void close() throws IOException {
         if (connected.compareAndSet(true, false)) {
+            send(new DataFrame(FrameType.CLOSING));
             onClose();
             listeners.clear();
         }
     }
 
     public void onClose() throws IOException {
-        for (WebSocketListener listener : listeners) {
-            listener.onClose(this);
+        synchronized (listeners) {
+            connected.set(false);
+            for (WebSocketListener listener : listeners) {
+                listener.onClose(this);
+            }
+            listeners.clear();
         }
     }
 

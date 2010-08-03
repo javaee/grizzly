@@ -36,7 +36,6 @@
 
 package com.sun.grizzly.websockets;
 
-import com.sun.grizzly.BaseSelectionKeyHandler;
 import com.sun.grizzly.arp.AsyncProcessorTask;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.http.servlet.HttpServletRequestImpl;
@@ -49,13 +48,11 @@ import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 import com.sun.grizzly.tcp.http11.InternalOutputBuffer;
 import com.sun.grizzly.util.SelectedKeyAttachmentLogic;
-import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.buf.ByteChunk;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 public class ServerNetworkHandler implements NetworkHandler {
     private final Request request;
@@ -93,8 +90,7 @@ public class ServerNetworkHandler implements NetworkHandler {
 
         final ClientHandShake clientHS = new ClientHandShake(request, secure);
 
-        final ServerHandShake server;
-        server = new ServerHandShake(clientHS.isSecure(), clientHS.getOrigin(),
+        final ServerHandShake server = new ServerHandShake(clientHS.isSecure(), clientHS.getOrigin(),
                 clientHS.getServerHostName(), clientHS.getPort(),
                 clientHS.getResourcePath(), clientHS.getSubProtocol(),
                 clientHS.getKey1(), clientHS.getKey2(), clientHS.getKey3());
@@ -112,7 +108,7 @@ public class ServerNetworkHandler implements NetworkHandler {
             if (dataFrame != null) {
                 dataFrame.getType().respond(socket, dataFrame);
             } else {
-                socket.close();
+                socket.onClose();
             }
         }
     }
