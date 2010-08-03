@@ -63,7 +63,7 @@ public interface FileCacheProbe {
     public void onEntryRemovedEvent(FileCache fileCache, FileCacheEntry entry);
 
     /**
-     * Method will be called, when file cache entry gets hitted.
+     * Method will be called, when file cache entry gets hit.
      *
      * @param fileCache {@link FileCache}, the event belongs to.
      * @param entry {@link FileCacheEntry} been hitted.
