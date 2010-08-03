@@ -46,6 +46,7 @@ import com.sun.grizzly.Processor;
 import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.http.HttpServerFilter;
+import com.sun.grizzly.http.server.filecache.FileCacheConfiguration;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.ssl.SSLContextConfigurator;
 import java.io.IOException;
@@ -379,10 +380,15 @@ public class GrizzlyWebServer {
                     serverConfig.getMonitoringConfig().getHttpConfig().getProbes());
             builder.add(httpServerFilter);
 
-            final FileCacheFilter fileCacheFilter = new FileCacheFilter(this);
-            fileCacheFilter.getFileCache().getMonitoringConfig().addProbes(
+            final FileCacheConfiguration fileConfig = listener.getFileCacheConfiguration();
+            if (fileConfig.isFileCacheEnabled()) {
+                final FileCacheFilter fileCacheFilter =
+                        new FileCacheFilter(this,
+                                            fileConfig);
+                fileCacheFilter.getFileCache().getMonitoringConfig().addProbes(
                     serverConfig.getMonitoringConfig().getFileCacheConfig().getProbes());
-            builder.add(fileCacheFilter);
+                builder.add(fileCacheFilter);
+            }
 
             final WebServerFilter webServerFilter = new WebServerFilter(this);
             webServerFilter.getMonitoringConfig().addProbes(

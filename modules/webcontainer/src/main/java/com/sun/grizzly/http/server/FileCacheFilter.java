@@ -38,6 +38,7 @@
 
 package com.sun.grizzly.http.server;
 
+import com.sun.grizzly.Transport;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.FilterChainContext;
@@ -46,6 +47,8 @@ import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.server.filecache.FileCache;
+import com.sun.grizzly.http.server.filecache.FileCacheConfiguration;
+
 import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -54,15 +57,25 @@ import java.util.concurrent.ScheduledExecutorService;
  * @author oleksiys
  */
 public class FileCacheFilter extends BaseFilter {
+
     private final FileCache fileCache;
     private final ScheduledExecutorService scheduledExecutorService;
 
-    public FileCacheFilter(GrizzlyWebServer webServer) {
+    public FileCacheFilter(final GrizzlyWebServer webServer,
+                           final FileCacheConfiguration config) {
+
         scheduledExecutorService = webServer.getScheduledExecutorService();
-        this.fileCache = new FileCache(
-                TransportFactory.getInstance().getDefaultMemoryManager(),
-                scheduledExecutorService);
+        final TransportFactory tf = TransportFactory.getInstance();
+        this.fileCache = new FileCache(config,
+                                       tf.getDefaultMemoryManager(),
+                                       scheduledExecutorService);
+
     }
+
+
+    // ----------------------------------------------------- Methods from Filter
+
+
     @Override
     public NextAction handleRead(FilterChainContext ctx) throws IOException {
         final HttpContent requestContent = (HttpContent) ctx.getMessage();

@@ -39,6 +39,7 @@ package com.sun.grizzly.http.server;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.filterchain.FilterChain;
+import com.sun.grizzly.http.server.filecache.FileCacheConfiguration;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.ssl.SSLEngineConfigurator;
 
@@ -125,6 +126,12 @@ public class GrizzlyListener {
      * TODO: this doesn't feel like the right location
      */
     private int maxHttpHeaderSize = -1;
+
+
+    /**
+     * {@link com.sun.grizzly.http.server.filecache.FileCache} configuration.
+     */
+    private final FileCacheConfiguration fileCacheConfig = new FileCacheConfiguration();
 
 
     // ------------------------------------------------------------ Constructors
@@ -429,6 +436,18 @@ public class GrizzlyListener {
         if (filterChain != null) {
             this.filterChain = filterChain;
         }
+
+    }
+
+
+    /**
+     * @return the {@link FileCacheConfiguration} object to tune the
+     *  {@link com.sun.grizzly.http.server.filecache.FileCache} used by this
+     *  listener.
+     */
+    public FileCacheConfiguration getFileCacheConfiguration() {
+
+        return fileCacheConfig;
 
     }
 

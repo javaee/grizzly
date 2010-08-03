@@ -301,6 +301,7 @@ public class FileCacheTest {
             listener.setSecure(true);
             listener.setSSLEngineConfig(createSSLConfig(true));
         }
+        listener.getFileCacheConfiguration().setFileCacheEnabled(true);
 
         gws.addListener(listener);
     }

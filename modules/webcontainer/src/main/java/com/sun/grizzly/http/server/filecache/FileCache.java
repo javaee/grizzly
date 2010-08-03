@@ -84,30 +84,7 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
             new ConcurrentHashMap<FileCacheKey, FileCacheEntry>();
     
     private final FileCacheEntry NULL_CACHE_ENTRY = new FileCacheEntry(this);
-    /**
-     * Timeout before remove the static resource from the cache.
-     */
-    private int secondsMaxAge = -1;
-    /**
-     * The maximum entries in the {@link FileCache}
-     */
-    private volatile int maxCacheEntries = 1024;
-    /**
-     * The maximum size of a cached resources.
-     */
-    private long minEntrySize = Long.MIN_VALUE;
-    /**
-     * The maximum size of a cached resources.
-     */
-    private long maxEntrySize = Long.MAX_VALUE;
-    /**
-     * The maximum memory mapped bytes
-     */
-    private volatile long maxLargeFileCacheSize = Long.MAX_VALUE;
-    /**
-     * The maximum cached bytes
-     */
-    private volatile long maxSmallFileCacheSize = 1048576;
+
     /**
      * The current cache size in bytes
      */
@@ -134,6 +111,7 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
 
     private final MemoryManager memoryManager;
     private final ScheduledExecutorService scheduledExecutorService;
+    private final FileCacheConfiguration config;
 
     /**
      * File cache probes
@@ -141,9 +119,11 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
     protected final MonitoringConfigImpl<FileCacheProbe> monitoringConfig =
             new MonitoringConfigImpl<FileCacheProbe>(FileCacheProbe.class);
 
-    public FileCache(MemoryManager memoryManager,
-            ScheduledExecutorService scheduledExecutorService) {
+    public FileCache(FileCacheConfiguration config,
+                     MemoryManager memoryManager,
+                     ScheduledExecutorService scheduledExecutorService) {
 
+        this.config = config;
         this.memoryManager = memoryManager;
         this.scheduledExecutorService = scheduledExecutorService;
     }
@@ -168,7 +148,7 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
         }
 
         // cache is full.
-        if (fileCacheMap.size() > maxCacheEntries) {
+        if (fileCacheMap.size() > config.getMaxCacheEntries()) {
             fileCacheMap.remove(key);
             //@TODO return key and entry to the thread cache object pool
             return;
@@ -199,7 +179,7 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
         fileCacheMap.put(key, entry);
         
         notifyProbesEntryAdded(this, entry);
-
+        final int secondsMaxAge = config.getSecondsMaxAge();
         if (secondsMaxAge > 0) {
             scheduledExecutorService.schedule(entry, secondsMaxAge, TimeUnit.SECONDS);
         }
@@ -267,12 +247,12 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
 
             size = fileChannel.size();
 
-            if (size > maxEntrySize) {
+            if (size > config.getMaxEntrySize()) {
                 return null;
             }
 
-            if (size > minEntrySize) {
-                if (addMappedMemorySize(size) > maxLargeFileCacheSize) {
+            if (size > config.getMinEntrySize()) {
+                if (addMappedMemorySize(size) > config.getMaxLargeFileCacheSize()) {
                     // Cache full
                     subMappedMemorySize(size);
                     return null;
@@ -280,7 +260,7 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
                 
                 type = CacheType.MAPPED;
             } else {
-                if (addHeapSize(size) > maxSmallFileCacheSize) {
+                if (addHeapSize(size) > config.getMaxSmallFileCacheSize()) {
                     // Cache full
                     subHeapSize(size);
                     return null;
@@ -362,29 +342,7 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
         return (isEnabled ? 1 : 0);
     }
 
-    /**
-     * Return the maximum age of a valid cache entry
-     * @return cache entry maximum age
-     */
-    public int getSecondsMaxAge() {
-        return secondsMaxAge;
-    }
 
-    /**
-     * Return the number of current cache entries.
-     * @return current cache entries
-     */
-    public long getCountEntries() {
-        return fileCacheMap.size();
-    }
-
-    /**
-     * Return the maximum number of cache entries
-     * @return maximum cache entries
-     */
-    public long getMaxEntries() {
-        return maxCacheEntries;
-    }
 
     protected final long addHeapSize(long size) {
         return heapSize.addAndGet(size);
@@ -418,98 +376,6 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
         return mappedMemorySize.get();
     }
 
-    // ---------------------------------------------------- Properties ----- //
-    /**
-     * The timeout in seconds before remove a {@link FileCacheEntry}
-     * from the {@link FileCache}
-     */
-    public void setSecondsMaxAge(int sMaxAges) {
-        secondsMaxAge = sMaxAges;
-    }
-
-    /**
-     * Set the maximum entries this cache can contains.
-     */
-    public void setMaxCacheEntries(int mEntries) {
-        maxCacheEntries = mEntries;
-    }
-
-    /**
-     * Return the maximum entries this cache can contains.
-     */
-    public int getMaxCacheEntries() {
-        return maxCacheEntries;
-    }
-
-    /**
-     * Set the maximum size a {@link FileCacheEntry} can have.
-     */
-    public void setMinEntrySize(long mSize) {
-        minEntrySize = mSize;
-    }
-
-    /**
-     * Get the maximum size a {@link FileCacheEntry} can have.
-     */
-    public long getMinEntrySize() {
-        return minEntrySize;
-    }
-
-    /**
-     * Set the maximum size a {@link FileCacheEntry} can have.
-     */
-    public void setMaxEntrySize(long mEntrySize) {
-        maxEntrySize = mEntrySize;
-    }
-
-    /**
-     * Get the maximum size a {@link FileCacheEntry} can have.
-     */
-    public long getMaxEntrySize() {
-        return maxEntrySize;
-    }
-
-    /**
-     * Set the maximum cache size
-     */
-    public void setMaxLargeCacheSize(long mCacheSize) {
-        maxLargeFileCacheSize = mCacheSize;
-    }
-
-    /**
-     * Get the maximum cache size
-     */
-    public long getMaxLargeCacheSize() {
-        return maxLargeFileCacheSize;
-    }
-
-    /**
-     * Set the maximum cache size
-     */
-    public void setMaxSmallCacheSize(long mCacheSize) {
-        maxSmallFileCacheSize = mCacheSize;
-    }
-
-    /**
-     * Get the maximum cache size
-     */
-    public long getMaxSmallCacheSize() {
-        return maxSmallFileCacheSize;
-    }
-
-    /**
-     * Is the fileCache enabled.
-     */
-    public boolean isEnabled() {
-        return isEnabled;
-    }
-
-    /**
-     * Is the file caching mechanism enabled.
-     */
-    public void setIsEnabled(boolean isEnabled) {
-        this.isEnabled = isEnabled;
-    }
 
     /**
      * Check if the conditions specified in the optional If headers are
