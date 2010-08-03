@@ -134,6 +134,12 @@ public class GrizzlyListener {
     private final FileCacheConfiguration fileCacheConfig = new FileCacheConfiguration();
 
 
+    /**
+     * Maximum size, in bytes, of all data within all pending writes.
+     */
+    private volatile int maxPendingBytes;
+
+
     // ------------------------------------------------------------ Constructors
 
 
@@ -448,6 +454,32 @@ public class GrizzlyListener {
     public FileCacheConfiguration getFileCacheConfiguration() {
 
         return fileCacheConfig;
+
+    }
+
+
+    /**
+     * @return the maximum size, in bytes, of all writes pending to be written
+     *  to their associated {@link com.sun.grizzly.Connection}.
+     */
+    public int getMaxPendingBytes() {
+
+        return maxPendingBytes;
+
+    }
+
+
+    /**
+     * The maximum size, in bytes, of all writes pending to be written
+     * to their associated {@link com.sun.grizzly.Connection}.
+     *
+     * @param maxPendingBytes the maximum size, in bytes, of all writes pending
+     *  to be written to their associated {@link com.sun.grizzly.Connection}.
+     */
+    public void setMaxPendingBytes(int maxPendingBytes) {
+
+        this.maxPendingBytes = maxPendingBytes;
+        transport.getAsyncQueueIO().getWriter().setMaxPendingBytesPerConnection(maxPendingBytes);
 
     }
 
