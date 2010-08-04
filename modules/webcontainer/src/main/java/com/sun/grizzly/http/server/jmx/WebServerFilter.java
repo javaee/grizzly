@@ -50,6 +50,11 @@ import org.glassfish.gmbal.ManagedObject;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * JMX management object for the {@link com.sun.grizzly.http.server.WebServerFilter}.
+ *
+ * @since 2.0
+ */
 @ManagedObject
 @Description("Grizzly Web Server Filter")
 public class WebServerFilter extends JmxObject {
