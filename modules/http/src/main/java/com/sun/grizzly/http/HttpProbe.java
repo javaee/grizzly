@@ -60,8 +60,9 @@ public interface HttpProbe {
 
     /**
      * Method will be called, when {@link Buffer}, produced by the
-     * {@link HttpCodecFilter} will be ready to go to the next {@link Filter} in
-     * the chain and finally written on wire.
+     * {@link HttpCodecFilter} will be ready to go to the next
+     * {@link com.sun.grizzly.filterchain.Filter} in the chain and finally
+     * written on wire.
      *
      * @param connection {@link Connection}, the event belongs to.
      * @param buffer serialized {@link Buffer}.
