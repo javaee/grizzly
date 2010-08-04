@@ -2,7 +2,7 @@
  *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -35,68 +35,36 @@
  * holder.
  *
  */
+package com.sun.grizzly.web;
 
-package com.sun.grizzly.memory;
-
-import com.sun.grizzly.monitoring.MonitoringConfigImpl;
+import com.sun.grizzly.http.server.GrizzlyWebServer;
+import com.sun.grizzly.http.server.GrizzlyListener;
+import com.sun.grizzly.monitoring.jmx.GrizzlyJmxManager;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
 /**
- * Utility class, which has notification methods for different
- * {@link MemoryProbe} events.
- *
- * @author Alexey Stashok
+ * Basic JMX initialization tests.
  */
-final class ProbeNotificator {
+public class GrizzlyWebContainerJmxBasicTest {
 
-    /**
-     * Notify registered {@link MemoryProbe}s about the "allocated" event.
-     *
-     * @param size buffer size
-     */
-    static void notifyBufferAllocated(
-            final MonitoringConfigImpl<MemoryProbe> config,
-            final int size) {
+    @Test
+    public void transport() throws Exception {
+        GrizzlyJmxManager manager = GrizzlyJmxManager.instance();
+        GrizzlyWebServer gws = new GrizzlyWebServer();
+        GrizzlyListener listener1 = new GrizzlyListener("listener1", "localhost", 8080);
+        GrizzlyListener listener2 = new GrizzlyListener("listener2", "localhost", 8081);
+        gws.addListener(listener1);
+        gws.addListener(listener2);
 
-        final MemoryProbe[] probes = config.getProbesUnsafe();
-        if (probes != null) {
-            for (MemoryProbe probe : probes) {
-                probe.onBufferAllocateEvent(size);
-            }
+        try {
+            manager.registerAtRoot(gws.createManagementObject(), "GrizzlyWebServer");
+
+            gws.start();
+            
+            assertTrue(true);
+        } finally {
+            gws.stop();
         }
     }
-
-    /**
-     * Notify registered {@link MemoryProbe}s about the "allocated from pool" event.
-     *
-     * @param size buffer size
-     */
-    static void notifyBufferAllocatedFromPool(
-            final MonitoringConfigImpl<MemoryProbe> config,
-            final int size) {
-
-        final MemoryProbe[] probes = config.getProbesUnsafe();
-        if (probes != null) {
-            for (MemoryProbe probe : probes) {
-                probe.onBufferAllocateFromPoolEvent(size);
-            }
-        }
-    }
-
-    /**
-     * Notify registered {@link MemoryProbe}s about the "release to pool" event.
-     *
-     * @param size buffer size
-     */
-    static void notifyBufferReleasedToPool(
-            final MonitoringConfigImpl<MemoryProbe> config,
-            final int size) {
-
-        final MemoryProbe[] probes = config.getProbesUnsafe();
-        if (probes != null) {
-            for (MemoryProbe probe : probes) {
-                probe.onBufferReleaseToPoolEvent(size);
-            }
-        }
-    }
-
 }

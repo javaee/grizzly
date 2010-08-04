@@ -942,7 +942,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
      * {@inheritDoc}
      */
     @Override
-    protected JmxObject createJmxManagmentObject() {
+    protected JmxObject createJmxManagementObject() {
         return new com.sun.grizzly.nio.transport.jmx.TCPNIOTransport(this);
     }
 

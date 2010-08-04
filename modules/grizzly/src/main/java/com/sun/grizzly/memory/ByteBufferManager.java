@@ -67,8 +67,8 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
             new AbstractJmxMonitoringConfig<MemoryProbe>(MemoryProbe.class) {
 
         @Override
-        public JmxObject createManagmentObject() {
-            return createJmxManagmentObject();
+        public JmxObject createManagementObject() {
+            return createJmxManagementObject();
         }
 
     };
@@ -209,11 +209,11 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
     }
 
     /**
-     * Create the Memory Manager JMX managment object.
+     * Create the Memory Manager JMX management object.
      *
-     * @return the Memory Manager JMX managment object.
+     * @return the Memory Manager JMX management object.
      */
-    protected JmxObject createJmxManagmentObject() {
+    protected JmxObject createJmxManagementObject() {
         return new com.sun.grizzly.memory.jmx.ByteBufferManager(this);
     }
 }

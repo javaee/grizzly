@@ -38,6 +38,7 @@
 
 package com.sun.grizzly.memory.jmx;
 
+import com.sun.grizzly.memory.ByteBufferWrapper;
 import com.sun.grizzly.monitoring.jmx.GrizzlyJmxManager;
 import com.sun.grizzly.monitoring.jmx.JmxObject;
 import com.sun.grizzly.memory.MemoryProbe;
@@ -57,7 +58,7 @@ import org.glassfish.gmbal.NameValue;
 @Description("Grizzly Memory Manager")
 public class MemoryManager extends JmxObject {
 
-    protected final com.sun.grizzly.memory.MemoryManager memoryManager;
+    protected final com.sun.grizzly.memory.MemoryManager<ByteBufferWrapper> memoryManager;
     private final MemoryProbe probe;
 
     private final AtomicLong totalAllocatedBytes = new AtomicLong();
@@ -65,7 +66,7 @@ public class MemoryManager extends JmxObject {
     private final AtomicLong poolAllocatedBytes = new AtomicLong();
     private final AtomicLong poolReleasedBytes = new AtomicLong();
     
-    public MemoryManager(com.sun.grizzly.memory.MemoryManager memoryManager) {
+    public MemoryManager(com.sun.grizzly.memory.MemoryManager<ByteBufferWrapper> memoryManager) {
         this.memoryManager = memoryManager;
         probe = new JmxMemoryProbe();
     }

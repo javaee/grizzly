@@ -1,0 +1,224 @@
+/*
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+ * 
+ * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
+ * 
+ * The contents of this file are subject to the terms of either the GNU
+ * General Public License Version 2 only ("GPL") or the Common Development
+ * and Distribution License("CDDL") (collectively, the "License").  You
+ * may not use this file except in compliance with the License. You can obtain
+ * a copy of the License at https://glassfish.dev.java.net/public/CDDL+GPL.html
+ * or glassfish/bootstrap/legal/LICENSE.txt.  See the License for the specific
+ * language governing permissions and limitations under the License.
+ * 
+ * When distributing the software, include this License Header Notice in each
+ * file and include the License file at glassfish/bootstrap/legal/LICENSE.txt.
+ * Sun designates this particular file as subject to the "Classpath" exception
+ * as provided by Sun in the GPL Version 2 section of the License file that
+ * accompanied this code.  If applicable, add the following below the License
+ * Header, with the fields enclosed by brackets [] replaced by your own
+ * identifying information: "Portions Copyrighted [year]
+ * [name of copyright owner]"
+ * 
+ * Contributor(s):
+ * 
+ * If you wish your version of this file to be governed by only the CDDL or
+ * only the GPL Version 2, indicate your decision by adding "[Contributor]
+ * elects to include this software in this distribution under the [CDDL or GPL
+ * Version 2] license."  If you don't indicate a single choice of license, a
+ * recipient has the option to distribute your version of this file under
+ * either the CDDL, the GPL Version 2 or to extend the choice of license to
+ * its licensees as provided above.  However, if you add GPL Version 2 code
+ * and therefore, elected the GPL Version 2 license, then the option applies
+ * only if the new code is made subject to such option by the copyright
+ * holder.
+ */
+
+package com.sun.grizzly.http.server.jmx;
+
+import com.sun.grizzly.Transport;
+import com.sun.grizzly.http.server.filecache.FileCache;
+import com.sun.grizzly.monitoring.jmx.GrizzlyJmxManager;
+import com.sun.grizzly.monitoring.jmx.JmxObject;
+import org.glassfish.gmbal.Description;
+import org.glassfish.gmbal.GmbalMBean;
+import org.glassfish.gmbal.ManagedAttribute;
+import org.glassfish.gmbal.ManagedObject;
+
+/**
+ * JMX management object for {@link com.sun.grizzly.http.server.GrizzlyListener}.
+ *
+ * @since 2.0
+ */
+@ManagedObject
+@Description("Grizzly Listener")
+public class GrizzlyListener extends JmxObject {
+
+    private final com.sun.grizzly.http.server.GrizzlyListener listener;
+
+    private FileCache currentFileCache;
+    private Transport currentTransport;
+
+    private JmxObject fileCacheJmx;
+    private JmxObject transportJmx;
+
+    private GrizzlyJmxManager mom;
+
+
+    // ------------------------------------------------------------ Constructors
+
+
+    public GrizzlyListener(com.sun.grizzly.http.server.GrizzlyListener listener) {
+
+        this.listener = listener;
+
+    }
+
+
+    // -------------------------------------------------- Methods from JmxObject
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected synchronized void onRegister(GrizzlyJmxManager mom, GmbalMBean bean) {
+        this.mom = mom;
+        rebuildSubTree();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected synchronized void onUnregister(GrizzlyJmxManager mom) {
+        mom = null;
+    }
+
+
+    // ---------------------------------------------------------- Public Methods
+
+
+    /**
+     * @see {@link com.sun.grizzly.http.server.GrizzlyListener#getName()}
+     */
+    @ManagedAttribute(id="name")
+    public String getName() {
+        return listener.getName();
+    }
+
+
+    /**
+     * @see {@link com.sun.grizzly.http.server.GrizzlyListener#getHost()}
+     */
+    @ManagedAttribute(id="host")
+    public String getHost() {
+        return listener.getHost();
+    }
+
+
+    /**
+     * @see {@link com.sun.grizzly.http.server.GrizzlyListener#getPort()}
+     */
+    @ManagedAttribute(id="port")
+    public int getPort() {
+        return listener.getPort();
+    }
+
+
+    /**
+     * @see {@link com.sun.grizzly.http.server.GrizzlyListener#getKeepAliveTimeoutInSeconds()}
+     */
+    @ManagedAttribute(id="keep-alive-timeout-in-seconds")
+    public int getKeepAliveTimeoutInSeconds() {
+        return listener.getKeepAliveTimeoutInSeconds();
+    }
+
+
+    /**
+     * @see {@link com.sun.grizzly.http.server.GrizzlyListener#isSecure()}
+     */
+    @ManagedAttribute(id="secure")
+    public boolean isSecure() {
+        return listener.isSecure();
+    }
+
+
+    /**
+     * @see {@link com.sun.grizzly.http.server.GrizzlyListener#getMaxHttpHeaderSize()} ()}
+     */
+    @ManagedAttribute(id="max-http-header-size")
+    public int getMaxHttpHeaderSize() {
+        return listener.getMaxHttpHeaderSize();
+    }
+
+
+    /**
+     * @see {@link com.sun.grizzly.http.server.GrizzlyListener#getName()}
+     */
+    @ManagedAttribute(id="max-pending-bytes")
+    public int getMaxPendingBytes() {
+        return listener.getMaxPendingBytes();
+    }
+
+
+    /**
+     * @see {@link com.sun.grizzly.http.server.GrizzlyListener#isStarted()}
+     */
+    @ManagedAttribute(id="started")
+    public boolean isStarted() {
+        return listener.isStarted();
+    }
+
+
+    /**
+     * @see {@link com.sun.grizzly.http.server.GrizzlyListener#isPaused()}
+     */
+    @ManagedAttribute(id="paused")
+    public boolean isPaused() {
+        return listener.isPaused();
+    }
+
+
+    // ------------------------------------------------------- Protected Methods
+
+
+    protected void rebuildSubTree() {
+        // rebuild memory manager sub element
+        final FileCache fileCache = listener.getFileCache();
+        if (currentFileCache != fileCache) {
+            if (currentFileCache != null) {
+                mom.unregister(fileCacheJmx);
+
+                currentFileCache = null;
+                fileCacheJmx = null;
+            }
+
+            if (fileCache != null) {
+                final JmxObject mmJmx = fileCache.getMonitoringConfig().createManagementObject();
+                mom.register(this, mmJmx, "FileCache");
+                currentFileCache = fileCache;
+                fileCacheJmx = mmJmx;
+            }
+        }
+
+        final Transport transport = listener.getTransport();
+        if (currentTransport != transport) {
+            if (currentTransport != null) {
+                mom.unregister(transportJmx);
+
+                currentTransport = null;
+                transportJmx = null;
+            }
+
+            if (transport != null) {
+                final JmxObject mmJmx = transport.getMonitoringConfig().createManagementObject();
+                mom.register(this, mmJmx, "Transport");
+                currentTransport = transport;
+                transportJmx = mmJmx;
+            }
+        }
+
+    }
+
+}

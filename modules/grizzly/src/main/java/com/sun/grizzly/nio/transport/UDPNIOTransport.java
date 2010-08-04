@@ -801,7 +801,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
      * {@inheritDoc}
      */
     @Override
-    protected JmxObject createJmxManagmentObject() {
+    protected JmxObject createJmxManagementObject() {
         return new com.sun.grizzly.nio.transport.jmx.UDPNIOTransport(this);
     }
 

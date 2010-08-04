@@ -144,59 +144,59 @@ public class FileCache extends JmxObject {
 
 
     /**
-     * @see com.sun.grizzly.http.server.filecache.FileCacheConfiguration#isFileCacheEnabled()
+     * @see com.sun.grizzly.http.server.filecache.FileCache#isEnabled()
      */
     @ManagedAttribute(id="file-cache-enabled")
     public boolean isFileCacheEnabled() {
-        return fileCache.getConfig().isFileCacheEnabled();
+        return fileCache.isEnabled();
     }
 
     /**
-     * @see com.sun.grizzly.http.server.filecache.FileCacheConfiguration#getSecondsMaxAge()
+     * @see com.sun.grizzly.http.server.filecache.FileCache#getSecondsMaxAge()
      */
     @ManagedAttribute(id="max-age-seconds")
     public int getSecondsMaxAge() {
-        return fileCache.getConfig().getSecondsMaxAge();
+        return fileCache.getSecondsMaxAge();
     }
 
     /**
-     * @see com.sun.grizzly.http.server.filecache.FileCacheConfiguration#getMaxCacheEntries() ()
+     * @see com.sun.grizzly.http.server.filecache.FileCache#getMaxCacheEntries()
      */
     @ManagedAttribute(id="max-number-of-cache-entries")
     public int getMaxCacheEntries() {
-        return fileCache.getConfig().getMaxCacheEntries();
+        return fileCache.getMaxCacheEntries();
     }
 
     /**
-     * @see com.sun.grizzly.http.server.filecache.FileCacheConfiguration#getMinEntrySize()
+     * @see com.sun.grizzly.http.server.filecache.FileCache#getMinEntrySize()
      */
     @ManagedAttribute(id="min-entry-size")
     public long getMinEntrySize() {
-        return fileCache.getConfig().getMinEntrySize();
+        return fileCache.getMinEntrySize();
     }
 
     /**
-     * @see com.sun.grizzly.http.server.filecache.FileCacheConfiguration#getMaxEntrySize()
+     * @see com.sun.grizzly.http.server.filecache.FileCache#getMaxEntrySize()
      */
     @ManagedAttribute(id="max-entry-size")
     public long getMaxEntrySize() {
-        return fileCache.getConfig().getMaxEntrySize();
+        return fileCache.getMaxEntrySize();
     }
 
     /**
-     * @see com.sun.grizzly.http.server.filecache.FileCacheConfiguration#getMaxLargeFileCacheSize()
+     * @see com.sun.grizzly.http.server.filecache.FileCache#getMaxLargeFileCacheSize()
      */
     @ManagedAttribute(id="memory-mapped-file-cache-size")
     public long getMaxLargeFileCacheSize() {
-        return fileCache.getConfig().getMaxLargeFileCacheSize();
+        return fileCache.getMaxLargeFileCacheSize();
     }
 
     /**
-     * @see com.sun.grizzly.http.server.filecache.FileCacheConfiguration#getMaxSmallFileCacheSize()
+     * @see com.sun.grizzly.http.server.filecache.FileCache#getMaxSmallFileCacheSize()
      */
     @ManagedAttribute(id="heap-file-cache-size")
     public long getMaxSmallFileCacheSize() {
-        return fileCache.getConfig().getMaxSmallFileCacheSize();
+        return fileCache.getMaxSmallFileCacheSize();
     }
 
 

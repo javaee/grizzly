@@ -38,8 +38,6 @@
 
 package com.sun.grizzly.http.server;
 
-import com.sun.grizzly.Transport;
-import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
@@ -47,10 +45,8 @@ import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.server.filecache.FileCache;
-import com.sun.grizzly.http.server.filecache.FileCacheConfiguration;
 
 import java.io.IOException;
-import java.util.concurrent.ScheduledExecutorService;
 
 /**
  *
@@ -59,16 +55,10 @@ import java.util.concurrent.ScheduledExecutorService;
 public class FileCacheFilter extends BaseFilter {
 
     private final FileCache fileCache;
-    private final ScheduledExecutorService scheduledExecutorService;
 
-    public FileCacheFilter(final GrizzlyWebServer webServer,
-                           final FileCacheConfiguration config) {
+    public FileCacheFilter(FileCache fileCache) {
 
-        scheduledExecutorService = webServer.getScheduledExecutorService();
-        final TransportFactory tf = TransportFactory.getInstance();
-        this.fileCache = new FileCache(config,
-                                       tf.getDefaultMemoryManager(),
-                                       scheduledExecutorService);
+        this.fileCache = fileCache;
 
     }
 
@@ -78,16 +68,19 @@ public class FileCacheFilter extends BaseFilter {
 
     @Override
     public NextAction handleRead(FilterChainContext ctx) throws IOException {
-        final HttpContent requestContent = (HttpContent) ctx.getMessage();
-        final HttpRequestPacket request = (HttpRequestPacket) requestContent.getHttpHeader();
 
-        final HttpPacket response = fileCache.get(request);
-        if (response != null) {
-            ctx.write(response);
-            return ctx.getStopAction();
+        if (fileCache.isEnabled()) {
+            final HttpContent requestContent = (HttpContent) ctx.getMessage();
+            final HttpRequestPacket request = (HttpRequestPacket) requestContent.getHttpHeader();
+            final HttpPacket response = fileCache.get(request);
+            if (response != null) {
+                ctx.write(response);
+                return ctx.getStopAction();
+            }
         }
 
         return ctx.getInvokeAction();
+
     }
 
     public FileCache getFileCache() {

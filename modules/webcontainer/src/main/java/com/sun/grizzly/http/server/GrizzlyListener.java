@@ -39,7 +39,8 @@ package com.sun.grizzly.http.server;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.filterchain.FilterChain;
-import com.sun.grizzly.http.server.filecache.FileCacheConfiguration;
+import com.sun.grizzly.http.server.filecache.FileCache;
+import com.sun.grizzly.monitoring.jmx.JmxObject;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.ssl.SSLEngineConfigurator;
 
@@ -129,15 +130,21 @@ public class GrizzlyListener {
 
 
     /**
-     * {@link com.sun.grizzly.http.server.filecache.FileCache} configuration.
+     * {@link FileCache} to be used by this <code>GrizzlyListener</code>.
      */
-    private final FileCacheConfiguration fileCacheConfig = new FileCacheConfiguration();
+    private FileCache fileCache = new FileCache();
 
 
     /**
      * Maximum size, in bytes, of all data within all pending writes.
      */
     private volatile int maxPendingBytes;
+
+
+    /**
+     * Flag indicating the paused state of this listener.
+     */
+    private boolean paused;
 
 
     // ------------------------------------------------------------ Constructors
@@ -447,14 +454,10 @@ public class GrizzlyListener {
 
 
     /**
-     * @return the {@link FileCacheConfiguration} object to tune the
-     *  {@link com.sun.grizzly.http.server.filecache.FileCache} used by this
-     *  listener.
+     * @return the {@link FileCache} associated with this listener.
      */
-    public FileCacheConfiguration getFileCacheConfiguration() {
-
-        return fileCacheConfig;
-
+    public FileCache getFileCache() {
+        return fileCache;
     }
 
 
@@ -485,6 +488,15 @@ public class GrizzlyListener {
 
 
     // ---------------------------------------------------------- Public Methods
+
+
+    /**
+     * @return <code>true</code> if this listener has been paused, otherwise
+     *  <code>false</code>
+     */
+    public boolean isPaused() {
+        return paused;
+    }
 
 
     /**
@@ -572,6 +584,7 @@ public class GrizzlyListener {
         }
 
         transport.pause();
+        paused = true;
         if (LOGGER.isLoggable(Level.INFO)) {
             LOGGER.log(Level.INFO,
                        "Paused listener bound to [{0}]",
@@ -595,6 +608,7 @@ public class GrizzlyListener {
             return;
         }
         transport.resume();
+        paused = false;
         if (LOGGER.isLoggable(Level.INFO)) {
             LOGGER.log(Level.INFO,
                        "Resumed listener bound to [{0}]",
@@ -615,6 +629,12 @@ public class GrizzlyListener {
                 ", port=" + port +
                 ", secure=" + secure +
                 '}';
+    }
+
+
+
+    public JmxObject createManagementObject() {
+        return new com.sun.grizzly.http.server.jmx.GrizzlyListener(this);
     }
 
 

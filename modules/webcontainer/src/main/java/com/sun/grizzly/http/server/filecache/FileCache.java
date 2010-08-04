@@ -88,22 +88,56 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
     private final FileCacheEntry NULL_CACHE_ENTRY = new FileCacheEntry(this);
 
     /**
+     * Specifies the maximum time in seconds a resource may be cached.
+     */
+    private int secondsMaxAge = -1;
+
+    /**
+     * The maximum entries in the {@link FileCache}
+     */
+    private volatile int maxCacheEntries = 1024;
+
+    /**
+     * The maximum size of a cached resource.
+     */
+    private long minEntrySize = Long.MIN_VALUE;
+
+    /**
+     * The maximum size of a cached resource.
+     */
+    private long maxEntrySize = Long.MAX_VALUE;
+
+    /**
+     * The maximum memory mapped bytes.
+     */
+    private volatile long maxLargeFileCacheSize = Long.MAX_VALUE;
+
+    /**
+     * The maximum cached bytes
+     */
+    private volatile long maxSmallFileCacheSize = 1048576;
+
+    /**
      * The current cache size in bytes
      */
     private AtomicLong mappedMemorySize = new AtomicLong();
+
     /**
      * The current cache size in bytes
      */
     private AtomicLong heapSize = new AtomicLong();
+
     /**
      * Is the file cache enabled.
      */
-    private boolean isEnabled = true;
+    private boolean enabled = true;
+
     /**
      * Status code (304) indicating that a conditional GET operation
      * found that the resource was available and not modified.
      */
     public static final int SC_NOT_MODIFIED = 304;
+
     /**
      * Status code (412) indicating that the precondition given in one
      * or more of the request-header fields evaluated to false when it
@@ -111,9 +145,8 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
      */
     public static final int SC_PRECONDITION_FAILED = 412;
 
-    private final MemoryManager memoryManager;
-    private final ScheduledExecutorService scheduledExecutorService;
-    private final FileCacheConfiguration config;
+    private MemoryManager memoryManager;
+    private ScheduledExecutorService scheduledExecutorService;
 
     /**
      * File cache probes
@@ -122,30 +155,26 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
             new AbstractJmxMonitoringConfig<FileCacheProbe>(FileCacheProbe.class) {
 
         @Override
-        public JmxObject createManagmentObject() {
-            return createJmxManagmentObject();
+        public JmxObject createManagementObject() {
+            return createJmxManagementObject();
         }
 
     };
-
-    public FileCache(FileCacheConfiguration config,
-                     MemoryManager memoryManager,
-                     ScheduledExecutorService scheduledExecutorService) {
-
-        this.config = config;
-        this.memoryManager = memoryManager;
-        this.scheduledExecutorService = scheduledExecutorService;
-    }
 
 
     // ---------------------------------------------------- Methods ----------//
 
 
-    /**
-     * @return the {@link FileCacheConfiguration} for this <code>FileCache</code>.
-     */
-    public FileCacheConfiguration getConfig() {
-        return config;
+    public void setMemoryManager(MemoryManager memoryManager) {
+        if (this.memoryManager == null) {
+            this.memoryManager = memoryManager;
+        }
+    }
+
+    public void setScheduledExecutorService(ScheduledExecutorService scheduledExecutorService) {
+        if (this.scheduledExecutorService == null) {
+            this.scheduledExecutorService = scheduledExecutorService;
+        }
     }
 
     /**
@@ -166,7 +195,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
         }
 
         // cache is full.
-        if (fileCacheMap.size() > config.getMaxCacheEntries()) {
+        if (fileCacheMap.size() > getMaxCacheEntries()) {
             fileCacheMap.remove(key);
             //@TODO return key and entry to the thread cache object pool
             return;
@@ -197,7 +226,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
         fileCacheMap.put(key, entry);
         
         notifyProbesEntryAdded(this, entry);
-        final int secondsMaxAge = config.getSecondsMaxAge();
+        final int secondsMaxAge = getSecondsMaxAge();
         if (secondsMaxAge > 0) {
             scheduledExecutorService.schedule(entry, secondsMaxAge, TimeUnit.SECONDS);
         }
@@ -248,7 +277,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
         notifyProbesEntryRemoved(this, entry);
     }
 
-    protected JmxObject createJmxManagmentObject() {
+    protected JmxObject createJmxManagementObject() {
         return new com.sun.grizzly.http.server.filecache.jmx.FileCache(this);
     }
 
@@ -269,12 +298,12 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
 
             size = fileChannel.size();
 
-            if (size > config.getMaxEntrySize()) {
+            if (size > getMaxEntrySize()) {
                 return null;
             }
 
-            if (size > config.getMinEntrySize()) {
-                if (addMappedMemorySize(size) > config.getMaxLargeFileCacheSize()) {
+            if (size > getMinEntrySize()) {
+                if (addMappedMemorySize(size) > getMaxLargeFileCacheSize()) {
                     // Cache full
                     subMappedMemorySize(size);
                     return null;
@@ -282,7 +311,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
                 
                 type = CacheType.MAPPED;
             } else {
-                if (addHeapSize(size) > config.getMaxSmallFileCacheSize()) {
+                if (addHeapSize(size) > getMaxSmallFileCacheSize()) {
                     // Cache full
                     subHeapSize(size);
                     return null;
@@ -355,15 +384,139 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
         return response;
     }
 
-    // ---------------------------------------------------- Monitoring --------//
+
+    // ------------------------------------------------ Configuration Properties
+
     /**
-     * Returns flag indicating whether file cache has been enabled
-     * @return 1 if file cache has been enabled, 0 otherwise
+     * @return the maximum time, in seconds, a file may be cached.
      */
-    public int getFlagEnabled() {
-        return (isEnabled ? 1 : 0);
+    public int getSecondsMaxAge() {
+        return secondsMaxAge;
     }
 
+    /**
+     * Sets the maximum time, in seconds, a file may be cached.
+     *
+     * @param secondsMaxAge max age of a cached file, in seconds.
+     */
+    public void setSecondsMaxAge(int secondsMaxAge) {
+        this.secondsMaxAge = secondsMaxAge;
+    }
+
+    /**
+     * @return the maximum number of files that may be cached.
+     */
+    public int getMaxCacheEntries() {
+        return maxCacheEntries;
+    }
+
+    /**
+     * Sets the maximum number of files that may be cached.
+     *
+     * @param maxCacheEntries the maximum number of files that may be cached.
+     */
+    public void setMaxCacheEntries(int maxCacheEntries) {
+        this.maxCacheEntries = maxCacheEntries;
+    }
+
+
+    /**
+     * @return the maximum size, in bytes, a file must be in order to be cached
+     *  in the heap cache.
+     */
+    public long getMinEntrySize() {
+        return minEntrySize;
+    }
+
+    /**
+     * The maximum size, in bytes, a file must be in order to be cached
+     * in the heap cache.
+     *
+     * @param minEntrySize the maximum size, in bytes, a file must be in order
+     *  to be cached in the heap cache.
+     */
+    public void setMinEntrySize(long minEntrySize) {
+        this.minEntrySize = minEntrySize;
+    }
+
+    /**
+     * @return the maximum size, in bytes, a resource may be before it can no
+     *  longer be considered cachable.
+     */
+    public long getMaxEntrySize() {
+        return maxEntrySize;
+    }
+
+    /**
+     * The maximum size, in bytes, a resource may be before it can no
+     * longer be considered cachable.
+     *
+     * @param maxEntrySize the maximum size, in bytes, a resource may be before it can no
+     *  longer be considered cachable.
+     */
+    public void setMaxEntrySize(long maxEntrySize) {
+        this.maxEntrySize = maxEntrySize;
+    }
+
+    /**
+     * @return the maximum size of the memory mapped cache for large files.
+     */
+    public long getMaxLargeFileCacheSize() {
+        return maxLargeFileCacheSize;
+    }
+
+
+    /**
+     * Sets the maximum size, in bytes, of the memory mapped cache for large
+     * files.
+     *
+     * @param maxLargeFileCacheSize the maximum size, in bytes, of the memory
+     *  mapped cache for large files.
+     */
+    public void setMaxLargeFileCacheSize(long maxLargeFileCacheSize) {
+        this.maxLargeFileCacheSize = maxLargeFileCacheSize;
+    }
+
+
+    /**
+     * @return the maximum size, in bytes, of the heap cache for files below the
+     *  water mark set by {@link #getMinEntrySize()}.
+     */
+    public long getMaxSmallFileCacheSize() {
+        return maxSmallFileCacheSize;
+    }
+
+    /**
+     * The maximum size, in bytes, of the heap cache for files below the
+     * water mark set by {@link #getMinEntrySize()}.
+     *
+     * @param maxSmallFileCacheSize the maximum size, in bytes, of the heap
+     *  cache for files below the water mark set by {@link #getMinEntrySize()}.
+     */
+    public void setMaxSmallFileCacheSize(long maxSmallFileCacheSize) {
+        this.maxSmallFileCacheSize = maxSmallFileCacheSize;
+    }
+
+    /**
+     * @return <code>true</code> if the {@link FileCache} is enabled,
+     *  otherwise <code>false</code>
+     */
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    /**
+     * Enables/disables the {@link FileCache}.  By default, the
+     * {@link FileCache} is disabled.
+     *
+     * @param enabled <code>true</code> to enable the {@link FileCache}.
+     */
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+
+    // ---------------------------------------------------- Monitoring --------//
 
 
     protected final long addHeapSize(long size) {

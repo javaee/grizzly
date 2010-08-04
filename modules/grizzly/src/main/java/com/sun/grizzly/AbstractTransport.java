@@ -122,8 +122,8 @@ public abstract class AbstractTransport implements Transport {
             new AbstractJmxMonitoringConfig<TransportProbe>(TransportProbe.class) {
 
         @Override
-        public JmxObject createManagmentObject() {
-            return createJmxManagmentObject();
+        public JmxObject createManagementObject() {
+            return createJmxManagementObject();
         }
     };
 
@@ -448,5 +448,5 @@ public abstract class AbstractTransport implements Transport {
      *
      * @return the Transport JMX managment object.
      */
-    protected abstract JmxObject createJmxManagmentObject();
+    protected abstract JmxObject createJmxManagementObject();
 }

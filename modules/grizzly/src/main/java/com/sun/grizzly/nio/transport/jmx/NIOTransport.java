@@ -241,7 +241,7 @@ public class NIOTransport extends JmxObject {
             }
 
             if (memoryManager != null) {
-                final JmxObject mmJmx = memoryManager.getMonitoringConfig().createManagmentObject();
+                final JmxObject mmJmx = memoryManager.getMonitoringConfig().createManagementObject();
                 mom.register(this, mmJmx, "MemoryManager");
                 currentMemoryManager = memoryManager;
                 memoryManagerJmx = mmJmx;

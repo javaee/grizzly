@@ -49,5 +49,5 @@ public interface JmxMonitoringConfig<E> extends MonitoringConfig<E> {
      *
      * @return the {@link JmxObject}, which represents this object.
      */
-    public JmxObject createManagmentObject();
+    public JmxObject createManagementObject();
 }

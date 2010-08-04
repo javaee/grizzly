@@ -127,7 +127,7 @@ public class ByteBufferViewManager extends ByteBufferManager {
      * @return the Memory Manager JMX managment object.
      */
     @Override
-    protected JmxObject createJmxManagmentObject() {
+    protected JmxObject createJmxManagementObject() {
         return new com.sun.grizzly.memory.jmx.ByteBufferViewManager(this);
     }
 }

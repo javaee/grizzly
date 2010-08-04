@@ -58,10 +58,10 @@ public class JmxBasicTest {
 
         try {
             JmxObject jmxTransportObject1 =
-                    transport1.getMonitoringConfig().createManagmentObject();
+                    transport1.getMonitoringConfig().createManagementObject();
             
             JmxObject jmxTransportObject2 =
-                    transport2.getMonitoringConfig().createManagmentObject();
+                    transport2.getMonitoringConfig().createManagementObject();
 
             manager.registerAtRoot(jmxTransportObject1, "Transport1");
             manager.registerAtRoot(jmxTransportObject2, "Transport2");

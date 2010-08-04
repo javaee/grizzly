@@ -46,7 +46,8 @@ import com.sun.grizzly.Processor;
 import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.http.HttpServerFilter;
-import com.sun.grizzly.http.server.filecache.FileCacheConfiguration;
+import com.sun.grizzly.http.server.filecache.FileCache;
+import com.sun.grizzly.monitoring.jmx.JmxObject;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.ssl.SSLContextConfigurator;
 import java.io.IOException;
@@ -271,6 +272,20 @@ public class GrizzlyWebServer {
 
 
     /**
+     * @return <code>true</code> if this <code>GrizzlyWebServer</code> has
+     *  been started.
+     */
+    public boolean isStarted() {
+        return started;
+    }
+
+
+    public JmxObject createManagementObject() {
+        return new com.sun.grizzly.http.server.jmx.GrizzlyWebServer(this);
+    }
+
+
+    /**
      * <p>
      * Stops the <code>GrizzlyWebServer</code> instance.
      * </p>
@@ -380,15 +395,14 @@ public class GrizzlyWebServer {
                     serverConfig.getMonitoringConfig().getHttpConfig().getProbes());
             builder.add(httpServerFilter);
 
-            final FileCacheConfiguration fileConfig = listener.getFileCacheConfiguration();
-            if (fileConfig.isFileCacheEnabled()) {
-                final FileCacheFilter fileCacheFilter =
-                        new FileCacheFilter(this,
-                                            fileConfig);
-                fileCacheFilter.getFileCache().getMonitoringConfig().addProbes(
+            final FileCache fileCache = listener.getFileCache();
+            fileCache.setScheduledExecutorService(scheduledExecutorService);
+            fileCache.setMemoryManager(listener.getTransport().getMemoryManager());
+            final FileCacheFilter fileCacheFilter =
+                    new FileCacheFilter(fileCache);
+            fileCache.getMonitoringConfig().addProbes(
                     serverConfig.getMonitoringConfig().getFileCacheConfig().getProbes());
-                builder.add(fileCacheFilter);
-            }
+            builder.add(fileCacheFilter);
 
             final WebServerFilter webServerFilter = new WebServerFilter(this);
             webServerFilter.getMonitoringConfig().addProbes(

@@ -245,7 +245,7 @@ public final class DefaultMemoryManager extends ByteBufferManager {
      * @return the Memory Manager JMX managment object.
      */
     @Override
-    protected JmxObject createJmxManagmentObject() {
+    protected JmxObject createJmxManagementObject() {
         return new com.sun.grizzly.memory.jmx.DefaultMemoryManager(this);
     }
 
