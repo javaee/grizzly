@@ -38,6 +38,7 @@ package com.sun.grizzly.http.server.jmx;
 
 import com.sun.grizzly.Transport;
 import com.sun.grizzly.http.server.filecache.FileCache;
+import com.sun.grizzly.http.server.WebServerFilter;
 import com.sun.grizzly.monitoring.jmx.GrizzlyJmxManager;
 import com.sun.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.gmbal.Description;
@@ -61,6 +62,9 @@ public class GrizzlyListener extends JmxObject {
 
     private JmxObject fileCacheJmx;
     private JmxObject transportJmx;
+
+    private WebServerFilter currentWebServerFilter;
+    private JmxObject webServerFilterJmx;
 
     private GrizzlyJmxManager mom;
 
@@ -184,7 +188,7 @@ public class GrizzlyListener extends JmxObject {
 
 
     protected void rebuildSubTree() {
-        // rebuild memory manager sub element
+
         final FileCache fileCache = listener.getFileCache();
         if (currentFileCache != fileCache) {
             if (currentFileCache != null) {
@@ -219,6 +223,23 @@ public class GrizzlyListener extends JmxObject {
             }
         }
 
+        final WebServerFilter filter = listener.getWebServerFilter();
+        if (currentWebServerFilter != filter) {
+            if (currentWebServerFilter != null) {
+                mom.unregister(webServerFilterJmx);
+
+                currentWebServerFilter = null;
+                webServerFilterJmx = null;
+            }
+
+            if (filter != null) {
+                final JmxObject mmJmx = filter.getMonitoringConfig().createManagementObject();
+                mom.register(this, mmJmx, "Web Server Filter");
+                currentWebServerFilter = filter;
+                webServerFilterJmx = mmJmx;
+            }
+        }
+        
     }
 
 }

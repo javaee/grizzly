@@ -39,7 +39,6 @@ package com.sun.grizzly.http.server;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.monitoring.MonitoringAware;
 import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.FilterChainContext;
@@ -49,7 +48,10 @@ import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.monitoring.MonitoringConfig;
-import com.sun.grizzly.monitoring.MonitoringConfigImpl;
+import com.sun.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
+import com.sun.grizzly.monitoring.jmx.JmxMonitoringAware;
+import com.sun.grizzly.monitoring.jmx.JmxMonitoringConfig;
+import com.sun.grizzly.monitoring.jmx.JmxObject;
 
 import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
@@ -60,7 +62,7 @@ import java.util.concurrent.ScheduledExecutorService;
  *   Statistics
  */
 public class WebServerFilter extends BaseFilter
-        implements MonitoringAware<WebServerProbe> {
+        implements JmxMonitoringAware<WebServerProbe> {
 
     private final Attribute<GrizzlyRequest> grizzlyRequestInProcessAttr;
 
@@ -70,12 +72,20 @@ public class WebServerFilter extends BaseFilter
     private static Attribute<Integer> keepAliveCounterAttr =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
             "connection-keepalive-counter", 0);
-    
+
     /**
      * Web server probes
      */
-    protected final MonitoringConfigImpl<WebServerProbe> monitoringConfig =
-            new MonitoringConfigImpl<WebServerProbe>(WebServerProbe.class);
+    protected final AbstractJmxMonitoringConfig<WebServerProbe> monitoringConfig =
+            new AbstractJmxMonitoringConfig<WebServerProbe>(WebServerProbe.class) {
+
+                @Override
+                public JmxObject createManagementObject() {
+                    return createJmxManagementObject();
+                }
+
+            };
+
 
     // ------------------------------------------------------------ Constructors
 
@@ -171,6 +181,30 @@ public class WebServerFilter extends BaseFilter
         return ctx.getStopAction();
     }
 
+
+    // ---------------------------------------------------------- Public Methods
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public JmxMonitoringConfig<WebServerProbe> getMonitoringConfig() {
+        return monitoringConfig;
+    }
+
+
+    // ------------------------------------------------------- Protected Methods
+
+
+    protected JmxObject createJmxManagementObject() {
+        return new com.sun.grizzly.http.server.jmx.WebServerFilter(this);
+    }
+
+
+    // --------------------------------------------------------- Private Methods
+
+
     private void afterService(final Connection connection,
                               final GrizzlyRequest grizzlyRequest,
                               final GrizzlyResponse grizzlyResponse)
@@ -188,16 +222,9 @@ public class WebServerFilter extends BaseFilter
 
         WebServerProbeNotificator.notifyRequestCompleted(this, connection,
                 grizzlyResponse);
-        
+
         grizzlyRequest.recycle(!isExpectContent);
         grizzlyResponse.recycle(!isExpectContent);
-    }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public MonitoringConfig<WebServerProbe> getMonitoringConfig() {
-        return monitoringConfig;
     }
 }

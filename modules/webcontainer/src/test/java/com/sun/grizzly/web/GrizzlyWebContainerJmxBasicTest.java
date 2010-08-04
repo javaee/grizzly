@@ -58,10 +58,9 @@ public class GrizzlyWebContainerJmxBasicTest {
         gws.addListener(listener2);
 
         try {
-            manager.registerAtRoot(gws.createManagementObject(), "GrizzlyWebServer");
-
             gws.start();
-            
+            // for now, we have to register *after* the start.  We'll fix this.
+            manager.registerAtRoot(gws.createManagementObject(), "GrizzlyWebServer");
             assertTrue(true);
         } finally {
             gws.stop();

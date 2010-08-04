@@ -38,6 +38,7 @@ package com.sun.grizzly.http.server;
 
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.TransportFactory;
+import com.sun.grizzly.filterchain.Filter;
 import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.http.server.filecache.FileCache;
 import com.sun.grizzly.monitoring.jmx.JmxObject;
@@ -145,6 +146,12 @@ public class GrizzlyListener {
      * Flag indicating the paused state of this listener.
      */
     private boolean paused;
+
+
+    /**
+     * {@link WebServerFilter} associated with this listener.
+     */
+    private WebServerFilter webServerFilter;
 
 
     // ------------------------------------------------------------ Constructors
@@ -635,6 +642,21 @@ public class GrizzlyListener {
 
     public JmxObject createManagementObject() {
         return new com.sun.grizzly.http.server.jmx.GrizzlyListener(this);
+    }
+
+
+    public WebServerFilter getWebServerFilter() {
+
+        if (webServerFilter == null) {
+            for (Filter f : filterChain) {
+                if (f instanceof WebServerFilter) {
+                    webServerFilter = (WebServerFilter) f;
+                    break;
+                }
+            }
+        }
+        return webServerFilter;
+
     }
 
 
