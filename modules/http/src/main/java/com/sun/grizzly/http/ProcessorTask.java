@@ -1642,7 +1642,17 @@ public class ProcessorTask extends TaskBase implements Processor,
                 response.setHeader("Content-Encoding",
                         compressionOutputFilter.getEncodingName().toString());
                 // Make Proxies happy via Vary (from mod_deflate)
-                response.setHeader("Vary", "Accept-Encoding");
+                MessageBytes vary = headers.getValue("Vary");
+                if (vary == null) {
+                    // Add a new Vary header
+                    headers.setValue("Vary").setString("Accept-Encoding");
+                } else if (vary.equals("*")) {
+                    // No action required
+                } else {
+                    // Merge into current header
+                    headers.setValue("Vary").setString(
+                            vary.getString() + ",Accept-Encoding");
+                }
             }
 
             // Add date header
