@@ -215,7 +215,6 @@ public class ThreadPool extends JmxObject {
 
         @Override
         public void onMaxNumberOfThreadsEvent(AbstractThreadPool threadPool, int maxNumberOfThreads) {
-            //To change body of implemented methods use File | Settings | File Templates.
         }
 
         @Override
