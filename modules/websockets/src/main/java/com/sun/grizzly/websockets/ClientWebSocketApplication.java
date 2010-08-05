@@ -78,6 +78,10 @@ public class ClientWebSocketApplication extends WebSocketApplication {
         selectorThread.setDaemon(true);
     }
 
+    public String getAddress() {
+        return address;
+    }
+
     @Override
     public WebSocket createSocket(NetworkHandler handler, WebSocketListener... listeners) throws IOException {
         return new ClientWebSocket(handler, listeners);

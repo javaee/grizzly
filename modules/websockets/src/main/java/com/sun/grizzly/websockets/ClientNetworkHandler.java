@@ -226,6 +226,10 @@ public class ClientNetworkHandler implements NetworkHandler {
         app.remove(webSocket);
     }
 
+    public WebSocket getWebSocket() {
+        return webSocket;
+    }
+
     public void setWebSocket(BaseWebSocket webSocket) {
         this.webSocket = webSocket;
         if (app != null) {

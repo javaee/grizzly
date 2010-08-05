@@ -61,8 +61,7 @@ public class ServerNetworkHandler implements NetworkHandler {
     private final InternalOutputBuffer outputBuffer;
     private final ByteChunk chunk = new ByteChunk();
     private WebSocket socket;
-    private SelectedKeyAttachmentLogic attachment;
-    private AsyncProcessorTask asyncProcessorTask;
+    private WebSocketSelectionKeyAttachment attachment;
 
     public ServerNetworkHandler(Request req, Response resp) {
         request = req;
@@ -73,7 +72,6 @@ public class ServerNetworkHandler implements NetworkHandler {
 
     public ServerNetworkHandler(final ProcessorTask task, final AsyncProcessorTask async, Request req, Response resp) {
         this(req, resp);
-        asyncProcessorTask = async;
         attachment = new WebSocketSelectionKeyAttachment(this, task, async);
     }
 
@@ -88,7 +86,8 @@ public class ServerNetworkHandler implements NetworkHandler {
     protected void handshake(final boolean sslSupport) throws IOException, HandshakeException {
         final boolean secure = "https".equalsIgnoreCase(request.scheme().toString()) || sslSupport;
 
-        final ClientHandShake clientHS = new ClientHandShake(request, secure);
+        fill();
+        final ClientHandShake clientHS = new ClientHandShake(request, secure, chunk);
 
         final ServerHandShake server = new ServerHandShake(clientHS.isSecure(), clientHS.getOrigin(),
                 clientHS.getServerHostName(), clientHS.getPort(),
@@ -97,12 +96,13 @@ public class ServerNetworkHandler implements NetworkHandler {
 
         server.respond(response);
         socket.onConnect();
+        if(chunk.getLength() > 0) {
+            readFrame();
+        }
     }
 
     protected void readFrame() throws IOException {
-        if (chunk.getLimit() == -1) {
-            read();
-        }
+        fill();
         while (socket.isConnected() && chunk.getLength() != 0) {
             final DataFrame dataFrame = DataFrame.read(this);
             if (dataFrame != null) {

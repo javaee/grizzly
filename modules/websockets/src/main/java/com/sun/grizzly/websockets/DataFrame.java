@@ -38,6 +38,7 @@ package com.sun.grizzly.websockets;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.logging.Logger;
@@ -51,9 +52,9 @@ public class DataFrame {
     public static DataFrame read(NetworkHandler handler) throws IOException {
         DataFrame frame = null;
         Iterator<FrameType> set = EnumSet.allOf(FrameType.class).iterator();
-        while(frame == null && set.hasNext()) {
+        while (frame == null && set.hasNext()) {
             FrameType frameType = set.next();
-            if(frameType.accept(handler)) {
+            if (frameType.accept(handler)) {
                 frame = new DataFrame(frameType);
                 frame.setBytes(frameType.unframe(handler));
             }
@@ -65,7 +66,7 @@ public class DataFrame {
     public DataFrame(FrameType frameType) {
         type = frameType;
     }
-    
+
     public DataFrame(String data) {
         type = FrameType.TEXT;
         payload = data;
@@ -122,6 +123,12 @@ public class DataFrame {
 
     @Override
     public String toString() {
-        return payload;
+        return new StringBuilder("DataFrame")
+                .append("{")
+                .append("payload='").append(getTextPayload()).append('\'')
+                .append(", type=").append(type)
+                .append(", bytes=").append(Arrays.toString(bytes))
+                .append('}')
+                .toString();
     }
 }

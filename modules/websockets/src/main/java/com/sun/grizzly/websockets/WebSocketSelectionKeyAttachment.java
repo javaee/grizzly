@@ -72,7 +72,7 @@ public class WebSocketSelectionKeyAttachment extends SelectedKeyAttachmentLogic 
     public void run() {
         try {
             handler.readFrame();
-            enableRead(processorTask, getSelectionKey());
+            enableRead();
         } catch (IOException e) {
             processorTask.setAptCancelKey(true);
             processorTask.terminateProcess();
@@ -80,8 +80,8 @@ public class WebSocketSelectionKeyAttachment extends SelectedKeyAttachmentLogic 
         }
     }
 
-    final void enableRead(ProcessorTask task, SelectionKey key) {
-        task.getSelectorHandler().register(key, SelectionKey.OP_READ);
+    public final void enableRead() {
+        processorTask.getSelectorHandler().register(getSelectionKey(), SelectionKey.OP_READ);
     }
 
     public SelectionKey getSelectionKey() {

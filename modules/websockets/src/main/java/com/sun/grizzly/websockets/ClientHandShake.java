@@ -38,7 +38,6 @@
 package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.http.MimeHeaders;
 
@@ -62,7 +61,7 @@ public class ClientHandShake extends HandShake {
         random.nextBytes(key3);
     }
 
-    public ClientHandShake(Request request, boolean secure) throws IOException {
+    public ClientHandShake(Request request, boolean secure, ByteChunk chunk) throws IOException, HandshakeException {
         super(secure, request.requestURI().toString());
 
         final MimeHeaders headers = request.getMimeHeaders();
@@ -70,7 +69,7 @@ public class ClientHandShake extends HandShake {
         boolean connection = "Upgrade".equals(headers.getHeader("Connection"));
 
         if (headers.getHeader(WebSocketEngine.SEC_WS_KEY1_HEADER) != null) {
-            parse76Headers(request, headers);
+            parse76Headers(headers, chunk);
         } else {
             parse75Headers(headers);
         }
@@ -95,18 +94,18 @@ public class ClientHandShake extends HandShake {
         return key3;
     }
 
-    private void parse76Headers(Request request, MimeHeaders headers) throws IOException {
+    private void parse76Headers(MimeHeaders headers, ByteChunk chunk) throws HandshakeException {
         setSubProtocol(headers.getHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER));
         key1 = SecKey.create(headers.getHeader(WebSocketEngine.SEC_WS_KEY1_HEADER));
         key2 = SecKey.create(headers.getHeader(WebSocketEngine.SEC_WS_KEY2_HEADER));
         if (key1 != null && key2 != null) {
-            final ByteChunk chunk = new ByteChunk(8);
-            request.getInputBuffer().doRead(chunk, request);
-            if (chunk.getEnd() - chunk.getStart() != 8) {
-                throw new IllegalArgumentException("key3 length should be 8 bytes");
-            }
             key3 = new byte[8];
-            System.arraycopy(chunk.getBytes(), chunk.getStart(), key3, 0, 8);
+            try {
+                System.arraycopy(chunk.getBytes(), chunk.getStart(), key3, 0, 8);
+                chunk.setOffset(8);
+            } catch (Exception e) {
+                throw new HandshakeException(e.getMessage());
+            }
         }
 
     }
