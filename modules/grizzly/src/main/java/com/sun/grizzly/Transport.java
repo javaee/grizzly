@@ -58,9 +58,9 @@ import java.util.concurrent.ExecutorService;
  */
 public interface Transport extends JmxMonitoringAware<TransportProbe> {
     
-    public enum State {STARTING, START, PAUSE, STOPPING, STOP};
+    public enum State {STARTING, START, PAUSE, STOPPING, STOP}
 
-    public enum IOEventReg {REGISTER, DEREGISTER};
+    public enum IOEventReg {REGISTER, DEREGISTER}
 
     /**
      * Gets the {@link Transport} name.
@@ -185,11 +185,11 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * {@link Connection} I/O event. If {@link ProcessorSelector} is not set -
      * {@link IllegalStateException} will be thrown.
      *
-     * @param the default {@link ProcessorSelector}, which will be used to get
-     * {@link Processor} to process {@link Connection} I/O events, in case if
-     * this {@link Transport}'s {@link Processor} is <tt>null</tt> and
-     * {@link Connection} doesn't have neither preferred {@link Processor}
-     * nor {@link ProcessorSelector}.
+     * @param selector the default {@link ProcessorSelector}, which will be used
+     *  to get {@link Processor} to process {@link Connection} I/O events,
+     *  in case if this {@link Transport}'s {@link Processor} is <tt>null</tt>
+     *  and {@link Connection} doesn't have neither preferred {@link Processor}
+     *  nor {@link ProcessorSelector}.
      */
     public void setProcessorSelector(ProcessorSelector selector);
 
@@ -288,7 +288,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
 
     /**
      * Get a thread pool, which will process transport internal tasks like
-     * NIO {@link Selector} polling etc.
+     * NIO {@link java.nio.channels.Selector} polling etc.
      *
      * @return {@link ExecutorService} transport thread pool.
      */
@@ -296,7 +296,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
 
     /**
      * Set a thread pool, which will process transport internal tasks like
-     * NIO {@link Selector} polling etc.
+     * NIO {@link java.nio.channels.Selector} polling etc.
      *
      * @param threadPool {@link ExecutorService} transport thread pool.
      */
@@ -305,22 +305,22 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
     /**
      * Get {@link Transport} associated {@link AttributeBuilder}, which will
      * be used by {@link Transport} and its {@link Connection}s to store custom
-     * {@link Attribute}s.
+     * {@link com.sun.grizzly.attributes.Attribute}s.
      * 
      * @return {@link Transport} associated {@link AttributeBuilder}, which will
      * be used by {@link Transport} and its {@link Connection}s to store custom
-     * {@link Attribute}s.
+     * {@link com.sun.grizzly.attributes.Attribute}s.
      */
     public AttributeBuilder getAttributeBuilder();
 
     /**
      * Set {@link Transport} associated {@link AttributeBuilder}, which will
      * be used by {@link Transport} and its {@link Connection}s to store custom
-     * {@link Attribute}s.
+     * {@link com.sun.grizzly.attributes.Attribute}s.
      *
      * @param attributeBuilder {@link Transport} associated
      * {@link AttributeBuilder}, which will be used by {@link Transport} and
-     * its {@link Connection}s to store custom {@link Attribute}s.
+     * its {@link Connection}s to store custom {@link com.sun.grizzly.attributes.Attribute}s.
      */
     public void setAttributeBuilder(AttributeBuilder attributeBuilder);
 
@@ -377,22 +377,16 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
 
     /**
      * Get the monitoring configuration for Transport {@link Connection}s.
-     *
-     * @param the monitoring configuration for Transport {@link Connection}s.
      */
     public MonitoringConfig<ConnectionProbe> getConnectionMonitoringConfig();
 
     /**
      * Get the monitoring configuration for Transport thread pool.
-     *
-     * @param the monitoring configuration for Transport thread pool.
      */
     public MonitoringConfig<ThreadPoolProbe> getThreadPoolMonitoringConfig();
 
     /**
      * Get the <tt>Transport</tt> monitoring configuration {@link MonitoringConfig}.
-     *
-     * @param the <tt>Transport</tt> monitoring configuration {@link MonitoringConfig}.
      */
     @Override
     public JmxMonitoringConfig<TransportProbe> getMonitoringConfig();
