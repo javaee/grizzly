@@ -49,6 +49,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * JMX managed object for Grizzly thread pool implementations.
+ *
+ * @since 2.0
+ */
 @ManagedObject
 @Description("Grizzly ThreadPool (typically shared between Transport instances).")
 public class ThreadPool extends JmxObject {

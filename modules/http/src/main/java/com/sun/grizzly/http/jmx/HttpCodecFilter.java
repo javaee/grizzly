@@ -52,6 +52,11 @@ import org.glassfish.gmbal.ManagedObject;
 
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * JMX management object for the {@link HttpCodecFilter}.
+ *
+ * @since 2.0
+ */
 @ManagedObject
 @Description("Http Codec Filter")
 public class HttpCodecFilter extends JmxObject {
