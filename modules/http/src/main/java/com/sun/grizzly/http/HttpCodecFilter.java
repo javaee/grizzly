@@ -40,7 +40,6 @@ package com.sun.grizzly.http;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
-import com.sun.grizzly.monitoring.MonitoringAware;
 import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.Filter;
 import com.sun.grizzly.filterchain.FilterChain;
@@ -54,6 +53,10 @@ import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.memory.BufferUtils;
 import com.sun.grizzly.monitoring.MonitoringConfig;
 import com.sun.grizzly.monitoring.MonitoringConfigImpl;
+import com.sun.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
+import com.sun.grizzly.monitoring.jmx.JmxMonitoringAware;
+import com.sun.grizzly.monitoring.jmx.JmxMonitoringConfig;
+import com.sun.grizzly.monitoring.jmx.JmxObject;
 import com.sun.grizzly.ssl.SSLFilter;
 import com.sun.grizzly.utils.ArraySet;
 import java.io.IOException;
@@ -78,7 +81,7 @@ import java.util.List;
  * @author Alexey Stashok
  */
 public abstract class HttpCodecFilter extends BaseFilter
-        implements MonitoringAware<HttpProbe> {
+        implements JmxMonitoringAware<HttpProbe> {
 
     public static final String HTTP_0_9 = "HTTP/0.9";
     public static final String HTTP_1_0 = "HTTP/1.0";
@@ -93,8 +96,18 @@ public abstract class HttpCodecFilter extends BaseFilter
     protected final ArraySet<ContentEncoding> contentEncodings =
             new ArraySet<ContentEncoding>();
 
-    protected final MonitoringConfigImpl<HttpProbe> monitoringConfig =
-            new MonitoringConfigImpl<HttpProbe>(HttpProbe.class);
+    /**
+     * File cache probes
+     */
+    protected final AbstractJmxMonitoringConfig<HttpProbe> monitoringConfig =
+            new AbstractJmxMonitoringConfig<HttpProbe>(HttpProbe.class) {
+
+        @Override
+        public JmxObject createManagementObject() {
+            return createJmxManagementObject();
+        }
+
+    };
     
     /**
      * flag, which indicates whether this <tt>HttpCodecFilter</tt> is dealing with
@@ -1408,9 +1421,16 @@ public abstract class HttpCodecFilter extends BaseFilter
      * {@inheritDoc}
      */
     @Override
-    public MonitoringConfig<HttpProbe> getMonitoringConfig() {
+    public JmxMonitoringConfig<HttpProbe> getMonitoringConfig() {
         return monitoringConfig;
     }
+
+
+    protected JmxObject createJmxManagementObject() {
+        return new com.sun.grizzly.http.jmx.HttpCodecFilter(this);
+    }
+
+
     
     protected static final class ContentParsingState {
         public boolean isLastChunk;

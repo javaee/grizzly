@@ -37,6 +37,7 @@
 package com.sun.grizzly.http.server.jmx;
 
 import com.sun.grizzly.Transport;
+import com.sun.grizzly.http.HttpCodecFilter;
 import com.sun.grizzly.http.server.filecache.FileCache;
 import com.sun.grizzly.http.server.WebServerFilter;
 import com.sun.grizzly.monitoring.jmx.GrizzlyJmxManager;
@@ -65,6 +66,9 @@ public class GrizzlyListener extends JmxObject {
 
     private WebServerFilter currentWebServerFilter;
     private JmxObject webServerFilterJmx;
+    
+    private HttpCodecFilter currentHttpCodecFilter;
+    private JmxObject httpCodecFilterJmx;
 
     private GrizzlyJmxManager mom;
 
@@ -199,10 +203,10 @@ public class GrizzlyListener extends JmxObject {
             }
 
             if (fileCache != null) {
-                final JmxObject mmJmx = fileCache.getMonitoringConfig().createManagementObject();
-                mom.register(this, mmJmx, "FileCache");
+                final JmxObject jmx = fileCache.getMonitoringConfig().createManagementObject();
+                mom.register(this, jmx, "FileCache");
                 currentFileCache = fileCache;
-                fileCacheJmx = mmJmx;
+                fileCacheJmx = jmx;
             }
         }
 
@@ -216,10 +220,10 @@ public class GrizzlyListener extends JmxObject {
             }
 
             if (transport != null) {
-                final JmxObject mmJmx = transport.getMonitoringConfig().createManagementObject();
-                mom.register(this, mmJmx, "Transport");
+                final JmxObject jmx = transport.getMonitoringConfig().createManagementObject();
+                mom.register(this, jmx, "Transport");
                 currentTransport = transport;
-                transportJmx = mmJmx;
+                transportJmx = jmx;
             }
         }
 
@@ -233,10 +237,27 @@ public class GrizzlyListener extends JmxObject {
             }
 
             if (filter != null) {
-                final JmxObject mmJmx = filter.getMonitoringConfig().createManagementObject();
-                mom.register(this, mmJmx, "Web Server Filter");
+                final JmxObject jmx = filter.getMonitoringConfig().createManagementObject();
+                mom.register(this, jmx, "Web Server Filter");
                 currentWebServerFilter = filter;
-                webServerFilterJmx = mmJmx;
+                webServerFilterJmx = jmx;
+            }
+        }
+
+        final HttpCodecFilter codecFilter = listener.getHttpCodecFilter();
+        if (currentHttpCodecFilter != codecFilter) {
+            if (currentHttpCodecFilter != null) {
+                mom.unregister(httpCodecFilterJmx);
+
+                currentHttpCodecFilter = null;
+                httpCodecFilterJmx = null;
+            }
+
+            if (codecFilter != null) {
+                final JmxObject jmx = codecFilter.getMonitoringConfig().createManagementObject();
+                mom.register(this, jmx, "HTTP Codec Filter");
+                currentHttpCodecFilter = codecFilter;
+                httpCodecFilterJmx = jmx;
             }
         }
         
