@@ -41,6 +41,12 @@ import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.monitoring.MonitoringAware;
 import com.sun.grizzly.monitoring.MonitoringConfig;
 import com.sun.grizzly.monitoring.MonitoringConfigImpl;
+import com.sun.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
+import com.sun.grizzly.monitoring.jmx.JmxMonitoringAware;
+import com.sun.grizzly.monitoring.jmx.JmxMonitoringConfig;
+import com.sun.grizzly.monitoring.jmx.JmxObject;
+import com.sun.grizzly.threadpool.jmx.ThreadPool;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -60,7 +66,7 @@ import java.util.logging.Logger;
  * @author Alexey Stashok
  */
 public abstract class AbstractThreadPool extends AbstractExecutorService
-        implements Thread.UncaughtExceptionHandler, MonitoringAware<ThreadPoolProbe> {
+        implements Thread.UncaughtExceptionHandler, JmxMonitoringAware<ThreadPoolProbe> {
 
     private static final Logger logger = Grizzly.logger(AbstractThreadPool.class);
     // Min number of worker threads in a pool
@@ -94,8 +100,18 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
     protected volatile boolean running = true;
     protected final ThreadPoolConfig config;
 
-    protected final MonitoringConfigImpl<ThreadPoolProbe> monitoringConfig =
-            new MonitoringConfigImpl<ThreadPoolProbe>(ThreadPoolProbe.class);
+    /**
+     * ThreadPool probes
+     */
+    protected final AbstractJmxMonitoringConfig<ThreadPoolProbe> monitoringConfig =
+            new AbstractJmxMonitoringConfig<ThreadPoolProbe>(ThreadPoolProbe.class) {
+
+        @Override
+        public JmxObject createManagementObject() {
+            return createJmxManagementObject();
+        }
+
+    };
     
     public AbstractThreadPool(ThreadPoolConfig config) {
         if (config.getMaxPoolSize() < 1) {
@@ -348,7 +364,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * {@inheritDoc}
      */
     @Override
-    public MonitoringConfig<ThreadPoolProbe> getMonitoringConfig() {
+    public JmxMonitoringConfig<ThreadPoolProbe> getMonitoringConfig() {
         return monitoringConfig;
     }
 
@@ -359,6 +375,11 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
     public void uncaughtException(Thread thread, Throwable throwable) {
         logger.log(Level.WARNING,
                 "Uncaught thread exception. Thread: " + thread, throwable);
+    }
+
+
+    JmxObject createJmxManagementObject() {
+        return new ThreadPool(this);
     }
 
     protected ThreadFactory getDefaultThreadFactory() {

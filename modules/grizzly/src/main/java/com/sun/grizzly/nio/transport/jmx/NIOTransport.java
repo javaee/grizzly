@@ -48,6 +48,7 @@ import com.sun.grizzly.monitoring.jmx.GrizzlyJmxManager;
 import com.sun.grizzly.monitoring.jmx.JmxObject;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.nio.AbstractNIOTransport;
+import com.sun.grizzly.threadpool.GrizzlyExecutorService;
 import com.sun.grizzly.utils.LinkedTransferQueue;
 import java.util.Date;
 import java.util.Queue;
@@ -245,6 +246,23 @@ public class NIOTransport extends JmxObject {
                 mom.register(this, mmJmx, "MemoryManager");
                 currentMemoryManager = memoryManager;
                 memoryManagerJmx = mmJmx;
+            }
+        }
+
+        final GrizzlyExecutorService threadPool = (GrizzlyExecutorService) transport.getThreadPool();
+        if (currentThreadPool != threadPool) {
+            if (currentThreadPool != null) {
+                mom.unregister(threadPoolJmx);
+
+                currentThreadPool = null;
+                threadPoolJmx = null;
+            }
+
+            if (threadPool != null) {
+                final JmxObject jmx = threadPool.getMonitoringConfig().createManagementObject();
+                mom.register(this, jmx, "Thread Pool");
+                currentThreadPool = threadPool;
+                threadPoolJmx = jmx;
             }
         }
     }

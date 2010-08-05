@@ -65,7 +65,7 @@
         <dependency>
             <groupId>org.glassfish.gmbal</groupId>
             <artifactId>gmbal</artifactId>
-            <scope>provided</scope>
+            <!-- <scope>provided</scope> -->
         </dependency>
     </dependencies>
 </project>

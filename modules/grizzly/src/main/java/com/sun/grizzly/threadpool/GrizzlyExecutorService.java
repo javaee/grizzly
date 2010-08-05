@@ -41,6 +41,11 @@ package com.sun.grizzly.threadpool;
 import com.sun.grizzly.monitoring.MonitoringAware;
 import com.sun.grizzly.monitoring.MonitoringConfig;
 import com.sun.grizzly.monitoring.MonitoringConfigImpl;
+import com.sun.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
+import com.sun.grizzly.monitoring.jmx.JmxMonitoringAware;
+import com.sun.grizzly.monitoring.jmx.JmxMonitoringConfig;
+import com.sun.grizzly.monitoring.jmx.JmxObject;
+
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.AbstractExecutorService;
@@ -52,14 +57,24 @@ import java.util.concurrent.TimeUnit;
  * @author gustav trede
  */
 public class GrizzlyExecutorService extends AbstractExecutorService
-        implements MonitoringAware<ThreadPoolProbe> {
+        implements JmxMonitoringAware<ThreadPoolProbe> {
 
     private final Object statelock = new Object();
     private volatile AbstractThreadPool pool;
     protected volatile ThreadPoolConfig config;
 
-    protected final MonitoringConfigImpl<ThreadPoolProbe> monitoringConfig =
-            new MonitoringConfigImpl<ThreadPoolProbe>(ThreadPoolProbe.class);
+    /**
+     * ThreadPool probes
+     */
+    protected final AbstractJmxMonitoringConfig<ThreadPoolProbe> monitoringConfig =
+            new AbstractJmxMonitoringConfig<ThreadPoolProbe>(ThreadPoolProbe.class) {
+
+        @Override
+        public JmxObject createManagementObject() {
+            return pool.createJmxManagementObject();
+        }
+
+    };
     
     /**
      *
@@ -166,7 +181,7 @@ public class GrizzlyExecutorService extends AbstractExecutorService
      * {@inheritDoc}
      */
     @Override
-    public MonitoringConfig<ThreadPoolProbe> getMonitoringConfig() {
+    public JmxMonitoringConfig<ThreadPoolProbe> getMonitoringConfig() {
         return monitoringConfig;
     }
 }

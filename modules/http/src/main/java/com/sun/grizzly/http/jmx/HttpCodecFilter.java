@@ -45,11 +45,15 @@ import com.sun.grizzly.http.HttpProbe;
 import com.sun.grizzly.http.TransferEncoding;
 import com.sun.grizzly.monitoring.jmx.GrizzlyJmxManager;
 import com.sun.grizzly.monitoring.jmx.JmxObject;
+import org.glassfish.gmbal.Description;
 import org.glassfish.gmbal.GmbalMBean;
 import org.glassfish.gmbal.ManagedAttribute;
+import org.glassfish.gmbal.ManagedObject;
 
 import java.util.concurrent.atomic.AtomicLong;
 
+@ManagedObject
+@Description("Http Codec Filter")
 public class HttpCodecFilter extends JmxObject {
 
     private final com.sun.grizzly.http.HttpCodecFilter httpCodecFilter;
