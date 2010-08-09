@@ -326,7 +326,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         try {
             // Check if HTTP header has been parsed
             final boolean wasHeaderParsed = httpPacket.isHeaderParsed();
-
+            final HttpHeader httpHeader = (HttpHeader) httpPacket;
             if (!wasHeaderParsed) {
                 // if header wasn't parsed - parse
                 if (!decodeHttpPacket(httpPacket, input)) {
@@ -355,13 +355,13 @@ public abstract class HttpCodecFilter extends BaseFilter
                     HttpProbeNotificator.notifyHeaderParse(this, connection,
                             (HttpHeader) httpPacket);
 
-                    if (httpPacket.getHeaders().getHeader("Expect") != null) {
-                        // if we have any request content, we can ignore the Expect
-                        // request
-                        if (!input.hasRemaining()) {
-                            HttpRequestPacket request = (HttpRequestPacket) httpPacket;
-                            if (request.getProtocolBC().equals("HTTP/1.1")) {
-                                request.requiresAcknowledgement(true);
+                    if (httpHeader.isRequest()) {
+                        if (httpPacket.getHeaders().getHeader("Expect") != null
+                                && httpHeader.getProtocolBC().equals("HTTP/1.1")) {
+                            // if we have any request content, we can ignore the Expect
+                            // request
+                            if (!input.hasRemaining()) {
+                                ((HttpRequestPacket) httpHeader).requiresAcknowledgement(true);
                                 final HttpContent.Builder builder = ((HttpHeader) httpPacket).httpContentBuilder();
                                 final HttpContent message = builder.content(input).build();
                                 ctx.setMessage(message);
@@ -372,7 +372,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                 }
             }
 
-            final HttpHeader httpHeader = (HttpHeader) httpPacket;
+
             final TransferEncoding transferEncoding = httpHeader.getTransferEncoding();
 
             // Check if appropriate HTTP content encoder was found
