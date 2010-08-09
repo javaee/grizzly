@@ -108,7 +108,7 @@ public class ServerNetworkHandler implements NetworkHandler {
             if (dataFrame != null) {
                 dataFrame.getType().respond(socket, dataFrame);
             } else {
-                socket.onClose();
+                socket.close();
             }
         }
     }

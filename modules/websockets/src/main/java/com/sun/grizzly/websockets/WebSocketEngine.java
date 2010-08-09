@@ -124,7 +124,7 @@ public class WebSocketEngine {
             socket = null;
         } catch (HandshakeException e) {
             logger.log(Level.SEVERE, e.getMessage(), e);
-            socket.onClose();
+            socket.close();
             socket = null;
         }
         return socket;
