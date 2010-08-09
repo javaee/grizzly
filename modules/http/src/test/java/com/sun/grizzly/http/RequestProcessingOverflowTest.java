@@ -62,7 +62,7 @@ public class RequestProcessingOverflowTest extends TestCase {
     protected void setUp() throws Exception {
         webServer = new GrizzlyWebServer(PORT);
         webServer.addGrizzlyAdapter(new ContentEncodingTest.MessageAdapter(MESSAGE),
-                                 new String[]{"/test"});
+                new String[]{"/test"});
         webServer.start();
     }
 
@@ -85,36 +85,41 @@ public class RequestProcessingOverflowTest extends TestCase {
      */
     public void testLargeRequestURI() {
 
-         Socket s = initClientSocket();
+        Socket s = initClientSocket();
 
-         try {
-             OutputStream out = s.getOutputStream();
+        try {
+            OutputStream out = s.getOutputStream();
 
-             // Per the issue description:
-             //
-             //  Try to produce a simple HTTP request like
-             //
-             //     GET /foo/bar/loooooooooooooooooooong HTTP/1.0
-             //     Host: somehost
-             //
-             //
-             //  where "loooooooooooooooooooong" has so many 'o' characters such
-             //  that the whole
-             //  request has a size >8192 bytes.
+            // Per the issue description:
+            //
+            //  Try to produce a simple HTTP request like
+            //
+            //     GET /foo/bar/loooooooooooooooooooong HTTP/1.0
+            //     Host: somehost
+            //
+            //
+            //  where "loooooooooooooooooooong" has so many 'o' characters such
+            //  that the whole
+            //  request has a size >8192 bytes.
 
-             StringBuilder sb = new StringBuilder(9000);
-             sb.append("GET /test/l");
-             for (int i = 0; i < 8200; i++) {
-                 sb.append('o');
-             }
-             sb.append("g HTTP/1.1\n");
-             out.write(sb.toString().getBytes());
-             out.write("Host: localhost\n".getBytes());
-             out.write("\n".getBytes());
-             out.flush();
-         } catch (IOException e) {
-             fail("Unable to complete test request to local test server: " + e.toString());
-         }
+            StringBuilder sb = new StringBuilder(9000);
+            sb.append("GET /test/l");
+            for (int i = 0; i < 8200; i++) {
+                sb.append('o');
+            }
+            sb.append("g HTTP/1.1\n");
+            out.write(sb.toString().getBytes());
+            out.write("Host: localhost\n".getBytes());
+            out.write("\n".getBytes());
+            out.flush();
+        } catch (SocketException ignored) {
+            // If it's SocketException - probably it's "broken pipe",
+            // which occurred cause the server closed connection before
+            // read out entire request.
+            // It's expected. Let the client read the response
+        } catch (IOException e) {
+            fail("Unable to complete test request to local test server: " + e.toString());
+        }
 
         try {
             InputStream in = s.getInputStream();
@@ -135,33 +140,37 @@ public class RequestProcessingOverflowTest extends TestCase {
 
         Socket s = initClientSocket();
 
-         try {
-             OutputStream out = s.getOutputStream();
+        try {
+            OutputStream out = s.getOutputStream();
 
-             StringBuilder sb = new StringBuilder(9000);
-             sb.append("Host: lo");
-             for (int i = 0; i < 8200; i++) {
-                 sb.append('o');
-             }
-             sb.append("calhost\n");
-             out.write("GET /test HTTP/1.1\n".getBytes());
-             out.write(sb.toString().getBytes());
-             out.write("\n".getBytes());
-             out.flush();
-         } catch (IOException e) {
-             fail("Unable to complete test request to local test server: " + e.toString());
-         }
+            StringBuilder sb = new StringBuilder(9000);
+            sb.append("Host: lo");
+            for (int i = 0; i < 8200; i++) {
+                sb.append('o');
+            }
+            sb.append("calhost\n");
+            out.write("GET /test HTTP/1.1\n".getBytes());
+            out.write(sb.toString().getBytes());
+            out.write("\n".getBytes());
+            out.flush();
+        } catch (SocketException ignored) {
+            // If it's SocketException - probably it's "broken pipe",
+            // which occurred cause the server closed connection before
+            // read out entire request.
+            // It's expected. Let the client read the response
+        } catch (IOException e) {
+            fail("Unable to complete test request to local test server: " + e.toString());
+        }
 
         try {
             InputStream in = s.getInputStream();
             BufferedReader reader =
-                  new BufferedReader(new InputStreamReader(in));
+                    new BufferedReader(new InputStreamReader(in));
             String responseStatus = reader.readLine();
             String control = "HTTP/1.1 400 Bad Request";
             assertEquals(control, control, responseStatus);
         } catch (IOException e) {
-            fail("Unable to read response from local test server: " + e
-                  .toString());
+            fail("Unable to read response from local test server: " + e.toString());
         }
         
     }
@@ -173,17 +182,17 @@ public class RequestProcessingOverflowTest extends TestCase {
     private static Socket initClientSocket() {
 
         Socket s = null;
-         try {
+        try {
             s = new Socket("localhost", PORT);
-         } catch (Exception e) {
-             fail("Unable to establish connection to local test server: " + e.toString());
-         }
+        } catch (Exception e) {
+            fail("Unable to establish connection to local test server: " + e.toString());
+        }
 
-         try {
+        try {
             s.setSoTimeout(30 * 1000);
-         } catch (SocketException se) {
-             fail("Unable to set SoTimeout: " + se.toString());
-         }
+        } catch (SocketException se) {
+            fail("Unable to set SoTimeout: " + se.toString());
+        }
 
         return s;
 
