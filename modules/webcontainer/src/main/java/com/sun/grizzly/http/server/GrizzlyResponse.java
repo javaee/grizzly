@@ -1267,7 +1267,9 @@ public class GrizzlyResponse {
 
 
     /**
-     * Send an acknowledgment of a request.
+     * Send an acknowledgment of a request.   An acknowledgement in this
+     * case is simply an HTTP response status line, i.e.
+     * <code>HTTP/1.1 [STATUS] [REASON-PHRASE]<code>.
      *
      * @exception java.io.IOException if an input/output error occurs
      */
@@ -1279,9 +1281,8 @@ public class GrizzlyResponse {
         // Ignore any call from an included servlet
         if (included)
             return;
-
-        // TODO re-enable
-        //response.acknowledge();
+        response.setAcknowledgement(true);
+        outputBuffer.acknowledge();
 
     }
 

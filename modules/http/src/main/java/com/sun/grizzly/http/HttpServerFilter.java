@@ -595,6 +595,7 @@ public class HttpServerFilter extends HttpCodecFilter {
                status == 411 /* SC_LENGTH_REQUIRED */ ||
                status == 413 /* SC_REQUEST_ENTITY_TOO_LARGE */ ||
                status == 414 /* SC_REQUEST_URI_TOO_LARGE */ ||
+               status == 417 /* FAILED EXPECTATION */ || 
                status == 500 /* SC_INTERNAL_SERVER_ERROR */ ||
                status == 503 /* SC_SERVICE_UNAVAILABLE */ ||
                status == 501 /* SC_NOT_IMPLEMENTED */ ||

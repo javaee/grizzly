@@ -112,6 +112,7 @@ public class WebServerFilter extends BaseFilter
 
         if (message instanceof HttpPacket) {
             // Otherwise cast message to a HttpContent
+
             final HttpContent httpContent = (HttpContent) message;
 
             GrizzlyRequest grizzlyRequest = grizzlyRequestInProcessAttr.get(connection);

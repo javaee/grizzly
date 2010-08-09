@@ -200,6 +200,19 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
     }
 
 
+    /**
+     * Acknowledge a HTTP <code>Expect</code> header.  The response status
+     * code and reason phrase should be set before invoking this method.
+     *
+     * @throws IOException if an error occurs writing the acknowledgement.
+     */
+    public void acknowledge() throws IOException {
+
+        ctx.write(response);
+        
+    }
+
+
     // ---------------------------------------------------- Writer-Based Methods
 
 

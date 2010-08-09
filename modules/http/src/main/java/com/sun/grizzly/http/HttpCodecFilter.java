@@ -354,6 +354,17 @@ public abstract class HttpCodecFilter extends BaseFilter
 
                     HttpProbeNotificator.notifyHeaderParse(this, connection,
                             (HttpHeader) httpPacket);
+
+                    if (httpPacket.getHeaders().getHeader("Expect") != null) {
+                        // if we have any request content, we can ignore the Expect
+                        // request
+                        if (input.hasRemaining()) {
+                            final HttpContent.Builder builder = ((HttpHeader) httpPacket).httpContentBuilder();
+                            final HttpContent message = builder.content(input).build();
+                            ctx.setMessage(message);
+                            return ctx.getInvokeAction();
+                        }
+                    }
                 }
             }
 
@@ -566,6 +577,26 @@ public abstract class HttpCodecFilter extends BaseFilter
         Buffer encodedBuffer = null;
         
         if (!httpHeader.isCommitted()) {
+            if (!httpHeader.isRequest()) {
+                final HttpResponsePacket response = (HttpResponsePacket) httpHeader;
+                if (response.isAcknowledgement()) {
+                    encodedBuffer = memoryManager.allocate(128);
+                    encodedBuffer = encodeInitialLine(httpHeader,
+                                                      encodedBuffer,
+                                                      memoryManager);
+                    encodedBuffer = put(memoryManager,
+                                        encodedBuffer,
+                                        Constants.CRLF_BYTES);
+                    encodedBuffer = put(memoryManager,
+                                        encodedBuffer,
+                                        Constants.CRLF_BYTES);
+                    encodedBuffer.trim();
+                    encodedBuffer.allowBufferDispose(true);
+                    response.acknowledged(); 
+
+                    return encodedBuffer; // DO NOT MARK COMMITTED
+                }
+            }
             setTransferEncodingOnSerializing(httpHeader, httpContent);
             setContentEncodingsOnSerializing(httpHeader);
 

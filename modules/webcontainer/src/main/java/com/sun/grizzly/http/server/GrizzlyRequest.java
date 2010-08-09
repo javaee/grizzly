@@ -891,6 +891,15 @@ public class GrizzlyRequest {
 
 
     /**
+     * @return <code>true</code>
+     */
+    public boolean requiresAcknowledgement() {
+        return (request.getProtocolBC().equals("HTTP/1.1")
+                  && request.getHeader("Expect") != null);
+    }
+
+
+    /**
      * TODO: Documentation
      * 
      * @return

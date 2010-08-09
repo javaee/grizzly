@@ -44,6 +44,7 @@ import com.sun.grizzly.http.server.io.OutputBuffer;
 import com.sun.grizzly.http.server.util.HtmlHelper;
 import java.io.CharConversionException;
 import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -113,6 +114,12 @@ public abstract class GrizzlyAdapter {
      */
     public final void doService(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
 
+        if (request.requiresAcknowledgement()) {
+            if (!sendAcknowledgment(request, response)) {
+                return;
+            }
+        }
+        
         if (staticResourcesHandler.getDocRoot() != null &&
                 staticResourcesHandler.handle(request, response)) {
             return;
@@ -248,6 +255,39 @@ public abstract class GrizzlyAdapter {
         out.processingChars();
         out.write(bb.array(), bb.position(), bb.remaining());
         out.close();
+    }
+
+
+    /**
+     * The default implementation will acknowledge an <code>Expect: 100-Continue</code>
+     * with a response line with the status 100 followed by the final response
+     * to this request.
+     *
+     * If an <code>Expect</code> header with a value that isn't <code>100-Continue</code>
+     * a status of 417 will be sent to the client and the request will be
+     * terminated.
+     *
+     * @param request the {@link GrizzlyRequest}.
+     * @param response the {@link GrizzlyResponse}.
+     *
+     * @return <code>true</code> if request processing should continue after
+     *  acknowledgement of the expectation, otherwise return <code>false</code>.
+     *
+     * @throws IOException if an error occurs sending the acknowledgement.
+     */
+    protected boolean sendAcknowledgment(final GrizzlyRequest request,
+                                         final GrizzlyResponse response)
+    throws IOException {
+
+        if ("100-Continue".equals(request.getHeader("Expect"))) {
+            response.setStatus(100, "Continue");
+            response.sendAcknowledgement();
+            return true;
+        } else {
+            response.setStatus(417, "Expectation Failed");
+            return false;
+        }
+
     }
 
     /**

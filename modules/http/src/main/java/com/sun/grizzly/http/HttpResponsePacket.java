@@ -85,6 +85,13 @@ public abstract class HttpResponsePacket extends HttpHeader {
 
 
     /**
+     * Does this HttpResponsePacket represent an acknowledgement to
+     * an Expect header.
+     */
+    private boolean acknowledgement;
+
+
+    /**
      * Returns {@link HttpResponsePacket} builder.
      *
      * @return {@link Builder}.
@@ -173,6 +180,36 @@ public abstract class HttpResponsePacket extends HttpHeader {
     }
 
 
+    /**
+     * @return <code>true</code> if this response packet is intended
+     *  as an acknowledgement to an expectation from a client request.
+     */
+    public boolean isAcknowledgement() {
+        return acknowledgement;
+    }
+
+
+    /**
+     * Mark this packet as an acknowledgement to a client expectation.
+     *
+     * @param acknowledgement <code>true</code> if this packet is an
+     *  acknowledgement to a client expectation.
+     */
+    public void setAcknowledgement(boolean acknowledgement) {
+        this.acknowledgement = acknowledgement;        
+    }
+
+
+    /**
+     * Mark this packet as having been acknowledged.
+     */
+    public void acknowledged() {
+        acknowledgement = false;
+        parsedStatusInt = NON_PARSED_STATUS;
+        reasonPhraseBC.recycle();
+    }
+
+
     // --------------------
 
 
@@ -183,6 +220,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
     protected void reset() {
         statusBC.recycle();
         parsedStatusInt = NON_PARSED_STATUS;
+        acknowledgement = false;
         reasonPhraseBC.recycle();
         locale = null;
         contentLanguage = null;
@@ -191,14 +229,6 @@ public abstract class HttpResponsePacket extends HttpHeader {
         super.reset();
     }
 
-    /**
-     * {@inheritDoc}
-     */
-//    @Override
-//    public void recycle() {
-//        reset();
-//        ThreadCache.putToCache(CACHE_IDX, this);
-//    }
 
     /**
      * {@inheritDoc}
