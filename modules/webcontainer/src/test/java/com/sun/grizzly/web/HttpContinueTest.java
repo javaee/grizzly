@@ -59,19 +59,16 @@ public class HttpContinueTest extends TestCase {
 
     public void test100Continue() throws Exception {
 
-        GrizzlyWebServer server = new GrizzlyWebServer();
-        GrizzlyListener listener =
-                new GrizzlyListener("grizzly",
-                                    GrizzlyListener.DEFAULT_NETWORK_HOST,
-                                    PORT);
         final SafeFutureImpl<String> future = new SafeFutureImpl<String>();
-        server.addListener(listener);
-        server.getServerConfiguration().addGrizzlyAdapter(new GrizzlyAdapter() {
+        GrizzlyWebServer server = createServer(new GrizzlyAdapter() {
+
             @Override
             public void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
                 future.result(request.getParameter("a"));
             }
+
         }, "/path");
+
         Socket s = null;
         try {
             server.start();
@@ -128,12 +125,7 @@ public class HttpContinueTest extends TestCase {
 
     public void testExpectationIgnored() throws Exception {
 
-        GrizzlyWebServer server = new GrizzlyWebServer();
-        GrizzlyListener listener =
-                new GrizzlyListener("grizzly",
-                                    GrizzlyListener.DEFAULT_NETWORK_HOST,
-                                    PORT);
-        server.addListener(listener);
+        GrizzlyWebServer server = createServer(null);
 
         Socket s = null;
         try {
@@ -176,12 +168,7 @@ public class HttpContinueTest extends TestCase {
 
     public void testFailedExpectation() throws Exception {
 
-        GrizzlyWebServer server = new GrizzlyWebServer();
-        GrizzlyListener listener =
-                new GrizzlyListener("grizzly",
-                                    GrizzlyListener.DEFAULT_NETWORK_HOST,
-                                    PORT);
-        server.addListener(listener);
+        GrizzlyWebServer server = createServer(null);
 
         Socket s = null;
         try {
@@ -215,6 +202,26 @@ public class HttpContinueTest extends TestCase {
                 s.close();
             }
         }
+
+    }
+
+
+    // --------------------------------------------------------- Private Methods
+
+
+    private GrizzlyWebServer createServer(final GrizzlyAdapter adapter,
+                                          final String... mappings) {
+
+        GrizzlyWebServer server = new GrizzlyWebServer();
+        GrizzlyListener listener =
+                new GrizzlyListener("grizzly",
+                                    GrizzlyListener.DEFAULT_NETWORK_HOST,
+                                    PORT);
+        server.addListener(listener);
+        if (adapter != null) {
+            server.getServerConfiguration().addGrizzlyAdapter(adapter, mappings);
+        }
+        return server;
 
     }
 
