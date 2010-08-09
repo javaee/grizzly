@@ -52,7 +52,7 @@ import java.util.concurrent.TimeUnit;
 
 public class HttpContinueTest extends TestCase {
 
-    private static final int PORT = 9349;
+    private static final int PORT = 8080;
 
 
     // ------------------------------------------------------------ Test Methods
@@ -117,6 +117,53 @@ public class HttpContinueTest extends TestCase {
             }
 
             assertEquals("HTTP/1.1 200", sb.toString().trim());
+        } finally {
+            server.stop();
+            if (s != null) {
+                s.close();
+            }
+        }
+
+    }
+
+    public void testExpectationIgnored() throws Exception {
+
+        GrizzlyWebServer server = new GrizzlyWebServer();
+        GrizzlyListener listener =
+                new GrizzlyListener("grizzly",
+                                    GrizzlyListener.DEFAULT_NETWORK_HOST,
+                                    PORT);
+        server.addListener(listener);
+
+        Socket s = null;
+        try {
+            server.start();
+            s = SocketFactory.getDefault().createSocket("localhost", PORT);
+            OutputStream out = s.getOutputStream();
+            InputStream in = s.getInputStream();
+            StringBuilder post = new StringBuilder();
+            post.append("POST /path HTTP/1.1\r\n");
+            post.append("Host: localhost:" + PORT + "\r\n");
+            post.append("Expect: 100-Continue\r\n");
+            post.append("Content-Type: application/x-www-form-urlencoded\r\n");
+            post.append("Content-Length: 7\r\n");
+            post.append("\r\n");
+            post.append("a=hello\r\n\r\n");
+
+            out.write(post.toString().getBytes());
+
+            StringBuilder sb = new StringBuilder();
+            for (;;) {
+                int i = in.read();
+                if (i == '\r') {
+                    break;
+                } else {
+                    sb.append((char) i);
+                }
+            }
+
+            assertEquals("HTTP/1.1 200", sb.toString().trim());
+
         } finally {
             server.stop();
             if (s != null) {

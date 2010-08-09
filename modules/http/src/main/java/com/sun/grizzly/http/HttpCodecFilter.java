@@ -358,11 +358,15 @@ public abstract class HttpCodecFilter extends BaseFilter
                     if (httpPacket.getHeaders().getHeader("Expect") != null) {
                         // if we have any request content, we can ignore the Expect
                         // request
-                        if (input.hasRemaining()) {
-                            final HttpContent.Builder builder = ((HttpHeader) httpPacket).httpContentBuilder();
-                            final HttpContent message = builder.content(input).build();
-                            ctx.setMessage(message);
-                            return ctx.getInvokeAction();
+                        if (!input.hasRemaining()) {
+                            HttpRequestPacket request = (HttpRequestPacket) httpPacket;
+                            if (request.getProtocolBC().equals("HTTP/1.1")) {
+                                request.requiresAcknowledgement(true);
+                                final HttpContent.Builder builder = ((HttpHeader) httpPacket).httpContentBuilder();
+                                final HttpContent message = builder.content(input).build();
+                                ctx.setMessage(message);
+                                return ctx.getInvokeAction();
+                            }
                         }
                     }
                 }

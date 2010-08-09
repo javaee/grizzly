@@ -78,6 +78,8 @@ public abstract class HttpRequestPacket extends HttpHeader {
     private BufferChunk localAddressBC = BufferChunk.newInstance();
     private BufferChunk serverNameBC = BufferChunk.newInstance();
 
+    private boolean requiresAcknowledgement;
+
     /**
      * Returns {@link HttpRequestPacket} builder.
      *
@@ -304,6 +306,26 @@ public abstract class HttpRequestPacket extends HttpHeader {
 
 
     /**
+     * Allows consumers of this request to be notified if the user-agent
+     * requires acknowledgment of an expectation (i.e., the Expect header).
+     *
+     * @param requiresAcknowledgement <code>true</code> if expectation
+     *  processing is required.
+     */
+    public void requiresAcknowledgement(boolean requiresAcknowledgement) {
+        this.requiresAcknowledgement = requiresAcknowledgement;
+    }
+
+
+    /**
+     * @return <code>true</code> if this request requires acknowledgement.
+     */
+    public boolean requiresAcknowledgement() {
+        return requiresAcknowledgement;
+    }
+
+
+    /**
      * @return a {@link BufferChunk} representing the host name of the
      *  Internet Protocol (IP) interface on which the request was received.
      */
@@ -433,6 +455,8 @@ public abstract class HttpRequestPacket extends HttpHeader {
         localAddressBC.recycle();
         localNameBC.recycle();
         serverNameBC.recycle();
+
+        requiresAcknowledgement = false;
 
         remotePort = -1;
         localPort = -1;
