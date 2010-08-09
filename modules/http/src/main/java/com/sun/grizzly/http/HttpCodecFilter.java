@@ -51,8 +51,6 @@ import com.sun.grizzly.http.util.CacheableBufferChunk;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.memory.BufferUtils;
-import com.sun.grizzly.monitoring.MonitoringConfig;
-import com.sun.grizzly.monitoring.MonitoringConfigImpl;
 import com.sun.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
 import com.sun.grizzly.monitoring.jmx.JmxMonitoringAware;
 import com.sun.grizzly.monitoring.jmx.JmxMonitoringConfig;

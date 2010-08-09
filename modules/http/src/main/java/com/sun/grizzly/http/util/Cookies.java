@@ -54,13 +54,10 @@
 package com.sun.grizzly.http.util;
 
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.Buffer;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.StringTokenizer;
 
-import com.sun.grizzly.http.util.ByteChunk;
-import com.sun.grizzly.http.util.MessageBytes;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -93,8 +90,8 @@ public final class Cookies { // extends MultiMap {
      */
     public static final char SEPARATORS[] = {'\t', ' ', '\"', '\'', '(', ')', ',',
         ':', ';', '<', '=', '>', '?', '@', '[', '\\', ']', '{', '}'};
-    protected static final boolean separators[] = new boolean[128];
 
+    protected static final boolean separators[] = new boolean[128];
     static {
         for (int i = 0; i < 128; i++) {
             separators[i] = false;
@@ -154,6 +151,7 @@ public final class Cookies { // extends MultiMap {
     /**
      * EXPENSIVE!!!  only for debugging.
      */
+    @Override
     public String toString() {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
@@ -333,10 +331,18 @@ public final class Cookies { // extends MultiMap {
      * outcomes first.
      */
     public static final boolean isSeparator(final byte c) {
-        if (c > 0 && c < 126) {
-            return separators[c];
+        return isSeparator(c, true);
+    }
+
+    public static final boolean isSeparator(final byte c, final boolean parseAsVersion1) {
+        if (parseAsVersion1) {
+            if (c > 0 && c < 126) {
+                return separators[c];
+            } else {
+                return false;
+            }
         } else {
-            return false;
+            return (c == ';' || c == ',');
         }
     }
 
@@ -442,13 +448,14 @@ public final class Cookies { // extends MultiMap {
                         // The position is OK (On a delimiter)
                         break;
                     default:
-                        ;
-                        if (!isSeparator(buffer.get(pos))) {
+                        if (!isSeparator(buffer.get(pos), ServerCookie.COOKIE_VERSION_ONE_STRICT_COMPLIANCE)) {
+                        // Token
                             // Token
                             valueStart = pos;
                             // getToken returns the position at the delimeter
                             // or other non-token character
-                            valueEnd = getTokenEndPosition(buffer, valueStart, end);
+                            valueEnd = getTokenEndPosition(buffer, valueStart, end,
+                                ServerCookie.COOKIE_VERSION_ONE_STRICT_COMPLIANCE);
                             // We need pos to advance
                             pos = valueEnd;
                         } else {
@@ -589,8 +596,13 @@ public final class Cookies { // extends MultiMap {
      * JVK
      */
     public static final int getTokenEndPosition(Buffer buffer, int off, int end) {
+        return getTokenEndPosition(buffer, off, end, true);
+    }
+
+    public static final int getTokenEndPosition(Buffer buffer, int off, int end,
+            boolean parseAsVersion1) {
         int pos = off;
-        while (pos < end && !isSeparator(buffer.get(pos))) {
+        while (pos < end && !isSeparator(buffer.get(pos), parseAsVersion1)) {
             pos++;
         }
 
@@ -599,7 +611,7 @@ public final class Cookies { // extends MultiMap {
         }
         return pos;
     }
-
+    
     /** 
      * Given a starting position after an initial quote chracter, this gets
      * the position of the end quote. This escapes anything after a '\' char

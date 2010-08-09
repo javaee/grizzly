@@ -62,15 +62,15 @@ import java.util.List;
 public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, AttributeStorage {
 
     protected boolean isCommitted;
-    protected MimeHeaders headers = new MimeHeaders();
-    protected BufferChunk protocolBC = BufferChunk.newInstance();
+    protected final MimeHeaders headers = new MimeHeaders();
+    protected final BufferChunk protocolBC = BufferChunk.newInstance();
     protected boolean isChunked;
     protected long contentLength = -1;
     protected String charEncoding;
     protected boolean charEncodingParsed;
     protected boolean contentTypeParsed;
     protected String contentType;
-    protected Cookies cookies = new Cookies(headers);
+    protected final Cookies cookies = new Cookies(headers);
 
     protected boolean isExpectContent;
 
@@ -78,7 +78,7 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
     
     protected boolean secure;
 
-    protected BufferChunk upgrade = BufferChunk.newInstance();
+    protected final BufferChunk upgrade = BufferChunk.newInstance();
 
     private TransferEncoding transferEncoding;
     private final List<ContentEncoding> contentEncodings = new ArrayList();

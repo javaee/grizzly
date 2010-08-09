@@ -54,7 +54,6 @@
 package com.sun.grizzly.http.util;
 
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.Buffer;
 import java.io.Serializable;
 import java.text.FieldPosition;
 import java.text.SimpleDateFormat;
@@ -62,9 +61,6 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 
-import com.sun.grizzly.http.util.ByteChunk;
-import com.sun.grizzly.http.util.MessageBytes;
-import com.sun.grizzly.http.util.UEncoder;
 
 /**
  *  Server-side cookie representation.
@@ -79,6 +75,7 @@ public class ServerCookie implements Serializable {
 
     private static final String OLD_COOKIE_PATTERN =
             "EEE, dd-MMM-yyyy HH:mm:ss z";
+
     private static final ThreadLocal<SimpleDateFormat> OLD_COOKIE_FORMAT =
             new ThreadLocal<SimpleDateFormat>() {
 
@@ -102,11 +99,21 @@ public class ServerCookie implements Serializable {
     private BufferChunk comment = BufferChunk.newInstance();
     private int maxAge = -1;
     private int version = 0;
+
     /**
-     * If set to false, then it will quote the value and update cookie version
+     * If set to true, then it will double quote the value and update cookie version
      * when there is special characters.
+     *
+     * Tomcat uses STRICT_SERVLET_COMPLIANCE, whereas this code uses
+     * COOKIE_VERSION_ONE_STRICT_COMPLIANCE, which unlike the
+     * Tomcat variant not only affects cookie generation, but also cookie parsing.
+     * By default, cookies are parsed as v0 cookies, in order to maintain backward
+     * compatibility with GlassFish v2.x
      */
-    private static final boolean STRICT_SERVLET_COMPLIANCE = false;
+    static final boolean COOKIE_VERSION_ONE_STRICT_COMPLIANCE =
+        Boolean.valueOf(System.getProperty(
+            "org.glassfish.web.rfc2109_cookie_names_enforced", "false")).booleanValue();
+
     /**
      * If set to false, we don't use the IE6/7 Max-Age/Expires work around
      */
@@ -180,6 +187,7 @@ public class ServerCookie implements Serializable {
     }
 
     // -------------------- utils --------------------
+    @Override
     public String toString() {
         return "Cookie " + getName() + "=" + getValue() + " ; "
                 + getVersion() + " " + getPath() + " " + getDomain();
@@ -417,7 +425,7 @@ public class ServerCookie implements Serializable {
             buf.append('"');
             buf.append(escapeDoubleQuotes(value, 1, value.length() - 1));
             buf.append('"');
-        } else if (allowVersionSwitch && (!STRICT_SERVLET_COMPLIANCE) && version == 0 && !isToken2(value, literals)) {
+        } else if (allowVersionSwitch && COOKIE_VERSION_ONE_STRICT_COMPLIANCE && version == 0 && !isToken2(value, literals)) {
             buf.append('"');
             buf.append(escapeDoubleQuotes(value, 0, value.length()));
             buf.append('"');
