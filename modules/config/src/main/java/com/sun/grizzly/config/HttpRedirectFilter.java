@@ -44,6 +44,8 @@ import com.sun.grizzly.config.dom.HttpRedirect;
 import com.sun.grizzly.http.portunif.HttpRedirector;
 import com.sun.grizzly.util.WorkerThread;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectableChannel;
 import javax.net.ssl.SSLEngine;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 
@@ -89,7 +91,28 @@ public class HttpRedirectFilter implements ProtocolFilter,
 
         }
 
-        return true;
+        // Skip the request remainder to avoid issues on the client side
+        final SelectableChannel channel = ctx.getSelectionKey().channel();
+        final ByteBuffer bb = thread.getByteBuffer();
+        
+        bb.clear();
+        
+        int totalBytesRead = 0;
+        while(true) {
+            final com.sun.grizzly.util.Utils.Result result =
+                    com.sun.grizzly.util.Utils.readWithTemporarySelector(
+                     channel, bb, 20);
+
+            bb.clear();
+
+            if (result.isClosed || result.bytesRead <= 0) {
+                return true;
+            }
+
+            totalBytesRead += result.bytesRead;
+
+            if (totalBytesRead > 4096) return true;
+        }
     }
 
 
