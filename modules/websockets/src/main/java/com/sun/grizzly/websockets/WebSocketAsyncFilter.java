@@ -45,11 +45,7 @@ public class WebSocketAsyncFilter implements AsyncFilter {
     private static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
 
     public boolean doFilter(AsyncExecutor asyncExecutor) {
-        final boolean handled = WebSocketEngine.getEngine().handle(asyncExecutor);
-        if(!handled) {
-            asyncExecutor.getProcessorTask().invokeAdapter();
-        }
-        return !handled;
+        return !WebSocketEngine.getEngine().handle(asyncExecutor);
     }
 
 }
