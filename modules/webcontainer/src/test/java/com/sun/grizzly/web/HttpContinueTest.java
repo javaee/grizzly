@@ -42,7 +42,6 @@ import com.sun.grizzly.http.server.GrizzlyRequest;
 import com.sun.grizzly.http.server.GrizzlyResponse;
 import com.sun.grizzly.http.server.GrizzlyWebServer;
 import com.sun.grizzly.impl.SafeFutureImpl;
-import java.io.IOException;
 import junit.framework.TestCase;
 
 import javax.net.SocketFactory;
@@ -50,7 +49,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.util.concurrent.TimeUnit;
-import org.junit.Ignore;
 
 public class HttpContinueTest extends TestCase {
 
