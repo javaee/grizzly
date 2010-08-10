@@ -489,16 +489,6 @@ public class NIOInputSourcesTest extends TestCase {
                         //reader.notifyAvailable(this, readSize);
                     }
 
-
-                    @Override
-                    public void onError(Throwable t) {
-
-                        testResult.failure(t);
-                        res.resume();
-
-                    }
-
-
                     @Override
                     public void onAllDataRead() {
                         try {
@@ -587,16 +577,6 @@ public class NIOInputSourcesTest extends TestCase {
                         }
                         //reader.notifyAvailable(this, readSize);
                     }
-
-
-                    @Override
-                    public void onError(Throwable t) {
-
-                        testResult.failure(t);
-                        res.resume();
-
-                    }
-
 
                     @Override
                     public void onAllDataRead() {

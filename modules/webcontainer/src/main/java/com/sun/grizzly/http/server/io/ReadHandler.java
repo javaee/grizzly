@@ -51,14 +51,6 @@ public interface ReadHandler {
      */
     void onDataAvailable();
 
-    
-    /**
-     * <p>
-     * Invoked when an error occurs processing the request asynchronously.
-     * </p>
-     */
-    void onError(final Throwable t);
-
 
     /**
      * <p>

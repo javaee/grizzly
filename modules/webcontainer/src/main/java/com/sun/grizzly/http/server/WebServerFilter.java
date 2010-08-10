@@ -47,7 +47,6 @@ import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpResponsePacket;
-import com.sun.grizzly.monitoring.MonitoringConfig;
 import com.sun.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
 import com.sun.grizzly.monitoring.jmx.JmxMonitoringAware;
 import com.sun.grizzly.monitoring.jmx.JmxMonitoringConfig;
