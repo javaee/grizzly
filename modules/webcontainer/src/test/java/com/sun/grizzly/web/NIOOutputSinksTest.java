@@ -412,7 +412,7 @@ public class NIOOutputSinksTest extends TestCase {
 
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                return ctx.getStopAction();
+                return ctx.getSuspendAction();
             }
         });
 
