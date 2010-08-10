@@ -61,7 +61,7 @@ import com.sun.grizzly.attributes.Attribute;
  * in the {@link FilterChainContext} instance that is passed as a parameter
  * to the appropriate {@link Filter} processing methods,
  * using particular {@link Attribute}s that can
- * be acquired via {@link Attribute#get(FilterChainContext)} method.
+ * be acquired via {@link Attribute#get(com.sun.grizzly.attributes.AttributeStorage)} method.
  *
  * @see FilterChain
  * @see Attribute
@@ -84,9 +84,6 @@ public interface Filter {
      * {@link Filter} in a {@link FilterChain} containing this {@link Filter}
      * by returning true.
      * @param ctx {@link FilterChainContext}
-     * @param nextAction default {@link NextAction}, which Filter
-     *        could change in order to control how
-     *        {@link FilterChain} will continue the execution
      * @return {@link NextAction} instruction for {@link FilterChain}, how it
      *         should continue the execution
      * @throws {@link java.io.IOException}
@@ -101,9 +98,6 @@ public interface Filter {
      * {@link Filter} in a {@link FilterChain} containing this {@link Filter}
      * by returning true.
      * @param ctx {@link FilterChainContext}
-     * @param nextAction default {@link NextAction}, which Filter
-     *        could change in order to control how
-     *        {@link FilterChain} will continue the execution
      * @return {@link NextAction} instruction for {@link FilterChain}, how it
      *         should continue the execution
      * @throws {@link java.io.IOException}
@@ -118,9 +112,6 @@ public interface Filter {
      * {@link Filter} in a {@link FilterChain} containing this {@link Filter}
      * by returning true.
      * @param ctx {@link FilterChainContext}
-     * @param nextAction default {@link NextAction}, which Filter
-     *        could change in order to control how
-     *        {@link FilterChain} will continue the execution
      * @return {@link NextAction} instruction for {@link FilterChain}, how it
      *         should continue the execution
      * @throws {@link java.io.IOException}
@@ -135,9 +126,6 @@ public interface Filter {
      * {@link Filter} in a {@link FilterChain} containing this {@link Filter}
      * by returning true.
      * @param ctx {@link FilterChainContext}
-     * @param nextAction default {@link NextAction}, which Filter
-     *        could change in order to control how
-     *        {@link FilterChain} will continue the execution
      * @return {@link NextAction} instruction for {@link FilterChain}, how it
      *         should continue the execution
      * @throws {@link java.io.IOException}
@@ -152,9 +140,6 @@ public interface Filter {
      * {@link Filter} in a {@link FilterChain} containing this {@link Filter}
      * by returning true.
      * @param ctx {@link FilterChainContext}
-     * @param nextAction default {@link NextAction}, which Filter
-     *        could change in order to control how
-     *        {@link FilterChain} will continue the execution
      * @return {@link NextAction} instruction for {@link FilterChain}, how it
      *         should continue the execution
      * @throws {@link java.io.IOException}
@@ -163,7 +148,7 @@ public interface Filter {
 
     
     /**
-     * Notification about exception, occured on the {@link FilterChain}
+     * Notification about exception, occurred on the {@link FilterChain}
      * 
      * @param ctx event processing {@link FilterChainContext}
      * @param error error, which occurred during <tt>FilterChain</tt> execution
