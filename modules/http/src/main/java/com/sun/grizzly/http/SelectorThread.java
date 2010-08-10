@@ -58,11 +58,11 @@ import com.sun.grizzly.portunif.ProtocolHandler;
 import com.sun.grizzly.rcm.ResourceAllocationFilter;
 import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.tcp.RequestGroupInfo;
-import com.sun.grizzly.tcp.RequestInfo;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyListener;
 import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.ExtendedThreadPool;
+import com.sun.grizzly.util.FutureImpl;
 import com.sun.grizzly.util.IntrospectionUtils;
 import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.SelectionKeyAttachment;
@@ -77,9 +77,7 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import java.io.File;
 import java.io.IOException;
-import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
@@ -95,7 +93,7 @@ import java.util.Properties;
 import java.util.Queue;
 import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -1208,23 +1206,19 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      */
     public void listen() throws IOException, InstantiationException{
         initEndpoint();
-        final CountDownLatch latch = new CountDownLatch(1);
-        final IOException[] ioE = new IOException[]{null};
+        final FutureImpl<Boolean> future = new FutureImpl<Boolean>();
         controller.addStateListener(new ControllerStateListenerAdapter() {
             @Override
             public void onReady() {
-                latch.countDown();
+                future.setResult(Boolean.TRUE);
             }
 
             @Override
             public void onException(Throwable e) {
-                if (latch.getCount() > 0) {
+                if (!future.isDone()) {
                      logger().log(Level.SEVERE, "Exception during " +
                             "starting the controller", e);
-                    if (e instanceof IOException) {
-                        ioE[0] = (IOException) e;
-                    }
-                    latch.countDown();
+                     future.setException(e);
                 } else {
                      logger().log(Level.SEVERE, "Exception during " +
                             "controller processing", e);
@@ -1233,13 +1227,17 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         });
 
         start();
-        
+
         try {
-            latch.await();
-            if (ioE[0] != null) {
-                throw ioE[0];
+            future.get();
+        } catch (InterruptedException ignored) {
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof IOException) {
+                throw (IOException) cause;
             }
-        } catch (InterruptedException ex) {
+
+            throw new IOException(cause.getClass().getName() + ": " + cause.getMessage());
         }
         
         if (!controller.isStarted()) {

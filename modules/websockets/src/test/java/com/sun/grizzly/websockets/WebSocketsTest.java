@@ -360,14 +360,14 @@ public class WebSocketsTest {
         }));
         URL url = new URL("http://localhost:" + PORT + "/echo");
         final URLConnection urlConnection = url.openConnection();
-        final InputStream content = (InputStream) urlConnection.getContent();
+        final InputStream is = urlConnection.getInputStream();
         try {
             final byte[] bytes = new byte[1024];
-            final int i = content.read(bytes);
+            final int i = is.read(bytes);
             final String text = new String(bytes, 0, i);
             Assert.assertEquals(EchoServlet.RESPONSE_TEXT, text);
         } finally {
-            content.close();
+            is.close();
             thread.stopEndpoint();
         }
     }
