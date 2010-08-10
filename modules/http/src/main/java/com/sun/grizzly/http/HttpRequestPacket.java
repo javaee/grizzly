@@ -312,7 +312,7 @@ public abstract class HttpRequestPacket extends HttpHeader {
      * @param requiresAcknowledgement <code>true</code> if expectation
      *  processing is required.
      */
-    public void requiresAcknowledgement(boolean requiresAcknowledgement) {
+    protected void requiresAcknowledgement(boolean requiresAcknowledgement) {
         this.requiresAcknowledgement = requiresAcknowledgement;
     }
 

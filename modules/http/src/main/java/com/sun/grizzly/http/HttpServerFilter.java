@@ -195,13 +195,16 @@ public class HttpServerFilter extends HttpCodecFilter {
     }
 
     @Override
-    boolean onHttpHeaderParsed(HttpHeader httpHeader, FilterChainContext ctx) {
-        HttpRequestPacketImpl request = (HttpRequestPacketImpl) httpHeader;
+    boolean onHttpHeaderParsed(final HttpHeader httpHeader, final Buffer buffer,
+            final FilterChainContext ctx) {
+
+        final HttpRequestPacketImpl request = (HttpRequestPacketImpl) httpHeader;
 
         // If it's upgraded HTTP - don't check semantics
         if (!request.getUpgradeBC().isNull()) return false;
 
-        prepareRequest(request);
+        
+        prepareRequest(request, buffer.hasRemaining());
         return request.getProcessingState().error;
     }
 
@@ -479,7 +482,8 @@ public class HttpServerFilter extends HttpCodecFilter {
     }
     
 
-    private static void prepareRequest(final HttpRequestPacketImpl request) {
+    private static void prepareRequest(final HttpRequestPacketImpl request,
+            final boolean hasReadyContent) {
 
         final ProcessingState state = request.getProcessingState();
         final HttpResponsePacket response = request.getResponse();
@@ -577,6 +581,11 @@ public class HttpServerFilter extends HttpCodecFilter {
             state.contentDelimitation = true;
         }
 
+        if (request.requiresAcknowledgement()) {
+            // if we have any request content, we can ignore the Expect
+            // request
+            request.requiresAcknowledgement(state.http11 && !hasReadyContent);
+        }
     }
 
     protected HttpContent customizeErrorResponse(HttpResponsePacket response) {

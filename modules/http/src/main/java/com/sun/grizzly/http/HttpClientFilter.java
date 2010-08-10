@@ -137,7 +137,8 @@ public class HttpClientFilter extends HttpCodecFilter {
     }
 
     @Override
-    boolean onHttpHeaderParsed(HttpHeader httpHeader, FilterChainContext ctx) {
+    boolean onHttpHeaderParsed(final HttpHeader httpHeader, final Buffer buffer,
+            final FilterChainContext ctx) {
         final HttpResponsePacketImpl response = (HttpResponsePacketImpl) httpHeader;
         final int statusCode = response.getStatus();
 

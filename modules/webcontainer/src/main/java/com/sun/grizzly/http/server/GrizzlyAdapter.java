@@ -263,10 +263,6 @@ public abstract class GrizzlyAdapter {
      * with a response line with the status 100 followed by the final response
      * to this request.
      *
-     * If an <code>Expect</code> header with a value that isn't <code>100-Continue</code>
-     * a status of 417 will be sent to the client and the request will be
-     * terminated.
-     *
      * @param request the {@link GrizzlyRequest}.
      * @param response the {@link GrizzlyResponse}.
      *
@@ -276,18 +272,12 @@ public abstract class GrizzlyAdapter {
      * @throws IOException if an error occurs sending the acknowledgement.
      */
     protected boolean sendAcknowledgment(final GrizzlyRequest request,
-                                         final GrizzlyResponse response)
-    throws IOException {
+            final GrizzlyResponse response)
+            throws IOException {
 
-        if ("100-Continue".equals(request.getHeader("Expect"))) {
-            response.setStatus(100, "Continue");
-            response.sendAcknowledgement();
-            return true;
-        } else {
-            response.setStatus(417, "Expectation Failed");
-            return false;
-        }
-
+        response.setStatus(100, "Continue");
+        response.sendAcknowledgement();
+        return true;
     }
 
     /**

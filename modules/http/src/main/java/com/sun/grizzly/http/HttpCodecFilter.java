@@ -158,13 +158,15 @@ public abstract class HttpCodecFilter extends BaseFilter
     /**
      * TODO Docs.
      * @param httpHeader {@link HttpHeader}, which represents parsed HTTP packet header
+     * @param buffer {@link Buffer} the header was parsed from
      * @param ctx
      *
      * @return <code>true</code> if an error has occurred while processing
      *  the header portion of the http request, otherwise returns
      *  <code>false</code>.
      */
-    abstract boolean onHttpHeaderParsed(HttpHeader httpHeader, FilterChainContext ctx);
+    abstract boolean onHttpHeaderParsed(HttpHeader httpHeader, Buffer buffer,
+            FilterChainContext ctx);
 
     
     /**
@@ -339,7 +341,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                     // recycle header parsing state
                     httpPacket.getHeaderParsingState().recycle();
 
-                    if (onHttpHeaderParsed((HttpHeader) httpPacket, ctx)) {
+                    if (onHttpHeaderParsed((HttpHeader) httpPacket, input, ctx)) {
                         onHttpError((HttpHeader) httpPacket, ctx);
 
                         HttpProbeNotificator.notifyProbesError(this, connection, null);
@@ -354,21 +356,6 @@ public abstract class HttpCodecFilter extends BaseFilter
 
                     HttpProbeNotificator.notifyHeaderParse(this, connection,
                             (HttpHeader) httpPacket);
-
-                    if (httpHeader.isRequest()) {
-                        if (httpPacket.getHeaders().getHeader("Expect") != null
-                                && httpHeader.getProtocolBC().equals("HTTP/1.1")) {
-                            // if we have any request content, we can ignore the Expect
-                            // request
-                            if (!input.hasRemaining()) {
-                                ((HttpRequestPacket) httpHeader).requiresAcknowledgement(true);
-                                final HttpContent.Builder builder = ((HttpHeader) httpPacket).httpContentBuilder();
-                                final HttpContent message = builder.content(input).build();
-                                ctx.setMessage(message);
-                                return ctx.getInvokeAction();
-                            }
-                        }
-                    }
                 }
             }
 
@@ -757,7 +744,8 @@ public abstract class HttpCodecFilter extends BaseFilter
                 final boolean parseKnownHeaders = (httpHeader != null);
                 parsingState.isTransferEncodingHeader = parseKnownHeaders;
                 parsingState.isContentLengthHeader = parseKnownHeaders;
-                parsingState.isUpgradeHeader = parseKnownHeaders;
+                parsingState.isUpgradeHeader = parseKnownHeaders && httpHeader.isRequest();
+                parsingState.isExpect100 = parseKnownHeaders && httpHeader.isRequest();
             }
 
             if (!parseHeader(httpHeader, mimeHeaders, parsingState, input)) {
@@ -930,6 +918,11 @@ public abstract class HttpCodecFilter extends BaseFilter
 
         }
 
+        if (parsingState.isExpect100) {
+            parsingState.isExpect100 =
+                    (idx < Constants.EXPECT_100_CONTINUE_NAME_BYTES.length)
+                    && b == Constants.EXPECT_100_CONTINUE_NAME_BYTES[idx];
+        }
     }
 
     private static void finalizeKnownHeaderNames(HttpHeader httpHeader,
@@ -944,6 +937,9 @@ public abstract class HttpCodecFilter extends BaseFilter
         } else if (parsingState.isUpgradeHeader) {
             parsingState.isUpgradeHeader =
                     (size == Constants.UPGRADE_HEADER_BYTES.length);
+        } else if (parsingState.isExpect100) {
+            parsingState.isExpect100 =
+                    (size == Constants.EXPECT_100_CONTINUE_NAME_BYTES.length);
         }
     }
 
@@ -967,6 +963,16 @@ public abstract class HttpCodecFilter extends BaseFilter
                     parsingState.isTransferEncodingHeader = false;
                 }
             }
+        } else if (parsingState.isExpect100) {
+            final int idx = parsingState.checkpoint - parsingState.start;
+            if (idx < Constants.EXPECT_100_CONTINUE_VALUE_BYTES.length) {
+                parsingState.isExpect100 = (b == Constants.EXPECT_100_CONTINUE_VALUE_BYTES[idx]);
+                if (idx == Constants.EXPECT_100_CONTINUE_VALUE_BYTES.length - 1
+                        && parsingState.isExpect100) {
+                    ((HttpRequestPacket) httpHeader).requiresAcknowledgement(true);
+                    parsingState.isExpect100 = false;
+                }
+            }
         }
     }
 
@@ -974,6 +980,8 @@ public abstract class HttpCodecFilter extends BaseFilter
             ParsingState parsingState, Buffer input) {
 
         parsingState.isTransferEncodingHeader = false;
+        parsingState.isExpect100 = false;
+        
         if (parsingState.isUpgradeHeader) {
             httpHeader.getUpgradeBC().setBuffer(input, parsingState.start,
                     parsingState.checkpoint2);
@@ -1416,6 +1424,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         public boolean isContentLengthHeader;
         public boolean isTransferEncodingHeader;
         public boolean isUpgradeHeader;
+        public boolean isExpect100;
 
         public void initialize(int initialOffset, int maxHeaderSize) {
             offset = initialOffset;
@@ -1441,6 +1450,7 @@ public abstract class HttpCodecFilter extends BaseFilter
             isTransferEncodingHeader = false;
             isContentLengthHeader = false;
             isUpgradeHeader = false;
+            isExpect100 = false;
         }
 
         public final void checkOverflow() {

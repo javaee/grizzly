@@ -324,4 +324,12 @@ public class Constants {
     // We should probably do so with query parameters
     public static final String DEFAULT_CHARACTER_ENCODING="ISO-8859-1";
 
+    public static final String EXPECT_100_CONTINUE_NAME = "expect";
+
+    public static final byte[] EXPECT_100_CONTINUE_NAME_BYTES = EXPECT_100_CONTINUE_NAME.getBytes(ASCII_CHARSET);
+
+    public static final String EXPECT_100_CONTINUE_VALUE = "100-Continue";
+
+    public static final byte[] EXPECT_100_CONTINUE_VALUE_BYTES = EXPECT_100_CONTINUE_VALUE.getBytes(ASCII_CHARSET);
+
 }
