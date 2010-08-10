@@ -597,7 +597,7 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
                                                             throws Exception{        
         do {
             boolean exitWhile = parseRequest(input, output, false);
-           if (exitWhile) {
+            if (exitWhile) {
                 return exitWhile;
             }
             invokeAdapter();

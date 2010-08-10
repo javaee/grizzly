@@ -134,6 +134,7 @@ public class SelectorThread extends Thread implements MBeanRegistration{
     
     protected int socketTimeout=-1;
     
+    protected boolean socketKeepAlive;
     
     protected int maxKeepAliveRequests = Constants.DEFAULT_MAX_KEEP_ALIVE;
     
@@ -793,7 +794,7 @@ public class SelectorThread extends Thread implements MBeanRegistration{
         }
         
         serverSocket.setSoTimeout(serverTimeout);
-        
+
         if ( multiSelectorsCount > 1 ){
             readThreads = new MultiSelectorThread[multiSelectorsCount];
             initMultiSelectors();
@@ -805,7 +806,7 @@ public class SelectorThread extends Thread implements MBeanRegistration{
             maxSelectors = maxProcessorWorkerThreads;
         }
         
-        SelectorFactory.maxSelectors = maxSelectors;
+        SelectorFactory.setMaxSelectors(maxSelectors);
 
         initialized = true;           
         logger.log(Level.FINE,"Initializing Grizzly Non-Blocking Mode");                     
@@ -2027,6 +2028,17 @@ public class SelectorThread extends Thread implements MBeanRegistration{
             return;
         }      
         
+        try {
+            if (socketKeepAlive) {
+                socket.setKeepAlive(socketKeepAlive);
+            }
+        } catch (SocketException ex){
+            if (logger.isLoggable(Level.FINE)){
+                logger.log(Level.FINE,
+                            "setKeepAlive exception ",ex);
+            }
+        }
+
         try{
             if(linger >= 0 ) {
                 socket.setSoLinger( true, linger);
@@ -2819,6 +2831,14 @@ public class SelectorThread extends Thread implements MBeanRegistration{
 
     public void setLinger(int linger) {
         this.linger = linger;
+    }
+
+    public boolean isSocketKeepAlive() {
+        return socketKeepAlive;
+    }
+
+    public void setSocketKeepAlive(boolean socketKeepAlive) {
+        this.socketKeepAlive = socketKeepAlive;
     }
 
     public int getSocketTimeout() {

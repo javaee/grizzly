@@ -90,7 +90,7 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
                     case AsyncTask.INTERRUPTED:
                        stage = AsyncTask.POST_EXECUTE;                        
                        contineExecution = asyncExecutor.interrupt();
-                       break;  
+                       break;
                     case AsyncTask.EXECUTE:    
                        contineExecution = asyncExecutor.execute();
                        stage = AsyncTask.POST_EXECUTE;

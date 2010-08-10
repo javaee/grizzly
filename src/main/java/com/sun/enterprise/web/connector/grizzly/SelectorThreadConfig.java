@@ -38,6 +38,7 @@ package com.sun.enterprise.web.connector.grizzly;
 import com.sun.enterprise.web.connector.grizzly.comet.CometEngine;
 import com.sun.enterprise.web.connector.grizzly.ssl.SSLUtils;
 import java.util.StringTokenizer;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 public class SelectorThreadConfig{  
@@ -135,6 +136,9 @@ public class SelectorThreadConfig{
     private final static String SOCKET_LINGER =
         "com.sun.enterprise.web.connector.grizzly.linger";
 
+    private final static String SOCKET_KEEP_ALIVE =
+        "com.sun.enterprise.web.connector.grizzly.keep-alive";
+
     private final static String MAX_BUFFERED_BYTES =
         "com.sun.grizzly.maxBufferedBytes";
 
@@ -229,9 +233,10 @@ public class SelectorThreadConfig{
         }
         
         if (System.getProperty(SOCKET_LINGER) != null){
-            selectorThread.linger =
-                Integer.parseInt(System.getProperty(SOCKET_LINGER));
+            selectorThread.setLinger(Integer.parseInt(System.getProperty(SOCKET_LINGER)));
         }
+
+        selectorThread.setSocketKeepAlive(Boolean.getBoolean(SOCKET_KEEP_ALIVE));
 
         if (System.getProperty(ENABLE_COMET_SUPPORT) != null){
             selectorThread.enableCometSupport(
@@ -312,8 +317,8 @@ public class SelectorThreadConfig{
 
         if (System.getProperty(FACTORY_TIMEOUT) != null){
             try{
-                SelectorFactory.timeout = 
-                  Integer.parseInt(System.getProperty(FACTORY_TIMEOUT));
+                SelectorFactory.setTimeout(
+                        Integer.parseInt(System.getProperty(FACTORY_TIMEOUT)), TimeUnit.MILLISECONDS);
             } catch (NumberFormatException ex){
                 ;
             }

@@ -43,9 +43,11 @@ import com.sun.enterprise.web.connector.grizzly.AsyncTask;
 import com.sun.enterprise.web.connector.grizzly.Pipeline;
 import com.sun.enterprise.web.connector.grizzly.AsyncExecutor;
 import com.sun.enterprise.web.connector.grizzly.ConcurrentQueue;
+import com.sun.enterprise.web.connector.grizzly.LinkedListPipeline;
 import com.sun.enterprise.web.connector.grizzly.SelectorThread;
 import com.sun.enterprise.web.connector.grizzly.async.AsyncProcessorTask;
 import com.sun.enterprise.web.connector.grizzly.ProcessorTask;
+import com.sun.enterprise.web.connector.grizzly.SelectorFactory;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.util.Iterator;
@@ -80,7 +82,7 @@ import java.util.logging.Logger;
  *
  * @author Jeanfrancois Arcand
  */
-public class CometEngine {
+public final class CometEngine {
 
     // Disable suspended connection time out.
     public final static int DISABLE_SUSPEND_TIMEOUT = -1;
@@ -116,7 +118,12 @@ public class CometEngine {
     /**
      * The {@link Pipeline} used to execute {@link CometTask}
      */
-    protected Pipeline pipeline;
+    protected volatile Pipeline pipeline;
+
+    /**
+     * Sync object for pipeline update
+     */
+    private final Object pipelineUpdateSync = new Object();
 
 
     /**
@@ -202,6 +209,8 @@ public class CometEngine {
         updatedCometContexts = new ConcurrentHashMap<Long,CometContext>();
 
         asyncTasks = new ConcurrentQueue<AsyncProcessorTask>("CometEngine.asyncTasks");
+
+        setPipeline(new LinkedListPipeline(5 , 1, "Comet-thread-pool", 0));
     }
 
 
@@ -395,8 +404,7 @@ public class CometEngine {
              */
             if (cometContext.getCometHandler(key) != null){
                 asyncTasks.offer(apt);
-                CometTask cometTask = getCometTask(cometContext,key,
-                        apt.getPipeline());
+                CometTask cometTask = getCometTask(cometContext, key, null);
                 cometTask.setSelectorThread(apt.getSelectorThread());
                 cometTask.setExpirationDelay(cometContext.getExpirationDelay());
                 cometContext.addActiveCometTask(cometTask);
@@ -438,7 +446,7 @@ public class CometEngine {
      * @param key The current {@link SelectionKey}
      * @return a new CometContext
      */
-    protected CometTask getCometTask(CometContext cometContext,SelectionKey key,
+     CometTask getCometTask(CometContext cometContext,SelectionKey key,
             Pipeline ctxPipeline){
 
         if (ctxPipeline == null){
@@ -661,6 +669,29 @@ public class CometEngine {
         notificationHandlerClassName = aNotificationHandlerClassName;
     }
 
+    public Pipeline getPipeline() {
+        return pipeline;
+    }
+
+    public void setPipeline(final Pipeline pipeline) {
+        synchronized(pipelineUpdateSync) {
+            int oldSize = 0;
+            if (this.pipeline != null) {
+                oldSize = this.pipeline.getMaxThreads();
+                this.pipeline.stopPipeline();
+            }
+
+            final int delta = pipeline.getMaxThreads() - oldSize;
+
+            try {
+                SelectorFactory.changeSelectorsBy(delta);
+            } catch (Exception e) {
+                logger.log(Level.WARNING, "Error resizing the selector pool", e);
+            }
+
+            this.pipeline = pipeline;
+        }
+    }
 
     /**
      * Util to load classes using reflection.

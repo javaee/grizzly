@@ -214,7 +214,7 @@ public class LinkedListPipeline extends LinkedList<Task> implements Pipeline{
         int increaseCount = threadCount + increment; 
         for (int i=currentCount; i < increaseCount; i++){
             workerThread = new WorkerThreadImpl(this, 
-                    name + "WorkerThread-"  + port + "-" + i);
+                    name + "WorkerThread-"  + (port > 0 ? new String(port + "-") : "") + i);
             workerThread.setPriority(priority);
             
             if (startThread)

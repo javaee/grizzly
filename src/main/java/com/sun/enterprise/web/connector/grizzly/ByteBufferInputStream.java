@@ -332,7 +332,7 @@ public class ByteBufferInputStream extends InputStream {
             }
 
             if (logger.isLoggable(Level.FINE)) {
-                logger.log(Level.FINE, "InputStream.read [channel=" + socketChannel + ", bytesRead=" + byteRead + ", exception=" + exception + "]");
+                logger.log(Level.FINE, "InputStream.read [channel=" + socketChannel + ", bytesRead=" + byteRead + ", timeout=" + readTimeout + ", exception=" + exception + "]");
 
                 if (byteRead > 0) {
                     if (logger.isLoggable(Level.FINEST)) {

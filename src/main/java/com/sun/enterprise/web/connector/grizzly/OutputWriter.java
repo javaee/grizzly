@@ -36,7 +36,6 @@
 
 package com.sun.enterprise.web.connector.grizzly;
 
-import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -71,7 +70,7 @@ public class OutputWriter {
      * Flush the buffer by looping until the <code>ByteBuffer</code> is empty
      * @param bb the ByteBuffer to write.
      */   
-    public static long flushChannel(SocketChannel socketChannel, 
+    public static long flushChannel(SocketChannel socketChannel,
             ByteBuffer bb, long writeTimeout) throws IOException{    
         
         if (bb == null || socketChannel == null){
@@ -80,55 +79,53 @@ public class OutputWriter {
                        + "SocketChannel cannot be null." + socketChannel);
             }
             return -1;
-        }  
+        }
 
         SelectionKey key = null;
         Selector writeSelector = null;
         int attempts = 0;
-        int bytesProduced = 0;
+        int nWrite = 0;
+        int len = -1;
+        long elapsedTime = 0;
         try {
             while ( bb.hasRemaining() ) {
-                int len = socketChannel.write(bb);
-                attempts++;
-                if (len < 0){
-                    throw new EOFException();
-                } 
-            
-                bytesProduced += len;
-                
-                if (len == 0) {
+                len = socketChannel.write(bb);
+                if (len > 0){
+                    attempts = 0;
+                    elapsedTime = 0;
+                    nWrite += len;
+                } else {
+                    attempts++;
                     if ( writeSelector == null ){
                         writeSelector = SelectorFactory.getSelector();
                         if ( writeSelector == null){
                             // Continue using the main one.
                             continue;
                         }
+                        key = socketChannel.register(writeSelector,
+                             SelectionKey.OP_WRITE);
                     }
-                    
-                    key = socketChannel.register(writeSelector, SelectionKey.OP_WRITE);
-                    
+
+                    long startTime = System.currentTimeMillis();
                     if (writeSelector.select(writeTimeout) == 0) {
-                        if (attempts > 2)
-                            throw new IOException("Client disconnected");
-                    } else {
-                        attempts--;
+                        elapsedTime += (System.currentTimeMillis() - startTime);
+                        if (attempts > 2 && ( writeTimeout > 0 && elapsedTime >= writeTimeout ) )
+                            throw new IOException("Client is busy or timed out");
                     }
-                } else {
-                    attempts = 0;
                 }
-            }   
+            }
         } finally {
             if (key != null) {
                 key.cancel();
                 key = null;
             }
-            
+
             if ( writeSelector != null ) {
                 // Cancel the key.
                 SelectorFactory.selectNowAndReturnSelector(writeSelector);
             }
         }
-        return bytesProduced;
+        return nWrite;
     }  
     
     
@@ -149,35 +146,33 @@ public class OutputWriter {
     public static long flushChannel(SocketChannel socketChannel,
             ByteBuffer[] bb, long writeTimeout) throws IOException{
       
-        if (bb == null){
-            throw new IllegalStateException("Invalid Response State. ByteBuffer" 
-                    + " cannot be null.");
+        if (bb == null || socketChannel == null){
+            if (SelectorThread.logger().isLoggable(Level.FINE)){
+                SelectorThread.logger().log(Level.FINE,"Invalid Response State " + bb
+                       + "SocketChannel cannot be null." + socketChannel);
+            }
+            return -1;
         }
-        
-        if (socketChannel == null){
-            throw new IllegalStateException("Invalid Response State. " +
-                    "SocketChannel cannot be null.");
-        }   
-        
+
         SelectionKey key = null;
         Selector writeSelector = null;
         int attempts = 0;
         long totalBytes = 0;
-        for (ByteBuffer aBb : bb) {
-            totalBytes += aBb.remaining();
+        for (int i=0;i<bb.length;i++) {
+            totalBytes += bb[i].remaining();
         }
-        
-        long byteProduced = 0;
+
+        long nWrite = 0;
+        long len = -1;
+        long elapsedTime = 0;
         try {
-            while (byteProduced < totalBytes ) {
-                long len = socketChannel.write(bb);
-                attempts++;
-                byteProduced += len;
-                if (len < 0){
-                    throw new EOFException();
-                } 
-            
-                if (len == 0) {
+            while (nWrite < totalBytes ) {
+                len = socketChannel.write(bb);
+                if (len > 0){
+                    attempts = 0;
+                    elapsedTime = 0;
+                    nWrite += len;
+                } else {
                     if ( writeSelector == null ){
                         writeSelector = SelectorFactory.getSelector();
                         if ( writeSelector == null){
@@ -185,31 +180,31 @@ public class OutputWriter {
                             continue;
                         }
                     }
-                    
-                    key = socketChannel.register(writeSelector, SelectionKey.OP_WRITE);
-                    
+
+                    key = socketChannel.register(writeSelector,
+                                                 SelectionKey.OP_WRITE);
+
+                    long startTime = System.currentTimeMillis();
                     if (writeSelector.select(writeTimeout) == 0) {
-                        if (attempts > 2)
-                            throw new IOException("Client disconnected");
-                    } else {
-                        attempts--;
+                        elapsedTime += (System.currentTimeMillis() - startTime);
+                        if (attempts > 2 && ( writeTimeout > 0 && elapsedTime >= writeTimeout ) )
+                            throw new IOException("Client is busy or timed out");
                     }
-                } else {
-                    attempts = 0;
                 }
-            }   
+            }
         } finally {
             if (key != null) {
                 key.cancel();
                 key = null;
             }
-            
+
             if ( writeSelector != null ) {
                 // Cancel the key.
                 SelectorFactory.selectNowAndReturnSelector(writeSelector);
             }
         }
-        return byteProduced;
+        
+        return nWrite;
     }  
 
     

@@ -48,48 +48,20 @@ import java.util.concurrent.LinkedBlockingQueue;
  * @author Alexey Stashok
  */
 public final class ConcurrentQueue<E> extends LinkedBlockingQueue<E> {
-//    private static final AtomicLong totalSize = new AtomicLong();
-//    private static final AtomicLong lastTotalOutput = new AtomicLong();
-//
-//    private final AtomicLong lastOutput = new AtomicLong();
-//    private final AtomicInteger lastAddedToTotal = new AtomicInteger();
-
     private final String name;
 
     public ConcurrentQueue(String name) {
         this.name = name;
     }
 
-
-//    @Override
-//    public boolean offer(E e) {
-//        return super.offer(e);
-//        if (super.offer(e)) {
-//            final long currentTime = System.currentTimeMillis();
-//
-//            final long lastOutputNow = lastOutput.get();
-//            if (currentTime - lastOutputNow > 1000 * 60) {
-//                if (lastOutput.compareAndSet(lastOutputNow, currentTime + 1000 * 60)) {
-//                    final int size = size();
-//                    final int lastAddedToTotalNow = lastAddedToTotal.getAndSet(size);
-//                    final int diff = size - lastAddedToTotalNow;
-//                    totalSize.addAndGet(diff);
-//
-//                    System.out.println("CLQ STATS: name: " + name + " size: " + size);
-//                }
-//            }
-//
-//            final long lastTotalOutputNow = lastTotalOutput.get();
-//            if (currentTime - lastTotalOutputNow > 1000 * 60) {
-//                if (lastTotalOutput.compareAndSet(lastTotalOutputNow, currentTime + 1000 * 60)) {
-//                    System.out.println("CLQ TOTAL STATS: " + totalSize.get());
-//                }
-//            }
-//
-//            return true;
-//        }
-//
-//        return false;
-//    }
-
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("ConcurrentQueue(")
+                .append(name)
+                .append(") [")
+                .append(super.toString())
+                .append(']');
+        return sb.toString();
+    }
 }

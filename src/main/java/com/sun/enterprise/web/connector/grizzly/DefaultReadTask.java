@@ -40,6 +40,7 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Read available data on a non blocking <code>SocketChannel</code>. 
@@ -51,6 +52,7 @@ import java.util.logging.Level;
  * @author Jean-Francois Arcand
  */
 public class DefaultReadTask extends TaskBase implements ReadTask {
+    private static final Logger logger = Logger.getLogger(DefaultReadTask.class.getName());
     
     /**
      * The time in milliseconds before this <code>Task</code> can stay idle.
@@ -239,7 +241,7 @@ public class DefaultReadTask extends TaskBase implements ReadTask {
             int loop = 0;
             int bufferSize = 0;
             while ( socketChannel.isOpen() && (bytesAvailable || 
-                    ((count = socketChannel.read(byteBuffer))> -1))){
+                    (count = socketChannel.read(byteBuffer)) > -1)) {
 
                 // Avoid calling the Selector.
                 if ( count == 0 && !bytesAvailable){
@@ -249,9 +251,24 @@ public class DefaultReadTask extends TaskBase implements ReadTask {
                     }
                     continue;
                 }
-                if (bytesAvailable){
+
+                if (bytesAvailable) {
                     count = byteBuffer.position();
                 }
+
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.log(Level.FINE, "DefaultReadTask.doTask [channel=" + socketChannel + ", bytesRead=" + count + ", bytesAvailable= " + bytesAvailable + "]");
+
+                    if (count > 0) {
+                        if (logger.isLoggable(Level.FINEST)) {
+                            logger.log(Level.FINEST, "DefaultReadTask.read-content [channel=" + socketChannel
+                                    + " content=" + new String(byteBuffer.array(), byteBuffer.arrayOffset()
+                                    + byteBuffer.position() - count, count) + "]");
+                        }
+                    }
+                }
+
+
                 bytesAvailable = false;
                 
                 byteBuffer = algorithm.preParse(byteBuffer);
@@ -272,8 +289,10 @@ public class DefaultReadTask extends TaskBase implements ReadTask {
             } 
         // Catch IO AND NIO exception
         } catch (IOException ex) {
+            logger.log(Level.FINE, "DefaultReadTask.IOException", ex);
             exception = ex;
         } catch (RuntimeException ex) {
+            logger.log(Level.FINE, "DefaultReadTask.RuntimeException", ex);
             exception = ex;    
         } finally {                   
             manageKeepAlive(keepAlive,count,exception);

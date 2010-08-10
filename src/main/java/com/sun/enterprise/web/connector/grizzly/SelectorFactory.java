@@ -37,125 +37,141 @@ package com.sun.enterprise.web.connector.grizzly;
 
 import java.io.IOException;
 import java.nio.channels.Selector;
-import java.util.EmptyStackException;
-import java.util.Stack;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- * Factory used to dispatch/share <code>Selector</code>.
+ * Factory used to dispatch/share {@link Selector}.
  *
  * @author Scott Oaks
  * @author Jean-Francois Arcand
+ * @author gustav trede
  */
 public class SelectorFactory {
-    
+
+    public static final int DEFAULT_MAX_SELECTORS = 20;
     /**
-     * The timeout before we exit.
+     * The number of {@link Selector} to create.
      */
-    protected static long timeout = 5000;
-    
-    
+    private static volatile int maxSelectors = DEFAULT_MAX_SELECTORS;
     /**
-     * The number of <code>Selector</code> to create.
+     * Cache of {@link Selector}
      */
-    protected static int maxSelectors = 5;
-    
-    
-    /**
-     * Cache of <code>Selector</code>
-     */
-    private final static Stack<Selector> selectors = new Stack<Selector>();
-    
-    
+    private final static ConcurrentQueue<Selector> selectors =
+            new ConcurrentQueue<Selector>("temporary-selectors-queue");
     /**
      * have we created the Selector instances.
      */
-    private static boolean initialized = false;
+    private static volatile boolean initialized = false;
 
+    // selector poll timeout
+    private static volatile long timeout = Long.MAX_VALUE;
+    
     /**
-     * Get a exclusive <code>Selector</code>
+     * Set max selector pool size.
+     * @param size max pool size
      */
-    public final static Selector getSelector() {
+    public static void setMaxSelectors(int size) throws IOException {
         synchronized (selectors) {
-            if (!initialized) {
-                try {
-                    for (int i = 0; i < maxSelectors; i++) {
-                        selectors.add(createSelector());
-                    }
-                } catch (IOException ex) {
-                    if (SelectorThread.logger().isLoggable(Level.FINE)) {
-                        SelectorThread.logger().fine(ex.getMessage());
-                    }
-                }
-                initialized = true;
+            if (size < 0) {
+                SelectorThread.logger().log(Level.WARNING,
+                        " tried to remove too many selectors " +
+                        size +">=" + maxSelectors, new Exception());
+                return;
             }
-
-            Selector s = null;
-            try {
-                if (selectors.size() != 0) {
-                    s = selectors.pop();
+            int toAdd = initialized ? size - maxSelectors : size;
+            if (toAdd > 0) {
+                while (toAdd-- > 0) {
+                    selectors.add(createSelector());
                 }
-            } catch (EmptyStackException ex) {
+            } else {
+                reduce(-toAdd);
             }
-
-            int attempts = 0;
-            try {
-                while (s == null && attempts < 2) {
-                    if (SelectorThread.logger().isLoggable(Level.FINE)){
-                        SelectorThread.logger().fine("Running out of Selector. Pausing for:" 
-                                + timeout);
-                    }
-                    selectors.wait(timeout);
-                    try {
-                        if (selectors.size() != 0) {
-                            s = selectors.pop();
-                        }
-                    } catch (EmptyStackException ex) {
-                        break;
-                    }
-                    attempts++;
-                }
-            } catch (InterruptedException ex) {
-            }
-            return s;
+            maxSelectors = size;
+            initialized = true;
         }
     }
 
-    
     /**
-     * Return the <code>Selector</code> to the cache
+     * Changes the Selector cache size
+     * @param delta
+     * @throws IOException
      */
-    public final static void returnSelector(Selector s) {
+    public static void changeSelectorsBy(int delta) throws IOException {
         synchronized (selectors) {
-            selectors.push(s);
-            if (selectors.size() == 1) {
-                selectors.notify();
-            }
+            setMaxSelectors(maxSelectors + delta);
         }
     }
 
-    
     /**
-     * Executes <code>Selector.selectNow()</code> and returns 
-     * the <code>Selector</code> to the cache
+     * Returns max selector pool size
+     * @return max pool size
      */
-    public final static void selectNowAndReturnSelector(Selector s) {
+    public static int getMaxSelectors() {
+        return maxSelectors;
+    }
+
+    /**
+     * Please ensure to use try finally around get and return of selector so avoid leaks.
+     * Get a exclusive {@link Selector}
+     * @return {@link Selector}
+     */
+    public static Selector getSelector() {
+        if (!initialized) {
+            try {
+                setMaxSelectors(maxSelectors);
+            } catch (IOException ex) {
+                SelectorThread.logger().log(Level.WARNING,
+                        "static init of SelectorFactory failed", ex);
+            }
+        }
+
+        Selector selector = null;
+        try {
+            selector = selectors.poll(timeout, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+             SelectorThread.logger().log(Level.FINE, "Interrupted during selector polling", e);
+        }
+        
+        if (selector == null) {
+            SelectorThread.logger().warning(
+                    "No Selector available. Increase default: " + maxSelectors);
+        }
+        return selector;
+    }
+
+    /**
+     * Please ensure to use try finally around get and return of selector so avoid leaks.
+     * Return the {@link Selector} to the cache
+     * @param s {@link Selector}
+     */
+    public static void returnSelector(Selector s) {
+        selectors.offer(s);
+    }
+
+    /**
+     * Executes <code>Selector.selectNow()</code> and returns
+     * the {@link Selector} to the cache
+     */
+    public static void selectNowAndReturnSelector(Selector s) {
         try {
             s.selectNow();
             returnSelector(s);
-        } catch(IOException e) {
-            SelectorThread.logger().log(Level.WARNING, 
+        } catch (IOException e) {
+            final Logger logger = SelectorThread.logger();
+            logger.log(Level.WARNING,
                     "Unexpected problem when releasing temporary Selector", e);
             try {
                 s.close();
-            } catch(IOException ee) {
+            } catch (IOException ee) {
                 // We are not interested
             }
-            
+
             try {
                 reimburseSelector();
-            } catch(IOException ee) {
-                SelectorThread.logger().log(Level.WARNING,
+            } catch (IOException ee) {
+                logger.log(Level.WARNING,
                         "Problematic Selector could not be reimbursed!", ee);
             }
         }
@@ -164,11 +180,35 @@ public class SelectorFactory {
     /**
      * Add Selector to the cache.
      * This method could be called to reimberse a lost or problematic Selector.
-     * 
-     * @throws java.io.IOException
+     *
+     * @throws IOException
      */
-    public final static void reimburseSelector() throws IOException {
+    public static void reimburseSelector() throws IOException {
         returnSelector(createSelector());
+    }
+
+    /**
+     * Decrease {@link Selector} pool size
+     */
+    private static void reduce(int tokill) {
+        while (tokill-- > 0) {
+            try {
+                Selector selector = selectors.poll();
+                if (selector != null) {
+                    selector.close();
+                } else {
+                    // can happen in concurrent usage, if selectors are in use and hence not in cache.
+                    SelectorThread.logger().warning("SelectorFactory cache could " +
+                            "not remove the desired number, too few selectors in cache.");
+                    return;
+                }
+            } catch (IOException e) {
+                final Logger logger = SelectorThread.logger();
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.log(Level.FINE, "SelectorFactory.reduce", e);
+                }
+            }
+        }
     }
 
     /**
@@ -178,5 +218,13 @@ public class SelectorFactory {
      */
     protected static Selector createSelector() throws IOException {
         return Selector.open();
+    }
+
+    public static long getTimeout(TimeUnit timeUnit) {
+        return timeUnit.convert(timeout, TimeUnit.MILLISECONDS);
+    }
+
+    public static void setTimeout(long timeout, TimeUnit timeUnit) {
+        SelectorFactory.timeout = TimeUnit.MILLISECONDS.convert(timeout, timeUnit);
     }
 }

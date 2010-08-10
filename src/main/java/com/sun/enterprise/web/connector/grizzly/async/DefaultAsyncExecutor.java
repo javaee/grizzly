@@ -156,6 +156,8 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
      * @return true if the execution can continue, false if delayed.
      */
     public boolean interrupt() throws Exception{
+        if (processorTask.isError()) return true;  // if error was detected on prev phase - skip execution
+
         if ( asyncFilters == null || asyncFilters.size() == 0 ) {
             execute();
             return false;
