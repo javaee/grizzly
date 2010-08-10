@@ -210,7 +210,10 @@ public final class CometEngine {
 
         asyncTasks = new ConcurrentQueue<AsyncProcessorTask>("CometEngine.asyncTasks");
 
-        setPipeline(new LinkedListPipeline(5 , 1, "Comet-thread-pool", 0));
+        final LinkedListPipeline threadPool = new LinkedListPipeline(5, 1, "Comet-thread-pool", 0);
+        threadPool.startPipeline();
+        
+        setPipeline(threadPool);
     }
 
 
