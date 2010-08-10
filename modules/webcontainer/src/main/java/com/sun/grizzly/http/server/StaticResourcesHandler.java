@@ -126,9 +126,15 @@ public class StaticResourcesHandler {
                 //res.setStatus(302);
                 //res.setReasonPhrase("Moved Temporarily");
                 res.setStatus(302, "Moved Temporarily");
+                final int port = req.getServerPort();
+                String server;
+                if (port == 80 || port == 443) {
+                    server = req.getServerName();
+                } else {
+                    server = req.getServerName() + ':' + port;
+                }
                 res.setHeader("Location", req.getProtocol() + "://"
-                        + req.getServerName() + ":" + req.getServerPort()
-                        + "/index.html");
+                        + server + "/index.html");
                 res.setHeader("Connection", "close");
                 res.setHeader("Cache-control", "private");
                 //res.flush();
