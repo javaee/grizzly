@@ -54,7 +54,7 @@ import org.junit.Ignore;
 
 public class HttpContinueTest extends TestCase {
 
-    private static final int PORT = 8080;
+    private static final int PORT = 9495;
 
 
     // ------------------------------------------------------------ Test Methods

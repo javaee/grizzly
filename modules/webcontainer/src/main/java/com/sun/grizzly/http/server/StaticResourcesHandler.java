@@ -122,42 +122,31 @@ public class StaticResourcesHandler {
             File resource = new File(docRoot, uri);
 
             if (resource.isDirectory()) {
-                //req.action( ActionCode.ACTION_REQ_LOCAL_ADDR_ATTRIBUTE , null);
-                //res.setStatus(302);
-                //res.setReasonPhrase("Moved Temporarily");
-                res.setStatus(302, "Moved Temporarily");
-                final int port = req.getServerPort();
-                String server;
-                if (port == 80 || port == 443) {
-                    server = req.getServerName();
+                final File f = new File(resource, "/index.html");
+                if (!f.exists()) {
+                    resource = null;
                 } else {
-                    server = req.getServerName() + ':' + port;
+                    resource = f;
                 }
-                res.setHeader("Location", req.getProtocol() + "://"
-                        + server + "/index.html");
-                res.setHeader("Connection", "close");
-                res.setHeader("Cache-control", "private");
-                //res.flush();
-                return true;
             }
 
-            if (!resource.exists()) {
+            if (resource == null || !resource.exists()) {
                 if (logger.isLoggable(Level.FINE)) {
                     logger.log(Level.FINE, "File not found  " + resource);
                 }
-                //res.setStatus(404);
-                //res.setReasonPhrase("Not Found");
-//                res.setStatus(404, "NotFound");
-//                if (commitErrorResponse) {
-//                    customizedErrorPage(req, res);
-//                }
                 return false;
             }
             res.setStatus(200, "OK");
-
+            String substr;
             int dot = uri.lastIndexOf(".");
+            if (dot < 0) {
+                substr = resource.toString();
+                dot = substr.lastIndexOf(".");
+            } else {
+                substr = uri;
+            }
             if (dot > 0) {
-                String ext = uri.substring(dot + 1);
+                String ext = substr.substring(dot + 1);
                 String ct = MimeType.get(ext);
                 if (ct != null) {
                     res.setContentType(ct);
