@@ -745,7 +745,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                 parsingState.isTransferEncodingHeader = parseKnownHeaders;
                 parsingState.isContentLengthHeader = parseKnownHeaders;
                 parsingState.isUpgradeHeader = parseKnownHeaders && httpHeader.isRequest();
-                parsingState.isExpect100 = parseKnownHeaders && httpHeader.isRequest();
+                parsingState.isExpect100Header = parseKnownHeaders && httpHeader.isRequest();
             }
 
             if (!parseHeader(httpHeader, mimeHeaders, parsingState, input)) {
@@ -918,8 +918,8 @@ public abstract class HttpCodecFilter extends BaseFilter
 
         }
 
-        if (parsingState.isExpect100) {
-            parsingState.isExpect100 =
+        if (parsingState.isExpect100Header) {
+            parsingState.isExpect100Header =
                     (idx < Constants.EXPECT_100_CONTINUE_NAME_BYTES.length)
                     && b == Constants.EXPECT_100_CONTINUE_NAME_BYTES[idx];
         }
@@ -937,9 +937,12 @@ public abstract class HttpCodecFilter extends BaseFilter
         } else if (parsingState.isUpgradeHeader) {
             parsingState.isUpgradeHeader =
                     (size == Constants.UPGRADE_HEADER_BYTES.length);
-        } else if (parsingState.isExpect100) {
-            parsingState.isExpect100 =
-                    (size == Constants.EXPECT_100_CONTINUE_NAME_BYTES.length);
+        } else if (parsingState.isExpect100Header) {
+            if (size == Constants.EXPECT_100_CONTINUE_NAME_BYTES.length) {
+                ((HttpRequestPacket) httpHeader).requiresAcknowledgement(true);
+            }
+
+            parsingState.isExpect100Header = false;
         }
     }
 
@@ -963,16 +966,6 @@ public abstract class HttpCodecFilter extends BaseFilter
                     parsingState.isTransferEncodingHeader = false;
                 }
             }
-        } else if (parsingState.isExpect100) {
-            final int idx = parsingState.checkpoint - parsingState.start;
-            if (idx < Constants.EXPECT_100_CONTINUE_VALUE_BYTES.length) {
-                parsingState.isExpect100 = (b == Constants.EXPECT_100_CONTINUE_VALUE_BYTES[idx]);
-                if (idx == Constants.EXPECT_100_CONTINUE_VALUE_BYTES.length - 1
-                        && parsingState.isExpect100) {
-                    ((HttpRequestPacket) httpHeader).requiresAcknowledgement(true);
-                    parsingState.isExpect100 = false;
-                }
-            }
         }
     }
 
@@ -980,11 +973,11 @@ public abstract class HttpCodecFilter extends BaseFilter
             ParsingState parsingState, Buffer input) {
 
         parsingState.isTransferEncodingHeader = false;
-        parsingState.isExpect100 = false;
-        
+
         if (parsingState.isUpgradeHeader) {
             httpHeader.getUpgradeBC().setBuffer(input, parsingState.start,
                     parsingState.checkpoint2);
+            parsingState.isUpgradeHeader = false;
         }
     }
 
@@ -1424,7 +1417,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         public boolean isContentLengthHeader;
         public boolean isTransferEncodingHeader;
         public boolean isUpgradeHeader;
-        public boolean isExpect100;
+        public boolean isExpect100Header;
 
         public void initialize(int initialOffset, int maxHeaderSize) {
             offset = initialOffset;
@@ -1450,7 +1443,7 @@ public abstract class HttpCodecFilter extends BaseFilter
             isTransferEncodingHeader = false;
             isContentLengthHeader = false;
             isUpgradeHeader = false;
-            isExpect100 = false;
+            isExpect100Header = false;
         }
 
         public final void checkOverflow() {

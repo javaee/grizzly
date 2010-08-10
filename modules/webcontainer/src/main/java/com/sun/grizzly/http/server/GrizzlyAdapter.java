@@ -275,9 +275,14 @@ public abstract class GrizzlyAdapter {
             final GrizzlyResponse response)
             throws IOException {
 
-        response.setStatus(100, "Continue");
-        response.sendAcknowledgement();
-        return true;
+        if ("100-Continue".equals(request.getHeader("Expect"))) {
+            response.setStatus(100, "Continue");
+            response.sendAcknowledgement();
+            return true;
+        } else {
+            response.setStatus(417, "Expectation Failed");
+            return false;
+        }
     }
 
     /**

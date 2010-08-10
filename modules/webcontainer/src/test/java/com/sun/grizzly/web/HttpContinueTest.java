@@ -170,21 +170,7 @@ public class HttpContinueTest extends TestCase {
 
     public void testFailedExpectation() throws Exception {
 
-        GrizzlyWebServer server = createServer(new GrizzlyAdapter() {
-
-            @Override
-            protected boolean sendAcknowledgment(GrizzlyRequest request,
-                    GrizzlyResponse response) throws IOException {
-                response.setStatus(417, "Expectation Failed");
-                response.sendAcknowledgement();
-                return false;
-            }
-
-            @Override
-            public void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
-            }
-
-        });
+        GrizzlyWebServer server = createServer(null);
 
         Socket s = null;
         try {
@@ -197,7 +183,7 @@ public class HttpContinueTest extends TestCase {
             out.write(("Host: localhost:" + PORT + "\r\n").getBytes());
             out.write("Content-Type: application/x-www-form-urlencoded\r\n".getBytes());
             out.write("Content-Length: 7\r\n".getBytes());
-            out.write("Expect: 100-Continue\r\n".getBytes());
+            out.write("Expect: 100-Continue-Extension\r\n".getBytes());
             out.write("\r\n".getBytes());
 
             StringBuilder sb = new StringBuilder();
