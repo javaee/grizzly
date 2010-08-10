@@ -154,9 +154,17 @@ public class StaticResourcesAdapter implements Adapter {
                 resource = cache.get(uri);
                 if (resource == null) {
                     resource = new File(webDir, uri);
+                    if (resource.exists() && resource.isDirectory()) {
+                        final File f = new File(resource, "/index.html");
+                        if (f.exists()) {
+                            resource = f;
+                            found = true;
+                            break;
+                        }
+                    }
                 }
 
-                if (!resource.exists()) {
+                if (resource.isDirectory() || !resource.exists()) {
                     found = false;
                 } else {
                     found = true;
@@ -176,29 +184,17 @@ public class StaticResourcesAdapter implements Adapter {
                 return;
             }
 
-            if (resource.isDirectory()) {
-                req.action(ActionCode.ACTION_REQ_LOCAL_ADDR_ATTRIBUTE, null);
-                res.setStatus(302);
-                res.setMessage("Moved Temporarily");
-                final int port = req.getServerPort();
-                String server;
-                if (port == 80 || port == 443) {
-                    server = req.serverName().toString();
-                } else {
-                    server = req.serverName().toString() + ':' + port;
-                }
-                res.setHeader("Location", req.scheme() + "://" + server + "/index.html");
-                res.setHeader("Connection", "close");
-                res.setHeader("Cache-control", "private");
-                res.sendHeaders();
-                return;
-            }
-
             res.setStatus(200);
-
+            String substr;
             int dot = uri.lastIndexOf(".");
+            if (dot < 0) {
+                substr = resource.toString();
+                dot = substr.lastIndexOf(".");
+            } else {
+                substr = uri;
+            }
             if (dot > 0) {
-                String ext = uri.substring(dot + 1);
+                String ext = substr.substring(dot + 1);
                 String ct = MimeType.get(ext, defaultContentType);
                 if (ct != null) {
                     res.setContentType(ct);
