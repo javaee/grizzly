@@ -306,13 +306,12 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             configureHttpProtocol(http);
             configureFileCache(http.getFileCache());
             defaultVirtualServer = http.getDefaultVirtualServer();
-            // acceptor-threads
+            if (mayEnableAsync && GrizzlyConfig.toBoolean(http.getWebsocketsSupportEnabled())) {
+                configureWebSockets(habitat);
+            }
             if (mayEnableAsync && (GrizzlyConfig.toBoolean(http.getCometSupportEnabled()) ||
                     Boolean.getBoolean("v3.grizzly.cometSupport"))) {
                 configureComet(habitat);
-            }
-            if (mayEnableAsync && GrizzlyConfig.toBoolean(http.getWebsocketsSupportEnabled())) {
-                configureWebSockets(habitat);
             }
         } else if (protocol.getPortUnification() != null) {
             // Port unification
