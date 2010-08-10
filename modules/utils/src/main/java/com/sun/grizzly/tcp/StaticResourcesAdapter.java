@@ -180,7 +180,14 @@ public class StaticResourcesAdapter implements Adapter {
                 req.action(ActionCode.ACTION_REQ_LOCAL_ADDR_ATTRIBUTE, null);
                 res.setStatus(302);
                 res.setMessage("Moved Temporarily");
-                res.setHeader("Location", req.scheme() + "://" + req.serverName() + ":" + req.getServerPort() + "/index.html");
+                final int port = req.getServerPort();
+                String server;
+                if (port == 80 || port == 443) {
+                    server = req.serverName().toString();
+                } else {
+                    server = req.serverName().toString() + ':' + port;
+                }
+                res.setHeader("Location", req.scheme() + "://" + server + "/index.html");
                 res.setHeader("Connection", "close");
                 res.setHeader("Cache-control", "private");
                 res.sendHeaders();
