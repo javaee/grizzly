@@ -67,7 +67,7 @@ public interface NIOInputSource {
      * time data becomes available to read.
      * </p>
      *
-     * @param handler than {@link ReadHandler} to notify.
+     * @param handler the {@link ReadHandler} to notify.
      *
      * @see ReadHandler#onDataAvailable()
      * @see com.sun.grizzly.http.server.io.ReadHandler#onAllDataRead()
