@@ -190,7 +190,7 @@ public final class CometEngine {
 
 
     /**
-     * Creat a singleton and initialize all lists required. Also create and
+     * Create a singleton and initialize all lists required. Also create and
      * start the {@link CometSelector}
      */
     protected CometEngine() {
@@ -211,6 +211,7 @@ public final class CometEngine {
         asyncTasks = new ConcurrentQueue<AsyncProcessorTask>("CometEngine.asyncTasks");
 
         final LinkedListPipeline threadPool = new LinkedListPipeline(5, 1, "Comet-thread-pool", 0);
+        threadPool.initPipeline();
         threadPool.startPipeline();
         
         setPipeline(threadPool);
