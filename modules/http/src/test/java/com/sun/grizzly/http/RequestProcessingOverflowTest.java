@@ -37,6 +37,7 @@
 package com.sun.grizzly.http;
 
 import com.sun.grizzly.http.embed.GrizzlyWebServer;
+import java.io.BufferedOutputStream;
 import junit.framework.TestCase;
 
 import java.io.BufferedReader;
@@ -88,7 +89,7 @@ public class RequestProcessingOverflowTest extends TestCase {
         Socket s = initClientSocket();
 
         try {
-            OutputStream out = s.getOutputStream();
+            OutputStream out = new BufferedOutputStream(s.getOutputStream());
 
             // Per the issue description:
             //
@@ -129,8 +130,7 @@ public class RequestProcessingOverflowTest extends TestCase {
             String control = "HTTP/1.1 414 Request-URI Too Long";
             assertEquals(control, control, responseStatus);
         } catch (IOException e) {
-            fail("Unable to read response from local test server: " + e
-                  .toString());
+            fail("Unable to read response from local test server: " + e.toString());
         }
 
     }
@@ -141,7 +141,7 @@ public class RequestProcessingOverflowTest extends TestCase {
         Socket s = initClientSocket();
 
         try {
-            OutputStream out = s.getOutputStream();
+            OutputStream out = new BufferedOutputStream(s.getOutputStream());
 
             StringBuilder sb = new StringBuilder(9000);
             sb.append("Host: lo");
