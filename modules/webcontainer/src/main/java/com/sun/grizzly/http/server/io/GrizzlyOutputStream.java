@@ -124,7 +124,7 @@ public class GrizzlyOutputStream extends OutputStream implements BinaryNIOOutput
      * {@inheritDoc}
      */
     @Override
-    public void write(Buffer buffer) throws IOException {
+    public void write(final Buffer buffer) throws IOException {
         outputBuffer.writeBuffer(buffer);
     }
     

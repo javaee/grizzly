@@ -53,6 +53,6 @@ public interface BinaryNIOOutputSink extends NIOOutputSink {
      *
      * @param buffer the {@link com.sun.grizzly.Buffer to write}
      */
-    void write(Buffer buffer) throws IOException;
+    void write(final Buffer buffer) throws IOException;
     
 }
