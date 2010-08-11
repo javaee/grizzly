@@ -156,23 +156,26 @@ public class ArpBasicTest extends TestCase {
     static class MyAsyncFilter implements AsyncFilter {
         private static int count = 0;
 
-        public boolean doFilter(AsyncExecutor executor) {
+        public AsyncFilter.Result doFilter(AsyncExecutor executor) {
             try {
                 if (count++ == 0){
                     Utils.dumpOut(this + "-execute");
                     executor.getProcessorTask().getRequest().getResponse()
                             .addHeader("AsyncFilter-1", "1");
                     executor.execute();
+                    return AsyncFilter.Result.NEXT;
                 } else {
                     executor.getProcessorTask().getRequest().getResponse()
                             .addHeader("AsyncFilter-2", "2");
                     Utils.dumpOut(this + "-postExecute");
                     executor.postExecute();
+                    return AsyncFilter.Result.FINISH;
                 }
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
-            return true;
+
+            return AsyncFilter.Result.NEXT;
         }
     }
 

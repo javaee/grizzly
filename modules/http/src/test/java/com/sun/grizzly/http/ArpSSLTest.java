@@ -186,7 +186,7 @@ public class ArpSSLTest extends TestCase {
     }
 
     private class MyAsyncFilter implements AsyncFilter {
-        public boolean doFilter(AsyncExecutor executor) {
+        public AsyncFilter.Result doFilter(AsyncExecutor executor) {
             ProcessorTask processorTask = executor.getProcessorTask();
             int contentLenght = processorTask.getRequest().getContentLength();
             ByteChunk byteChunk = new ByteChunk();
@@ -197,7 +197,7 @@ public class ArpSSLTest extends TestCase {
                 e.printStackTrace();
             }
             processorTask.invokeAdapter();
-            return false;
+            return AsyncFilter.Result.INTERRUPT;
         }
     }
 

@@ -137,7 +137,12 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
             execute();
             return false;
         } else {
-            return invokeFilters();
+            final AsyncFilter.Result result = invokeFilters();
+            if (result == AsyncFilter.Result.NEXT) {
+                return execute();
+            }
+
+            return result == AsyncFilter.Result.FINISH;
         }
     }
     
@@ -156,22 +161,22 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
 
     
     /**
-     * Invoke the {@link AsyncFilter}
+     * Invoke the {@link AsyncFilter}s
      */
-    private boolean invokeFilters(){
-        boolean continueExec = true;
+    private AsyncFilter.Result invokeFilters(){
         for (AsyncFilter asyncFilter : asyncFilters) {
-            continueExec = asyncFilter.doFilter(this);
-            if (!continueExec) {
-                break;
+            final AsyncFilter.Result result = asyncFilter.doFilter(this);
+            if (result != AsyncFilter.Result.NEXT) {
+                return result;
             }
         }
-        return continueExec;
+
+        return AsyncFilter.Result.NEXT;
     }
     
     
     /**
-     * Finish the {@link Response} and recyle {@link ProcessorTask}.
+     * Finish the {@link Response} and recycle {@link ProcessorTask}.
      */
     private void finishResponse() throws Exception{       
         processorTask.postProcess();        

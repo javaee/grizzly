@@ -44,8 +44,12 @@ import java.util.logging.Logger;
 public class WebSocketAsyncFilter implements AsyncFilter {
     private static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
 
-    public boolean doFilter(AsyncExecutor asyncExecutor) {
-        return !WebSocketEngine.getEngine().handle(asyncExecutor);
+    public AsyncFilter.Result doFilter(AsyncExecutor asyncExecutor) {
+        if (WebSocketEngine.getEngine().handle(asyncExecutor)) {
+            return AsyncFilter.Result.INTERRUPT;
+        }
+
+        return AsyncFilter.Result.NEXT;
     }
 
 }

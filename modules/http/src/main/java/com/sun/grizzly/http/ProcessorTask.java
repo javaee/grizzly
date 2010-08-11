@@ -2105,7 +2105,7 @@ public class ProcessorTask extends TaskBase implements Processor,
 
 
     /**
-     * Recyle this object.
+     * Recycle this object.
      */
     @Override
     public void recycle(){

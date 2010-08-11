@@ -78,12 +78,12 @@ public class CometAsyncFilter implements AsyncFilter {
      * {@link CometEngine}. At this stage, the request has already
      * been interrupted.
      */
-    public boolean doFilter(AsyncExecutor asyncExecutor) {
+    public AsyncFilter.Result doFilter(AsyncExecutor asyncExecutor) {
         AsyncProcessorTask apt = (AsyncProcessorTask)asyncExecutor.getAsyncTask();
         CometEngine cometEngine = CometEngine.getEngine();                
         try{
             if (!cometEngine.handle(apt)) {
-                return true;
+                return AsyncFilter.Result.FINISH;
             } 
         } catch (IOException ex){
             if (logger.isLoggable(Level.SEVERE)) {
@@ -92,6 +92,7 @@ public class CometAsyncFilter implements AsyncFilter {
                            ex);
             }
         }
-        return false;
+        
+        return AsyncFilter.Result.INTERRUPT;
     }
 }

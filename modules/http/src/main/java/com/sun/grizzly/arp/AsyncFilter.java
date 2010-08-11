@@ -42,14 +42,14 @@ package com.sun.grizzly.arp;
 
 /**
  * An interface marker used to execute operations before 
- * a {@link AsyncProcesssorTask} in pre/post or interrupted. Usualy, 
+ * a {@link AsyncProcesssorTask} in pre/post or interrupted. Usually,
  * implementation of this interface is called by an instance of 
  * {@link AsyncExecutor}.
  * 
  * Using an {@link AsyncExecutor}, it is possible to suspend or resume 
  * the current request processing. Once suspended, the request can always 
  * be resumed using the {@link AsyncExecutor}, and the normal Grizzly
- * invokation path will be used (like calling {@link Adapter#service} 
+ * invocation path will be used (like calling {@link Adapter#service}
  * or {@link GrizzlyAdapter#service}). 
  * 
  * To invoke the {@link GrizzlyAdapter} from an AsyncFilter, just invoke
@@ -61,11 +61,14 @@ package com.sun.grizzly.arp;
  * @author Jeanfrancois Arcand
  */
 public interface AsyncFilter {
-    
+    public enum Result {NEXT, INTERRUPT, FINISH};
     /**
-     * Execute and return <tt>true</tt> if the next {@link AsyncFilter} 
-     * can be invoked. Return <tt>false</tt> to stop calling the 
-     * {@link AsyncFilter}.
+     * Execute and return {@link Result}.
+     * {@link Result#NEXT}: next <tt>AsyncFilter</tt> should be executed;
+     * {@link Result#INTERRUPT}: interrupts the execution, filter is becoming responsible for finishing the processing;
+     * {@link Result#FINISH}: finish the async execution (skip the rest of the filters).
+     *
+     * @return {@link Result}
      */
-    public boolean doFilter(AsyncExecutor asyncExecutor);
+    public Result doFilter(AsyncExecutor asyncExecutor);
 }
