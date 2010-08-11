@@ -61,6 +61,12 @@ public interface NIOInputSource {
      * Invoking this method is equivalent to calling: notifyAvailable(handler, 0).
      * </p>
      *
+     * <p>
+     * Note that unless this method is called with a different {@link ReadHandler}
+     * implementation, the same {@link ReadHandler} will be invoked each
+     * time data becomes available to read.
+     * </p>
+     *
      * @param handler than {@link ReadHandler} to notify.
      *
      * @see ReadHandler#onDataAvailable()
@@ -74,6 +80,12 @@ public interface NIOInputSource {
      * Notify the specified {@link ReadHandler} when the number of bytes that
      * can be read without blocking is greater or equal to the specified
      * <code>size</code>.
+     * </p>
+     *
+     * <p>
+     * Note that unless this method is called with a different {@link ReadHandler}
+     * implementation, the same {@link ReadHandler} will be invoked each
+     * time data becomes available to read.
      * </p>
      *
      * @param handler the {@link ReadHandler} to notify.

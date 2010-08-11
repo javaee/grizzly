@@ -184,6 +184,12 @@ public class NIOOutputSinksTest extends TestCase {
                         response.resume();
 
                     }
+
+                    @Override
+                    public void onError(Throwable t) {
+                        response.resume();
+                        throw new RuntimeException(t);
+                    }
                 }, (LENGTH));
 
                 clientTransport.resume();
@@ -332,6 +338,12 @@ public class NIOOutputSinksTest extends TestCase {
                         }
                         response.resume();
 
+                    }
+
+                    @Override
+                    public void onError(Throwable t) {
+                        response.resume();
+                        throw new RuntimeException(t);
                     }
                 }, (LENGTH));
 

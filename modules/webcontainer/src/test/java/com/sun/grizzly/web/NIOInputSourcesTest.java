@@ -504,6 +504,12 @@ public class NIOInputSourcesTest extends TestCase {
                         res.resume();
 
                     }
+
+                    @Override
+                    public void onError(Throwable t) {
+                        res.resume();
+                        throw new RuntimeException(t);
+                    }
                 }, readSize);
                 res.suspend();
             } catch (Throwable t) {
@@ -592,6 +598,12 @@ public class NIOInputSourcesTest extends TestCase {
                         }
                         res.resume();
 
+                    }
+
+                    @Override
+                    public void onError(Throwable t) {
+                        res.resume();
+                        throw new RuntimeException(t);
                     }
                 }, readSize);
                 res.suspend();

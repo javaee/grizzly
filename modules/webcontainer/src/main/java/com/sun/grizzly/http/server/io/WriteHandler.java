@@ -51,4 +51,11 @@ public interface WriteHandler {
      */
     void onWritePossible();
 
+    /**
+     * <p>
+     * Invoked when an error occurs processing the request asynchronously.
+     * </p>
+     */
+    void onError(final Throwable t);
+
 }

@@ -37,6 +37,7 @@
 package com.sun.grizzly.http.server.io;
 
 import com.sun.grizzly.Buffer;
+import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.EmptyCompletionHandler;
 import com.sun.grizzly.asyncqueue.AsyncQueueWriter;
@@ -92,6 +93,10 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
     private CharBuffer charBuf = CharBuffer.allocate(DEFAULT_BUFFER_SIZE);
 
     private MemoryManager memoryManager;
+
+    private WriteHandler handler;
+
+    private TaskQueue.QueueMonitor monitor;
 
 
     // ---------------------------------------------------------- Public Methods
@@ -154,6 +159,7 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
         encoder = null;
         ctx = null;
         memoryManager = null;
+        handler = null;
 
         committed = false;
         finished = false;
@@ -171,6 +177,13 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
         if (finished) {
             return;
         }
+
+        if (monitor != null) {
+            final Connection c = ctx.getConnection();
+            final TaskQueue tqueue = ((AbstractNIOConnection) c).getAsyncWriteQueue();
+            tqueue.removeQueueMonitor(monitor);
+        }
+
 
         //if (lastActiveFilter != -1)
         //    activeFilters[lastActiveFilter].end();
@@ -512,10 +525,14 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
 
     public void notifyCanWrite(final WriteHandler handler, final int length) {
 
+        this.handler = handler;
         final Connection c = ctx.getConnection();
         final TaskQueue tqueue = ((AbstractNIOConnection) c).getAsyncWriteQueue();
+        if (monitor != null) {
+            tqueue.removeQueueMonitor(monitor);
+        }
         final AsyncQueueWriter awriter = ((AsyncQueueWriter) c.getTransport().getWriter(c));
-        tqueue.addQueueMonitor(new TaskQueue.QueueMonitor() {
+        monitor = new TaskQueue.QueueMonitor() {
 
             @Override
             public boolean shouldNotify() {
@@ -526,7 +543,8 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
             public void onNotify() {
                 handler.onWritePossible();
             }
-        });
+        };
+        tqueue.addQueueMonitor(monitor);
         
     }
 
@@ -539,15 +557,26 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
             HttpContent.Builder builder = response.httpContentBuilder();
             buf.flip();
             builder.content(buf);
-            final WriteCompletionHandler handler = new WriteCompletionHandler();
-            ctx.write(builder.build(), handler);
-            if (handler.operationFailed()) {
-                Throwable t = handler.getCause();
-                if (t instanceof IOException) {
-                    throw (IOException) t;
-                } else {
-                    throw new IOException(t);
+            if (handler == null) {
+                final WriteCompletionHandler handler = new WriteCompletionHandler();
+                ctx.write(builder.build(), handler);
+                if (handler.operationFailed()) {
+                    Throwable t = handler.getCause();
+                    if (t instanceof IOException) {
+                        throw (IOException) t;
+                    } else {
+                        throw new IOException(t);
+                    }
                 }
+            } else {
+                final WriteHandler writeHandler = handler;
+                final CompletionHandler completionHandler = new EmptyCompletionHandler() {
+                    @Override
+                    public void failed(Throwable throwable) {
+                        writeHandler.onError(throwable);
+                    }
+                };
+                ctx.write(builder.build(), completionHandler);
             }
             if (!includeTrailer) {
                 buf = memoryManager.allocate(DEFAULT_BUFFER_SIZE);

@@ -131,19 +131,21 @@ public abstract class TaskQueue<E> {
     }
 
 
+    public void removeQueueMonitor(final QueueMonitor monitor) {
+        monitorQueue.remove(monitor);
+    }
+
+
     // ------------------------------------------------------- Protected Methods
 
 
     protected void doNotify() {
 
         if (!monitorQueue.isEmpty()) {
-            for (Iterator<QueueMonitor> i = monitorQueue.iterator(); i.hasNext();) {
-                final QueueMonitor m = i.next();
+            for (final QueueMonitor m : monitorQueue) {
                 if (m.shouldNotify()) {
                     m.onNotify();
-                    i.remove();
                 }
-
             }
         }
 

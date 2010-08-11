@@ -338,6 +338,11 @@ public class InputBuffer {
     }
 
 
+    public ReadHandler getReadHandler() {
+        return handler;
+    }
+
+
     // -------------------------------------------------- Reader-Related Methods
 
 

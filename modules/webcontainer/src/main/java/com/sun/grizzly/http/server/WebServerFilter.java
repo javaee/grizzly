@@ -47,6 +47,7 @@ import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpResponsePacket;
+import com.sun.grizzly.http.server.io.ReadHandler;
 import com.sun.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
 import com.sun.grizzly.monitoring.jmx.JmxMonitoringAware;
 import com.sun.grizzly.monitoring.jmx.JmxMonitoringConfig;
@@ -179,6 +180,26 @@ public class WebServerFilter extends BaseFilter
         }
 
         return ctx.getStopAction();
+    }
+
+
+    /**
+     * Override the default implementation to notify the {@link ReadHandler},
+     * if available, of any read error that has occurred during processing.
+     * 
+     * @param ctx event processing {@link FilterChainContext}
+     * @param error error, which occurred during <tt>FilterChain</tt> execution
+     */
+    @Override
+    public void exceptionOccurred(FilterChainContext ctx, Throwable error) {
+        final Connection c = ctx.getConnection();
+        GrizzlyRequest grizzlyRequest = grizzlyRequestInProcessAttr.get(c);
+        if (grizzlyRequest != null) {
+            ReadHandler handler = grizzlyRequest.getInputBuffer().getReadHandler();
+            if (handler != null) {
+                handler.onError(error);
+            }
+        }
     }
 
 
