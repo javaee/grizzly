@@ -3,4 +3,5 @@
                         com.sun.grizzly.config.dom; version=${grizzly-version}
 
 Import-Package: \
+                        com.sun.grizzly*; version=${grizzly-version}, \
                         *

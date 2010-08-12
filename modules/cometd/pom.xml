@@ -22,8 +22,11 @@
                 <version>${felix-version}</version>
                 <configuration>
                     <instructions>
-                        <Import-Package>*</Import-Package>
-                        <Export-Package>com.sun.grizzly.cometd.*</Export-Package>
+                        <Import-Package>
+                            com.sun.grizzly*;version=${project.version},
+                            *,
+                        </Import-Package>
+                        <Export-Package>com.sun.grizzly.cometd.*;version=${project.version}</Export-Package>
                         <Embed-Dependency>com.sun.grizzly.comet;scope=runtime</Embed-Dependency>
                     </instructions>
                     <unpackBundle>true</unpackBundle>

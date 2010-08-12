@@ -1,39 +1,43 @@
 /*
- *   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- *   Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
  *
- *   The contents of this file are subject to the terms of either the GNU
- *   General Public License Version 2 only ("GPL") or the Common Development
- *   and Distribution License("CDDL") (collectively, the "License").  You
- *   may not use this file except in compliance with the License. You can obtain
- *   a copy of the License at https://glassfish.dev.java.net/public/CDDL+GPL.html
- *   or glassfish/bootstrap/legal/LICENSE.txt.  See the License for the specific
- *   language governing permissions and limitations under the License.
+ * The contents of this file are subject to the terms of either the GNU
+ * General Public License Version 2 only ("GPL") or the Common Development
+ * and Distribution License("CDDL") (collectively, the "License").  You
+ * may not use this file except in compliance with the License.  You can
+ * obtain a copy of the License at
+ * https://glassfish.dev.java.net/public/CDDL+GPL_1_1.html
+ * or packager/legal/LICENSE.txt.  See the License for the specific
+ * language governing permissions and limitations under the License.
  *
- *   When distributing the software, include this License Header Notice in each
- *   file and include the License file at glassfish/bootstrap/legal/LICENSE.txt.
- *   Sun designates this particular file as subject to the "Classpath" exception
- *   as provided by Sun in the GPL Version 2 section of the License file that
- *   accompanied this code.  If applicable, add the following below the License
- *   Header, with the fields enclosed by brackets [] replaced by your own
- *   identifying information: "Portions Copyrighted [year]
- *   [name of copyright owner]"
+ * When distributing the software, include this License Header Notice in each
+ * file and include the License file at glassfish/bootstrap/legal/LICENSE.txt.
  *
- *   Contributor(s):
+ * GPL Classpath Exception:
+ * Oracle designates this particular file as subject to the "Classpath"
+ * exception as provided by Oracle in the GPL Version 2 section of the License
+ * file that accompanied this code.
  *
- *   If you wish your version of this file to be governed by only the CDDL or
- *   only the GPL Version 2, indicate your decision by adding "[Contributor]
- *   elects to include this software in this distribution under the [CDDL or GPL
- *   Version 2] license."  If you don't indicate a single choice of license, a
- *   recipient has the option to distribute your version of this file under
- *   either the CDDL, the GPL Version 2 or to extend the choice of license to
- *   its licensees as provided above.  However, if you add GPL Version 2 code
- *   and therefore, elected the GPL Version 2 license, then the option applies
- *   only if the new code is made subject to such option by the copyright
- *   holder.
+ * Modifications:
+ * If applicable, add the following below the License Header, with the fields
+ * enclosed by brackets [] replaced by your own identifying information:
+ * "Portions Copyright [year] [name of copyright owner]"
  *
+ * Contributor(s):
+ * If you wish your version of this file to be governed by only the CDDL or
+ * only the GPL Version 2, indicate your decision by adding "[Contributor]
+ * elects to include this software in this distribution under the [CDDL or GPL
+ * Version 2] license."  If you don't indicate a single choice of license, a
+ * recipient has the option to distribute your version of this file under
+ * either the CDDL, the GPL Version 2 or to extend the choice of license to
+ * its licensees as provided above.  However, if you add GPL Version 2 code
+ * and therefore, elected the GPL Version 2 license, then the option applies
+ * only if the new code is made subject to such option by the copyright
+ * holder.
  */
+
 package com.sun.grizzly.config.dom;
 
 import java.util.ArrayList;
@@ -73,6 +77,11 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
 
     void setEnabled(String enabled);
 
+    @Attribute(defaultValue = "${com.sun.aas.instanceRoot}/config/glassfish-jk.properties")
+    String getJkConfigurationFile();
+
+    void setJkConfigurationFile(String file);
+
     /**
      * If true, a jk listener is enabled
      */
@@ -80,11 +89,6 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
     String getJkEnabled();
 
     void setJkEnabled(String enabled);
-
-    @Attribute(defaultValue = "${com.sun.aas.instanceRoot}/config/glassfish-jk.properties")
-    String getJkConfigurationFile();
-
-    void setJkConfigurationFile(String file);
     /**
      * Network-listener name, which could be used as reference
      */
@@ -101,15 +105,6 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
 
     void setPort(String value);
 
-    @DuckTyped
-    Protocol findProtocol();
-
-    @DuckTyped
-    Protocol findHttpProtocol();
-
-    @DuckTyped
-    String findHttpProtocolName();
-
     /**
      * Reference to a protocol
      */
@@ -117,9 +112,6 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
     String getProtocol();
 
     void setProtocol(String value);
-
-    @DuckTyped
-    ThreadPool findThreadPool();
 
     /**
      * Reference to a thread-pool, defined earlier in the document.
@@ -129,9 +121,6 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
 
     void setThreadPool(String value);
 
-    @DuckTyped
-    Transport findTransport();
-
     /**
      * Reference to a low-level transport
      */
@@ -140,22 +129,28 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
 
     void setTransport(String value);
 
+    @DuckTyped
+    Protocol findHttpProtocol();
+
+    @DuckTyped
+    String findHttpProtocolName();
+
+    @DuckTyped
+    Protocol findProtocol();
+
+    @DuckTyped
+    ThreadPool findThreadPool();
+
+    @DuckTyped
+    Transport findTransport();
+
+    @DuckTyped
+    NetworkListeners getParent();
+
     class Duck {
-        public static Protocol findProtocol(NetworkListener listener) {
-            return listener.getParent().getParent(NetworkConfig.class).findProtocol(listener.getProtocol());
-        }
 
         public static Protocol findHttpProtocol(NetworkListener listener) {
             return findHttpProtocol(new HashSet<String>(), findProtocol(listener));
-        }
-
-        public static String findHttpProtocolName(NetworkListener listener) {
-            final Protocol httpProtocol = findHttpProtocol(listener);
-            if (httpProtocol != null) {
-                return httpProtocol.getName();
-            }
-
-            return null;
         }
 
         private static Protocol findHttpProtocol(Set<String> tray, Protocol protocol) {
@@ -171,7 +166,6 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
             if (protocol.getHttp() != null) {
                 return protocol;
             } else if (protocol.getPortUnification() != null) {
-                Habitat habitat = ConfigBean.unwrap(protocol).getHabitat();
                 final List<ProtocolFinder> finders = protocol.getPortUnification().getProtocolFinder();
                 tray.add(protocolName);
 
@@ -200,8 +194,20 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
             return null;
         }
 
+        public static String findHttpProtocolName(NetworkListener listener) {
+            final Protocol httpProtocol = findHttpProtocol(listener);
+            if (httpProtocol != null) {
+                return httpProtocol.getName();
+            }
+
+            return null;
+        }
+        public static Protocol findProtocol(NetworkListener listener) {
+            return listener.getParent().getParent().findProtocol(listener.getProtocol());
+        }
+
         public static ThreadPool findThreadPool(NetworkListener listener) {
-            final NetworkListeners listeners = listener.getParent(NetworkListeners.class);
+            final NetworkListeners listeners = listener.getParent();
             List<ThreadPool> list = listeners.getThreadPool();
             if(list == null || list.isEmpty()) {
                 final ConfigBeanProxy parent = listener.getParent().getParent().getParent();
@@ -221,13 +227,17 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
         }
 
         public static Transport findTransport(NetworkListener listener) {
-            List<Transport> list = listener.getParent().getParent(NetworkConfig.class).getTransports().getTransport();
+            List<Transport> list = listener.getParent().getParent().getTransports().getTransport();
             for (Transport transport : list) {
                 if(listener.getTransport().equals(transport.getName())) {
                     return transport;
                 }
             }
             return null;
+        }
+
+        public static NetworkListeners getParent(NetworkListener listener) {
+            return listener.getParent(NetworkListeners.class);
         }
     }
 }
