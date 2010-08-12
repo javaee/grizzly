@@ -46,11 +46,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.servlet.Filter;
+import javax.servlet.FilterChain;
 import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletRequestEvent;
+import javax.servlet.ServletRequestListener;
+import javax.servlet.ServletResponse;
 
 import com.sun.grizzly.tcp.Constants;
 import com.sun.grizzly.tcp.Request;
@@ -61,6 +67,8 @@ import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 import com.sun.grizzly.util.ClassLoaderUtil;
 import com.sun.grizzly.util.Grizzly;
 import com.sun.grizzly.util.IntrospectionUtils;
+import com.sun.grizzly.util.LoggerUtils;
+import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.util.buf.MessageBytes;
 import com.sun.grizzly.util.http.Cookie;
 import com.sun.grizzly.util.http.HttpRequestURIDecoder;
@@ -112,12 +120,14 @@ import com.sun.grizzly.util.http.HttpRequestURIDecoder;
  * @author Jeanfrancois Arcand
  */
 public class ServletAdapter extends GrizzlyAdapter {
+
+    private static final Logger LOGGER = LoggerUtils.getLogger();
+
     public static final int REQUEST_RESPONSE_NOTES = 29;
     public static final int SERVLETCONFIG_NOTES = 30;   
     public static final String LOAD_ON_STARTUP="load-on-startup";
     protected volatile Servlet servletInstance = null;
-    private FilterChainImpl filterChain = new FilterChainImpl();
-    
+
     private transient List<String> listeners = new ArrayList<String>();
     
     private String servletPath = "";
@@ -172,6 +182,20 @@ public class ServletAdapter extends GrizzlyAdapter {
     protected boolean initialize = true;
 
     protected ClassLoader classLoader;
+
+    private final static Object[] lock = new Object[0];
+
+    /**
+     * Filters.
+     */
+    private FilterConfigImpl[] filters = new FilterConfigImpl[8];
+
+    public static final int INCREMENT = 8;
+
+    /**
+     * The int which gives the current number of filters.
+     */
+    private int n = 0;
     
 
     public ServletAdapter() {
@@ -371,7 +395,7 @@ public class ServletAdapter extends GrizzlyAdapter {
             
             //TODO: Make this configurable.
             httpResponse.addHeader("server", "grizzly/" + Grizzly.getDotedVersion());
- 
+            FilterChainImpl filterChain = new FilterChainImpl(servletInstance, servletConfig);
             filterChain.invokeFilterChain(httpRequest, httpResponse);
         } catch (Throwable ex) {
             logger.log(Level.SEVERE, "service exception:", ex);
@@ -426,8 +450,12 @@ public class ServletAdapter extends GrizzlyAdapter {
             if (servletInstance != null){
                 servletInstance.init(servletConfig);
             }
-            filterChain.setServlet(servletConfig, servletInstance);           
-            filterChain.init();
+            
+            for (FilterConfigImpl f: filters){
+                if (f != null) {
+                    f.getFilter().init(f);
+                }
+            }
  
             filterChainConfigured = true;
         } finally {
@@ -479,15 +507,11 @@ public class ServletAdapter extends GrizzlyAdapter {
         
         HttpServletResponseImpl httpResponse = (HttpServletResponseImpl)
                 response.getResponse().getNote(REQUEST_RESPONSE_NOTES);
-//        try{
 
         if (httpRequest != null) {
             httpRequest.recycle();
             httpResponse.recycle();
         }
-//        } finally {
-//            filterChain.recycle(httpRequest, httpResponse);
-//        }
     }
     
     
@@ -542,7 +566,7 @@ public class ServletAdapter extends GrizzlyAdapter {
     
     /**
      * Add a {@link Filter} to the
-     * {@link com.sun.grizzly.http.servlet.FilterChainImpl}
+     * {@link com.sun.grizzly.http.servlet.ServletAdapter.FilterChainImpl}
      *
      * @param filter an instance of Filter
      * @param filterName the Filter's name
@@ -553,7 +577,7 @@ public class ServletAdapter extends GrizzlyAdapter {
         filterConfig.setFilter(filter);
         filterConfig.setFilterName(filterName);
         filterConfig.setInitParameters(initParameters);
-        filterChain.addFilter(filterConfig);
+        addFilter(filterConfig);
     }
     
     
@@ -775,14 +799,21 @@ public class ServletAdapter extends GrizzlyAdapter {
             try {
                 super.destroy();
                 servletCtx.destroyListeners();
-                filterChain.destroy();
+                for (FilterConfigImpl filter : filters) {
+                    if (filter != null)
+                        filter.recycle();
+                }
+                if (servletInstance != null) {
+                    servletInstance.destroy();
+                    servletInstance = null;
+                }
+                filters = null;
             } finally {
                 Thread.currentThread().setContextClassLoader( prevClassLoader );
             }
         } else {
             super.destroy();
             servletCtx.destroyListeners();
-            filterChain.destroy();
         }
     }
      
@@ -824,5 +855,175 @@ public class ServletAdapter extends GrizzlyAdapter {
 
     public void setClassLoader( ClassLoader classLoader ) {
         this.classLoader = classLoader;
+    }
+
+
+    /**
+     * Add a filter to the set of filters that will be executed in this chain.
+     *
+     * @param filterConfig The FilterConfig for the servlet to be executed
+     */
+    protected void addFilter(FilterConfigImpl filterConfig) {
+        synchronized (lock) {
+            if (n == filters.length) {
+                FilterConfigImpl[] newFilters =
+                        new FilterConfigImpl[n + INCREMENT];
+                System.arraycopy(filters, 0, newFilters, 0, n);
+                filters = newFilters;
+            }
+
+            filters[n++] = filterConfig;
+        }
+    }
+
+
+    // ---------------------------------------------------------- Nested Classes
+
+
+    /**
+     * Implementation of <code>javax.servlet.FilterChain</code> used to manage
+     * the execution of a set of filters for a particular request.  When the
+     * set of defined filters has all been executed, the next call to
+     * <code>doFilter()</code> will execute the servlet's <code>service()</code>
+     * method itself.
+     *
+     * @author Craig R. McClanahan
+     */
+    private final class FilterChainImpl implements FilterChain {
+
+
+        /**
+         * The servlet instance to be executed by this chain.
+         */
+        private final Servlet servlet;
+        private final ServletConfigImpl configImpl;
+
+        /**
+         * The int which is used to maintain the current position
+         * in the filter chain.
+         */
+        private int pos = 0;
+
+
+        public FilterChainImpl(final Servlet servlet,
+                               final ServletConfigImpl configImpl) {
+
+            this.servlet = servlet;
+            this.configImpl = configImpl;
+        }
+
+
+        // ---------------------------------------------------- FilterChain Methods
+        protected void invokeFilterChain(ServletRequest request, ServletResponse response)
+                throws IOException, ServletException {
+
+            ServletRequestEvent event =
+                    new ServletRequestEvent(configImpl.getServletContext(), request);
+            try {
+                for (EventListener l : ((ServletContextImpl) configImpl.getServletContext()).getListeners()) {
+                    try {
+                        if (l instanceof ServletRequestListener) {
+                            ((ServletRequestListener) l).requestInitialized(event);
+                        }
+                    } catch (Throwable t) {
+                        if (LOGGER.isLoggable(Level.WARNING)) {
+                            LOGGER.log(Level.WARNING,
+                                       LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_CONTAINER_OBJECT_INITIALIZED_ERROR("requestInitialized", "ServletRequestListener", l.getClass().getName()),
+                                       t);
+                        }
+                    }
+                }
+                pos = 0;
+                doFilter(request, response);
+            } finally {
+                for (EventListener l : ((ServletContextImpl) configImpl.getServletContext()).getListeners()) {
+                    try {
+                        if (l instanceof ServletRequestListener) {
+                            ((ServletRequestListener) l).requestDestroyed(event);
+                        }
+                    } catch (Throwable t) {
+                         if (LOGGER.isLoggable(Level.WARNING)) {
+                            LOGGER.log(Level.WARNING,
+                                       LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_CONTAINER_OBJECT_DESTROYED_ERROR("requestDestroyed", "ServletRequestListener", l.getClass().getName()),
+                                       t);
+                        }
+                    }
+                }
+            }
+
+        }
+
+        /**
+         * Invoke the next filter in this chain, passing the specified request
+         * and response.  If there are no more filters in this chain, invoke
+         * the <code>service()</code> method of the servlet itself.
+         *
+         * @param request The servlet request we are processing
+         * @param response The servlet response we are creating
+         *
+         * @exception java.io.IOException if an input/output error occurs
+         * @exception javax.servlet.ServletException if a servlet exception occurs
+         */
+        public void doFilter(ServletRequest request, ServletResponse response)
+                throws IOException, ServletException {
+
+            // Call the next filter if there is one
+            if (pos < n) {
+
+                FilterConfigImpl filterConfig;
+
+                synchronized (lock){
+                    filterConfig = filters[pos++];
+                }
+
+                try {
+                    Filter filter = filterConfig.getFilter();
+                    filter.doFilter(request, response, this);
+                } catch (IOException e) {
+                    throw e;
+                } catch (ServletException e) {
+                    throw e;
+                } catch (RuntimeException e) {
+                    throw e;
+                } catch (Throwable e) {
+                    throw new ServletException("Throwable", e);
+                }
+
+                return;
+            }
+
+            try {
+                if (servlet != null) {
+                    servlet.service(request, response);
+                }
+
+            } catch (IOException e) {
+                throw e;
+            } catch (ServletException e) {
+                throw e;
+            } catch (RuntimeException e) {
+                throw e;
+            } catch (Throwable e) {
+                throw new ServletException("Throwable", e);
+            }
+
+        }
+
+
+        // -------------------------------------------------------- Package Methods
+
+
+        protected FilterConfigImpl getFilter(int i) {
+            return filters[i];
+        }
+
+        protected Servlet getServlet() {
+            return servlet;
+        }
+
+        protected ServletConfigImpl getServletConfig() {
+            return configImpl;
+        }
+
     }
 }
