@@ -88,8 +88,9 @@ public class RequestProcessingOverflowTest extends TestCase {
 
         Socket s = initClientSocket();
 
+        final int bufferSize = 16384;
         try {
-            OutputStream out = new BufferedOutputStream(s.getOutputStream());
+            OutputStream out = new BufferedOutputStream(s.getOutputStream(), bufferSize);
 
             // Per the issue description:
             //
@@ -103,7 +104,7 @@ public class RequestProcessingOverflowTest extends TestCase {
             //  that the whole
             //  request has a size >8192 bytes.
 
-            StringBuilder sb = new StringBuilder(9000);
+            StringBuilder sb = new StringBuilder(bufferSize);
             sb.append("GET /test/l");
             for (int i = 0; i < 8200; i++) {
                 sb.append('o');
@@ -139,11 +140,12 @@ public class RequestProcessingOverflowTest extends TestCase {
     public void testLargeRequestHeader() {
 
         Socket s = initClientSocket();
+        final int bufferSize = 16384;
 
         try {
-            OutputStream out = new BufferedOutputStream(s.getOutputStream());
+            OutputStream out = new BufferedOutputStream(s.getOutputStream(), bufferSize);
 
-            StringBuilder sb = new StringBuilder(9000);
+            StringBuilder sb = new StringBuilder(bufferSize);
             sb.append("Host: lo");
             for (int i = 0; i < 8200; i++) {
                 sb.append('o');
