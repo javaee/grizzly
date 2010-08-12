@@ -140,6 +140,11 @@ public class SelectorThread extends Thread implements MBeanRegistration{
     
     
     protected boolean oOBInline = false;
+
+    protected int socketReceiveBufferSize = -1;
+
+    protected int socketSendBufferSize = -1;
+
     // ------------------------------------------------------ Compression ---/
 
 
@@ -2024,61 +2029,85 @@ public class SelectorThread extends Thread implements MBeanRegistration{
     protected void setSocketOptions(Socket socket){
         
         // The channel got closed just after the register operation.
-        if (socket.getChannel() != null && !socket.getChannel().isOpen()){
+        if (socket.getChannel() != null && !socket.getChannel().isOpen()) {
             return;
-        }      
-        
+        }
+
         try {
             if (socketKeepAlive) {
                 socket.setKeepAlive(socketKeepAlive);
             }
-        } catch (SocketException ex){
-            if (logger.isLoggable(Level.FINE)){
+        } catch (SocketException ex) {
+            if (logger.isLoggable(Level.FINE)) {
                 logger.log(Level.FINE,
-                            "setKeepAlive exception ",ex);
+                        "setKeepAlive exception ", ex);
             }
         }
 
-        try{
-            if(linger >= 0 ) {
-                socket.setSoLinger( true, linger);
+        try {
+            if (linger >= 0) {
+                socket.setSoLinger(true, linger);
             }
-        } catch (SocketException ex){
-            if (logger.isLoggable(Level.FINE)){
+        } catch (SocketException ex) {
+            if (logger.isLoggable(Level.FINE)) {
                 logger.log(Level.FINE,
-                            "setSoLinger exception ",ex);
+                        "setSoLinger exception ", ex);
             }
         }
-        
-        try{
-            if( tcpNoDelay )
+
+        try {
+            if (tcpNoDelay) {
                 socket.setTcpNoDelay(tcpNoDelay);
-        } catch (SocketException ex){
-            if (logger.isLoggable(Level.FINE)){
+            }
+        } catch (SocketException ex) {
+            if (logger.isLoggable(Level.FINE)) {
                 logger.log(Level.FINE,
-                            "setTcpNoDelay exception ",ex);
+                        "setTcpNoDelay exception ", ex);
             }
         }
-        
-        try{
-            if ( maxReadWorkerThreads != 0)
+
+        try {
+            if (maxReadWorkerThreads != 0) {
                 socket.setReuseAddress(reuseAddress);
-        } catch (SocketException ex){
-            if (logger.isLoggable(Level.FINE)){
+            }
+        } catch (SocketException ex) {
+            if (logger.isLoggable(Level.FINE)) {
                 logger.log(Level.FINE,
-                            "setReuseAddress exception ",ex);
-            }   
+                        "setReuseAddress exception ", ex);
+            }
         }
-        
-        try{
-            if(oOBInline){
+
+        try {
+            if (oOBInline) {
                 socket.setOOBInline(oOBInline);
             }
-        } catch (SocketException ex){
-            if (logger.isLoggable(Level.FINE)){
+        } catch (SocketException ex) {
+            if (logger.isLoggable(Level.FINE)) {
                 logger.log(Level.FINE,
-                            "setOOBInline exception ",ex);
-            }        
+                        "setOOBInline exception ", ex);
+            }
+        }
+
+        try {
+            if (socketReceiveBufferSize > -1) {
+                socket.setReceiveBufferSize(socketReceiveBufferSize);
+            }
+        } catch (SocketException ex) {
+            if (logger.isLoggable(Level.FINE)) {
+                logger.log(Level.FINE,
+                        "setReceiveBufferSize exception ", ex);
+            }
+        }
+
+        try {
+            if (socketSendBufferSize > -1) {
+                socket.setSendBufferSize(socketSendBufferSize);
+            }
+        } catch (SocketException ex) {
+            if (logger.isLoggable(Level.FINE)) {
+                logger.log(Level.FINE,
+                        "setSendBufferSize exception ", ex);
+            }
         }
     }
     
@@ -2642,6 +2671,16 @@ public class SelectorThread extends Thread implements MBeanRegistration{
                     + System.getProperty("os.version") + " under JDK version: "
                     + System.getProperty("java.version") + "-" + System.getProperty("java.vendor")
                     + "\n\t port: " + port
+                    + "\n\t socket-tcp-no-delay-enabled: "
+                    + tcpNoDelay
+                    + "\n\t socket-keep-alive-enabled: "
+                    + socketKeepAlive
+                    + "\n\t socket-linger: "
+                    + linger
+                    + "\n\t socket-oob-inline-enabled: "
+                    + oOBInline
+                    + "\n\t default-write-timeout-millis: "
+                    + OutputWriter.getDefaultWriteTimeout()
                     + "\n\t maxThreads: " 
                     + maxProcessorWorkerThreads  
                     + "\n\t ByteBuffer size: " 
@@ -2847,6 +2886,22 @@ public class SelectorThread extends Thread implements MBeanRegistration{
 
     public void setSocketTimeout(int socketTimeout) {
         this.socketTimeout = socketTimeout;
+    }
+
+    public int getSocketReceiveBufferSize() {
+        return socketReceiveBufferSize;
+    }
+
+    public void setSocketReceiveBufferSize(int socketReceiveBufferSize) {
+        this.socketReceiveBufferSize = socketReceiveBufferSize;
+    }
+
+    public int getSocketSendBufferSize() {
+        return socketSendBufferSize;
+    }
+
+    public void setSocketSendBufferSize(int socketSendBufferSize) {
+        this.socketSendBufferSize = socketSendBufferSize;
     }
 
     public String getCompression() {

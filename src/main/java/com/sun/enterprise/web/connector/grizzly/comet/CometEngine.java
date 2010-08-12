@@ -83,6 +83,15 @@ import java.util.logging.Logger;
  * @author Jeanfrancois Arcand
  */
 public final class CometEngine {
+    private final static String NOTIFICATION_HANDLER =
+        "com.sun.grizzly.comet.notificationHandlerClassName";
+
+    /**
+     * Comet thread pool config in the format
+     *"<on|off>[-<max-pool-size>[-<min-pool-size>]]"
+     */
+    private final static String COMET_THREAD_POOL_CONFIG =
+        "com.sun.grizzly.comet.thread-pool-config";
 
     // Disable suspended connection time out.
     public final static int DISABLE_SUSPEND_TIMEOUT = -1;
@@ -186,8 +195,24 @@ public final class CometEngine {
 
     // Simple lock.
     private ReentrantLock lock = new ReentrantLock();
+
+    private static final ThreadPoolConfig threadPoolConfig = new ThreadPoolConfig();
+    
     // --------------------------------------------------------------------- //
 
+    static {
+        final String notificationHandlerClass =
+                System.getProperty(NOTIFICATION_HANDLER);
+        if (notificationHandlerClass != null) {
+            setNotificationHandlerClassName(notificationHandlerClass);
+        }
+
+        // expected config string format is "<on|off>[-<max-pool-size>[-<min-pool-size>]]"
+        final String threadPoolConfigString = System.getProperty(COMET_THREAD_POOL_CONFIG);
+        if (threadPoolConfigString != null) {
+            threadPoolConfig.configure(threadPoolConfigString);
+        }
+    }
 
     /**
      * Create a singleton and initialize all lists required. Also create and
@@ -210,11 +235,17 @@ public final class CometEngine {
 
         asyncTasks = new ConcurrentQueue<AsyncProcessorTask>("CometEngine.asyncTasks");
 
-        final LinkedListPipeline threadPool = new LinkedListPipeline(5, 1, "Comet-thread-pool", 0);
-        threadPool.initPipeline();
-        threadPool.startPipeline();
-        
-        setPipeline(threadPool);
+        if (threadPoolConfig.isEnabled) {
+            final LinkedListPipeline threadPool =
+                    new LinkedListPipeline(threadPoolConfig.maxSize,
+                    threadPoolConfig.minSize,
+                    "Comet-thread-pool", 0);
+            
+            threadPool.initPipeline();
+            threadPool.startPipeline();
+
+            setPipeline(threadPool);
+        }
     }
 
 
@@ -718,5 +749,44 @@ public final class CometEngine {
      */
     public final static Logger logger(){
         return logger;
+    }
+
+    private static class ThreadPoolConfig {
+        private boolean isEnabled = false;
+        private int minSize = 1;
+        private int maxSize = 5;
+
+        /**
+         * Parse config string in the format
+         *"<on|off>[-<max-pool-size>[-<min-pool-size>]]"
+         *
+         * @param threadPoolConfigString <on|off>[-<max-pool-size>[-<min-pool-size>]]
+         */
+        private void configure(String threadPoolConfigString) {
+            String[] poolConfig = threadPoolConfigString.split("-");
+            if (poolConfig.length > 0) {
+                final String useThreadPoolConfig = poolConfig[0];
+                isEnabled = useThreadPoolConfig.equalsIgnoreCase("on")  ||
+                        useThreadPoolConfig.equalsIgnoreCase("yes") ||
+                        useThreadPoolConfig.equalsIgnoreCase("enabled") ||
+                        useThreadPoolConfig.equalsIgnoreCase("true");
+            }
+
+            if (poolConfig.length > 1) {
+                final String threadPoolMaxConfig = poolConfig[1];
+                try {
+                    maxSize = Integer.parseInt(threadPoolMaxConfig);
+                } catch (Exception ignored) {
+                }
+            }
+
+            if (poolConfig.length > 2) {
+                final String threadPoolMinConfig = poolConfig[2];
+                try {
+                    minSize = Integer.parseInt(threadPoolMinConfig);
+                } catch (Exception ignored) {
+                }
+            }
+        }
     }
 }

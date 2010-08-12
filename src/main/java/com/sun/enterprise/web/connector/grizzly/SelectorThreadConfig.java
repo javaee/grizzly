@@ -35,7 +35,6 @@
  */
 package com.sun.enterprise.web.connector.grizzly;
 
-import com.sun.enterprise.web.connector.grizzly.comet.CometEngine;
 import com.sun.enterprise.web.connector.grizzly.ssl.SSLUtils;
 import java.util.StringTokenizer;
 import java.util.concurrent.TimeUnit;
@@ -124,15 +123,18 @@ public class SelectorThreadConfig{
     private final static String WRITE_TIMEOUT = 
         "com.sun.enterprise.web.connector.grizzly.writeTimeout";     
 
-    private final static String NOTIFICATION_HANDLER = 
-        "com.sun.grizzly.comet.notificationHandlerClassName";   
-    
     private final static String BUFFER_RESPONSE = 
         "com.sun.grizzly.http.bufferResponse"; 
     
     private final static String OOBInline = 
         "com.sun.enterprise.web.connector.grizzly.OOBInline"; 
     
+    private final static String SOCKET_RECEIVE_BUFFER_SIZE =
+        "com.sun.enterprise.web.connector.grizzly.socket-receive-buffer-size";
+
+    private final static String SOCKET_SEND_BUFFER_SIZE =
+        "com.sun.enterprise.web.connector.grizzly.socket-send-buffer-size";
+
     private final static String SOCKET_LINGER =
         "com.sun.enterprise.web.connector.grizzly.linger";
 
@@ -236,6 +238,14 @@ public class SelectorThreadConfig{
             selectorThread.setLinger(Integer.parseInt(System.getProperty(SOCKET_LINGER)));
         }
 
+        if (System.getProperty(SOCKET_RECEIVE_BUFFER_SIZE) != null){
+            selectorThread.setSocketReceiveBufferSize(Integer.getInteger(SOCKET_RECEIVE_BUFFER_SIZE, -1));
+        }
+
+        if (System.getProperty(SOCKET_SEND_BUFFER_SIZE) != null){
+            selectorThread.setSocketSendBufferSize(Integer.getInteger(SOCKET_SEND_BUFFER_SIZE, -1));
+        }
+
         selectorThread.setSocketKeepAlive(Boolean.getBoolean(SOCKET_KEEP_ALIVE));
 
         if (System.getProperty(ENABLE_COMET_SUPPORT) != null){
@@ -279,12 +289,7 @@ public class SelectorThreadConfig{
         if (System.getProperty(PIPELINE_CLASS)!= null){
             selectorThread.pipelineClassName = 
                                             System.getProperty(PIPELINE_CLASS);
-        }    
-        
-        if (System.getProperty(NOTIFICATION_HANDLER)!= null){
-            CometEngine.setNotificationHandlerClassName( 
-                System.getProperty(NOTIFICATION_HANDLER));
-        }    
+        }     
                 
         if (System.getProperty(ALGORITHM_CLASS_NAME)!= null){
             selectorThread.algorithmClassName = 
