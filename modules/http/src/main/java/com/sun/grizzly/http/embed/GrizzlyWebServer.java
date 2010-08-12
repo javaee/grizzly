@@ -61,7 +61,7 @@ import java.util.logging.Logger;
  * used when there is no {@link GrizzlyAdapter} specified.  The {@link com.sun.grizzly.tcp.StaticResourcesAdapter}
  * allow servicing of static resources like html files, images files, etc. 
  * 
- * The {@link GrizzlyAdapter} provides developpers with a simple and consistent mechanism for extending 
+ * The {@link GrizzlyAdapter} provides developers with a simple and consistent mechanism for extending 
  * the functionality of the Grizzly WebServer and for bridging existing 
  * http based technology like JRuby-on-Rail, Servlet, Bayeux Protocol or any
  * http based protocol. 
@@ -79,7 +79,7 @@ import java.util.logging.Logger;
  * as soon as one or several {@link AsyncFilter} are added, using the 
  * {@link #addAsyncFilter} method. {@link AsyncFilter} can be used when
  * asynchronous operation are required, like suspending the current http request,
- * delaying the invokation of {@link GrizzlyAdapter} etc. The state of the 
+ * delaying the invocation of {@link GrizzlyAdapter} etc. The state of the
  * request processing can be managed using {@link com.sun.grizzly.arp.AsyncExecutor}, like resuming
  * the process so {@link GrizzlyAdapter}s can be invoked.
  * </p><p>
@@ -339,6 +339,9 @@ public class GrizzlyWebServer {
     // The {@link Statistis} instance associated with this instance.
     private Statistics statistics;
 
+    // Listening port
+    private final int port;
+    
     static public enum PROTOCOL { HTTP, AJP }
 
   /**
@@ -426,6 +429,8 @@ public class GrizzlyWebServer {
      */
     public GrizzlyWebServer(int port, int maxThreads, String webResourcesPath,
             boolean secure) {
+        this.port = port;
+        
         createSelectorThread(port, secure);
         setMaxThreads(maxThreads);
         this.webResourcesPath = webResourcesPath;
@@ -449,7 +454,7 @@ public class GrizzlyWebServer {
         } else {
             grizzlyListener = new SelectorThread();
         }
-        ((SelectorThread)grizzlyListener).setPort(port);
+        ((SelectorThread) grizzlyListener).setPort(port);
     }
 
     
@@ -544,7 +549,7 @@ public class GrizzlyWebServer {
     /**
      * Set to <tt>true</tt> if you want to use asynchronous write operations. Asynchronous
      * write operations may significantly improve performance under high load, but
-     * may also comsume more memory. Default is set to false.
+     * may also consume more memory. Default is set to false.
      * @param asyncWrite true to enabled asynchronous write I/O operations.
      */
     public void useAsynchronousWrite(boolean asyncWrite){
@@ -596,7 +601,7 @@ public class GrizzlyWebServer {
 
     private void updateGrizzlyAdapters() {
         adapterChains = new GrizzlyAdapterChain();
-        if (adapters.size() == 0){
+        if (adapters.isEmpty()){
             adapterChains.setRootFolder(webResourcesPath);
             adapterChains.setHandleStaticResources(true);
             grizzlyListener.setAdapter(adapterChains);
@@ -734,7 +739,7 @@ public class GrizzlyWebServer {
                     ClassLoaderUtil.load("com.sun.grizzly.http.jk.server.JkCoyoteHandler");
             grizzlyListener.setAdapter(adapter());
         } else {
-            createSelectorThread(DEFAULT_PORT, isStarted);
+            createSelectorThread(port, isStarted);
         }
     }
 
@@ -754,7 +759,7 @@ public class GrizzlyWebServer {
     /**
      * Deploy given deployable using provided deployer.
      *
-     * @param toDeploy      Deplyable to deploy.
+     * @param toDeploy      Deployable to deploy.
      * @param deployer      to be used for deployment.
      * @param configuration Deployment configuration.
      * @return Deployment identification.
@@ -787,7 +792,7 @@ public class GrizzlyWebServer {
      * Undeploy deploymentId using provided deployer.
      *
      * @param deploymentId Deployment identification to be undeployed.
-     * @param deployer     to be used for undeploing.
+     * @param deployer     to be used for undeployng.
      * @param <T>          Type of object to be deployed.
      * @param <V>          Deployment configuration type.
      */
