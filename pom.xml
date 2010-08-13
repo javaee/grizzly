@@ -4,7 +4,7 @@
     <artifactId>grizzly-project</artifactId>
     <packaging>pom</packaging>
     <name>grizzly-project</name>
-    <version>1.9.19-SNAPSHOT</version>
+    <version>1.9.20-SNAPSHOT</version>
     <url>https://grizzly.dev.java.net</url>
     <issueManagement>
         <system>bugzilla</system>
@@ -445,7 +445,7 @@
         <felix-version>1.4.3</felix-version>
         <grizzly-next-version>2.0.0</grizzly-next-version>
         <grizzly-released-version>1.9.18</grizzly-released-version>
-        <grizzly-version>1.9.19-SNAPSHOT</grizzly-version>
+        <grizzly-version>1.9.20-SNAPSHOT</grizzly-version>
         <hk2.version>1.0.25</hk2.version>
         <hk2.plugin.version>1.0.25</hk2.plugin.version>
         <jersey-version>1.1.5</jersey-version>
