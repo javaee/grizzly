@@ -332,12 +332,7 @@ public class GrizzlyWebServer {
      */
     public static GrizzlyWebServer createSimpleServer() {
 
-        final GrizzlyWebServer server = new GrizzlyWebServer();
-        final ServerConfiguration config = server.getServerConfiguration();
-        config.setDocRoot(".");
-        final GrizzlyListener listener = new GrizzlyListener("grizzly");
-        server.addListener(listener);
-        return server;
+        return createSimpleServer(".");
 
     }
 
@@ -351,12 +346,7 @@ public class GrizzlyWebServer {
      */
     public static GrizzlyWebServer createSimpleServer(final String path) {
 
-        final GrizzlyWebServer server = new GrizzlyWebServer();
-        final ServerConfiguration config = server.getServerConfiguration();
-        config.setDocRoot(path);
-        final GrizzlyListener listener = new GrizzlyListener("grizzly");
-        server.addListener(listener);
-        return server;
+        return createSimpleServer(path, GrizzlyListener.DEFAULT_NETWORK_PORT);
 
     }
 
