@@ -323,6 +323,23 @@ public class GrizzlyWebServer {
         }
 
     }
+    
+
+    /**
+     * @return a <code>GrizzlyWebServer</code> configured to listen to requests
+     * on {@link GrizzlyListener#DEFAULT_NETWORK_HOST}:{@link GrizzlyListener#DEFAULT_NETWORK_PORT},
+     * using the directory in which the server was launched the server's document root.
+     */
+    public static GrizzlyWebServer createSimpleServer() {
+
+        final GrizzlyWebServer server = new GrizzlyWebServer();
+        final ServerConfiguration config = server.getServerConfiguration();
+        config.setDocRoot(".");
+        final GrizzlyListener listener = new GrizzlyListener("grizzly");
+        server.addListener(listener);
+        return server;
+
+    }
 
 
     /**
