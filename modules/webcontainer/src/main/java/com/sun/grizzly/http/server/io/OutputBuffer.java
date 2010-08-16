@@ -60,6 +60,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Abstraction exposing both byte and character methods to write content
@@ -94,9 +95,13 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
 
     private MemoryManager memoryManager;
 
-    private WriteHandler handler;
+    private final AtomicReference<WriteHandler> handler = new AtomicReference<WriteHandler>();
+
+    private final AtomicReference<Throwable> asyncError = new AtomicReference<Throwable>();
 
     private TaskQueue.QueueMonitor monitor;
+
+    private AsyncQueueWriter asyncWriter;
 
 
     // ---------------------------------------------------------- Public Methods
@@ -109,6 +114,8 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
         this.ctx = ctx;
         memoryManager = ctx.getConnection().getTransport().getMemoryManager();
         buf = memoryManager.allocate(DEFAULT_BUFFER_SIZE);
+        final Connection c = ctx.getConnection();
+        asyncWriter = ((AsyncQueueWriter) c.getTransport().getWriter(c));
 
     }
 
@@ -159,7 +166,8 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
         encoder = null;
         ctx = null;
         memoryManager = null;
-        handler = null;
+        handler.set(null);
+        asyncError.set(null);
 
         committed = false;
         finished = false;
@@ -174,6 +182,8 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
     public void endRequest()
         throws IOException {
 
+        handleAsyncErrors();
+
         if (finished) {
             return;
         }
@@ -182,15 +192,8 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
             final Connection c = ctx.getConnection();
             final TaskQueue tqueue = ((AbstractNIOConnection) c).getAsyncWriteQueue();
             tqueue.removeQueueMonitor(monitor);
+            monitor = null;
         }
-
-
-        //if (lastActiveFilter != -1)
-        //    activeFilters[lastActiveFilter].end();
-
-        //if (useSocketBuffer) {
-        //    socketBuffer.flushBuffer();
-        //}
 
         close();
 
@@ -230,9 +233,13 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
 
 
     public void write(char cbuf[], int off, int len) throws IOException {
+
         if (!processingChars) {
             throw new IllegalStateException();
         }
+
+        handleAsyncErrors();
+
         if (closed) {
             return;
         }
@@ -263,9 +270,13 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
 
 
     public void writeChar(int c) throws IOException {
+
         if (!processingChars) {
             throw new IllegalStateException();
         }
+
+        handleAsyncErrors();
+
         if (closed) {
             return;
         }
@@ -290,9 +301,13 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
 
 
     public void write(String str, int off, int len) throws IOException {
+
         if (!processingChars) {
             throw new IllegalStateException();
         }
+
+        handleAsyncErrors();
+
         if (closed) {
             return;
         }
@@ -326,6 +341,8 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
     // ---------------------------------------------- OutputStream-Based Methods
 
     public void writeByte(int b) throws IOException {
+
+        handleAsyncErrors();
         if (closed) {
             return;
         }
@@ -336,6 +353,7 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
             flush();
             buf.put((byte) b);
         }
+
     }
 
 
@@ -345,6 +363,8 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
 
 
     public void write(byte b[], int off, int len) throws IOException {
+
+        handleAsyncErrors();
         if (closed) {
             return;
         }
@@ -369,6 +389,7 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
             }
             off += DEFAULT_BUFFER_SIZE;
         } while (total > 0);
+
     }
 
 
@@ -378,6 +399,7 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
     @Override
     public void close() throws IOException {
 
+        handleAsyncErrors();
         if (closed) {
             return;
         }
@@ -518,33 +540,50 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
             return true;
         }
         final Connection c = ctx.getConnection();
-        return ((AsyncQueueWriter) c.getTransport().getWriter(c)).canWrite(c, length);
+        return asyncWriter.canWrite(c, length);
 
     }
 
 
     public void notifyCanWrite(final WriteHandler handler, final int length) {
 
-        this.handler = handler;
+        this.handler.set(handler);
         final Connection c = ctx.getConnection();
-        final TaskQueue tqueue = ((AbstractNIOConnection) c).getAsyncWriteQueue();
+        final TaskQueue taskQueue = ((AbstractNIOConnection) c).getAsyncWriteQueue();
         if (monitor != null) {
-            tqueue.removeQueueMonitor(monitor);
+            taskQueue.removeQueueMonitor(monitor);
         }
-        final AsyncQueueWriter awriter = ((AsyncQueueWriter) c.getTransport().getWriter(c));
-        monitor = new TaskQueue.QueueMonitor() {
 
+        final int maxBytes = asyncWriter.getMaxPendingBytesPerConnection();
+        if (length > maxBytes) {
+            throw new IllegalArgumentException("Illegal request to write "
+                                                  + length
+                                                  + " bytes.  Max allowable write is "
+                                                  + maxBytes + '.');
+        }
+        monitor = new TaskQueue.QueueMonitor() {
+            
             @Override
             public boolean shouldNotify() {
-                return ((awriter.getMaxPendingBytesPerConnection() - tqueue.spaceInBytes()) >= length);
+                return ((maxBytes - taskQueue.spaceInBytes()) >= length);
             }
 
             @Override
             public void onNotify() {
-                handler.onWritePossible();
+                // if the handler associated with this monitor is not
+                // the current handler associated with the buffer, do not
+                // invoke the handler.
+                if (OutputBuffer.this.handler.get() == handler) {
+                    handler.onWritePossible();
+                    OutputBuffer.this.handler.compareAndSet(handler, null);
+                }
             }
         };
-        tqueue.addQueueMonitor(monitor);
+        if (!taskQueue.addQueueMonitor(monitor)) {
+            // monitor wasn't added because it was notified
+            this.handler.compareAndSet(handler, null);
+            monitor = null;
+        }
         
     }
 
@@ -552,32 +591,40 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
     // --------------------------------------------------------- Private Methods
 
 
+    private void handleAsyncErrors() throws IOException {
+        final Throwable t = asyncError.get();
+        if (t != null) {
+            if (t instanceof IOException) {
+                throw (IOException) t;
+            } else if (t instanceof RuntimeException) {
+                throw (RuntimeException) t;
+            } else {
+                throw new IOException(t);
+            }
+        }
+    }
+
+
     private void writeContentChunk(boolean includeTrailer) throws IOException {
+        handleAsyncErrors();
         if (buf.position() > 0) {
             HttpContent.Builder builder = response.httpContentBuilder();
             buf.flip();
             builder.content(buf);
-            if (handler == null) {
-                final WriteCompletionHandler handler = new WriteCompletionHandler();
-                ctx.write(builder.build(), handler);
-                if (handler.operationFailed()) {
-                    Throwable t = handler.getCause();
-                    if (t instanceof IOException) {
-                        throw (IOException) t;
+            final CompletionHandler c = new EmptyCompletionHandler() {
+
+                @Override
+                public void failed(Throwable throwable) {
+                    final WriteHandler h = handler.get();
+                    if (h != null) {
+                        h.onError(throwable);
                     } else {
-                        throw new IOException(t);
+                        asyncError.set(throwable);
                     }
                 }
-            } else {
-                final WriteHandler writeHandler = handler;
-                final CompletionHandler completionHandler = new EmptyCompletionHandler() {
-                    @Override
-                    public void failed(Throwable throwable) {
-                        writeHandler.onError(throwable);
-                    }
-                };
-                ctx.write(builder.build(), completionHandler);
-            }
+
+            };
+            ctx.write(builder.build(), c);
             if (!includeTrailer) {
                 buf = memoryManager.allocate(DEFAULT_BUFFER_SIZE);
             }
@@ -590,6 +637,7 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
 
     private void flushCharsToBuf() throws IOException {
 
+        handleAsyncErrors();
         // flush the buffer - need to take care of encoding at this point
         CharsetEncoder enc = getEncoder();
         charBuf.flip();
@@ -653,45 +701,14 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
 
     
     private void doCommit() throws IOException {
+
+        handleAsyncErrors();
         if (!committed) {
             committed = true;
             // flush the message header to the client
             ctx.write(response);
         }
+
     }
 
-
-    // ---------------------------------------------------------- Nested Classes
-
-    /**
-     * TODO : Look into reusing
-     */
-    private static final class WriteCompletionHandler extends EmptyCompletionHandler {
-
-        private Throwable t;
-
-
-        // -------------------------------------- Methods from CompletionHandler
-
-
-        @Override
-        public void failed(Throwable throwable) {
-            super.failed(throwable);
-            t = throwable;
-        }
-
-
-        // ------------------------------------------------------ Public Methods
-
-
-        public boolean operationFailed() {
-            return (t != null);
-        }
-
-
-        public Throwable getCause() {
-            return t;
-        }
-
-    } // END WriteCompletionHandler
 }

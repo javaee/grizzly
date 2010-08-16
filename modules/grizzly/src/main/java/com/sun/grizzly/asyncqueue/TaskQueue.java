@@ -126,8 +126,14 @@ public abstract class TaskQueue<E> {
     }
 
 
-    public void addQueueMonitor(final QueueMonitor monitor) {
-        monitorQueue.offer(monitor);
+    public boolean addQueueMonitor(final QueueMonitor monitor) {
+        if (monitor.shouldNotify()) {
+            monitor.onNotify();
+            return false;
+        } else {
+            monitorQueue.offer(monitor);
+            return true;
+        }
     }
 
 
@@ -142,8 +148,10 @@ public abstract class TaskQueue<E> {
     protected void doNotify() {
 
         if (!monitorQueue.isEmpty()) {
-            for (final QueueMonitor m : monitorQueue) {
+            for (final Iterator<QueueMonitor> i = monitorQueue.iterator(); i.hasNext(); ) {
+                final QueueMonitor m = i.next();
                 if (m.shouldNotify()) {
+                    i.remove();
                     m.onNotify();
                 }
             }

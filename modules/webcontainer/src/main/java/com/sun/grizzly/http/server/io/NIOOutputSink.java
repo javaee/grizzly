@@ -55,9 +55,8 @@ public interface NIOOutputSink {
      * {@link WriteHandler} when it is possible to write <code>length</code>
      * bytes.
      *
-     * Note that unless this method is invoked again with a different
-     * handler instance, the same handler will be invoked each time
-     * the <code>length</code> condition is met.
+     * Note that once the {@link WriteHandler} has been notifed, it will not
+     * be considered for notification again at a later point in time. 
      *
      * @param handler the {@link WriteHandler} that should be notified
      *  when it's possible to write <code>length</code> bytes.
