@@ -106,7 +106,7 @@ public class HttpCodecFilter extends JmxObject {
      * @return total number of bytes received by this
      *  {@link com.sun.grizzly.http.HttpCodecFilter}.
      */
-    @ManagedAttribute(id="total-content-received")
+    @ManagedAttribute(id="total-bytes-received")
     public long getTotalContentReceived() {
         return httpContentReceived.get();
     }
@@ -116,7 +116,7 @@ public class HttpCodecFilter extends JmxObject {
      * @return total number of bytes written by this
      *  {@link com.sun.grizzly.http.HttpCodecFilter}.
      */
-    @ManagedAttribute(id="total-content-written")
+    @ManagedAttribute(id="total-bytes-written")
     public long getTotalContentWritten() {
         return httpContentWritten.get();
     }
