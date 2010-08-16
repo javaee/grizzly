@@ -572,7 +572,6 @@ public class GrizzlyListener {
         }
 
         transport.stop();
-        transport.setProcessor(null);
 
         if (LOGGER.isLoggable(Level.INFO)) {
             LOGGER.log(Level.INFO,
