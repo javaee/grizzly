@@ -265,7 +265,7 @@ public class GrizzlyWebServer {
         }
 
         if (LOGGER.isLoggable(Level.INFO)) {
-            LOGGER.info("GWS Started.");
+            LOGGER.info("[" + getServerConfiguration().getName() + "] Started.");
         }
 
     }
