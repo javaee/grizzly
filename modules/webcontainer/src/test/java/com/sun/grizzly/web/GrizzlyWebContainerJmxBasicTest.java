@@ -65,6 +65,7 @@ public class GrizzlyWebContainerJmxBasicTest {
             assertTrue(true);
         } finally {
             gws.stop();
+            gws1.stop();
         }
     }
 }

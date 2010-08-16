@@ -297,10 +297,13 @@ public class GrizzlyWebServer {
                 }
             }
         }
-        if (clear) {
-            managementObject = null;
+        try {
+            return managementObject;
+        } finally {
+            if (clear) {
+                managementObject = null;
+            }
         }
-        return managementObject;
     }
 
 
