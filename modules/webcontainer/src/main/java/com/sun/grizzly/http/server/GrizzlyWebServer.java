@@ -47,6 +47,7 @@ import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.http.HttpServerFilter;
 import com.sun.grizzly.http.server.filecache.FileCache;
+import com.sun.grizzly.monitoring.jmx.GrizzlyJmxManager;
 import com.sun.grizzly.monitoring.jmx.JmxObject;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.ssl.SSLContextConfigurator;
@@ -85,7 +86,7 @@ public class GrizzlyWebServer {
     /**
      * Configuration details for this server instance.
      */
-    private final ServerConfiguration serverConfig = new ServerConfiguration();
+    private final ServerConfiguration serverConfig = new ServerConfiguration(this);
 
 
     /**
@@ -106,6 +107,10 @@ public class GrizzlyWebServer {
             new HashMap<String,GrizzlyListener>(2);
 
     private volatile ScheduledExecutorService scheduledExecutorService;
+
+    private volatile GrizzlyJmxManager jmxManager;
+
+    private volatile JmxObject managementObject;
 
 
     // ---------------------------------------------------------- Public Methods
@@ -255,6 +260,10 @@ public class GrizzlyWebServer {
             }
         }
 
+        if (serverConfig.isJmxEnabled()) {
+            enableJMX();
+        }
+
         if (LOGGER.isLoggable(Level.INFO)) {
             LOGGER.info("GWS Started.");
         }
@@ -280,8 +289,18 @@ public class GrizzlyWebServer {
     }
 
 
-    public JmxObject createManagementObject() {
-        return new com.sun.grizzly.http.server.jmx.GrizzlyWebServer(this);
+    public JmxObject getManagementObject(boolean clear) {
+        if (!clear && managementObject == null) {
+            synchronized (serverConfig) {
+                if (managementObject == null) {
+                    managementObject = new com.sun.grizzly.http.server.jmx.GrizzlyWebServer(this);
+                }
+            }
+        }
+        if (clear) {
+            managementObject = null;
+        }
+        return managementObject;
     }
 
 
@@ -296,6 +315,10 @@ public class GrizzlyWebServer {
             return;
         }
         started = false;
+
+        if (serverConfig.isJmxEnabled()) {
+            disableJMX();
+        }
 
         try {
             if (adapter != null) {
@@ -371,7 +394,38 @@ public class GrizzlyWebServer {
         server.addListener(listener);
         return server;
 
-    }    
+    }
+
+
+    // ------------------------------------------------- Package Private Methods
+
+
+    void enableJMX() {
+
+        if (jmxManager == null) {
+            synchronized (serverConfig) {
+                if (jmxManager == null) {
+                    jmxManager= GrizzlyJmxManager.instance();
+                }
+            }
+        }
+        jmxManager.registerAtRoot(getManagementObject(false),
+                                  serverConfig.getName());
+
+    }
+
+
+    void disableJMX() {
+
+        if (jmxManager != null) {
+            jmxManager.unregister(getManagementObject(true));
+        }
+
+    }
+
+
+    // --------------------------------------------------------- Private Methods
+
 
     private void configureListener(final GrizzlyListener listener) {
         FilterChain chain = listener.getFilterChain();
@@ -422,6 +476,7 @@ public class GrizzlyWebServer {
         configureMonitoring(listener);
     }
 
+
     private void configureMonitoring(final GrizzlyListener listener) {
         final TCPNIOTransport transport = listener.getTransport();
 
@@ -447,7 +502,9 @@ public class GrizzlyWebServer {
                 .getMemoryConfig().getProbes());
         threadPoolMonitoringCfg.addProbes(serverConfig.getMonitoringConfig()
                 .getThreadPoolConfig().getProbes());
+
     }
+
 
     private void configureScheduledThreadPool() {
         final AtomicInteger threadCounter = new AtomicInteger();
@@ -466,6 +523,7 @@ public class GrizzlyWebServer {
             }
         });
     }
+
 
     private void stopScheduledThreadPool() {
         final ScheduledExecutorService localThreadPool = scheduledExecutorService;

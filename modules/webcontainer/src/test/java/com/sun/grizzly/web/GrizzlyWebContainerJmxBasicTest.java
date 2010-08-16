@@ -50,17 +50,18 @@ public class GrizzlyWebContainerJmxBasicTest {
 
     @Test
     public void transport() throws Exception {
-        GrizzlyJmxManager manager = GrizzlyJmxManager.instance();
         GrizzlyWebServer gws = new GrizzlyWebServer();
+        GrizzlyWebServer gws1 = new GrizzlyWebServer();
         GrizzlyListener listener1 = new GrizzlyListener("listener1", "localhost", 8080);
         GrizzlyListener listener2 = new GrizzlyListener("listener2", "localhost", 8081);
         gws.addListener(listener1);
-        gws.addListener(listener2);
+        gws1.addListener(listener2);
 
         try {
             gws.start();
-            // for now, we have to register *after* the start.  We'll fix this.
-            manager.registerAtRoot(gws.createManagementObject(), "GrizzlyWebServer");
+            gws1.start();
+            gws.getServerConfiguration().setJmxEnabled(true);
+            gws1.getServerConfiguration().setJmxEnabled(true);
             assertTrue(true);
         } finally {
             gws.stop();

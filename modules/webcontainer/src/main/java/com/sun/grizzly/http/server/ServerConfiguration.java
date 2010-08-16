@@ -39,13 +39,14 @@ package com.sun.grizzly.http.server;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * TODO: Documentation
  */
 public class ServerConfiguration {
 
-    // Configuration Properties
+    private static final AtomicInteger INSTANCE_COUNT = new AtomicInteger(-1);
 
     /*
      * The directory from which static resources will be served from.
@@ -60,11 +61,19 @@ public class ServerConfiguration {
     private static final String[] ROOT_MAPPING = {"/"};
 
     private final WebServerMonitoringConfig monitoringConfig = new WebServerMonitoringConfig();
+
+    private String name;
+
+    private final GrizzlyWebServer instance;
+
+    private boolean jmxEnabled;
     
     // ------------------------------------------------------------ Constructors
 
 
-    ServerConfiguration() { }
+    ServerConfiguration(GrizzlyWebServer instance) {
+        this.instance = instance;
+    }
 
 
     // ---------------------------------------------------------- Public Methods
@@ -159,6 +168,71 @@ public class ServerConfiguration {
      */
     public WebServerMonitoringConfig getMonitoringConfig() {
         return monitoringConfig;
+    }
+
+
+    /**
+     * @return the logical name of this {@link GrizzlyWebServer} instance.
+     *  If no name is explicitly specified, the default value will
+     *  be <code>GrizzlyWebServer</code>.  If there is more than once
+     *  {@link GrizzlyWebServer} per virtual machine, the server name will
+     *  be <code>GrizzlyWebServer-[(instance count - 1)].
+     */
+    public String getName() {
+        if (name == null) {
+            if (!instance.isStarted()) {
+                return null;
+            } else {
+                final int count = INSTANCE_COUNT.incrementAndGet();
+                name = ((count == 0) ? "GrizzlyWebServer" : "GrizzlyWebServer-" + count);
+            }
+        }
+        return name;
+    }
+
+    /**
+     * Sets the logical name of this {@link GrizzlyWebServer} instance.
+     * The logical name cannot be changed after the server has been started.
+     *
+     * @param name server name
+     */
+    public void setName(String name) {
+        if (!instance.isStarted()) {
+            this.name = name;
+        }
+    }
+
+
+    /**
+     * @return <code>true</code> if <code>JMX</code> has been enabled for this
+     *  {@link GrizzlyWebServer}.  If <code>true</code> the {@link GrizzlyWebServer}
+     *  management object will be registered at the root of the JMX tree
+     *  with the name of <code>[instance-name]</code> where instance name is
+     *  the value returned by {@link #getName}.
+     */
+    public boolean isJmxEnabled() {
+        return jmxEnabled;
+    }
+
+
+    /**
+     * Enables <code>JMX</code> for this {@link GrizzlyWebServer}.  This value
+     * can be changed at runtime.
+     *
+     * @param jmxEnabled <code>true</code> to enable <code>JMX</code> otherwise
+     *  <code>false</code>
+     */
+    public void setJmxEnabled(boolean jmxEnabled) {
+
+        if (instance.isStarted()) {
+            if (jmxEnabled) {
+                instance.enableJMX();
+            } else {
+                instance.disableJMX();
+            }
+        }
+        this.jmxEnabled = jmxEnabled;
+
     }
     
 } // END ServerConfiguration
