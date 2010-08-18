@@ -199,16 +199,6 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
         }
     }
 
-    /**
-     * Add a {@link GrizzlyAdapter} to the chain.
-     * @param adapter {@link GrizzlyAdapter} to the chain.
-     * @deprecated - use {@link com.sun.grizzly.http.server.GrizzlyAdapterChain#addGrizzlyAdapter(GrizzlyAdapter , String[])}
-     */
-    public void addGrizzlyAdapter(GrizzlyAdapter adapter) {
-        oldMappingAlgorithm = true;
-        adapter.start();
-        adapters.put(adapter, new String[]{""});
-    }
 
     /**
      * Add a {@link GrizzlyAdapter} and its assciated array of mapping. The mapping
