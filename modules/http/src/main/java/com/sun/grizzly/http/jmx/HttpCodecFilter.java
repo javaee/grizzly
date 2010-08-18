@@ -58,7 +58,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @since 2.0
  */
 @ManagedObject
-@Description("Http Codec Filter")
+@Description("This Filter is responsible for the parsing incoming HTTP packets and serializing high level objects back into the HTTP protocol format.")
 public class HttpCodecFilter extends JmxObject {
 
     private final com.sun.grizzly.http.HttpCodecFilter httpCodecFilter;
@@ -107,6 +107,7 @@ public class HttpCodecFilter extends JmxObject {
      *  {@link com.sun.grizzly.http.HttpCodecFilter}.
      */
     @ManagedAttribute(id="total-bytes-received")
+    @Description("The total number of bytes this filter has processed as part of the HTTP protocol parsing process.")
     public long getTotalContentReceived() {
         return httpContentReceived.get();
     }
@@ -117,6 +118,7 @@ public class HttpCodecFilter extends JmxObject {
      *  {@link com.sun.grizzly.http.HttpCodecFilter}.
      */
     @ManagedAttribute(id="total-bytes-written")
+    @Description("The total number of bytes that have been written as part of the serialization process to the HTTP protocol.")
     public long getTotalContentWritten() {
         return httpContentWritten.get();
     }
@@ -126,6 +128,7 @@ public class HttpCodecFilter extends JmxObject {
      * @return total number of HTTP codec errors.
      */
     @ManagedAttribute(id="http-codec-error-count")
+    @Description("The total number of protocol errors that have occurred during either the parsing or serialization process.")
     public long getHttpCodecErrorCount() {
         return httpCodecErrorCount.get();
     }

@@ -53,7 +53,7 @@ import org.glassfish.gmbal.ManagedObject;
  * @since 2.0
  */
 @ManagedObject
-@Description("Grizzly Listener")
+@Description("The GrizzlyListener is an abstraction around the Transport (exposed as a child of this entity).")
 public class GrizzlyListener extends JmxObject {
 
     private final com.sun.grizzly.http.server.GrizzlyListener listener;
@@ -100,7 +100,7 @@ public class GrizzlyListener extends JmxObject {
      */
     @Override
     protected synchronized void onUnregister(GrizzlyJmxManager mom) {
-        mom = null;
+        this.mom = null;
     }
 
 
@@ -111,6 +111,7 @@ public class GrizzlyListener extends JmxObject {
      * @see {@link com.sun.grizzly.http.server.GrizzlyListener#getName()}
      */
     @ManagedAttribute(id="name")
+    @Description("The logical name of the listener.")
     public String getName() {
         return listener.getName();
     }
@@ -120,6 +121,7 @@ public class GrizzlyListener extends JmxObject {
      * @see {@link com.sun.grizzly.http.server.GrizzlyListener#getHost()}
      */
     @ManagedAttribute(id="host")
+    @Description("The network host to which this listener is bound.")
     public String getHost() {
         return listener.getHost();
     }
@@ -129,6 +131,7 @@ public class GrizzlyListener extends JmxObject {
      * @see {@link com.sun.grizzly.http.server.GrizzlyListener#getPort()}
      */
     @ManagedAttribute(id="port")
+    @Description("The network port to which this listener is bound.")
     public int getPort() {
         return listener.getPort();
     }
@@ -138,6 +141,7 @@ public class GrizzlyListener extends JmxObject {
      * @see {@link com.sun.grizzly.http.server.GrizzlyListener#getKeepAliveTimeoutInSeconds()}
      */
     @ManagedAttribute(id="keep-alive-timeout-in-seconds")
+    @Description("The time, in seconds, to keep an inactive request alive.")
     public int getKeepAliveTimeoutInSeconds() {
         return listener.getKeepAliveTimeoutInSeconds();
     }
@@ -147,6 +151,7 @@ public class GrizzlyListener extends JmxObject {
      * @see {@link com.sun.grizzly.http.server.GrizzlyListener#isSecure()}
      */
     @ManagedAttribute(id="secure")
+    @Description("Indicates whether or not this listener is secured via SSL.")
     public boolean isSecure() {
         return listener.isSecure();
     }
@@ -156,6 +161,7 @@ public class GrizzlyListener extends JmxObject {
      * @see {@link com.sun.grizzly.http.server.GrizzlyListener#getMaxHttpHeaderSize()} ()}
      */
     @ManagedAttribute(id="max-http-header-size")
+    @Description("The maximum size, in bytes, an HTTP request may be.")
     public int getMaxHttpHeaderSize() {
         return listener.getMaxHttpHeaderSize();
     }
@@ -165,6 +171,7 @@ public class GrizzlyListener extends JmxObject {
      * @see {@link com.sun.grizzly.http.server.GrizzlyListener#getName()}
      */
     @ManagedAttribute(id="max-pending-bytes")
+    @Description("The maximum size, in bytes, a connection may have waiting to be sent to the client.")
     public int getMaxPendingBytes() {
         return listener.getMaxPendingBytes();
     }
@@ -174,6 +181,7 @@ public class GrizzlyListener extends JmxObject {
      * @see {@link com.sun.grizzly.http.server.GrizzlyListener#isStarted()}
      */
     @ManagedAttribute(id="started")
+    @Description("Indicates whether or not this listener is started.")
     public boolean isStarted() {
         return listener.isStarted();
     }
@@ -182,6 +190,7 @@ public class GrizzlyListener extends JmxObject {
     /**
      * @see {@link com.sun.grizzly.http.server.GrizzlyListener#isPaused()}
      */
+    @Description("Indicates whether or not a started listener is activley processing requests.")
     @ManagedAttribute(id="paused")
     public boolean isPaused() {
         return listener.isPaused();

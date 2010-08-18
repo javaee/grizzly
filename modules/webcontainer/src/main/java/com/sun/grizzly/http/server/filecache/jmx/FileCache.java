@@ -55,7 +55,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @since 2.0
  */
 @ManagedObject
-@Description("Grizzly FileCache")
+@Description("Static file caching implementation.  There will be one FileCache instance per GrizzlyListener.")
 public class FileCache extends JmxObject {
 
     /**
@@ -147,6 +147,7 @@ public class FileCache extends JmxObject {
      * @see com.sun.grizzly.http.server.filecache.FileCache#isEnabled()
      */
     @ManagedAttribute(id="file-cache-enabled")
+    @Description("Indicates whether or not the file cache is enabled.")
     public boolean isFileCacheEnabled() {
         return fileCache.isEnabled();
     }
@@ -155,6 +156,7 @@ public class FileCache extends JmxObject {
      * @see com.sun.grizzly.http.server.filecache.FileCache#getSecondsMaxAge()
      */
     @ManagedAttribute(id="max-age-seconds")
+    @Description("The maximum age, in seconds, a resource may be cached.")
     public int getSecondsMaxAge() {
         return fileCache.getSecondsMaxAge();
     }
@@ -163,6 +165,7 @@ public class FileCache extends JmxObject {
      * @see com.sun.grizzly.http.server.filecache.FileCache#getMaxCacheEntries()
      */
     @ManagedAttribute(id="max-number-of-cache-entries")
+    @Description("The maxumim number of entries that may exist in the cache.")
     public int getMaxCacheEntries() {
         return fileCache.getMaxCacheEntries();
     }
@@ -171,6 +174,7 @@ public class FileCache extends JmxObject {
      * @see com.sun.grizzly.http.server.filecache.FileCache#getMinEntrySize()
      */
     @ManagedAttribute(id="min-entry-size")
+    @Description("The maximum size, in bytes, a file must be in order to be cached in the heap cache.")
     public long getMinEntrySize() {
         return fileCache.getMinEntrySize();
     }
@@ -179,6 +183,7 @@ public class FileCache extends JmxObject {
      * @see com.sun.grizzly.http.server.filecache.FileCache#getMaxEntrySize()
      */
     @ManagedAttribute(id="max-entry-size")
+    @Description("The maximum size, in bytes, a resource may be before it can no longer be considered cachable.")
     public long getMaxEntrySize() {
         return fileCache.getMaxEntrySize();
     }
@@ -187,6 +192,7 @@ public class FileCache extends JmxObject {
      * @see com.sun.grizzly.http.server.filecache.FileCache#getMaxLargeFileCacheSize()
      */
     @ManagedAttribute(id="memory-mapped-file-cache-size")
+    @Description("The maximum size, in bytes, of the memory mapped cache for large files.")
     public long getMaxLargeFileCacheSize() {
         return fileCache.getMaxLargeFileCacheSize();
     }
@@ -195,6 +201,7 @@ public class FileCache extends JmxObject {
      * @see com.sun.grizzly.http.server.filecache.FileCache#getMaxSmallFileCacheSize()
      */
     @ManagedAttribute(id="heap-file-cache-size")
+    @Description("The maximum size, in bytes, of the heap cache for files below the water mark set by min-entry-size.")
     public long getMaxSmallFileCacheSize() {
         return fileCache.getMaxSmallFileCacheSize();
     }
@@ -204,6 +211,7 @@ public class FileCache extends JmxObject {
      * @return the total number of cached entries.
      */
     @ManagedAttribute(id="cached-entries-count")
+    @Description("The current cached entry count.")
     public int getCachedEntryCount() {
         return cachedEntryCount.get();
     }
@@ -212,6 +220,7 @@ public class FileCache extends JmxObject {
      * @return the total number of cache hits.
      */
     @ManagedAttribute(id="cache-hit-count")
+    @Description("The total number of cache hits.")
     public long getCacheHitCount() {
         return cacheHitCount.get();
     }
@@ -220,6 +229,7 @@ public class FileCache extends JmxObject {
      * @return the total number of cache misses.
      */
     @ManagedAttribute(id="cache-miss-count")
+    @Description("The total number of cache misses.")
     public long getCacheMissCount() {
         return cacheMissCount.get();
     }
@@ -228,6 +238,7 @@ public class FileCache extends JmxObject {
      * @return the total number of cache errors.
      */
     @ManagedAttribute(id="cache-error-count")
+    @Description("The total number of cache errors.")
     public int getCacheErrorCount() {
         return cacheErrorCount.get();
     }
@@ -236,6 +247,7 @@ public class FileCache extends JmxObject {
      * @return the total size, in bytes, of the heap memory cache.
      */
     @ManagedAttribute(id="heap-cache-size-in-bytes")
+    @Description("The current size, in bytes, of the heap memory cache.")
     public long getHeapMemoryInBytes() {
         return fileCache.getHeapCacheSize();        
     }
@@ -244,6 +256,7 @@ public class FileCache extends JmxObject {
      * @return the total size, in bytes, of the mapped memory cache.
      */
     @ManagedAttribute(id="mapped-memory-cache-size-in-bytes")
+    @Description("The current size, in bytes, of the mapped memory cache.")
     public long getMappedMemorytInBytes() {
         return fileCache.getMappedCacheSize();
     }

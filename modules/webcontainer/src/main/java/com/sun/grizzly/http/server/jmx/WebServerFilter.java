@@ -56,7 +56,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @since 2.0
  */
 @ManagedObject
-@Description("Grizzly Web Server Filter")
+@Description("The WebServerFilter is the entity responsible for providing and processing higher level abstractions based on HTTP protocol.")
 public class WebServerFilter extends JmxObject {
 
     private final com.sun.grizzly.http.server.WebServerFilter webServerFilter;
@@ -99,6 +99,7 @@ public class WebServerFilter extends JmxObject {
      *  has received.
      */
     @ManagedAttribute(id="requests-received-count")
+    @Description("The total number of requests received.")
     public long getRequestsReceivedCount() {
         return receivedCount.get();
     }
@@ -109,6 +110,7 @@ public class WebServerFilter extends JmxObject {
      *  has completed servicing.
      */
     @ManagedAttribute(id="requests-completed-count")
+    @Description("The total number of requests that have been successfully completed.")
     public long getRequestsCompletedCount() {
         return completedCount.get();
     }
@@ -118,6 +120,7 @@ public class WebServerFilter extends JmxObject {
      * @return the number of requests currently suspended.
      */
     @ManagedAttribute(id="current-suspended-request-count")
+    @Description("The current number of requests that are suspended to be processed at a later point in time.")
     public int getRequestsSuspendedCount() {
         return suspendCount.get();
     }
@@ -127,6 +130,7 @@ public class WebServerFilter extends JmxObject {
      * @return the number of suspended requests that have timed out.
      */
     @ManagedAttribute(id="requests-timed-out-count")
+    @Description("The total number of suspended requests that have been timed out.")
     public long getRequestsTimedOutCount() {
         return timedOutCount.get();
     }
@@ -137,6 +141,7 @@ public class WebServerFilter extends JmxObject {
      *  cancelled.
      */
     @ManagedAttribute(id="requests-cancelled-count")
+    @Description("The total number of suspended requests that have been cancelled.")
     public long getRequestsCancelledCount() {
         return cancelledCount.get();
     }

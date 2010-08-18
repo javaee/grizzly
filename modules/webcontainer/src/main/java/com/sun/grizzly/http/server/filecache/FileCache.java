@@ -421,7 +421,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
 
 
     /**
-     * @return the maximum size, in bytes, a file must be in order to be cached
+     * @return the minimum size, in bytes, a file must be in order to be cached
      *  in the heap cache.
      */
     public long getMinEntrySize() {

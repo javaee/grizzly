@@ -53,7 +53,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @since 2.0
  */
 @ManagedObject
-@Description("Grizzly Web Server")
+@Description("The GrizzlyWebServer.")
 public class GrizzlyWebServer extends JmxObject {
 
 
@@ -92,7 +92,7 @@ public class GrizzlyWebServer extends JmxObject {
      */
     @Override
     protected synchronized void onUnregister(GrizzlyJmxManager mom) {
-        //To change body of implemented methods use File | Settings | File Templates.
+        this.mom = null;
     }
 
 
@@ -103,6 +103,7 @@ public class GrizzlyWebServer extends JmxObject {
      * @see com.sun.grizzly.http.server.GrizzlyWebServer#isStarted()
      */
     @ManagedAttribute(id="started")
+    @Description("Indicates whether or not this server instance has been started.")
     public boolean isStarted() {
         return gws.isStarted();
     }
