@@ -128,7 +128,7 @@ public class NIOTransport extends JmxObject {
             transport.getMonitoringConfig().removeProbes(probe);
             transport.getConnectionMonitoringConfig().removeProbes(connectionProbe);
 
-            mom = null;
+            this.mom = null;
         }
     }
     

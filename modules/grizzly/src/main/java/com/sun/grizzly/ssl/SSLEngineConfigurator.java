@@ -39,6 +39,7 @@
 package com.sun.grizzly.ssl;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 
@@ -309,8 +310,8 @@ public class SSLEngineConfigurator {
         sb.append(clientMode);
         sb.append(", needClientAuth=").append(needClientAuth);
         sb.append(", wantClientAuth=").append(wantClientAuth);
-        sb.append(", enabledProtocols=").append(enabledProtocols);
-        sb.append(", enabledCipherSuites=").append(enabledCipherSuites);
+        sb.append(", enabledProtocols=").append(Arrays.toString(enabledProtocols));
+        sb.append(", enabledCipherSuites=").append(Arrays.toString(enabledCipherSuites));
         sb.append(']');
         return sb.toString();
     }

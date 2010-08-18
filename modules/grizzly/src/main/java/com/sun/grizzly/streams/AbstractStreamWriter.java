@@ -62,7 +62,7 @@ import java.util.logging.Logger;
  * @author Ken Cavanaugh
  */
 public abstract class AbstractStreamWriter implements StreamWriter {
-    protected static Logger logger = Grizzly.logger(AbstractStreamWriter.class);
+    protected static final Logger logger = Grizzly.logger(AbstractStreamWriter.class);
     
     protected static final Integer ZERO = new Integer(0);
     protected static final GrizzlyFuture<Integer> ZERO_READY_FUTURE =

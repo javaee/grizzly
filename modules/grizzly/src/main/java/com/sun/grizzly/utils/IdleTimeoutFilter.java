@@ -66,7 +66,7 @@ public class IdleTimeoutFilter extends BaseFilter {
     public static final long UNSET_TIMEOUT = 0;
     
     public static final String IDLE_ATTRIBUTE_NAME = "connection-idle-attribute";
-    public static Attribute<Long> idleAttribute =
+    public static final Attribute<Long> idleAttribute =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
             IDLE_ATTRIBUTE_NAME, UNLIMITED_TIMEOUT);
     
