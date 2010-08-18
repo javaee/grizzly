@@ -99,7 +99,7 @@ public class ByteBufferViewManager extends ByteBufferManager {
             largeByteBuffer = super.allocateByteBuffer(capacity);
         }
 
-        ProbeNotificator.notifyBufferAllocatedFromPool(monitoringConfig, size);
+        ProbeNotifier.notifyBufferAllocatedFromPool(monitoringConfig, size);
         
         return BufferUtils.slice(largeByteBuffer, size);
     }

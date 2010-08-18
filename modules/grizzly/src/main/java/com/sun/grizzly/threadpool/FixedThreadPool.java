@@ -71,7 +71,7 @@ public class FixedThreadPool extends AbstractThreadPool {
         
         int poolSize = config.getMaxPoolSize();
 
-        ProbeNotificator.notifyThreadPoolStarted(this);
+        ProbeNotifier.notifyThreadPoolStarted(this);
         
         synchronized (stateLock) {
             while (poolSize-- > 0) {

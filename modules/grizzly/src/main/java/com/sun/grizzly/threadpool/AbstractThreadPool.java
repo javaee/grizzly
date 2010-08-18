@@ -38,9 +38,6 @@
 package com.sun.grizzly.threadpool;
 
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.monitoring.MonitoringAware;
-import com.sun.grizzly.monitoring.MonitoringConfig;
-import com.sun.grizzly.monitoring.MonitoringConfigImpl;
 import com.sun.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
 import com.sun.grizzly.monitoring.jmx.JmxMonitoringAware;
 import com.sun.grizzly.monitoring.jmx.JmxMonitoringConfig;
@@ -168,7 +165,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
                     w.t.interrupt();
                 }
 
-                ProbeNotificator.notifyThreadPoolStopped(this);
+                ProbeNotifier.notifyThreadPoolStopped(this);
             }
             return drained;
         }
@@ -185,7 +182,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
                 poisonAll();
                 stateLock.notifyAll();
 
-                ProbeNotificator.notifyThreadPoolStopped(this);
+                ProbeNotifier.notifyThreadPoolStopped(this);
             }
         }
     }
@@ -287,7 +284,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * @param task the unit of work that has completed processing
      */
     protected void onTaskCompletedEvent(Runnable task) {
-        ProbeNotificator.notifyTaskCompleted(this, task);
+        ProbeNotifier.notifyTaskCompleted(this, task);
     }
 
     /**
@@ -299,7 +296,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * @param worker
      */
     protected void onWorkerStarted(Worker worker) {
-        ProbeNotificator.notifyThreadAllocated(this, worker.t);
+        ProbeNotifier.notifyThreadAllocated(this, worker.t);
     }
 
     /**
@@ -315,7 +312,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
             workers.remove(worker);
         }
 
-        ProbeNotificator.notifyThreadReleased(this, worker.t);
+        ProbeNotifier.notifyThreadReleased(this, worker.t);
     }
 
     /**
@@ -324,7 +321,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * one of the threads will be able to process it.
      */
     protected void onMaxNumberOfThreadsReached() {
-        ProbeNotificator.notifyMaxNumberOfThreads(this, config.getMaxPoolSize());
+        ProbeNotifier.notifyMaxNumberOfThreads(this, config.getMaxPoolSize());
     }
 
     /**
@@ -334,7 +331,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * @param task
      */
     protected void onTaskQueued(Runnable task) {
-        ProbeNotificator.notifyTaskQueued(this, task);
+        ProbeNotifier.notifyTaskQueued(this, task);
     }
 
     /**
@@ -344,7 +341,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * @param task
      */
     protected void onTaskDequeued(Runnable task) {
-        ProbeNotificator.notifyTaskDequeued(this, task);
+        ProbeNotifier.notifyTaskDequeued(this, task);
     }
 
     /**
@@ -353,7 +350,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * throws  {@link RejectedExecutionException}
      */
     protected void onTaskQueueOverflow() {
-        ProbeNotificator.notifyTaskQueueOverflow(this);
+        ProbeNotifier.notifyTaskQueueOverflow(this);
         
         throw new RejectedExecutionException(
                 "The thread pool's task queue is full, limit: " +

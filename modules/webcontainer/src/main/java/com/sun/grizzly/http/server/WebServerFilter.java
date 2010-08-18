@@ -129,7 +129,7 @@ public class WebServerFilter extends BaseFilter
                         scheduledExecutorService, suspendStatus);
                 grizzlyRequestInProcessAttr.set(connection, grizzlyRequest);
 
-                WebServerProbeNotificator.notifyRequestReceived(this, connection,
+                WebServerProbeNotifier.notifyRequestReceived(this, connection,
                         grizzlyRequest);
 
                 try {
@@ -241,7 +241,7 @@ public class WebServerFilter extends BaseFilter
             request.setSkipRemainder(true);
         }
 
-        WebServerProbeNotificator.notifyRequestCompleted(this, connection,
+        WebServerProbeNotifier.notifyRequestCompleted(this, connection,
                 grizzlyResponse);
 
         grizzlyRequest.recycle(!isExpectContent);

@@ -41,12 +41,12 @@ package com.sun.grizzly.http.server;
 import com.sun.grizzly.Connection;
 
 /**
- * Utility class, which has notificator methods for different
+ * Utility class, which has notification methods for different
  * {@link WebServerProbe} events.
  *
  * @author Alexey Stashok
  */
-final class WebServerProbeNotificator {
+final class WebServerProbeNotifier {
     /**
      * Notify registered {@link HttpMonitoringProbe}s about the "request received" event.
      *

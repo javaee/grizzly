@@ -46,7 +46,7 @@ import com.sun.grizzly.monitoring.MonitoringConfigImpl;
  *
  * @author Alexey Stashok
  */
-final class ProbeNotificator {
+final class ProbeNotifier {
 
     /**
      * Notify registered {@link MemoryProbe}s about the "allocated" event.

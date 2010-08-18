@@ -42,12 +42,12 @@ import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
 
 /**
- * Utility class, which has notificator methods for different
+ * Utility class, which has notification methods for different
  * {@link HttpProbe} events.
  *
  * @author Alexey Stashok
  */
-final class HttpProbeNotificator {
+final class HttpProbeNotifier {
 
     /**
      * Notify registered {@link HttpProbe}s about the "data received" event.

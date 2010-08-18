@@ -39,12 +39,12 @@
 package com.sun.grizzly.threadpool;
 
 /**
- * Utility class, which has notificator methods for different
+ * Utility class, which has notification methods for different
  * {@link ThreadPoolProbe} events.
  *
  * @author Alexey Stashok
  */
-final class ProbeNotificator {
+final class ProbeNotifier {
     /**
      * Notify registered {@link ThreadPoolProbe}s about the "thread pool started" event.
      *

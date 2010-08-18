@@ -323,7 +323,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         // Get the Connection
         final Connection connection = ctx.getConnection();
 
-        HttpProbeNotificator.notifyDataReceived(this, connection, input);
+        HttpProbeNotifier.notifyDataReceived(this, connection, input);
 
         try {
             // Check if HTTP header has been parsed
@@ -344,7 +344,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                     if (onHttpHeaderParsed((HttpHeader) httpPacket, input, ctx)) {
                         onHttpError((HttpHeader) httpPacket, ctx);
 
-                        HttpProbeNotificator.notifyProbesError(this, connection, null);
+                        HttpProbeNotifier.notifyProbesError(this, connection, null);
 
                         return ctx.getStopAction();
                     }
@@ -354,7 +354,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                     setTransferEncodingOnParsing((HttpHeader) httpPacket);
                     setContentEncodingsOnParsing((HttpHeader) httpPacket);
 
-                    HttpProbeNotificator.notifyHeaderParse(this, connection,
+                    HttpProbeNotifier.notifyHeaderParse(this, connection,
                             (HttpHeader) httpPacket);
                 }
             }
@@ -394,7 +394,7 @@ public abstract class HttpCodecFilter extends BaseFilter
 
                     final HttpContent decodedContent = decodeContent(connection, httpContent);
                     if (decodedContent != null) {
-                        HttpProbeNotificator.notifyContentChunkParse(this,
+                        HttpProbeNotifier.notifyContentChunkParse(this,
                                 connection, decodedContent);
 
                         ctx.setMessage(decodedContent);
@@ -405,7 +405,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                         final HttpContent emptyContent =
                                 HttpContent.builder(httpHeader).last(isLast).build();
 
-                        HttpProbeNotificator.notifyContentChunkParse(this,
+                        HttpProbeNotifier.notifyContentChunkParse(this,
                                 connection, emptyContent);
 
                         // Instruct filterchain to continue the processing.
@@ -417,7 +417,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                 if (!wasHeaderParsed || isLast) {
                     final HttpContent emptyContent = HttpContent.builder(httpHeader).last(isLast).build();
 
-                    HttpProbeNotificator.notifyContentChunkParse(this,
+                    HttpProbeNotifier.notifyContentChunkParse(this,
                             connection, emptyContent);
 
                     ctx.setMessage(emptyContent);
@@ -436,7 +436,7 @@ public abstract class HttpCodecFilter extends BaseFilter
 
                 final HttpContent decodedContent = decodeContent(connection, message);
                 if (decodedContent != null) {
-                    HttpProbeNotificator.notifyContentChunkParse(this,
+                    HttpProbeNotifier.notifyContentChunkParse(this,
                             connection, decodedContent);
 
                     ctx.setMessage(decodedContent);
@@ -455,7 +455,7 @@ public abstract class HttpCodecFilter extends BaseFilter
 
                     final HttpContent emptyContent = HttpContent.builder(httpHeader).last(isLast).build();
 
-                    HttpProbeNotificator.notifyContentChunkParse(this,
+                    HttpProbeNotifier.notifyContentChunkParse(this,
                             connection, emptyContent);
 
                     ctx.setMessage(emptyContent);
@@ -469,7 +469,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                     "Error parsing HTTP packet: " + httpHeader);
 
         } catch (RuntimeException re) {
-            HttpProbeNotificator.notifyProbesError(this, connection, re);
+            HttpProbeNotifier.notifyProbesError(this, connection, re);
             throw re;
         }
     }
@@ -502,7 +502,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                 final Buffer output = encodeHttpPacket(connection, input);
 
                 if (output != null) {
-                    HttpProbeNotificator.notifyDataSent(this, connection, output);
+                    HttpProbeNotifier.notifyDataSent(this, connection, output);
 
                     ctx.setMessage(output);
                     // Invoke next filter in the chain.
@@ -511,7 +511,7 @@ public abstract class HttpCodecFilter extends BaseFilter
 
                 return ctx.getStopAction();
             } catch (RuntimeException re) {
-                HttpProbeNotificator.notifyProbesError(this, connection, re);
+                HttpProbeNotifier.notifyProbesError(this, connection, re);
                 throw re;
             }
         }
@@ -608,14 +608,14 @@ public abstract class HttpCodecFilter extends BaseFilter
             
             httpHeader.setCommitted(true);
 
-            HttpProbeNotificator.notifyHeaderSerialize(this, connection, httpHeader);
+            HttpProbeNotifier.notifyHeaderSerialize(this, connection, httpHeader);
         }
 
         
         if (!isHeader) {
             final HttpContent encodedHttpContent;
 
-            HttpProbeNotificator.notifyContentChunkSerialize(this, connection, httpContent);
+            HttpProbeNotifier.notifyContentChunkSerialize(this, connection, httpContent);
             
             if ((encodedHttpContent = encodeContent(connection, httpContent)) == null) return encodedBuffer;
             
@@ -1207,7 +1207,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         for (int i = 0; i < encodingsNum; i++) {
             final ContentEncoding encoding = encodings.get(i);
 
-            HttpProbeNotificator.notifyContentEncodingParse(this, connection,
+            HttpProbeNotifier.notifyContentEncodingParse(this, connection,
                     httpHeader, httpContent.getContent(), encoding);
             
             // Check if there is a remainder buffer left from the last decoding
@@ -1255,7 +1255,7 @@ public abstract class HttpCodecFilter extends BaseFilter
             // Encode
             final ContentEncoding encoding = encodings.get(i);
 
-            HttpProbeNotificator.notifyContentEncodingSerialize(this, connection,
+            HttpProbeNotifier.notifyContentEncodingSerialize(this, connection,
                     httpHeader, httpContent.getContent(), encoding);
             
             final HttpContent encodedContent = encoding.encode(connection, httpContent);
@@ -1339,7 +1339,7 @@ public abstract class HttpCodecFilter extends BaseFilter
             HttpHeader httpHeader, Buffer input) {
         final TransferEncoding encoding = httpHeader.getTransferEncoding();
 
-        HttpProbeNotificator.notifyTransferEncodingParse(this, connection,
+        HttpProbeNotifier.notifyTransferEncodingParse(this, connection,
                 httpHeader, input, encoding);
         
         return encoding.parsePacket(connection, httpHeader, input);
@@ -1349,7 +1349,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                                    HttpContent httpContent,
                                    TransferEncoding encoding) {
         if (encoding != null) {
-            HttpProbeNotificator.notifyTransferEncodingParse(this, connection,
+            HttpProbeNotifier.notifyTransferEncodingParse(this, connection,
                     httpContent.getHttpHeader(), httpContent.getContent(),
                     encoding);
             

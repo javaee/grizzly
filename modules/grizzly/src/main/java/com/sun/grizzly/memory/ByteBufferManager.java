@@ -181,7 +181,7 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
      */
     @Override
     public ByteBuffer allocateByteBuffer(int size) {
-        ProbeNotificator.notifyBufferAllocated(monitoringConfig, size);
+        ProbeNotifier.notifyBufferAllocated(monitoringConfig, size);
 
         if (isDirect) {
             return ByteBuffer.allocateDirect(size);
