@@ -41,8 +41,8 @@
                     <instructions>
                         <Export-Package>
                             com.sun.grizzly.http.*,
-                            com.sun.grizzly.arp.*,
-                            com.sun.grizzly.standalone.*
+                            com.sun.grizzly.http.jmx.*,
+                            com.sun.grizzly.http.util.*
                         </Export-Package>
                         <Embed-Dependency>com.sun.grizzly;scope=runtime</Embed-Dependency>
                     </instructions>
