@@ -39,8 +39,8 @@ package com.sun.grizzly.http.server.io;
 
 /**
  * <p>
- * This interface defines methods to allow an {@link java.io.InputStream} or
- * {@link java.io.Reader} to allow the developer to check with the runtime
+ * This interface defines methods to allow an {@link java.io.OutputStream} or
+ * {@link java.io.Writer} to allow the developer to check with the runtime
  * whether or not it's possible to write a certain amount of data, or if it's
  * not possible, to be notified when it is.
  * </p>
@@ -55,7 +55,7 @@ public interface NIOOutputSink {
      * {@link WriteHandler} when it is possible to write <code>length</code>
      * bytes.
      *
-     * Note that once the {@link WriteHandler} has been notifed, it will not
+     * Note that once the {@link WriteHandler} has been notified, it will not
      * be considered for notification again at a later point in time. 
      *
      * @param handler the {@link WriteHandler} that should be notified
