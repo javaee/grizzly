@@ -103,6 +103,7 @@ public class ThreadPool extends JmxObject {
      * @return the Java type of the managed thread pool.
      */
     @ManagedAttribute(id="thread-pool-type")
+    @Description("The Java type of the thread pool implementation being used.")
     public String getPoolType() {
         return threadPool.getClass().getName();
     }
@@ -113,6 +114,7 @@ public class ThreadPool extends JmxObject {
      *  <code>false</code>
      */
     @ManagedAttribute(id="thread-pool-started")
+    @Description("Indiciates whether or not the thread pool has been started.")
     public boolean isStarted() {
         return started.get();
     }
@@ -122,6 +124,7 @@ public class ThreadPool extends JmxObject {
      * @return the max number of threads allowed by this thread pool.
      */
     @ManagedAttribute(id="thread-pool-max-num-threads")
+    @Description("The maximum number of the threads allowed by this thread pool.")
     public int getMaxAllowedThreads() {
         return threadPool.getConfig().getMaxPoolSize();
     }
@@ -131,6 +134,7 @@ public class ThreadPool extends JmxObject {
      * @return the core size of this thread pool.
      */
     @ManagedAttribute(id="thread-pool-core-pool-size")
+    @Description("The initial/minimum number of threads managed by this thread pool.")
     public int getCorePoolSize() {
         return threadPool.getConfig().getCorePoolSize();
     }
@@ -140,6 +144,7 @@ public class ThreadPool extends JmxObject {
      * @return the current number of threads maintained by this thread pool.
      */
     @ManagedAttribute(id="thread-pool-allocated-thread-count")
+    @Description("The current number of threads managed by this thread pool.")
     public int getCurrentAllocatedThreadCount() {
         return currentAllocatedThreadCount.get();
     }
@@ -150,6 +155,7 @@ public class ThreadPool extends JmxObject {
      *  by this thread pool.
      */
     @ManagedAttribute(id="thread-pool-total-allocated-thread-count")
+    @Description("The total number of threads allocated during the lifetime of this thread pool.")
     public int getTotalAllocatedThreadCount() {
         return totalAllocatedThreadCount.get();
     }
@@ -160,6 +166,7 @@ public class ThreadPool extends JmxObject {
      *  by this thread pool.
      */
     @ManagedAttribute(id="thread-pool-queued-task-count")
+    @Description("The number of tasks currently being processed by this thread pool.")
     public int getCurrentTaskCount() {
         return currentQueuedTasksCount.get();
     }
@@ -170,6 +177,7 @@ public class ThreadPool extends JmxObject {
      *  thread pool.
      */
     @ManagedAttribute(id="thread-pool-total-completed-tasks-count")
+    @Description("The total number of tasks that have been processed by this thread pool.")
     public long getTotalCompletedTasksCount() {
         return totalCompletedTasksCount.get();
     }
@@ -179,6 +187,7 @@ public class ThreadPool extends JmxObject {
      * @return the number of times the task queue has reached it's upper limit.
      */
     @ManagedAttribute(id="thread-pool-task-queue-overflow-count")
+    @Description("The total number of times the task queue of this thread pool has been saturated.")
     public int getTotalTaskQueueOverflowCount() {
         return totalTaskQueueOverflowCount.get();
     }
