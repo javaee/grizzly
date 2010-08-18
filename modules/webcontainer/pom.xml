@@ -42,7 +42,10 @@
                         <Export-Package>
                             com.sun.grizzly.http.server.*,
                             com.sun.grizzly.http.server.embed.*,
-                            com.sun.grizzly.http.server.io.*
+                            com.sun.grizzly.http.server.io.*,
+                            com.sun.grizzly.http.server.jmx.*
+                            com.sun.grizzly.http.server.filecache.*,
+                            com.sun.grizzly.http.server.filecache.jmx.*
                         </Export-Package>
                         <Embed-Dependency>com.sun.grizzly;scope=runtime</Embed-Dependency>
                     </instructions>
