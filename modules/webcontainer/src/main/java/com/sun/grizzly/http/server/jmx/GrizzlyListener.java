@@ -190,7 +190,7 @@ public class GrizzlyListener extends JmxObject {
     /**
      * @see {@link com.sun.grizzly.http.server.GrizzlyListener#isPaused()}
      */
-    @Description("Indicates whether or not a started listener is activley processing requests.")
+    @Description("Indicates whether or not a started listener is actively processing requests.")
     @ManagedAttribute(id="paused")
     public boolean isPaused() {
         return listener.isPaused();
