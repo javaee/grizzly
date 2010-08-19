@@ -67,7 +67,7 @@ public class WebServerFilter extends BaseFilter
     private final Attribute<GrizzlyRequest> grizzlyRequestInProcessAttr;
 
     private final ScheduledExecutorService scheduledExecutorService;
-    private final GrizzlyAdapter adapter;
+    private final GrizzlyWebServer gws;
 
     private static Attribute<Integer> keepAliveCounterAttr =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
@@ -92,7 +92,7 @@ public class WebServerFilter extends BaseFilter
 
     public WebServerFilter(GrizzlyWebServer webServer) {
 
-        adapter = webServer.getAdapter();
+        gws = webServer;
         scheduledExecutorService = webServer.getScheduledExecutorService();
         this.grizzlyRequestInProcessAttr =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
@@ -134,6 +134,7 @@ public class WebServerFilter extends BaseFilter
 
                 try {
                     ctx.setMessage(grizzlyResponse);
+                    final GrizzlyAdapter adapter = gws.getAdapter();
                     if (adapter != null) {
                         adapter.doService(grizzlyRequest, grizzlyResponse);
                     }
