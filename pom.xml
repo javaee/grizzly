@@ -41,11 +41,19 @@
             <organization>SUN Microsystems</organization>
             <organizationUrl>http://www.sun.com</organizationUrl>
         </developer>
+        <developer>
+            <id>rlubke</id>
+            <name>Ryan Lubke</name>
+            <email>rlubke@dev.java.net</email>
+            <url>http://blogs.sun.com/rlubke</url>
+            <organization>Oracle Corporation</organization>
+            <organizationUrl>http://www.oracle.com</organizationUrl>
+        </developer>
     </developers>
     <licenses>
         <license>
-            <name>CDDL</name>
-            <url>https://glassfish.dev.java.net/public/CDDLv1.0.html</url>
+            <name>CDDL+GPL</name>
+            <url>https://glassfish.dev.java.net/public/CDDL+GPL.html</url>
         </license>
     </licenses>
     <scm>
@@ -54,8 +62,8 @@
         <url>https://grizzly.dev.java.net/source/browse/grizzly/#dirlist</url>
     </scm>
     <organization>
-        <name>SUN Microsystems</name>
-        <url>http://www.sun.com</url>
+        <name>Oracle Corpration</name>
+        <url>http://www.oracle.com</url>
     </organization>
     <repositories>
         <repository>
@@ -232,19 +240,6 @@
                 <artifactId>findbugs-maven-plugin</artifactId>
                 <version>2.3.1</version>
             </plugin>
-            <!--
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-project-info-reports-plugin</artifactId>
-                <reportSets>
-                    <reportSet>
-                        <reports>
-                            <report>project-team</report>
-                        </reports>
-                    </reportSet>
-                </reportSets>
-            </plugin>
-            -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>findbugs-maven-plugin</artifactId>
