@@ -38,12 +38,15 @@
 package com.sun.grizzly.http.server;
 
 import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.http.server.jmx.JmxEventListener;
+import com.sun.grizzly.http.server.jmx.Monitorable;
 import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.RequestURIRef;
 import com.sun.grizzly.http.util.UDecoder;
 import com.sun.grizzly.http.util.MessageBytes;
 import com.sun.grizzly.http.server.util.Mapper;
 import com.sun.grizzly.http.server.util.MappingData;
+import com.sun.grizzly.monitoring.jmx.JmxObject;
 
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -63,7 +66,7 @@ import java.util.logging.Logger;
  *
  * @author Jeanfrancois Arcand
  */
-public class GrizzlyAdapterChain extends GrizzlyAdapter {
+public class GrizzlyAdapterChain extends GrizzlyAdapter implements JmxEventListener {
     private static final Logger logger = Grizzly.logger(GrizzlyAdapterChain.class);
 
     private UDecoder urlDecoder = new UDecoder();
@@ -74,6 +77,8 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
      */
     private ConcurrentHashMap<GrizzlyAdapter, String[]> adapters =
             new ConcurrentHashMap<GrizzlyAdapter, String[]>();
+    private ConcurrentHashMap<GrizzlyAdapter, JmxObject> monitors =
+            new ConcurrentHashMap<GrizzlyAdapter, JmxObject>();
     /**
      * Internal {@link Mapper} used to Map request to their associated {@link GrizzlyAdapter}
      */
@@ -94,16 +99,51 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
      */
     private boolean started;
 
-    public GrizzlyAdapterChain() {
+    private final GrizzlyWebServer gws;
+
+
+    // ------------------------------------------------------------ Constructors
+
+
+    public GrizzlyAdapterChain(final GrizzlyWebServer gws) {
+        this.gws = gws;
         mapper.setDefaultHostName(LOCAL_HOST);
         // We will decode it
         setDecodeUrl(false);
     }
 
+
+    // ------------------------------------------- Methods from JmxEventListener
+
+    @Override
+    public void jmxEnabled() {
+        for (Entry<GrizzlyAdapter,String[]> entry : adapters.entrySet()) {
+            final GrizzlyAdapter adapter = entry.getKey();
+            if (adapter instanceof Monitorable) {
+                registerJmxForAdapter(adapter);
+            }
+        }
+    }
+
+    @Override
+    public void jmxDisabled() {
+        for (Entry<GrizzlyAdapter,String[]> entry : adapters.entrySet()) {
+            final GrizzlyAdapter adapter = entry.getKey();
+            if (adapter instanceof Monitorable) {
+                deregisterJmxForAdapter(adapter);
+            }
+        }
+    }
+
+
+    // ---------------------------------------------------------- Public Methods
+
+
     @Override
     public void start() {
         for (Entry<GrizzlyAdapter, String[]> entry : adapters.entrySet()) {
-            entry.getKey().start();
+            final GrizzlyAdapter adapter = entry.getKey();
+            adapter.start();
         }
         started = true;
     }
@@ -201,7 +241,7 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
 
 
     /**
-     * Add a {@link GrizzlyAdapter} and its assciated array of mapping. The mapping
+     * Add a {@link GrizzlyAdapter} and its associated array of mapping. The mapping
      * data will be used to map incoming request to its associated {@link GrizzlyAdapter}.
      * @param adapter {@link GrizzlyAdapter} instance
      * @param mappings an array of mapping.
@@ -215,7 +255,12 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
         if (mappings.length == 0) {
             addGrizzlyAdapter(adapter, new String[]{""});
         } else {
-            adapter.start();
+            if (started) {
+                adapter.start();
+                if (adapter instanceof Monitorable) {
+                    registerJmxForAdapter(adapter);
+                }
+            }
             adapters.put(adapter, mappings);
             for (String mapping : mappings) {
                 String ctx = getContextPath(mapping);
@@ -224,6 +269,23 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
                 mapper.addWrapper(LOCAL_HOST, ctx, mapping.substring(ctx.length()), adapter);
             }
         }
+
+    }
+
+    private void registerJmxForAdapter(final GrizzlyAdapter adapter) {
+        final Monitorable monitorable = (Monitorable) adapter;
+        final JmxObject jmx = monitorable.createManagementObject();
+        monitors.putIfAbsent(adapter, jmx);
+        gws.jmxManager.register(gws.managementObject, jmx, jmx.getJmxName());
+    }
+
+    private void deregisterJmxForAdapter(final GrizzlyAdapter adapter) {
+
+        JmxObject jmx = monitors.get(adapter);
+        if (jmx != null) {
+            gws.jmxManager.unregister(jmx);
+        }
+
     }
 
     private String getContextPath(String mapping) {
@@ -249,7 +311,8 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
     @Override
     public void destroy() {
         for (Entry<GrizzlyAdapter, String[]> adapter : adapters.entrySet()) {
-            adapter.getKey().destroy();
+            final GrizzlyAdapter a = adapter.getKey();
+            a.destroy();
         }
         started = false;
     }
@@ -268,7 +331,9 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
                 String ctx = getContextPath(mapping);
                 mapper.removeContext(LOCAL_HOST, ctx);
             }
+            deregisterJmxForAdapter(adapter);
             adapter.destroy();
+
         }
 
         return (mappings != null);

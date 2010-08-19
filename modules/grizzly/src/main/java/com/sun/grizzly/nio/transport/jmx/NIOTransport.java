@@ -111,6 +111,11 @@ public class NIOTransport extends JmxObject {
     }
 
     @Override
+    public String getJmxName() {
+        return "Transport";
+    }
+
+    @Override
     protected void onRegister(GrizzlyJmxManager mom, GmbalMBean bean) {
         synchronized (subtreeLock) {
             this.mom = mom;
@@ -243,7 +248,7 @@ public class NIOTransport extends JmxObject {
 
             if (memoryManager != null) {
                 final JmxObject mmJmx = memoryManager.getMonitoringConfig().createManagementObject();
-                mom.register(this, mmJmx, "MemoryManager");
+                mom.register(this, mmJmx, mmJmx.getJmxName());
                 currentMemoryManager = memoryManager;
                 memoryManagerJmx = mmJmx;
             }
@@ -260,7 +265,7 @@ public class NIOTransport extends JmxObject {
 
             if (threadPool != null) {
                 final JmxObject jmx = threadPool.getMonitoringConfig().createManagementObject();
-                mom.register(this, jmx, "Thread Pool");
+                mom.register(this, jmx, jmx.getJmxName());
                 currentThreadPool = threadPool;
                 threadPoolJmx = jmx;
             }

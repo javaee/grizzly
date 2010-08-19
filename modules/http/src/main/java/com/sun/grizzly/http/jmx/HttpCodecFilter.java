@@ -85,6 +85,14 @@ public class HttpCodecFilter extends JmxObject {
      * {@inheritDoc}
      */
     @Override
+    public String getJmxName() {
+        return "HttpCodecFilter";
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     protected void onRegister(GrizzlyJmxManager mom, GmbalMBean bean) {
         httpCodecFilter.getMonitoringConfig().addProbes(probe);
     }

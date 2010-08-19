@@ -82,6 +82,14 @@ public class GrizzlyWebServer extends JmxObject {
      * {@inheritDoc}
      */
     @Override
+    public String getJmxName() {
+        return "GrizzlyWebServer";
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     protected synchronized void onRegister(GrizzlyJmxManager mom, GmbalMBean bean) {
         this.mom = mom;
         rebuildSubTree();
@@ -106,6 +114,13 @@ public class GrizzlyWebServer extends JmxObject {
     @Description("Indicates whether or not this server instance has been started.")
     public boolean isStarted() {
         return gws.isStarted();
+    }
+
+
+    @ManagedAttribute(id="document-root")
+    @Description("The document root of this server instance.")
+    public String getDocumentRoot() {
+        return gws.getServerConfiguration().getDocRoot();
     }
 
 

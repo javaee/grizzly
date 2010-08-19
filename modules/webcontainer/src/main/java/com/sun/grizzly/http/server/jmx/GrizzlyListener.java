@@ -87,6 +87,14 @@ public class GrizzlyListener extends JmxObject {
 
 
     /**
+     * {@inerhitDoc
+     */
+    @Override
+    public String getJmxName() {
+        return "GrizzlyListener";
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -213,7 +221,7 @@ public class GrizzlyListener extends JmxObject {
 
             if (fileCache != null) {
                 final JmxObject jmx = fileCache.getMonitoringConfig().createManagementObject();
-                mom.register(this, jmx, "FileCache");
+                mom.register(this, jmx, jmx.getJmxName());
                 currentFileCache = fileCache;
                 fileCacheJmx = jmx;
             }
@@ -230,7 +238,7 @@ public class GrizzlyListener extends JmxObject {
 
             if (transport != null) {
                 final JmxObject jmx = transport.getMonitoringConfig().createManagementObject();
-                mom.register(this, jmx, "Transport");
+                mom.register(this, jmx, jmx.getJmxName());
                 currentTransport = transport;
                 transportJmx = jmx;
             }
@@ -247,7 +255,7 @@ public class GrizzlyListener extends JmxObject {
 
             if (filter != null) {
                 final JmxObject jmx = filter.getMonitoringConfig().createManagementObject();
-                mom.register(this, jmx, "Web Server Filter");
+                mom.register(this, jmx, jmx.getJmxName());
                 currentWebServerFilter = filter;
                 webServerFilterJmx = jmx;
             }
@@ -264,7 +272,7 @@ public class GrizzlyListener extends JmxObject {
 
             if (codecFilter != null) {
                 final JmxObject jmx = codecFilter.getMonitoringConfig().createManagementObject();
-                mom.register(this, jmx, "HTTP Codec Filter");
+                mom.register(this, jmx, jmx.getJmxName());
                 currentHttpCodecFilter = codecFilter;
                 httpCodecFilterJmx = jmx;
             }

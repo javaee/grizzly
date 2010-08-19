@@ -109,6 +109,14 @@ public class FileCache extends JmxObject {
 
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getJmxName() {
+        return "FileCache";
+    }
+
+    /**
      * <p>
      * {@inheritDoc}
      * </p>

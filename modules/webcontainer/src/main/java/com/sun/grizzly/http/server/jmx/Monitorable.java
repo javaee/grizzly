@@ -1,8 +1,8 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
- *
+ * 
  * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
- *
+ * 
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
@@ -10,7 +10,7 @@
  * a copy of the License at https://glassfish.dev.java.net/public/CDDL+GPL.html
  * or glassfish/bootstrap/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
- *
+ * 
  * When distributing the software, include this License Header Notice in each
  * file and include the License file at glassfish/bootstrap/legal/LICENSE.txt.
  * Sun designates this particular file as subject to the "Classpath" exception
@@ -19,9 +19,9 @@
  * Header, with the fields enclosed by brackets [] replaced by your own
  * identifying information: "Portions Copyrighted [year]
  * [name of copyright owner]"
- *
+ * 
  * Contributor(s):
- *
+ * 
  * If you wish your version of this file to be governed by only the CDDL or
  * only the GPL Version 2, indicate your decision by adding "[Contributor]
  * elects to include this software in this distribution under the [CDDL or GPL
@@ -34,35 +34,21 @@
  * holder.
  */
 
-package com.sun.grizzly.monitoring.jmx;
+package com.sun.grizzly.http.server.jmx;
 
-import org.glassfish.gmbal.GmbalMBean;
+import com.sun.grizzly.monitoring.jmx.JmxObject;
+
 
 /**
- * Class represents any kind of JMX object in Grizzly. All the abstractions in
- * Grizzly, which have to be exposed via JMX, should extend this class.
- * 
- * @author Alexey Stashok
+ * Interface that allows arbitrary entities to provide a {@link JmxObject}
+ * that can be registered with the {@link com.sun.grizzly.monitoring.jmx.GrizzlyJmxManager}.
  */
-public abstract class JmxObject {
+public interface Monitorable {
 
     /**
-     * @return the name this managed object should be registered with.
+     * @return a new {@link JmxObject} that may be registered with the
+     *  {@link com.sun.grizzly.monitoring.jmx.GrizzlyJmxManager}.
      */
-    public abstract String getJmxName();
+    JmxObject createManagementObject();
 
-    /**
-     * Method will be called right after this <tt>JmxObject</tt> is registered by the JMX manager.
-     * 
-     * @param mom {@link GrizzlyJmxManager} Grizzly JMX manager.
-     * @param bean {@link GmbalMBean}, which represents the registration.
-     */
-    protected abstract void onRegister(GrizzlyJmxManager mom, GmbalMBean bean);
-
-    /**
-     * Method will be called right after this <tt>JmxObject</tt> is unregistered by the JMX manager.
-     *
-     * @param mom {@link GrizzlyJmxManager} Grizzly JMX manager.
-     */
-    protected abstract void onUnregister(GrizzlyJmxManager mom);
 }

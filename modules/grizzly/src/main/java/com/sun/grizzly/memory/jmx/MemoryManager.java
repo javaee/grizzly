@@ -72,6 +72,11 @@ public class MemoryManager extends JmxObject {
     }
 
     @Override
+    public String getJmxName() {
+        return "MemoryManager";
+    }
+
+    @Override
     protected void onRegister(GrizzlyJmxManager mom, GmbalMBean bean) {
         memoryManager.getMonitoringConfig().addProbes(probe);
     }
@@ -82,7 +87,7 @@ public class MemoryManager extends JmxObject {
     }
 
     @NameValue
-    public String getName() {
+    public String getMemoryManagerType() {
         return memoryManager.getClass().getName();
     }
 

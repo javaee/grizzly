@@ -81,6 +81,11 @@ public class WebServerFilter extends JmxObject {
 
 
     @Override
+    public String getJmxName() {
+        return "WebServerFilter";
+    }
+
+    @Override
     protected void onRegister(GrizzlyJmxManager mom, GmbalMBean bean) {
         webServerFilter.getMonitoringConfig().addProbes(probe);
     }

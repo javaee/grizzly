@@ -37,8 +37,13 @@
 package com.sun.grizzly.http.server;
 
 
+import com.sun.grizzly.http.server.jmx.JmxEventListener;
+
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -57,6 +62,8 @@ public class ServerConfiguration {
     // Non-exposed
 
     private Map<GrizzlyAdapter, String[]> adapters = new LinkedHashMap<GrizzlyAdapter, String[]>();
+
+    private Set<JmxEventListener> jmxEventListeners = new CopyOnWriteArraySet<JmxEventListener>();
 
     private static final String[] ROOT_MAPPING = {"/"};
 
@@ -144,7 +151,8 @@ public class ServerConfiguration {
             return adapter;
         }
 
-        GrizzlyAdapterChain adapterChain = new GrizzlyAdapterChain();
+        GrizzlyAdapterChain adapterChain = new GrizzlyAdapterChain(instance);
+        addJmxEventListener(adapterChain);
         adapterChain.setDocRoot(docRoot);
 
         for (Map.Entry<GrizzlyAdapter, String[]> adapterRecord : adapters.entrySet()) {
@@ -224,15 +232,66 @@ public class ServerConfiguration {
      */
     public void setJmxEnabled(boolean jmxEnabled) {
 
+        this.jmxEnabled = jmxEnabled;
         if (instance.isStarted()) {
             if (jmxEnabled) {
                 instance.enableJMX();
+                if (!jmxEventListeners.isEmpty()) {
+                    for (final JmxEventListener l : jmxEventListeners) {
+                        l.jmxEnabled();
+                    }
+                }
             } else {
+                if (!jmxEventListeners.isEmpty()) {
+                    for (final JmxEventListener l : jmxEventListeners) {
+                        l.jmxDisabled();
+                    }
+                }
                 instance.disableJMX();
             }
         }
-        this.jmxEnabled = jmxEnabled;
 
+    }
+
+
+    /**
+     * Add a {@link JmxEventListener} which will be notified when the
+     * {@link GrizzlyWebServer} is started and JMX was enabled prior to starting
+     * or if the {@link GrizzlyWebServer} was started with JMX disabled, but
+     * JMX was enabled at a later point in time.
+     *
+     * @param listener the {@link JmxEventListener} to add.
+     */
+    public void addJmxEventListener(final JmxEventListener listener) {
+
+        if (listener != null) {
+            jmxEventListeners.add(listener);
+        }
+
+    }
+
+
+    /**
+     * Removes the specified {@link JmxEventListener}.
+     *
+     * @param listener the {@link JmxEventListener} to remove.
+     */
+    public void removeJmxEventListener(final JmxEventListener listener) {
+
+        if (listener != null) {
+            jmxEventListeners.remove(listener);
+        }
+
+    }
+
+
+    /**
+     * @return an {@link Iterator} of all registered {@link JmxEventListener}s.
+     */
+    public Iterator<JmxEventListener> getJmxEventListeners() {
+
+        return jmxEventListeners.iterator();
+        
     }
     
 } // END ServerConfiguration

@@ -47,6 +47,8 @@ import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.http.HttpServerFilter;
 import com.sun.grizzly.http.server.filecache.FileCache;
+import com.sun.grizzly.http.server.jmx.Monitorable;
+import com.sun.grizzly.http.server.jmx.JmxEventListener;
 import com.sun.grizzly.monitoring.jmx.GrizzlyJmxManager;
 import com.sun.grizzly.monitoring.jmx.JmxObject;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
@@ -108,9 +110,11 @@ public class GrizzlyWebServer {
 
     private volatile ScheduledExecutorService scheduledExecutorService;
 
-    private volatile GrizzlyJmxManager jmxManager;
+    protected volatile GrizzlyJmxManager jmxManager;
 
-    private volatile JmxObject managementObject;
+    protected volatile JmxObject managementObject;
+
+    private volatile JmxObject adapterManagementObject;
 
 
     // ---------------------------------------------------------- Public Methods
@@ -239,11 +243,6 @@ public class GrizzlyWebServer {
 
         configureScheduledThreadPool();
 
-        adapter = serverConfig.buildAdapter();
-        if (adapter != null) {
-            adapter.start();
-        }
-
         for (final GrizzlyListener listener : listeners.values()) {
             configureListener(listener);
             try {
@@ -264,8 +263,47 @@ public class GrizzlyWebServer {
             enableJMX();
         }
 
+        setupAdapter();
+
+        if (serverConfig.isJmxEnabled()) {
+            for (Iterator<JmxEventListener> i = serverConfig.getJmxEventListeners(); i.hasNext(); ) {
+                final JmxEventListener l = i.next();
+                l.jmxEnabled();
+            }
+        }
+
         if (LOGGER.isLoggable(Level.INFO)) {
             LOGGER.info("[" + getServerConfiguration().getName() + "] Started.");
+        }
+
+    }
+
+    private void setupAdapter() {
+
+        adapter = serverConfig.buildAdapter();
+        if (adapter != null) {
+            if (!(adapter instanceof GrizzlyAdapterChain)
+                    && adapter instanceof Monitorable) {
+                final Monitorable monitor = (Monitorable) adapter;
+                final JmxObject jmx = monitor.createManagementObject();
+                jmxManager.register(managementObject, jmx, jmx.getJmxName());
+                adapterManagementObject = jmx;
+            }
+            adapter.start();
+        }
+
+    }
+
+
+    private void tearDownAdapter() {
+
+        if (adapterManagementObject != null) {
+            jmxManager.unregister(adapterManagementObject);
+            adapterManagementObject = null;
+        }
+        if (adapter != null) {
+            adapter.destroy();
+            adapter = null;
         }
 
     }
@@ -319,15 +357,18 @@ public class GrizzlyWebServer {
         }
         started = false;
 
-        if (serverConfig.isJmxEnabled()) {
-            disableJMX();
-        }
+
 
         try {
-            if (adapter != null) {
-                adapter.destroy();
-                adapter = null;
+
+            if (serverConfig.isJmxEnabled()) {
+                for (Iterator<JmxEventListener> i = serverConfig.getJmxEventListeners(); i.hasNext();) {
+                    final JmxEventListener l = i.next();
+                    l.jmxDisabled();
+                }
             }
+
+            tearDownAdapter();
 
             final String[] names = listeners.keySet().toArray(new String[listeners.size()]);
             for (final String name : names) {
@@ -335,6 +376,10 @@ public class GrizzlyWebServer {
             }
 
             stopScheduledThreadPool();
+
+            if (serverConfig.isJmxEnabled()) {
+                disableJMX();
+            }
             
             TransportFactory.getInstance().close();
         } catch (Exception e) {
@@ -400,10 +445,10 @@ public class GrizzlyWebServer {
     }
 
 
-    // ------------------------------------------------- Package Private Methods
+    // ------------------------------------------------------- Protected Methods
 
 
-    void enableJMX() {
+    protected void enableJMX() {
 
         if (jmxManager == null) {
             synchronized (serverConfig) {
@@ -418,7 +463,7 @@ public class GrizzlyWebServer {
     }
 
 
-    void disableJMX() {
+    protected void disableJMX() {
 
         if (jmxManager != null) {
             jmxManager.unregister(getManagementObject(true));

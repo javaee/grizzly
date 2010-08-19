@@ -79,6 +79,12 @@ public class ThreadPool extends JmxObject {
 
     // -------------------------------------------------- Methods from JmxObject
 
+
+    @Override
+    public String getJmxName() {
+        return "ThreadPool";
+    }
+
     /**
      * {@inheritDoc}
      */
