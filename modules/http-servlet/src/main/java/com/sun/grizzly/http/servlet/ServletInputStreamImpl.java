@@ -70,7 +70,11 @@ public class ServletInputStreamImpl extends ServletInputStream{
         this.inputStream = inputStream;
     }
 
-    public int read() throws IOException {      
+    protected void update(GrizzlyInputStream inputStream) {
+        this.inputStream = inputStream;
+    }
+
+    public int read() throws IOException {
         return inputStream.read();
     }
 

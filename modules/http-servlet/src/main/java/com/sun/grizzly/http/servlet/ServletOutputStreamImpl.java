@@ -70,6 +70,10 @@ public class ServletOutputStreamImpl extends ServletOutputStream {
         this.outputStream = outputStream;
     }
 
+    protected void update(GrizzlyOutputStream outputStream) {
+        this.outputStream = outputStream;
+    }
+
     public void write(int i) throws IOException {
         outputStream.write(i);
     }

@@ -376,6 +376,9 @@ public class ServletAdapter extends GrizzlyAdapter {
 
                 req.setNote(REQUEST_RESPONSE_NOTES, httpRequest);
                 res.setNote(REQUEST_RESPONSE_NOTES, httpResponse);
+            } else {
+                httpRequest.update();
+                httpResponse.update();
             }
 
             Cookie[] cookies = request.getCookies();

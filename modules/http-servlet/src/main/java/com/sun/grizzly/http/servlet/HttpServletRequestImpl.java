@@ -89,7 +89,7 @@ import javax.servlet.http.HttpSession;
  */
 public class HttpServletRequestImpl implements HttpServletRequest {
       
-    private ServletInputStream inputStream = null;
+    private ServletInputStreamImpl inputStream = null;
     
     private HttpSessionImpl httpSession = null;
 
@@ -270,6 +270,15 @@ public class HttpServletRequestImpl implements HttpServletRequest {
         return inputStream;
     }
 
+    /**
+     * Underlying GrizzlyRequest could be recycled. For example InputStream is
+     * not longer available. We need to update the ServletInputStream accordingly.
+     */
+    void update() throws IOException {
+        if (inputStream != null) {
+            inputStream.update(request.createInputStream());
+        }
+    }
 
     void recycle(){
         if(System.getSecurityManager() != null){
@@ -1124,7 +1133,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     
   
     /**
-     * Programmaticaly set the servlet path value. Default is an empty String.
+     * Programmatically set the servlet path value. Default is an empty String.
      * @param servletPath Servlet path to set.
      */
     protected void setServletPath(String servletPath){

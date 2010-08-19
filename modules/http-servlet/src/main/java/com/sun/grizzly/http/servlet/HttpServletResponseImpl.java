@@ -82,7 +82,7 @@ import javax.servlet.http.HttpServletResponse;
 
 public class HttpServletResponseImpl implements HttpServletResponse {
 
-    private ServletOutputStream outputStream = null;
+    private ServletOutputStreamImpl outputStream = null;
     
     // ----------------------------------------------------------- DoPrivileged
     
@@ -211,7 +211,17 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 
     }
 
-    void recycle(){
+    /**
+     * Underlying GrizzlyResponse could be recycled. For example OutputStream is
+     * not longer available. We need to update the ServletOutputStream accordingly.
+     */
+    void update() throws IOException {
+        if (outputStream != null) {
+            outputStream.update(response.createOutputStream());
+        }
+    }
+
+    void recycle() {
         if(System.getSecurityManager() != null){
             outputStream = null;
         }
