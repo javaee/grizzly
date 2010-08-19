@@ -39,39 +39,36 @@
 package com.sun.grizzly.websockets.frame;
 
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.memory.MemoryUtils;
 import java.nio.charset.Charset;
-import java.util.logging.Logger;
 
 /**
- * General abstraction, which represents {@link WebSocket} frame.
+ * General abstraction, which represents {@link com.sun.grizzly.websockets.WebSocket} frame.
  * Contains a set of static createXXX methods in order to create specific frame.
  *
  * @author Alexey Stashok
  */
 public abstract class Frame {
 
-    private static final Logger logger = Grizzly.logger(Frame.class);
     private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
 
     /**
      * Create the stream-based frame, which will contain UTF-8 string.
-     * So far it's the only frame type officially supported for transferring data over {@link WebSocket}s.
+     * So far it's the only frame type officially supported for transferring data over {@link com.sun.grizzly.websockets.WebSocket}s.
      * @param text the text.
      *
      * @return the {@link Frame}.
      */
-    public static final Frame createTextFrame(String text) {
+    public static Frame createTextFrame(String text) {
         return createFrame(0, text);
     }
 
     /**
-     * Create the close frame, after sending which the {@link WebSocket} communication will be closed.
+     * Create the close frame, after sending which the {@link com.sun.grizzly.websockets.WebSocket} communication will be closed.
      *
      * @return the close frame.
      */
-    public static final Frame createCloseFrame() {
+    public static Frame createCloseFrame() {
         return new FixedLengthFrame(0xFF, null);
     }
 
@@ -83,7 +80,7 @@ public abstract class Frame {
      * 
      * @return the frame.
      */
-    public static final Frame createFrame(int type, String text) {
+    public static Frame createFrame(int type, String text) {
         return createFrame(type, text, UTF8_CHARSET);
     }
 
@@ -96,7 +93,7 @@ public abstract class Frame {
      *
      * @return the frame.
      */
-    public static final Frame createFrame(int type, String text, Charset charset) {
+    public static Frame createFrame(int type, String text, Charset charset) {
         return createFrame(type, MemoryUtils.wrap(null, text, charset));
     }
 
@@ -107,7 +104,7 @@ public abstract class Frame {
      *
      * @return the frame.
      */
-    public static final Frame createFrame(int type, Buffer data) {
+    public static Frame createFrame(int type, Buffer data) {
         if ((type & 0x80) == 0) {
             return new StreamFrame(type, data);
         } else {
