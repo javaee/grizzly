@@ -57,8 +57,6 @@ package com.sun.grizzly.tcp.http11;
 
 import com.sun.grizzly.tcp.ActionCode;
 import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.util.LoggerUtils;
-import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.buf.B2CConverter;
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.buf.MessageBytes;
@@ -73,11 +71,7 @@ import com.sun.grizzly.util.http.ServerCookie;
 import com.sun.grizzly.util.http.StringParser;
 import com.sun.grizzly.util.res.StringManager;
 
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
 import javax.security.auth.Subject;
-import javax.security.auth.x500.X500Principal;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -104,8 +98,6 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Wrapper object for the Coyote request.
@@ -160,7 +152,7 @@ public class GrizzlyRequest {
     /**
      * Scheduled Thread that clean the cache every XX seconds.
      */
-    private static ScheduledThreadPoolExecutor sessionExpirer
+    private final static ScheduledThreadPoolExecutor sessionExpirer
         = new ScheduledThreadPoolExecutor(1, new ThreadFactory(){
             public Thread newThread(Runnable r) {
                 return new SchedulerThread(r,"Grizzly");
@@ -290,7 +282,7 @@ public class GrizzlyRequest {
 
 
     /**
-     * The preferred Locales assocaited with this Request.
+     * The preferred Locales associated with this Request.
      */
     protected ArrayList locales = new ArrayList();
 
