@@ -52,6 +52,7 @@ import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.http.HttpServerFilter;
+import com.sun.grizzly.http.util.HttpStatus;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
 import com.sun.grizzly.websockets.frame.ParseResult;
@@ -522,7 +523,7 @@ public class WebSocketFilter extends BaseFilter {
 
         final HttpResponsePacket response = request.getResponse();
 
-        response.setStatus(101);
+        response.setStatus(HttpStatus.SWITCHING_PROTOCOLS_101.getStatusCode());
         response.setReasonPhrase("Web Socket Protocol Handshake");
 
         response.setUpgrade("WebSocket");
