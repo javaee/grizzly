@@ -273,12 +273,7 @@ public class JkCoyoteHandler extends JkHandler implements ProtocolHandler, Grizz
     }
 
     public void listen() throws IOException, InstantiationException {
-        final CountDownLatch latch = new CountDownLatch(1);
         init();
         start();
-        try {
-            latch.await();
-        } catch (InterruptedException ex) {
-        }
     }
 }
