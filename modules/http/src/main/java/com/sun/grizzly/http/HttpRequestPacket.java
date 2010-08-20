@@ -70,13 +70,13 @@ public abstract class HttpRequestPacket extends HttpHeader {
 
     private String localHost;
 
-    private BufferChunk methodBC = BufferChunk.newInstance();
-    private BufferChunk queryBC = BufferChunk.newInstance();
-    private BufferChunk remoteAddressBC = BufferChunk.newInstance();
-    private BufferChunk remoteHostBC = BufferChunk.newInstance();
-    private BufferChunk localNameBC = BufferChunk.newInstance();
-    private BufferChunk localAddressBC = BufferChunk.newInstance();
-    private BufferChunk serverNameBC = BufferChunk.newInstance();
+    private final BufferChunk methodBC = BufferChunk.newInstance();
+    private final BufferChunk queryBC = BufferChunk.newInstance();
+    private final BufferChunk remoteAddressBC = BufferChunk.newInstance();
+    private final BufferChunk remoteHostBC = BufferChunk.newInstance();
+    private final BufferChunk localNameBC = BufferChunk.newInstance();
+    private final BufferChunk localAddressBC = BufferChunk.newInstance();
+    private final BufferChunk serverNameBC = BufferChunk.newInstance();
 
     private boolean requiresAcknowledgement;
 

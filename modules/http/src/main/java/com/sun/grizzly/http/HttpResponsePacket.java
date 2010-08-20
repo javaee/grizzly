@@ -81,14 +81,14 @@ public abstract class HttpResponsePacket extends HttpHeader {
     /**
      * Status message.
      */
-    private BufferChunk reasonPhraseBC = BufferChunk.newInstance();
+    private final BufferChunk reasonPhraseBC = BufferChunk.newInstance();
 
 
     /**
-     * Does this HttpResponsePacket represent an acknowledgement to
+     * Does this HttpResponsePacket represent an acknowledgment to
      * an Expect header.
      */
-    private boolean acknowledgement;
+    private boolean acknowledgment;
 
 
     /**
@@ -185,7 +185,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
      *  as an acknowledgement to an expectation from a client request.
      */
     public boolean isAcknowledgement() {
-        return acknowledgement;
+        return acknowledgment;
     }
 
 
@@ -196,7 +196,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
      *  acknowledgement to a client expectation.
      */
     public void setAcknowledgement(boolean acknowledgement) {
-        this.acknowledgement = acknowledgement;        
+        this.acknowledgment = acknowledgement;
     }
 
 
@@ -204,7 +204,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
      * Mark this packet as having been acknowledged.
      */
     public void acknowledged() {
-        acknowledgement = false;
+        acknowledgment = false;
         parsedStatusInt = NON_PARSED_STATUS;
         reasonPhraseBC.recycle();
     }
@@ -220,7 +220,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
     protected void reset() {
         statusBC.recycle();
         parsedStatusInt = NON_PARSED_STATUS;
-        acknowledgement = false;
+        acknowledgment = false;
         reasonPhraseBC.recycle();
         locale = null;
         contentLanguage = null;

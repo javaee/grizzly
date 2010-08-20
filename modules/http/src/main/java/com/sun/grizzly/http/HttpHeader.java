@@ -44,7 +44,6 @@ import com.sun.grizzly.attributes.IndexedAttributeHolder;
 import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.Ascii;
 import com.sun.grizzly.http.util.ContentType;
-import com.sun.grizzly.http.util.Cookies;
 import com.sun.grizzly.http.util.MimeHeaders;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -70,7 +69,6 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
     protected boolean charEncodingParsed;
     protected boolean contentTypeParsed;
     protected String contentType;
-    protected final Cookies cookies = new Cookies(headers);
 
     protected boolean isExpectContent;
 
@@ -554,7 +552,6 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
         protocolBC.recycle();
         contentEncodings.clear();
         headers.clear();
-        cookies.recycle();
         isCommitted = false;
         isChunked = false;
         contentLength = -1;
