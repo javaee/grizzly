@@ -1372,10 +1372,9 @@ public class GrizzlyRequest {
         // START S1AS 6179607
         final byte[] finalBuffer = buffer;
         final String finalEnc = enc;
-        String dummy = null;
         if (System.getSecurityManager() != null) {
             try {
-                dummy = (String) AccessController.doPrivileged(
+                AccessController.doPrivileged(
                         new PrivilegedExceptionAction() {
                             @Override
                             public Object run() throws UnsupportedEncodingException {
@@ -1386,7 +1385,7 @@ public class GrizzlyRequest {
                 throw (UnsupportedEncodingException) pae.getCause();
             }
         } else {
-            dummy = new String(buffer, enc);
+            new String(buffer, enc);
         }
         // END S1AS 6179607
 

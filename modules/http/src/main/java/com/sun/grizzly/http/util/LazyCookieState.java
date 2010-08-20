@@ -54,7 +54,6 @@
 package com.sun.grizzly.http.util;
 
 import com.sun.grizzly.Buffer;
-import java.io.Serializable;
 
 
 /**
@@ -68,7 +67,7 @@ import java.io.Serializable;
  *  Tomcat.core uses this recyclable object to represent cookies,
  *  and the facade will convert it to the external representation.
  */
-class LazyCookieState implements Serializable {    
+class LazyCookieState {
     // Version 0 (Netscape) attributes
     private BufferChunk name = BufferChunk.newInstance();
     private BufferChunk value = BufferChunk.newInstance();

@@ -166,7 +166,7 @@ public class GrizzlyResponse {
     /**
      * The string manager for this package.
      */
-    protected static StringManager sm =
+    protected final static StringManager sm =
         StringManager.getManager(Constants.Package);
 
 
