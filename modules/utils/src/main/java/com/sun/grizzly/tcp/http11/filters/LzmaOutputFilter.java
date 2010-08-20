@@ -36,15 +36,6 @@
  * and therefore, elected the GPL Version 2 license, then the option applies
  * only if the new code is made subject to such option by the copyright
  * holder.
- *
- * Portions Copyright 2010 Noemax Technologies
- *
- * NOTICE: This code was based on the LZMA implementation available in
- * Igor Pavlov's LZMA SDK (www.7-zip.org). It was adapted for use in
- * communications by Noemax Technologies (www.noemax.com) and contributed
- * to Project Grizzly (grizzly.dev.java.net). All modifications made to
- * the original LZMA implementation are Copyright 2010 Noemax Technologies.
- * You may not remove this notice from this code or any derivative works of it.
  */
 
 package com.sun.grizzly.tcp.http11.filters;
