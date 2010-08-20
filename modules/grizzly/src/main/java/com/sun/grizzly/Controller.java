@@ -1340,13 +1340,21 @@ public class Controller implements Runnable, Lifecycle, Copyable,
 
     private void displayConfiguration(){
        if (displayConfiguration){
+
+           String threadPoolResult;
+           if (threadPool instanceof GrizzlyExecutorService) {
+               threadPoolResult = ((GrizzlyExecutorService) threadPool).getConfiguration().toString();
+           } else {
+               threadPoolResult = threadPool.toString();
+           }
+
             logger.log(Level.INFO,
                     LogMessages.INFO_GRIZZLY_CONFIGURATION(
                     System.getProperty("os.name"),
                     System.getProperty("os.version"),
                     System.getProperty("java.version"),
                     System.getProperty("java.vendor"),
-                    threadPool,
+                    threadPoolResult,
                     readThreadsCount,
                     autoConfigure,
                     useLeaderFollowerStrategy,
@@ -1357,6 +1365,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
                     handleReadWriteConcurrently,
                     getProtocolChainInstanceHandler()));
         }
+
     }
 
     public static interface KernelExecutorFactory {
