@@ -59,13 +59,13 @@ public class WebSocketEngine {
     public static final String SERVER_SEC_WS_ORIGIN_HEADER = "Sec-WebSocket-Origin";
     public static final String SERVER_SEC_WS_LOCATION_HEADER = "Sec-WebSocket-Location";
     public static final String WEBSOCKET = "websocket";
-
-    static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
-    private static final WebSocketEngine engine = new WebSocketEngine();
-    private final Map<String, WebSocketApplication> applications = new HashMap<String, WebSocketApplication>();
-    static final int INITIAL_BUFFER_SIZE = 8192;
-    private final WebSocketCloseHandler closeHandler = new WebSocketCloseHandler();
+    public static final int INITIAL_BUFFER_SIZE = 8192;
     public static final int DEFAULT_TIMEOUT;
+
+    private static final WebSocketEngine engine = new WebSocketEngine();
+    private static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
+    private final Map<String, WebSocketApplication> applications = new HashMap<String, WebSocketApplication>();
+    private final WebSocketCloseHandler closeHandler = new WebSocketCloseHandler();
 
     static {
         if(Utils.isDebugVM()) {
