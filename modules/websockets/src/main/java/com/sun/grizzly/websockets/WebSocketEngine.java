@@ -63,7 +63,7 @@ public class WebSocketEngine {
     public static final int DEFAULT_TIMEOUT;
 
     private static final WebSocketEngine engine = new WebSocketEngine();
-    private static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
+    static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     private final Map<String, WebSocketApplication> applications = new HashMap<String, WebSocketApplication>();
     private final WebSocketCloseHandler closeHandler = new WebSocketCloseHandler();
 
