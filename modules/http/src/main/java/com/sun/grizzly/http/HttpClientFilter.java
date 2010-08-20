@@ -235,7 +235,7 @@ public class HttpClientFilter extends HttpCodecFilter {
                         return false;
                     }
                     
-                    httpResponse.getReasonPhraseBC().setBuffer(
+                    httpResponse.getReasonPhraseBC(false).setBuffer(
                             input, parsingState.start,
                             parsingState.checkpoint);
 

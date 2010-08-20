@@ -39,6 +39,7 @@
 package com.sun.grizzly.http;
 
 import com.sun.grizzly.http.util.BufferChunk;
+import com.sun.grizzly.http.util.Utils;
 
 import java.util.Locale;
 
@@ -145,10 +146,17 @@ public abstract class HttpResponsePacket extends HttpHeader {
      * Gets the status reason phrase for this response as {@link BufferChunk}
      * (avoid creation of a String object}.
      *
+     * @param useDefault if <code>true</code> and no reason phase has been
+     *  explicitly set, the default as defined by <code>RFC 2616</code> will
+     *  be returned. 
+     *
      * @return the status reason phrase for this response as {@link BufferChunk}
      * (avoid creation of a String object}.
      */
-    public BufferChunk getReasonPhraseBC() {
+    public BufferChunk getReasonPhraseBC(boolean useDefault) {
+        if (useDefault && reasonPhraseBC.isNull()) {
+            return Utils.getHttpStatusMessage(getStatus());
+        }
         return reasonPhraseBC;
     }
 
