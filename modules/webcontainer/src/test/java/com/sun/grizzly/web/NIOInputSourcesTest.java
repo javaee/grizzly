@@ -476,7 +476,7 @@ public class NIOInputSourcesTest extends TestCase {
                 if (reader.isFinished()) {
                     return;
                 }
-                final StringBuilder sb = new StringBuilder();
+                final StringBuffer sb = new StringBuffer();
                 reader.notifyAvailable(new ReadHandler() {
 
                     @Override
@@ -518,7 +518,7 @@ public class NIOInputSourcesTest extends TestCase {
 
         }
 
-        private static void buffer(GrizzlyInputStream reader, StringBuilder sb) throws IOException {
+        private static void buffer(GrizzlyInputStream reader, StringBuffer sb) throws IOException {
             byte[] b = new byte[reader.readyData()];
             try {
                 reader.read(b);
