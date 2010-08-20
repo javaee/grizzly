@@ -65,11 +65,11 @@ import com.sun.grizzly.http.server.io.GrizzlyWriter;
 import com.sun.grizzly.http.server.io.OutputBuffer;
 import com.sun.grizzly.http.util.CharChunk;
 import com.sun.grizzly.http.util.Cookie;
+import com.sun.grizzly.http.util.CookieUtils;
 import com.sun.grizzly.http.util.FastHttpDateFormat;
 import com.sun.grizzly.http.util.HttpRequestURIDecoder;
 import com.sun.grizzly.http.util.MessageBytes;
 import com.sun.grizzly.http.util.MimeHeaders;
-import com.sun.grizzly.http.util.ServerCookie;
 import com.sun.grizzly.http.util.StringManager;
 import com.sun.grizzly.http.util.UEncoder;
 
@@ -84,10 +84,12 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Enumeration;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
-import java.util.Vector;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -244,7 +246,7 @@ public class GrizzlyResponse {
     /**
      * The set of Cookies associated with this Response.
      */
-    protected ArrayList cookies = new ArrayList();
+    protected final List<Cookie> cookies = new ArrayList<Cookie>(4);
 
 
     /**
@@ -1094,15 +1096,13 @@ public class GrizzlyResponse {
      */
     public String[] getHeaderValues(String name) {
         checkResponse();
-        Enumeration e = response.getHeaders().values(name);
-        Vector result = new Vector();
+        final Enumeration<String> e = response.getHeaders().values(name);
+        final Collection<String> result = new LinkedList<String>();
         while (e.hasMoreElements()) {
-            result.addElement(e.nextElement());
+            result.add(e.nextElement());
         }
-        String[] resultArray = new String[result.size()];
-        result.copyInto(resultArray);
-        return resultArray;
-
+        
+        return result.toArray(new String[0]);
     }
 
 
@@ -1162,20 +1162,13 @@ public class GrizzlyResponse {
         if (System.getSecurityManager() != null) {
             AccessController.doPrivileged(new PrivilegedAction() {
                 @Override
-                public Object run(){
-                    ServerCookie.appendCookieValue
-                        (sb, cookie.getVersion(), cookie.getName(),
-                         cookie.getValue(), cookie.getPath(),
-                         cookie.getDomain(), cookie.getComment(),
-                         cookie.getMaxAge(), cookie.getSecure());
+                public Object run() {
+                    CookieUtils.serializeServerCookie(sb, cookie);
                     return null;
                 }
             });
         } else {
-            ServerCookie.appendCookieValue
-                (sb, cookie.getVersion(), cookie.getName(), cookie.getValue(),
-                     cookie.getPath(), cookie.getDomain(), cookie.getComment(),
-                     cookie.getMaxAge(), cookie.getSecure());
+            CookieUtils.serializeServerCookie(sb, cookie);
         }
 
         // if we reached here, no exception, cookie is valid
@@ -1564,9 +1557,8 @@ public class GrizzlyResponse {
                                     }
                            });
                         } catch (PrivilegedActionException pae){
-                            IllegalArgumentException iae =
-                                new IllegalArgumentException(location);
-                            iae.initCause(pae.getCause());
+                            final IllegalArgumentException iae =
+                                new IllegalArgumentException(location, pae.getCause());
                             throw iae;
                         }
                     } else {
@@ -1578,9 +1570,8 @@ public class GrizzlyResponse {
                 }
                 cc.append(location, 0, location.length());
             } catch (IOException e) {
-                IllegalArgumentException iae =
-                    new IllegalArgumentException(location);
-                iae.initCause(e);
+                final IllegalArgumentException iae =
+                    new IllegalArgumentException(location, e);
                 throw iae;
             }
 
@@ -1613,7 +1604,7 @@ public class GrizzlyResponse {
 
         char content[] = new char[message.length()];
         message.getChars(0, message.length(), content, 0);
-        StringBuffer result = new StringBuffer(content.length + 50);
+        final StringBuilder result = new StringBuilder(content.length + 50);
         for (int i = 0; i < content.length; i++) {
             switch (content[i]) {
             case '<':

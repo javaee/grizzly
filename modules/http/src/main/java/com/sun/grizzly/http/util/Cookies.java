@@ -53,10 +53,9 @@
  */
 package com.sun.grizzly.http.util;
 
-import com.sun.grizzly.Buffer;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.StringTokenizer;
+import com.sun.grizzly.Grizzly;
+import java.util.ArrayList;
+import java.util.Collection;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -70,15 +69,17 @@ import java.util.logging.Logger;
  * @author Costin Manolache
  * @author kevin seguin
  */
-public final class Cookies { // extends MultiMap {
+public final class Cookies {
 
-    private static Logger logger = Logger.getLogger("Grizzly");
+    private static final Logger logger = Grizzly.logger(Cookies.class);
     // expected average number of cookies per request
-    public static final int INITIAL_SIZE = 4;
-    ServerCookie scookies[] = new ServerCookie[INITIAL_SIZE];
-    int cookieCount = 0;
-    boolean unprocessed = true;
-    MimeHeaders headers;
+    private static final int INITIAL_SIZE = 4;
+
+    private final Collection<Cookie> cookies =
+            new ArrayList<Cookie>(INITIAL_SIZE);
+    
+    private boolean isProcessed;
+    private final MimeHeaders headers;
 
     /*
     List of Separator Characters (see isSeparator())
@@ -90,8 +91,8 @@ public final class Cookies { // extends MultiMap {
      */
     public static final char SEPARATORS[] = {'\t', ' ', '\"', '\'', '(', ')', ',',
         ':', ';', '<', '=', '>', '?', '@', '[', '\\', ']', '{', '}'};
-
     protected static final boolean separators[] = new boolean[128];
+
     static {
         for (int i = 0; i < 128; i++) {
             separators[i] = false;
@@ -112,98 +113,27 @@ public final class Cookies { // extends MultiMap {
         this.headers = headers;
     }
 
-    /**
-     * Construct a new uninitialized cookie collection.
-     * Use {@link #setHeaders} to initialize.
-     */
-    // [seguin] added so that an empty Cookies object could be
-    // created, have headers set, then recycled.
-    public Cookies() {
-    }
+    public Collection<Cookie> get() {
+        if (isProcessed) {
+            isProcessed = true;
+            processCookies();
+        }
 
-    /**
-     * Set the headers from which cookies will be pulled.
-     * This has the side effect of recycling the object.
-     *
-     * @param headers Cookies are lazy-evaluated and will extract the
-     *     information from the provided headers.
-     */
-    // [seguin] added so that an empty Cookies object could be
-    // created, have headers set, then recycled.
-    public void setHeaders(MimeHeaders headers) {
-        recycle();
-        this.headers = headers;
+        return cookies;
     }
-
+    
     /**
      * Recycle.
      */
     public void recycle() {
-        for (int i = 0; i < cookieCount; i++) {
-            if (scookies[i] != null) {
-                scookies[i].recycle();
-            }
-        }
-        cookieCount = 0;
-        unprocessed = true;
-    }
-
-    /**
-     * EXPENSIVE!!!  only for debugging.
-     */
-    @Override
-    public String toString() {
-        StringWriter sw = new StringWriter();
-        PrintWriter pw = new PrintWriter(sw);
-        pw.println("=== Cookies ===");
-        int count = getCookieCount();
-        for (int i = 0; i < count; ++i) {
-            pw.println(getCookie(i).toString());
-        }
-        return sw.toString();
-    }
-
-    // -------------------- Indexed access --------------------
-    public ServerCookie getCookie(int idx) {
-        if (unprocessed) {
-            getCookieCount(); // will also update the cookies
-        }
-        return scookies[idx];
-    }
-
-    public int getCookieCount() {
-        if (unprocessed) {
-            processCookies(headers);
-        }
-        return cookieCount;
-    }
-
-    // -------------------- Adding cookies --------------------
-    /** Register a new, unitialized cookie. Cookies are recycled, and
-     *  most of the time an existing ServerCookie object is returned.
-     *  The caller can set the name/value and attributes for the cookie
-     */
-    public ServerCookie addCookie() {
-        if (cookieCount >= scookies.length) {
-            ServerCookie scookiesTmp[] = new ServerCookie[2 * cookieCount];
-            System.arraycopy(scookies, 0, scookiesTmp, 0, cookieCount);
-            scookies = scookiesTmp;
-        }
-
-        ServerCookie c = scookies[cookieCount];
-        if (c == null) {
-            c = new ServerCookie();
-            scookies[cookieCount] = c;
-        }
-        cookieCount++;
-        return c;
+        cookies.clear();
+        isProcessed = false;
     }
 
     // code from CookieTools 
     /** Add all Cookie found in the headers of a request.
      */
-    public void processCookies(MimeHeaders headers) {
-        unprocessed = false;
+    private void processCookies() {
         if (headers == null) {
             return;// nothing to process
         }        // process each "cookie" header
@@ -224,411 +154,43 @@ public final class Cookies { // extends MultiMap {
 
             // Uncomment to test the new parsing code
             if (cookieValue.hasBuffer()) {
-                if (dbg > 0) {
+                if (logger.isLoggable(Level.FINE)) {
                     log("Parsing b[]: " + cookieValue.toString());
                 }
-                processCookieHeader(cookieValue.getBuffer(),
+
+                CookieUtils.parseClientCookies(cookies, cookieValue.getBuffer(),
                         cookieValue.getStart(),
                         cookieValue.size());
             } else {
-                if (dbg > 0) {
-                    log("Parsing S: " + cookieValue.toString());
-                }
-                processCookieHeader(cookieValue.toString());
+                throw new IllegalStateException("Not implemented");
             }
+
             pos++;// search from the next position
         }
     }
 
-    // XXX will be refactored soon!
-    public static boolean equals(String s, Buffer b, int start, int end) {
-        int blen = end - start;
-        if (b == null || blen != s.length()) {
-            return false;
-        }
-        int boff = start;
-        for (int i = 0; i < blen; i++) {
-            if (b.get(boff++) != s.charAt(i)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    // ---------------------------------------------------------
-    // -------------------- DEPRECATED, OLD --------------------
-    private void processCookieHeader(String cookieString) {
-        if (dbg > 0) {
-            log("Parsing cookie header " + cookieString);
-        }
-        // normal cookie, with a string value.
-        // This is the original code, un-optimized - it shouldn't
-        // happen in normal case
-
-        StringTokenizer tok = new StringTokenizer(cookieString,
-                ";", false);
-        while (tok.hasMoreTokens()) {
-            String token = tok.nextToken();
-            int i = token.indexOf("=");
-            if (i > -1) {
-
-                // XXX
-                // the trims here are a *hack* -- this should
-                // be more properly fixed to be spec compliant
-
-                String name = token.substring(0, i).trim();
-                String value = token.substring(i + 1, token.length()).trim();
-                // RFC 2109 and bug 
-                value = stripQuote(value);
-                ServerCookie cookie = addCookie();
-
-                cookie.getName().setString(name);
-                cookie.getValue().setString(value);
-                if (dbg > 0) {
-                    log("Add cookie " + name + "=" + value);
-                }
-            } else {
-                // we have a bad cookie.... just let it go
-            }
-        }
-    }
-
     /**
-     *
-     * Strips quotes from the start and end of the cookie string
-     * This conforms to RFC 2109
-     * 
-     * @param value            a <code>String</code> specifying the cookie 
-     *                         value (possibly quoted).
-     *
-     * @see #setValue
-     *
+     * EXPENSIVE!!!  only for debugging.
      */
-    private static String stripQuote(String value) {
-        //        log("Strip quote from " + value );
-        if (((value.startsWith("\"")) && (value.endsWith("\"")))
-                || ((value.startsWith("'") && (value.endsWith("'"))))) {
-            try {
-                return value.substring(1, value.length() - 1);
-            } catch (Exception ex) {
-            }
-        }
-        return value;
+    @Override
+    public String toString() {
+        return cookies.toString();
     }
-    // log
-    static final int dbg = 0;
 
-    public void log(String s) {
+    private static void log(String s) {
         if (logger.isLoggable(Level.FINE)) {
-            logger.fine("Cookies: " + s);
+            logger.log(Level.FINE, "Cookies: {0}", s);
         }
     }
 
-    /**
-     * Returns true if the byte is a separator character as
-     * defined in RFC2619. Since this is called often, this
-     * function should be organized with the most probable
-     * outcomes first.
-     */
-    public static final boolean isSeparator(final byte c) {
-        return isSeparator(c, true);
-    }
-
-    public static final boolean isSeparator(final byte c, final boolean parseAsVersion1) {
-        if (parseAsVersion1) {
-            if (c > 0 && c < 126) {
-                return separators[c];
-            } else {
-                return false;
-            }
-        } else {
-            return (c == ';' || c == ',');
-        }
-    }
-
-    /**
-     * Returns true if the byte is a whitespace character as
-     * defined in RFC2619.
-     */
-    public static final boolean isWhiteSpace(final byte c) {
-        return (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f');
-    }
-
-    /**
-     * Parses a cookie header after the initial "Cookie:"
-     * [WS][$]token[WS]=[WS](token|QV)[;|,]
-     * RFC 2965
-     * JVK
-     */
-    public final void processCookieHeader(Buffer buffer, int off, int len) {
-        if (len <= 0 || buffer == null) {
-            return;
-        }
-        int end = off + len;
-        int pos = off;
-        int nameStart = 0;
-        int nameEnd = 0;
-        int valueStart = 0;
-        int valueEnd = 0;
-        int version = 0;
-        ServerCookie sc = null;
-        boolean isSpecial;
-        boolean isQuoted;
-
-        while (pos < end) {
-            isSpecial = false;
-            isQuoted = false;
-
-            // Skip whitespace and non-token characters (separators)
-            while (pos < end
-                    && (isSeparator(buffer.get(pos)) || isWhiteSpace(buffer.get(pos)))) {
-                pos++;
-            }
-
-            if (pos >= end) {
-                return;
-            }
-
-            // Detect Special cookies
-            if (buffer.get(pos) == '$') {
-                isSpecial = true;
-                pos++;
-            }
-
-            // Get the cookie name. This must be a token            
-            valueEnd = valueStart = nameStart = pos;
-            pos = nameEnd = getTokenEndPosition(buffer, pos, end);
-
-            // Skip whitespace
-            while (pos < end && isWhiteSpace(buffer.get(pos))) {
-                pos++;
-            }
-
-            // Check for an '=' -- This could also be a name-only
-            // cookie at the end of the cookie header, so if we
-            // are past the end of the header, but we have a name
-            // skip to the name-only part.
-            if (pos < end && buffer.get(pos) == '=') {
-
-                // Skip whitespace
-                do {
-                    pos++;
-                } while (pos < end && isWhiteSpace(buffer.get(pos)));
-
-                if (pos >= end) {
-                    return;
-                }
-
-                // Determine what type of value this is, quoted value,
-                // token, name-only with an '=', or other (bad)
-                switch (buffer.get(pos)) {
-                    case '"':
-                        ; // Quoted Value
-                        isQuoted = true;
-                        valueStart = pos + 1; // strip "
-                        // getQuotedValue returns the position before
-                        // at the last qoute. This must be dealt with
-                        // when the bytes are copied into the cookie
-                        valueEnd = getQuotedValueEndPosition(buffer,
-                                valueStart, end);
-                        // We need pos to advance
-                        pos = valueEnd;
-                        // Handles cases where the quoted value is
-                        // unterminated and at the end of the header,
-                        // e.g. [myname="value]
-                        if (pos >= end) {
-                            return;
-                        }
-                        break;
-                    case ';':
-                    case ',':
-                        // Name-only cookie with an '=' after the name token
-                        // This may not be RFC compliant
-                        valueStart = valueEnd = -1;
-                        // The position is OK (On a delimiter)
-                        break;
-                    default:
-                        if (!isSeparator(buffer.get(pos), ServerCookie.COOKIE_VERSION_ONE_STRICT_COMPLIANCE)) {
-                        // Token
-                            // Token
-                            valueStart = pos;
-                            // getToken returns the position at the delimeter
-                            // or other non-token character
-                            valueEnd = getTokenEndPosition(buffer, valueStart, end,
-                                ServerCookie.COOKIE_VERSION_ONE_STRICT_COMPLIANCE);
-                            // We need pos to advance
-                            pos = valueEnd;
-                        } else {
-                            // INVALID COOKIE, advance to next delimiter
-                            // The starting character of the cookie value was
-                            // not valid.
-                            log("Invalid cookie. Value not a token or quoted value");
-                            while (pos < end && buffer.get(pos) != ';'
-                                    && buffer.get(pos) != ',') {
-                                pos++;
-                            }
-                            ;
-                            pos++;
-                            // Make sure no special avpairs can be attributed to
-                            // the previous cookie by setting the current cookie
-                            // to null
-                            sc = null;
-                            continue;
-                        }
-                }
-            } else {
-                // Name only cookie
-                valueStart = valueEnd = -1;
-                pos = nameEnd;
-
-            }
-
-            // We should have an avpair or name-only cookie at this
-            // point. Perform some basic checks to make sure we are
-            // in a good state.
-
-            // Skip whitespace
-            while (pos < end && isWhiteSpace(buffer.get(pos))) {
-                pos++;
-            }
-
-            // Make sure that after the cookie we have a separator. This
-            // is only important if this is not the last cookie pair
-            while (pos < end && buffer.get(pos) != ';' && buffer.get(pos) != ',') {
-                pos++;
-            }
-
-            pos++;
-
-            /*
-            if (nameEnd <= nameStart || valueEnd < valueStart ) {
-            // Something is wrong, but this may be a case
-            // of having two ';' characters in a row.
-            // log("Cookie name/value does not conform to RFC 2965");
-            // Advance to next delimiter (ignoring everything else)
-            while (pos < end && bytes[pos] != ';' && bytes[pos] != ',')
-            { pos++; };
-            pos++;
-            // Make sure no special cookies can be attributed to
-            // the previous cookie by setting the current cookie
-            // to null
-            sc = null;
-            continue;
-            }
-             */
-
-            // All checks passed. Add the cookie, start with the 
-            // special avpairs first
-            if (isSpecial) {
-                isSpecial = false;
-                // $Version must be the first avpair in the cookie header
-                // (sc must be null)
-                if (equals("Version", buffer, nameStart, nameEnd)
-                        && sc == null) {
-                    // Set version
-                    if (buffer.get(valueStart) == '1'
-                            && valueEnd == (valueStart + 1)) {
-                        version = 1;
-                    } else {
-                        // unknown version (Versioning is not very strict)
-                    }
-                    continue;
-                }
-
-                // We need an active cookie for Path/Port/etc.
-                if (sc == null) {
-                    continue;
-                }
-
-                // Domain is more common, so it goes first
-                if (equals("Domain", buffer, nameStart, nameEnd)) {
-                    sc.getDomain().setBuffer(buffer,
-                            valueStart,
-                            valueEnd - valueStart);
-                    continue;
-                }
-
-                if (equals("Path", buffer, nameStart, nameEnd)) {
-                    sc.getPath().setBuffer(buffer,
-                            valueStart,
-                            valueEnd - valueStart);
-                    continue;
-                }
-
-
-                if (equals("Port", buffer, nameStart, nameEnd)) {
-                    // sc.getPort is not currently implemented.
-                    // sc.getPort().setBytes( bytes,
-                    //                        valueStart,
-                    //                        valueEnd-valueStart );
-                    continue;
-                }
-
-                // Unknown cookie, complain
-                log("Unknown Special Cookie");
-
-            } else { // Normal Cookie
-                sc = addCookie();
-                sc.setVersion(version);
-                sc.getName().setBuffer(buffer, nameStart,
-                        nameEnd - nameStart);
-
-                if (valueStart != -1) { // Normal AVPair
-                    sc.getValue().setBuffer(buffer, valueStart,
-                            valueEnd - valueStart);
-                    if (isQuoted) {
-                        // We know this is a byte value so this is safe
-                        ServerCookie.unescapeDoubleQuotes(
-                                sc.getValue());
-                    }
-                } else {
-                    // Name Only
-                    sc.getValue().setString("");
-                }
-                continue;
+    public Cookie findByName(String cookieName) {
+        final Collection<Cookie> parsedCookies = get();
+        for (Cookie cookie : parsedCookies) {
+            if (cookie.lazyNameEquals(cookieName)) {
+                return cookie;
             }
         }
-    }
 
-    /**
-     * Given the starting position of a token, this gets the end of the
-     * token, with no separator characters in between.
-     * JVK
-     */
-    public static final int getTokenEndPosition(Buffer buffer, int off, int end) {
-        return getTokenEndPosition(buffer, off, end, true);
-    }
-
-    public static final int getTokenEndPosition(Buffer buffer, int off, int end,
-            boolean parseAsVersion1) {
-        int pos = off;
-        while (pos < end && !isSeparator(buffer.get(pos), parseAsVersion1)) {
-            pos++;
-        }
-
-        if (pos > end) {
-            return end;
-        }
-        return pos;
-    }
-    
-    /** 
-     * Given a starting position after an initial quote chracter, this gets
-     * the position of the end quote. This escapes anything after a '\' char
-     * JVK RFC 2616
-     */
-    public static final int getQuotedValueEndPosition(Buffer buffer, int off, int end) {
-        int pos = off;
-        while (pos < end) {
-            if (buffer.get(pos) == '"') {
-                return pos;
-            } else if (buffer.get(pos) == '\\' && pos < (end - 1)) {
-                pos += 2;
-            } else {
-                pos++;
-            }
-        }
-        // Error, we have reached the end of the header w/o a end quote
-        return end;
+        return null;
     }
 }

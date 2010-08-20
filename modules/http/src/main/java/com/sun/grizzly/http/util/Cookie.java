@@ -103,8 +103,7 @@ import java.util.ResourceBundle;
 
 public class Cookie implements Cloneable {
 
-    private static final String LSTRING_FILE =
-	"com.sun.grizzly.util.http.LocalStrings";
+    private static final String LSTRING_FILE = "com.sun.grizzly.util.http.LocalStrings";
     private static ResourceBundle lStrings =
 	ResourceBundle.getBundle(LSTRING_FILE);
     
@@ -112,22 +111,25 @@ public class Cookie implements Cloneable {
     // The value of the cookie itself.
     //
     
-    private String name;	// NAME= ... "$Name" style is reserved
-    private String value;	// value of NAME
+    protected String name;	// NAME= ... "$Name" style is reserved
+    protected String value;	// value of NAME
 
     //
     // Attributes encoded in the header's cookie fields.
     //
     
-    private String comment;	// ;Comment=VALUE ... describes cookie's use
+    protected String comment;	// ;Comment=VALUE ... describes cookie's use
 				// ;Discard ... implied by maxAge < 0
-    private String domain;	// ;Domain=VALUE ... domain that sees cookie
-    private int maxAge = -1;	// ;Max-Age=VALUE ... cookies auto-expire
-    private String path;	// ;Path=VALUE ... URLs that see the cookie
-    private boolean secure;	// ;Secure ... e.g. use SSL
-    private int version = 0;	// ;Version=1 ... means RFC 2109++ style
+    protected String domain;	// ;Domain=VALUE ... domain that sees cookie
+    protected int maxAge = -1;	// ;Max-Age=VALUE ... cookies auto-expire
+    protected String path;	// ;Path=VALUE ... URLs that see the cookie
+    protected boolean secure;	// ;Secure ... e.g. use SSL
+    protected int version = 0;	// ;Version=1 ... means RFC 2109++ style
+
+    protected boolean isHttpOnly;   // Is HTTP only feature, which is not part of the spec
     
-    
+    protected Cookie() {
+    }
 
     /**
      * Constructs a cookie with a specified name and value.
@@ -161,6 +163,17 @@ public class Cookie implements Cloneable {
      */
 
     public Cookie(String name, String value) {
+        checkName(name);
+
+	this.name = name;
+	this.value = value;
+    }
+
+    /**
+     * Validate the cookie name
+     * @param name cookie name
+     */
+    protected static void checkName(String name) {
 	if (!isToken(name)
 		|| name.equalsIgnoreCase("Comment")	// rfc2019
 		|| name.equalsIgnoreCase("Discard")	// 2019++
@@ -178,15 +191,8 @@ public class Cookie implements Cloneable {
 	    errMsg = MessageFormat.format(errMsg, errArgs);
 	    throw new IllegalArgumentException(errMsg);
 	}
-
-	this.name = name;
-	this.value = value;
     }
-
-
-
-
-
+    
     /**
      *
      * Specifies a comment that describes a cookie's purpose.
@@ -406,7 +412,7 @@ public class Cookie implements Cloneable {
      *
      */
 
-    public boolean getSecure() {
+    public boolean isSecure() {
 	return secure;
     }
 
@@ -518,6 +524,61 @@ public class Cookie implements Cloneable {
 	version = v;
     }
 
+    /**
+     * HttpOnly feature is used in server->client communication only to let client know,
+     * that the cookie can not be accessed on the client-side (script etc).
+     * 
+     * Returns <tt>true</tt> if this cookie is HTTP only, or <tt>false</tt> otherwise.
+     * @return <tt>true</tt> if this cookie is HTTP only, or <tt>false</tt> otherwise.
+     */
+    public boolean isHttpOnly() {
+        return isHttpOnly;
+    }
+
+    /**
+     * HttpOnly feature is used in server->client communication only to let client know,
+     * that the cookie can not be accessed on the client-side (script etc).
+     *
+     * @param isHttpOnly <tt>true</tt> if this cookie is HTTP only, or <tt>false</tt> otherwise.
+     */
+    public void setHttpOnly(boolean isHttpOnly) {
+        this.isHttpOnly = isHttpOnly;
+    }
+
+
+
+    // -------------------- Cookie parsing tools
+    /**
+     * Return the header name to set the cookie, based on cookie version.
+     */
+    public String getCookieHeaderName() {
+        return getCookieHeaderName(version);
+    }
+
+    /**
+     * Return the header name to set the cookie, based on cookie version.
+     */
+    public static String getCookieHeaderName(int version) {
+        // TODO Re-enable logging when RFC2965 is implemented
+        // log( (version==1) ? "Set-Cookie2" : "Set-Cookie");
+        if (version == 1) {
+            // XXX RFC2965 not referenced in Servlet Spec
+            // Set-Cookie2 is not supported by Netscape 4, 6, IE 3, 5
+            // Set-Cookie2 is supported by Lynx and Opera
+            // Need to check on later IE and FF releases but for now...
+            // RFC2109
+            return "Set-Cookie";
+            // return "Set-Cookie2";
+        } else {
+            // Old Netscape
+            return "Set-Cookie";
+        }
+    }
+    
+    protected boolean lazyNameEquals(String name) {
+        return name.equals(name);
+    }
+
     // Note -- disabled for now to allow full Netscape compatibility
     // from RFC 2068, token special case characters
     // 
@@ -539,7 +600,7 @@ public class Cookie implements Cloneable {
      *				if it is not			
      */
 
-    private boolean isToken(String value) {
+    private static boolean isToken(String value) {
 	int len = value.length();
 
 	for (int i = 0; i < len; i++) {

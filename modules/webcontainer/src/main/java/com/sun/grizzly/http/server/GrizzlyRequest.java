@@ -69,7 +69,6 @@ import com.sun.grizzly.http.util.Cookie;
 import com.sun.grizzly.http.util.Cookies;
 import com.sun.grizzly.http.util.FastHttpDateFormat;
 import com.sun.grizzly.http.util.Parameters;
-import com.sun.grizzly.http.util.ServerCookie;
 import com.sun.grizzly.http.server.util.Enumerator;
 import com.sun.grizzly.http.server.util.Globals;
 import com.sun.grizzly.http.server.util.ParameterMap;
@@ -82,13 +81,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
-import java.net.URLDecoder;
 import java.security.AccessController;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -169,7 +168,7 @@ public class GrizzlyRequest {
     /**
      * Scheduled Thread that clean the cache every XX seconds.
      */
-    private static ScheduledThreadPoolExecutor sessionExpirer =
+    private final static ScheduledThreadPoolExecutor sessionExpirer =
             new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
         @Override
         public Thread newThread(Runnable r) {
@@ -318,7 +317,7 @@ public class GrizzlyRequest {
 
 
     /**
-     * The preferred Locales assocaited with this Request.
+     * The preferred Locales associated with this Request.
      */
     protected ArrayList locales = new ArrayList();
 
@@ -1642,7 +1641,7 @@ public class GrizzlyRequest {
 
 
     /**
-     * Set the set of cookies recieved with this Request.
+     * Set the set of cookies received with this Request.
      */
     public void setCookies(Cookie[] cookies) {
 
@@ -1858,43 +1857,11 @@ public class GrizzlyRequest {
      * Parse cookies.
      */
     protected void parseCookies() {
-
         cookiesParsed = true;
 
-        Cookies serverCookies = getRawCookies();
-        int count = serverCookies.getCookieCount();
-        if (count <= 0)
-            return;
-
-        cookies = new Cookie[count];
-
-        int idx = 0;
-        for (int i = 0; i < count; i++) {
-            ServerCookie scookie = serverCookies.getCookie(i);
-            try {
-                // we must unescape the '\\' escape character
-                Cookie cookie = new Cookie(scookie.getName().toString(), null);
-                int version = scookie.getVersion();
-                cookie.setVersion(version);
-                cookie.setValue(unescape(scookie.getValue().toString()));
-                cookie.setPath(unescape(scookie.getPath().toString()));
-                String domain = scookie.getDomain().toString();
-                if (domain != null) {
-                    cookie.setDomain(unescape(domain));//avoid NPE
-                }
-                String comment = scookie.getComment().toString();
-                cookie.setComment((version == 1) ? unescape(comment) : null);
-                cookies[idx++] = cookie;
-            } catch(IllegalArgumentException e) {
-                ; // Ignore bad cookie.
-            }
-        }
-        if( idx < count ) {
-            Cookie [] ncookies = new Cookie[idx];
-            System.arraycopy(cookies, 0, ncookies, 0, idx);
-            cookies = ncookies;
-        }
-
+        final Cookies serverCookies = getRawCookies();
+        final Collection<Cookie> parsedCookies = serverCookies.get();
+        cookies = parsedCookies.toArray(new Cookie[0]);
     }
 
 
@@ -1905,6 +1872,7 @@ public class GrizzlyRequest {
         if (rawCookies == null) {
             rawCookies = new Cookies(request.getHeaders());
         }
+        
         return rawCookies;
     }
 
@@ -1916,7 +1884,7 @@ public class GrizzlyRequest {
 
         /* SJSAS 4936855
         requestParametersParsed = true;
-        */
+         */
 
         //Parameters parameters = request.getParameters();
 
@@ -1935,41 +1903,43 @@ public class GrizzlyRequest {
             parameters.setEncoding(enc);
             parameters.setQueryStringEncoding(enc);
         } else {
-            parameters.setEncoding
-                (Constants.DEFAULT_CHARACTER_ENCODING);
+            parameters.setEncoding(Constants.DEFAULT_CHARACTER_ENCODING);
             parameters.setQueryStringEncoding(Constants.DEFAULT_CHARACTER_ENCODING);
         }
 
         parameters.handleQueryParameters();
 
-        if (usingInputStream || usingReader)
+        if (usingInputStream || usingReader) {
             return;
+        }
 
-        if (!getMethod().equalsIgnoreCase("POST"))
+        if (!getMethod().equalsIgnoreCase("POST")) {
             return;
+        }
 
         String contentType = getContentType();
-        if (contentType == null)
+        if (contentType == null) {
             contentType = "";
+        }
         int semicolon = contentType.indexOf(';');
         if (semicolon >= 0) {
             contentType = contentType.substring(0, semicolon).trim();
         } else {
             contentType = contentType.trim();
         }
-        if (!("application/x-www-form-urlencoded".equals(contentType)))
+        if (!("application/x-www-form-urlencoded".equals(contentType))) {
             return;
+        }
 
         int len = getContentLength();
 
-    if (len > 0) {
+        if (len > 0) {
             try {
                 byte[] formData = getPostBody();
                 if (formData != null) {
                     parameters.processParameters(formData, 0, len);
                 }
-            } catch (Throwable t) {
-                ; // Ignore
+            } catch (Exception ignored) {
             }
         }
 
@@ -2049,7 +2019,7 @@ public class GrizzlyRequest {
         // a local collection, sorted by the quality value (so we can
         // add Locales in descending order).  The values will be ArrayLists
         // containing the corresponding Locales to be added
-        TreeMap locales = new TreeMap();
+        TreeMap localLocales = new TreeMap();
 
         // Preprocess the value to remove all whitespace
         int white = value.indexOf(' ');
@@ -2122,10 +2092,10 @@ public class GrizzlyRequest {
             // Add a new Locale to the list of Locales for this quality level
             Locale locale = new Locale(language, country, variant);
             Double key = new Double(-quality);  // Reverse the order
-            ArrayList values = (ArrayList) locales.get(key);
+            ArrayList values = (ArrayList) localLocales.get(key);
             if (values == null) {
                 values = new ArrayList();
-                locales.put(key, values);
+                localLocales.put(key, values);
             }
             values.add(locale);
 
@@ -2133,9 +2103,9 @@ public class GrizzlyRequest {
 
         // Process the quality values in highest->lowest order (due to
         // negating the Double value when creating the key)
-        for (Object o : locales.keySet()) {
+        for (Object o : localLocales.keySet()) {
             Double key = (Double) o;
-            ArrayList list = (ArrayList) locales.get(key);
+            ArrayList list = (ArrayList) localLocales.get(key);
             for (Object aList : list) {
                 Locale locale = (Locale) aList;
                 addLocale(locale);
@@ -2148,19 +2118,13 @@ public class GrizzlyRequest {
      * Parses the value of the JROUTE cookie, if present.
      */
     void parseJrouteCookie() {
-
-        Cookies serverCookies = getRawCookies();
-        int count = serverCookies.getCookieCount();
-        if (count <= 0) {
-            return;
+        if (!cookiesParsed) {
+            parseCookies();
         }
 
-        for (int i=0; i<count; i++) {
-            ServerCookie scookie = serverCookies.getCookie(i);
-            if (scookie.getName().equals(Constants.JROUTE_COOKIE)) {
-                setJrouteId(scookie.getValue().toString());
-                break;
-            }
+        final Cookie cookie = getRawCookies().findByName(Constants.JROUTE_COOKIE);
+        if (cookie != null) {
+            setJrouteId(cookie.getValue());
         }
     }
 
@@ -2270,29 +2234,6 @@ public class GrizzlyRequest {
         if (isSecure()) {
             cookie.setSecure(true);
         }
-    }
-
-
-    protected Cookie makeCookie(ServerCookie scookie) {
-        return makeCookie(scookie, false);
-    }
-
-    protected Cookie makeCookie(ServerCookie scookie, boolean decode) {
-
-        String name = scookie.getName().toString();
-        String value = scookie.getValue().toString();
-
-        if (decode) {
-            try {
-                name = URLDecoder.decode(name, "UTF-8");
-                value = URLDecoder.decode(value, "UTF-8");
-            } catch (UnsupportedEncodingException e) {
-                name = URLDecoder.decode(name);
-                value = URLDecoder.decode(value);
-            }
-        }
-
-        return new Cookie(name, value);
     }
 
     /**
