@@ -74,6 +74,7 @@ import java.util.logging.Logger;
  *
  * @author Remy Maucherat
  */
+@SuppressWarnings({"UnusedDeclaration"})
 public class Mapper {
 
     private final static Logger logger = Grizzly.logger(Mapper.class);
@@ -99,7 +100,7 @@ public class Mapper {
 
 
     // START GlassFish 1024
-    private HashMap defaultContextPathsMap = new HashMap();
+    private HashMap<String,String> defaultContextPathsMap = new HashMap<String,String>();
 
 
     /**
@@ -109,7 +110,7 @@ public class Mapper {
 
 
     /**
-     * Allow replacement of already added {@link Host}, {@link #Context} and {@link #Wrapper}
+     * Allow replacement of already added {@link Host}, {@link Context} and {@link Wrapper}
      */
     private static boolean allowReplacement = false;
 
@@ -117,7 +118,7 @@ public class Mapper {
 
 
     /**
-     * Allow replacement of already added {@link #Host}, {@link #Context} and
+     * Allow replacement of already added {@link Host}, {@link Context} and
      * {@link Wrapper} when invoking {@link #addHost}, {@link #addContext} etc.
      * Default is <tt>false</tt>
      */
@@ -127,7 +128,7 @@ public class Mapper {
 
 
     /**
-     * <tt>true</tt> if replacement of already added [@link #Host}, {@link #Context} and
+     * <tt>true</tt> if replacement of already added {@link Host}, {@link Context} and
      * {@link Wrapper} when invoking {@link #addHost}, {@link #addContext} etc.
      * Default is <tt>false</tt>
      */
@@ -204,10 +205,10 @@ public class Mapper {
             contextList = oldElem.contextList;
         }
 
-        for (int i = 0; i < aliases.length; i++) {
+        for (String aliase : aliases) {
             newHosts = new Host[hosts.length + 1];
             newHost = new Host();
-            newHost.name = aliases[i];
+            newHost.name = aliase;
             newHost.contextList = contextList;
             // START GlassFish 1024
             newHost.defaultContexts = defaultContexts;
@@ -219,7 +220,7 @@ public class Mapper {
             }
         }
 
-        String defaultContextPath = (String) defaultContextPathsMap.get(name);
+        String defaultContextPath = defaultContextPathsMap.get(name);
         if (defaultContextPath != null) {
             newHost.defaultContextPaths[0] = defaultContextPath;
 	}
@@ -243,10 +244,10 @@ public class Mapper {
             hosts = newHosts;
         }
         // Remove all aliases (they will map to the same host object)
-        for (int i = 0; i < newHosts.length; i++) {
-            if (newHosts[i].object == host) {
+        for (Host newHost : newHosts) {
+            if (newHost.object == host) {
                 Host[] newHosts2 = new Host[hosts.length - 1];
-                if (removeMapIgnoreCase(hosts, newHosts2, newHosts[i].name)) {
+                if (removeMapIgnoreCase(hosts, newHosts2, newHost.name)) {
                     hosts = newHosts2;
                 }
             }
@@ -360,8 +361,8 @@ public class Mapper {
                     host.contextList.contexts = newContexts;
                     // Recalculate nesting
                     host.contextList.nesting = 0;
-                    for (int i = 0; i < newContexts.length; i++) {
-                        int slashCount = slashCount(newContexts[i].name);
+                    for (Context newContext : newContexts) {
+                        int slashCount = slashCount(newContext.name);
                         if (slashCount > host.contextList.nesting) {
                             host.contextList.nesting = slashCount;
                         }
@@ -379,10 +380,10 @@ public class Mapper {
      */
     public String[] getContextNames() {
         List<String> list=new ArrayList<String>();
-        for( int i=0; i<hosts.length; i++ ) {
-            for( int j=0; j<hosts[i].contextList.contexts.length; j++ ) {
-                String cname=hosts[i].contextList.contexts[j].name;
-                list.add("//" + hosts[i].name +
+        for (Host host : hosts) {
+            for (int j = 0; j < host.contextList.contexts.length; j++) {
+                String cname = host.contextList.contexts[j].name;
+                list.add("//" + host.name +
                         (cname.startsWith("/") ? cname : "/"));
             }
         }
@@ -567,8 +568,8 @@ public class Mapper {
                 if (removeMap(oldWrappers, newWrappers, name)) {
                     // Recalculate nesting
                     context.nesting = 0;
-                    for (int i = 0; i < newWrappers.length; i++) {
-                        int slashCount = slashCount(newWrappers[i].name);
+                    for (Wrapper newWrapper : newWrappers) {
+                        int slashCount = slashCount(newWrapper.name);
                         if (slashCount > context.nesting) {
                             context.nesting = slashCount;
                         }
@@ -589,11 +590,10 @@ public class Mapper {
                 context.defaultWrapper = null;
             } else {
                 // Exact wrapper
-                String name = path;
                 Wrapper[] oldWrappers = context.exactWrappers;
                 Wrapper[] newWrappers =
                     new Wrapper[oldWrappers.length - 1];
-                if (removeMap(oldWrappers, newWrappers, name)) {
+                if (removeMap(oldWrappers, newWrappers, path)) {
                     context.exactWrappers = newWrappers;
                 }
             }
@@ -603,8 +603,8 @@ public class Mapper {
     public String getWrappersString( String host, String context ) {
         String names[]=getWrapperNames(host, context);
         StringBuilder sb=new StringBuilder();
-        for( int i=0; i<names.length; i++ ) {
-            sb.append(names[i]).append(":");
+        for (String name : names) {
+            sb.append(name).append(":");
         }
         return sb.toString();
     }
@@ -613,23 +613,23 @@ public class Mapper {
         List<String> list=new ArrayList<String>();
         if( host==null ) host="";
         if( context==null ) context="";
-        for( int i=0; i<hosts.length; i++ ) {
-            if( ! host.equals( hosts[i].name ))
+        for (Host host1 : hosts) {
+            if (!host.equals(host1.name))
                 continue;
-            for( int j=0; j<hosts[i].contextList.contexts.length; j++ ) {
-                if( ! context.equals( hosts[i].contextList.contexts[j].name))
+            for (int j = 0; j < host1.contextList.contexts.length; j++) {
+                if (!context.equals(host1.contextList.contexts[j].name))
                     continue;
                 // found the context
-                Context ctx=hosts[i].contextList.contexts[j];
-                list.add( ctx.defaultWrapper.path);
-                for( int k=0; k<ctx.exactWrappers.length; k++ ) {
-                    list.add( ctx.exactWrappers[k].path);
+                Context ctx = host1.contextList.contexts[j];
+                list.add(ctx.defaultWrapper.path);
+                for (int k = 0; k < ctx.exactWrappers.length; k++) {
+                    list.add(ctx.exactWrappers[k].path);
                 }
-                for( int k=0; k<ctx.wildcardWrappers.length; k++ ) {
-                    list.add( ctx.wildcardWrappers[k].path + "*");
+                for (int k = 0; k < ctx.wildcardWrappers.length; k++) {
+                    list.add(ctx.wildcardWrappers[k].path + "*");
                 }
-                for( int k=0; k<ctx.extensionWrappers.length; k++ ) {
-                    list.add( "*." + ctx.extensionWrappers[k].path);
+                for (int k = 0; k < ctx.extensionWrappers.length; k++) {
+                    list.add("*." + ctx.extensionWrappers[k].path);
                 }
             }
         }
@@ -691,9 +691,9 @@ public class Mapper {
         Context[] contexts = host.contextList.contexts;
 
         if (contexts != null) {
-            for (int i=0; i<contexts.length; i++) {
-                if (contexts[i].name.equals(defaultContextPath)) {
-                    host.defaultContexts[0] = contexts[i];
+            for (Context context1 : contexts) {
+                if (context1.name.equals(defaultContextPath)) {
+                    host.defaultContexts[0] = context1;
                     defaultContextFound = true;
                     break;
                 }
@@ -756,9 +756,10 @@ public class Mapper {
     /**
      * Map the specified URI.
      */
-    private final void internalMap(CharChunk host, CharChunk uri,
-                                   MappingData mappingData)
-        throws Exception {
+    private void internalMap(CharChunk host,
+                             CharChunk uri,
+                             MappingData mappingData)
+    throws Exception {
 
         uri.setLimit(-1);
 
@@ -821,11 +822,12 @@ public class Mapper {
             // END GlassFish 1024
                 int lastSlash = -1;
                 int uriEnd = uri.getEnd();
-                int length = -1;
+                int length;
                 /* GlassFish 1024
                 boolean found = false;
                 */
                 while (pos >= 0) {
+                    assert (contexts != null);
                     if (uri.startsWith(contexts[pos].name)) {
                         length = contexts[pos].name.length();
                         if (uri.getLength() == length) {
@@ -847,6 +849,7 @@ public class Mapper {
                 uri.setEnd(uriEnd);
 
                 if (!found) {
+                    assert (contexts != null);
                     if (contexts[0].name.equals("")) {
                         context = contexts[0];
                     // START GlassFish 1024
@@ -876,13 +879,14 @@ public class Mapper {
     /**
      * Wrapper mapping.
      */
-    private final void internalMapWrapper(Context context, CharChunk path,
-                                          MappingData mappingData)
-        throws Exception {
+    private void internalMapWrapper(Context context,
+                                    CharChunk path,
+                                    MappingData mappingData)
+    throws Exception {
 
         int pathOffset = path.getOffset();
         int pathEnd = path.getEnd();
-        int servletPath = pathOffset;
+        int servletPath;
         boolean noServletPath = false;
 
         // START GlassFish 1024
@@ -1067,7 +1071,7 @@ public class Mapper {
     /**
      * Exact mapping.
      */
-    private final void internalMapExactWrapper
+    private void internalMapExactWrapper
         (Wrapper[] wrappers, CharChunk path, MappingData mappingData) {
         int pos = find(wrappers, path);
         if ((pos != -1) && (path.equals(wrappers[pos].name))) {
@@ -1081,9 +1085,10 @@ public class Mapper {
     /**
      * Wildcard mapping.
      */
-    private final void internalMapWildcardWrapper
-        (Wrapper[] wrappers, int nesting, CharChunk path,
-         MappingData mappingData) {
+    private void internalMapWildcardWrapper(Wrapper[] wrappers,
+                                            int nesting,
+                                            CharChunk path,
+                                            MappingData mappingData) {
 
         int pathEnd = path.getEnd();
         int pathOffset = path.getOffset();
@@ -1133,8 +1138,9 @@ public class Mapper {
     /**
      * Extension mappings.
      */
-    private final void internalMapExtensionWrapper
-        (Wrapper[] wrappers, CharChunk path, MappingData mappingData) {
+    private void internalMapExtensionWrapper(Wrapper[] wrappers,
+                                             CharChunk path,
+                                             MappingData mappingData) {
         char[] buf = path.getBuffer();
         int pathEnd = path.getEnd();
         int servletPath = path.getOffset();
@@ -1177,7 +1183,7 @@ public class Mapper {
      * This will return the index for the closest inferior or equal item in the
      * given array.
      */
-    private static final int find(MapElement[] map, CharChunk name) {
+    private static int find(MapElement[] map, CharChunk name) {
         return find(map, name, name.getStart(), name.getEnd());
     }
 
@@ -1187,7 +1193,7 @@ public class Mapper {
      * This will return the index for the closest inferior or equal item in the
      * given array.
      */
-    private static final int find(MapElement[] map, CharChunk name,
+    private static int find(MapElement[] map, CharChunk name,
                                   int start, int end) {
 
         int a = 0;
@@ -1205,7 +1211,7 @@ public class Mapper {
             return 0;
         }
 
-        int i = 0;
+        int i;
         while (true) {
             i = (b + a) / 2;
             int result = compare(name, start, end, map[i].name);
@@ -1233,7 +1239,7 @@ public class Mapper {
      * This will return the index for the closest inferior or equal item in the
      * given array.
      */
-    private static final int findIgnoreCase(MapElement[] map, String name) {
+    private static int findIgnoreCase(MapElement[] map, String name) {
         CharChunk cc = new CharChunk();
         char[] chars = name.toCharArray();
         cc.setChars(chars, 0, chars.length);
@@ -1246,7 +1252,7 @@ public class Mapper {
      * This will return the index for the closest inferior or equal item in the
      * given array.
      */
-     private static final int findIgnoreCase(MapElement[] map, CharChunk name) {
+     private static int findIgnoreCase(MapElement[] map, CharChunk name) {
          return findIgnoreCase(map, name, name.getStart(), name.getEnd());
      }
 
@@ -1256,7 +1262,7 @@ public class Mapper {
      * This will return the index for the closest inferior or equal item in the
      * given array.
      */
-    private static final int findIgnoreCase(MapElement[] map, CharChunk name,
+    private static int findIgnoreCase(MapElement[] map, CharChunk name,
                                   int start, int end) {
 
         int a = 0;
@@ -1273,7 +1279,7 @@ public class Mapper {
             return 0;
         }
 
-        int i = 0;
+        int i;
         while (true) {
             i = (b + a) / 2;
             int result = compareIgnoreCase(name, start, end, map[i].name);
@@ -1302,7 +1308,7 @@ public class Mapper {
      * This will return the index for the closest inferior or equal item in the
      * given array.
      */
-    private static final int find(MapElement[] map, String name) {
+    private static int find(MapElement[] map, String name) {
 
         int a = 0;
         int b = map.length - 1;
@@ -1319,7 +1325,7 @@ public class Mapper {
             return 0;
         }
 
-        int i = 0;
+        int i;
         while (true) {
             i = (b + a) / 2;
             int result = name.compareTo(map[i].name);
@@ -1347,7 +1353,7 @@ public class Mapper {
      * Compare given char chunk with String.
      * Return -1, 0 or +1 if inferior, equal, or superior to the String.
      */
-    private static final int compare(CharChunk name, int start, int end,
+    private static int compare(CharChunk name, int start, int end,
                                      String compareTo) {
         int result = 0;
         char[] c = name.getBuffer();
@@ -1377,7 +1383,7 @@ public class Mapper {
      * Compare given char chunk with String ignoring case.
      * Return -1, 0 or +1 if inferior, equal, or superior to the String.
      */
-    private static final int compareIgnoreCase(CharChunk name, int start, int end,
+    private static int compareIgnoreCase(CharChunk name, int start, int end,
                                      String compareTo) {
         int result = 0;
         char[] c = name.getBuffer();
@@ -1406,7 +1412,7 @@ public class Mapper {
     /**
      * Find the position of the last slash in the given char chunk.
      */
-    private static final int lastSlash(CharChunk name) {
+    private static int lastSlash(CharChunk name) {
 
         char[] c = name.getBuffer();
         int end = name.getEnd();
@@ -1427,12 +1433,11 @@ public class Mapper {
     /**
      * Find the position of the nth slash, in the given char chunk.
      */
-    private static final int nthSlash(CharChunk name, int n) {
+    private static int nthSlash(CharChunk name, int n) {
 
         char[] c = name.getBuffer();
         int end = name.getEnd();
-        int start = name.getStart();
-        int pos = start;
+        int pos = name.getStart();
         int count = 0;
 
         while (pos < end) {
@@ -1450,7 +1455,7 @@ public class Mapper {
     /**
      * Return the slash count in a given string.
      */
-    private static final int slashCount(String name) {
+    private static int slashCount(String name) {
         int pos = -1;
         int count = 0;
         while ((pos = name.indexOf('/', pos + 1)) != -1) {
@@ -1469,7 +1474,7 @@ public class Mapper {
      * any MapElement with matching name (this is an indication that
      * newElement has been inserted)
      */
-    private static final MapElement insertMap
+    private static MapElement insertMap
         (MapElement[] oldMap, MapElement[] newMap, MapElement newElement) {
         int pos = find(oldMap, newElement.name);
         if ((pos != -1) && (newElement.name.equals(oldMap[pos].name))) {
@@ -1494,7 +1499,7 @@ public class Mapper {
      * any MapElement with matching name (this is an indication that
      * newElement has been inserted)
      */
-    private static final MapElement insertMapIgnoreCase
+    private static MapElement insertMapIgnoreCase
         (MapElement[] oldMap, MapElement[] newMap, MapElement newElement) {
         CharChunk cc = new CharChunk();
         char[] chars = newElement.name.toCharArray();
@@ -1514,7 +1519,7 @@ public class Mapper {
     /**
      * Removes from a sorted MapElement array.
      */
-    private static final boolean removeMap
+    private static boolean removeMap
         (MapElement[] oldMap, MapElement[] newMap, String name) {
         int pos = find(oldMap, name);
         if ((pos != -1) && (name.equals(oldMap[pos].name))) {
@@ -1533,7 +1538,7 @@ public class Mapper {
      *
      * Name comparisons are performed in a case-insensitive manner.
      */
-    private static final boolean removeMapIgnoreCase
+    private static boolean removeMapIgnoreCase
         (MapElement[] oldMap, MapElement[] newMap, String name) {
         CharChunk cc = new CharChunk();
         char[] chars = name.toCharArray();
