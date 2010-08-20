@@ -113,7 +113,7 @@ public class HttpContinueTest extends TestCase {
                 }
             }
 
-            assertEquals("HTTP/1.1 200", sb.toString().trim());
+            assertEquals("HTTP/1.1 200 OK", sb.toString().trim());
         } finally {
             server.stop();
             if (s != null) {
@@ -154,7 +154,7 @@ public class HttpContinueTest extends TestCase {
                 }
             }
 
-            assertEquals("HTTP/1.1 200", sb.toString().trim());
+            assertEquals("HTTP/1.1 200 OK", sb.toString().trim());
 
         } finally {
             server.stop();
