@@ -152,7 +152,7 @@ public class LazyCookie extends Cookie {
      * Returns the lazy state representation.
      * @return the lazy state representation.
      */
-    public LazyCookieState lazy() {
+    LazyCookieState lazy() {
         return lazyState;
     }
 
