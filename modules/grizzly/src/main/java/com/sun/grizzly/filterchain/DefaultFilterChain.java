@@ -270,9 +270,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                 if (status == FilterExecution.TERMINATE) {
                     return ProcessorResult.createTerminate();
                 } else if (status == FilterExecution.REEXECUTE) {
-                    final FilterChainContext newContext = newContext(ctx, end);
-                    ctx.suspend();
-                    return execute(newContext);
+                    ctx = newContext(ctx, end);
                 }
             } while (checkRemainder(ctx, executor, ctx.getStartIdx(), end));
         } catch (IOException e) {
