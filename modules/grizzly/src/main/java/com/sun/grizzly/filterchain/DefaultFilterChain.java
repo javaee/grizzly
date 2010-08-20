@@ -149,7 +149,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     /**
      * Logger
      */
-    private Logger logger = Grizzly.logger(DefaultFilterChain.class);
+    private static final Logger LOGGER = Grizzly.logger(DefaultFilterChain.class);
 
     public DefaultFilterChain() {
         this(new ArrayList<Filter>());
@@ -275,19 +275,19 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             } while (checkRemainder(ctx, executor, ctx.getStartIdx(), end));
         } catch (IOException e) {
             try {
-                logger.log(Level.FINE, "Exception during FilterChain execution", e);
+                LOGGER.log(Level.FINE, "Exception during FilterChain execution", e);
                 throwChain(ctx, executor, e);
                 ctx.getConnection().close().markForRecycle(true);
             } catch (IOException ioe) {
-                logger.log(Level.FINE, "Exception during reporting the failure", ioe);
+                LOGGER.log(Level.FINE, "Exception during reporting the failure", ioe);
             }
         } catch (Exception e) {
             try {
-                logger.log(Level.WARNING, "Exception during FilterChain execution", e);
+                LOGGER.log(Level.WARNING, "Exception during FilterChain execution", e);
                 throwChain(ctx, executor, e);
                 ctx.getConnection().close().markForRecycle(true);
             } catch (IOException ioe) {
-                logger.log(Level.FINE, "Exception during reporting the failure", ioe);
+                LOGGER.log(Level.FINE, "Exception during reporting the failure", ioe);
             }
         }
 
@@ -427,16 +427,16 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
 
         NextAction nextNextAction;
         do {
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.fine("Execute filter. filter=" + currentFilter +
-                        " context=" + ctx);
+            if (LOGGER.isLoggable(Level.FINEST)) {
+                LOGGER.log(Level.FINE, "Execute filter. filter={0} context={1}",
+                        new Object[]{currentFilter, ctx});
             }
             // execute the task
             nextNextAction = executor.execute(currentFilter, ctx);
 
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.fine("after execute filter. filter=" + currentFilter +
-                        " context=" + ctx + " nextAction=" + nextNextAction);
+            if (LOGGER.isLoggable(Level.FINEST)) {
+                LOGGER.log(Level.FINE, "after execute filter. filter={0} context={1} nextAction={2}",
+                        new Object[]{currentFilter, ctx, nextNextAction});
             }
         } while (nextNextAction.type() == RerunFilterAction.TYPE);
 
@@ -451,8 +451,8 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
      * @param ctx {@link FilterChainContext} processing context
      * @param executor {@link FilterExecutor}, which will call appropriate
      *          filter operation to post process {@link IOEvent}.
-     * @return <tt>false</tt> to terminate exectution, or <tt>true</tt> for
-     *         normal exection process
+     * @return <tt>false</tt> to terminate execution, or <tt>true</tt> for
+     *         normal execution process
      */
     protected boolean checkRemainder(FilterChainContext ctx,
             FilterExecutor executor, int start, int end) {
@@ -723,7 +723,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     }
 
     public static final class FilterStateElement {
-        public static final FilterStateElement create(
+        public static FilterStateElement create(
                 final FILTER_STATE_TYPE type,
                 final Object remainder) {
             if (remainder instanceof Buffer) {
@@ -734,12 +734,12 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             }
         }
 
-        public static final FilterStateElement create(
+        public static FilterStateElement create(
                 final FILTER_STATE_TYPE type, final Appendable state) {
             return new FilterStateElement(type, state);
         }
 
-        public static final <E> FilterStateElement create(
+        public static <E> FilterStateElement create(
                 final FILTER_STATE_TYPE type,
                 final E state, final Appender<E> appender) {
             return new FilterStateElement(type, state, appender);
