@@ -42,6 +42,8 @@ import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.server.io.OutputBuffer;
 import com.sun.grizzly.http.server.util.HtmlHelper;
+import com.sun.grizzly.http.util.HttpStatus;
+
 import java.io.CharConversionException;
 import java.io.File;
 import java.io.IOException;
@@ -132,7 +134,7 @@ public abstract class GrizzlyAdapter {
                 try {
                     httpRequestPacket.getRequestURIRef().getDecodedRequestURIBC(allowEncodedSlash);
                 } catch (CharConversionException e) {
-                    response.setStatus(400);
+                    response.setStatus(HttpStatus.NOT_FOUND_404);
                     response.setDetailMessage("Invalid URI: " + e.getMessage());
                     return;
                 }
@@ -141,7 +143,7 @@ public abstract class GrizzlyAdapter {
             service(request, response);
         } catch (Exception t) {
             logger.log(Level.SEVERE,"service exception", t);
-            response.setStatus(500);
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
             response.setDetailMessage("Internal Error");
         }
     }
@@ -246,7 +248,7 @@ public abstract class GrizzlyAdapter {
         /**
          * With Grizzly, we just return a 404 with a simple error message.
          */
-        res.setStatus(404, "Not Found");
+        res.setStatus(HttpStatus.NOT_FOUND_404);
         // TODO re-implement
         ByteBuffer bb = HtmlHelper.getErrorPage("Not Found", "HTTP/1.1 404 Not Found\r\n", "Grizzly");
         res.setContentLength(bb.limit());
@@ -276,11 +278,11 @@ public abstract class GrizzlyAdapter {
             throws IOException {
 
         if ("100-Continue".equals(request.getHeader("Expect"))) {
-            response.setStatus(100, "Continue");
+            response.setStatus(HttpStatus.CONINTUE_100);
             response.sendAcknowledgement();
             return true;
         } else {
-            response.setStatus(417, "Expectation Failed");
+            response.setStatus(HttpStatus.EXPECTATION_FAILED_417);
             return false;
         }
     }

@@ -68,6 +68,7 @@ import com.sun.grizzly.http.util.Cookie;
 import com.sun.grizzly.http.util.CookieUtils;
 import com.sun.grizzly.http.util.FastHttpDateFormat;
 import com.sun.grizzly.http.util.HttpRequestURIDecoder;
+import com.sun.grizzly.http.util.HttpStatus;
 import com.sun.grizzly.http.util.MessageBytes;
 import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.http.util.StringManager;
@@ -1358,7 +1359,7 @@ public class GrizzlyResponse {
         try {
             String absolute = toAbsolute(location, true);
             // END RIMOD 4642650
-            setStatus(302);
+            setStatus(HttpStatus.FOUND_302);
             setHeader("Location", absolute);
 
             // According to RFC2616 section 10.3.3 302 Found,
@@ -1392,7 +1393,7 @@ public class GrizzlyResponse {
                 }
             }
         } catch (IllegalArgumentException e) {
-            setStatus(404);
+            setStatus(HttpStatus.NOT_FOUND_404);
         }
 
         // Cause the response to be finished (from the application perspective)
@@ -1496,6 +1497,25 @@ public class GrizzlyResponse {
 
         response.setStatus(status);
         response.setReasonPhrase(message);
+
+    }
+
+
+    /**
+     * Set the HTTP status and message to be returned with this response.
+     * @param status {@link HttpStatus} to set
+     */
+    public void setStatus(HttpStatus status) {
+
+        checkResponse();
+        if (isCommitted())
+            return;
+
+        // Ignore any call from an included servlet
+        if (included)
+            return;
+
+        status.setValues(response);
 
     }
 

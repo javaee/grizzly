@@ -64,6 +64,7 @@ import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.FastHttpDateFormat;
 import com.sun.grizzly.http.util.HexUtils;
+import com.sun.grizzly.http.util.HttpStatus;
 import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.memory.MemoryManager;
 import java.io.IOException;
@@ -398,7 +399,7 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         response.setProtocol(HttpCodecFilter.HTTP_1_1);
         if (response.parsedStatusInt == NON_PARSED_STATUS) {
-            response.setStatus(200);
+            HttpStatus.OK_200.setValues(response);
         }
         ProcessingState state = response.getProcessingState();
 
@@ -512,8 +513,7 @@ public class HttpServerFilter extends HttpCodecFilter {
             state.http11 = false;
             state.error = true;
             // Send 505; Unsupported HTTP version
-            response.setStatus(505);
-            response.setReasonPhrase("Unsupported Protocol Version");
+            HttpStatus.HTTP_VERSION_NOT_SUPPORTED_505.setValues(response);
         }
 
         MimeHeaders headers = request.getHeaders();
@@ -568,8 +568,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         if (state.http11 && hostBC == null) {
             state.error = true;
             // 400 - Bad request
-            response.setStatus(400);
-            response.setReasonPhrase("Bad Request");
+            HttpStatus.BAD_REQUEST_400.setValues(response);
         }
 
         parseHost(hostBC, request, response, state);
@@ -670,8 +669,7 @@ public class HttpServerFilter extends HttpCodecFilter {
                     // Invalid character
                     state.error = true; 
                     // 400 - Bad request
-                    response.setStatus(400);
-                    response.setReasonPhrase("Bad Request");
+                    HttpStatus.BAD_REQUEST_400.setValues(response);
                     return;
                 }
                 port = port + (charValue * mult);

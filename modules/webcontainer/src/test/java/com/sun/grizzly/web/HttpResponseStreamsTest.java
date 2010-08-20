@@ -56,6 +56,7 @@ import com.sun.grizzly.http.server.GrizzlyResponse;
 import com.sun.grizzly.http.server.ServerConfiguration;
 import com.sun.grizzly.http.server.GrizzlyAdapter;
 import com.sun.grizzly.http.server.GrizzlyWebServer;
+import com.sun.grizzly.http.util.HttpStatus;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.ByteBuffersBuffer;
@@ -629,7 +630,7 @@ public class HttpResponseStreamsTest extends TestCase {
         @Override
         public void service(GrizzlyRequest req, GrizzlyResponse res) throws Exception {
 
-            res.setStatus(200, "OK");
+            res.setStatus(HttpStatus.OK_200);
             strategy.doWrite(res);
 
         }

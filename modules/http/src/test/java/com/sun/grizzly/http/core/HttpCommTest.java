@@ -53,6 +53,7 @@ import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.http.HttpServerFilter;
+import com.sun.grizzly.http.util.HttpStatus;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.utils.ChunkingFilter;
 import com.sun.grizzly.utils.LinkedTransferQueue;
@@ -160,8 +161,7 @@ public class HttpCommTest extends TestCase {
                          Integer.toString(request.getRemotePort()));
 
             HttpResponsePacket response = request.getResponse();
-            response.setStatus(200);
-            response.setReasonPhrase("OK");
+            HttpStatus.OK_200.setValues(response);
             response.addHeader("Content-Length", "0");
             response.addHeader("Found", request.getRequestURI());
             

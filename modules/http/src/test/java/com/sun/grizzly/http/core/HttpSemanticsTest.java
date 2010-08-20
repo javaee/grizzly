@@ -51,6 +51,7 @@ import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.http.HttpServerFilter;
+import com.sun.grizzly.http.util.HttpStatus;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
@@ -92,7 +93,7 @@ public class HttpSemanticsTest extends TestCase {
         result.setProtocol("HTTP/1.1");
         result.setStatusCode(505);
         result.addHeader("Connection", "close");
-        result.setStatusMessage("unsupported protocol version");
+        result.setStatusMessage("http version not supported");
         doTest(request, result);
  
     }
@@ -351,8 +352,7 @@ public class HttpSemanticsTest extends TestCase {
                     (HttpRequestPacket)
                             ((HttpContent) ctx.getMessage()).getHttpHeader();
             HttpResponsePacket response = request.getResponse();
-            response.setStatus(200);
-            response.setReasonPhrase("OK");
+            HttpStatus.OK_200.setValues(response);
             response.setContentLength(0);
             ctx.write(response);
             return ctx.getStopAction();

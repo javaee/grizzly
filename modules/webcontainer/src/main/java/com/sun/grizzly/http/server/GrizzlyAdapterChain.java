@@ -41,6 +41,7 @@ import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.http.server.jmx.JmxEventListener;
 import com.sun.grizzly.http.server.jmx.Monitorable;
 import com.sun.grizzly.http.util.BufferChunk;
+import com.sun.grizzly.http.util.HttpStatus;
 import com.sun.grizzly.http.util.RequestURIRef;
 import com.sun.grizzly.http.util.UDecoder;
 import com.sun.grizzly.http.util.MessageBytes;
@@ -163,7 +164,7 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter implements JmxEventListe
                 entry.getKey().doService(request, response);
                 if (response.getStatus() == 404 && i != size - 1) {
                     // Reset the
-                    response.setStatus(200, "OK");
+                    response.setStatus(HttpStatus.OK_200);
                 } else {
                     return;
                 }
@@ -219,12 +220,12 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter implements JmxEventListe
                     adapter.setDecodeUrl(false);
                     adapter.doService(request, response);
                 } else {
-                    response.getResponse().setStatus(404);
+                    response.setStatus(HttpStatus.NOT_FOUND_404);
                     customizedErrorPage(request, response);
                 }
             } catch (Throwable t) {
                 try {
-                    response.setStatus(404);
+                    response.setStatus(HttpStatus.NOT_FOUND_404);
                     if (logger.isLoggable(Level.FINE)) {
                         logger.log(Level.FINE, "Invalid URL: " + request.getRequestURI(), t);
                     }

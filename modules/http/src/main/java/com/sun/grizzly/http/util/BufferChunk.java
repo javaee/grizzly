@@ -64,10 +64,15 @@ public class BufferChunk {
 
     private String stringValue;
 
+    private boolean locked;
+
     protected BufferChunk() {
     }
 
     public void set(BufferChunk value) {
+        if (locked) {
+            return;
+        }
         reset();
 
         if (value.hasBuffer()) {
@@ -90,6 +95,9 @@ public class BufferChunk {
     }
     
     public void setBuffer(Buffer buffer, int start, int end) {
+        if (locked) {
+            return;
+        }
         this.buffer = buffer;
         this.start = start;
         this.end = end;
@@ -104,6 +112,9 @@ public class BufferChunk {
     }
 
     public void setStart(int start) {
+        if (locked) {
+            return;
+        }
         this.start = start;
         resetStringCache();
         onContentChanged();
@@ -114,12 +125,18 @@ public class BufferChunk {
     }
 
     public void setEnd(int end) {
+        if (locked) {
+            return;
+        }
         this.end = end;
         resetStringCache();
         onContentChanged();
     }
 
     public void setString(String string) {
+        if (locked) {
+            return;
+        }
         stringValue = string;
         resetBuffer();
         onContentChanged();
@@ -368,21 +385,33 @@ public class BufferChunk {
     }
 
     protected final void resetBuffer() {
+        if (locked) {
+            return;
+        }
         start = -1;
         end = -1;
         buffer = null;
     }
 
     protected final void resetString() {
+        if (locked) {
+            return;
+        }
         stringValue = null;
     }
     
     protected final void resetStringCache() {
+        if (locked) {
+            return;
+        }
         cachedString = null;
         cachedStringCharset = null;
     }
     
     protected void reset() {
+        if (locked) {
+            return;
+        }
         start = -1;
         end = -1;
         buffer = null;
@@ -391,7 +420,18 @@ public class BufferChunk {
         stringValue = null;
     }
 
+    protected void lock() {
+        locked = true;
+    }
+
+    protected void unlock() {
+        locked = false;
+    }
+
     public void recycle() {
+        if (locked) {
+            return;
+        }
         reset();
     }
 }

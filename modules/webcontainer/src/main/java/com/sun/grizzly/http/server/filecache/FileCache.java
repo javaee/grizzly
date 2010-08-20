@@ -44,6 +44,7 @@ import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.http.util.BufferChunk;
+import com.sun.grizzly.http.util.HttpStatus;
 import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
@@ -131,19 +132,6 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
      * Is the file cache enabled.
      */
     private boolean enabled = true;
-
-    /**
-     * Status code (304) indicating that a conditional GET operation
-     * found that the resource was available and not modified.
-     */
-    public static final int SC_NOT_MODIFIED = 304;
-
-    /**
-     * Status code (412) indicating that the precondition given in one
-     * or more of the request-header fields evaluated to false when it
-     * was tested on the server.
-     */
-    public static final int SC_PRECONDITION_FAILED = 412;
 
     private MemoryManager memoryManager;
     private ScheduledExecutorService scheduledExecutorService;
@@ -362,8 +350,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
             HttpRequestPacket request) throws IOException {
 
         final HttpResponsePacket response = request.getResponse();
-        response.setStatus(200);
-        response.setReasonPhrase("OK");
+        HttpStatus.OK_200.setValues(request.getResponse());
 
         boolean flushBody = checkIfHeaders(entry, request);
         response.setContentType(entry.contentType);
@@ -591,8 +578,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
                         && (lastModified < headerValue + 1000)) {
                     // The entity has not been modified since the date
                     // specified by the client. This is not an error case.
-                    response.setStatus(SC_NOT_MODIFIED);
-                    response.setReasonPhrase("Not Modified");
+                    HttpStatus.NOT_MODIFIED_304.setValues(response);
                     response.setHeader("ETag", getETag(entry));
                     return false;
                 }
@@ -646,12 +632,11 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
                 // back.
                 final BufferChunk methodBC = request.getMethodBC();
                 if (methodBC.equals("GET") || methodBC.equals("HEAD")) {
-                    response.setStatus(SC_NOT_MODIFIED);
-                    response.setReasonPhrase("Not Modified");
+                    HttpStatus.NOT_MODIFIED_304.setValues(response);
                     response.setHeader("ETag", eTag);
                     return false;
                 } else {
-                    response.setStatus(SC_PRECONDITION_FAILED);
+                    HttpStatus.PRECONDITION_FAILED_412.setValues(response);
                     return false;
                 }
             }
@@ -680,7 +665,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
                 if (lastModified >= (headerValue + 1000)) {
                     // The entity has not been modified since the date
                     // specified by the client. This is not an error case.
-                    response.setStatus(SC_PRECONDITION_FAILED);
+                    HttpStatus.PRECONDITION_FAILED_412.setValues(response);
                     return false;
                 }
             }
@@ -742,10 +727,10 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
                     }
                 }
 
-                // If none of the given ETags match, 412 Precodition failed is
+                // If none of the given ETags match, 412 Precondition failed is
                 // sent back
                 if (!conditionSatisfied) {
-                    response.setStatus(SC_PRECONDITION_FAILED);
+                    HttpStatus.PRECONDITION_FAILED_412.setValues(response);
                     return false;
                 }
 

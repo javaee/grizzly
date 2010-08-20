@@ -44,6 +44,7 @@ import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.http.server.filecache.FileCache;
 import com.sun.grizzly.http.server.io.OutputBuffer;
 import com.sun.grizzly.http.server.util.MimeType;
+import com.sun.grizzly.http.util.HttpStatus;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -136,7 +137,7 @@ public class StaticResourcesHandler {
                 }
                 return false;
             }
-            res.setStatus(200, "OK");
+            res.setStatus(HttpStatus.OK_200);
             String substr;
             int dot = uri.lastIndexOf(".");
             if (dot < 0) {

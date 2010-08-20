@@ -59,6 +59,7 @@ import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.http.HttpServerFilter;
 import com.sun.grizzly.http.util.BufferChunk;
+import com.sun.grizzly.http.util.HttpStatus;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.MemoryManager;
@@ -437,8 +438,7 @@ public class GZipEncodingTest extends TestCase {
                 final HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
 
                 final HttpResponsePacket response = request.getResponse();
-                response.setStatus(200);
-                response.setReasonPhrase("OK");
+                HttpStatus.OK_200.setValues(response);
                 response.setChunked(true);
 
                 final Buffer requestContent = httpContent.getContent();
