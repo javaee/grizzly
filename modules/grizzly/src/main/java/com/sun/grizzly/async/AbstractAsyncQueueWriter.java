@@ -1,28 +1,31 @@
 /*
- * 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
- * 
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
- * 
+ *
+ * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
- * may not use this file except in compliance with the License. You can obtain
- * a copy of the License at https://glassfish.dev.java.net/public/CDDL+GPL.html
- * or glassfish/bootstrap/legal/LICENSE.txt.  See the License for the specific
+ * may not use this file except in compliance with the License.  You can
+ * obtain a copy of the License at
+ * https://glassfish.dev.java.net/public/CDDL+GPL_1_1.html
+ * or packager/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
- * 
+ *
  * When distributing the software, include this License Header Notice in each
  * file and include the License file at glassfish/bootstrap/legal/LICENSE.txt.
- * Sun designates this particular file as subject to the "Classpath" exception
- * as provided by Sun in the GPL Version 2 section of the License file that
- * accompanied this code.  If applicable, add the following below the License
- * Header, with the fields enclosed by brackets [] replaced by your own
- * identifying information: "Portions Copyrighted [year]
- * [name of copyright owner]"
- * 
+ *
+ * GPL Classpath Exception:
+ * Oracle designates this particular file as subject to the "Classpath"
+ * exception as provided by Oracle in the GPL Version 2 section of the License
+ * file that accompanied this code.
+ *
+ * Modifications:
+ * If applicable, add the following below the License Header, with the fields
+ * enclosed by brackets [] replaced by your own identifying information:
+ * "Portions Copyright [year] [name of copyright owner]"
+ *
  * Contributor(s):
- * 
  * If you wish your version of this file to be governed by only the CDDL or
  * only the GPL Version 2, indicate your decision by adding "[Contributor]
  * elects to include this software in this distribution under the [CDDL or GPL
@@ -33,8 +36,8 @@
  * and therefore, elected the GPL Version 2 license, then the option applies
  * only if the new code is made subject to such option by the copyright
  * holder.
- *
  */
+
 /*
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
@@ -71,26 +74,17 @@ public abstract class AbstractAsyncQueueWriter implements AsyncQueueWriter {
         writeQueue = new AsyncQueue<SelectableChannel, AsyncQueueWriteUnit>();
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public Future<AsyncQueueWriteUnit> write(SelectionKey key,
             ByteBuffer buffer) throws IOException {
         return write(key, null, buffer, null);
     }
     
-    /**
-     * {@inheritDoc}
-     */
     public Future<AsyncQueueWriteUnit> write(SelectionKey key,
             ByteBuffer buffer,
             AsyncWriteCallbackHandler callbackHandler) throws IOException {
         return write(key, null, buffer, callbackHandler, null);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public Future<AsyncQueueWriteUnit> write(SelectionKey key,
             ByteBuffer buffer,
             AsyncWriteCallbackHandler callbackHandler, 
@@ -99,9 +93,6 @@ public abstract class AbstractAsyncQueueWriter implements AsyncQueueWriter {
                 null);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public Future<AsyncQueueWriteUnit> write(SelectionKey key,
             ByteBuffer buffer,
             AsyncWriteCallbackHandler callbackHandler, 
@@ -111,18 +102,12 @@ public abstract class AbstractAsyncQueueWriter implements AsyncQueueWriter {
                 cloner);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public Future<AsyncQueueWriteUnit> write(SelectionKey key,
             SocketAddress dstAddress,
             ByteBuffer buffer) throws IOException {
         return write(key, dstAddress, buffer, null);
     }
     
-    /**
-     * {@inheritDoc}
-     */
     public Future<AsyncQueueWriteUnit> write(SelectionKey key,
             SocketAddress dstAddress,
             ByteBuffer buffer, AsyncWriteCallbackHandler callbackHandler) 
@@ -130,9 +115,6 @@ public abstract class AbstractAsyncQueueWriter implements AsyncQueueWriter {
         return write(key, dstAddress, buffer, callbackHandler, null);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public Future<AsyncQueueWriteUnit> write(SelectionKey key,
             SocketAddress dstAddress,
             ByteBuffer buffer, AsyncWriteCallbackHandler callbackHandler,
@@ -141,9 +123,6 @@ public abstract class AbstractAsyncQueueWriter implements AsyncQueueWriter {
                 writePreProcessor, null);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public Future<AsyncQueueWriteUnit> write(SelectionKey key,
             SocketAddress dstAddress,
             ByteBuffer buffer, AsyncWriteCallbackHandler callbackHandler,
@@ -272,9 +251,6 @@ public abstract class AbstractAsyncQueueWriter implements AsyncQueueWriter {
         return future;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public boolean isReady(SelectionKey key) {
         AsyncQueueEntry channelEntry = 
                 writeQueue.getAsyncQueueEntry(key.channel());
@@ -283,16 +259,10 @@ public abstract class AbstractAsyncQueueWriter implements AsyncQueueWriter {
                 (channelEntry.queue != null && !channelEntry.queue.isEmpty()));
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public AsyncQueueEntry getAsyncQueue(SelectionKey key) {
         return writeQueue.getAsyncQueueEntry(key.channel());
     }
     
-    /**
-     * {@inheritDoc}
-     */
     public void onWrite(SelectionKey key) throws IOException {
         SelectableChannel channel = key.channel();
         
@@ -386,16 +356,10 @@ public abstract class AbstractAsyncQueueWriter implements AsyncQueueWriter {
         }
     }
     
-    /**
-     * {@inheritDoc}
-     */
     public void onClose(SelectableChannel channel) {
         writeQueue.removeEntry(channel);
     }
     
-    /**
-     * {@inheritDoc}
-     */
     public void close() {
         writeQueue.clear();
     }
