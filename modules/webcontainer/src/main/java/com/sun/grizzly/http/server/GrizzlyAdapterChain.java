@@ -203,8 +203,7 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter implements JmxEventListe
                 //   CharChunk/ByteChunk, etc.
                 // Map the request to its Adapter
                 MessageBytes serverName = MessageBytes.newInstance();
-                //serverName.setString(request.getRequest().serverName().toString());
-                serverName.setString("localhost");
+                serverName.setString(request.getServerName());
                 MessageBytes decURI = MessageBytes.newInstance();
                 decURI.setString(decodedURI.toString());
                 mapper.map(serverName, decURI, mappingData);
