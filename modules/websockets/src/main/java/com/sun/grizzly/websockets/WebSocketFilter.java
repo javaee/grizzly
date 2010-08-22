@@ -523,8 +523,7 @@ public class WebSocketFilter extends BaseFilter {
 
         final HttpResponsePacket response = request.getResponse();
 
-        response.setStatus(HttpStatus.SWITCHING_PROTOCOLS_101.getStatusCode());
-        response.setReasonPhrase("Web Socket Protocol Handshake");
+        HttpStatus.WEBSOCKET_PROTOCOL_HANDSHAKE_101.setValues(response);
 
         response.setUpgrade("WebSocket");
         response.setHeader("Connection", "Upgrade");
