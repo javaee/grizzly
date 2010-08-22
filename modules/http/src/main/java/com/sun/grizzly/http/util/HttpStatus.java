@@ -49,7 +49,7 @@ public enum HttpStatus {
     
     CONINTUE_100(100, "Continue"),
     SWITCHING_PROTOCOLS_101(101, "Switching Protocols"),
-    WEBSOCKET_PROTOCOL_HANDSHAKE_101(101, "Web Socket Protocol Handshake"),
+    WEB_SOCKET_PROTOCOL_HANDSHAKE_101(101, "Web Socket Protocol Handshake"),
     OK_200(200, "OK"),
     CREATED_201(201, "Created"),
     ACCEPTED_202(202, "Accepted"),
