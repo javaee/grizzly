@@ -117,6 +117,39 @@ public class FastDateFormat extends DateFormat {
         return toAppendTo;
     }
 
+    /**
+     * Note: breaks functionality of fieldPosition param. Also:
+     * there's a bug in SimpleDateFormat with "S" and "SS", use "SSS"
+     * instead if you want a msec field.
+     **/
+    public StringBuilder format(Date date, StringBuilder toAppendTo,
+                               FieldPosition fieldPosition) {
+        long dt = date.getTime();
+        long ds = dt / 1000;
+        if (ds != lastSec) {
+            sb.setLength(0);
+            df.format(date, sb, fp);
+            lastSec = ds;
+        } else {
+            // munge current msec into existing string
+            int ms = (int)(dt % 1000);
+            int pos = fp.getEndIndex();
+            int begin = fp.getBeginIndex();
+            if (pos > 0) {
+                if (pos > begin)
+                    sb.setCharAt(--pos, Character.forDigit(ms % 10, 10));
+                ms /= 10;
+                if (pos > begin)
+                    sb.setCharAt(--pos, Character.forDigit(ms % 10, 10));
+                ms /= 10;
+                if (pos > begin)
+                    sb.setCharAt(--pos, Character.forDigit(ms % 10, 10));
+            }
+        }
+        toAppendTo.append(sb.toString());
+        return toAppendTo;
+    }
+    
     public static void main(String[] args) {
         String format = "yyyy-MM-dd HH:mm:ss.SSS";
         if (args.length > 0)

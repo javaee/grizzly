@@ -36,7 +36,7 @@
  *
  */
 
-package com.sun.grizzly.http.util;
+package com.sun.grizzly.http;
 
 /**
  * Lazy wrapper over {@link Cookie}.
@@ -134,7 +134,6 @@ public class LazyCookie extends Cookie {
         checkName(strName);
         
         name = strName;
-        version = lazyState.getVersion();
 
         value = unescape(lazyState.getValue().toString());
         path = unescape(lazyState.getPath().toString());
@@ -152,7 +151,7 @@ public class LazyCookie extends Cookie {
      * Returns the lazy state representation.
      * @return the lazy state representation.
      */
-    LazyCookieState lazy() {
+    public LazyCookieState lazy() {
         return lazyState;
     }
 

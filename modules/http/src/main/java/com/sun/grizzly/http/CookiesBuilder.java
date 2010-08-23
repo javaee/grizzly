@@ -36,11 +36,12 @@
  *
  */
 
-package com.sun.grizzly.http.util;
+package com.sun.grizzly.http;
 
 import com.sun.grizzly.Buffer;
+import com.sun.grizzly.http.util.CookieParserUtils;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.List;
 
 /**
  * Cookies builder, which could be used to construct a set of cookies, either client or server.
@@ -98,14 +99,14 @@ public class CookiesBuilder {
 
         @Override
         public ClientCookiesBuilder parse(Buffer cookiesHeader, int position, int limit) {
-            CookieUtils.parseClientCookies(cookies, cookiesHeader, position,
+            CookieParserUtils.parseClientCookies(cookies, cookiesHeader, position,
                     limit - position, strictVersionOneCompliant);
             return this;
         }
 
         @Override
         public ClientCookiesBuilder parse(String cookiesHeader) {
-            CookieUtils.parseClientCookies(cookies, cookiesHeader,
+            CookieParserUtils.parseClientCookies(cookies, cookiesHeader,
                     strictVersionOneCompliant);
             return this;
         }
@@ -120,17 +121,21 @@ public class CookiesBuilder {
 
         @Override
         public ServerCookiesBuilder parse(Buffer cookiesHeader) {
-            throw new UnsupportedOperationException("Not supported yet.");
+            return parse(cookiesHeader, cookiesHeader.position(), cookiesHeader.limit());
         }
 
         @Override
-        public ServerCookiesBuilder parse(Buffer cookiesHeader, int start, int limit) {
-            throw new UnsupportedOperationException("Not supported yet.");
+        public ServerCookiesBuilder parse(Buffer cookiesHeader, int position, int limit) {
+            CookieParserUtils.parseServerCookies(cookies, cookiesHeader, position,
+                    limit - position, strictVersionOneCompliant);
+            return this;
         }
 
         @Override
         public ServerCookiesBuilder parse(String cookiesHeader) {
-            throw new UnsupportedOperationException("Not supported yet.");
+            CookieParserUtils.parseServerCookies(cookies, cookiesHeader,
+                    strictVersionOneCompliant);
+            return this;
         }
     }
 
@@ -141,7 +146,7 @@ public class CookiesBuilder {
             this.strictVersionOneCompliant = strictVersionOneCompliant;
         }
 
-        protected final Collection<Cookie> cookies = new ArrayList<Cookie>(4);
+        protected final List<Cookie> cookies = new ArrayList<Cookie>(4);
 
         public E addCookie(Cookie cookie) {
             cookies.add(cookie);
@@ -151,11 +156,11 @@ public class CookiesBuilder {
 
         public abstract E parse(Buffer cookiesHeader);
 
-        public abstract E parse(Buffer cookiesHeader, int start, int limit);
+        public abstract E parse(Buffer cookiesHeader, int position, int limit);
 
         public abstract E parse(String cookiesHeader);
 
-        public Collection<Cookie> build() {
+        public List<Cookie> build() {
             return cookies;
         }
     }

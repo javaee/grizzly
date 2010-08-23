@@ -51,9 +51,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.sun.grizzly.http.util;
+package com.sun.grizzly.http;
 
 import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.http.util.BufferChunk;
+import com.sun.grizzly.http.util.CookieParserUtils;
+import com.sun.grizzly.http.util.MimeHeaders;
 import java.util.ArrayList;
 import java.util.Collection;
 
@@ -158,7 +161,7 @@ public final class Cookies {
                     log("Parsing b[]: " + cookieValue.toString());
                 }
 
-                CookieUtils.parseClientCookies(cookies, cookieValue.getBuffer(),
+                CookieParserUtils.parseClientCookies(cookies, cookieValue.getBuffer(),
                         cookieValue.getStart(),
                         cookieValue.size());
             } else {

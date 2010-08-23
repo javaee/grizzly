@@ -52,10 +52,12 @@
  * limitations under the License.
  */
 
-package com.sun.grizzly.http.util;
+package com.sun.grizzly.http;
 
-import java.text.MessageFormat;
-import java.util.ResourceBundle;
+import com.sun.grizzly.Buffer;
+import com.sun.grizzly.TransportFactory;
+import com.sun.grizzly.http.util.CookieSerializerUtils;
+import com.sun.grizzly.memory.MemoryManager;
 
 /**
  *
@@ -103,10 +105,6 @@ import java.util.ResourceBundle;
 
 public class Cookie implements Cloneable {
 
-    private static final String LSTRING_FILE = "com.sun.grizzly.util.http.LocalStrings";
-    private static ResourceBundle lStrings =
-	ResourceBundle.getBundle(LSTRING_FILE);
-    
     //
     // The value of the cookie itself.
     //
@@ -185,11 +183,8 @@ public class Cookie implements Cloneable {
 		|| name.equalsIgnoreCase("Version")
 		|| name.startsWith("$")
 	    ) {
-	    String errMsg = lStrings.getString("err.cookie_name_is_token");
-	    Object[] errArgs = new Object[1];
-	    errArgs[0] = name;
-	    errMsg = MessageFormat.format(errMsg, errArgs);
-	    throw new IllegalArgumentException(errMsg);
+
+	    throw new IllegalArgumentException("Cookie name is reserved word");
 	}
     }
     
@@ -545,7 +540,47 @@ public class Cookie implements Cloneable {
         this.isHttpOnly = isHttpOnly;
     }
 
+    public String asServerCookieString() {
+        final StringBuilder sb = new StringBuilder();
+        CookieSerializerUtils.serializeServerCookie(sb, this);
+        return sb.toString();
+    }
 
+    public Buffer asServerCookieBuffer() {
+        return asServerCookieBuffer(null);
+    }
+
+    public Buffer asServerCookieBuffer(MemoryManager memoryManager) {
+        if (memoryManager == null) memoryManager =
+                TransportFactory.getInstance().getDefaultMemoryManager();
+        
+        final Buffer buffer = memoryManager.allocate(4096);
+        CookieSerializerUtils.serializeServerCookie(buffer, this);
+        buffer.trim();
+
+        return buffer;
+    }
+
+    public String asClientCookieString() {
+        final StringBuilder sb = new StringBuilder();
+        CookieSerializerUtils.serializeClientCookies(sb, this);
+        return sb.toString();
+    }
+
+    public Buffer asClientCookieBuffer() {
+        return asClientCookieBuffer(null);
+    }
+
+    public Buffer asClientCookieBuffer(MemoryManager memoryManager) {
+        if (memoryManager == null) memoryManager =
+                TransportFactory.getInstance().getDefaultMemoryManager();
+
+        final Buffer buffer = memoryManager.allocate(4096);
+        CookieSerializerUtils.serializeClientCookies(buffer, this);
+        buffer.trim();
+
+        return buffer;
+    }
 
     // -------------------- Cookie parsing tools
     /**

@@ -51,9 +51,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.sun.grizzly.http.util;
+package com.sun.grizzly.http;
 
 import com.sun.grizzly.Buffer;
+import com.sun.grizzly.http.util.BufferChunk;
 
 
 /**
@@ -67,7 +68,7 @@ import com.sun.grizzly.Buffer;
  *  Tomcat.core uses this recyclable object to represent cookies,
  *  and the facade will convert it to the external representation.
  */
-class LazyCookieState {
+public class LazyCookieState {
     // Version 0 (Netscape) attributes
     private BufferChunk name = BufferChunk.newInstance();
     private BufferChunk value = BufferChunk.newInstance();
@@ -77,8 +78,6 @@ class LazyCookieState {
     private boolean secure;
     // Version 1 (RFC2109) attributes
     private BufferChunk comment = BufferChunk.newInstance();
-    private int maxAge = -1;
-    private int version = 0;
 
 
     // Note: Servlet Spec =< 2.5 only refers to Netscape and RFC2109,
@@ -95,10 +94,8 @@ class LazyCookieState {
         name.recycle();
         value.recycle();
         comment.recycle();
-        maxAge = -1;
         path.recycle();
         domain.recycle();
-        version = 0;
         secure = false;
     }
 
@@ -108,14 +105,6 @@ class LazyCookieState {
 
     public BufferChunk getDomain() {
         return domain;
-    }
-
-    public void setMaxAge(int expiry) {
-        maxAge = expiry;
-    }
-
-    public int getMaxAge() {
-        return maxAge;
     }
 
     public BufferChunk getPath() {
@@ -138,18 +127,10 @@ class LazyCookieState {
         return value;
     }
 
-    public int getVersion() {
-        return version;
-    }
-
-    public void setVersion(int v) {
-        version = v;
-    }
-
     // -------------------- utils --------------------
     @Override
     public String toString() {
-        return "Cookie " + getName() + "=" + getValue() + " ; "
-                + getVersion() + " " + getPath() + " " + getDomain();
+        return "LazyCookieState " + getName() + "=" + getValue() + " ; "
+                + " " + getPath() + " " + getDomain();
     }
 }

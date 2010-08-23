@@ -64,7 +64,7 @@ import com.sun.grizzly.http.server.io.GrizzlyOutputStream;
 import com.sun.grizzly.http.server.io.GrizzlyWriter;
 import com.sun.grizzly.http.server.io.OutputBuffer;
 import com.sun.grizzly.http.util.CharChunk;
-import com.sun.grizzly.http.util.Cookie;
+import com.sun.grizzly.http.Cookie;
 import com.sun.grizzly.http.util.CookieUtils;
 import com.sun.grizzly.http.util.FastHttpDateFormat;
 import com.sun.grizzly.http.util.HttpRequestURIDecoder;
