@@ -65,6 +65,7 @@ import com.sun.grizzly.http.server.io.GrizzlyWriter;
 import com.sun.grizzly.http.server.io.OutputBuffer;
 import com.sun.grizzly.http.util.CharChunk;
 import com.sun.grizzly.http.Cookie;
+import com.sun.grizzly.http.util.CookieSerializerUtils;
 import com.sun.grizzly.http.util.CookieUtils;
 import com.sun.grizzly.http.util.FastHttpDateFormat;
 import com.sun.grizzly.http.util.HttpRequestURIDecoder;
@@ -1157,19 +1158,19 @@ public class GrizzlyResponse {
         if (included)
             return;
 
-        final StringBuffer sb = new StringBuffer();
+        final StringBuilder sb = new StringBuilder();
         //web application code can receive a IllegalArgumentException
         //from the appendCookieValue invokation
         if (System.getSecurityManager() != null) {
             AccessController.doPrivileged(new PrivilegedAction() {
                 @Override
                 public Object run() {
-                    CookieUtils.serializeServerCookie(sb, cookie);
+                    CookieSerializerUtils.serializeServerCookie(sb, cookie);
                     return null;
                 }
             });
         } else {
-            CookieUtils.serializeServerCookie(sb, cookie);
+            CookieSerializerUtils.serializeServerCookie(sb, cookie);
         }
 
         // if we reached here, no exception, cookie is valid

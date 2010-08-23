@@ -1784,7 +1784,7 @@ public class GrizzlyRequest {
      * number, and server path, but it does not include query
      * string parameters.
      * <p>
-     * Because this method returns a <code>StringBuffer</code>,
+     * Because this method returns a <code>StringBuilder</code>,
      * not a <code>String</code>, you can modify the URL easily,
      * for example, to append query parameters.
      * <p>
@@ -1794,7 +1794,7 @@ public class GrizzlyRequest {
      * @return A <code>StringBuffer</code> object containing the
      *  reconstructed URL
      */
-    public StringBuffer getRequestURL() {
+    public StringBuilder getRequestURL() {
 
         StringBuilder url = new StringBuilder();
         String scheme = getScheme();
@@ -1812,7 +1812,7 @@ public class GrizzlyRequest {
         }
         url.append(getRequestURI());
 
-        return (new StringBuffer(url));
+        return new StringBuilder(url);
 
     }
 
