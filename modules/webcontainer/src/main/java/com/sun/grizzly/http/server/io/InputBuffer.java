@@ -256,8 +256,7 @@ public class InputBuffer {
             encoding = enc;
         }
         if (compositeBuffer.remaining() > 0) {
-            remainder = compositeBuffer.toByteBuffer();
-            charBuf.flip();
+            fillChar(0, false, true);
         }
 
     }
@@ -366,7 +365,7 @@ public class InputBuffer {
         }
 
         if (charBuf.remaining() == 0) {
-            if (fillChar(target.capacity(), !asyncEnabled) == -1) {
+            if (fillChar(target.capacity(), !asyncEnabled, true) == -1) {
                 return -1;
             }
         }
@@ -390,7 +389,7 @@ public class InputBuffer {
             throw new IllegalStateException();
         }
         if (charBuf.remaining() == 0) {
-            if (fillChar(1, true) == -1) {
+            if (fillChar(1, true, true) == -1) {
                 return -1;
             }
         }
@@ -417,7 +416,7 @@ public class InputBuffer {
             return 0;
         }
         if (charBuf.remaining() == 0) {
-            if (fillChar(len, !asyncEnabled) == -1) {
+            if (fillChar(len, !asyncEnabled, true) == -1) {
                 return -1;
             }
         }
@@ -440,19 +439,14 @@ public class InputBuffer {
             throw new IllegalStateException();
         }
         return ((remainder != null && remainder.remaining() > 0)
-                   || (request.isExpectContent() && (charBuf.remaining() != 0)));
+                   || (charBuf.remaining() != 0)
+                   || request.isExpectContent());
 
     }
 
 
     public int availableChar() {
-        int remaining = compositeBuffer.remaining();
-        if (remaining == 0) {
-            return 0;
-        }
-
-        final CharsetDecoder decoderLocal = getDecoder();
-        return ((Float.valueOf(remaining / decoderLocal.averageCharsPerByte())).intValue());
+        return charBuf.remaining();
     }
 
 
@@ -584,7 +578,7 @@ public class InputBuffer {
                 return 0L;
             }
             if (charBuf.remaining() == 0) {
-                if (fillChar((int) n, block) == -1) {
+                if (fillChar((int) n, block, true) == -1) {
                     return 0;
                 }
             }
@@ -663,9 +657,11 @@ public class InputBuffer {
      * @param buffer the {@link Buffer} to append
      *
      * @return <code>true</code> if {@link ReadHandler#onDataAvailable()}
-     *  callback was invoked, otherwise returns <code>false</code>/
+     *  callback was invoked, otherwise returns <code>false</code>.
+     *
+     * @throws IOException if an error occurs appending the {@link Buffer}
      */
-    public boolean append(final Buffer buffer) {
+    public boolean append(final Buffer buffer) throws IOException {
 
         if (buffer == null) {
             return false;
@@ -677,9 +673,17 @@ public class InputBuffer {
             final int addSize = buffer.remaining();
             if (addSize > 0) {
                 compositeBuffer.append(buffer);
-                if (compositeBuffer.remaining() > requestedSize) {
-                    handler.onDataAvailable();
-                    return true;
+                if (processingChars) {
+                    fillChar(0, false, true);
+                    if (charBuf.remaining() > requestedSize) {
+                        handler.onDataAvailable();
+                        return true;
+                    }
+                } else {
+                    if (compositeBuffer.remaining() > requestedSize) {
+                        handler.onDataAvailable();
+                        return true;
+                    }
                 }
             }
         }
@@ -745,7 +749,7 @@ public class InputBuffer {
      *
      * @throws IOException if an I/O error occurs while reading content
      */
-    private int fillChar(int requestedLen, boolean block) throws IOException {
+    private int fillChar(int requestedLen, boolean block, boolean flip) throws IOException {
 
         if ((remainder != null && remainder.hasRemaining()) || !block) {
             final CharsetDecoder decoderLocal = getDecoder();
@@ -755,17 +759,25 @@ public class InputBuffer {
             CoderResult result = decoderLocal.decode(bb, charBuf, false);
             int read = charBuf.position() - curPos;
             if (result == CoderResult.UNDERFLOW) {
-                if (remainder == null) {
-                    compositeBuffer.position(compositeBuffer.position() + bb.limit());
-                    compositeBuffer.shrink();
+                int newPos = compositeBuffer.position() + read;
+                if (newPos > compositeBuffer.limit()) {
+                    compositeBuffer.position(0);
                 } else {
-                    compositeBuffer.position(compositeBuffer.remaining());
+                    compositeBuffer.position(compositeBuffer.position() + read);
                     compositeBuffer.shrink();
+                }
+                if (remainder != null) {
                     remainder = null;
                 }
             }
+            
+            if (compositeBuffer.hasRemaining()) {
+                read += fillChar(0, false, false);
+            }
 
-            charBuf.flip();
+            if (flip) {
+                charBuf.flip();
+            }
             return read;
         }
         if (request.isExpectContent()) {
