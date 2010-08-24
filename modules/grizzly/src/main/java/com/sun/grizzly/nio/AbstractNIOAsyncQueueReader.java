@@ -72,12 +72,13 @@ public abstract class AbstractNIOAsyncQueueReader
         extends AbstractReader<SocketAddress>
         implements AsyncQueueReader<SocketAddress> {
 
+    private static final Logger LOGGER = Grizzly.logger(AbstractNIOAsyncQueueReader.class);
+
     private static final AsyncReadQueueRecord LOCK_RECORD =
             AsyncReadQueueRecord.create(null, null, null, null, null);
     public static final int DEFAULT_BUFFER_SIZE = 8192;
     protected int defaultBufferSize = DEFAULT_BUFFER_SIZE;
     protected NIOTransport transport;
-    private Logger logger = Grizzly.logger(AbstractNIOAsyncQueueReader.class);
 
     public AbstractNIOAsyncQueueReader(NIOTransport transport) {
         this.transport = transport;
@@ -284,7 +285,7 @@ public abstract class AbstractNIOAsyncQueueReader
             onReadFailure(connection, queueRecord, e);
         } catch (Exception e) {
             String message = "Unexpected exception occurred in AsyncQueueReader";
-            logger.log(Level.SEVERE, message, e);
+            LOGGER.log(Level.SEVERE, message, e);
             IOException ioe = new IOException(e.getClass() + ": " + message);
             onReadFailure(connection, queueRecord, ioe);
         }
