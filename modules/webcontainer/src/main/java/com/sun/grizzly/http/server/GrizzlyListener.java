@@ -122,6 +122,13 @@ public class GrizzlyListener {
 
 
     /**
+     * Flag indicated whether or not Web Sockets is enabled.  Defaults to
+     * <code>false</code>
+     */
+    private boolean webSocketsEnabled;
+
+
+    /**
      * Configuration for the {@link javax.net.ssl.SSLEngine} that will be used
      * for secure listeners.
      */
@@ -331,6 +338,30 @@ public class GrizzlyListener {
         }
 
         this.transport = transport;
+
+    }
+
+
+    /**
+     * @return <code>true</code> if Web Sockets is enabled, otherwise,
+     *  returns <code>false</code>.
+     */
+    public boolean isWebSocketsEnabled() {
+
+        return webSocketsEnabled;
+
+    }
+
+
+    /**
+     * Enables/disables Web Sockets support for this listener.
+     *
+     * @param webSocketsEnabled <code>true</code> if Web Sockets support
+     *  should be enabled.
+     */
+    public void setWebSocketsEnabled(boolean webSocketsEnabled) {
+
+        this.webSocketsEnabled = webSocketsEnabled;
 
     }
 

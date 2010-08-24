@@ -69,6 +69,8 @@ import com.sun.grizzly.ssl.SSLFilter;
 import com.sun.grizzly.threadpool.DefaultWorkerThread;
 import com.sun.grizzly.threadpool.ThreadPoolProbe;
 import com.sun.grizzly.utils.IdleTimeoutFilter;
+import com.sun.grizzly.websockets.WebSocketFilter;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -503,6 +505,10 @@ public class GrizzlyWebServer {
             httpServerFilter.getMonitoringConfig().addProbes(
                     serverConfig.getMonitoringConfig().getHttpConfig().getProbes());
             builder.add(httpServerFilter);
+
+            if (listener.isWebSocketsEnabled()) {
+                builder.add(new WebSocketFilter());
+            }
 
             final FileCache fileCache = listener.getFileCache();
             fileCache.setScheduledExecutorService(scheduledExecutorService);
