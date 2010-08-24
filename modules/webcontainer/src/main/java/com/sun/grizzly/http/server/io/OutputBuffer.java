@@ -608,8 +608,8 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
     private void writeContentChunk(boolean includeTrailer) throws IOException {
         handleAsyncErrors();
         if (buf.position() > 0) {
+            buf.trim();
             HttpContent.Builder builder = response.httpContentBuilder();
-            buf.flip();
             builder.content(buf);
             final CompletionHandler c = new EmptyCompletionHandler() {
 
