@@ -189,7 +189,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                     logger.log(Level.FINEST, "AsyncQueueWriter.write completed connection=" + connection + " record=" + queueRecord + " nextRecord=" + nextRecord);
                 }
                 
-                onWriteCompleted(connection, queueRecord);
+                onWriteComplete(connection, queueRecord);
 
                 if (nextRecord == null) { // if nothing in queue
                     // try one more time
@@ -331,7 +331,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                     final AsyncWriteQueueRecord nextRecord = queue.poll();
                     currentElement.set(nextRecord);
                     
-                    onWriteCompleted(connection, queueRecord);
+                    onWriteComplete(connection, queueRecord);
 
                     queueRecord = nextRecord;
                     if (isLogFine) {
@@ -436,7 +436,7 @@ public abstract class AbstractNIOAsyncQueueWriter
         return bytesWritten;
     }
 
-    protected final void onWriteCompleted(Connection connection,
+    protected final void onWriteComplete(Connection connection,
             AsyncWriteQueueRecord record) throws IOException {
 
         final WriteResult currentResult = record.getCurrentResult();
@@ -461,7 +461,7 @@ public abstract class AbstractNIOAsyncQueueWriter
         }
     }
 
-    protected final void onWriteIncompleted(Connection connection,
+    protected final void onWriteIncomplete(Connection connection,
             AsyncWriteQueueRecord record)
             throws IOException {
 

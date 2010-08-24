@@ -133,7 +133,7 @@ public abstract class AbstractNIOAsyncQueueReader
                     currentElement.set(nextRecord);
                     
                     // Notify callback handler
-                    onReadCompleted(connection, queueRecord);
+                    onReadComplete(connection, queueRecord);
 
                     if (nextRecord == null) { // if nothing in queue
                         // try one more time
@@ -164,7 +164,7 @@ public abstract class AbstractNIOAsyncQueueReader
                     queueRecord.setFuture(future);
                     currentElement.set(queueRecord);
                     
-                    onReadIncompleted(connection, queueRecord);
+                    onReadIncomplete(connection, queueRecord);
                     onReadyToRead(connection);
 
                     intercept(connection, INCOMPLETE_EVENT, queueRecord, null);
@@ -246,7 +246,7 @@ public abstract class AbstractNIOAsyncQueueReader
                     AsyncReadQueueRecord nextRecord = queue.poll();
                     currentElement.set(nextRecord);
 
-                    onReadCompleted(connection, queueRecord);
+                    onReadComplete(connection, queueRecord);
 
                     intercept(connection, Reader.COMPLETE_EVENT,
                             queueRecord, null);
@@ -272,7 +272,7 @@ public abstract class AbstractNIOAsyncQueueReader
                         queueRecord.setMessage(null);
                     }
 
-                    onReadIncompleted(connection, queueRecord);
+                    onReadIncomplete(connection, queueRecord);
                     intercept(connection, Reader.INCOMPLETE_EVENT,
                             queueRecord, null);
 
@@ -352,7 +352,7 @@ public abstract class AbstractNIOAsyncQueueReader
         return readBytes;
     }
 
-    protected final void onReadCompleted(Connection connection,
+    protected final void onReadComplete(Connection connection,
             AsyncReadQueueRecord record)
             throws IOException {
 
@@ -370,7 +370,7 @@ public abstract class AbstractNIOAsyncQueueReader
         }
     }
 
-    protected final void onReadIncompleted(Connection connection,
+    protected final void onReadIncomplete(Connection connection,
             AsyncReadQueueRecord record)
             throws IOException {
 
