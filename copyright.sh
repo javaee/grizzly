@@ -40,6 +40,7 @@ then
 	JAVA=java
 fi
 
+$JAVA -jar copyright.jar -V
 run $* | tee copyrightcheck.out
 
 grep -vi Copyright copyrightcheck.out | grep -v copyrightcheck.out > /dev/null
