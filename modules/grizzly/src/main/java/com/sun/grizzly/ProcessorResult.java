@@ -46,8 +46,8 @@ package com.sun.grizzly;
  * @author Alexey Stashok
  */
 public class ProcessorResult {
-    private static final ProcessorResult COMPLETED_RESULT = new ProcessorResult(Status.COMPLETED);
-    private static final ProcessorResult COMPLETED_LEAVE_RESULT = new ProcessorResult(Status.COMPLETED_LEAVE);
+    private static final ProcessorResult COMPLETE_RESULT = new ProcessorResult(Status.COMPLETE);
+    private static final ProcessorResult COMPLETE_LEAVE_RESULT = new ProcessorResult(Status.COMPLETE_LEAVE);
     private static final ProcessorResult ERROR_RESULT = new ProcessorResult(Status.ERROR);
     private static final ProcessorResult TERMINATE_RESULT = new ProcessorResult(Status.TERMINATE);
 
@@ -67,7 +67,7 @@ public class ProcessorResult {
      * Enum represents the status/code of {@link ProcessorResult}.
      */
     public enum Status {
-        COMPLETED, COMPLETED_LEAVE, ERROR, TERMINATE;
+        COMPLETE, COMPLETE_LEAVE, ERROR, TERMINATE;
     }
     
     /**
@@ -80,12 +80,12 @@ public class ProcessorResult {
      */
     private Object description;
 
-    public static ProcessorResult createCompleted() {
-        return COMPLETED_RESULT;
+    public static ProcessorResult createComplete() {
+        return COMPLETE_RESULT;
     }
 
-    public static ProcessorResult createCompletedLeave() {
-        return COMPLETED_LEAVE_RESULT;
+    public static ProcessorResult createCompleteLeave() {
+        return COMPLETE_LEAVE_RESULT;
     }
 
     public static ProcessorResult createError() {

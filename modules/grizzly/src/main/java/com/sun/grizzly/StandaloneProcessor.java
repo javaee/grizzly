@@ -82,7 +82,7 @@ public class StandaloneProcessor implements Processor {
                 reader.processAsync(connection);
             }
 
-            return ProcessorResult.createCompletedLeave();
+            return ProcessorResult.createCompleteLeave();
         } else if (iOEvent == IOEvent.WRITE) {
             final Connection connection = context.getConnection();
             final AsyncQueueWriter writer =
@@ -93,7 +93,7 @@ public class StandaloneProcessor implements Processor {
                 writer.processAsync(connection);
             }
 
-            return ProcessorResult.createCompletedLeave();
+            return ProcessorResult.createCompleteLeave();
         }
         
         throw new IllegalStateException("Unexpected IOEvent=" + iOEvent);

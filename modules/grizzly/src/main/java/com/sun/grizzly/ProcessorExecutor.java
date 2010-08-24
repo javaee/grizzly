@@ -50,7 +50,7 @@ import java.util.logging.Logger;
  */
 public final class ProcessorExecutor {
 
-    private static Logger logger = Grizzly.logger(ProcessorExecutor.class);
+    private static final Logger LOGGER = Grizzly.logger(ProcessorExecutor.class);
 
     public static boolean execute(Connection connection,
             IOEvent ioEvent, Processor processor,
@@ -66,11 +66,10 @@ public final class ProcessorExecutor {
 
     public static boolean resume(final Context context) throws IOException {
 
-        if (logger.isLoggable(Level.FINEST)) {
-            logger.log(Level.FINEST, "executing connection ("
-                    + context.getConnection()
-                    + "). IOEvent=" + context.getIoEvent()
-                    + " processor=" + context.getProcessor());
+        if (LOGGER.isLoggable(Level.FINEST)) {
+            LOGGER.log(Level.FINEST, "executing connection ({0}). IOEvent={1} processor={2}",
+                    new Object[]{context.getConnection(), context.getIoEvent(),
+                    context.getProcessor()});
         }
 
         final ProcessorResult result = context.getProcessor().process(context);
@@ -78,7 +77,7 @@ public final class ProcessorExecutor {
 
         if (status != ProcessorResult.Status.TERMINATE) {
             complete(context, status);
-            return status == ProcessorResult.Status.COMPLETED;
+            return status == ProcessorResult.Status.COMPLETE;
         }
 
         return false;

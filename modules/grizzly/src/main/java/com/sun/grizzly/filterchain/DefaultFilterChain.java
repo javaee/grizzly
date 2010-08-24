@@ -171,7 +171,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
 
             writer.processAsync(connection);
 
-            return ProcessorResult.createCompletedLeave();
+            return ProcessorResult.createCompleteLeave();
         }
 
         return execute((FilterChainContext) context);
@@ -252,7 +252,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         final int ioEventIndex = ctx.getIoEvent().ordinal();
         final FilterExecutor executor = filterExecutors[ioEventIndex];
 
-        if (isEmpty()) ProcessorResult.createCompleted();
+        if (isEmpty()) ProcessorResult.createComplete();
 
         if (ctx.getFilterIdx() == FilterChainContext.NO_FILTER_INDEX) {
             final int startIdx = executor.defaultStartIdx(ctx);
@@ -292,7 +292,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             }
         }
 
-        return ProcessorResult.createCompleted();
+        return ProcessorResult.createComplete();
     }
 
 
