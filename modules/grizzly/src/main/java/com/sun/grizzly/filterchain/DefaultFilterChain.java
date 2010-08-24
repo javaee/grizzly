@@ -322,24 +322,8 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             // current Filter to be executed
             final Filter currentFilter = get(i);
 
-            // Check if there is any data stored for the current Filter
-            final FilterStateElement filterState;
-            if (filtersState != null && 
-                    (filterState = filtersState.clearState(ioEvent, i)) != null) {
-                Object storedMessage = filterState.getState();
-                final Object currentMessage = ctx.getMessage();
-                if (currentMessage != null) {
-                    final Appender appender = filterState.getAppender();
-                    if (appender != null) {
-                        storedMessage =
-                                appender.append(storedMessage, currentMessage);
-                    } else {
-                        storedMessage = ((Appendable) storedMessage).append(currentMessage);
-                    }
-                }
-                
-                ctx.setMessage(storedMessage);
-            }
+            // Checks if there was a remainder message stored from the last filter execution
+            checkStoredMessage(ctx, filtersState, i);
 
             // Save initial inputMessage
             final Object inputMessage = ctx.getMessage();
@@ -365,14 +349,9 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                     }
 
                     if (isStoreRemainder) {
-                        if (filtersState == null) {
-                            filtersState = new FiltersState(size());
-                            FILTERS_STATE_ATTR.set(connection, filtersState);
-                        }
-
-                        filtersState.setState(ioEvent, i,
-                                new FilterStateElement(FILTER_STATE_TYPE.REMAINDER,
-                                remainder, null));
+                        filtersState = storeMessage(ctx,
+                            filtersState, FILTER_STATE_TYPE.REMAINDER, i,
+                            remainder, null);
                     }
                 }
             } else if (nextNextActionType == SuspendingStopAction.TYPE) {
@@ -384,15 +363,10 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                 if (nextNextActionType == StopAction.TYPE &&
                         (messageToStore =
                         ((StopAction) nextNextAction).getRemainder()) != null) {
-                    if (filtersState == null) {
-                        filtersState = new FiltersState(size());
-                        FILTERS_STATE_ATTR.set(connection, filtersState);
-                    }
 
-                    final Appender appender = ((StopAction) nextNextAction).getAppender();
-                    filtersState.setState(ioEvent, i,
-                            new FilterStateElement(FILTER_STATE_TYPE.INCOMPLETE,
-                            messageToStore, appender));
+                    filtersState = storeMessage(ctx,
+                            filtersState, FILTER_STATE_TYPE.INCOMPLETE, i,
+                            messageToStore, ((StopAction) nextNextAction).getAppender());
                     return FilterExecution.CONTINUE;
                 }
                 
@@ -507,6 +481,67 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     @Override
     public DefaultFilterChain subList(int fromIndex, int toIndex) {
         return new DefaultFilterChain(filters.subList(fromIndex, toIndex));
+    }
+
+    /**
+     * Checks if {@link Connection} has some stored data related to the processing
+     * {@link Filter}. If yes - appends new context data to the stored one and
+     * set the result as context message.
+     * 
+     * @param ctx {@link FilterChainContext}
+     * @param filtersState {@link FiltersState} associated with the Connection
+     * @param filterIdx the current filter index
+     */
+    private void checkStoredMessage(final FilterChainContext ctx,
+            final FiltersState filtersState, final int filterIdx) {
+
+        final IOEvent ioEvent = ctx.getIoEvent();
+        final FilterStateElement filterState;
+
+        // Check if there is any data stored for the current Filter
+        if (filtersState != null && (filterState = filtersState.clearState(ioEvent, filterIdx)) != null) {
+            Object storedMessage = filterState.getState();
+            final Object currentMessage = ctx.getMessage();
+            if (currentMessage != null) {
+                final Appender appender = filterState.getAppender();
+                if (appender != null) {
+                    storedMessage = appender.append(storedMessage, currentMessage);
+                } else {
+                    storedMessage = ((Appendable) storedMessage).append(currentMessage);
+                }
+            }
+            ctx.setMessage(storedMessage);
+        }
+    }
+
+    /**
+     * Stores the Filter associated remainder. This remainder will be reused next
+     * time the same filter will be invoked on this Connection.
+     * 
+     * @param ctx
+     * @param filtersState
+     * @param type
+     * @param filterIdx
+     * @param messageToStore
+     * @param appender
+     * @return
+     */
+    private FiltersState storeMessage(final FilterChainContext ctx,
+            FiltersState filtersState, FILTER_STATE_TYPE type, final int filterIdx,
+            final Object messageToStore, final Appender appender) {
+
+        if (filtersState == null) {
+            final Connection connection = ctx.getConnection();
+            filtersState = new FiltersState(size());
+            FILTERS_STATE_ATTR.set(connection, filtersState);
+        }
+
+        final IOEvent ioEvent = ctx.getIoEvent();
+
+        filtersState.setState(ioEvent, filterIdx,
+                new FilterStateElement(type, messageToStore, appender));
+
+        return filtersState;
     }
 
     private void notifyCompleted(FilterChainContext context, Object result) {
