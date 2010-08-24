@@ -99,7 +99,7 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
 
     private MemoryManager memoryManager;
 
-    private final AtomicReference<WriteHandler> handler = new AtomicReference<WriteHandler>();
+    private WriteHandler handler;
 
     private final AtomicReference<Throwable> asyncError = new AtomicReference<Throwable>();
 
@@ -170,7 +170,7 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
         encoder = null;
         ctx = null;
         memoryManager = null;
-        handler.set(null);
+        handler = null;
         asyncError.set(null);
 
         committed = false;
@@ -551,12 +551,12 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
 
     public void notifyCanWrite(final WriteHandler handler, final int length) {
 
-        this.handler.set(handler);
+        if (this.handler != null) {
+            throw new IllegalStateException("Illegal attempt to set a new handler before the existing handler has been notified.");
+        }
+        this.handler = handler;
         final Connection c = ctx.getConnection();
         final TaskQueue taskQueue = ((AbstractNIOConnection) c).getAsyncWriteQueue();
-        if (monitor != null) {
-            taskQueue.removeQueueMonitor(monitor);
-        }
 
         final int maxBytes = asyncWriter.getMaxPendingBytesPerConnection();
         if (length > maxBytes) {
@@ -574,18 +574,14 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
 
             @Override
             public void onNotify() {
-                // if the handler associated with this monitor is not
-                // the current handler associated with the buffer, do not
-                // invoke the handler.
-                if (OutputBuffer.this.handler.get() == handler) {
-                    handler.onWritePossible();
-                    OutputBuffer.this.handler.compareAndSet(handler, null);
-                }
+                handler.onWritePossible();
+                OutputBuffer.this.handler = null;
+
             }
         };
         if (!taskQueue.addQueueMonitor(monitor)) {
             // monitor wasn't added because it was notified
-            this.handler.compareAndSet(handler, null);
+            this.handler = null;
             monitor = null;
         }
         
@@ -619,9 +615,8 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
 
                 @Override
                 public void failed(Throwable throwable) {
-                    final WriteHandler h = handler.get();
-                    if (h != null) {
-                        h.onError(throwable);
+                    if (handler != null) {
+                        handler.onError(throwable);
                     } else {
                         asyncError.set(throwable);
                     }

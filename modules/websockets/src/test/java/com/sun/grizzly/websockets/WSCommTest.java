@@ -77,7 +77,7 @@ public class WSCommTest extends TestCase {
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
         transport.setProcessor(serverFilterChainBuilder.build());
 
-        FutureImpl<String> serverFuture = SafeFutureImuspendpl.create();
+        FutureImpl<String> serverFuture = SafeFutureImpl.create();
         FutureImpl<String> clientFuture = SafeFutureImpl.create();
 
         final EchoApplication echoApplication = new EchoApplication(serverFuture);
