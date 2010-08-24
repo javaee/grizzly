@@ -17,13 +17,16 @@ valid() {
 		 grep -vi .ods | \
 		 grep -vi .png | \
 		 grep -vi .project | \
+		 grep -vi ChangesFrom1_9.txt | \
 		 grep -vi copyright.sh | \
 		 grep -vi copyrightcheck.out | \
+		 grep -vi last-occupied-test-port.info | \
 		 grep -vi license.txt | \
 		 grep -vi manifest.mf | \
 		 grep -vi readme.txt | \
 		 grep -vwi readme | \
 		 grep -vi Grizzly-Migration-Guide | \
+		 grep -vi GrizzlyPex.hudson | \
 		 grep -vi zzzzzzzzzzzzzzzzzzz
 }
 
@@ -40,6 +43,7 @@ then
 	JAVA=java
 fi
 
+$JAVA -jar copyright.jar -V
 run $* | tee copyrightcheck.out
 
 grep -vi Copyright copyrightcheck.out | grep -v copyrightcheck.out > /dev/null
