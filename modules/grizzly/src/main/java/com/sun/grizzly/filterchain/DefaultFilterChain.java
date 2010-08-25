@@ -364,7 +364,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                         (messageToStore =
                         ((StopAction) nextNextAction).getRemainder()) != null) {
 
-                    filtersState = storeMessage(ctx,
+                    storeMessage(ctx,
                             filtersState, FILTER_STATE_TYPE.INCOMPLETE, i,
                             messageToStore, ((StopAction) nextNextAction).getAppender());
                     return FilterExecution.CONTINUE;

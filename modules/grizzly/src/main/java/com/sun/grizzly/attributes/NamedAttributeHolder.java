@@ -78,7 +78,7 @@ public class NamedAttributeHolder implements AttributeHolder {
     public void setAttribute(String name, Object value) {
         Attribute attribute = attributeBuilder.getAttributeByName(name);
         if (attribute == null) {
-            attribute = attributeBuilder.createAttribute(name);
+            attributeBuilder.createAttribute(name);
         }
 
         attributesMap.put(name, value);

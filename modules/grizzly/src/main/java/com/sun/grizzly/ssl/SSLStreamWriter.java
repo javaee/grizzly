@@ -102,7 +102,6 @@ public class SSLStreamWriter extends TransformerStreamWriter {
 
         if (handshakeStatus == HandshakeStatus.NOT_HANDSHAKING) {
             sslEngine.beginHandshake();
-            handshakeStatus = sslEngine.getHandshakeStatus();
         }
 
         final FutureImpl<SSLEngine> future = SafeFutureImpl.create();
