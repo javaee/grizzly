@@ -65,6 +65,10 @@ public interface NIOOutputSink {
      * @param handler the {@link WriteHandler} that should be notified
      *  when it's possible to write <code>length</code> bytes.
      * @param length the number of bytes that require writing.
+     *
+     * @throws IllegalStateException if this method is invoked and a handler
+     *  from a previous invocation is still present (due to not having yet been
+     *  notified).  
      */
     void notifyCanWrite(final WriteHandler handler, final int length);
 
