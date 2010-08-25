@@ -754,16 +754,20 @@ public class InputBuffer {
         if ((remainder != null && remainder.hasRemaining()) || !block) {
             final CharsetDecoder decoderLocal = getDecoder();
             charBuf.compact();
-            int curPos = charBuf.position();
+            int charPos = charBuf.position();
             final ByteBuffer bb = ((remainder != null) ? remainder : compositeBuffer.toByteBuffer());
+            int bbPos = bb.position();
             CoderResult result = decoderLocal.decode(bb, charBuf, false);
-            int read = charBuf.position() - curPos;
+
+            int readChars = charBuf.position() - charPos;
+            int readBytes = bb.position() - bbPos;
+            bb.position(bbPos);
             if (result == CoderResult.UNDERFLOW) {
-                int newPos = compositeBuffer.position() + read;
+                int newPos = compositeBuffer.position() + readBytes;
                 if (newPos > compositeBuffer.limit()) {
                     compositeBuffer.position(0);
                 } else {
-                    compositeBuffer.position(compositeBuffer.position() + read);
+                    compositeBuffer.position(newPos);
                     compositeBuffer.shrink();
                 }
                 if (remainder != null) {
@@ -772,13 +776,13 @@ public class InputBuffer {
             }
             
             if (compositeBuffer.hasRemaining()) {
-                read += fillChar(0, false, false);
+                readChars += fillChar(0, false, false);
             }
 
             if (flip) {
                 charBuf.flip();
             }
-            return read;
+            return readChars;
         }
         if (request.isExpectContent()) {
             try {
