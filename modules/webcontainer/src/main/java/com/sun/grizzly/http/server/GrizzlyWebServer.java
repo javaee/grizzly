@@ -85,7 +85,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class GrizzlyWebServer {
 
-    private final Logger LOGGER = Grizzly.logger(GrizzlyWebServer.class);
+    private static final Logger LOGGER = Grizzly.logger(GrizzlyWebServer.class);
 
     /**
      * Configuration details for this server instance.
@@ -275,7 +275,7 @@ public class GrizzlyWebServer {
         }
 
         if (LOGGER.isLoggable(Level.INFO)) {
-            LOGGER.info("[" + getServerConfiguration().getName() + "] Started.");
+            LOGGER.log(Level.INFO, "[{0}] Started.", getServerConfiguration().getName());
         }
 
     }
