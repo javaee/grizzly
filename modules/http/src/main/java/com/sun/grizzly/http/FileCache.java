@@ -443,7 +443,7 @@ public class FileCache{
     protected final FileCacheEntry map(Request request){
         FileCacheEntry entry = null;
         
-        if ( fileCache.size() != 0 ){
+        if ( !fileCache.isEmpty() ){
             String uri = request.requestURI().toString();
             entry = fileCache.get(uri);
 
