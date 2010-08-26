@@ -282,7 +282,7 @@ public class NIOInputSourcesTest extends TestCase {
 
     }
 
-    public void testBasicAsyncReadcharSpecifiedSizeSlowClient() throws Throwable {
+    public void testBasicAsyncReadCharSpecifiedSizeSlowClient() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
         final GrizzlyAdapter adapter = new EchoAdapter(testResult, 2000);
@@ -487,7 +487,7 @@ public class NIOInputSourcesTest extends TestCase {
                     public void onDataAvailable() {
                         try {
                             buffer(reader, sb);
-                        } catch (IOException ioe) {
+                        } catch (Exception ioe) {
                             testResult.failure(ioe);
                         }
                         //reader.notifyAvailable(this, readSize);
@@ -497,7 +497,7 @@ public class NIOInputSourcesTest extends TestCase {
                     public void onAllDataRead() {
                         try {
                             buffer(reader, sb);
-                        } catch (IOException ioe) {
+                        } catch (Exception ioe) {
                             testResult.failure(ioe);
                         }
                         try {
@@ -671,8 +671,7 @@ public class NIOInputSourcesTest extends TestCase {
                 throws IOException {
 
             if (logger.isLoggable(Level.FINE)) {
-                logger.log(Level.FINE,
-                        "Connected... Sending the request: " + request);
+                logger.log(Level.FINE, "Connected... Sending the request: {0}", request);
             }
 
             if (strategy == null) {
@@ -701,8 +700,7 @@ public class NIOInputSourcesTest extends TestCase {
                 final Buffer buffer = httpContent.getContent();
 
                 if (logger.isLoggable(Level.FINE)) {
-                    logger.log(Level.FINE,
-                            "HTTP content size: " + buffer.remaining());
+                    logger.log(Level.FINE, "HTTP content size: {0}", buffer.remaining());
                 }
                 if (buffer.remaining() > 0) {
                     bytesDownloaded += buffer.remaining();
@@ -713,10 +711,8 @@ public class NIOInputSourcesTest extends TestCase {
 
                 if (httpContent.isLast()) {
                     if (logger.isLoggable(Level.FINE)) {
-                        logger.log(Level.FINE,
-                                "Response complete: "
-                                        + bytesDownloaded
-                                        + " bytes");
+                        logger.log(Level.FINE, "Response complete: {0} bytes",
+                                bytesDownloaded);
                     }
                     testFuture.result(buf.toStringContent());
                     close();

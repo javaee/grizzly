@@ -106,49 +106,43 @@ public class LogFilter extends BaseFilter {
 
     @Override
     public NextAction handleRead(FilterChainContext ctx) throws IOException {
-        logger.log(level, "LogFilter handleRead. Connection=" +
-                ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
-                " message=" + ctx.getMessage());
+        logger.log(level, "LogFilter handleRead. Connection={0} message={1}",
+                new Object[] {ctx.getConnection(), ctx.getMessage()});
         return ctx.getInvokeAction();
     }
 
     @Override
     public NextAction handleWrite(FilterChainContext ctx) throws IOException {
-        logger.log(level, "LogFilter handleWrite. Connection=" +
-                ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
-                " message=" + ctx.getMessage());
+        logger.log(level, "LogFilter handleWrite. Connection={0} message={1}",
+                new Object[] {ctx.getConnection(), ctx.getMessage()});
         return ctx.getInvokeAction();
     }
 
     @Override
     public NextAction handleConnect(FilterChainContext ctx) throws IOException {
-        logger.log(level, "LogFilter handleConnect. Connection=" +
-                ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
-                " message=" + ctx.getMessage());
+        logger.log(level, "LogFilter handleConnect. Connection={0} message={1}",
+                new Object[] {ctx.getConnection(), ctx.getMessage()});
         return ctx.getInvokeAction();
     }
 
     @Override
     public NextAction handleAccept(FilterChainContext ctx) throws IOException {
-        logger.log(level, "LogFilter handleAccept. Connection=" +
-                ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
-                " message=" + ctx.getMessage());
+        logger.log(level, "LogFilter handleAccept. Connection={0} message={1}",
+                new Object[] {ctx.getConnection(), ctx.getMessage()});
         return ctx.getInvokeAction();
     }
 
     @Override
     public NextAction handleClose(FilterChainContext ctx) throws IOException {
-        logger.log(level, "LogFilter handleClose. Connection=" +
-                ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
-                " message=" + ctx.getMessage());
+        logger.log(level, "LogFilter handleClose. Connection={0} message={1}",
+                new Object[] {ctx.getConnection(), ctx.getMessage()});
         return ctx.getInvokeAction();
     }
 
     @Override
     public void exceptionOccurred(FilterChainContext ctx,
             Throwable error) {
-        logger.log(level, "LogFilter exceptionOccured. Connection=" + 
-                ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
-                " message=" + ctx.getMessage());
+        logger.log(level, "LogFilter exceptionOccured. Connection={0} message={1}",
+                new Object[] {ctx.getConnection(), ctx.getMessage()});
     }
 }

@@ -70,7 +70,6 @@ import com.sun.grizzly.http.server.io.OutputBuffer;
 import com.sun.grizzly.http.util.CharChunk;
 import com.sun.grizzly.http.Cookie;
 import com.sun.grizzly.http.util.CookieSerializerUtils;
-import com.sun.grizzly.http.util.CookieUtils;
 import com.sun.grizzly.http.util.FastHttpDateFormat;
 import com.sun.grizzly.http.util.HttpRequestURIDecoder;
 import com.sun.grizzly.http.util.HttpStatus;
@@ -1792,7 +1791,7 @@ public class GrizzlyResponse {
      * is invoked with the original <tt>attachment</tt>. When the
      * {@link com.sun.grizzly.http.server.GrizzlyResponse#cancel()} is invoked, the container will
      * make sure {@link com.sun.grizzly.CompletionHandler#cancelled()}
-     * is invoked with the original <tt>attachement</tt>. If the timeout expires, the
+     * is invoked with the original <tt>attachment</tt>. If the timeout expires, the
      * {@link com.sun.grizzly.CompletionHandler#cancelled()} is invoked with the original <tt>attachment</tt> and
      * the {@link GrizzlyResponse} committed.
      *

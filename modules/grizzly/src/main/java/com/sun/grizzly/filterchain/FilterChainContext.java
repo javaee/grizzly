@@ -43,6 +43,7 @@ package com.sun.grizzly.filterchain;
 import com.sun.grizzly.Appendable;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.Connection;
 import com.sun.grizzly.Context;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.IOEvent;
@@ -50,6 +51,7 @@ import com.sun.grizzly.ProcessorExecutor;
 import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.WriteResult;
+import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.memory.BufferUtils;
 import java.io.IOException;
 import java.util.logging.Level;
@@ -63,11 +65,15 @@ import java.util.logging.Logger;
  * 
  * @author Alexey Stashok
  */
-public final class FilterChainContext extends Context {
+public final class FilterChainContext {
     private static final Logger logger = Grizzly.logger(FilterChainContext.class);
     
     public enum State {
         RUNNING, SUSPEND
+    }
+
+    public enum Operation {
+        NONE, ACCEPT, CONNECT, READ, WRITE, CLOSE;
     }
 
     private static final ThreadCache.CachedTypeIndex<FilterChainContext> CACHE_IDX =
@@ -104,14 +110,18 @@ public final class FilterChainContext extends Context {
     private static final NextAction RERUN_FILTER_ACTION = new RerunFilterAction();
 
     /**
-     * Cached {@link NextAction} instance for "Suspending stop action" implementaiton
+     * Cached {@link NextAction} instance for "Suspending stop action" implementation
      */
     private static final NextAction SUSPENDING_STOP_ACTION = new SuspendingStopAction();
 
+    final InternalContextImpl internalContext = new InternalContextImpl(this);
+    
     /**
      * Context task state
      */
     private volatile State state;
+
+    private Operation operation = Operation.NONE;
 
     private final Runnable contextRunnable;
 
@@ -138,7 +148,18 @@ public final class FilterChainContext extends Context {
 
     private final InvokeAction cachedInvokeAction = new InvokeAction();
 
-    private boolean isUserWrite;
+    /**
+     * {@link Future}, which will be notified, when {@link Processor} will
+     * complete processing of a task.
+     */
+    private FutureImpl completionFuture;
+
+    /**
+     * {@link CompletionHandler}, which will be notified, when {@link Processor}
+     * will complete processing of a task.
+     */
+    private CompletionHandler completionHandler;
+
     
     public FilterChainContext() {
         filterIdx = NO_FILTER_INDEX;
@@ -151,7 +172,7 @@ public final class FilterChainContext extends Context {
                         state = State.RUNNING;
                     }
 
-                    ProcessorExecutor.resume(FilterChainContext.this);
+                    ProcessorExecutor.execute(FilterChainContext.this.internalContext);
                 } catch (Exception e) {
                     logger.log(Level.FINE, "Exception during running Processor", e);
                 }
@@ -221,7 +242,25 @@ public final class FilterChainContext extends Context {
      * @return {@link FilterChain}, which runs the {@link Filter}.
      */
     public FilterChain getFilterChain() {
-        return (FilterChain) getProcessor();
+        return (FilterChain) internalContext.getProcessor();
+    }
+
+    /**
+     * Get the {@link Connection}, associated with the current processing.
+     *
+     * @return {@link Connection} object, associated with the current processing.
+     */
+    public Connection getConnection() {
+        return internalContext.getConnection();
+    }
+
+    /**
+     * Set the {@link Connection}, associated with the current processing.
+     *
+     * @param connection {@link Connection} object, associated with the current processing.
+     */
+    public void setConnection(final Connection connection) {
+        internalContext.setConnection(connection);
     }
 
     /**
@@ -273,9 +312,35 @@ public final class FilterChainContext extends Context {
         this.address = address;
     }
 
+
+    public FutureImpl getCompletionFuture() {
+        return completionFuture;
+    }
+
+    public void setCompletionFuture(FutureImpl completionFuture) {
+        this.completionFuture = completionFuture;
+    }
+
+    public CompletionHandler getCompletionHandler() {
+        return completionHandler;
+    }
+
+    public void setCompletionHandler(CompletionHandler completionHandler) {
+        this.completionHandler = completionHandler;
+    }
+    
     protected final Runnable getRunnable() {
         return contextRunnable;
     }
+
+    Operation getOperation() {
+        return operation;
+    }
+
+    void setOperation(Operation operation) {
+        this.operation = operation;
+    }
+
 
     /**
      * Get {@link NextAction} implementation, which instructs {@link FilterChain} to
@@ -337,12 +402,12 @@ public final class FilterChainContext extends Context {
      * Get {@link NextAction} implementation, which instructs {@link FilterChain}
      * stop executing phase.
      * Passed {@link com.sun.grizzly.Appendable} data will be saved and reused
-     * during the next {@link FilterChain} invokation.
+     * during the next {@link FilterChain} invocation.
      *
      * @return {@link NextAction} implementation, which instructs {@link FilterChain}
      * to stop executing phase.
      * Passed {@link com.sun.grizzly.Appendable} data will be saved and reused
-     * during the next {@link FilterChain} invokation.
+     * during the next {@link FilterChain} invocation.
      */
     public <E> NextAction getStopAction(final E remainder,
             com.sun.grizzly.Appender<E> appender) {
@@ -355,12 +420,12 @@ public final class FilterChainContext extends Context {
      * Get {@link NextAction} implementation, which instructs {@link FilterChain}
      * stop executing phase.
      * Passed {@link com.sun.grizzly.Appendable} data will be saved and reused
-     * during the next {@link FilterChain} invokation.
+     * during the next {@link FilterChain} invocation.
      *
      * @return {@link NextAction} implementation, which instructs {@link FilterChain}
      * to stop executing phase.
      * Passed {@link com.sun.grizzly.Appendable} data will be saved and reused
-     * during the next {@link FilterChain} invokation.
+     * during the next {@link FilterChain} invocation.
      */
     public NextAction getStopAction(com.sun.grizzly.Appendable appendable) {
         cachedStopAction.setRemainder(appendable);
@@ -372,12 +437,12 @@ public final class FilterChainContext extends Context {
      * Get {@link NextAction} implementation, which instructs {@link FilterChain}
      * stop executing phase.
      * Passed {@link Buffer} data will be saved and reused during the next
-     * {@link FilterChain} invokation.
+     * {@link FilterChain} invocation.
      *
      * @return {@link NextAction} implementation, which instructs {@link FilterChain}
      * to stop executing phase.
      * Passed {@link Buffer} data will be saved and reused during the next
-     * {@link FilterChain} invokation.
+     * {@link FilterChain} invocation.
      */
     public NextAction getStopAction(Object unknownObject) {
         if (unknownObject instanceof Buffer) {
@@ -408,18 +473,11 @@ public final class FilterChainContext extends Context {
     public NextAction getRerunFilterAction() {
         return RERUN_FILTER_ACTION;
     }
-
-    protected boolean isUserWrite() {
-        return isUserWrite;
-    }
-
-    protected void setUserWrite(boolean isUserWrite) {
-        this.isUserWrite = isUserWrite;
-    }
     
     public ReadResult read() throws IOException {
-        final FilterChainContext newContext = (FilterChainContext) getProcessor().context();
-        newContext.setIoEvent(IOEvent.READ);
+        final FilterChainContext newContext =
+                getFilterChain().obtainFilterChainContext();
+        newContext.setOperation(Operation.READ);
         newContext.setConnection(getConnection());
         newContext.setStartIdx(0);
         newContext.setFilterIdx(0);
@@ -442,8 +500,8 @@ public final class FilterChainContext extends Context {
 
     public void write(Object address, Object message,
             CompletionHandler<WriteResult> completionHandler) throws IOException {
-        final FilterChainContext newContext = (FilterChainContext) getProcessor().context();
-        newContext.setIoEvent(IOEvent.WRITE);
+        final FilterChainContext newContext = getFilterChain().obtainFilterChainContext();
+        newContext.setOperation(Operation.WRITE);
         newContext.setConnection(getConnection());
         newContext.setMessage(message);
         newContext.setAddress(address);
@@ -451,29 +509,25 @@ public final class FilterChainContext extends Context {
         newContext.setStartIdx(filterIdx - 1);
         newContext.setFilterIdx(filterIdx - 1);
         newContext.setEndIdx(-1);
-        newContext.setUserWrite(true);
 
-        ProcessorExecutor.resume(newContext);
+        ProcessorExecutor.execute(newContext.internalContext);
     }
 
     /**
      * Release the context associated resources.
      */
-    @Override
     public void reset() {
-        isUserWrite = false;
         message = null;
         address = null;
         filterIdx = NO_FILTER_INDEX;
         state = State.RUNNING;
-        super.reset();
+        completionFuture = null;
+        completionHandler = null;
+        operation = Operation.NONE;
+        internalContext.reset();
     }
 
-    @Override
     public void recycle() {
-        if (state == State.SUSPEND) {
-            return;
-        }
         reset();
         ThreadCache.putToCache(CACHE_IDX, this);
     }

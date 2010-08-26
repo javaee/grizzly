@@ -102,7 +102,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         implements SocketBinder, AsyncQueueEnabledTransport,
         FilterChainEnabledTransport, TemporarySelectorsEnabledTransport  {
     
-    private Logger logger = Grizzly.logger(UDPNIOTransport.class);
+    private static final Logger LOGGER = Grizzly.logger(UDPNIOTransport.class);
 
     private static final String DEFAULT_TRANSPORT_NAME = "UDPNIOTransport";
 
@@ -246,7 +246,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
                 try {
                     future.get(1000, TimeUnit.MILLISECONDS);
                 } catch (Exception e) {
-                    logger.log(Level.WARNING, "Error unbinding connection: " + connection, e);
+                    LOGGER.log(Level.WARNING, "Error unbinding connection: " + connection, e);
                 } finally {
                     future.markForRecycle(true);
                 }
@@ -265,7 +265,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
                 try {
                     unbind(serverConnection);
                 } catch (Exception e) {
-                    logger.log(Level.FINE,
+                    LOGGER.log(Level.FINE,
                             "Exception occurred when closing server connection: "
                             + serverConnection, e);
                 }
@@ -385,7 +385,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
             try {
                 nioChannel.close();
             } catch (IOException e) {
-                logger.log(Level.FINE,
+                LOGGER.log(Level.FINE,
                         "TCPNIOTransport.closeChannel exception", e);
             }
         }
@@ -410,7 +410,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         try {
             State currentState = state.getState();
             if (currentState != State.STOP) {
-                logger.log(Level.WARNING,
+                LOGGER.log(Level.WARNING,
                         "Transport is not in STOP or BOUND state!");
             }
 
@@ -476,7 +476,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
             try {
                 serverConnection.register();
             } catch (Exception e) {
-                logger.log(Level.WARNING,
+                LOGGER.log(Level.WARNING,
                         "Exception occurred when starting server connection: " +
                         serverConnection, e);
             }
@@ -510,7 +510,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
 
         try {
             if (state.getState() != State.START) {
-                logger.log(Level.WARNING,
+                LOGGER.log(Level.WARNING,
                         "Transport is not in START state!");
             }
             state.setState(State.PAUSE);
@@ -526,7 +526,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
 
         try {
             if (state.getState() != State.PAUSE) {
-                logger.log(Level.WARNING,
+                LOGGER.log(Level.WARNING,
                         "Transport is not in PAUSE state!");
             }
             state.setState(State.START);
@@ -612,15 +612,15 @@ public final class UDPNIOTransport extends AbstractNIOTransport
                 return IOEventReg.DEREGISTER;
             }
         } catch (IOException e) {
-            logger.log(Level.FINE, "IOException occurred on fireIOEvent()."
-                    + "connection=" + connection + " event=" + ioEvent);
+            LOGGER.log(Level.FINE, "IOException occurred on fireIOEvent()." + "connection=" + "{0} event={1}",
+                    new Object[]{connection, ioEvent});
             throw e;
         } catch (Exception e) {
             String text = new StringBuilder(256).append("Unexpected exception occurred fireIOEvent().").
                     append("connection=").append(connection).
                     append(" event=").append(ioEvent).toString();
 
-            logger.log(Level.WARNING, text, e);
+            LOGGER.log(Level.WARNING, text, e);
             throw new IOException(e.getClass() + ": " + text);
         }
 
@@ -834,7 +834,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
                     connection.setSelectorRunner(selectorRunner);
                 }
             } catch (Exception e) {
-                logger.log(Level.FINE, "Exception happened, when " +
+                LOGGER.log(Level.FINE, "Exception happened, when " +
                         "trying to register the channel", e);
             }
         }

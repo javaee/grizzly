@@ -49,12 +49,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.logging.Level;
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.Context;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.memory.BufferUtils;
+import com.sun.grizzly.streams.StreamReader;
 import com.sun.grizzly.threadpool.GrizzlyExecutorService;
 import com.sun.grizzly.threadpool.ThreadPoolConfig;
 import java.util.logging.Logger;
@@ -120,9 +120,9 @@ public class ResourceAllocationFilter extends BaseFilter {
 
 
     /**
-     * The allocation mode used: celling or Reserve. With Ceiling policy,
-     * the strategy is to wait until all apps queus are showing some slack.
-     * With Reserve policiy, if 100% reservation is made by other apps,
+     * The allocation mode used: ceiling or Reserve. With Ceiling policy,
+     * the strategy is to wait until all apps queues are showing some slack.
+     * With Reserve policy, if 100% reservation is made by other apps,
      * cancel the request processing.
      */
     protected static String allocationPolicy = RESERVE;
@@ -168,8 +168,8 @@ public class ResourceAllocationFilter extends BaseFilter {
 
         if (System.getProperty(ALLOCATION_MODE) != null){
             allocationPolicy = System.getProperty(ALLOCATION_MODE);
-            if ( !allocationPolicy.equals(RESERVE) &&
-                    !allocationPolicy.equals(CEILING) ){
+            if ( !RESERVE.equals(allocationPolicy) &&
+                    !CEILING.equals(allocationPolicy)) {
                 logger.info("Invalid allocation policy");
                 allocationPolicy = RESERVE;
             }
@@ -199,7 +199,7 @@ public class ResourceAllocationFilter extends BaseFilter {
         int delayCount = 0;
         while (leftRatio == 0 && privilegedTokens.get(token) == null) {
             if ( allocationPolicy.equals(RESERVE) ){
-                delay(ctx);
+                delay();
                 delayCount++;
             } else if ( allocationPolicy.equals(CEILING) ) {
 
@@ -207,7 +207,7 @@ public class ResourceAllocationFilter extends BaseFilter {
                 // we can go ahead and let the task execute with its default
                 // thread pool
                 if (isThreadPoolInUse()){
-                    delay(ctx);
+                    delay();
                     delayCount++;
                 } else {
                     break;
@@ -237,7 +237,7 @@ public class ResourceAllocationFilter extends BaseFilter {
     /**
      * Delay the request processing.
      */
-    private void delay(Context ctx){
+    private void delay(){
         // This is sub optimal. Grizzly ARP should be used instead
         // tp park the request.
         try{

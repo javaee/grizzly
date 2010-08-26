@@ -388,7 +388,7 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
                 buf.put(b, off + writeLen, total - writeLen);
                 total -= (total + total - writeLen);
             }
-            if (buf.remaining() == 0) {
+            if (!buf.hasRemaining()) {
                 flush();
             }
             off += DEFAULT_BUFFER_SIZE;

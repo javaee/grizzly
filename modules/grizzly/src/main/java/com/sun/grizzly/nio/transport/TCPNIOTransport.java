@@ -106,7 +106,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         SocketBinder, AsyncQueueEnabledTransport, FilterChainEnabledTransport,
         TemporarySelectorsEnabledTransport {
 
-    private static Logger logger = Grizzly.logger(TCPNIOTransport.class);
+    private static final Logger LOGGER = Grizzly.logger(TCPNIOTransport.class);
 
     private static final int DEFAULT_READ_BUFFER_SIZE = 8192;
     private static final int DEFAULT_WRITE_BUFFER_SIZE = 4096;
@@ -197,7 +197,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         try {
             State currentState = state.getState();
             if (currentState != State.STOP) {
-                logger.log(Level.WARNING,
+                LOGGER.log(Level.WARNING,
                         "Transport is not in STOP or BOUND state!");
             }
 
@@ -263,7 +263,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             try {
                 listenServerConnection(serverConnection);
             } catch (Exception e) {
-                logger.log(Level.WARNING,
+                LOGGER.log(Level.WARNING,
                         "Exception occurred when starting server connection: " +
                         serverConnection, e);
             }
@@ -302,7 +302,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
         try {
             if (state.getState() != State.START) {
-                logger.log(Level.WARNING,
+                LOGGER.log(Level.WARNING,
                         "Transport is not in START state!");
             }
             state.setState(State.PAUSE);
@@ -318,7 +318,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
         try {
             if (state.getState() != State.PAUSE) {
-                logger.log(Level.WARNING,
+                LOGGER.log(Level.WARNING,
                         "Transport is not in PAUSE state!");
             }
             state.setState(State.START);
@@ -412,7 +412,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
                 try {
                     future.get(1000, TimeUnit.MILLISECONDS);
                 } catch (Exception e) {
-                    logger.log(Level.WARNING, "Error unbinding connection: " + connection, e);
+                    LOGGER.log(Level.WARNING, "Error unbinding connection: " + connection, e);
                 } finally {
                     future.markForRecycle(true);
                 }
@@ -431,7 +431,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
                 try {
                     unbind(serverConnection);
                 } catch (Exception e) {
-                    logger.log(Level.FINE,
+                    LOGGER.log(Level.FINE,
                             "Exception occurred when closing server connection: "
                             + serverConnection, e);
                 }
@@ -535,7 +535,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             try {
                 nioChannel.close();
             } catch (IOException e) {
-                logger.log(Level.FINE,
+                LOGGER.log(Level.FINE,
                         "TCPNIOTransport.closeChannel exception", e);
             }
         }
@@ -591,19 +591,19 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
                 socket.setSoLinger(true, linger);
             }
         } catch (IOException e) {
-            logger.log(Level.WARNING, "Can not set linger to " + linger, e);
+            LOGGER.log(Level.WARNING, "Can not set linger to " + linger, e);
         }
 
         try {
             socket.setKeepAlive(isKeepAlive);
         } catch (IOException e) {
-            logger.log(Level.WARNING, "Can not set keepAlive to " + isKeepAlive, e);
+            LOGGER.log(Level.WARNING, "Can not set keepAlive to " + isKeepAlive, e);
         }
         
         try {
             socket.setTcpNoDelay(tcpNoDelay);
         } catch (IOException e) {
-            logger.log(Level.WARNING, "Can not set TcpNoDelay to " + tcpNoDelay, e);
+            LOGGER.log(Level.WARNING, "Can not set TcpNoDelay to " + tcpNoDelay, e);
         }
         socket.setReuseAddress(reuseAddress);
     }
@@ -732,15 +732,15 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
                 return IOEventReg.DEREGISTER;
             }
         } catch (IOException e) {
-            logger.log(Level.FINE, "IOException occurred on fireIOEvent()."
-                    + "connection=" + connection + " event=" + ioEvent);
+            LOGGER.log(Level.FINE, "IOException occurred on fireIOEvent(). "
+                    + "Connection={0} event={1}", new Object[] {connection, ioEvent});
             throw e;
         } catch (Exception e) {
             String text = new StringBuilder(256).append("Unexpected exception occurred fireIOEvent().").
                     append("connection=").append(connection).
                     append(" event=").append(ioEvent).toString();
 
-            logger.log(Level.WARNING, text, e);
+            LOGGER.log(Level.WARNING, text, e);
             throw new IOException(e.getClass() + ": " + text);
         }
     }
@@ -789,14 +789,15 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
                 tcpConnection.onRead(buffer, read);
             } catch (Exception e) {
-                if (logger.isLoggable(Level.FINE)) {
-                    logger.log(Level.FINE, "TCPNIOConnection (" + connection + ") (allocated) read exception", e);
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, "TCPNIOConnection (" + connection + ") (allocated) read exception", e);
                 }
                 read = -1;
             }
 
-            if (logger.isLoggable(Level.FINE)) {
-                logger.log(Level.FINE, "TCPNIOConnection (" + connection + ") (allocated) read " + read + " bytes");
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (allocated) read {1} bytes",
+                        new Object[]{connection, read});
             }
             
             if (read <= 0) {
@@ -836,8 +837,8 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
                 tcpConnection.onRead(buffer, read);
                 
-                if (logger.isLoggable(Level.FINE)) {
-                    logger.log(Level.FINE, "TCPNIOConnection (" + connection + ") (nonallocated) read " + read + " bytes");
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (nonallocated) read {1} bytes", new Object[] {connection, read});
                 }
                 
                 if (read < 0) {
@@ -907,8 +908,9 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             final ByteBuffer[] byteBuffers = buffer.toByteBufferArray();
             written = (int) ((SocketChannel) tcpConnection.getChannel()).write(byteBuffers);
 
-            if (logger.isLoggable(Level.FINE)) {
-                logger.log(Level.FINE, "TCPNIOConnection (" + connection + ") (composite) write " + written + " bytes");
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (composite) write {1} bytes",
+                        new Object[]{connection, written});
             }
 
             if (written > 0) {
@@ -919,8 +921,9 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             final ByteBuffer byteBuffer = buffer.toByteBuffer();
 
             written = (int) ((SocketChannel) tcpConnection.getChannel()).write(byteBuffer);
-            if (logger.isLoggable(Level.FINE)) {
-                logger.log(Level.FINE, "TCPNIOConnection (" + connection + ") (plain) write " + written + " bytes");
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (plain) write {1} bytes",
+                        new Object[]{connection, written});
             }
         }
 
@@ -976,7 +979,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
                     connection.setSelectorRunner(selectorRunner);
                 }
             } catch (Exception e) {
-                logger.log(Level.FINE, "Exception happened, when " +
+                LOGGER.log(Level.FINE, "Exception happened, when " +
                         "trying to register the channel", e);
             }
         }

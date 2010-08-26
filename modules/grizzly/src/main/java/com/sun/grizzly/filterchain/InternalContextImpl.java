@@ -41,56 +41,22 @@
 package com.sun.grizzly.filterchain;
 
 import com.sun.grizzly.Context;
-import com.sun.grizzly.IOEvent;
-import com.sun.grizzly.utils.IOEventMask;
 
 /**
- * Abstract {@link FilterChain} implementation,
- * which redirects {@link com.sun.grizzly.Processor#process(com.sun.grizzly.Context)}
- * call to the {@link AbstractFilterChain#execute(com.sun.grizzly.filterchain.FilterChainContext)}
- *
- * @see FilterChain
+ * Internal {@link Context} implementation, which is aware of associated
+ * {@link FilterChainContext}.
  * 
  * @author Alexey Stashok
  */
-public abstract class AbstractFilterChain implements FilterChain {
-    // By default interested in all client connection related events
-    protected final IOEventMask interestedIoEventsMask = IOEventMask.ALL_EVENTS_MASK;
+class InternalContextImpl extends Context {
+    final FilterChainContext filterChainContext;
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean isInterested(IOEvent ioEvent) {
-        return interestedIoEventsMask.isInterested(ioEvent);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setInterested(IOEvent ioEvent, boolean isInterested) {
-        interestedIoEventsMask.setInterested(ioEvent, isInterested);
+    public InternalContextImpl(FilterChainContext context) {
+        this.filterChainContext = context;
     }
 
     @Override
-    public final FilterChainContext obtainFilterChainContext() {
-        final FilterChainContext context = FilterChainContext.create();
-        context.internalContext.setProcessor(this);
-        return context;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public final Context obtainContext() {
-        return obtainFilterChainContext().internalContext;
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        clear();
-        super.finalize();
+    public void recycle() {
+        filterChainContext.recycle();
     }
 }

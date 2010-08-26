@@ -46,10 +46,11 @@ package com.sun.grizzly;
  * @author Alexey Stashok
  */
 public class ProcessorResult {
-    private static final ProcessorResult COMPLETE_RESULT = new ProcessorResult(Status.COMPLETE);
-    private static final ProcessorResult COMPLETE_LEAVE_RESULT = new ProcessorResult(Status.COMPLETE_LEAVE);
+    private static final ProcessorResult COMPLETE_RESULT = new ProcessorResult(Status.COMPLETE, null, false);
+    private static final ProcessorResult COMPLETE_LEAVE_RESULT = new ProcessorResult(Status.COMPLETE_LEAVE, null, false);
+    private static final ProcessorResult REREGISTER_RESULT = new ProcessorResult(Status.REREGISTER, null, false);
     private static final ProcessorResult ERROR_RESULT = new ProcessorResult(Status.ERROR);
-    private static final ProcessorResult TERMINATE_RESULT = new ProcessorResult(Status.TERMINATE);
+    private static final ProcessorResult TERMINATE_RESULT = new ProcessorResult(Status.TERMINATE, null, false);
 
     private static final ThreadCache.CachedTypeIndex<ProcessorResult> CACHE_IDX =
             ThreadCache.obtainIndex(ProcessorResult.class, 1);
@@ -67,9 +68,11 @@ public class ProcessorResult {
      * Enum represents the status/code of {@link ProcessorResult}.
      */
     public enum Status {
-        COMPLETE, COMPLETE_LEAVE, ERROR, TERMINATE;
+        COMPLETE, COMPLETE_LEAVE, REREGISTER, RERUN, ERROR, TERMINATE;
     }
-    
+
+    private final boolean canRecycle;
+
     /**
      * Result status
      */
@@ -78,7 +81,7 @@ public class ProcessorResult {
     /**
      * Result description
      */
-    private Object description;
+    private Object context;
 
     public static ProcessorResult createComplete() {
         return COMPLETE_RESULT;
@@ -88,12 +91,20 @@ public class ProcessorResult {
         return COMPLETE_LEAVE_RESULT;
     }
 
+    public static ProcessorResult createReregister() {
+        return REREGISTER_RESULT;
+    }
+
     public static ProcessorResult createError() {
         return ERROR_RESULT;
     }
 
     public static ProcessorResult createError(Object description) {
-        return create().setStatus(Status.ERROR).setDescription(description);
+        return create().setStatus(Status.ERROR).setContext(description);
+    }
+
+    public static ProcessorResult createRerun(Context context) {
+        return create().setStatus(Status.RERUN).setContext(context);
     }
 
     public static ProcessorResult createTerminate() {
@@ -108,11 +119,16 @@ public class ProcessorResult {
         this(status, null);
     }
 
-    private ProcessorResult(Status status, Object description) {
-        this.status = status;
-        this.description = description;
+    private ProcessorResult(Status status, Object context) {
+        this(status, context, true);
     }
 
+    private ProcessorResult(Status status, Object context, boolean canRecycle) {
+        this.status = status;
+        this.context = context;
+        this.canRecycle = canRecycle;
+    }
+    
     /**
      * Get the result status.
      *
@@ -130,16 +146,23 @@ public class ProcessorResult {
 
 
     /**
-     * Get the {@link ProcessorResult} description.
+     * Get the {@link ProcessorResult} context.
      *
-     * @return the {@link ProcessorResult} description.
+     * @return the {@link ProcessorResult} context.
      */
-    public Object getDescription() {
-        return description;
+    public Object getContext() {
+        return context;
     }
 
-    protected ProcessorResult setDescription(Object description) {
-        this.description = description;
+    protected ProcessorResult setContext(Object context) {
+        this.context = context;
         return this;
+    }
+
+    public void recycle() {
+        if (canRecycle) {
+            status = null;
+            context = null;
+        }
     }
 }

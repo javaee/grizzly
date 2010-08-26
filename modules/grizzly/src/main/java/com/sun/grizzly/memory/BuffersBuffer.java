@@ -61,21 +61,21 @@ public final class BuffersBuffer implements CompositeBuffer {
     /**
      * Construct <tt>BuffersBuffer</tt>.
      */
-    public static final BuffersBuffer create() {
+    public static BuffersBuffer create() {
         return create(TransportFactory.getInstance().getDefaultMemoryManager(),
                 null, false);
     }
 
-    public static final BuffersBuffer create(MemoryManager memoryManager) {
+    public static BuffersBuffer create(MemoryManager memoryManager) {
         return create(memoryManager, null, false);
     }
 
-    public static final BuffersBuffer create(MemoryManager memoryManager,
+    public static BuffersBuffer create(MemoryManager memoryManager,
             Buffer... buffers) {
         return create(memoryManager, buffers, false);
     }
 
-    public static final BuffersBuffer create(MemoryManager memoryManager,
+    public static BuffersBuffer create(MemoryManager memoryManager,
             Buffer[] buffers, boolean isReadOnly) {
         final BuffersBuffer buffer = ThreadCache.takeFromCache(CACHE_IDX);
         if (buffer != null) {
@@ -1166,7 +1166,7 @@ public final class BuffersBuffer implements CompositeBuffer {
         sb.append(" lim=").append(limit);
         sb.append(" cap=").append(capacity);
         sb.append(" bufferSize=").append(buffersSize);
-        sb.append(" buffers=" + Arrays.toString(buffers));
+        sb.append(" buffers=").append(Arrays.toString(buffers));
         sb.append(']');
         return sb.toString();
     }

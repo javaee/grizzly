@@ -50,9 +50,9 @@ import java.util.logging.Logger;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.EmptyCompletionHandler;
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.filterchain.AbstractCodecFilter;
+import com.sun.grizzly.filterchain.FilterChainContext.Operation;
 import com.sun.grizzly.memory.BufferUtils;
 import com.sun.grizzly.memory.MemoryManager;
 import java.nio.ByteBuffer;
@@ -73,6 +73,7 @@ import javax.net.ssl.SSLSession;
  * @author Alexey Stashok
  */
 public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
+    private static final Logger LOGGER = Grizzly.logger(SSLFilter.class);
 
     private static final byte CHANGE_CIPHER_SPECT_CONTENT_TYPE = 20;
     private static final byte ALERT_CONTENT_TYPE = 21;
@@ -84,7 +85,6 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     private static final int MAX_MAJOR_VERSION = 0x03;
 
     private final Attribute<CompletionHandler> handshakeCompletionHandlerAttr;
-    private Logger logger = Grizzly.logger(SSLFilter.class);
     private final SSLEngineConfigurator serverSSLEngineConfigurator;
     private final SSLEngineConfigurator clientSSLEngineConfigurator;
 
@@ -243,7 +243,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
             connection.addCloseListener(closeListener);
         }
 
-        final FilterChainContext ctx = createContext(connection, IOEvent.WRITE,
+        final FilterChainContext ctx = createContext(connection, Operation.WRITE,
                 null, completionHandler);
 
         doHandshakeStep(sslEngine, ctx);
@@ -256,7 +256,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         final Object dstAddress = context.getAddress();
         Buffer inputBuffer = (Buffer) context.getMessage();
 
-        final boolean isLoggingFinest = logger.isLoggable(Level.FINEST);
+        final boolean isLoggingFinest = LOGGER.isLoggable(Level.FINEST);
 
         final SSLSession sslSession = sslEngine.getSession();
         final int appBufferSize = sslSession.getApplicationBufferSize();
@@ -269,15 +269,15 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         while (true) {
 
             if (isLoggingFinest) {
-                logger.finest("Loop Engine: " + sslEngine
-                        + " handshakeStatus=" + sslEngine.getHandshakeStatus());
+                LOGGER.log(Level.FINEST, "Loop Engine: {0} handshakeStatus={1}",
+                        new Object[] {sslEngine, sslEngine.getHandshakeStatus()});
             }
 
             switch (handshakeStatus) {
                 case NEED_UNWRAP: {
 
                     if (isLoggingFinest) {
-                        logger.finest("NEED_UNWRAP Engine: " + sslEngine);
+                        LOGGER.log(Level.FINEST, "NEED_UNWRAP Engine: {0}", sslEngine);
                     }
 
                     if (inputBuffer == null || !inputBuffer.hasRemaining()) {
@@ -340,7 +340,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
 
                 case NEED_WRAP: {
                     if (isLoggingFinest) {
-                        logger.finest("NEED_WRAP Engine: " + sslEngine);
+                        LOGGER.log(Level.FINEST, "NEED_WRAP Engine: {0}", sslEngine);
                     }
 
                     final Buffer buffer = memoryManager.allocate(
@@ -363,7 +363,6 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                         buffer.dispose();
                         throw e;
                     } catch (Exception e) {
-                        e.printStackTrace();
                         buffer.dispose();
                         throw new IOException("Unexpected exception", e);
                     }
@@ -373,7 +372,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
 
                 case NEED_TASK: {
                     if (isLoggingFinest) {
-                        logger.finest("NEED_TASK Engine: " + sslEngine);
+                        LOGGER.log(Level.FINEST, "NEED_TASK Engine: {0}", sslEngine);
                     }
                     SSLUtils.executeDelegatedTask(sslEngine);
                     handshakeStatus = sslEngine.getHandshakeStatus();

@@ -55,11 +55,11 @@ public interface Processor<E extends Context> {
      * @return {@link Context}, or <tt>null</tt>, if default {@link Context}
      *         could be used.
      */
-    public E context();
+    public E obtainContext();
 
     /**
      * Method will be called by framework to process some event, which
-     * occured on a connection
+     * occurred on a connection
      * 
      * @param context processing context
      * @return the result of I/O event processing

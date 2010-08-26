@@ -43,8 +43,7 @@ package com.sun.grizzly.filterchain;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
 import java.io.IOException;
-import com.sun.grizzly.Context;
-import com.sun.grizzly.IOEvent;
+import com.sun.grizzly.filterchain.FilterChainContext.Operation;
 import com.sun.grizzly.impl.FutureImpl;
 import java.lang.ref.WeakReference;
 
@@ -162,7 +161,7 @@ public class BaseFilter implements Filter {
     }
 
     /**
-     * Notification about exception, occured on the {@link FilterChain}
+     * Notification about exception, occurred on the {@link FilterChain}
      *
      * @param ctx event processing {@link FilterChainContext}
      * @param error error, which occurred during <tt>FilterChain</tt> execution
@@ -194,11 +193,14 @@ public class BaseFilter implements Filter {
     }
 
     public FilterChainContext createContext(final Connection connection,
-            IOEvent ioEvent, FutureImpl future,
+            Operation operation, FutureImpl future,
             CompletionHandler completionHandler) {
-        
-        final FilterChainContext ctx = (FilterChainContext) Context.create(
-                getFilterChain(), connection, ioEvent, future, completionHandler);
+        final FilterChainContext ctx = getFilterChain().obtainFilterChainContext();
+
+        ctx.setOperation(operation);
+        ctx.setCompletionFuture(future);
+        ctx.setCompletionHandler(completionHandler);
+        ctx.setConnection(connection);
         ctx.setFilterIdx(index);
         ctx.setStartIdx(index);
 

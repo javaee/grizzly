@@ -43,7 +43,6 @@ package com.sun.grizzly;
 import com.sun.grizzly.attributes.AttributeHolder;
 import com.sun.grizzly.attributes.AttributeStorage;
 import com.sun.grizzly.attributes.IndexedAttributeHolder;
-import com.sun.grizzly.impl.FutureImpl;
 import java.util.logging.Logger;
 
 /**
@@ -67,17 +66,14 @@ public class Context implements AttributeStorage, Cacheable {
     }
 
     public static Context create(Processor processor) {
-        return processor.context();
+        return processor.obtainContext();
     }
 
     public static Context create(Processor processor, Connection connection,
-            IOEvent ioEvent, FutureImpl future,
-            CompletionHandler completionHandler) {
+            IOEvent ioEvent) {
         final Context context = create(processor);
         context.setConnection(connection);
         context.setIoEvent(ioEvent);
-        context.setCompletionFuture(future);
-        context.setCompletionHandler(completionHandler);
 
         return context;
     }
@@ -90,7 +86,7 @@ public class Context implements AttributeStorage, Cacheable {
     /**
      * Processing IOEvent
      */
-    private IOEvent ioEvent;
+    private IOEvent ioEvent = IOEvent.NONE;
 
     /**
      * Processor, responsible for I/O event processing
@@ -107,18 +103,6 @@ public class Context implements AttributeStorage, Cacheable {
      * though the task might be still processed.
      */
     private PostProcessor postProcessor;
-
-    /**
-     * {@link Future}, which will be notified, when {@link Processor} will
-     * complete processing of a task.
-     */
-    private FutureImpl completionFuture;
-
-    /**
-     * {@link CompletionHandler}, which will be notified, when {@link Processor}
-     * will complete processing of a task.
-     */
-    private CompletionHandler completionHandler;
 
     public Context() {
         attributes = new IndexedAttributeHolder(Grizzly.DEFAULT_ATTRIBUTE_BUILDER);
@@ -189,22 +173,6 @@ public class Context implements AttributeStorage, Cacheable {
     public void setPostProcessor(PostProcessor postProcessor) {
         this.postProcessor = postProcessor;
     }    
-
-    public FutureImpl getCompletionFuture() {
-        return completionFuture;
-    }
-
-    public void setCompletionFuture(FutureImpl completionFuture) {
-        this.completionFuture = completionFuture;
-    }
-
-    public CompletionHandler getCompletionHandler() {
-        return completionHandler;
-    }
-
-    public void setCompletionHandler(CompletionHandler completionHandler) {
-        this.completionHandler = completionHandler;
-    }
     
     /**
      * Get attributes ({@link AttributeHolder}), associated with the processing
@@ -231,8 +199,6 @@ public class Context implements AttributeStorage, Cacheable {
         processor = null;
         postProcessor = null;
         connection = null;
-        completionFuture = null;
-        completionHandler = null;
         ioEvent = IOEvent.NONE;
     }
 

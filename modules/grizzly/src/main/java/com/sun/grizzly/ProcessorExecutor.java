@@ -57,42 +57,62 @@ public final class ProcessorExecutor {
             PostProcessor postProcessor)
             throws IOException {
 
-        final Context context = Context.create(processor, connection, ioEvent,
-                null, null);
+        final Context context = Context.create(processor, connection, ioEvent);
         context.setPostProcessor(postProcessor);
 
-        return resume(context);
+        return execute(context);
     }
 
-    public static boolean resume(final Context context) throws IOException {
-
+    public static boolean execute(Context context) throws IOException {
         if (LOGGER.isLoggable(Level.FINEST)) {
-            LOGGER.log(Level.FINEST, "executing connection ({0}). IOEvent={1} processor={2}",
+            LOGGER.log(Level.FINEST,
+                    "executing connection ({0}). IOEvent={1} processor={2}",
                     new Object[]{context.getConnection(), context.getIoEvent(),
                     context.getProcessor()});
         }
 
-        final ProcessorResult result = context.getProcessor().process(context);
-        final ProcessorResult.Status status = result.getStatus();
+        while (true) {
+            final ProcessorResult result = context.getProcessor().process(context);
+            final ProcessorResult.Status status = result.getStatus();
+            final Object resultContext = result.getContext();
 
-        if (status != ProcessorResult.Status.TERMINATE) {
-            complete(context, status);
-            return status == ProcessorResult.Status.COMPLETE;
+            result.recycle();
+
+            switch (status) {
+                case TERMINATE:
+                    return false;
+
+                case RERUN:
+                    context = (Context) resultContext;
+                    continue;
+
+                case REREGISTER:
+                    complete(context, status, false);
+                    return true;
+                    
+                default:
+                    complete(context, status, true);
+                    return status == ProcessorResult.Status.COMPLETE;
+            }
         }
-
-        return false;
     }
 
-    private static void complete(Context context, ProcessorResult.Status status)
-            throws IOException {
+    public static boolean resume(final Context context) throws IOException {
+        return execute(context);
+    }
+
+    private static void complete(Context context, ProcessorResult.Status status,
+            boolean isRecycleContext) throws IOException {
+
+        final PostProcessor postProcessor = context.getPostProcessor();
         try {
-            final PostProcessor postProcessor = context.getPostProcessor();
             if (postProcessor != null) {
                 postProcessor.process(context, status);
             }
-
         } finally {
-            context.recycle();
+            if (isRecycleContext) {
+                context.recycle();
+            }
         }
     }
 }
