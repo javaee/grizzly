@@ -526,7 +526,6 @@ public class InputBuffer {
     public void close() throws IOException {
 
         closed = true;
-        compositeBuffer.dispose();
 
     }
 
