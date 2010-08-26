@@ -320,7 +320,6 @@ public class BlockingAdapterSample {
 
                 int read;
                 while ((read = in.read(buf)) != -1) {
-                    System.out.println("READ: " + read);
                     out.write(buf, 0, read); // echo the contents of 'buf' to the client
                 }
                 out.flush();
