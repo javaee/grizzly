@@ -1152,8 +1152,6 @@ public final class BuffersBuffer implements CompositeBuffer {
 	    byte v2 = that.get(j);
 	    if (v1 == v2)
 		continue;
-	    if ((v1 != v1) && (v2 != v2)) 	// For float and double
-		continue;
 	    if (v1 < v2)
 		return -1;
 	    return +1;
@@ -1602,10 +1600,6 @@ public final class BuffersBuffer implements CompositeBuffer {
                 byte v1 = this.get(i);
                 byte v2 = that.get(j);
                 if (v1 != v2) {
-                    if ((v1 != v1) && (v2 != v2)) // For float and double
-                    {
-                        continue;
-                    }
                     return false;
                 }
             }
