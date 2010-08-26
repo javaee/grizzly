@@ -111,8 +111,6 @@ public class BlockingAdapterSample {
 
         final ServerConfiguration config = server.getServerConfiguration();
 
-        server.getListener("grizzly").setKeepAliveTimeoutInSeconds(0);
-
         // Map the path, /echo, to the BlockingEchoAdapter
         config.addGrizzlyAdapter(new BlockingEchoAdapter(), "/echo");
 
