@@ -93,7 +93,7 @@ import java.util.logging.Logger;
  *                            is fairly simple.  The adapter uses the {@link com.sun.grizzly.http.server.io.GrizzlyReader}
  *                            returned by {@link GrizzlyRequest#getReader(boolean)} in blocking
  *                            mode.  As data is received, the same data is then immediately
- *                            written to the rsponse.
+ *                            written to the response.
  *    </li>
  * </ul>
  * </p>
