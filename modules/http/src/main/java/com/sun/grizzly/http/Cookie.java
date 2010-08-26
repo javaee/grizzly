@@ -615,7 +615,7 @@ public class Cookie implements Cloneable {
     }
     
     protected boolean lazyNameEquals(String name) {
-        return name.equals(name);
+        return this.name.equals(name);
     }
 
     // Note -- disabled for now to allow full Netscape compatibility

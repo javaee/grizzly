@@ -1267,8 +1267,6 @@ public class GrizzlyRequest {
      * @param name Name of the request attribute to remove
      */
     public void removeAttribute(String name) {
-        Object value = null;
-        boolean found = false;
 
         // Remove the specified attribute
         // Check for read only attribute
@@ -1276,9 +1274,8 @@ public class GrizzlyRequest {
         if (readOnlyAttributes.containsKey(name)) {
             return;
         }
-        found = attributes.containsKey(name);
+        boolean found = attributes.containsKey(name);
         if (found) {
-            value = attributes.get(name);
             attributes.remove(name);
         }
     }
@@ -2303,7 +2300,6 @@ public class GrizzlyRequest {
         semicolon = uriBC.indexOf(match, 0, match.length(), 0);
 
         if (semicolon > 0) {
-            sessionIdStart = start + semicolon;
             semicolon2 = uriBC.indexOf
                 (';', semicolon + match.length());
             uriBC.setEnd(start + semicolon);

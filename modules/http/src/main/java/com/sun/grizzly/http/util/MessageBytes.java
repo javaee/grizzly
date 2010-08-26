@@ -347,8 +347,7 @@ public final class MessageBytes implements Cloneable, Serializable {
             return equalsIgnoreCase( s );
         switch (type) {
             case T_STR:
-                if( strValue==null && s!=null) return false;
-                return strValue.equals( s );
+                return strValue != null && strValue.equals(s);
             case T_CHARS:
                 return charC.equals( s );
             case T_BYTES:
@@ -364,10 +363,12 @@ public final class MessageBytes implements Cloneable, Serializable {
      * @return true if the comparison succeeded, false otherwise
      */
     public boolean equalsIgnoreCase(String s) {
+        if (s == null) {
+            return false;
+        }
         switch (type) {
             case T_STR:
-                if( strValue==null && s!=null) return false;
-                return strValue.equalsIgnoreCase( s );
+                return strValue != null && strValue.equalsIgnoreCase(s);
             case T_CHARS:
                 return charC.equalsIgnoreCase( s );
             case T_BYTES:
