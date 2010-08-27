@@ -443,9 +443,10 @@ public class NIOOutputSinksTest extends TestCase {
                 response.setContentType("text/plain");
                 final GrizzlyWriter out = response.getWriter();
 
+                char[] c = new char[LENGTH];
+                Arrays.fill(c, 'a');
+                
                 for(;;) {
-                    char[] c = new char[LENGTH];
-                    Arrays.fill(c, 'a');
                     try {
                         out.write(c);
                     } catch (PendingWriteQueueLimitExceededException p) {
