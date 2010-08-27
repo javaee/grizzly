@@ -417,7 +417,7 @@ public class InputBuffer {
         if (len == 0) {
             return 0;
         }
-        if (charBuf.remaining() == 0) {
+        if (!charBuf.hasRemaining()) {
             if (fillChar(len, !asyncEnabled, true) == -1) {
                 return -1;
             }
@@ -719,20 +719,15 @@ public class InputBuffer {
     private int fill(int requestedLen) throws IOException {
 
         if (request.isExpectContent()) {
-            try {
-                connection.configureBlocking(true);
-                int read = 0;
-                while (read < requestedLen && request.isExpectContent()) {
-                    ReadResult rr = ctx.read();
-                    HttpContent c = (HttpContent) rr.getMessage();
-                    Buffer b = c.getContent();
-                    read += b.remaining();
-                    compositeBuffer.append(c.getContent());
-                }
-                return read;
-            } finally {
-                connection.configureBlocking(false);
+            int read = 0;
+            while (read < requestedLen && request.isExpectContent()) {
+                ReadResult rr = ctx.read();
+                HttpContent c = (HttpContent) rr.getMessage();
+                Buffer b = c.getContent();
+                read += b.remaining();
+                compositeBuffer.append(c.getContent());
             }
+            return read;
         }
         return -1;
 
@@ -786,40 +781,35 @@ public class InputBuffer {
             return readChars;
         }
         if (request.isExpectContent()) {
-            try {
-                connection.configureBlocking(true);
-                int read = 0;
-                CharsetDecoder decoderLocal = getDecoder();
-                charBuf.compact();
-                if (charBuf.position() == charBuf.capacity()) {
-                    charBuf.clear();
-                }
+            int read = 0;
+            CharsetDecoder decoderLocal = getDecoder();
+            charBuf.compact();
+            if (charBuf.position() == charBuf.capacity()) {
+                charBuf.clear();
+            }
 
-                while (read < requestedLen && request.isExpectContent()) {
-                    ReadResult rr = ctx.read();
-                    HttpContent c = (HttpContent) rr.getMessage();
-                    ByteBuffer bytes = c.getContent().toByteBuffer();
-                    CoderResult result = decoderLocal.decode(bytes, charBuf, false);
-                    if (result == CoderResult.UNDERFLOW) {
-                        read += charBuf.capacity() - charBuf.remaining();
-                    }
-                    if (c.isLast()) {
-                        if (result == CoderResult.OVERFLOW) {
-                            remainder = bytes;
-                        }
-                        break;
-                    }
+            while (read < requestedLen && request.isExpectContent()) {
+                ReadResult rr = ctx.read();
+                HttpContent c = (HttpContent) rr.getMessage();
+                ByteBuffer bytes = c.getContent().toByteBuffer();
+                CoderResult result = decoderLocal.decode(bytes, charBuf, false);
+                if (result == CoderResult.UNDERFLOW) {
+                    read += charBuf.capacity() - charBuf.remaining();
+                }
+                if (c.isLast()) {
                     if (result == CoderResult.OVERFLOW) {
                         remainder = bytes;
-                        break;
                     }
+                    break;
                 }
-                charBuf.flip();
-                return read;
-            } finally {
-                connection.configureBlocking(false);
+                if (result == CoderResult.OVERFLOW) {
+                    remainder = bytes;
+                    break;
+                }
             }
-        } 
+            charBuf.flip();
+            return read;
+        }
         return -1;
 
     }

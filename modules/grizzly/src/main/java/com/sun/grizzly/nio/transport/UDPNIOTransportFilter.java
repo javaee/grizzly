@@ -72,9 +72,11 @@ public final class UDPNIOTransportFilter extends BaseFilter {
     public NextAction handleRead(final FilterChainContext ctx)
             throws IOException {
         final UDPNIOConnection connection = (UDPNIOConnection) ctx.getConnection();
+        final boolean isBlocking = ctx.getTransportContext().isBlocking();
 
         final ReadResult<Buffer, SocketAddress> readResult;
-        if (!connection.isBlocking()) {
+
+        if (!isBlocking) {
             readResult = ReadResult.create(connection);
             transport.read(connection, null, readResult);
 
@@ -123,8 +125,11 @@ public final class UDPNIOTransportFilter extends BaseFilter {
         if (message != null) {
             ctx.setMessage(null);
             final Connection connection = ctx.getConnection();
-            final FutureImpl contextFuture = ctx.getCompletionFuture();
-            final CompletionHandler completionHandler = ctx.getCompletionHandler();
+            final FilterChainContext.TransportContext transportContext =
+                    ctx.getTransportContext();
+
+            final FutureImpl contextFuture = transportContext.getFuture();
+            final CompletionHandler completionHandler = transportContext.getCompletionHandler();
             final Object address = ctx.getAddress();
             
             CompletionHandler writeCompletionHandler = null;
@@ -132,12 +137,13 @@ public final class UDPNIOTransportFilter extends BaseFilter {
             final boolean hasFuture = (contextFuture != null);
             if (hasFuture) {
                 writeCompletionHandler = new CompletionHandlerAdapter(
-                        contextFuture, ctx.getCompletionHandler());
+                        contextFuture, completionHandler);
             } else if (completionHandler != null) {
                 writeCompletionHandler = completionHandler;
             }
 
-            transport.getWriter(connection).write(connection, address,
+            transport.getWriter(transportContext.isBlocking()).write(
+                    connection, address,
                     (Buffer) message, writeCompletionHandler).markForRecycle(
                     !hasFuture);
         }

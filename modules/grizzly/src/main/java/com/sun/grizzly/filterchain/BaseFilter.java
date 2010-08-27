@@ -40,11 +40,9 @@
 
 package com.sun.grizzly.filterchain;
 
-import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
 import java.io.IOException;
 import com.sun.grizzly.filterchain.FilterChainContext.Operation;
-import com.sun.grizzly.impl.FutureImpl;
 import java.lang.ref.WeakReference;
 
 /**
@@ -193,14 +191,11 @@ public class BaseFilter implements Filter {
     }
 
     public FilterChainContext createContext(final Connection connection,
-            Operation operation, FutureImpl future,
-            CompletionHandler completionHandler) {
-        final FilterChainContext ctx = getFilterChain().obtainFilterChainContext();
+            Operation operation) {
+        final FilterChainContext ctx =
+                getFilterChain().obtainFilterChainContext(connection);
 
         ctx.setOperation(operation);
-        ctx.setCompletionFuture(future);
-        ctx.setCompletionHandler(completionHandler);
-        ctx.setConnection(connection);
         ctx.setFilterIdx(index);
         ctx.setStartIdx(index);
 

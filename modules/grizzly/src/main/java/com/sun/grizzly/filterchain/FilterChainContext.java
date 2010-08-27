@@ -46,7 +46,6 @@ import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Context;
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.ProcessorExecutor;
 import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.ThreadCache;
@@ -79,13 +78,16 @@ public final class FilterChainContext {
     private static final ThreadCache.CachedTypeIndex<FilterChainContext> CACHE_IDX =
             ThreadCache.obtainIndex(FilterChainContext.class, 4);
 
-    public static FilterChainContext create() {
-        final FilterChainContext context = ThreadCache.takeFromCache(CACHE_IDX);
-        if (context != null) {
-            return context;
+    public static FilterChainContext create(Connection connection) {
+        FilterChainContext context = ThreadCache.takeFromCache(CACHE_IDX);
+        if (context == null) {
+            context = new FilterChainContext();
         }
 
-        return new FilterChainContext();
+        context.setConnection(connection);
+        context.getTransportContext().isBlocking = connection.isBlocking();
+        
+        return context;
     }
 
 
@@ -115,6 +117,8 @@ public final class FilterChainContext {
     private static final NextAction SUSPENDING_STOP_ACTION = new SuspendingStopAction();
 
     final InternalContextImpl internalContext = new InternalContextImpl(this);
+
+    final TransportContext transportFilterContext = new TransportContext();
     
     /**
      * Context task state
@@ -123,6 +127,19 @@ public final class FilterChainContext {
 
     private Operation operation = Operation.NONE;
 
+    /**
+     * {@link Future}, which will be notified, when operation will be
+     * complete. For WRITE it means the data will be written on wire, for other
+     * operations - the last Filter has finished the processing.
+     */
+    protected FutureImpl operationCompletionFuture;
+    /**
+     * {@link CompletionHandler}, which will be notified, when operation will be
+     * complete. For WRITE it means the data will be written on wire, for other
+     * operations - the last Filter has finished the processing.
+     */
+    protected CompletionHandler operationCompletionHandler;
+    
     private final Runnable contextRunnable;
 
     /**
@@ -147,19 +164,6 @@ public final class FilterChainContext {
     private final StopAction cachedStopAction = new StopAction();
 
     private final InvokeAction cachedInvokeAction = new InvokeAction();
-
-    /**
-     * {@link Future}, which will be notified, when {@link Processor} will
-     * complete processing of a task.
-     */
-    private FutureImpl completionFuture;
-
-    /**
-     * {@link CompletionHandler}, which will be notified, when {@link Processor}
-     * will complete processing of a task.
-     */
-    private CompletionHandler completionHandler;
-
     
     public FilterChainContext() {
         filterIdx = NO_FILTER_INDEX;
@@ -312,25 +316,12 @@ public final class FilterChainContext {
         this.address = address;
     }
 
-
-    public FutureImpl getCompletionFuture() {
-        return completionFuture;
-    }
-
-    public void setCompletionFuture(FutureImpl completionFuture) {
-        this.completionFuture = completionFuture;
-    }
-
-    public CompletionHandler getCompletionHandler() {
-        return completionHandler;
-    }
-
-    public void setCompletionHandler(CompletionHandler completionHandler) {
-        this.completionHandler = completionHandler;
-    }
-    
     protected final Runnable getRunnable() {
         return contextRunnable;
+    }
+
+    public TransportContext getTransportContext() {
+        return transportFilterContext;
     }
 
     Operation getOperation() {
@@ -476,9 +467,10 @@ public final class FilterChainContext {
     
     public ReadResult read() throws IOException {
         final FilterChainContext newContext =
-                getFilterChain().obtainFilterChainContext();
+                getFilterChain().obtainFilterChainContext(getConnection());
+        
         newContext.setOperation(Operation.READ);
-        newContext.setConnection(getConnection());
+        newContext.getTransportContext().configureBlocking(true);
         newContext.setStartIdx(0);
         newContext.setFilterIdx(0);
         newContext.setEndIdx(filterIdx);
@@ -500,12 +492,14 @@ public final class FilterChainContext {
 
     public void write(Object address, Object message,
             CompletionHandler<WriteResult> completionHandler) throws IOException {
-        final FilterChainContext newContext = getFilterChain().obtainFilterChainContext();
+        final FilterChainContext newContext =
+                getFilterChain().obtainFilterChainContext(getConnection());
+        
         newContext.setOperation(Operation.WRITE);
-        newContext.setConnection(getConnection());
+        newContext.getTransportContext().configureBlocking(transportFilterContext.isBlocking());
         newContext.setMessage(message);
         newContext.setAddress(address);
-        newContext.setCompletionHandler(completionHandler);
+        newContext.operationCompletionHandler = completionHandler;
         newContext.setStartIdx(filterIdx - 1);
         newContext.setFilterIdx(filterIdx - 1);
         newContext.setEndIdx(-1);
@@ -521,10 +515,11 @@ public final class FilterChainContext {
         address = null;
         filterIdx = NO_FILTER_INDEX;
         state = State.RUNNING;
-        completionFuture = null;
-        completionHandler = null;
+        operationCompletionFuture = null;
+        operationCompletionHandler = null;
         operation = Operation.NONE;
         internalContext.reset();
+        transportFilterContext.reset();
     }
 
     public void recycle() {
@@ -542,5 +537,30 @@ public final class FilterChainContext {
         sb.append(']');
 
         return sb.toString();
+    }
+
+    public final class TransportContext {
+        private boolean isBlocking;
+
+        public void configureBlocking(boolean isBlocking) {
+            this.isBlocking = isBlocking;
+        }
+
+        public boolean isBlocking() {
+            return isBlocking;
+        }
+
+        public CompletionHandler getCompletionHandler() {
+            return operationCompletionHandler;
+        }
+
+        public FutureImpl getFuture() {
+            return operationCompletionFuture;
+        }
+
+        void reset() {
+            isBlocking = false;
+        }
+
     }
 }

@@ -243,8 +243,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
             connection.addCloseListener(closeListener);
         }
 
-        final FilterChainContext ctx = createContext(connection, Operation.WRITE,
-                null, completionHandler);
+        final FilterChainContext ctx = createContext(connection, Operation.WRITE);
 
         doHandshakeStep(sslEngine, ctx);
     }

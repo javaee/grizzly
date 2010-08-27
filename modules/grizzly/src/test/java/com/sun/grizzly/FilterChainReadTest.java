@@ -89,28 +89,23 @@ public class FilterChainReadTest extends TestCase {
 
                 String message = (String) ctx.getMessage();
 
-                logger.log(Level.INFO, "First chunk come: " + message);
+                logger.log(Level.INFO, "First chunk come: {0}", message);
                 intermResultQueue.add(message);
 
                 Connection connection = ctx.getConnection();
-                connection.configureBlocking(true);
                 connection.setReadTimeout(10, TimeUnit.SECONDS);
 
-                try {
-                    for (int i = 0; i < clientMsgs.length - 1; i++) {
-                        final ReadResult rr = ctx.read();
-                        final String blckMsg = (String) rr.getMessage();
-                        
-                        rr.recycle();
-                        logger.log(Level.INFO, "Blocking chunk come: " + blckMsg);
-                        intermResultQueue.add(blckMsg);
-                        message += blckMsg;
-                    }
+                for (int i = 0; i < clientMsgs.length - 1; i++) {
+                    final ReadResult rr = ctx.read();
+                    final String blckMsg = (String) rr.getMessage();
 
-                    ctx.setMessage(message);
-                } finally {
-                    connection.configureBlocking(false);
+                    rr.recycle();
+                    logger.log(Level.INFO, "Blocking chunk come: {0}", blckMsg);
+                    intermResultQueue.add(blckMsg);
+                    message += blckMsg;
                 }
+
+                ctx.setMessage(message);
 
                 return ctx.getInvokeAction();
             }
@@ -198,28 +193,23 @@ public class FilterChainReadTest extends TestCase {
 
                 String message = (String) ctx.getMessage();
 
-                logger.log(Level.INFO, "First chunk come: " + message);
+                logger.log(Level.INFO, "First chunk come: {0}", message);
                 intermResultQueue.add(message);
 
                 Connection connection = ctx.getConnection();
-                connection.configureBlocking(true);
                 connection.setReadTimeout(10, TimeUnit.SECONDS);
 
-                try {
-                    for (int i = 0; i < clientMsgs.length - 1; i++) {
-                        final ReadResult rr = ctx.read();
-                        final String blckMsg = (String) rr.getMessage();
+                for (int i = 0; i < clientMsgs.length - 1; i++) {
+                    final ReadResult rr = ctx.read();
+                    final String blckMsg = (String) rr.getMessage();
 
-                        rr.recycle();
-                        logger.log(Level.INFO, "Blocking chunk come: " + blckMsg);
-                        intermResultQueue.add(blckMsg);
-                        message += blckMsg;
-                    }
-
-                    ctx.setMessage(message);
-                } finally {
-                    connection.configureBlocking(false);
+                    rr.recycle();
+                    logger.log(Level.INFO, "Blocking chunk come: {0}", blckMsg);
+                    intermResultQueue.add(blckMsg);
+                    message += blckMsg;
                 }
+
+                ctx.setMessage(message);
 
                 return ctx.getInvokeAction();
             }
@@ -316,11 +306,10 @@ public class FilterChainReadTest extends TestCase {
 
                 String message = (String) ctx.getMessage();
 
-                logger.log(Level.INFO, "First chunk come: " + message);
+                logger.log(Level.INFO, "First chunk come: {0}", message);
                 intermResultQueue.add(message);
 
                 Connection connection = ctx.getConnection();
-                connection.configureBlocking(true);
                 connection.setReadTimeout(10, TimeUnit.SECONDS);
 
                 try {

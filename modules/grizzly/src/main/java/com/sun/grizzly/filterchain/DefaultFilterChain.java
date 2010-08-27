@@ -193,9 +193,9 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     @Override
     public GrizzlyFuture read(Connection connection,
             CompletionHandler completionHandler) throws IOException {
-        final FilterChainContext context = obtainFilterChainContext();
-        context.setConnection(connection);
+        final FilterChainContext context = obtainFilterChainContext(connection);
         context.setOperation(FilterChainContext.Operation.READ);
+        context.getTransportContext().configureBlocking(true);
 
         return ReadyFutureImpl.create(read(context));
     }
@@ -203,11 +203,11 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     @Override
     public ReadResult read(FilterChainContext context) throws IOException {
         final Connection connection = context.getConnection();
-        if (!connection.isBlocking()) {
+        if (!context.getTransportContext().isBlocking()) {
             throw new IllegalStateException("FilterChain doesn't support standalone non blocking read. Please use Filter instead.");
         } else {
             final UnsafeFutureImpl future = UnsafeFutureImpl.create();
-            context.setCompletionFuture(future);
+            context.operationCompletionFuture = future;
 
             final int operationIndex = context.getOperation().ordinal();
             final FilterExecutor executor = filterExecutors[operationIndex];
@@ -246,14 +246,13 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             throws IOException {
         final FutureImpl<WriteResult> future = SafeFutureImpl.create();
 
-        final FilterChainContext context = obtainFilterChainContext();
-        context.setConnection(connection);
-        context.setCompletionFuture(future);
-        context.setCompletionHandler(completionHandler);
+        final FilterChainContext context = obtainFilterChainContext(connection);
+        context.operationCompletionFuture = future;
+        context.operationCompletionHandler = completionHandler;
         context.setAddress(dstAddress);
         context.setMessage(message);
         context.setOperation(Operation.WRITE);
-        ProcessorExecutor.resume(context.internalContext);
+        ProcessorExecutor.execute(context.internalContext);
 
         return future;
     }
@@ -564,8 +563,8 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     }
 
     private void notifyCompleted(FilterChainContext context, Object result) {
-        final CompletionHandler completionHandler = context.getCompletionHandler();
-        final FutureImpl future = context.getCompletionFuture();
+        final CompletionHandler completionHandler = context.operationCompletionHandler;
+        final FutureImpl future = context.operationCompletionFuture;
 
         if (completionHandler != null) {
             completionHandler.completed(result);
@@ -580,9 +579,9 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     private FilterChainContext cloneContext(FilterChainContext ctx) {
 
         final FilterChain p = ctx.getFilterChain();
-        final FilterChainContext newContext = p.obtainFilterChainContext();
+        final FilterChainContext newContext =
+                p.obtainFilterChainContext(ctx.getConnection());
         newContext.setOperation(ctx.getOperation());
-        newContext.setConnection(ctx.getConnection());
         return newContext;
     }
 
@@ -595,8 +594,8 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
 
     private void notifyFailure(FilterChainContext context, Throwable e) {
 
-        final CompletionHandler completionHandler = context.getCompletionHandler();
-        final FutureImpl future = context.getCompletionFuture();
+        final CompletionHandler completionHandler = context.operationCompletionHandler;
+        final FutureImpl future = context.operationCompletionFuture;
 
         if (completionHandler != null) {
             completionHandler.failed(e);

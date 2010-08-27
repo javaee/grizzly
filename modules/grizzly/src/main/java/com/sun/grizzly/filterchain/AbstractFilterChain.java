@@ -40,6 +40,7 @@
 
 package com.sun.grizzly.filterchain;
 
+import com.sun.grizzly.Connection;
 import com.sun.grizzly.Context;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.utils.IOEventMask;
@@ -74,8 +75,10 @@ public abstract class AbstractFilterChain implements FilterChain {
     }
 
     @Override
-    public final FilterChainContext obtainFilterChainContext() {
-        final FilterChainContext context = FilterChainContext.create();
+    public final FilterChainContext obtainFilterChainContext(
+            final Connection connection) {
+
+        final FilterChainContext context = FilterChainContext.create(connection);
         context.internalContext.setProcessor(this);
         return context;
     }
@@ -84,8 +87,8 @@ public abstract class AbstractFilterChain implements FilterChain {
      * {@inheritDoc}
      */
     @Override
-    public final Context obtainContext() {
-        return obtainFilterChainContext().internalContext;
+    public final Context obtainContext(final Connection connection) {
+        return obtainFilterChainContext(connection).internalContext;
     }
 
     @Override

@@ -76,9 +76,10 @@ public final class TCPNIOTransportFilter extends BaseFilter {
     public NextAction handleRead(final FilterChainContext ctx)
             throws IOException {
         final TCPNIOConnection connection = (TCPNIOConnection) ctx.getConnection();
+        final boolean isBlocking = ctx.getTransportContext().isBlocking();
 
         final Buffer buffer;
-        if (!connection.isBlocking()) {
+        if (!isBlocking) {
             buffer = transport.read(connection, null);
         } else {
             GrizzlyFuture<ReadResult> future =
@@ -119,20 +120,23 @@ public final class TCPNIOTransportFilter extends BaseFilter {
         if (message != null) {
             ctx.setMessage(null);
             final Connection connection = ctx.getConnection();
-            final FutureImpl contextFuture = ctx.getCompletionFuture();
-            final CompletionHandler completionHandler = ctx.getCompletionHandler();
-            
+            final FilterChainContext.TransportContext transportContext =
+                    ctx.getTransportContext();
+
+            final FutureImpl contextFuture = transportContext.getFuture();
+            final CompletionHandler completionHandler = transportContext.getCompletionHandler();
+
             CompletionHandler writeCompletionHandler = null;
 
             final boolean hasFuture = (contextFuture != null);
             if (hasFuture) {
                 writeCompletionHandler = new CompletionHandlerAdapter(
-                        contextFuture, ctx.getCompletionHandler());
+                        contextFuture, completionHandler);
             } else if (completionHandler != null) {
                 writeCompletionHandler = completionHandler;
             }
 
-            transport.getWriter(connection).write(connection,
+            transport.getWriter(transportContext.isBlocking()).write(connection,
                     (Buffer) message, writeCompletionHandler).markForRecycle(
                     !hasFuture);
         }

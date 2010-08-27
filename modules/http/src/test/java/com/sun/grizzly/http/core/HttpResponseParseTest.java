@@ -170,9 +170,8 @@ public class HttpResponseParseTest extends TestCase {
         Buffer input = MemoryUtils.wrap(mm, response);
         
         HttpClientFilter filter = new HttpClientFilter(limit);
-        FilterChainContext ctx = FilterChainContext.create();
+        FilterChainContext ctx = FilterChainContext.create(new StandaloneConnection());
         ctx.setMessage(input);
-        ctx.setConnection(new StandaloneConnection());
 
         try {
             filter.handleRead(ctx);
@@ -211,7 +210,7 @@ public class HttpResponseParseTest extends TestCase {
 
             connection.configureStandalone(true);
 
-            StringBuffer sb = new StringBuffer();
+            StringBuilder sb = new StringBuilder();
 
             sb.append(protocol).append(" ").append(Integer.toString(code)).append(" ").append(phrase).append(eol);
 

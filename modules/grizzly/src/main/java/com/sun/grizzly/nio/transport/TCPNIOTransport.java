@@ -745,18 +745,40 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         }
     }
     
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public Reader getReader(Connection connection) {
-        if (connection.isBlocking()) {
+    public Reader getReader(final Connection connection) {
+        return getReader(connection.isBlocking());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Reader getReader(final boolean isBlocking) {
+        if (isBlocking) {
             return getTemporarySelectorIO().getReader();
         } else {
             return getAsyncQueueIO().getReader();
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public Writer getWriter(Connection connection) {
-        if (connection.isBlocking()) {
+    public Writer getWriter(final Connection connection) {
+        return getWriter(connection.isBlocking());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Writer getWriter(final boolean isBlocking) {
+        if (isBlocking) {
             return getTemporarySelectorIO().getWriter();
         } else {
             return getAsyncQueueIO().getWriter();

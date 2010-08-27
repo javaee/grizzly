@@ -51,28 +51,24 @@ import java.util.logging.Logger;
  * @author Alexey Stashok
  */
 public class Context implements AttributeStorage, Cacheable {
-    private static final Logger logger = Grizzly.logger(Context.class);
+    private static final Logger LOGGER = Grizzly.logger(Context.class);
 
     private static final ThreadCache.CachedTypeIndex<Context> CACHE_IDX =
             ThreadCache.obtainIndex(Context.class, 4);
     
-    public static Context create() {
-        final Context context = ThreadCache.takeFromCache(CACHE_IDX);
-        if (context != null) {
-            return context;
+    public static Context create(Connection connection) {
+        Context context = ThreadCache.takeFromCache(CACHE_IDX);
+        if (context == null) {
+            context = new Context();
         }
 
-        return new Context();
-    }
-
-    public static Context create(Processor processor) {
-        return processor.obtainContext();
-    }
-
-    public static Context create(Processor processor, Connection connection,
-            IOEvent ioEvent) {
-        final Context context = create(processor);
         context.setConnection(connection);
+        return context;
+    }
+
+    public static Context create(Connection connection, Processor processor,
+            IOEvent ioEvent) {
+        final Context context = processor.obtainContext(connection);
         context.setIoEvent(ioEvent);
 
         return context;

@@ -57,7 +57,7 @@ public final class ProcessorExecutor {
             PostProcessor postProcessor)
             throws IOException {
 
-        final Context context = Context.create(processor, connection, ioEvent);
+        final Context context = Context.create(connection, processor, ioEvent);
         context.setPostProcessor(postProcessor);
 
         return execute(context);

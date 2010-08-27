@@ -51,11 +51,12 @@ import java.io.IOException;
 public interface Processor<E extends Context> {
     /**
      * Creates {@link Context}
-     * 
+     *
+     * @param connection {@link Connection} to obtain processor for.
      * @return {@link Context}, or <tt>null</tt>, if default {@link Context}
      *         could be used.
      */
-    public E obtainContext();
+    public E obtainContext(Connection connection);
 
     /**
      * Method will be called by framework to process some event, which

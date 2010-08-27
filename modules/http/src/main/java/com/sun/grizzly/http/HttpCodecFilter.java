@@ -351,7 +351,8 @@ public abstract class HttpCodecFilter extends BaseFilter
                         return ctx.getStopAction();
                     }
 
-                    input = input.slice();
+                    input = input.hasRemaining() ? input.slice() : BufferUtils.EMPTY_BUFFER;
+//                    input = input.slice();
 
                     setTransferEncodingOnParsing((HttpHeader) httpPacket);
                     setContentEncodingsOnParsing((HttpHeader) httpPacket);
@@ -364,37 +365,18 @@ public abstract class HttpCodecFilter extends BaseFilter
 
             final TransferEncoding transferEncoding = httpHeader.getTransferEncoding();
 
-            // Check if appropriate HTTP content encoder was found
+            // Check if appropriate HTTP transfer encoder was found
             if (transferEncoding != null) {
+                return decodeWithTransferEncoding(ctx, httpHeader, input, wasHeaderParsed);
+            } else if (!httpHeader.isChunked() && httpHeader.getContentLength() < 0) {
+                if (input.hasRemaining()) {
+                    // Transfer-encoding is unknown and there is no content-length header
 
-                final ParsingResult result = parseWithTransferEncoding(ctx.getConnection(), httpHeader, input);
+                    // Build HttpContent message on top of existing content chunk and parsed Http message header
+                    final HttpContent.Builder builder = httpHeader.httpContentBuilder();
+                    final HttpContent message = builder.content(input).build();
 
-                final HttpContent httpContent = result.getHttpContent();
-                final Buffer remainderBuffer = result.getRemainderBuffer();
-
-                result.recycle();
-
-                boolean isLast = false;
-
-                if (httpContent != null) {
-                    if (httpContent.isLast()) {
-                        isLast = true;
-                        onHttpPacketParsed(httpHeader, ctx);
-                        // we don't expect any content anymore
-                        httpHeader.setExpectContent(false);
-                    }
-
-                    // if consumer set "skip-content" flag - we don't interested in decoding the content - just skip it
-                    if (httpHeader.isSkipRemainder()) {
-                        if (remainderBuffer != null) { // if there is a remainder - rerun this filter
-                            ctx.setMessage(remainderBuffer);
-                            return ctx.getRerunFilterAction();
-                        } else { // if no remainder - just stop
-                            return ctx.getStopAction();
-                        }
-                    }
-
-                    final HttpContent decodedContent = decodeContent(connection, httpContent);
+                    final HttpContent decodedContent = decodeContent(connection, message);
                     if (decodedContent != null) {
                         HttpProbeNotifier.notifyContentChunkParse(this,
                                 connection, decodedContent);
@@ -402,51 +384,10 @@ public abstract class HttpCodecFilter extends BaseFilter
                         ctx.setMessage(decodedContent);
 
                         // Instruct filterchain to continue the processing.
-                        return ctx.getInvokeAction(remainderBuffer);
-                    } else if (remainderBuffer != null && remainderBuffer.hasRemaining()) {
-                        final HttpContent emptyContent =
-                                HttpContent.builder(httpHeader).last(isLast).build();
-
-                        HttpProbeNotifier.notifyContentChunkParse(this,
-                                connection, emptyContent);
-
-                        // Instruct filterchain to continue the processing.
-                        ctx.setMessage(emptyContent);
-                        return ctx.getInvokeAction(remainderBuffer);
+                        return ctx.getInvokeAction();
                     }
                 }
-
-                if (!wasHeaderParsed || isLast) {
-                    final HttpContent emptyContent = HttpContent.builder(httpHeader).last(isLast).build();
-
-                    HttpProbeNotifier.notifyContentChunkParse(this,
-                            connection, emptyContent);
-
-                    ctx.setMessage(emptyContent);
-                    return ctx.getInvokeAction(remainderBuffer);
-                } else {
-                    return ctx.getStopAction(remainderBuffer);
-                }
-
-
-            } else if (!httpHeader.isChunked() && httpHeader.getContentLength() < 0) {
-                // Transfer-encoding is unknown and there is no content-length header
-
-                // Build HttpContent message on top of existing content chunk and parsed Http message header
-                final HttpContent.Builder builder = httpHeader.httpContentBuilder();
-                final HttpContent message = builder.content(input).build();
-
-                final HttpContent decodedContent = decodeContent(connection, message);
-                if (decodedContent != null) {
-                    HttpProbeNotifier.notifyContentChunkParse(this,
-                            connection, decodedContent);
-
-                    ctx.setMessage(decodedContent);
-
-                    // Instruct filterchain to continue the processing.
-                    return ctx.getInvokeAction();
-                }
-
+                
                 if (!wasHeaderParsed) { // If HTTP header was just parsed
 
                     // check if we expect any content
@@ -473,6 +414,65 @@ public abstract class HttpCodecFilter extends BaseFilter
         } catch (RuntimeException re) {
             HttpProbeNotifier.notifyProbesError(this, connection, re);
             throw re;
+        }
+    }
+
+    private NextAction decodeWithTransferEncoding(final FilterChainContext ctx,
+            final HttpHeader httpHeader, Buffer input, final boolean wasHeaderParsed) {
+
+        final Connection connection = ctx.getConnection();
+        final ParsingResult result = parseWithTransferEncoding(
+                ctx.getConnection(), httpHeader, input);
+
+        final HttpContent httpContent = result.getHttpContent();
+        final Buffer remainderBuffer = result.getRemainderBuffer();
+
+        final boolean hasRemainder = remainderBuffer != null &&
+                remainderBuffer.hasRemaining();
+
+        result.recycle();
+
+        boolean isLast = !httpHeader.isExpectContent();
+
+        if (httpContent != null) {
+            if (httpContent.isLast()) {
+                isLast = true;
+                onHttpPacketParsed(httpHeader, ctx);
+                // we don't expect any content anymore
+                httpHeader.setExpectContent(false);
+            }
+            if (httpHeader.isSkipRemainder()) {
+                if (remainderBuffer != null) {
+                    // if there is a remainder - rerun this filter
+                    ctx.setMessage(remainderBuffer);
+                    return ctx.getRerunFilterAction();
+                } else {
+                    // if no remainder - just stop
+                    return ctx.getStopAction();
+                }
+            }
+            final HttpContent decodedContent = decodeContent(connection, httpContent);
+            if (decodedContent != null) {
+                HttpProbeNotifier.notifyContentChunkParse(this, connection, decodedContent);
+                ctx.setMessage(decodedContent);
+                // Instruct filterchain to continue the processing.
+                return ctx.getInvokeAction(hasRemainder ? remainderBuffer : null);
+            } else if (hasRemainder) {
+                final HttpContent emptyContent = HttpContent.builder(httpHeader).last(isLast).build();
+                HttpProbeNotifier.notifyContentChunkParse(this, connection, emptyContent);
+                // Instruct filterchain to continue the processing.
+                ctx.setMessage(emptyContent);
+                return ctx.getInvokeAction(remainderBuffer);
+            }
+        }
+
+        if (!wasHeaderParsed || isLast) {
+            final HttpContent emptyContent = HttpContent.builder(httpHeader).last(isLast).build();
+            HttpProbeNotifier.notifyContentChunkParse(this, connection, emptyContent);
+            ctx.setMessage(emptyContent);
+            return ctx.getInvokeAction(hasRemainder ? remainderBuffer : null);
+        } else {
+            return ctx.getStopAction(hasRemainder ? remainderBuffer : null);
         }
     }
 

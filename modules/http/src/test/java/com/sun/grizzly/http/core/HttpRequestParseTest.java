@@ -40,7 +40,6 @@
 
 package com.sun.grizzly.http.core;
 
-import com.sun.grizzly.http.HttpCodecFilter;
 import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpRequestPacket;
@@ -170,9 +169,8 @@ public class HttpRequestParseTest extends TestCase {
         Buffer input = MemoryUtils.wrap(mm, request);
         
         HttpServerFilter filter = new HttpServerFilter(limit);
-        FilterChainContext ctx = FilterChainContext.create();
+        FilterChainContext ctx = FilterChainContext.create(new StandaloneConnection());
         ctx.setMessage(input);
-        ctx.setConnection(new StandaloneConnection());
 
         try {
             filter.handleRead(ctx);
@@ -211,7 +209,7 @@ public class HttpRequestParseTest extends TestCase {
 
             connection.configureStandalone(true);
 
-            StringBuffer sb = new StringBuffer();
+            StringBuilder sb = new StringBuilder();
 
             sb.append(method).append(" ").append(requestURI).append(" ").append(protocol).append(eol);
 

@@ -115,8 +115,8 @@ public class StandaloneProcessor implements Processor {
     }
 
     @Override
-    public Context obtainContext() {
-        final Context context = Context.create();
+    public Context obtainContext(Connection connection) {
+        final Context context = Context.create(connection);
         context.setProcessor(this);
         return context;
     }
