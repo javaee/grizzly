@@ -54,19 +54,7 @@ import java.util.Map;
  */
 public class DefaultAttributeBuilder implements AttributeBuilder {
     protected List<Attribute> attributes = new ArrayList<Attribute>();
-    protected Map<String, Attribute> name2Attribute = new HashMap<String, Attribute>();
-    
-    /**
-     * Method sets the index to the Attribute
-     * Could be used by classes, which extend DefaultAttributeBuilder and don't
-     * have access to the protected Attribute.setIndex() method.
-     * 
-     * @param attribute
-     * @param index
-     */
-    protected static void setAttributeIndex(Attribute attribute, int index) {
-        attribute.setIndex(index);
-    }
+    protected Map<String, Attribute> name2Attribute = new HashMap<String, Attribute>();    
     
     /**
      * {@inheritDoc}
@@ -84,8 +72,7 @@ public class DefaultAttributeBuilder implements AttributeBuilder {
             T defaultValue) {
         Attribute<T> attribute = name2Attribute.get(name);
         if (attribute == null) {
-            attribute = new Attribute<T>(this, name, defaultValue);
-            attribute.setIndex(attributes.size());
+            attribute = new Attribute<T>(this, name, attributes.size(), defaultValue);
             attributes.add(attribute);
             name2Attribute.put(name, attribute);
         }
@@ -101,8 +88,7 @@ public class DefaultAttributeBuilder implements AttributeBuilder {
             NullaryFunction<T> initializer) {
         Attribute<T> attribute = name2Attribute.get(name);
         if (attribute == null) {
-            attribute = new Attribute<T>(this, name, initializer);
-            attribute.setIndex(attributes.size());
+            attribute = new Attribute<T>(this, name, attributes.size(), initializer);
             attributes.add(attribute);
             name2Attribute.put(name, attribute);
         }

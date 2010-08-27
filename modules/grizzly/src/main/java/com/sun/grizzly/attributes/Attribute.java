@@ -46,7 +46,7 @@ package com.sun.grizzly.attributes;
  * Storing attribute values in {@link AttributeHolder} has two advantage
  * comparing to Map storage:
  *      1) <tt>Attribute</tt> value is typed, and could be checked at
- *         compiletime.
+ *         compile time.
  *      2) Access to <tt>Attribute</tt> value, if used with
  *         {@link IndexedAttributeHolder}, could be as fast as access to array.
  */
@@ -70,24 +70,27 @@ public final class Attribute<T> {
     /**
      * Attribute index in AttributeBuilder
      */
-    private int attributeIndex;
+    private final int attributeIndex;
 
     @Override
     public String toString() {
         return "Attribute[" + name + ":" + attributeIndex + "]";
     }
 
-    protected Attribute(AttributeBuilder builder, String name, T defaultValue) {
+    protected Attribute(AttributeBuilder builder, String name, int index,
+            T defaultValue) {
         this.builder = builder;
         this.name = name;
+        this.attributeIndex = index;
         this.initializer = null;
         this.defaultValue = defaultValue;
     }
 
-    protected Attribute(AttributeBuilder builder, String name,
+    protected Attribute(AttributeBuilder builder, String name, int index,
             NullaryFunction<T> initializer) {
         this.builder = builder;
         this.name = name;
+        this.attributeIndex = index;
         this.initializer = initializer;
         this.defaultValue = null;
     }
@@ -123,12 +126,12 @@ public final class Attribute<T> {
      * @return attribute value
      */
     public T get(AttributeStorage storage) {
-        AttributeHolder holder = storage.getAttributes();
+        final AttributeHolder holder = storage.getAttributes();
         if (holder != null) {
             return get(holder);
         }
 
-        T result;
+        final T result;
         if (initializer != null) {
             result = initializer.evaluate();
         } else {
@@ -174,8 +177,8 @@ public final class Attribute<T> {
      *
      * @param attributeHolder {@link AttributeHolder}.
      */
-    public T remove(AttributeHolder attributeHolder) {
-        T result = weakGet(attributeHolder);
+    public T remove(final AttributeHolder attributeHolder) {
+        final T result = weakGet(attributeHolder);
         
         if (result != null) {
             set(attributeHolder, null);
@@ -189,8 +192,8 @@ public final class Attribute<T> {
      *
      * @param storage {@link AttributeStorage}.
      */
-    public T remove(AttributeStorage storage) {
-        AttributeHolder holder = storage.getAttributes();
+    public T remove(final AttributeStorage storage) {
+        final AttributeHolder holder = storage.getAttributes();
         if (holder != null) {
             return remove(holder);
         }
@@ -206,7 +209,7 @@ public final class Attribute<T> {
      * 
      * @return <tt>true</tt>, if attribute is set, of <tt>false</tt> otherwise.
      */
-    public boolean isSet(AttributeHolder attributeHolder) {
+    public boolean isSet(final AttributeHolder attributeHolder) {
         return weakGet(attributeHolder) != null;
     }
 
@@ -218,8 +221,8 @@ public final class Attribute<T> {
      *
      * @return <tt>true</tt>, if attribute is set, of <tt>false</tt> otherwise.
      */
-    public boolean isSet(AttributeStorage storage) {
-        AttributeHolder holder = storage.getAttributes();
+    public boolean isSet(final AttributeStorage storage) {
+        final AttributeHolder holder = storage.getAttributes();
         if (holder != null) {
             return isSet(holder);
         }
@@ -247,21 +250,11 @@ public final class Attribute<T> {
         return attributeIndex;
     }
     
-    /**
-     * Assign integer index to {@link Attribute}, to make access to its value
-     * as fast as array[index].
-     * 
-     * @param index attribute index.
-     */
-    protected void setIndex(int index) {
-        attributeIndex = index;
-    }
-    
     private T weakGet(AttributeHolder attributeHolder) {
-        T result = null;
-        IndexedAttributeAccessor indexedAccessor = 
+        final IndexedAttributeAccessor indexedAccessor =
                 attributeHolder.getIndexedAttributeAccessor();
         
+        final T result;
         if (indexedAccessor != null) {
             result = (T) indexedAccessor.getAttribute(attributeIndex);
         } else {
