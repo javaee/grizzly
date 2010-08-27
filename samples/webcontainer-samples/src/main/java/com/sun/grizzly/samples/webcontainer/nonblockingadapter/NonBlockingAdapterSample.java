@@ -333,9 +333,10 @@ public class NonBlockingAdapterSample {
             in.notifyAvailable(new ReadHandler() {
 
                 @Override
-                public void onDataAvailable() {
+                public boolean onDataAvailable() {
                     System.out.println("[onDataAvailable] length: " + in.readyData());
                     doWrite(in, buf, out, false);
+                    return false;
                 }
 
                 @Override

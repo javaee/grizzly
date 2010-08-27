@@ -601,6 +601,7 @@ public class InputBuffer {
         if (!contentRead) {
             contentRead = true;
             handler.onAllDataRead();
+            handler = null;
         }
     }
 
@@ -677,12 +678,16 @@ public class InputBuffer {
                 if (processingChars) {
                     fillChar(0, false, true);
                     if (charBuf.remaining() > requestedSize) {
-                        handler.onDataAvailable();
+                        if (handler.onDataAvailable()) {
+                            this.handler = null;
+                        }
                         return true;
                     }
                 } else {
                     if (compositeBuffer.remaining() > requestedSize) {
-                        handler.onDataAvailable();
+                        if (handler.onDataAvailable()) {
+                            this.handler = null;
+                        }
                         return true;
                     }
                 }

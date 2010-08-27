@@ -89,8 +89,11 @@ public interface ReadHandler {
      * <p>
      * Invoked when data is available to be read without blocking.
      * </p>
+     *
+     * @return <code>true</code> if this <code>ReadHandler</code> should
+     *  no longer be notified of data becoming available. 
      */
-    void onDataAvailable();
+    boolean onDataAvailable();
 
     
     /**
