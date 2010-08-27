@@ -115,8 +115,8 @@ public class NonBlockingAdapterSample {
 
         final ServerConfiguration config = server.getServerConfiguration();
 
-        // Map the path, /echo, to the BlockingEchoAdapter
-        config.addGrizzlyAdapter(new BlockingEchoAdapter(), "/echo");
+        // Map the path, /echo, to the NonBlockingEchoAdapter
+        config.addGrizzlyAdapter(new NonBlockingEchoAdapter(), "/echo");
 
         try {
             server.start();
@@ -306,10 +306,10 @@ public class NonBlockingAdapterSample {
 
 
     /**
-     * This adapter using blocking streams to read POST data and echo it back to the
-     * client.
+     * This adapter using non-blocking streams to read POST data and echo it
+     * back to the client.
      */
-    private static class BlockingEchoAdapter extends GrizzlyAdapter {
+    private static class NonBlockingEchoAdapter extends GrizzlyAdapter {
 
 
         // --------------------------------------------- Methods from GrizzlyAdapter
@@ -377,6 +377,6 @@ public class NonBlockingAdapterSample {
             }
         }
 
-    } // END BlockingEchoAdapter
+    } // END NonBlockingEchoAdapter
     
 }
