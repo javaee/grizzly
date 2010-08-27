@@ -55,7 +55,6 @@ import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.ssl.SSLContextConfigurator;
 import java.io.IOException;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -68,7 +67,6 @@ import com.sun.grizzly.ssl.SSLEngineConfigurator;
 import com.sun.grizzly.ssl.SSLFilter;
 import com.sun.grizzly.threadpool.DefaultWorkerThread;
 import com.sun.grizzly.threadpool.ThreadPoolProbe;
-import com.sun.grizzly.utils.IdleTimeoutFilter;
 import com.sun.grizzly.websockets.WebSocketFilter;
 
 import java.util.Collections;
@@ -482,8 +480,8 @@ public class GrizzlyWebServer {
         if (chain == null) {
             final FilterChainBuilder builder = FilterChainBuilder.stateless();
             builder.add(new TransportFilter());
-            builder.add(new IdleTimeoutFilter(listener.getKeepAliveTimeoutInSeconds(),
-                                              TimeUnit.SECONDS));
+//            builder.add(new IdleTimeoutFilter(listener.getKeepAliveTimeoutInSeconds(),
+//                                              TimeUnit.SECONDS));
             if (listener.isSecure()) {
                 SSLEngineConfigurator sslConfig = listener.getSslEngineConfig();
                 if (sslConfig == null) {
