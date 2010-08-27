@@ -65,18 +65,17 @@ public interface NIOInputSource {
      * Invoking this method is equivalent to calling: notifyAvailable(handler, 0).
      * </p>
      *
-     * <p>
-     * Note that unless this method is called with a different {@link ReadHandler}
-     * implementation, the same {@link ReadHandler} will be invoked each
-     * time data becomes available to read.
-     * </p>
-     *
      * @param handler the {@link ReadHandler} to notify.
+     *
+     * @return <code>true<code> if the specified <code>handler</code> has
+     *  been accepted and will be notified as data becomes available to write,
+     *  otherwise returns <code>false</code> which means data is available to
+     *  be read without blocking.
      *
      * @see ReadHandler#onDataAvailable()
      * @see com.sun.grizzly.http.server.io.ReadHandler#onAllDataRead()
      */
-    void notifyAvailable(final ReadHandler handler);
+    boolean notifyAvailable(final ReadHandler handler);
 
 
     /**
@@ -86,22 +85,21 @@ public interface NIOInputSource {
      * <code>size</code>.
      * </p>
      *
-     * <p>
-     * Note that unless this method is called with a different {@link ReadHandler}
-     * implementation, the same {@link ReadHandler} will be invoked each
-     * time data becomes available to read.
-     * </p>
-     *
      * @param handler the {@link ReadHandler} to notify.
      * @param size the least number of bytes that must be available before
      *  the {@link ReadHandler} is invoked.  If size is <code>0</code>, the
      *  handler will be notified as soon as data is available no matter the
      *  size.
      *
+     * @return <code>true<code> if the specified <code>handler</code> has
+     *  been accepted and will be notified as data becomes available to write,
+     *  otherwise returns <code>false</code> which means data is available to
+     *  be read without blocking.
+     *
      * @see ReadHandler#onDataAvailable()
      * @see ReadHandler#onAllDataRead()
      */
-    void notifyAvailable(final ReadHandler handler, final int size);
+    boolean notifyAvailable(final ReadHandler handler, final int size);
 
 
     /**

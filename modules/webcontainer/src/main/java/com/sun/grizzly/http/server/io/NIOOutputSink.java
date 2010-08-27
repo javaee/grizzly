@@ -66,11 +66,16 @@ public interface NIOOutputSink {
      *  when it's possible to write <code>length</code> bytes.
      * @param length the number of bytes that require writing.
      *
+     * @return <code>true<code> if the specified <code>handler</code> has
+     *  been accepted and will be notified as it becomes possible to write,
+     *  otherwise returns <code>false</code> which means data is currently
+     *  available to write without blocking.
+     *
      * @throws IllegalStateException if this method is invoked and a handler
      *  from a previous invocation is still present (due to not having yet been
      *  notified).  
      */
-    void notifyCanWrite(final WriteHandler handler, final int length);
+    boolean notifyCanWrite(final WriteHandler handler, final int length);
 
 
     /**

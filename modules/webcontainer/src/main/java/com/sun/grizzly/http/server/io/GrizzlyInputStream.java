@@ -147,16 +147,16 @@ public class GrizzlyInputStream extends InputStream implements NIOInputSource {
      * {@inheritDoc}
      */
     @Override
-    public void notifyAvailable(ReadHandler handler) {
-        inputBuffer.notifyAvailable(handler);
+    public boolean notifyAvailable(ReadHandler handler) {
+        return inputBuffer.notifyAvailable(handler);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void notifyAvailable(ReadHandler handler, int size) {
-        inputBuffer.notifyAvailable(handler, size);
+    public boolean notifyAvailable(ReadHandler handler, int size) {
+        return inputBuffer.notifyAvailable(handler, size);
     }
 
     /**

@@ -490,7 +490,7 @@ public class NIOInputSourcesTest extends TestCase {
                         } catch (Exception ioe) {
                             testResult.failure(ioe);
                         }
-                        //reader.notifyAvailable(this, readSize);
+                        reader.notifyAvailable(this, readSize);
                     }
 
                     @Override
@@ -585,7 +585,7 @@ public class NIOInputSourcesTest extends TestCase {
                         } catch (IOException ioe) {
                             testResult.failure(ioe);
                         }
-                        //reader.notifyAvailable(this, readSize);
+                        reader.notifyAvailable(this, readSize);
                     }
 
                     @Override

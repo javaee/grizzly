@@ -170,6 +170,9 @@ public class InputBuffer {
     private boolean asyncEnabled;
 
 
+    private final Object lock = new Object();
+
+
 
     // ------------------------------------------------------------ Constructors
 
@@ -600,7 +603,12 @@ public class InputBuffer {
     public void finished() {
         if (!contentRead) {
             contentRead = true;
-            handler.onAllDataRead();
+            synchronized (lock) {
+                if (handler != null) {
+                    handler.onAllDataRead();
+                    handler = null;
+                }
+            }
         }
     }
 
@@ -619,9 +627,14 @@ public class InputBuffer {
      * becomes available to read without blocking.
      *
      * @param handler the {@link ReadHandler} to invoke.
+     *
+     * @return <code>true<code> if the specified <code>handler</code> has
+     *  been accepted and will be notified as data becomes available to write,
+     *  otherwise returns <code>false</code> which means data is available to
+     *  be read without blocking.
      */
-    public void notifyAvailable(final ReadHandler handler) {
-        notifyAvailable(handler, 0);
+    public boolean notifyAvailable(final ReadHandler handler) {
+        return notifyAvailable(handler, 0);
     }
 
 
@@ -632,9 +645,14 @@ public class InputBuffer {
      * @param handler the {@link ReadHandler} to invoke.
      * @param size the minimum number of bytes that must be available before
      *  the {@link ReadHandler} is notified.
+     *
+     * @return <code>true<code> if the specified <code>handler</code> has
+     *  been accepted and will be notified as data becomes available to write,
+     *  otherwise returns <code>false</code> which means data is available to
+     *  be read without blocking.
      */
-    public void notifyAvailable(final ReadHandler handler,
-                                final int size) {
+    public boolean notifyAvailable(final ReadHandler handler,
+                                   final int size) {
 
         if (handler == null) {
             throw new IllegalArgumentException("handler cannot be null.");
@@ -643,10 +661,21 @@ public class InputBuffer {
             throw new IllegalArgumentException("size cannot be negative");
         }
         if (closed) {
-            return;
+            return false;
+        }
+
+        final int available = ((processingChars) ? availableChar() : available());
+        if (size == 0 && available == 0 && !isFinished()) {
+            requestedSize = size;
+            this.handler = handler;
+            return true;
+        }
+        if (available >= size) {
+            return false;
         }
         requestedSize = size;
         this.handler = handler;
+        return true;
 
     }
 
@@ -676,14 +705,26 @@ public class InputBuffer {
                 compositeBuffer.append(buffer);
                 if (processingChars) {
                     fillChar(0, false, true);
-                    if (charBuf.remaining() > requestedSize) {
-                        handler.onDataAvailable();
-                        return true;
+                    synchronized (lock) {
+                        if (handler != null) {
+                            if (charBuf.remaining() > requestedSize) {
+                                final ReadHandler localHandler = handler;
+                                handler = null;
+                                localHandler.onDataAvailable();
+                                return true;
+                            }
+                        }
                     }
                 } else {
-                    if (compositeBuffer.remaining() > requestedSize) {
-                        handler.onDataAvailable();
-                        return true;
+                    synchronized (lock) {
+                        if (handler != null) {
+                            if (compositeBuffer.remaining() > requestedSize) {
+                                final ReadHandler localHandler = handler;
+                                handler = null;
+                                localHandler.onDataAvailable();
+                                return true;
+                            }
+                        }
                     }
                 }
             }

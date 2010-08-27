@@ -549,10 +549,13 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
     }
 
 
-    public void notifyCanWrite(final WriteHandler handler, final int length) {
+    public boolean notifyCanWrite(final WriteHandler handler, final int length) {
 
         if (this.handler != null) {
             throw new IllegalStateException("Illegal attempt to set a new handler before the existing handler has been notified.");
+        }
+        if (canWrite(length)) {
+            return false;
         }
         this.handler = handler;
         final Connection c = ctx.getConnection();
@@ -584,6 +587,8 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
             this.handler = null;
             monitor = null;
         }
+
+        return true;
         
     }
 
@@ -618,7 +623,7 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
                     if (handler != null) {
                         handler.onError(throwable);
                     } else {
-                        asyncError.set(throwable);
+                        asyncError.compareAndSet(null, throwable);
                     }
                 }
 

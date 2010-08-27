@@ -157,8 +157,8 @@ public class GrizzlyReader extends Reader implements NIOInputSource {
      * {@inheritDoc}
      */
     @Override
-    public void notifyAvailable(ReadHandler handler) {
-        inputBuffer.notifyAvailable(handler);
+    public boolean notifyAvailable(ReadHandler handler) {
+        return inputBuffer.notifyAvailable(handler);
     }
 
     /**
@@ -182,8 +182,8 @@ public class GrizzlyReader extends Reader implements NIOInputSource {
      *
      */
     @Override
-    public void notifyAvailable(ReadHandler handler, int size) {
-        inputBuffer.notifyAvailable(handler, size);
+    public boolean notifyAvailable(ReadHandler handler, int size) {
+        return inputBuffer.notifyAvailable(handler, size);
     }
 
     /**

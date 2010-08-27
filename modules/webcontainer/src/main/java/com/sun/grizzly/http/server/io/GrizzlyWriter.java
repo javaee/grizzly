@@ -139,8 +139,8 @@ public class GrizzlyWriter extends Writer implements NIOOutputSink {
      * @param length the number of characters that require writing.
      */
     @Override
-    public void notifyCanWrite(final WriteHandler handler, final int length) {
-        outputBuffer.notifyCanWrite(handler, length);
+    public boolean notifyCanWrite(final WriteHandler handler, final int length) {
+        return outputBuffer.notifyCanWrite(handler, length);
     }
     
 }

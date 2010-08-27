@@ -230,10 +230,7 @@ public class NonBlockingAdapterSample {
             public NextAction handleConnect(FilterChainContext ctx) throws IOException {
                 System.out.println("\nClient connected!\n");
 
-                HttpRequestPacket.Builder builder = createRequest();
-                HttpRequestPacket request = builder.build();
-                request.addHeader("Host", HOST + ':' + PORT);
-                request.setChunked(true);
+                HttpRequestPacket request = createRequest();
                 System.out.println("Writing request:\n");
                 System.out.println(request.toString());
                 ctx.write(request); // write the request
@@ -290,13 +287,16 @@ public class NonBlockingAdapterSample {
             // ------------------------------------------------- Private Methods
 
 
-            private HttpRequestPacket.Builder createRequest() {
+            private HttpRequestPacket createRequest() {
 
                 HttpRequestPacket.Builder builder = HttpRequestPacket.builder();
                 builder.method("POST");
                 builder.protocol("HTTP/1.1");
                 builder.uri("/echo");
-                return builder;
+                builder.chunked(true);
+                HttpRequestPacket packet = builder.build();
+                packet.addHeader("Host", HOST + ':' + PORT);
+                return packet;
 
             }
 
@@ -323,39 +323,55 @@ public class NonBlockingAdapterSample {
             final GrizzlyReader in = request.getReader(false); // false argument puts the stream in non-blocking mode
             final GrizzlyWriter out = response.getWriter();
 
-            int ready = in.readyData();
-            if (ready > 0) {
-                in.read(buf, 0, ready);
-                System.out.println("INITIAL READ: " + new String(buf, 0, ready));
-                out.write(buf, 0, ready);
-            }
-            
-            in.notifyAvailable(new ReadHandler() {
-
-                @Override
-                public void onDataAvailable() {
-                    System.out.println("[onDataAvailable] length: " + in.readyData());
-                    doWrite(in, buf, out, false);
+            do {
+                // continue reading ready data until no more can be read without
+                // blocking
+                while (in.isReady()) {
+                    final int ready = in.readyData();
+                    int read = in.read(buf, 0, ready);
+                    if (read == -1) {
+                        break;
+                    }
+                    System.out.println("INITIAL READ: " + new String(buf, 0, ready));
+                    out.write(buf, 0, ready);
                 }
 
-                @Override
-                public void onError(Throwable t) {
-                    System.out.println("[onError]" + t);
-                }
+                // try to install a ReadHandler.  If this fails,
+                // continue at the top of the loop and read available data,
+                // otherwise break the look and allow the handler to wait for
+                // data to become available.
+                boolean installed = in.notifyAvailable(new ReadHandler() {
 
-                @Override
-                public void onAllDataRead() {
-                    System.out.println("[onAllDataRead] length: " + in.readyData());
-                    doWrite(in, buf, out, true);
-                    response.resume();
+                    @Override
+                    public void onDataAvailable() {
+                        System.out.println("[onDataAvailable] length: " + in.readyData());
+                        doWrite(this, in, buf, out, false);
+                    }
+
+                    @Override
+                    public void onError(Throwable t) {
+                        System.out.println("[onError]" + t);
+                    }
+
+                    @Override
+                    public void onAllDataRead() {
+                        System.out.println("[onAllDataRead] length: " + in.readyData());
+                        doWrite(this, in, buf, out, true);
+                        response.resume();
+                    }
+                });
+
+                if (installed) {
+                    break;
                 }
-            });
+            } while (!in.isFinished());
 
             response.suspend();
 
         }
 
-        private void doWrite(GrizzlyReader in,
+        private void doWrite(ReadHandler handler,
+                             GrizzlyReader in,
                              char[] buf,
                              GrizzlyWriter out,
                              boolean flush) {
@@ -366,11 +382,18 @@ public class NonBlockingAdapterSample {
                     }
                     return;
                 }
-                int len = in.read(buf);
-                System.out.println("READ: " + new String(buf, 0, len));
-                out.write(buf, 0, len);
-                if (flush) {
-                    out.flush();
+                for (;;) {
+                    int len = in.read(buf);
+                    System.out.println("READ: " + new String(buf, 0, len));
+                    out.write(buf, 0, len);
+                    if (flush) {
+                        out.flush();
+                    }
+                    if (!in.isReady()) {
+                        // no more data is available, isntall the handler again.
+                        in.notifyAvailable(handler);
+                        break;
+                    }
                 }
             } catch (IOException ioe) {
                 ioe.printStackTrace();

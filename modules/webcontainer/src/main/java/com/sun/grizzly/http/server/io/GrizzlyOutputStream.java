@@ -116,8 +116,8 @@ public class GrizzlyOutputStream extends OutputStream implements BinaryNIOOutput
      * {@inheritDoc}
      */
     @Override
-    public void notifyCanWrite(final WriteHandler handler, final int length) {
-        outputBuffer.notifyCanWrite(handler, length);
+    public boolean notifyCanWrite(final WriteHandler handler, final int length) {
+        return outputBuffer.notifyCanWrite(handler, length);
     }
 
 
