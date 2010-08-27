@@ -82,7 +82,7 @@ public class InputBuffer {
      * Flag indicating whether or not this <code>InputBuffer</code> is processing
      * character data.
      */
-    private boolean processingChars;
+    private boolean  processingChars;
 
     /**
      * Flag indicating whether or not all message chunks have been processed.
@@ -257,6 +257,8 @@ public class InputBuffer {
         }
         if (compositeBuffer.remaining() > 0) {
             fillChar(0, false, true);
+        } else {
+            charBuf.flip();
         }
 
     }
