@@ -44,15 +44,9 @@ import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.filterchain.BaseFilter;
-import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
-import com.sun.grizzly.utils.LinkedTransferQueue;
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.Queue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -74,24 +68,27 @@ public final class SilentConnectionFilter extends BaseFilter {
             SilentConnectionFilter.class.getName() + ".silent-connection-attr";
 
     private static final Attribute<Long> silentConnectionAttr =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-            ATTR_NAME, UNLIMITED_TIMEOUT);
+            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(ATTR_NAME);
 
-    private volatile ScheduledFuture scheduledFuture;
     private final long timeoutMillis;
-    private final ScheduledExecutorService scheduledThreadPool;
-    private final Queue<Connection> connections;
-    private volatile TimeoutChecker checker;
+    private final DelayedExecutor.DelayQueue<Connection> queue;
 
-    public SilentConnectionFilter(ScheduledExecutorService scheduledThreadPool,
+    public SilentConnectionFilter(DelayedExecutor executor,
             long timeout, TimeUnit timeunit) {
         this.timeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
-        this.scheduledThreadPool = scheduledThreadPool;
-        connections = new LinkedTransferQueue<Connection>();
-    }
+        queue = executor.<Connection>createDelayQueue(
+                new DelayedExecutor.Worker<Connection>() {
 
-    public ScheduledExecutorService getScheduledThreadPool() {
-        return scheduledThreadPool;
+            @Override
+            public void doWork(Connection connection) {
+                try {
+                    connection.close().markForRecycle(true);
+                } catch (IOException e) {
+                    LOGGER.log(Level.FINE, "SilentConnectionFilter:" +
+                            "unexpected exception, when trying " +
+                            "to close connection", e);
+                }            }
+        }, new Resolver(), timeout, timeunit);
     }
 
     public long getTimeout(TimeUnit timeunit) {
@@ -101,8 +98,7 @@ public final class SilentConnectionFilter extends BaseFilter {
     @Override
     public NextAction handleAccept(FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
-        setConnectionTimeout(connection, System.currentTimeMillis() + timeoutMillis);
-        connections.add(connection);
+        queue.add(connection);
 
         return ctx.getInvokeAction();
     }
@@ -110,9 +106,7 @@ public final class SilentConnectionFilter extends BaseFilter {
     @Override
     public NextAction handleRead(FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
-        if (getConnectionTimeout(connection) != UNSET_TIMEOUT) {
-            setConnectionTimeout(connection, UNSET_TIMEOUT);
-        }
+        queue.remove(connection);
         
         return ctx.getInvokeAction();
     }
@@ -120,102 +114,32 @@ public final class SilentConnectionFilter extends BaseFilter {
     @Override
     public NextAction handleWrite(FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
-        if (getConnectionTimeout(connection) != UNSET_TIMEOUT) {
-            setConnectionTimeout(connection, UNSET_TIMEOUT);
-        }
+        queue.remove(connection);
 
         return ctx.getInvokeAction();
     }
 
     @Override
-    public synchronized void onAdded(FilterChain filterChain) {
-        super.onAdded(filterChain);
-
-        if (scheduledFuture != null) {
-            throw new IllegalStateException(
-                    "SilentConnectionFilter was already initialized!");
-        }
-        registerChecker();
+    public NextAction handleClose(FilterChainContext ctx) throws IOException {
+        queue.remove(ctx.getConnection());
+        return ctx.getInvokeAction();
     }
 
-    @Override
-    public synchronized void onRemoved(FilterChain filterChain) {
-        release();
-        super.onRemoved(filterChain);
-    }
-
-
-    protected synchronized void release() {
-        checker = null;
-        scheduledFuture.cancel(false);
-        scheduledFuture = null;
-        connections.clear();
-    }
-
-    protected void registerChecker() {
-        if (timeoutMillis > 0) {
-            checker = new TimeoutChecker();
-            scheduledFuture = scheduledThreadPool.schedule(checker,
-                    timeoutMillis, TimeUnit.MILLISECONDS);
-        }
-    }
-
-    private static long getConnectionTimeout(Connection connection) {
-        return silentConnectionAttr.get(connection);
-    }
-
-    private static void setConnectionTimeout(Connection connection, long timeout) {
-        silentConnectionAttr.set(connection, timeout);
-    }
-
-    public class TimeoutChecker implements Runnable {
+    private static final class Resolver implements DelayedExecutor.Resolver<Connection> {
 
         @Override
-        public void run() {
-            long currentTimeMillis = System.currentTimeMillis();
-            long nextTimeout = timeoutMillis;
-            try {
-                for (Iterator<Connection> it = connections.iterator(); it.hasNext();) {
-                    Connection connection = it.next();
+        public boolean removeTimeout(Connection connection) {
+            return silentConnectionAttr.remove(connection) != null;
+        }
 
-                    if (!connection.isOpen()) {
-                        it.remove();
-                        continue;
-                    }
+        @Override
+        public long getTimeoutMillis(Connection connection) {
+            return silentConnectionAttr.get(connection);
+        }
 
-                    final Long expirationTime = getConnectionTimeout(connection);
-
-                    if (expirationTime == 0) {
-                        continue;
-                    }
-
-                    long diff = currentTimeMillis - expirationTime;
-                    if (diff >= 0) {
-                        try {
-                            connection.close().markForRecycle(true);
-                        } catch (IOException e) {
-                            LOGGER.log(Level.FINE, "SilentConnectionFilter:" +
-                                    "unexpected exception, when trying " +
-                                    "to close connection", e);
-                        } finally {
-                            it.remove();
-                        }
-                    } else {
-                        diff = -diff;
-                        if (nextTimeout > diff) {
-                            nextTimeout = diff;
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                LOGGER.log(Level.WARNING,
-                        "SilentConnectionFilter: unexpected exception", e);
-            } finally {
-                if (this == checker) {
-                    scheduledFuture = scheduledThreadPool.schedule(checker,
-                            nextTimeout, TimeUnit.MILLISECONDS);
-                }
-            }
+        @Override
+        public void setTimeoutMillis(Connection connection, long timeoutMillis) {
+            silentConnectionAttr.set(connection, timeoutMillis);
         }
     }
 }

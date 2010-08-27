@@ -67,12 +67,14 @@ import com.sun.grizzly.ssl.SSLEngineConfigurator;
 import com.sun.grizzly.ssl.SSLFilter;
 import com.sun.grizzly.threadpool.DefaultWorkerThread;
 import com.sun.grizzly.threadpool.ThreadPoolProbe;
+import com.sun.grizzly.utils.DelayedExecutor;
 import com.sun.grizzly.utils.SilentConnectionFilter;
 import com.sun.grizzly.websockets.WebSocketFilter;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -111,6 +113,10 @@ public class GrizzlyWebServer {
             new HashMap<String,GrizzlyListener>(2);
 
     private volatile ScheduledExecutorService scheduledExecutorService;
+
+    private volatile ExecutorService auxExecutorService;
+
+    private volatile DelayedExecutor delayedExecutor;
 
     protected volatile GrizzlyJmxManager jmxManager;
 
@@ -244,7 +250,11 @@ public class GrizzlyWebServer {
         started = true;
 
         configureScheduledThreadPool();
+        configureAuxThreadPool();
 
+        delayedExecutor = new DelayedExecutor(auxExecutorService);
+        delayedExecutor.start();
+        
         for (final GrizzlyListener listener : listeners.values()) {
             configureListener(listener);
             try {
@@ -378,6 +388,9 @@ public class GrizzlyWebServer {
             }
 
             stopScheduledThreadPool();
+            
+            delayedExecutor.stop();
+            stopAuxThreadPool();
 
             if (serverConfig.isJmxEnabled()) {
                 disableJMX();
@@ -482,7 +495,7 @@ public class GrizzlyWebServer {
         if (chain == null) {
             final FilterChainBuilder builder = FilterChainBuilder.stateless();
             builder.add(new TransportFilter());
-            builder.add(new SilentConnectionFilter(scheduledExecutorService,
+            builder.add(new SilentConnectionFilter(delayedExecutor,
                     listener.getKeepAliveTimeoutInSeconds(), TimeUnit.SECONDS));
             if (listener.isSecure()) {
                 SSLEngineConfigurator sslConfig = listener.getSslEngineConfig();
@@ -588,5 +601,31 @@ public class GrizzlyWebServer {
         }
     }
 
+    private void configureAuxThreadPool() {
+        final AtomicInteger threadCounter = new AtomicInteger();
 
+        auxExecutorService = Executors.newCachedThreadPool(
+                new ThreadFactory() {
+
+            @Override
+            public Thread newThread(Runnable r) {
+                final Thread newThread = new DefaultWorkerThread(
+                        TransportFactory.getInstance().getDefaultAttributeBuilder(),
+                        "GrizzlyWebServer-" + threadCounter.getAndIncrement(),
+                        r);
+                newThread.setDaemon(true);
+                return newThread;
+            }
+        });
+    }
+
+
+    private void stopAuxThreadPool() {
+        final ExecutorService localThreadPool = auxExecutorService;
+        auxExecutorService = null;
+
+        if (localThreadPool != null) {
+            localThreadPool.shutdownNow();
+        }
+    }
 }
