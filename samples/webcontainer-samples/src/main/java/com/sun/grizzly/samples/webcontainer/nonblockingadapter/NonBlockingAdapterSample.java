@@ -233,7 +233,7 @@ public class NonBlockingAdapterSample {
                 HttpRequestPacket.Builder builder = createRequest();
                 HttpRequestPacket request = builder.build();
                 request.addHeader("Host", HOST + ':' + PORT);
-                request.setContentLength(35);
+                request.setChunked(true);
                 System.out.println("Writing request:\n");
                 System.out.println(request.toString());
                 ctx.write(request); // write the request
@@ -259,7 +259,7 @@ public class NonBlockingAdapterSample {
                 // since the request created by createRequest() is chunked,
                 // we need to write the trailer to signify the end of the
                 // POST data
-                //ctx.write(request.httpTrailerBuilder().build());
+                ctx.write(request.httpTrailerBuilder().build());
 
                 System.out.println("\n");
 
