@@ -484,13 +484,13 @@ public class NIOInputSourcesTest extends TestCase {
                 reader.notifyAvailable(new ReadHandler() {
 
                     @Override
-                    public boolean onDataAvailable() {
+                    public void onDataAvailable() {
                         try {
                             buffer(reader, sb);
                         } catch (Exception ioe) {
                             testResult.failure(ioe);
                         }
-                        return false;
+                        //reader.notifyAvailable(this, readSize);
                     }
 
                     @Override
@@ -579,13 +579,13 @@ public class NIOInputSourcesTest extends TestCase {
                 reader.notifyAvailable(new ReadHandler() {
 
                     @Override
-                    public boolean onDataAvailable() {
+                    public void onDataAvailable() {
                         try {
                             buffer(reader, sb);
                         } catch (IOException ioe) {
                             testResult.failure(ioe);
                         }
-                        return false;
+                        //reader.notifyAvailable(this, readSize);
                     }
 
                     @Override
