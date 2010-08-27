@@ -40,67 +40,54 @@
 
 package com.sun.grizzly.utils;
 
-import com.sun.grizzly.filterchain.FilterChain;
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.filterchain.BaseFilter;
+import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
+import com.sun.grizzly.utils.LinkedTransferQueue;
+import java.io.IOException;
+import java.util.Iterator;
 import java.util.Queue;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- *
- * @author oleksiys
+ * Filter, which determines silent connections and closes them.
+ * The silent connection is a connection, which didn't send/receive any byte
+ * since it was accepted during specified period of time.
+ * 
+ * @author Alexey Stashok
  */
-public class IdleTimeoutFilter extends BaseFilter {
-    private static final Logger LOGGER = Grizzly.logger(IdleTimeoutFilter.class);
-    
+public final class SilentConnectionFilter extends BaseFilter {
+    private static final Logger LOGGER = Grizzly.logger(SilentConnectionFilter.class);
+
     public static final long UNLIMITED_TIMEOUT = -1;
     public static final long UNSET_TIMEOUT = 0;
-    
-    public static final String IDLE_ATTRIBUTE_NAME = "connection-idle-attribute";
-    public static final Attribute<Long> idleAttribute =
+
+    private static final String ATTR_NAME =
+            SilentConnectionFilter.class.getName() + ".silent-connection-attr";
+
+    private static final Attribute<Long> silentConnectionAttr =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-            IDLE_ATTRIBUTE_NAME, UNLIMITED_TIMEOUT);
-    
-    private volatile boolean isHandleAccepted;
-    private volatile boolean isHandleConnected;
+            ATTR_NAME, UNLIMITED_TIMEOUT);
+
     private volatile ScheduledFuture scheduledFuture;
     private final long timeoutMillis;
     private final ScheduledExecutorService scheduledThreadPool;
     private final Queue<Connection> connections;
     private volatile TimeoutChecker checker;
 
-    public IdleTimeoutFilter(long timeout, TimeUnit timeunit) {
-        this(timeout, timeunit, Executors.newScheduledThreadPool(1,
-                new ThreadFactory() {
-
-            @Override
-            public Thread newThread(Runnable r) {
-                final Thread newThread = new Thread(r);
-                newThread.setDaemon(true);
-                return newThread;
-            }
-        }));
-    }
-
-    public IdleTimeoutFilter(long timeout, TimeUnit timeunit,
-            ScheduledExecutorService scheduledThreadPool) {
+    public SilentConnectionFilter(ScheduledExecutorService scheduledThreadPool,
+            long timeout, TimeUnit timeunit) {
         this.timeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
         this.scheduledThreadPool = scheduledThreadPool;
         connections = new LinkedTransferQueue<Connection>();
-        isHandleAccepted = true;
-        isHandleConnected = true;
     }
 
     public ScheduledExecutorService getScheduledThreadPool() {
@@ -111,51 +98,30 @@ public class IdleTimeoutFilter extends BaseFilter {
         return timeunit.convert(timeoutMillis, TimeUnit.MILLISECONDS);
     }
 
-    public boolean isHandleAccepted() {
-        return isHandleAccepted;
-    }
+    @Override
+    public NextAction handleAccept(FilterChainContext ctx) throws IOException {
+        final Connection connection = ctx.getConnection();
+        setConnectionTimeout(connection, System.currentTimeMillis() + timeoutMillis);
+        connections.add(connection);
 
-    public void setHandleAccepted(boolean isHandleAccepted) {
-        this.isHandleAccepted = isHandleAccepted;
-    }
-
-    public boolean isHandleConnected() {
-        return isHandleConnected;
-    }
-
-    public void setHandleConnected(boolean isHandleConnected) {
-        this.isHandleConnected = isHandleConnected;
+        return ctx.getInvokeAction();
     }
 
     @Override
     public NextAction handleRead(FilterChainContext ctx) throws IOException {
-        clearTimeout(ctx.getConnection());
+        final Connection connection = ctx.getConnection();
+        if (getConnectionTimeout(connection) != UNSET_TIMEOUT) {
+            setConnectionTimeout(connection, UNSET_TIMEOUT);
+        }
+        
         return ctx.getInvokeAction();
     }
 
     @Override
     public NextAction handleWrite(FilterChainContext ctx) throws IOException {
-        clearTimeout(ctx.getConnection());
-        return ctx.getInvokeAction();
-    }
-
-    @Override
-    public NextAction handleAccept(FilterChainContext ctx) throws IOException {
-        if (isHandleAccepted) {
-            Connection connection = ctx.getConnection();
-            resetTimeout(connection);
-            addConnection(connection);
-        }
-
-        return ctx.getInvokeAction();
-    }
-
-    @Override
-    public NextAction handleConnect(FilterChainContext ctx) throws IOException {
-        if (isHandleConnected()) {
-            Connection connection = ctx.getConnection();
-            resetTimeout(connection);
-            addConnection(connection);
+        final Connection connection = ctx.getConnection();
+        if (getConnectionTimeout(connection) != UNSET_TIMEOUT) {
+            setConnectionTimeout(connection, UNSET_TIMEOUT);
         }
 
         return ctx.getInvokeAction();
@@ -167,7 +133,7 @@ public class IdleTimeoutFilter extends BaseFilter {
 
         if (scheduledFuture != null) {
             throw new IllegalStateException(
-                    "IdleTimeoutFilter was already initialized!");
+                    "SilentConnectionFilter was already initialized!");
         }
         registerChecker();
     }
@@ -194,49 +160,12 @@ public class IdleTimeoutFilter extends BaseFilter {
         }
     }
 
-    protected void addConnection(Connection connection) {
-        connections.add(connection);
+    private static long getConnectionTimeout(Connection connection) {
+        return silentConnectionAttr.get(connection);
     }
 
-    protected void clearTimeout(Connection connection) {
-        long currentTimeout = getConnectionTimeout(connection);
-        if (currentTimeout > 0) {
-            setConnectionTimeout(connection, UNSET_TIMEOUT);
-        }
-    }
-
-    protected void resetTimeout(Connection connection) {
-        long currentTimeout = getConnectionTimeout(connection);
-        if (currentTimeout >= 0) {
-            setExpirationTime(connection, timeoutMillis, TimeUnit.MILLISECONDS);
-        }
-    }
-
-    protected long getConnectionTimeout(Connection connection) {
-        return idleAttribute.get(connection);
-    }
-
-    protected void setConnectionTimeout(Connection connection, long timeout) {
-        idleAttribute.set(connection, timeout);
-    }
-
-    public Long getExpirationTime(Connection connection, TimeUnit timeunit) {
-        long expirationTime = getConnectionTimeout(connection);
-        if (expirationTime > 0 && timeunit != TimeUnit.MILLISECONDS) {
-            return timeunit.convert(expirationTime, TimeUnit.MILLISECONDS);
-        }
-
-        return expirationTime;
-    }
-
-    public void setExpirationTime(Connection connection, long timeout,
-            TimeUnit timeunit) {
-        if (timeout > 0 && timeunit != TimeUnit.MILLISECONDS) {
-            setConnectionTimeout(connection,
-                    TimeUnit.MILLISECONDS.convert(timeout, timeunit));
-        } else {
-            setConnectionTimeout(connection, timeout);
-        }
+    private static void setConnectionTimeout(Connection connection, long timeout) {
+        silentConnectionAttr.set(connection, timeout);
     }
 
     public class TimeoutChecker implements Runnable {
@@ -254,8 +183,7 @@ public class IdleTimeoutFilter extends BaseFilter {
                         continue;
                     }
 
-                    Long expirationTime = getExpirationTime(connection,
-                            TimeUnit.MILLISECONDS);
+                    final Long expirationTime = getConnectionTimeout(connection);
 
                     if (expirationTime == 0) {
                         continue;
@@ -266,7 +194,7 @@ public class IdleTimeoutFilter extends BaseFilter {
                         try {
                             connection.close().markForRecycle(true);
                         } catch (IOException e) {
-                            LOGGER.log(Level.FINE, "IdleTimeoutFilter:" +
+                            LOGGER.log(Level.FINE, "SilentConnectionFilter:" +
                                     "unexpected exception, when trying " +
                                     "to close connection", e);
                         } finally {
@@ -281,7 +209,7 @@ public class IdleTimeoutFilter extends BaseFilter {
                 }
             } catch (Exception e) {
                 LOGGER.log(Level.WARNING,
-                        "IdleTimeoutFilter: unexpected exception", e);
+                        "SilentConnectionFilter: unexpected exception", e);
             } finally {
                 if (this == checker) {
                     scheduledFuture = scheduledThreadPool.schedule(checker,

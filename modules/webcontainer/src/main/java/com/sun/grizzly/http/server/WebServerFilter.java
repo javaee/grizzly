@@ -138,6 +138,8 @@ public class WebServerFilter extends BaseFilter
 
                 try {
                     ctx.setMessage(grizzlyResponse);
+                    beforeService(connection, grizzlyRequest, grizzlyResponse);
+                    
                     final GrizzlyAdapter adapter = gws.getAdapter();
                     if (adapter != null) {
                         adapter.doService(grizzlyRequest, grizzlyResponse);
@@ -230,6 +232,11 @@ public class WebServerFilter extends BaseFilter
 
     // --------------------------------------------------------- Private Methods
 
+    private void beforeService(final Connection connection,
+                              final GrizzlyRequest grizzlyRequest,
+                              final GrizzlyResponse grizzlyResponse)
+    throws IOException {
+    }
 
     private void afterService(final Connection connection,
                               final GrizzlyRequest grizzlyRequest,

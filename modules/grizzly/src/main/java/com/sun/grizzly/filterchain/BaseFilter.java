@@ -70,7 +70,7 @@ public class BaseFilter implements Filter {
 
     @Override
     public void onRemoved(FilterChain filterChain) {
-        index = filterChain.indexOf(this);
+        index = -1;
     }
 
     /**
