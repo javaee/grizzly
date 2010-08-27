@@ -259,7 +259,7 @@ public class NonBlockingAdapterSample {
                 // since the request created by createRequest() is chunked,
                 // we need to write the trailer to signify the end of the
                 // POST data
-                ctx.write(request.httpTrailerBuilder().build());
+                //ctx.write(request.httpTrailerBuilder().build());
 
                 System.out.println("\n");
 
