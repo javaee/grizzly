@@ -152,8 +152,6 @@ public final class FilterChainContext {
      */
     private Object address;
 
-    boolean forceCheckRemainder;
-
     /**
      * Index of the currently executing {@link Filter} in
      * the {@link FilterChainContext#filters} list.
@@ -515,7 +513,6 @@ public final class FilterChainContext {
     public void reset() {
         message = null;
         address = null;
-        forceCheckRemainder = false;
         filterIdx = NO_FILTER_INDEX;
         state = State.RUNNING;
         operationCompletionFuture = null;

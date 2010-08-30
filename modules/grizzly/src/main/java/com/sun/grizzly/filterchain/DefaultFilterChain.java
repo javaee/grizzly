@@ -278,23 +278,22 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
 
         try {
 
-            if (ctx.forceCheckRemainder) {
-                ctx.forceCheckRemainder = false;
-                checkRemainder(ctx, executor, ctx.getStartIdx(), end);
-            }
-
             FilterExecution status;
             do {
                 status = executeChainPart(ctx, executor, ctx.getFilterIdx(), end);
                 if (status == FilterExecution.TERMINATE) {
                     return ProcessorResult.createTerminate();
                 } else if (status == FilterExecution.REEXECUTE) {
+                    ctx = cloneContext(ctx);
                     if (checkRemainder(ctx, executor, ctx.getStartIdx(), end)) {
-                        ctx = cloneContext(ctx);
-                        ctx.forceCheckRemainder = true;
+                        // if there is a remainder associated with the connection
+                        // rerun the filter chain with the new context right away
                         return ProcessorResult.createRerun(ctx.internalContext);
                     }
 
+                    // recycle cloned context
+                    ctx.recycle();
+                    // reregister to listen for next operation
                     return ProcessorResult.createReregister();
                 }
             } while (checkRemainder(ctx, executor, ctx.getStartIdx(), end));
@@ -592,6 +591,9 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                 ctx.internalContext.getPostProcessor());
         newContext.internalContext.setIoEvent(
                 ctx.internalContext.getIoEvent());
+        newContext.setStartIdx(ctx.getStartIdx());
+        newContext.setEndIdx(ctx.getEndIdx());
+        newContext.setFilterIdx(ctx.getFilterIdx());
         
         return newContext;
     }
