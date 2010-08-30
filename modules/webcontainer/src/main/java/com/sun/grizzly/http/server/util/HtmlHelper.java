@@ -56,9 +56,9 @@ public class HtmlHelper{
     private static final int MAX_STACK_ELEMENTS = 10;
 
     private final static String CSS =
-            "div.header {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#003300;font-size:22px;-moz-border-top-left-radius: 10px;border-top-left-radius: 10px;-moz-border-top-right-radius: 10px;border-top-right-radius: 10px;padding-left: 5px}" +
+            "div.header {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#003300;font-size:22px;-moz-border-radius-topleft: 10px;border-top-left-radius: 10px;-moz-border-radius-topright: 10px;border-top-right-radius: 10px;padding-left: 5px}" +
             "div.body {font-family:Tahoma,Arial,sans-serif;color:black;background-color:#FFFFCC;font-size:16px;padding-top:10px;padding-bottom:10px;padding-left:10px}" +
-            "div.footer {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#666633;font-size:14px;-moz-border-bottom-left-radius: 10px;border-bottom-left-radius: 10px;-moz-border-bottom-right-radius: 10px;border-bottom-right-radius: 10px;padding-left: 5px}" +
+            "div.footer {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#666633;font-size:14px;-moz-border-radius-bottomleft: 10px;border-bottom-left-radius: 10px;-moz-border-radius-bottomright: 10px;border-bottom-right-radius: 10px;padding-left: 5px}" +
             "BODY {font-family:Tahoma,Arial,sans-serif;color:black;background-color:white;}" +
             "B {font-family:Tahoma,Arial,sans-serif;color:black;}" +
             "A {color : black;}" +
