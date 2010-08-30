@@ -42,6 +42,8 @@ package com.sun.enterprise.web.connector.grizzly.comet;
 
 import com.sun.enterprise.web.connector.grizzly.ConcurrentQueue;
 import com.sun.enterprise.web.connector.grizzly.SelectorThread;
+import com.sun.enterprise.web.connector.grizzly.comet.concurrent.DefaultConcurrentCometHandler;
+
 import java.io.IOException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
@@ -365,7 +367,13 @@ public class CometContext<E> {
             throw new IllegalStateException(INVALID_COMET_HANDLER);
         }
         event.setCometContext(this);  
-        cometHandler.onEvent(event);
+	if (cometHandler instanceof DefaultConcurrentCometHandler){
+            ((DefaultConcurrentCometHandler)cometHandler).enqueueEvent(event);
+        }else{
+            synchronized(cometHandler){
+                cometHandler.onEvent(event);
+            }
+        }
     }    
     
     /**

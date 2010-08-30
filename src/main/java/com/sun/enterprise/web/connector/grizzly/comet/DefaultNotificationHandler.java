@@ -43,6 +43,7 @@ package com.sun.enterprise.web.connector.grizzly.comet;
 import com.sun.enterprise.web.connector.grizzly.SelectorThread;
 import com.sun.enterprise.web.connector.grizzly.Pipeline;
 import com.sun.enterprise.web.connector.grizzly.TaskBase;
+import com.sun.enterprise.web.connector.grizzly.comet.concurrent.DefaultConcurrentCometHandler;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.logging.Level;
@@ -57,8 +58,7 @@ import java.util.logging.Logger;
 public class DefaultNotificationHandler implements NotificationHandler{
     
     private final static Logger logger = SelectorThread.logger();
-    
-    
+
     /**
      * The {@link Pipeline} used to execute threaded notification.
      */
@@ -183,13 +183,7 @@ public class DefaultNotificationHandler implements NotificationHandler{
      */
     protected void notify0(CometEvent cometEvent,CometHandler cometHandler) 
             throws IOException{        
-        synchronized (cometHandler){
-            // If the CometHandler has been resumed during the push operation,
-            // It is possible it may no longer valid. Hence avoid invoking
-            // it and return.
-            if (!cometEvent.getCometContext().isActive(cometHandler)){
-                return;
-            }
+	    try {
 
             switch (cometEvent.getType()) {
                 case CometEvent.INTERRUPT:
@@ -202,17 +196,35 @@ public class DefaultNotificationHandler implements NotificationHandler{
                     cometHandler.onEvent(cometEvent);
                     break;      
                 case CometEvent.WRITE:
-                    cometHandler.onEvent(cometEvent);
-                    break;                 
+		    if (cometHandler instanceof DefaultConcurrentCometHandler){
+                        ((DefaultConcurrentCometHandler) cometHandler).enqueueEvent(cometEvent);
+                        break;
+                    }
+                    if (cometEvent.getCometContext().isActive(cometHandler)){
+                        synchronized (cometHandler) {
+                            cometHandler.onEvent(cometEvent);
+                        }
+                    }
+                    break;
+
                 case CometEvent.INITIALIZE:
                     cometHandler.onInitialize(cometEvent);
                     break;      
                 case CometEvent.TERMINATE:
-                    cometHandler.onTerminate(cometEvent);
+		    synchronized (cometHandler) {
+                    	cometHandler.onTerminate(cometEvent);
+		    } 
                     break;                       
                 default:
                     throw new IllegalStateException();
             }
+	  } catch (Throwable ex) {
+		try {
+			cometEvent.getCometContext().resumeCometHandler(cometHandler);
+		} catch (Throwable t) {
+			logger.log(Level.FINE, "Resume phase failed:", t);
+		}
+		logger.log(Level.FINE, "Notification failed:", ex);
+	  }
         }
     }
-}
