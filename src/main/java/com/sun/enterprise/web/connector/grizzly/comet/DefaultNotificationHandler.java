@@ -37,7 +37,6 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package com.sun.enterprise.web.connector.grizzly.comet;
 
 import com.sun.enterprise.web.connector.grizzly.SelectorThread;
@@ -50,36 +49,31 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Default Notificationhandler that uses the same a Grizzly Pipeline
+ * Default NotificationHandler that uses the same a Grizzly Pipeline
  * to execute the notification process.
  *
  * @author Jeanfrancois Arcand
  */
-public class DefaultNotificationHandler implements NotificationHandler{
-    
-    private final static Logger logger = SelectorThread.logger();
+public class DefaultNotificationHandler implements NotificationHandler {
 
+    private final static Logger logger = SelectorThread.logger();
     /**
      * The {@link Pipeline} used to execute threaded notification.
      */
     protected Pipeline pipeline;
-
-    
     /**
      * <tt>true</tt> if the caller of CometContext.notify should block when 
      * notifying other CometHandler.
      */
     protected boolean blockingNotification = false;
-    
 
     /**
      * Set the {@link Pipeline} used for notifying the CometHandler.
      */
-    protected void setPipeline(Pipeline pipeline){
+    protected void setPipeline(Pipeline pipeline) {
         this.pipeline = pipeline;
     }
 
-    
     /**
      * Return <tt>true</tt> if the invoker of notify() should block when
      * notifying Comet Handlers.
@@ -88,7 +82,6 @@ public class DefaultNotificationHandler implements NotificationHandler{
         return blockingNotification;
     }
 
-    
     /**
      * Set to <tt>true</tt> if the invoker of notify() should block when
      * notifying Comet Handlers.
@@ -97,47 +90,44 @@ public class DefaultNotificationHandler implements NotificationHandler{
         this.blockingNotification = blockingNotification;
     }
 
-        
     /**
      * Notify all {@link CometHandler}. 
      * @param cometEvent the CometEvent used to notify CometHandler
      * @param iteratorHandlers An iterator over a list of CometHandler
      */
     @SuppressWarnings("unchecked")
-    public void notify(final CometEvent cometEvent,final Iterator<CometHandler> 
-            iteratorHandlers) throws IOException{
-        if (blockingNotification || pipeline == null){
-            notify0(cometEvent,iteratorHandlers);
+    public void notify(final CometEvent cometEvent, final Iterator<CometHandler> iteratorHandlers) throws IOException {
+        if (blockingNotification || pipeline == null) {
+            notify0(cometEvent, iteratorHandlers);
         } else {
-            pipeline.addTask(new TaskBase(){
-                public void doTask() throws IOException{
-                    notify0(cometEvent,iteratorHandlers);
+            pipeline.addTask(new TaskBase() {
+
+                public void doTask() throws IOException {
+                    notify0(cometEvent, iteratorHandlers);
                 }
             });
         }
     }
 
-
-    protected void notify0(CometEvent cometEvent,Iterator<CometHandler> iteratorHandlers) 
-            throws IOException{       
+    protected void notify0(CometEvent cometEvent, Iterator<CometHandler> iteratorHandlers)
+            throws IOException {
         CometHandler cometHandler;
-        while(iteratorHandlers.hasNext()){
+        while (iteratorHandlers.hasNext()) {
             cometHandler = iteratorHandlers.next();
-            try{
-                notify0(cometEvent,cometHandler);
-            } catch (Throwable ex){
-                 try{
+            try {
+                notify0(cometEvent, cometHandler);
+            } catch (Throwable ex) {
+                try {
                     cometEvent.getCometContext().resumeCometHandler(cometHandler, true);
-                } catch (Throwable t){
-                    if (logger.isLoggable(Level.FINE)){
-                        logger.log(Level.FINEST,"Resume phase failed: ", t);
+                } catch (Throwable t) {
+                    if (logger.isLoggable(Level.FINE)) {
+                        logger.log(Level.FINEST, "Resume phase failed: ", t);
                     }
-                }               
-                logger.log(Level.WARNING,"Notification failed: ", ex);
+                }
+                logger.log(Level.WARNING, "Notification failed: ", ex);
             }
         }
     }
-
 
     /**
      * Notify a single {@link CometHandler}. 
@@ -145,29 +135,29 @@ public class DefaultNotificationHandler implements NotificationHandler{
      * @param cometHandler a CometHandler
      */
     @SuppressWarnings("unchecked")
-    public void notify(final CometEvent cometEvent,final CometHandler cometHandler) 
-            throws IOException{
-        if (blockingNotification || pipeline == null){
-            notify0(cometEvent,cometHandler);
+    public void notify(final CometEvent cometEvent, final CometHandler cometHandler)
+            throws IOException {
+        if (blockingNotification || pipeline == null) {
+            notify0(cometEvent, cometHandler);
         } else {
-            pipeline.addTask(new TaskBase(){
-                public void doTask() throws IOException{
-                    try{
-                        notify0(cometEvent,cometHandler);
-                    } catch (Throwable ex){
-                        try{
+            pipeline.addTask(new TaskBase() {
+
+                public void doTask() throws IOException {
+                    try {
+                        notify0(cometEvent, cometHandler);
+                    } catch (Throwable ex) {
+                        try {
                             cometEvent.getCometContext().resumeCometHandler(cometHandler, true);
-                        } catch (Throwable t){
-                            logger.log(Level.FINEST,"Resume phase failed: ", ex);
+                        } catch (Throwable t) {
+                            logger.log(Level.FINEST, "Resume phase failed: ", ex);
                         }
-                        logger.log(Level.WARNING,"Notification failed: ", ex);
+                        logger.log(Level.WARNING, "Notification failed: ", ex);
                     }
                 }
             });
         }
     }
 
-    
     /**
      * Notify a {@link CometHandler}.
      * 
@@ -181,26 +171,22 @@ public class DefaultNotificationHandler implements NotificationHandler{
      * @param attachment An object shared amongst {@link CometHandler}. 
      * @param cometHandler The CometHandler to invoke. 
      */
-    protected void notify0(CometEvent cometEvent,CometHandler cometHandler) 
-            throws IOException{        
-	    try {
+    protected void notify0(CometEvent cometEvent, CometHandler cometHandler)
+            throws IOException {
+        try {
 
             switch (cometEvent.getType()) {
                 case CometEvent.INTERRUPT:
                     cometHandler.onInterrupt(cometEvent);
                     break;
                 case CometEvent.NOTIFY:
-                    cometHandler.onEvent(cometEvent);
-                    break;
                 case CometEvent.READ:
-                    cometHandler.onEvent(cometEvent);
-                    break;      
                 case CometEvent.WRITE:
-		    if (cometHandler instanceof DefaultConcurrentCometHandler){
+                    if (cometHandler instanceof DefaultConcurrentCometHandler) {
                         ((DefaultConcurrentCometHandler) cometHandler).enqueueEvent(cometEvent);
                         break;
                     }
-                    if (cometEvent.getCometContext().isActive(cometHandler)){
+                    if (cometEvent.getCometContext().isActive(cometHandler)) {
                         synchronized (cometHandler) {
                             cometHandler.onEvent(cometEvent);
                         }
@@ -209,22 +195,22 @@ public class DefaultNotificationHandler implements NotificationHandler{
 
                 case CometEvent.INITIALIZE:
                     cometHandler.onInitialize(cometEvent);
-                    break;      
+                    break;
                 case CometEvent.TERMINATE:
-		    synchronized (cometHandler) {
-                    	cometHandler.onTerminate(cometEvent);
-		    } 
-                    break;                       
+                    synchronized (cometHandler) {
+                        cometHandler.onTerminate(cometEvent);
+                    }
+                    break;
                 default:
                     throw new IllegalStateException();
             }
-	  } catch (Throwable ex) {
-		try {
-			cometEvent.getCometContext().resumeCometHandler(cometHandler);
-		} catch (Throwable t) {
-			logger.log(Level.FINE, "Resume phase failed:", t);
-		}
-		logger.log(Level.FINE, "Notification failed:", ex);
-	  }
+        } catch (Throwable ex) {
+            try {
+                cometEvent.getCometContext().resumeCometHandler(cometHandler);
+            } catch (Throwable t) {
+                logger.log(Level.FINE, "Resume phase failed:", t);
+            }
+            logger.log(Level.FINE, "Notification failed:", ex);
         }
     }
+}
