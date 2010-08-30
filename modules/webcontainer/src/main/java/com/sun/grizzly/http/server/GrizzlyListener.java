@@ -288,7 +288,7 @@ public class GrizzlyListener {
      * </p>
      *
      * @param keepAliveTimeoutInSeconds the number in seconds a connection may
-     *  be idle before being timed out.  Values less than zero are ignored.
+     *  be idle before being timed out.  Values less than zero are considered as FOREVER.
      */
     public void setKeepAliveTimeoutInSeconds(final int keepAliveTimeoutInSeconds) {
 
@@ -297,9 +297,10 @@ public class GrizzlyListener {
         }
 
         if (keepAliveTimeoutInSeconds < 0) {
-            return;
+            this.keepAliveTimeoutInSeconds = -1;
+        } else {
+            this.keepAliveTimeoutInSeconds = keepAliveTimeoutInSeconds;
         }
-        this.keepAliveTimeoutInSeconds = keepAliveTimeoutInSeconds;
 
     }
 
