@@ -158,6 +158,7 @@
                             com.sun.enterprise.web.connector.grizzly.async,
                             com.sun.enterprise.web.connector.grizzly.blocking,
                             com.sun.enterprise.web.connector.grizzly.comet,
+			    com.sun.enterprise.web.connector.grizzly.comet.concurrent,	
                             com.sun.enterprise.web.connector.grizzly.ssl,
                             com.sun.enterprise.web.connector.grizzly.standalone,
                             com.sun.enterprise.web.ara.*,
