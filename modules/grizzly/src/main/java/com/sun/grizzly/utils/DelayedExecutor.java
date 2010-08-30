@@ -42,7 +42,7 @@ package com.sun.grizzly.utils;
 
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -107,6 +107,11 @@ public class DelayedExecutor {
         return queue;
     }
 
+    private static boolean wasModified(Long l1, Long l2) {
+        return l1 != l2 && (l1 != null ? !l1.equals(l2) : !l2.equals(l1));
+    }
+
+
     private class DelayedRunnable implements Runnable {
 
         @Override
@@ -119,18 +124,26 @@ public class DelayedExecutor {
                     
                     final Resolver resolver = delayQueue.resolver;
 
-                    for (Iterator it = delayQueue.queue.iterator(); it.hasNext(); ) {
+                    for (Iterator it = delayQueue.queue.keySet().iterator(); it.hasNext(); ) {
                         final Object element = it.next();
                         final Long timeoutMillis = resolver.getTimeoutMillis(element);
                         
                         if (timeoutMillis == null || timeoutMillis == UNSET_TIMEOUT) {
                             it.remove();
+                            if (wasModified(timeoutMillis,
+                                    resolver.getTimeoutMillis(element))) {                                
+                                delayQueue.queue.put(element, delayQueue);
+                            }
                         } else if (currentTimeMillis - timeoutMillis >= 0) {
                             it.remove();
-                            try {
-                                delayQueue.resolver.removeTimeout(element);
-                                delayQueue.worker.doWork(element);
-                            } catch (Exception ignored) {
+                            if (wasModified(timeoutMillis,
+                                    resolver.getTimeoutMillis(element))) {
+                                delayQueue.queue.put(element, delayQueue);
+                            } else {
+                                try {
+                                    delayQueue.worker.doWork(element);
+                                } catch (Exception ignored) {
+                                }
                             }
                         }
                     }
@@ -146,11 +159,11 @@ public class DelayedExecutor {
                 }
             }
         }
-
     }
 
     public final class DelayQueue<E> {
-        final Queue<E> queue = new LinkedTransferQueue<E>();
+        final ConcurrentHashMap<E, DelayQueue> queue =
+                new ConcurrentHashMap<E, DelayQueue>();
 
         final Worker<E> worker;
         final Resolver<E> resolver;
@@ -164,7 +177,7 @@ public class DelayedExecutor {
             if (delay >= 0) {
                 resolver.setTimeoutMillis(elem, System.currentTimeMillis() +
                         TimeUnit.MILLISECONDS.convert(delay, timeUnit));
-                queue.add(elem);
+                queue.put(elem, this);
             }
         }
 
