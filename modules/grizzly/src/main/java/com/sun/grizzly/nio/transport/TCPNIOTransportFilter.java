@@ -101,7 +101,7 @@ public final class TCPNIOTransportFilter extends BaseFilter {
             }
         }
         
-        if (buffer == null) {
+        if (buffer == null || buffer.position() == 0) {
             return ctx.getStopAction();
         } else {
             buffer.trim();
