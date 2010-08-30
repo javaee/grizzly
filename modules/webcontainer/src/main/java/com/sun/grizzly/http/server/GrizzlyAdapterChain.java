@@ -224,7 +224,7 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter implements JmxEventListe
                     adapter.doService(request, response);
                 } else {
                     response.setStatus(HttpStatus.NOT_FOUND_404);
-                    customizedErrorPage(request, response);
+                    customizedErrorPage(gws, request, response);
                 }
             } catch (Throwable t) {
                 try {
@@ -232,7 +232,7 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter implements JmxEventListe
                     if (logger.isLoggable(Level.FINE)) {
                         logger.log(Level.FINE, "Invalid URL: " + request.getRequestURI(), t);
                     }
-                    customizedErrorPage(request, response);
+                    customizedErrorPage(gws, request, response);
                 } catch (Exception ex2) {
                     if (logger.isLoggable(Level.WARNING)) {
                         logger.log(Level.WARNING, "Unable to error page", ex2);

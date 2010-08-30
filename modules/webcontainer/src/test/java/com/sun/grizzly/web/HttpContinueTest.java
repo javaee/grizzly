@@ -158,7 +158,7 @@ public class HttpContinueTest extends TestCase {
                 }
             }
 
-            assertEquals("HTTP/1.1 200 OK", sb.toString().trim());
+            assertEquals("HTTP/1.1 404 Not Found", sb.toString().trim());
 
         } finally {
             server.stop();

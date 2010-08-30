@@ -149,8 +149,8 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
         if (committed)
             throw new IllegalStateException(/*FIXME:Put an error message*/);
 
-        // Recycle Request object
-        response.recycle();
+        buf.clear();
+        charBuf.clear();
 
     }
 

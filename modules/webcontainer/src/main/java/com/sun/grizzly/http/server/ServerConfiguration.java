@@ -41,8 +41,16 @@
 package com.sun.grizzly.http.server;
 
 
+import com.sun.grizzly.Buffer;
+import com.sun.grizzly.http.server.io.GrizzlyOutputStream;
 import com.sun.grizzly.http.server.jmx.JmxEventListener;
+import com.sun.grizzly.http.server.util.HtmlHelper;
+import com.sun.grizzly.http.util.HttpStatus;
+import com.sun.grizzly.memory.MemoryManager;
+import com.sun.grizzly.memory.MemoryUtils;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -74,6 +82,10 @@ public class ServerConfiguration {
     private final WebServerMonitoringConfig monitoringConfig = new WebServerMonitoringConfig();
 
     private String name;
+
+    private String httpServerName = "Grizzly";
+
+    private String httpServerVersion = "2.0";
 
     private final GrizzlyWebServer instance;
 
@@ -140,6 +152,23 @@ public class ServerConfiguration {
             return new GrizzlyAdapter(docRoot) {
                 @Override
                 public void service(GrizzlyRequest request, GrizzlyResponse response) {
+                    try {
+                        ByteBuffer b = HtmlHelper.getErrorPage("Not Found",
+                                                               "Resource identified by path '" + request.getRequestURI() + "', does not exist.",
+                                                               getHttpServerName() + '/' + getHttpServerVersion());
+                        MemoryManager mm = request.getContext().getConnection().getTransport().getMemoryManager();
+                        Buffer buf = MemoryUtils.wrap(mm, b);
+                        GrizzlyOutputStream out = response.getOutputStream();
+                        response.setStatus(HttpStatus.NOT_FOUND_404);
+                        response.setContentType("text/html");
+                        response.setCharacterEncoding("UTF-8");
+                        out.write(buf);
+                        out.flush();
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
                 }
             };
         }
@@ -296,6 +325,53 @@ public class ServerConfiguration {
 
         return jmxEventListeners.iterator();
         
+    }
+
+
+    /**
+     * @return the server name used for headers and default error pages.
+     */
+    public String getHttpServerName() {
+
+        return httpServerName;
+
+    }
+
+
+    /**
+     * Sets the server name used for HTTP response headers and default generated
+     * error pages.  If not value is explicitly set, this value defaults to
+     * <code>Grizzly</code>.
+     *
+     * @param httpServerName server name
+     */
+    public void setHttpServerName(String httpServerName) {
+        this.httpServerName = httpServerName;
+    }
+
+
+    /**
+     * @return the version of this server used for headers and default error
+     *  pages.
+     */
+    public String getHttpServerVersion() {
+
+        return httpServerVersion;
+
+    }
+
+
+    /**
+     * Sets the version of the server info sent in HTTP response headers and the
+     *  default generated error pages.  If not value is explicitly set, this
+     *  value defaults to the current version of the Grizzly runtime.
+     *
+     * @param httpServerVersion server version
+     */
+    public void setHttpServerVersion(String httpServerVersion) {
+
+        this.httpServerVersion = httpServerVersion;
+
     }
     
 } // END ServerConfiguration

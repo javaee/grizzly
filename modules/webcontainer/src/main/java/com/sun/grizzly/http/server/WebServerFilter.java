@@ -52,6 +52,10 @@ import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.http.server.io.ReadHandler;
+import com.sun.grizzly.http.server.util.HtmlHelper;
+import com.sun.grizzly.http.util.HttpStatus;
+import com.sun.grizzly.memory.MemoryManager;
+import com.sun.grizzly.memory.MemoryUtils;
 import com.sun.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
 import com.sun.grizzly.monitoring.jmx.JmxMonitoringAware;
 import com.sun.grizzly.monitoring.jmx.JmxMonitoringConfig;
@@ -59,6 +63,8 @@ import com.sun.grizzly.monitoring.jmx.JmxObject;
 import com.sun.grizzly.utils.DelayedExecutor;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -153,8 +159,17 @@ public class WebServerFilter extends BaseFilter
                     if (adapter != null) {
                         adapter.doService(grizzlyRequest, grizzlyResponse);
                     }
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
+                } catch (Throwable t) {
+                    if (!response.isCommitted()) {
+                        ByteBuffer b = HtmlHelper.getExceptionErrorPage("Internal Server Error", "Grizzly/2.0", t);
+                        grizzlyResponse.reset();
+                        grizzlyResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
+                        grizzlyResponse.setContentType("text/html");
+                        grizzlyResponse.setCharacterEncoding("UTF-8");
+                        MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
+                        Buffer buf = MemoryUtils.wrap(mm, b);
+                        grizzlyResponse.getOutputBuffer().writeBuffer(buf);
+                    }
                 } finally {
                     if (!suspendStatus.get()) {
                         afterService(connection, grizzlyRequest,

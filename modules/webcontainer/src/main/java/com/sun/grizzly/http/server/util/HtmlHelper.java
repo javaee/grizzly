@@ -53,15 +53,16 @@ import java.nio.charset.CharsetEncoder;
  */
 public class HtmlHelper{
 
+    private static final int MAX_STACK_ELEMENTS = 10;
+
     private final static String CSS =
-        "H1 {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;font-size:22px;} " +
-        "H2 {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;font-size:16px;} " +
-        "H3 {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;font-size:14px;} " +
-        "BODY {font-family:Tahoma,Arial,sans-serif;color:black;background-color:white;} " +
-        "B {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#525D76;} " +
-        "P {font-family:Tahoma,Arial,sans-serif;background:white;color:black;font-size:12px;}" +
-        "A {color : black;}" +
-        "HR {color : #525D76;}";
+            "div.header {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#003300;font-size:22px;-moz-border-top-left-radius: 10px;border-top-left-radius: 10px;-moz-border-top-right-radius: 10px;border-top-right-radius: 10px;padding-left: 5px}" +
+            "div.body {font-family:Tahoma,Arial,sans-serif;color:black;background-color:#FFFFCC;font-size:16px;padding-top:10px;padding-bottom:10px;padding-left:10px}" +
+            "div.footer {font-family:Tahoma,Arial,sans-serif;color:white;background-color:#666633;font-size:14px;-moz-border-bottom-left-radius: 10px;border-bottom-left-radius: 10px;-moz-border-bottom-right-radius: 10px;border-bottom-right-radius: 10px;padding-left: 5px}" +
+            "BODY {font-family:Tahoma,Arial,sans-serif;color:black;background-color:white;}" +
+            "B {font-family:Tahoma,Arial,sans-serif;color:black;}" +
+            "A {color : black;}" +
+            "HR {color : #999966;}";
 
     /**
      * <code>CharBuffer</code> used to store the HTML response, containing
@@ -76,56 +77,42 @@ public class HtmlHelper{
     private static CharsetEncoder encoder =
                                           Charset.forName("UTF-8").newEncoder();
 
-    /**
-     * HTTP end line.
-     */
-    private static String NEWLINE = "\r\n";
-
 
     /**
-     * HTTP OK header
-     */
-    public final static String OK = "HTTP/1.1 200 OK" + NEWLINE;
-
-
-    /**
-     * HTTP Bas Request
-     */
-    public final static String BAD_REQUEST
-        = "HTTP/1.1 400 Bad Request" + NEWLINE;
-
-
-    /**
-     * When Grizzlu has reached its connection-queue pool limits, an HTML
-     * error pages will to be returned to the clients.
      *
-     * @return A {@link ByteBuffer} containings the HTTP response.
+     * @return A {@link ByteBuffer} containing the HTTP response.
      */
-    public synchronized static ByteBuffer
-            getErrorPage(String message, String code, String serverName) throws IOException {
-        String body = prepareBody(message,serverName);
+    public synchronized static ByteBuffer getErrorPage(String headerMessage,
+                                                       String message,
+                                                       String serverName)
+    throws IOException {
+
+        String body = prepareBody(headerMessage, message, serverName);
         reponseBuffer.clear();
         reponseBuffer.put(body);
         reponseBuffer.flip();
         return encoder.encode(reponseBuffer);
+
     }
 
 
-    /**
-     * Utility to add headers to the HTTP response.
-     */
-    private static void appendHeaderValue(String name, String value) {
-        reponseBuffer.put(name);
-        reponseBuffer.put(": ");
-        reponseBuffer.put(value);
-        reponseBuffer.put(NEWLINE);
+    public synchronized static ByteBuffer getExceptionErrorPage(String message,
+                                                                String serverName,
+                                                                Throwable t)
+    throws IOException {
+        String body = prepareExceptionBody(message, serverName, t);
+        reponseBuffer.clear();
+        reponseBuffer.put(body);
+        reponseBuffer.flip();
+        return encoder.encode(reponseBuffer);
+
     }
 
 
     /**
      * Prepare the HTTP body containing the error messages.
      */
-    private static String prepareBody(String message, String serverName){
+    private static String prepareBody(String headerMessage, String message, String serverName){
         StringBuilder sb = new StringBuilder();
 
         sb.append("<html><head><title>");
@@ -135,13 +122,102 @@ public class HtmlHelper{
         sb.append(CSS);
         sb.append("--></style> ");
         sb.append("</head><body>");
-        sb.append("<h1>");
-        sb.append(message);
-        sb.append("</h1>");
-        sb.append("<HR size=\"1\" noshade>");
-        sb.append("<h3>").append(serverName).append("</h3>");
+        sb.append("<div class=\"header\">");
+        sb.append(headerMessage);
+        sb.append("</div>");
+        sb.append("<div class=\"body\">");
+        sb.append((message != null) ? message : "<HR size=\"1\" noshade>");
+        sb.append("</div>");
+        sb.append("<div class=\"footer\">").append(serverName).append("</div>");
         sb.append("</body></html>");
         return sb.toString();
+    }
+
+
+    @SuppressWarnings({"ThrowableResultOfMethodCallIgnored"})
+    private static String prepareExceptionBody(String message,
+                                               String serverName,
+                                               Throwable t) {
+
+        if (t == null) {
+            throw new IllegalArgumentException();
+        }
+        Throwable rootCause = getRootCause(t);
+
+        StackTraceElement[] elements = t.getStackTrace();
+        StackTraceElement[] rootCauseElements = null;
+        if (rootCause != null) {
+            rootCauseElements = rootCause.getStackTrace();
+        }
+        StringBuilder tBuilder = new StringBuilder();
+        formatStackElements(elements, tBuilder);
+        StringBuilder rootBuilder = new StringBuilder();
+        if (rootCause != null) {
+            formatStackElements(rootCauseElements, rootBuilder);
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("<html><head><title>");
+        sb.append(serverName);
+        sb.append("</title>");
+        sb.append("<style><!--");
+        sb.append(CSS);
+        sb.append("--></style> ");
+        sb.append("</head><body>");
+        sb.append("<div class=\"header\">");
+        sb.append(message);
+        sb.append("</div>");
+        sb.append("<div class=\"body\"");
+        sb.append("<b>").append(t.getMessage()).append("</b>");
+        sb.append("<pre>");
+        sb.append(tBuilder.toString());
+        sb.append("</pre>");
+        if (rootCause != null) {
+            sb.append("<b>Root Cause: ").append(rootCause.toString()).append("</b>");
+            sb.append("<pre>");
+            sb.append(rootBuilder.toString());
+            sb.append("</pre>");
+        }
+
+        sb.append("Please see the log for more detail.");
+        sb.append("</div>");
+        sb.append("<div class=\"footer\">").append(serverName).append("</div>");
+        sb.append("</body></html>");
+        return sb.toString();
+    }
+
+
+    private static Throwable getRootCause(Throwable t) {
+
+        Throwable rootCause = null;
+        if (t.getCause() != null) {
+            rootCause = t.getCause();
+            while (rootCause.getCause() != null) {
+                rootCause = rootCause.getCause();
+            }
+        }
+        return rootCause;
+
+    }
+
+
+    private static void formatStackElements(StackTraceElement[] elements, StringBuilder builder) {
+
+        final int maxLines = getMaxStackElementsToDisplay(elements);
+        for (int i = 0; i < maxLines; i++) {
+            builder.append((i + 1 > 9) ? "    " : "     ").append(i + 1).append(": ").append(elements[i].toString()).append('\n');
+        }
+        boolean ellipse = elements.length > MAX_STACK_ELEMENTS;
+        if (ellipse) {
+            builder.append("        ... ").append(elements.length - MAX_STACK_ELEMENTS).append(" more");
+        }
+
+    }
+
+
+    private static int getMaxStackElementsToDisplay(StackTraceElement[] elements) {
+
+        return ((elements.length > MAX_STACK_ELEMENTS) ? MAX_STACK_ELEMENTS : elements.length);
+        
     }
 
 }

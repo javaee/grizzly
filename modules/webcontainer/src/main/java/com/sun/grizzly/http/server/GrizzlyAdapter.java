@@ -147,6 +147,7 @@ public abstract class GrizzlyAdapter {
             logger.log(Level.SEVERE,"service exception", t);
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
             response.setDetailMessage("Internal Error");
+            throw t;
         }
     }
     
@@ -239,12 +240,15 @@ public abstract class GrizzlyAdapter {
     }
 
     /**
-     * Customize the error pahe
+     * Customize the error page.
+     * @param The {@link GrizzlyWebServer} associated with this adapter.
      * @param req The {@link GrizzlyRequest} object
      * @param res The {@link GrizzlyResponse} object
      * @throws Exception
      */
-    protected void customizedErrorPage(GrizzlyRequest req, GrizzlyResponse res)
+    protected void customizedErrorPage(GrizzlyWebServer server,
+                                       GrizzlyRequest req,
+                                       GrizzlyResponse res)
             throws Exception {
 
         /**
@@ -252,7 +256,11 @@ public abstract class GrizzlyAdapter {
          */
         res.setStatus(HttpStatus.NOT_FOUND_404);
         // TODO re-implement
-        ByteBuffer bb = HtmlHelper.getErrorPage("Not Found", "HTTP/1.1 404 Not Found\r\n", "Grizzly");
+        final ServerConfiguration c = server.getServerConfiguration();
+        final String serverName = c.getHttpServerName() + '/' + c.getHttpServerVersion();
+        ByteBuffer bb = HtmlHelper.getErrorPage("Not Found",
+                                                "Resource identified by path '" + req.getRequestURI() + "', does not exist.",
+                                                serverName);
         res.setContentLength(bb.limit());
         res.setContentType("text/html");
         OutputBuffer out = res.getOutputBuffer();
