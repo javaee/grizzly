@@ -555,7 +555,7 @@ public abstract class AbstractNIOConnection implements NIOConnection {
     /**
      * Notify all close listeners
      */
-    private final void notifyCloseListeners() {
+    private void notifyCloseListeners() {
         CloseListener closeListener;
         while((closeListener = closeListeners.poll()) != null) {
             try {

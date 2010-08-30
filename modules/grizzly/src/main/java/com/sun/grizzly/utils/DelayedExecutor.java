@@ -41,9 +41,9 @@
 package com.sun.grizzly.utils;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -51,6 +51,8 @@ import java.util.concurrent.TimeUnit;
  * @author Alexey Stashok
  */
 public class DelayedExecutor {
+    public final static long UNSET_TIMEOUT = -1;
+    
     private final ExecutorService threadPool;
 
     private final DelayedRunnable runnable = new DelayedRunnable();
@@ -96,10 +98,9 @@ public class DelayedExecutor {
     }
 
     public <E> DelayQueue<E> createDelayQueue(Worker<E> worker,
-            Resolver<E> resolver, long delay, TimeUnit timeunit) {
+            Resolver<E> resolver) {
         
-        final long delayMillis = TimeUnit.MILLISECONDS.convert(delay, timeunit);
-        final DelayQueue<E> queue = new DelayQueue(worker, resolver, delayMillis);
+        final DelayQueue<E> queue = new DelayQueue(worker, resolver);
 
         queues.add(queue);
 
@@ -114,26 +115,23 @@ public class DelayedExecutor {
                 final long currentTimeMillis = System.currentTimeMillis();
                 
                 for (final DelayQueue delayQueue : queues) {
-                    Object removeElem;
-                    while((removeElem = delayQueue.removeQueue.poll()) != null) {
-                        delayQueue.queue.remove(removeElem);
-                    }
-
+                    if (delayQueue.queue.isEmpty()) continue;
+                    
                     final Resolver resolver = delayQueue.resolver;
 
-                    while (true) {
-                        final Object element = delayQueue.queue.peek();
+                    for (Iterator it = delayQueue.queue.iterator(); it.hasNext(); ) {
+                        final Object element = it.next();
+                        final Long timeoutMillis = resolver.getTimeoutMillis(element);
                         
-                        if (element == null ||
-                                currentTimeMillis - resolver.getTimeoutMillis(element) < 0) {
-                            break;
-                        }
-
-                        delayQueue.queue.poll();
-
-                        try {
-                            delayQueue.worker.doWork(element);
-                        } catch (Exception ignored) {
+                        if (timeoutMillis == null || timeoutMillis == UNSET_TIMEOUT) {
+                            it.remove();
+                        } else if (currentTimeMillis - timeoutMillis >= 0) {
+                            it.remove();
+                            try {
+                                delayQueue.resolver.removeTimeout(element);
+                                delayQueue.worker.doWork(element);
+                            } catch (Exception ignored) {
+                            }
                         }
                     }
                 }
@@ -153,28 +151,25 @@ public class DelayedExecutor {
 
     public final class DelayQueue<E> {
         final Queue<E> queue = new LinkedTransferQueue<E>();
-        final Queue<E> removeQueue = new LinkedTransferQueue<E>();
 
         final Worker<E> worker;
         final Resolver<E> resolver;
-        final long delayMillis;
 
-        public DelayQueue(Worker<E> worker, Resolver<E> resolver,
-                long delayMillis) {
+        public DelayQueue(Worker<E> worker, Resolver<E> resolver) {
             this.worker = worker;
             this.resolver = resolver;
-            this.delayMillis = delayMillis;
         }
 
-        public void add(E elem) {
-            resolver.setTimeoutMillis(elem, System.currentTimeMillis() + delayMillis);
-            queue.add(elem);
+        public void add(E elem, long delay, TimeUnit timeUnit) {
+            if (delay >= 0) {
+                resolver.setTimeoutMillis(elem, System.currentTimeMillis() +
+                        TimeUnit.MILLISECONDS.convert(delay, timeUnit));
+                queue.add(elem);
+            }
         }
 
         public void remove(E elem) {
-            if (resolver.removeTimeout(elem)) {
-                removeQueue.add(elem);
-            }
+            resolver.removeTimeout(elem);
         }
 
         public void destroy() {
@@ -189,67 +184,8 @@ public class DelayedExecutor {
     public interface Resolver<E> {
         public boolean removeTimeout(E element);
         
-        public long getTimeoutMillis(E element);
+        public Long getTimeoutMillis(E element);
         
         public void setTimeoutMillis(E element, long timeoutMillis);
-    }
-
-
-    public static void main(String[] args) throws Exception {
-        ExecutorService threadPool = Executors.newCachedThreadPool();
-
-        DelayedExecutor executor = new DelayedExecutor(threadPool);
-        executor.start();
-        DelayQueue<MyStr> queue = executor.<MyStr>createDelayQueue(new Worker<MyStr>() {
-
-            @Override
-            public void doWork(MyStr element) {
-                System.out.println("doWork " + element.str);
-            }
-        }, new MyStr("Resolver"), 10, TimeUnit.SECONDS);
-
-        final MyStr myStr = new MyStr("hello");
-
-        queue.add(myStr);
-
-//        System.out.println("Press enter to kill");
-//        System.in.read();
-
-//        queue.remove(myStr);
-        
-        System.out.println("Press enter to stop");
-        System.in.read();
-
-        executor.stop();
-        threadPool.shutdownNow();
-    }
-
-    public static class MyStr implements Resolver<MyStr> {
-        private final String str;
-        private long timeout;
-
-        public MyStr(String str) {
-            this.str = str;
-        }
-
-        @Override
-        public boolean removeTimeout(MyStr element) {
-            if (element.timeout >= 0) {
-                element.timeout = -1;
-                return true;
-            }
-
-            return false;
-        }
-
-        @Override
-        public long getTimeoutMillis(MyStr element) {
-            return element.timeout;
-        }
-
-        @Override
-        public void setTimeoutMillis(MyStr element, long timeoutMillis) {
-            element.timeout = timeoutMillis;
-        }
     }
 }

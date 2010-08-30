@@ -77,6 +77,8 @@ import com.sun.grizzly.http.util.MessageBytes;
 import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.http.util.StringManager;
 import com.sun.grizzly.http.util.UEncoder;
+import com.sun.grizzly.utils.DelayedExecutor;
+import com.sun.grizzly.utils.DelayedExecutor.DelayQueue;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -95,9 +97,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -127,6 +126,10 @@ public class GrizzlyResponse {
         return new GrizzlyResponse();
     }
 
+    static DelayQueue<GrizzlyResponse> createDelayQueue(DelayedExecutor delayedExecutor) {
+        return delayedExecutor.createDelayQueue(new DelayQueueWorker(),
+                new DelayQueueResolver());
+    }
 
     // ----------------------------------------------------------- Constructors
 
@@ -278,7 +281,7 @@ public class GrizzlyResponse {
     protected MessageBytes redirectURLCC = new MessageBytes();
 
 
-    protected ScheduledExecutorService scheduledExecutorService;
+    protected DelayedExecutor.DelayQueue<GrizzlyResponse> delayQueue;
     protected boolean isSuspended;
     private final SuspendedRunnable suspendedRunnable = new SuspendedRunnable();
     private final Object suspendSync = new Object();
@@ -290,14 +293,14 @@ public class GrizzlyResponse {
     public void initialize(GrizzlyRequest request,
                            HttpResponsePacket response,
                            FilterChainContext ctx,
-                           ScheduledExecutorService scheduledExecutorService,
+                           DelayedExecutor.DelayQueue<GrizzlyResponse> delayQueue,
                            SuspendStatus suspendStatus) {
         this.request = request;
         this.response = response;
         outputBuffer = new OutputBuffer();
         outputBuffer.initialize(response, ctx);
         this.ctx = ctx;
-        this.scheduledExecutorService = scheduledExecutorService;
+        this.delayQueue = delayQueue;
         this.suspendStatus = suspendStatus;
     }
 
@@ -327,7 +330,7 @@ public class GrizzlyResponse {
 
     protected final void recycle(boolean isRecycleUnderlyingResponse) {
         suspendStatus = null;
-        scheduledExecutorService = null;
+        delayQueue = null;
         suspendedRunnable.reset();
         outputBuffer.recycle();
         usingOutputStream = false;
@@ -1265,7 +1268,7 @@ public class GrizzlyResponse {
 
 
     /**
-     * Send an acknowledgment of a request.   An acknowledgement in this
+     * Send an acknowledgment of a request.   An acknowledgment in this
      * case is simply an HTTP response status line, i.e.
      * <code>HTTP/1.1 [STATUS] [REASON-PHRASE]<code>.
      *
@@ -1812,10 +1815,7 @@ public class GrizzlyResponse {
             }
 
             suspendedRunnable.completionHandler = competionHandler;
-
-            final ScheduledFuture scheduledFuture = scheduledExecutorService.schedule(
-                    suspendedRunnable, timeout, timeunit);
-            suspendedRunnable.scheduledFuture = scheduledFuture;
+            delayQueue.add(this, timeout, timeunit);
 
             final Connection connection = ctx.getConnection();
 
@@ -1846,13 +1846,8 @@ public class GrizzlyResponse {
 
             connection.removeCloseListener(suspendedRunnable);
 
-            final Future future = suspendedRunnable.scheduledFuture;
             final CompletionHandler completionHandler = suspendedRunnable.completionHandler;
             suspendedRunnable.isResuming = true;
-
-            if (future != null) {
-                future.cancel(false);
-            }
 
             if (completionHandler != null) {
                 completionHandler.completed(this);
@@ -1886,14 +1881,9 @@ public class GrizzlyResponse {
 
             connection.removeCloseListener(suspendedRunnable);
 
-            final Future future = suspendedRunnable.scheduledFuture;
             final CompletionHandler completionHandler = suspendedRunnable.completionHandler;
             suspendedRunnable.isResuming = true;
 
-            if (future != null) {
-                future.cancel(false);
-            }
-            
             if (completionHandler != null) {
                 completionHandler.cancelled();
             }
@@ -1919,18 +1909,16 @@ public class GrizzlyResponse {
         }
     }
 
-    private final class SuspendedRunnable implements Runnable,
+    protected final class SuspendedRunnable implements Runnable,
             Connection.CloseListener {
 
         public CompletionHandler completionHandler;
-        public ScheduledFuture scheduledFuture;
         public boolean isResuming;
+        public long timeoutTimeMillis;
 
         @Override
         public void run() {
             synchronized (suspendSync) {
-                scheduledFuture = null;
-
                 WebServerProbeNotifier.notifyRequestTimeout(
                         request.webServerFilter, ctx.getConnection(), request);
 
@@ -1939,8 +1927,8 @@ public class GrizzlyResponse {
         }
 
         private void reset() {
+            timeoutTimeMillis = DelayedExecutor.UNSET_TIMEOUT;
             completionHandler = null;
-            scheduledFuture = null;
             isResuming = false;
         }
 
@@ -1948,5 +1936,40 @@ public class GrizzlyResponse {
         public void onClosed(Connection connection) throws IOException {
             cancel();
         }
+    }
+
+    private static class DelayQueueWorker implements
+            DelayedExecutor.Worker<GrizzlyResponse> {
+
+        @Override
+        public void doWork(GrizzlyResponse element) {
+            element.suspendedRunnable.run();
+        }
+        
+    }
+
+    private static class DelayQueueResolver implements
+            DelayedExecutor.Resolver<GrizzlyResponse> {
+
+        @Override
+        public boolean removeTimeout(GrizzlyResponse element) {
+            if (element.suspendedRunnable.timeoutTimeMillis != DelayedExecutor.UNSET_TIMEOUT) {
+                element.suspendedRunnable.timeoutTimeMillis = DelayedExecutor.UNSET_TIMEOUT;
+                return true;
+            }
+
+            return false;
+        }
+
+        @Override
+        public Long getTimeoutMillis(GrizzlyResponse element) {
+            return element.suspendedRunnable.timeoutTimeMillis;
+        }
+
+        @Override
+        public void setTimeoutMillis(GrizzlyResponse element, long timeoutMillis) {
+            element.suspendedRunnable.timeoutTimeMillis = timeoutMillis;
+        }
+
     }
 }

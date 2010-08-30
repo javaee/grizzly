@@ -63,6 +63,8 @@ public final class FileCacheEntry implements Runnable {
     public long fileSize = -1;
     public String keepAlive;
     
+    public volatile long timeoutMillis;
+
     private final FileCache fileCache;
 
     public FileCacheEntry(FileCache fileCache) {

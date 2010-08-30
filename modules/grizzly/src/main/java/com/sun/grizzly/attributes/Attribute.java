@@ -96,6 +96,35 @@ public final class Attribute<T> {
     }
 
     /**
+     * Get attribute value, stored on the {@link AttributeHolder},
+     * the difference from {@link #get(com.sun.grizzly.attributes.AttributeHolder)} is
+     * that default value or {@link NullaryFunction} won't be invoked.
+     *
+     * @param attributeHolder {@link AttributeHolder}.
+     * @return attribute value
+     */
+    public T peek(AttributeHolder attributeHolder) {
+        return weakGet(attributeHolder);
+    }
+
+    /**
+     * Get attribute value, stored on the {@link AttributeStorage},
+     * the difference from {@link #get(AttributeStorage)} is
+     * that default value or {@link NullaryFunction} won't be invoked.
+     *
+     * @param storage {@link AttributeStorage}.
+     * @return attribute value
+     */
+    public T peek(AttributeStorage storage) {
+        final AttributeHolder holder = storage.getAttributes();
+        if (holder != null) {
+            return peek(holder);
+        }
+
+        return null;
+    }
+
+    /**
      * Get attribute value, stored on the {@link AttributeHolder}.
      * 
      * @param attributeHolder {@link AttributeHolder}.

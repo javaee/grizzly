@@ -56,9 +56,10 @@ import com.sun.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
 import com.sun.grizzly.monitoring.jmx.JmxMonitoringAware;
 import com.sun.grizzly.monitoring.jmx.JmxMonitoringConfig;
 import com.sun.grizzly.monitoring.jmx.JmxObject;
+import com.sun.grizzly.utils.DelayedExecutor;
 
 import java.io.IOException;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * TODO:
@@ -68,14 +69,14 @@ import java.util.concurrent.ScheduledExecutorService;
 public class WebServerFilter extends BaseFilter
         implements JmxMonitoringAware<WebServerProbe> {
 
-    private final Attribute<GrizzlyRequest> grizzlyRequestInProcessAttr;
+    private final Attribute<WebServerContext> webServerContextAttr;
 
-    private final ScheduledExecutorService scheduledExecutorService;
+    private final DelayedExecutor delayedExecutor;
+    private final DelayedExecutor.DelayQueue<GrizzlyResponse> suspendedResponseQueue;
+    private final DelayedExecutor.DelayQueue<WebServerContext> keepAliveQueue;
+    
     private final GrizzlyWebServer gws;
-
-    private static Attribute<Integer> keepAliveCounterAttr =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-            "connection-keepalive-counter", 0);
+    private final GrizzlyListener listener;
 
     /**
      * Web server probes
@@ -94,14 +95,18 @@ public class WebServerFilter extends BaseFilter
     // ------------------------------------------------------------ Constructors
 
 
-    public WebServerFilter(GrizzlyWebServer webServer) {
-
+    public WebServerFilter(final GrizzlyWebServer webServer,
+            final GrizzlyListener listener) {
         gws = webServer;
-        scheduledExecutorService = webServer.getScheduledExecutorService();
-        this.grizzlyRequestInProcessAttr =
+        this.listener = listener;
+        delayedExecutor = webServer.getDelayedExecutor();
+        suspendedResponseQueue = GrizzlyResponse.createDelayQueue(delayedExecutor);
+        keepAliveQueue = delayedExecutor.createDelayQueue(new KeepAliveWorker(),
+                new KeepAliveResolver());
+        
+        this.webServerContextAttr =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-                "WebServerFilter.GrizzlyRequest");
-
+                WebServerFilter.class.getName() + ".context");
     }
 
 
@@ -114,14 +119,17 @@ public class WebServerFilter extends BaseFilter
         final Object message = ctx.getMessage();
         final Connection connection = ctx.getConnection();
 
+        final WebServerContext wsContext = obtainWebServerContext(connection);
+
         if (message instanceof HttpPacket) {
             // Otherwise cast message to a HttpContent
 
             final HttpContent httpContent = (HttpContent) message;
 
-            GrizzlyRequest grizzlyRequest = grizzlyRequestInProcessAttr.get(connection);
+            GrizzlyRequest grizzlyRequest = wsContext.associatedRequest;
 
             if (grizzlyRequest == null) {
+                // It's a new HTTP request
                 HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
                 HttpResponsePacket response = request.getResponse();
                 grizzlyRequest = GrizzlyRequest.create();
@@ -130,15 +138,16 @@ public class WebServerFilter extends BaseFilter
                 final SuspendStatus suspendStatus = new SuspendStatus();
 
                 grizzlyResponse.initialize(grizzlyRequest, response, ctx,
-                        scheduledExecutorService, suspendStatus);
-                grizzlyRequestInProcessAttr.set(connection, grizzlyRequest);
+                        suspendedResponseQueue, suspendStatus);
+                wsContext.associatedRequest = grizzlyRequest;
 
                 WebServerProbeNotifier.notifyRequestReceived(this, connection,
                         grizzlyRequest);
 
                 try {
                     ctx.setMessage(grizzlyResponse);
-                    beforeService(connection, grizzlyRequest, grizzlyResponse);
+                    beforeService(connection, grizzlyRequest,
+                            grizzlyResponse, wsContext);
                     
                     final GrizzlyAdapter adapter = gws.getAdapter();
                     if (adapter != null) {
@@ -148,7 +157,8 @@ public class WebServerFilter extends BaseFilter
                     throw new RuntimeException(e);
                 } finally {
                     if (!suspendStatus.get()) {
-                        afterService(connection, grizzlyRequest, grizzlyResponse);
+                        afterService(connection, grizzlyRequest,
+                                grizzlyResponse, wsContext);
                     } else {
                         if (grizzlyRequest.asyncInput()) {
                             return ctx.getSuspendingStopAction();
@@ -158,6 +168,7 @@ public class WebServerFilter extends BaseFilter
                     }
                 }
             } else {
+                // We're working with suspended HTTP request
                 if (grizzlyRequest.asyncInput()) {
                     if (!grizzlyRequest.getInputBuffer().isFinished()) {
 
@@ -183,7 +194,7 @@ public class WebServerFilter extends BaseFilter
         } else { // this code will be run, when we resume after suspend
             final GrizzlyResponse grizzlyResponse = (GrizzlyResponse) message;
             final GrizzlyRequest grizzlyRequest = grizzlyResponse.getRequest();
-            afterService(connection, grizzlyRequest, grizzlyResponse);
+            afterService(connection, grizzlyRequest, grizzlyResponse, wsContext);
         }
 
         return ctx.getStopAction();
@@ -200,11 +211,17 @@ public class WebServerFilter extends BaseFilter
     @Override
     public void exceptionOccurred(FilterChainContext ctx, Throwable error) {
         final Connection c = ctx.getConnection();
-        GrizzlyRequest grizzlyRequest = grizzlyRequestInProcessAttr.get(c);
-        if (grizzlyRequest != null) {
-            ReadHandler handler = grizzlyRequest.getInputBuffer().getReadHandler();
-            if (handler != null) {
-                handler.onError(error);
+        final WebServerContext wsContext = webServerContextAttr.peek(c);
+
+        if (wsContext != null) {
+            final GrizzlyRequest grizzlyRequest =
+                    webServerContextAttr.get(c).associatedRequest;
+
+            if (grizzlyRequest != null) {
+                ReadHandler handler = grizzlyRequest.getInputBuffer().getReadHandler();
+                if (handler != null) {
+                    handler.onError(error);
+                }
             }
         }
     }
@@ -234,16 +251,22 @@ public class WebServerFilter extends BaseFilter
 
     private void beforeService(final Connection connection,
                               final GrizzlyRequest grizzlyRequest,
-                              final GrizzlyResponse grizzlyResponse)
+                              final GrizzlyResponse grizzlyResponse,
+                              final WebServerContext wsContext)
     throws IOException {
+        keepAliveQueue.remove(wsContext);
     }
 
     private void afterService(final Connection connection,
                               final GrizzlyRequest grizzlyRequest,
-                              final GrizzlyResponse grizzlyResponse)
+                              final GrizzlyResponse grizzlyResponse,
+                              final WebServerContext wsContext)
     throws IOException {
 
-        grizzlyRequestInProcessAttr.remove(connection);
+        wsContext.associatedRequest = null;
+        keepAliveQueue.add(wsContext,
+                listener.getKeepAliveTimeoutInSeconds(), TimeUnit.SECONDS);
+        
         grizzlyResponse.finish();
 
         final HttpRequestPacket request = grizzlyRequest.getRequest();
@@ -259,5 +282,61 @@ public class WebServerFilter extends BaseFilter
         grizzlyRequest.recycle(!isExpectContent);
         grizzlyResponse.recycle(!isExpectContent);
 
+    }
+
+    private WebServerContext obtainWebServerContext(final Connection connection) {
+        WebServerContext context = webServerContextAttr.get(connection);
+        if (context == null) {
+            context = new WebServerContext(connection);
+            webServerContextAttr.set(connection, context);
+        }
+
+        return context;
+    }
+
+    private static class WebServerContext {
+        private final Connection connection;
+
+        public WebServerContext(Connection connection) {
+            this.connection = connection;
+        }
+        
+        private volatile long keepAliveTimeoutMillis = DelayedExecutor.UNSET_TIMEOUT;
+        private GrizzlyRequest associatedRequest;
+    }
+
+    private static class KeepAliveWorker implements
+            DelayedExecutor.Worker<WebServerContext> {
+        @Override
+        public void doWork(WebServerContext element) {
+            try {
+                element.connection.close();
+            } catch (IOException ignored) {
+            }
+        }
+    }
+
+    private static class KeepAliveResolver implements
+            DelayedExecutor.Resolver<WebServerContext> {
+
+        @Override
+        public boolean removeTimeout(WebServerContext element) {
+            if (element.keepAliveTimeoutMillis != DelayedExecutor.UNSET_TIMEOUT) {
+                element.keepAliveTimeoutMillis = DelayedExecutor.UNSET_TIMEOUT;
+                return true;
+            }
+
+            return false;
+        }
+
+        @Override
+        public Long getTimeoutMillis(WebServerContext element) {
+            return element.keepAliveTimeoutMillis;
+        }
+
+        @Override
+        public void setTimeoutMillis(WebServerContext element, long timeoutMillis) {
+            element.keepAliveTimeoutMillis = timeoutMillis;
+        }
     }
 }

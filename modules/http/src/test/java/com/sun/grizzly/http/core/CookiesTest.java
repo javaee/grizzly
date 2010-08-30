@@ -152,11 +152,11 @@ public class CookiesTest extends TestCase {
             for (Cookie cookie : cookies) {
                 final String serializedString = cookie.asClientCookieString();
                 List<Cookie> parsedCookies = CookiesBuilder.client().parse(serializedString).build();
-                assertEquals(1, parsedCookies.size());
+                assertEquals(testCase.toString(), 1, parsedCookies.size());
                 
                 Cookie parsedCookie = parsedCookies.get(0);
 
-                assertTrue(equalsCookies(cookie, parsedCookie));
+                assertTrue(testCase.toString(), equalsCookies(cookie, parsedCookie));
 
                 Buffer serializedBuffer = cookie.asClientCookieBuffer();
                 parsedCookies = CookiesBuilder.client().parse(serializedBuffer).build();
@@ -164,7 +164,7 @@ public class CookiesTest extends TestCase {
 
                 parsedCookie = parsedCookies.get(0);
 
-                assertTrue(equalsCookies(cookie, parsedCookie));
+                assertTrue(testCase.toString(), equalsCookies(cookie, parsedCookie));
             }
         }
     }
@@ -189,7 +189,7 @@ public class CookiesTest extends TestCase {
             for (Cookie cookie : cookies) {
                 final String serializedString = cookie.asServerCookieString();
                 List<Cookie> parsedCookies = CookiesBuilder.server().parse(serializedString).build();
-                assertEquals(1, parsedCookies.size());
+                assertEquals(testCase.toString(), 1, parsedCookies.size());
 
                 Cookie parsedCookie = parsedCookies.get(0);
 
@@ -197,11 +197,11 @@ public class CookiesTest extends TestCase {
 
                 Buffer serializedBuffer = cookie.asServerCookieBuffer();
                 parsedCookies = CookiesBuilder.server().parse(serializedBuffer).build();
-                assertEquals(1, parsedCookies.size());
+                assertEquals(testCase.toString(), 1, parsedCookies.size());
 
                 parsedCookie = parsedCookies.get(0);
 
-                assertTrue(equalsCookies(cookie, parsedCookie));
+                assertTrue(testCase.toString(), equalsCookies(cookie, parsedCookie));
             }
         }
     }

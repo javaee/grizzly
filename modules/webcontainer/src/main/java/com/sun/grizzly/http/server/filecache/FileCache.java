@@ -55,6 +55,7 @@ import com.sun.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
 import com.sun.grizzly.monitoring.jmx.JmxMonitoringAware;
 import com.sun.grizzly.monitoring.jmx.JmxMonitoringConfig;
 import com.sun.grizzly.monitoring.jmx.JmxObject;
+import com.sun.grizzly.utils.DelayedExecutor;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -64,7 +65,6 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
@@ -137,7 +137,8 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
     private boolean enabled = true;
 
     private MemoryManager memoryManager;
-    private ScheduledExecutorService scheduledExecutorService;
+    
+    private DelayedExecutor.DelayQueue<FileCacheEntry> delayQueue;
 
     /**
      * File cache probes
@@ -155,17 +156,11 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
 
     // ---------------------------------------------------- Methods ----------//
 
-
-    public void setMemoryManager(MemoryManager memoryManager) {
-        if (this.memoryManager == null) {
-            this.memoryManager = memoryManager;
-        }
-    }
-
-    public void setScheduledExecutorService(ScheduledExecutorService scheduledExecutorService) {
-        if (this.scheduledExecutorService == null) {
-            this.scheduledExecutorService = scheduledExecutorService;
-        }
+    public void initialize(MemoryManager memoryManager,
+            DelayedExecutor delayedExecutor) {
+        this.memoryManager = memoryManager;
+        delayQueue = delayedExecutor.createDelayQueue(new EntryWorker(),
+                new EntryResolver());
     }
 
     /**
@@ -217,9 +212,10 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
         fileCacheMap.put(key, entry);
         
         notifyProbesEntryAdded(this, entry);
-        final int secondsMaxAge = getSecondsMaxAge();
-        if (secondsMaxAge > 0) {
-            scheduledExecutorService.schedule(entry, secondsMaxAge, TimeUnit.SECONDS);
+        
+        final int secondsMaxAgeLocal = getSecondsMaxAge();
+        if (secondsMaxAgeLocal > 0) {
+            delayQueue.add(entry, secondsMaxAgeLocal, TimeUnit.SECONDS);
         }
     }
 
@@ -830,6 +826,36 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
             for (FileCacheProbe probe : probes) {
                 probe.onErrorEvent(fileCache, error);
             }
+        }
+    }
+
+    private class EntryWorker implements DelayedExecutor.Worker<FileCacheEntry> {
+        @Override
+        public void doWork(FileCacheEntry element) {
+            element.run();
+        }        
+    }
+
+    private class EntryResolver implements DelayedExecutor.Resolver<FileCacheEntry> {
+
+        @Override
+        public boolean removeTimeout(FileCacheEntry element) {
+            if (element.timeoutMillis != -1) {
+                element.timeoutMillis = -1;
+                return true;
+            }
+
+            return false;
+        }
+
+        @Override
+        public Long getTimeoutMillis(FileCacheEntry element) {
+            return element.timeoutMillis;
+        }
+
+        @Override
+        public void setTimeoutMillis(FileCacheEntry element, long timeoutMillis) {
+            element.timeoutMillis = timeoutMillis;
         }
     }
 }

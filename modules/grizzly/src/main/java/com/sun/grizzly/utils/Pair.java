@@ -41,8 +41,9 @@
 package com.sun.grizzly.utils;
 
 /**
+ * Key : Value pair implementation.
  *
- * @author oleksiys
+ * @author Alexey Stashok
  */
 public class Pair<K, L> implements PoolableObject {
     private K first;
@@ -80,5 +81,10 @@ public class Pair<K, L> implements PoolableObject {
     public void release() {
         first = null;
         second = null;
+    }
+
+    @Override
+    public String toString() {
+        return "Pair{" + "key=" + first + " value=" + second + '}';
     }
 }

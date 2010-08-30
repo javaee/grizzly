@@ -114,7 +114,7 @@ public class IdleTimeoutFilter extends BaseFilter {
                             "unexpected exception, when trying " +
                             "to close connection", e);
                 }            }
-        }, new Resolver(), timeout, timeunit);
+        }, new Resolver());
 
         isHandleAccepted = true;
         isHandleConnected = true;
@@ -143,7 +143,7 @@ public class IdleTimeoutFilter extends BaseFilter {
     @Override
     public NextAction handleAccept(FilterChainContext ctx) throws IOException {
         if (isHandleAccepted) {
-            queue.add(ctx.getConnection());
+            queue.add(ctx.getConnection(), timeoutMillis, TimeUnit.MILLISECONDS);
         }
 
         return ctx.getInvokeAction();
@@ -152,7 +152,7 @@ public class IdleTimeoutFilter extends BaseFilter {
     @Override
     public NextAction handleConnect(FilterChainContext ctx) throws IOException {
         if (isHandleConnected()) {
-            queue.add(ctx.getConnection());
+            queue.add(ctx.getConnection(), timeoutMillis, TimeUnit.MILLISECONDS);
         }
 
         return ctx.getInvokeAction();
@@ -198,7 +198,7 @@ public class IdleTimeoutFilter extends BaseFilter {
         }
 
         @Override
-        public long getTimeoutMillis(Connection connection) {
+        public Long getTimeoutMillis(Connection connection) {
             return idleAttribute.get(connection);
         }
 

@@ -88,7 +88,7 @@ public final class SilentConnectionFilter extends BaseFilter {
                             "unexpected exception, when trying " +
                             "to close connection", e);
                 }            }
-        }, new Resolver(), timeout, timeunit);
+        }, new Resolver());
     }
 
     public long getTimeout(TimeUnit timeunit) {
@@ -98,7 +98,7 @@ public final class SilentConnectionFilter extends BaseFilter {
     @Override
     public NextAction handleAccept(FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
-        queue.add(connection);
+        queue.add(connection, timeoutMillis, TimeUnit.MILLISECONDS);
 
         return ctx.getInvokeAction();
     }
@@ -133,7 +133,7 @@ public final class SilentConnectionFilter extends BaseFilter {
         }
 
         @Override
-        public long getTimeoutMillis(Connection connection) {
+        public Long getTimeoutMillis(Connection connection) {
             return silentConnectionAttr.get(connection);
         }
 

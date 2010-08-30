@@ -228,6 +228,9 @@ public class GrizzlyWebServer {
 
     }
 
+    DelayedExecutor getDelayedExecutor() {
+        return delayedExecutor;
+    }
 
     ScheduledExecutorService getScheduledExecutorService() {
         return scheduledExecutorService;
@@ -390,6 +393,8 @@ public class GrizzlyWebServer {
             stopScheduledThreadPool();
             
             delayedExecutor.stop();
+            delayedExecutor = null;
+            
             stopAuxThreadPool();
 
             if (serverConfig.isJmxEnabled()) {
@@ -524,15 +529,16 @@ public class GrizzlyWebServer {
             }
 
             final FileCache fileCache = listener.getFileCache();
-            fileCache.setScheduledExecutorService(scheduledExecutorService);
-            fileCache.setMemoryManager(listener.getTransport().getMemoryManager());
+            fileCache.initialize(listener.getTransport().getMemoryManager(),
+                    delayedExecutor);
+
             final FileCacheFilter fileCacheFilter =
                     new FileCacheFilter(fileCache);
             fileCache.getMonitoringConfig().addProbes(
                     serverConfig.getMonitoringConfig().getFileCacheConfig().getProbes());
             builder.add(fileCacheFilter);
 
-            final WebServerFilter webServerFilter = new WebServerFilter(this);
+            final WebServerFilter webServerFilter = new WebServerFilter(this, listener);
             webServerFilter.getMonitoringConfig().addProbes(
                     serverConfig.getMonitoringConfig().getWebServerConfig().getProbes());
             builder.add(webServerFilter);

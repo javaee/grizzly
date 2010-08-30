@@ -732,6 +732,9 @@ public class CookieParserUtils {
                 if (cookie.getVersion() == 0 && cookie.getMaxAge() == -1 &&
                         equalsIgnoreCase("Expires", buffer, nameStart, nameEnd)) {
                     try {
+                        valueEnd = getTokenEndPosition(buffer, valueEnd + 1, end, false);
+                        pos = valueEnd + 1;
+
                         final String expiresDate =
                                 buffer.toStringContent(null, valueStart, valueEnd);
                         final Date date = OLD_COOKIE_FORMAT.get().parse(expiresDate);
@@ -972,7 +975,7 @@ public class CookieParserUtils {
                         equalsIgnoreCase("Expires", cookiesStr, nameStart, nameEnd)) {
                     try {
                         valueEnd = getTokenEndPosition(cookiesStr, valueEnd + 1, end, false);
-                        
+                        pos = valueEnd + 1;
                         final String expiresDate =
                                 cookiesStr.substring(valueStart, valueEnd);
                         final Date date = OLD_COOKIE_FORMAT.get().parse(expiresDate);
