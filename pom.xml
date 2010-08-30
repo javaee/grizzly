@@ -47,7 +47,7 @@
     <groupId>com.sun.grizzly</groupId>
     <artifactId>grizzly-framework-http</artifactId>
     <packaging>jar</packaging>
-    <version>1.0.36-SNAPSHOT</version>
+    <version>1.0.38-SNAPSHOT</version>
     <name>grizzly-framework-http</name>
     <url>https://grizzly.dev.java.net</url>
     <repositories>
