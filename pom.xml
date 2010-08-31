@@ -83,11 +83,19 @@
             <organization>Oracle</organization>
             <organizationUrl>http://www.oracle.com</organizationUrl>
         </developer>
+        <developer>
+            <id>rlubke</id>
+            <name>Ryan Lubke</name>
+            <email>rlubke@dev.java.net</email>
+            <url>http://blogs.sun.com/rlubke</url>
+            <organization>Oracle Corporation</organization>
+            <organizationUrl>http://www.oracle.com</organizationUrl>
+        </developer>
     </developers>
     <licenses>
         <license>
-            <name>CDDL</name>
-            <url>https://glassfish.dev.java.net/public/CDDLv1.0.html</url>
+            <name>CDDL+GPL</name>
+            <url>https://glassfish.dev.java.net/public/CDDL+GPL.html</url>
         </license>
     </licenses>
     <scm>
@@ -96,7 +104,7 @@
         <url>https://grizzly.dev.java.net/source/browse/grizzly/#dirlist</url>
     </scm>
     <organization>
-        <name>Oracle</name>
+        <name>Oracle Corpration</name>
         <url>http://www.oracle.com</url>
     </organization>
     <repositories>
