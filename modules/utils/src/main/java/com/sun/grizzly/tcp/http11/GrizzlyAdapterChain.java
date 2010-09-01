@@ -41,7 +41,7 @@
 package com.sun.grizzly.tcp.http11;
 
 import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.util.buf.ByteChunk;
+import com.sun.grizzly.util.buf.CharChunk;
 import com.sun.grizzly.util.buf.MessageBytes;
 import com.sun.grizzly.util.buf.UDecoder;
 import com.sun.grizzly.util.http.HttpRequestURIDecoder;
@@ -50,7 +50,6 @@ import com.sun.grizzly.util.http.mapper.MappingData;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * The GrizzlyAdapterChain class allow the invokation of multiple {@link GrizzlyAdapter}
@@ -162,20 +161,14 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
                     mappingData.recycle();
                 }
 
-                // Map the request without any trailling.
-                ByteChunk uriBB = decodedURI.getByteChunk();
-                int semicolon = uriBB.indexOf(';', 0);
-                if (semicolon > 0) {
-                    decodedURI.setBytes(uriBB.getBuffer(), uriBB.getStart(), semicolon);
-                }
-
                 HttpRequestURIDecoder.decode(decodedURI, urlDecoder, null, null);
                 if (mappingData == null) {
                     mappingData = (MappingData) req.getNote(MAPPING_DATA);
                 }
 
+                // Map the request without any trailling.
                 // Map the request to its Adapter
-                mapper.map(req.serverName(), decodedURI, mappingData);
+                mapUriWithSemicolon(req.serverName(), decodedURI, 0, mappingData);
 
                 GrizzlyAdapter adapter = null;
                 if (mappingData.context != null && mappingData.context instanceof GrizzlyAdapter) {
@@ -264,7 +257,6 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
                                 try {
                                     customizedErrorPage(request.getRequest(), response.getResponse());
                                 } catch (Exception ex) {
-                                    ;
                                 }
                             }
                         };
@@ -346,5 +338,41 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
         }
 
         return (mappings != null);
+    }
+
+    /**
+     * Maps the decodedURI to the corresponding Adapter, considering that URI
+     * may have a semicolon with extra data followed, which shouldn't be a part
+     * of mapping process.
+     *
+     * @param req HTTP request
+     * @param decodedURI URI
+     * @param semicolonPos semicolon position. Might be <tt>0</tt> if position wasn't resolved yet (so it will be resolved in the method), or <tt>-1</tt> if there is no semicolon in the URI.
+     * @param mappingData
+     * @return
+     * @throws Exception
+     */
+    private void mapUriWithSemicolon(final MessageBytes serverName,
+            final MessageBytes decodedURI, int semicolonPos,
+            final MappingData mappingData) throws Exception {
+
+        final CharChunk charChunk = decodedURI.getCharChunk();
+        final int oldEnd = charChunk.getEnd();
+
+        if (semicolonPos == 0) {
+            semicolonPos = decodedURI.indexOf(';');
+        }
+
+        if (semicolonPos == -1) {
+            semicolonPos = oldEnd;
+        }
+
+        charChunk.setEnd(semicolonPos);
+
+        try {
+            mapper.map(serverName, decodedURI, mappingData);
+        } finally {
+            charChunk.setEnd(oldEnd);
+        }
     }
 }

@@ -82,10 +82,10 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Locale;
 import java.util.TimeZone;
-import java.util.Vector;
 import java.util.logging.Level;
 
 /**
@@ -196,7 +196,7 @@ public class GrizzlyResponse<A> {
      */
     // START OF SJSAS 6231069    
     //protected OutputBuffer outputBuffer = new OutputBuffer();
-    protected GrizzlyOutputBuffer outputBuffer;
+    protected final GrizzlyOutputBuffer outputBuffer;
     // END OF SJSAS 6231069    
 
     /**
@@ -205,7 +205,7 @@ public class GrizzlyResponse<A> {
     // START OF SJSAS 6231069 
     /*protected GrizzlyOutputStream outputStream =
         new GrizzlyOutputStream(outputBuffer);*/
-    protected GrizzlyOutputStream outputStream;    
+    protected GrizzlyOutputStream outputStream;
     // END OF SJSAS 6231069    
 
     /**
@@ -580,7 +580,6 @@ public class GrizzlyResponse<A> {
         try {
             outputBuffer.close();
         } catch(IOException e) {
-	    ;
         } catch(Throwable t) {
         }
     }
@@ -1019,14 +1018,13 @@ public class GrizzlyResponse<A> {
      */
     public String[] getHeaderValues(String name) {
         checkResponse();
-        Enumeration e = response.getMimeHeaders().values(name);
-        Vector result = new Vector();
+        final Enumeration<String> e = response.getMimeHeaders().values(name);
+        final Collection<String> result = new ArrayList<String>();
         while (e.hasMoreElements()) {
-            result.addElement(e.nextElement());
+            result.add(e.nextElement());
         }
-        String[] resultArray = new String[result.size()];
-        result.copyInto(resultArray);
-        return resultArray;
+        
+        return result.toArray(new String[0]);
 
     }
 
