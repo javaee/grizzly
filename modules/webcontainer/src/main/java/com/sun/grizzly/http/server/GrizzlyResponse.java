@@ -1110,7 +1110,7 @@ public class GrizzlyResponse {
             result.add(e.nextElement());
         }
         
-        return result.toArray(new String[0]);
+        return result.toArray(new String[result.size()]);
     }
 
 

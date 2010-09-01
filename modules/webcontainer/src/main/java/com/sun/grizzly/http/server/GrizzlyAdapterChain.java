@@ -44,6 +44,7 @@ import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.http.server.jmx.JmxEventListener;
 import com.sun.grizzly.http.server.jmx.Monitorable;
 import com.sun.grizzly.http.util.BufferChunk;
+import com.sun.grizzly.http.util.CharChunk;
 import com.sun.grizzly.http.util.HttpStatus;
 import com.sun.grizzly.http.util.RequestURIRef;
 import com.sun.grizzly.http.util.UDecoder;
@@ -191,14 +192,6 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter implements JmxEventListe
                     mappingData.recycle();
                 }
 
-                // Map the request without any trailing.
-                //ByteChunk uriBB = decodedURI.getByteChunk();
-                int semicolon = decodedURI.indexOf(';', 0);
-                if (semicolon > 0) {
-                    decodedURI.setBuffer(decodedURI.getBuffer(), decodedURI.getStart(), semicolon);
-                }
-
-                //HttpRequestURIDecoder.decode(decodedURI,urlDecoder,null,null);
                 if (mappingData == null) {
                     mappingData = (MappingData) request.getNote("MAPPING_DATA");
                 }
@@ -206,11 +199,13 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter implements JmxEventListe
                 // TODO Mapper needs to be changes to not rely on MessageBytes/
                 //   CharChunk/ByteChunk, etc.
                 // Map the request to its Adapter
+
                 MessageBytes serverName = MessageBytes.newInstance();
                 serverName.setString(request.getServerName());
                 MessageBytes decURI = MessageBytes.newInstance();
                 decURI.setString(decodedURI.toString());
-                mapper.map(serverName, decURI, mappingData);
+                mapUriWithSemicolon(serverName, decURI, 0, mappingData);
+
 
                 GrizzlyAdapter adapter;
                 if (mappingData.context != null && mappingData.context instanceof GrizzlyAdapter) {
@@ -341,4 +336,46 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter implements JmxEventListe
 
         return (mappings != null);
     }
+
+
+    /**
+     * Maps the decodedURI to the corresponding Adapter, considering that URI
+     * may have a semicolon with extra data followed, which shouldn't be a part
+     * of mapping process.
+     *
+     * @param serverName the server name as described by the Host header.
+     * @param decodedURI decoded URI
+     * @param semicolonPos semicolon position. Might be <tt>0</tt> if position
+     *  wasn't resolved yet (so it will be resolved in the method),
+     *  or <tt>-1</tt> if there is no semicolon in the URI.
+     * @param mappingData {@link MappingData} based on the URI.
+     *
+     * @throws Exception if an error occurs mapping the request
+     */
+    private void mapUriWithSemicolon(final MessageBytes serverName,
+                                     final MessageBytes decodedURI,
+                                     int semicolonPos,
+                                     final MappingData mappingData)
+    throws Exception {
+
+        final CharChunk charChunk = decodedURI.getCharChunk();
+        final int oldEnd = charChunk.getEnd();
+
+        if (semicolonPos == 0) {
+            semicolonPos = decodedURI.indexOf(';');
+        }
+
+        if (semicolonPos == -1) {
+            semicolonPos = oldEnd;
+        }
+
+        charChunk.setEnd(semicolonPos);
+
+        try {
+            mapper.map(serverName, decodedURI, mappingData);
+        } finally {
+            charChunk.setEnd(oldEnd);
+        }
+    }
+
 }
