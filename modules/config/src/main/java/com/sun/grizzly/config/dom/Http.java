@@ -206,7 +206,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
      * Time after which the request times out in seconds
      */
     @Attribute(defaultValue = "900", dataType = Integer.class)
-    @Min(0)
+    @Min(-1)
     @Max(Integer.MAX_VALUE)
     String getRequestTimeoutSeconds();
 
