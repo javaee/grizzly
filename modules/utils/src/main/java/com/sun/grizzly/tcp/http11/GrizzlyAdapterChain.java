@@ -345,12 +345,14 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
      * may have a semicolon with extra data followed, which shouldn't be a part
      * of mapping process.
      *
-     * @param req HTTP request
+     * @param serverName server name per the Host header.
      * @param decodedURI URI
-     * @param semicolonPos semicolon position. Might be <tt>0</tt> if position wasn't resolved yet (so it will be resolved in the method), or <tt>-1</tt> if there is no semicolon in the URI.
-     * @param mappingData
-     * @return
-     * @throws Exception
+     * @param semicolonPos semicolon position. Might be <tt>0</tt> if position
+     *  wasn't resolved yet (so it will be resolved in the method), or
+     *  <tt>-1</tt> if there is no semicolon in the URI.
+     * @param mappingData mapping data for this request
+     *
+     * @throws Exception if an error occurs mapping the request
      */
     private void mapUriWithSemicolon(final MessageBytes serverName,
             final MessageBytes decodedURI, int semicolonPos,

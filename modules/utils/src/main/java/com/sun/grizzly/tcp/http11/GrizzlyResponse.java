@@ -84,6 +84,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
+import java.util.LinkedList;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.logging.Level;
@@ -1019,12 +1020,12 @@ public class GrizzlyResponse<A> {
     public String[] getHeaderValues(String name) {
         checkResponse();
         final Enumeration<String> e = response.getMimeHeaders().values(name);
-        final Collection<String> result = new ArrayList<String>();
+        final Collection<String> result = new LinkedList<String>();
         while (e.hasMoreElements()) {
             result.add(e.nextElement());
         }
         
-        return result.toArray(new String[0]);
+        return result.toArray(new String[result.size()]);
 
     }
 
