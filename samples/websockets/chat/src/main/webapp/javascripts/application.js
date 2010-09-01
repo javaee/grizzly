@@ -41,9 +41,9 @@ var count = 0;
 var loop = 0;
 var websocket = null;
 var name  = null;
+var url = 'ws://' + document.location.host + document.location.pathname + 'chat';
 
 var app = {
-    url: 'ws://localhost:8080/grizzly-websockets-chat/chat',
     initialize: function() {
         if ("WebSocket" in window) {
             $('login-name').focus();
@@ -73,7 +73,7 @@ var app = {
         $('login-form').style.display = 'none';
         $('message-form').style.display = '';
 
-        websocket = new WebSocket(app.url);
+        websocket = new WebSocket(url);
         websocket.name = name;
         websocket.onopen = function() {
             // Web Socket is connected. You can send data by send() method
