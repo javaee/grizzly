@@ -655,7 +655,7 @@ public class GrizzlyRequest {
     /**
      * Return the input stream associated with this Request.
      */
-    public InputStream getStream() {
+    private InputStream getStream() {
         if (inputStream == null) {
             inputStream = new GrizzlyInputStream(inputBuffer);
         }
