@@ -69,7 +69,8 @@ public class TCPEchoServer {
         MemoryStatsProbe probe = null;
         if (settings.isMonitoringMemory()) {
             probe = new MemoryStatsProbe();
-            DefaultMemoryManager memoryManager = new DefaultMemoryManager(probe);
+            DefaultMemoryManager memoryManager = new DefaultMemoryManager();
+            memoryManager.getMonitoringConfig().addProbes(probe);
             transportFactory.setDefaultMemoryManager(memoryManager);
         }
 
@@ -132,15 +133,16 @@ public class TCPEchoServer {
         private final AtomicLong allocatedFromPool = new AtomicLong();
         private final AtomicLong releasedToPool = new AtomicLong();
         
-        public void allocateNewBufferEvent(int i) {
+
+        public void onBufferAllocateEvent(int i) {
             allocatedNew.addAndGet(i);
         }
 
-        public void allocateBufferFromPoolEvent(int i) {
+        public void onBufferAllocateFromPoolEvent(int i) {
             allocatedFromPool.addAndGet(i);
         }
 
-        public void releaseBufferToPoolEvent(int i) {
+        public void onBufferReleaseToPoolEvent(int i) {
             releasedToPool.addAndGet(i);
         }
 
