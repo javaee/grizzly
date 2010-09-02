@@ -536,7 +536,7 @@ public class GrizzlyResponse {
     /**
      * Return the output stream associated with this Response.
      */
-    public OutputStream getStream() {
+    private OutputStream getStream() {
         if (outputStream == null) {
             outputStream = new GrizzlyOutputStream(outputBuffer);
         }

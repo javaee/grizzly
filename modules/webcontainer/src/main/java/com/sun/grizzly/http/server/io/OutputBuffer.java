@@ -51,6 +51,8 @@ import com.sun.grizzly.http.Constants;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.http.util.Utils;
+import com.sun.grizzly.memory.BuffersBuffer;
+import com.sun.grizzly.memory.CompositeBuffer;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
 import com.sun.grizzly.nio.AbstractNIOConnection;
@@ -79,7 +81,9 @@ public class OutputBuffer {
 
     private FilterChainContext ctx;
 
-    private Buffer buf;
+    private CompositeBuffer compositeBuffer;
+
+    private Buffer currentBuffer;
 
     private boolean committed;
 
@@ -93,7 +97,7 @@ public class OutputBuffer {
 
     private CharsetEncoder encoder;
 
-    private CharBuffer charBuf = CharBuffer.allocate(DEFAULT_BUFFER_SIZE);
+    private final CharBuffer charBuf = CharBuffer.allocate(1);
 
     private MemoryManager memoryManager;
 
@@ -105,7 +109,18 @@ public class OutputBuffer {
 
     private AsyncQueueWriter asyncWriter;
 
+    private final CompletionHandler asyncCompletionHandler =
+            new EmptyCompletionHandler() {
 
+                @Override
+                public void failed(Throwable throwable) {
+                    if (handler != null) {
+                        handler.onError(throwable);
+                    } else {
+                        asyncError.compareAndSet(null, throwable);
+                    }
+                }
+            };
     // ---------------------------------------------------------- Public Methods
 
 
@@ -115,7 +130,7 @@ public class OutputBuffer {
         this.response = response;
         this.ctx = ctx;
         memoryManager = ctx.getConnection().getTransport().getMemoryManager();
-        buf = memoryManager.allocate(DEFAULT_BUFFER_SIZE);
+        compositeBuffer = createCompositeBuffer();
         final Connection c = ctx.getConnection();
         asyncWriter = ((AsyncQueueWriter) c.getTransport().getWriter(c));
 
@@ -147,8 +162,10 @@ public class OutputBuffer {
         if (committed)
             throw new IllegalStateException(/*FIXME:Put an error message*/);
 
-        buf.clear();
-        charBuf.clear();
+        compositeBuffer.removeAll();
+        if (currentBuffer != null) {
+            currentBuffer.clear();
+        }
 
     }
 
@@ -161,10 +178,14 @@ public class OutputBuffer {
 
         response = null;
 
-        buf.tryDispose();
-        charBuf.clear();
-
-        buf = null;
+        compositeBuffer.dispose();
+        compositeBuffer = null;
+        
+        if (currentBuffer != null) {
+            currentBuffer.dispose();
+            currentBuffer = null;
+        }
+        
         encoder = null;
         ctx = null;
         memoryManager = null;
@@ -242,31 +263,11 @@ public class OutputBuffer {
 
         handleAsyncErrors();
 
-        if (closed) {
+        if (closed || len == 0) {
             return;
         }
 
-        int total = len;
-        do {
-            int writeLen = requiresDrainChar(total);
-            if (writeLen == CAPACITY_OK) {
-                charBuf.put(cbuf, off, total);
-                total = 0;
-            } else if (writeLen == DEFAULT_BUFFER_SIZE) {
-                charBuf.put(cbuf, off, writeLen);
-                total -= writeLen;
-                flushCharsToBuf();
-            } else {
-                charBuf.put(cbuf, off, writeLen);
-                flushCharsToBuf();
-                charBuf.put(cbuf, off + writeLen, total - writeLen);
-                total -= (total + total - writeLen);
-            }
-            if (charBuf.remaining() == 0) {
-                flushCharsToBuf();
-            }
-            off += DEFAULT_BUFFER_SIZE;
-        } while (total > 0);
+        flushCharsToBuf(CharBuffer.wrap(cbuf, off, len));
 
     }
 
@@ -282,13 +283,10 @@ public class OutputBuffer {
         if (closed) {
             return;
         }
-        int writeLen = requiresDrainChar(1);
-        if (writeLen == CAPACITY_OK) {
-            charBuf.put((char) c);
-        } else {
-            flushCharsToBuf();
-            charBuf.put((char) c);
-        }
+
+        charBuf.position(0);
+        charBuf.put(0, (char) c);
+        flushCharsToBuf(charBuf);
     }
 
 
@@ -310,33 +308,11 @@ public class OutputBuffer {
 
         handleAsyncErrors();
 
-        if (closed) {
+        if (closed || len == 0) {
             return;
         }
-        int total = len;
-        do {
-            int writeLen = requiresDrainChar(total);
-            if (writeLen == CAPACITY_OK) {
-                charBuf.put(str, off, total + off);
-                total = 0;
-            } else if (writeLen == DEFAULT_BUFFER_SIZE) {
-                charBuf.put(str, off, writeLen + off);
-                total -= (writeLen);
-                flushCharsToBuf();
-            } else {
-                charBuf.put(str, off, off + writeLen);
-                flushCharsToBuf();
-                int rem = total - writeLen;
-                charBuf.put(str, off + writeLen, off + writeLen + rem);
-                total -= (writeLen + rem);
-            }
-            if (charBuf.remaining() == 0) {
-                flushCharsToBuf();
-            }
-            off += DEFAULT_BUFFER_SIZE;
 
-        } while (total > 0);
-        
+        flushCharsToBuf(CharBuffer.wrap(str, off, len + off));
     }
 
 
@@ -348,12 +324,15 @@ public class OutputBuffer {
         if (closed) {
             return;
         }
-        int writeLen = requiresDrain(1);
-        if (writeLen == CAPACITY_OK) {
-            buf.put((byte) b);
+
+        checkCurrentBuffer();
+        
+        if (currentBuffer.hasRemaining()) {
+            currentBuffer.put((byte) b);
         } else {
             flush();
-            buf.put((byte) b);
+            checkCurrentBuffer();
+            currentBuffer.put((byte) b);
         }
 
     }
@@ -367,31 +346,25 @@ public class OutputBuffer {
     public void write(byte b[], int off, int len) throws IOException {
 
         handleAsyncErrors();
-        if (closed) {
+        if (closed || len == 0) {
             return;
         }
+        
         int total = len;
         do {
-            int writeLen = requiresDrain(total);
-            if (writeLen == CAPACITY_OK) {
-                buf.put(b, off, total);
-                total = 0;
-            } else if (writeLen == DEFAULT_BUFFER_SIZE) {
-                buf.put(b, off, writeLen);
-                total -= writeLen;
-                flush();
-            } else {
-                buf.put(b, off, writeLen);
-                flush();
-                buf.put(b, off + writeLen, total - writeLen);
-                total -= (total + total - writeLen);
-            }
-            if (!buf.hasRemaining()) {
-                flush();
-            }
-            off += DEFAULT_BUFFER_SIZE;
-        } while (total > 0);
+            checkCurrentBuffer();
 
+            final int writeLen = Math.min(currentBuffer.remaining(), total);
+            currentBuffer.put(b, off, writeLen);
+            off += writeLen;
+            total -= writeLen;
+
+            if (currentBuffer.hasRemaining()) { // complete
+                return;
+            }
+
+            flush();
+        } while (total > 0);
     }
 
 
@@ -406,9 +379,7 @@ public class OutputBuffer {
         }
         closed = true;
         doCommit();
-        if (processingChars) {
-            flushCharsToBuf();
-        }
+
         writeContentChunk(true);
 
     }
@@ -424,9 +395,6 @@ public class OutputBuffer {
     public void flush() throws IOException {
 
         doCommit();
-        if (processingChars) {
-            flushCharsToBuf();
-        }
         writeContentChunk(false);
 
     }
@@ -437,12 +405,16 @@ public class OutputBuffer {
      * Writes the contents of the specified {@link ByteBuffer} to the client.
      * </p>
      *
+     * Note, that passed {@link ByteBuffer} will be directly used by underlying
+     * connection, so it could be reused only if it has been flushed.
+     *
      * @param byteBuffer the {@link ByteBuffer} to write
      * @throws IOException if an error occurs during the write
      */
     @SuppressWarnings({"unchecked"})
     public void writeByteBuffer(ByteBuffer byteBuffer) throws IOException {
         Buffer w = MemoryUtils.wrap(memoryManager, byteBuffer);
+        w.allowBufferDispose(false);
         writeBuffer(w);
     }
 
@@ -452,32 +424,15 @@ public class OutputBuffer {
      * Writes the contents of the specified {@link Buffer} to the client.
      * </p>
      *
+     * Note, that passed {@link Buffer} will be directly used by underlying
+     * connection, so it could be reused only if it has been flushed.
+     * 
      * @param buffer the {@link ByteBuffer} to write
      * @throws IOException if an error occurs during the write
      */
     public void writeBuffer(Buffer buffer) throws IOException {
-        int total = buffer.remaining();
-        int off = buffer.position();
-        do {
-            int writeLen = requiresDrain(total);
-            if (writeLen == CAPACITY_OK) {
-                buf.put(buffer, off, total);
-                total = 0;
-            } else if (writeLen == DEFAULT_BUFFER_SIZE) {
-                buf.put(buffer, off, writeLen);
-                total -= writeLen;
-                flush();
-            } else {
-                buf.put(buffer, off, writeLen);
-                flush();
-                buf.put(buffer, off + writeLen, total - writeLen);
-                total -= (total + total - writeLen);
-            }
-            if (!buf.hasRemaining()) {
-                flush();
-            }
-            off += DEFAULT_BUFFER_SIZE;
-        } while (total > 0);
+        finishCurrentBuffer();
+        compositeBuffer.append(buffer);
     }
 
 
@@ -569,88 +524,53 @@ public class OutputBuffer {
 
     private void writeContentChunk(boolean includeTrailer) throws IOException {
         handleAsyncErrors();
-        if (buf.position() > 0) {
-            buf.trim();
+
+        final Buffer bufferToFlush;
+        final boolean isFlushComposite = compositeBuffer.hasRemaining();
+
+        if (isFlushComposite) {
+            finishCurrentBuffer();
+            bufferToFlush = compositeBuffer;
+        } else if (currentBuffer != null && currentBuffer.position() > 0) {
+            currentBuffer.trim();
+            bufferToFlush = currentBuffer;
+            currentBuffer = null;
+        } else {
+            bufferToFlush = null;
+        }
+
+        if (bufferToFlush != null) {
             HttpContent.Builder builder = response.httpContentBuilder();
-            builder.content(buf);
-            final CompletionHandler c = new EmptyCompletionHandler() {
-
-                @Override
-                public void failed(Throwable throwable) {
-                    if (handler != null) {
-                        handler.onError(throwable);
-                    } else {
-                        asyncError.compareAndSet(null, throwable);
-                    }
-                }
-
-            };
-            ctx.write(builder.build(), c);
-            if (!includeTrailer) {
-                buf = memoryManager.allocate(DEFAULT_BUFFER_SIZE);
+            builder.content(bufferToFlush);
+            ctx.write(builder.build(), asyncCompletionHandler);
+            if (!includeTrailer && isFlushComposite) { // recreate composite if needed
+                compositeBuffer = createCompositeBuffer();
             }
         }
+        
         if (response.isChunked() && includeTrailer) {
             ctx.write(response.httpTrailerBuilder().build());
         }
     }
 
-
-    private void flushCharsToBuf() throws IOException {
-
-        handleAsyncErrors();
-        // flush the buffer - need to take care of encoding at this point
-        CharsetEncoder enc = getEncoder();
-        charBuf.flip();
-        CoderResult res = enc.encode(charBuf,
-                                     (ByteBuffer) buf.underlying(),
-                                     true);
-        while (res == CoderResult.OVERFLOW) {
-            commit();
-            writeContentChunk(false);
-            res = enc.encode(charBuf, (ByteBuffer) buf.underlying(), true);
-        }
-
-        if (res != CoderResult.UNDERFLOW) {
-            throw new IOException("Encoding error");
-        }
-
-        charBuf.clear();
-
-    }
-
-
-    private int requiresDrainChar(int len) {
-        int rem = charBuf.remaining();
-        if (len < rem) {
-            return CAPACITY_OK;
-        } else {
-            if (len == DEFAULT_BUFFER_SIZE) {
-                return DEFAULT_BUFFER_SIZE;
-            }
-            if (len > DEFAULT_BUFFER_SIZE) {
-                return DEFAULT_BUFFER_SIZE - charBuf.position();
-            }
-            return (len - rem);
+    private void checkCurrentBuffer() {
+        if (currentBuffer == null) {
+            currentBuffer = memoryManager.allocate(DEFAULT_BUFFER_SIZE);
         }
     }
 
-
-    private int requiresDrain(int len) {
-        int rem = buf.remaining();
-        if (len < rem) {
-            return CAPACITY_OK;
-        } else {
-            int ret = (len - rem);
-            return ((ret > DEFAULT_BUFFER_SIZE) ? rem : ret);
+    private void finishCurrentBuffer() {
+        if (currentBuffer != null && currentBuffer.position() > 0) {
+            currentBuffer.trim();
+            compositeBuffer.append(currentBuffer);
+            currentBuffer = null;
         }
     }
-
 
     private CharsetEncoder getEncoder() {
 
         if (encoder == null) {
-            Charset cs = Utils.lookupCharset(getEncoding());
+            final Charset cs = Utils.lookupCharset(getEncoding());
             encoder = cs.newEncoder();
             encoder.onMalformedInput(CodingErrorAction.REPLACE);
             encoder.onUnmappableCharacter(CodingErrorAction.REPLACE);
@@ -672,4 +592,33 @@ public class OutputBuffer {
 
     }
 
+    private CompositeBuffer createCompositeBuffer() {
+        final CompositeBuffer buffer = BuffersBuffer.create(memoryManager);
+        buffer.allowBufferDispose(true);
+        buffer.allowInternalBuffersDispose(true);
+
+        return buffer;
+    }
+
+    private void flushCharsToBuf(CharBuffer charBuf) throws IOException {
+
+        handleAsyncErrors();
+        // flush the buffer - need to take care of encoding at this point
+        CharsetEncoder enc = getEncoder();
+        checkCurrentBuffer();
+        CoderResult res = enc.encode(charBuf,
+                                     (ByteBuffer) currentBuffer.underlying(),
+                                     true);
+        while (res == CoderResult.OVERFLOW) {
+            commit();
+            writeContentChunk(false);
+            checkCurrentBuffer();
+            res = enc.encode(charBuf, (ByteBuffer) currentBuffer.underlying(), true);
+        }
+
+        if (res != CoderResult.UNDERFLOW) {
+            throw new IOException("Encoding error");
+        }
+
+    }
 }
