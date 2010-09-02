@@ -58,8 +58,6 @@ import com.sun.grizzly.nio.AbstractNIOConnection;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.channels.FileChannel;
-import java.nio.channels.WritableByteChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
@@ -70,7 +68,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * Abstraction exposing both byte and character methods to write content
  * to the HTTP messaging system in Grizzly.
  */
-public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
+public class OutputBuffer {
 
     private static final int DEFAULT_BUFFER_SIZE = 1024 * 8;
 
@@ -224,7 +222,7 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
      * Acknowledge a HTTP <code>Expect</code> header.  The response status
      * code and reason phrase should be set before invoking this method.
      *
-     * @throws IOException if an error occurs writing the acknowledgement.
+     * @throws IOException if an error occurs writing the acknowledgment.
      */
     public void acknowledge() throws IOException {
 
@@ -400,7 +398,6 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
     // --------------------------------------------------- Common Output Methods
 
 
-    @Override
     public void close() throws IOException {
 
         handleAsyncErrors();
@@ -422,7 +419,7 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
     /**
      * Flush the response.
      *
-     * @throws java.io.IOException an undelying I/O error occured
+     * @throws java.io.IOException an underlying I/O error occurred
      */
     public void flush() throws IOException {
 
@@ -476,51 +473,11 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
                 buf.put(buffer, off + writeLen, total - writeLen);
                 total -= (total + total - writeLen);
             }
-            if (buf.remaining() == 0) {
+            if (!buf.hasRemaining()) {
                 flush();
             }
             off += DEFAULT_BUFFER_SIZE;
         } while (total > 0);
-    }
-
-
-    // ------------------------------------------- Methods from FileOutputBuffer
-
-    /**
-     * <p>
-     * The use of {@link FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}
-     * is supported.
-     * </p>
-     *
-     * @return <code>true</code>
-     */
-    @Override
-    public boolean isSupportFileSend() {
-        return true;
-    }
-
-    /**
-     * @see FileOutputBuffer#sendFile(java.nio.channels.FileChannel, long, long)
-     */
-    @Override
-    public long sendFile(FileChannel fileChannel, long position, long length)
-    throws IOException {
-        return fileChannel.transferTo(position, length, this);
-    }
-
-
-    // ---------------------------------------- Methods from WritableByteChannel
-
-    @Override
-    public int write(ByteBuffer src) throws IOException {
-        int len = src.remaining();
-        writeByteBuffer(src);
-        return len;
-    }
-
-    @Override
-    public boolean isOpen() {
-        return !closed;
     }
 
 
