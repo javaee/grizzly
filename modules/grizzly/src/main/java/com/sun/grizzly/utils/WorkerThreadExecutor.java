@@ -54,7 +54,7 @@ import java.util.logging.Logger;
  * @author Alexey Stashok
  */
 public class WorkerThreadExecutor implements EventExecutor {
-    private static Logger logger = Grizzly.logger(WorkerThreadExecutor.class);
+    private static final Logger LOGGER = Grizzly.logger(WorkerThreadExecutor.class);
 
     private final ExecutorService workerThreadPool;
 
@@ -67,7 +67,7 @@ public class WorkerThreadExecutor implements EventExecutor {
         try {
             workerThreadPool.execute(task);
         } catch (RejectedExecutionException e) {
-            logger.log(Level.FINE, "Task " + task
+            LOGGER.log(Level.FINE, "Task " + task
                     + " was rejected by ThreadPool. Reason: ", e);
         }
     }

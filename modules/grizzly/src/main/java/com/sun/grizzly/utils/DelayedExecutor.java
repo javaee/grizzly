@@ -111,7 +111,6 @@ public class DelayedExecutor {
         return l1 != l2 && (l1 != null ? !l1.equals(l2) : !l2.equals(l1));
     }
 
-
     private class DelayedRunnable implements Runnable {
 
         @Override
