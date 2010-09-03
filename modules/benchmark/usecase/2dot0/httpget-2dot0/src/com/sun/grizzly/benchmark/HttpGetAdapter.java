@@ -41,67 +41,54 @@
 package com.sun.grizzly.benchmark;
 
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.filterchain.BaseFilter;
-import com.sun.grizzly.filterchain.FilterChainContext;
-import com.sun.grizzly.filterchain.NextAction;
-import com.sun.grizzly.http.HttpContent;
-import com.sun.grizzly.http.HttpRequestPacket;
-import com.sun.grizzly.http.HttpResponsePacket;
-import com.sun.grizzly.http.util.Ascii;
-import com.sun.grizzly.http.util.BufferChunk;
+import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.http.server.GrizzlyAdapter;
+import com.sun.grizzly.http.server.GrizzlyRequest;
+import com.sun.grizzly.http.server.GrizzlyResponse;
+import com.sun.grizzly.http.server.io.GrizzlyOutputStream;
 import com.sun.grizzly.memory.BufferUtils;
 import com.sun.grizzly.memory.MemoryManager;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- * Simple Web app filter, which responses with the content of the required size.
- * 
- * @author Alexey Stashok
+ *
+ * @author oleksiys
  */
-public class HttpGetFilter extends BaseFilter {
+public class HttpGetAdapter extends GrizzlyAdapter {
+    private static final Logger LOGGER = Grizzly.logger(HttpGetAdapter.class);
 
     @Override
-    public NextAction handleRead(FilterChainContext ctx) throws IOException {
-        final HttpContent httpContent = (HttpContent) ctx.getMessage();
+    public void service(GrizzlyRequest request, GrizzlyResponse response)
+            throws Exception {
+        String sizeParamter = request.getParameter("size");
+        int size = parseSize(sizeParamter);
 
-        if (!httpContent.isLast()) {
-            // no action until we have all content
-            return ctx.getStopAction();
-        }
+        final MemoryManager mm =
+                request.getContext().getConnection().getTransport().getMemoryManager();
 
-        final HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
-        final int size = getSize(request.getQueryStringBC());
-
-        final HttpResponsePacket response = HttpResponsePacket.builder()
-                .protocol("HTTP/1.1")
-                .status(200)
-                .reasonPhrase("OK")
-                .contentLength(size)
-                .header("Content-Type", "text/plain")
-                .build();
-
-        MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
-        final Buffer b = mm.allocate(size);
-        BufferUtils.fill(b, (byte) 'A');
-
-        final HttpContent content = HttpContent.builder(response).content(b).build();
-
-        ctx.write(content);
+        final Buffer buffer = mm.allocate(size);
+        buffer.allowBufferDispose();
         
-        return ctx.getStopAction();
+        BufferUtils.fill(buffer, (byte) 'A');
+
+        try {
+            response.setContentLength(size);
+            response.setContentType("text/plain");
+            GrizzlyOutputStream outputStream = response.getOutputStream();
+            outputStream.write(buffer);
+            outputStream.flush();
+        } catch (IOException e) {
+            LOGGER.log(Level.WARNING, "Error sending response", e);
+        }
     }
 
-    private static int getSize(BufferChunk queryString) {
-        if (!queryString.isNull()) {
-            final int idx = queryString.indexOf("size=", 0);
-            if (idx != -1) {
-                final int sizeIdx = idx + "size=".length();
-                int idx2 = queryString.indexOf('&', sizeIdx);
-                if (idx2 == -1) {
-                    idx2 = queryString.length();
-                }
-                
-                return (int) Ascii.parseLong(queryString, sizeIdx, idx2 - sizeIdx);
+    private static int parseSize(String sizeParam) {
+        if (sizeParam != null) {
+            try {
+                return Integer.parseInt(sizeParam);
+            } catch (NumberFormatException e) {
             }
         }
 

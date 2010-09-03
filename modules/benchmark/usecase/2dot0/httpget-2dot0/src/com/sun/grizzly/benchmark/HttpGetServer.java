@@ -43,12 +43,12 @@ package com.sun.grizzly.benchmark;
 import com.sun.grizzly.Strategy;
 import com.sun.grizzly.Transport;
 import com.sun.grizzly.TransportFactory;
-import com.sun.grizzly.filterchain.FilterChainBuilder;
-import com.sun.grizzly.filterchain.TransportFilter;
-import com.sun.grizzly.http.HttpServerFilter;
+import com.sun.grizzly.http.server.GrizzlyListener;
+import com.sun.grizzly.http.server.GrizzlyWebServer;
+import com.sun.grizzly.http.server.ServerConfiguration;
 import com.sun.grizzly.memory.DefaultMemoryManager;
 import com.sun.grizzly.memory.MemoryProbe;
-import com.sun.grizzly.nio.transport.TCPNIOTransport;
+import com.sun.grizzly.nio.NIOTransport;
 import com.sun.grizzly.threadpool.GrizzlyExecutorService;
 import com.sun.grizzly.threadpool.ThreadPoolConfig;
 import java.lang.reflect.Constructor;
@@ -70,38 +70,34 @@ public class HttpGetServer {
         MemoryStatsProbe probe = null;
         if (settings.isMonitoringMemory()) {
             probe = new MemoryStatsProbe();
-            DefaultMemoryManager memoryManager = new DefaultMemoryManager(probe);
+            DefaultMemoryManager memoryManager = new DefaultMemoryManager();
+            memoryManager.getMonitoringConfig().addProbes(probe);
             transportFactory.setDefaultMemoryManager(memoryManager);
         }
 
-        int poolSize = (settings.getWorkerThreads());
+        // create a basic server that listens on port.
+        final GrizzlyWebServer server = new GrizzlyWebServer();
 
-        final ThreadPoolConfig tpc = ThreadPoolConfig.DEFAULT.clone().
-                setPoolName("Grizzly-BM").
-                setCorePoolSize(poolSize).setMaxPoolSize(poolSize);
+        final ServerConfiguration config = server.getServerConfiguration();
+        config.setDocRoot(".");
+        // Map the path, /echo, to the BlockingEchoAdapter
+        config.addGrizzlyAdapter(new HttpGetAdapter(), "/");
 
-        FilterChainBuilder builder = FilterChainBuilder.stateless();
-        builder.add(new TransportFilter());
-        builder.add(new HttpServerFilter());
-        builder.add(new HttpGetFilter());
+        final GrizzlyListener listener =
+                new GrizzlyListener("grizzly",
+                                    settings.getHost(),
+                                    settings.getPort());
+        
+        configureTransport(listener.getTransport(), settings);
 
-        TCPNIOTransport transport = transportFactory.createTCPTransport();
-        transport.setProcessor(builder.build());
-        transport.setThreadPool(GrizzlyExecutorService.createInstance(tpc));
-        transport.setSelectorRunnersCount(settings.getSelectorThreads());
-
-        Strategy strategy = loadStrategy(settings.getStrategyClass(), transport);
-
-        transport.setStrategy(strategy);
+        server.addListener(listener);
 
         try {
-            transport.bind(settings.getHost(), settings.getPort());
-            transport.start();
-
+            server.start();
             System.out.println("Press enter to stop the server...");
             System.in.read();
         } finally {
-            transport.stop();
+            server.stop();
             TransportFactory.getInstance().close();
         }
 
@@ -110,7 +106,24 @@ public class HttpGetServer {
         }
     }
 
-    public static Strategy loadStrategy(Class<? extends Strategy> strategy, Transport transport) {
+    private static void configureTransport(NIOTransport transport, Settings settings) {
+        int poolSize = (settings.getWorkerThreads());
+
+        final ThreadPoolConfig tpc = ThreadPoolConfig.DEFAULT.clone().
+                setPoolName("Grizzly-BM").
+                setCorePoolSize(poolSize).setMaxPoolSize(poolSize);
+
+
+        transport.setThreadPool(GrizzlyExecutorService.createInstance(tpc));
+        transport.setSelectorRunnersCount(settings.getSelectorThreads());
+
+        Strategy strategy = loadStrategy(settings.getStrategyClass(), transport);
+
+        transport.setStrategy(strategy);
+
+    }
+
+    private static Strategy loadStrategy(Class<? extends Strategy> strategy, Transport transport) {
         try {
             return strategy.newInstance();
         } catch (Exception e) {
@@ -129,20 +142,20 @@ public class HttpGetServer {
         }
     }
 
-    public static class MemoryStatsProbe implements MemoryProbe {
+    private static class MemoryStatsProbe implements MemoryProbe {
         private final AtomicLong allocatedNew = new AtomicLong();
         private final AtomicLong allocatedFromPool = new AtomicLong();
         private final AtomicLong releasedToPool = new AtomicLong();
 
-        public void allocateNewBufferEvent(int i) {
+        public void onBufferAllocateEvent(int i) {
             allocatedNew.addAndGet(i);
         }
 
-        public void allocateBufferFromPoolEvent(int i) {
+        public void onBufferAllocateFromPoolEvent(int i) {
             allocatedFromPool.addAndGet(i);
         }
 
-        public void releaseBufferToPoolEvent(int i) {
+        public void onBufferReleaseToPoolEvent(int i) {
             releasedToPool.addAndGet(i);
         }
 
