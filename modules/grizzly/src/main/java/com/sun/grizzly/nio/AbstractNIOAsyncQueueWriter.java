@@ -165,7 +165,8 @@ public abstract class AbstractNIOAsyncQueueWriter
         
         final boolean isLocked = currentElement.compareAndSet(null, LOCK_RECORD);
         if (isLogFine) {
-            logger.log(Level.FINEST, "AsyncQueueWriter.write connection=" + connection + " record=" + queueRecord + " directWrite=" + isLocked);
+            logger.log(Level.FINEST, "AsyncQueueWriter.write connection={0} record={1} directWrite={2}",
+                    new Object[]{connection, queueRecord, isLocked});
         }
 
         try {
@@ -186,7 +187,8 @@ public abstract class AbstractNIOAsyncQueueWriter
                 currentElement.set(nextRecord);
                 
                 if (isLogFine) {
-                    logger.log(Level.FINEST, "AsyncQueueWriter.write completed connection=" + connection + " record=" + queueRecord + " nextRecord=" + nextRecord);
+                    logger.log(Level.FINEST, "AsyncQueueWriter.write completed connection={0} record={1} nextRecord={2}",
+                            new Object[]{connection, queueRecord, nextRecord});
                 }
                 
                 onWriteComplete(connection, queueRecord);
@@ -195,12 +197,14 @@ public abstract class AbstractNIOAsyncQueueWriter
                     // try one more time
                     nextRecord = queue.peek();
                     if (isLogFine) {
-                        logger.log(Level.FINEST, "AsyncQueueWriter.write peek connection=" + connection + " nextRecord=" + nextRecord);
+                        logger.log(Level.FINEST, "AsyncQueueWriter.write peek connection={0} nextRecord={1}",
+                                new Object[]{connection, nextRecord});
                     }
                     if (nextRecord != null
                             && currentElement.compareAndSet(null, nextRecord)) {
                         if (isLogFine) {
-                            logger.log(Level.FINEST, "AsyncQueueWriter.write peek, onReadyToWrite. connection=" + connection);
+                            logger.log(Level.FINEST, "AsyncQueueWriter.write peek, onReadyToWrite. connection={0}",
+                                    connection);
                         }
                         if (queue.remove(nextRecord)) {
                             onReadyToWrite(connection);
@@ -208,7 +212,8 @@ public abstract class AbstractNIOAsyncQueueWriter
                     }
                 } else { // if there is something in queue
                     if (isLogFine) {
-                        logger.log(Level.FINEST, "AsyncQueueWriter.write onReadyToWrite. connection=" + connection);
+                        logger.log(Level.FINEST, "AsyncQueueWriter.write onReadyToWrite. connection={0}",
+                                connection);
                     }
                     
                     onReadyToWrite(connection);
@@ -223,7 +228,8 @@ public abstract class AbstractNIOAsyncQueueWriter
 
                 if (cloner != null) {
                     if (isLogFine) {
-                        logger.log(Level.FINEST, "AsyncQueueWriter.write clone. connection=" + connection);
+                        logger.log(Level.FINEST, "AsyncQueueWriter.write clone. connection={0}",
+                                connection);
                     }
                     // clone message
                     buffer = cloner.clone(connection, buffer);
@@ -234,21 +240,24 @@ public abstract class AbstractNIOAsyncQueueWriter
 
                 if (isLocked) { // If write wasn't completed
                     if (isLogFine) {
-                        logger.log(Level.FINEST, "AsyncQueueWriter.write onReadyToWrite. connection=" + connection);
+                        logger.log(Level.FINEST, "AsyncQueueWriter.write onReadyToWrite. connection={0}",
+                                connection);
                     }
 
                     currentElement.set(queueRecord);
                     onReadyToWrite(connection);
                 } else {  // if queue wasn't empty
                     if (isLogFine) {
-                        logger.log(Level.FINEST, "AsyncQueueWriter.write queue record. connection=" + connection + " record=" + queueRecord);
+                        logger.log(Level.FINEST, "AsyncQueueWriter.write queue record. connection={0} record={1}",
+                                new Object[]{connection, queueRecord});
                     }
                     
                     connectionQueue.getQueue().offer(queueRecord);
 
                     if (currentElement.compareAndSet(null, queueRecord)) {
                         if (isLogFine) {
-                            logger.log(Level.FINEST, "AsyncQueueWriter.write set record as current. connection=" + connection + " record=" + queueRecord);
+                            logger.log(Level.FINEST, "AsyncQueueWriter.write set record as current. connection={0} record={1}",
+                                    new Object[]{connection, queueRecord});
                         }
                         
                         if (queue.remove(queueRecord)) {
@@ -259,7 +268,8 @@ public abstract class AbstractNIOAsyncQueueWriter
                     // Check whether connection is still open
                     if (!connection.isOpen() && queue.remove(queueRecord)) {
                         if (isLogFine) {
-                            logger.log(Level.FINEST, "AsyncQueueWriter.write connection is closed. connection=" + connection + " record=" + queueRecord);
+                            logger.log(Level.FINEST, "AsyncQueueWriter.write connection is closed. connection={0} record={1}",
+                                    new Object[]{connection, queueRecord});
                         }
                         onWriteFailure(connection, queueRecord,
                                 new IOException("Connection is closed"));
@@ -307,7 +317,8 @@ public abstract class AbstractNIOAsyncQueueWriter
 
         AsyncWriteQueueRecord queueRecord = currentElement.get();
         if (isLogFine) {
-            logger.log(Level.FINEST, "AsyncQueueWriter.processAsync connection=" + connection + " record=" + queueRecord + " isLockRecord=" + (queueRecord == LOCK_RECORD));
+            logger.log(Level.FINEST, "AsyncQueueWriter.processAsync connection={0} record={1} isLockRecord={2}",
+                    new Object[]{connection, queueRecord, queueRecord == LOCK_RECORD});
         }
         
         if (queueRecord == LOCK_RECORD) return;
@@ -315,7 +326,8 @@ public abstract class AbstractNIOAsyncQueueWriter
         try {
             while (queueRecord != null) {
                 if (isLogFine) {
-                    logger.log(Level.FINEST, "AsyncQueueWriter.processAsync doWrite connection=" + connection + " record=" + queueRecord);
+                    logger.log(Level.FINEST, "AsyncQueueWriter.processAsync doWrite connection={0} record={1}",
+                            new Object[]{connection, queueRecord});
                 }
                 
                 final int bytesWritten = doWrite(connection, queueRecord);
@@ -325,7 +337,8 @@ public abstract class AbstractNIOAsyncQueueWriter
                 if (isFinished(connection, queueRecord)) {
 
                     if (isLogFine) {
-                        logger.log(Level.FINEST, "AsyncQueueWriter.processAsync finished connection=" + connection + " record=" + queueRecord);
+                        logger.log(Level.FINEST, "AsyncQueueWriter.processAsync finished connection={0} record={1}",
+                                new Object[]{connection, queueRecord});
                     }
                     
                     final AsyncWriteQueueRecord nextRecord = queue.poll();
@@ -335,19 +348,22 @@ public abstract class AbstractNIOAsyncQueueWriter
 
                     queueRecord = nextRecord;
                     if (isLogFine) {
-                        logger.log(Level.FINEST, "AsyncQueueWriter.processAsync nextRecord connection=" + connection + " nextRecord=" + queueRecord);
+                        logger.log(Level.FINEST, "AsyncQueueWriter.processAsync nextRecord connection={0} nextRecord={1}",
+                                new Object[]{connection, queueRecord});
                     }
                     // check if there is ready element in the queue
                     if (queueRecord == null) {
                         queueRecord = queue.peek();
                         if (isLogFine) {
-                            logger.log(Level.FINEST, "AsyncQueueWriter.processAsync peekRecord connection=" + connection + " peekRecord=" + queueRecord);
+                            logger.log(Level.FINEST, "AsyncQueueWriter.processAsync peekRecord connection={0} peekRecord={1}",
+                                    new Object[]{connection, queueRecord});
                         }
                         if (queueRecord != null
                                 && currentElement.compareAndSet(null, queueRecord)) {
 
                             if (isLogFine) {
-                                logger.log(Level.FINEST, "AsyncQueueWriter.processAsync set as current connection=" + connection + " peekRecord=" + queueRecord);
+                                logger.log(Level.FINEST, "AsyncQueueWriter.processAsync set as current connection={0} peekRecord={1}",
+                                        new Object[]{connection, queueRecord});
                             }
                             
                             if (!queue.remove(queueRecord)) { // if the record was picked up by another thread
@@ -360,7 +376,8 @@ public abstract class AbstractNIOAsyncQueueWriter
                     }
                 } else { // if there is still some data in current message
                     if (isLogFine) {
-                        logger.log(Level.FINEST, "AsyncQueueWriter.processAsync onReadyToWrite connection=" + connection + " peekRecord=" + queueRecord);
+                        logger.log(Level.FINEST, "AsyncQueueWriter.processAsync onReadyToWrite connection={0} peekRecord={1}",
+                                new Object[]{connection, queueRecord});
                     }
                     onReadyToWrite(connection);
                     break;

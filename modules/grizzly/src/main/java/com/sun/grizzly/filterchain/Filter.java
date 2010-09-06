@@ -40,6 +40,7 @@
 
 package com.sun.grizzly.filterchain;
 
+import com.sun.grizzly.Connection;
 import java.io.IOException;
 import com.sun.grizzly.attributes.Attribute;
 
@@ -93,8 +94,8 @@ public interface Filter {
     public NextAction handleRead(FilterChainContext ctx) throws IOException;
 
     /**
-     * Execute a unit of processing work to be performed, when channel will
-     * become available for writing.
+     * Execute a unit of processing work to be performed, when some data should
+     * be written on channel.
      * This {@link Filter} may either complete the required processing and
      * return false, or delegate remaining processing to the next
      * {@link Filter} in a {@link FilterChain} containing this {@link Filter}
@@ -133,6 +134,21 @@ public interface Filter {
      * @throws {@link java.io.IOException}
      */
     public NextAction handleAccept(FilterChainContext ctx) throws IOException;
+
+    /**
+     * Handle custom event associated with the {@link Connection}.
+     * This {@link Filter} may either complete the required processing and
+     * return {@link StopAction}, or delegate remaining processing to the next
+     * {@link Filter} in a {@link FilterChain} containing this {@link Filter}
+     * by returning {@link InvokeAction}.
+     * @param ctx {@link FilterChainContext}
+     * @param event
+     * @return {@link NextAction} instruction for {@link FilterChain}, how it
+     *         should continue the execution
+     * @throws {@link java.io.IOException}
+     */
+    public NextAction handleEvent(FilterChainContext ctx, Object event)
+            throws IOException;
 
     /**
      * Execute a unit of processing work to be performed, when connection

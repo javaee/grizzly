@@ -65,6 +65,12 @@ import com.sun.grizzly.Connection;
  * @author Alexey Stashok
  */
 public final class TransportFilter extends BaseFilter {
+
+    /**
+     * TransportFilter command event
+     */
+    public static final Object FLUSH_EVENT = new Object();
+
     public static final String WORKER_THREAD_BUFFER_NAME = "thread-buffer";
     /**
      * Create <tt>TransportFilter</tt>.

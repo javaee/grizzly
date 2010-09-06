@@ -40,7 +40,6 @@
 
 package com.sun.grizzly.nio.tmpselectors;
 
-import com.sun.grizzly.Transformer;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.SelectableChannel;
@@ -56,11 +55,9 @@ import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.Interceptor;
-import com.sun.grizzly.TransformationResult;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.impl.ReadyFutureImpl;
 import com.sun.grizzly.nio.NIOConnection;
-import java.io.EOFException;
 
 /**
  *
@@ -71,7 +68,7 @@ public abstract class TemporarySelectorWriter
 
     private static final int DEFAULT_TIMEOUT = 30000;
 
-    private Logger logger = Grizzly.logger(TemporarySelectorWriter.class);
+    private static final Logger LOGGER = Grizzly.logger(TemporarySelectorWriter.class);
 
     protected final TemporarySelectorsEnabledTransport transport;
 
@@ -148,50 +145,6 @@ public abstract class TemporarySelectorWriter
 
         return writeFuture;
     }
-
-    private final int writeWithTransformer(final Connection connection,
-            final SocketAddress dstAddress,
-            final Transformer transformer,
-            final WriteResult currentResult, final Object message,
-            final long timeout, final TimeUnit timeunit) throws IOException {
-
-        do {
-            final TransformationResult tResult = transformer.transform(
-                    connection, message);
-
-            if (tResult.getStatus() == TransformationResult.Status.COMPLETED) {
-                final Buffer buffer = (Buffer) tResult.getMessage();
-                try {
-                    final int writtenBytes = write0(connection, dstAddress,
-                            buffer, null, timeout, timeunit);
-
-                    if (writtenBytes > 0) {
-                        currentResult.setWrittenSize(
-                                currentResult.getWrittenSize() + writtenBytes);
-                    } else if (writtenBytes == -1) {
-                        throw new EOFException();
-                    }
-                } finally {
-                    if (buffer != message) {
-                        buffer.dispose();
-                    }
-                }
-
-                final Object remainder = tResult.getExternalRemainder();
-                if ((remainder == null || !transformer.hasInputRemaining(connection, remainder))) {
-                    transformer.release(connection);
-                    return currentResult.getWrittenSize();
-                }
-            } else if (tResult.getStatus() == TransformationResult.Status.INCOMPLETED) {
-                throw new IOException("Transformation exception: provided message is incompleted");
-            } else if (tResult.getStatus() == TransformationResult.Status.ERROR) {
-                throw new IOException("Transformation exception ("
-                        + tResult.getErrorCode() + "): "
-                        + tResult.getErrorDescription());
-            }
-        } while (true);
-    }
-
     
     /**
      * Flush the buffer by looping until the {@link Buffer} is empty

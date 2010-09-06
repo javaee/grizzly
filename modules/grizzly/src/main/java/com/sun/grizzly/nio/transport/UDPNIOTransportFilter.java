@@ -146,6 +146,9 @@ public final class UDPNIOTransportFilter extends BaseFilter {
                     connection, address,
                     (Buffer) message, writeCompletionHandler).markForRecycle(
                     !hasFuture);
+
+            transportContext.setFuture(null);
+            transportContext.setCompletionHandler(null);
         }
 
         return ctx.getInvokeAction();

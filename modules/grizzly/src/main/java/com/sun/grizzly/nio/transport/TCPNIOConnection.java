@@ -64,7 +64,7 @@ import java.util.concurrent.Callable;
  * @author Alexey Stashok
  */
 public class TCPNIOConnection extends AbstractNIOConnection {
-    private static Logger logger = Grizzly.logger(TCPNIOConnection.class);
+    private static final Logger LOGGER = Grizzly.logger(TCPNIOConnection.class);
 
     private SocketAddress localSocketAddress;
     private SocketAddress peerSocketAddress;
@@ -97,7 +97,7 @@ public class TCPNIOConnection extends AbstractNIOConnection {
         try {
             transport.fireIOEvent(IOEvent.CLOSED, this, null);
         } catch (IOException e) {
-            logger.log(Level.FINE, "Unexpected IOExcption occurred, " +
+            LOGGER.log(Level.FINE, "Unexpected IOExcption occurred, " +
                     "when firing CLOSE event");
         }
     }
@@ -124,7 +124,7 @@ public class TCPNIOConnection extends AbstractNIOConnection {
         return localSocketAddress;
     }
 
-    protected void resetAddresses() {
+    protected final void resetAddresses() {
         if (channel != null) {
             if (channel instanceof SocketChannel) {
                 localSocketAddress =

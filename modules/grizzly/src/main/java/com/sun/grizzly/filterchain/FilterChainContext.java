@@ -72,7 +72,7 @@ public final class FilterChainContext {
     }
 
     public enum Operation {
-        NONE, ACCEPT, CONNECT, READ, WRITE, CLOSE;
+        NONE, ACCEPT, CONNECT, READ, WRITE, EVENT, CLOSE;
     }
 
     private static final ThreadCache.CachedTypeIndex<FilterChainContext> CACHE_IDX =
@@ -147,6 +147,11 @@ public final class FilterChainContext {
      */
     private Object message;
 
+    /**
+     * Context associated event, if EVENT operation
+     */
+    protected Object event;
+    
     /**
      * Context associated source address
      */
@@ -499,7 +504,7 @@ public final class FilterChainContext {
         newContext.getTransportContext().configureBlocking(transportFilterContext.isBlocking());
         newContext.setMessage(message);
         newContext.setAddress(address);
-        newContext.operationCompletionHandler = completionHandler;
+        newContext.transportFilterContext.completionHandler = completionHandler;
         newContext.setStartIdx(filterIdx - 1);
         newContext.setFilterIdx(filterIdx - 1);
         newContext.setEndIdx(-1);
@@ -507,11 +512,32 @@ public final class FilterChainContext {
         ProcessorExecutor.execute(newContext.internalContext);
     }
 
+    public void flush(CompletionHandler completionHandler) throws IOException {
+        final FilterChainContext newContext =
+                getFilterChain().obtainFilterChainContext(getConnection());
+
+        newContext.setOperation(Operation.EVENT);
+        newContext.event = TransportFilter.FLUSH_EVENT;
+        newContext.getTransportContext().configureBlocking(transportFilterContext.isBlocking());
+        newContext.setAddress(address);
+        newContext.transportFilterContext.completionHandler = completionHandler;
+        newContext.setStartIdx(filterIdx - 1);
+        newContext.setFilterIdx(filterIdx - 1);
+        newContext.setEndIdx(-1);
+
+        ProcessorExecutor.execute(newContext.internalContext);
+    }
+
+    public void fail(Throwable error) {
+        getFilterChain().fail(this, error);
+    }
+    
     /**
      * Release the context associated resources.
      */
     public void reset() {
         message = null;
+        event = null;
         address = null;
         filterIdx = NO_FILTER_INDEX;
         state = State.RUNNING;
@@ -541,6 +567,8 @@ public final class FilterChainContext {
 
     public final class TransportContext {
         private boolean isBlocking;
+        CompletionHandler completionHandler;
+        FutureImpl future;
 
         public void configureBlocking(boolean isBlocking) {
             this.isBlocking = isBlocking;
@@ -551,15 +579,25 @@ public final class FilterChainContext {
         }
 
         public CompletionHandler getCompletionHandler() {
-            return operationCompletionHandler;
+            return completionHandler;
+        }
+
+        public void setCompletionHandler(CompletionHandler completionHandler) {
+            this.completionHandler = completionHandler;
         }
 
         public FutureImpl getFuture() {
-            return operationCompletionFuture;
+            return future;
+        }
+
+        public void setFuture(FutureImpl future) {
+            this.future = future;
         }
 
         void reset() {
             isBlocking = false;
+            completionHandler = null;
+            future = null;
         }
 
     }

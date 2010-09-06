@@ -50,6 +50,7 @@ import com.sun.grizzly.memory.MemoryProbe;
 import com.sun.grizzly.threadpool.GrizzlyExecutorService;
 import com.sun.grizzly.threadpool.ThreadPoolConfig;
 import java.util.concurrent.ExecutorService;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -58,7 +59,7 @@ import java.util.logging.Logger;
  */
 public class DefaultMemoryManagerTest extends GrizzlyTestCase {
 
-    private static Logger logger = Grizzly.logger(DefaultMemoryManagerTest.class);
+    private static final Logger LOGGER = Grizzly.logger(DefaultMemoryManagerTest.class);
 
     public void testDispose() throws Exception {
         final DefaultMemoryManager mm = new DefaultMemoryManager();
@@ -392,17 +393,17 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
 
         @Override
         public void onBufferAllocateEvent(int size) {
-            logger.info("allocateNewBufferEvent: " + size);
+            LOGGER.log(Level.INFO, "allocateNewBufferEvent: {0}", size);
         }
 
         @Override
         public void onBufferAllocateFromPoolEvent(int size) {
-            logger.info("allocateBufferFromPoolEvent: " + size);
+            LOGGER.log(Level.INFO, "allocateBufferFromPoolEvent: {0}", size);
         }
 
         @Override
         public void onBufferReleaseToPoolEvent(int size) {
-            logger.info("releaseBufferToPoolEvent: " + size);
+            LOGGER.log(Level.INFO, "releaseBufferToPoolEvent: {0}", size);
         }
     }
 }

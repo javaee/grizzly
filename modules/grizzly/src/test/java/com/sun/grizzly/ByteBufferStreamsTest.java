@@ -57,7 +57,6 @@ import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.streams.StreamReader;
 import com.sun.grizzly.streams.StreamWriter;
-import com.sun.grizzly.memory.slab.SlabMemoryManagerFactory;
 import com.sun.grizzly.nio.transport.TCPNIOServerConnection;
 import com.sun.grizzly.streams.AbstractStreamReader;
 import com.sun.grizzly.streams.BufferedInput;
@@ -81,7 +80,7 @@ import java.util.concurrent.BlockingQueue;
 public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
     public static final int PORT = 7778;
-    private static Logger logger = Grizzly.logger(ByteBufferStreamsTest.class);
+    private static final Logger LOGGER = Grizzly.logger(ByteBufferStreamsTest.class);
     private final FutureImpl<Boolean> poisonFuture = SafeFutureImpl.<Boolean>create();
     private Connection clientconnection = null;
     private TCPNIOTransport servertransport = null;
@@ -118,25 +117,24 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
         }
 
         protected void werrMsg(Object obj, Throwable thr) {
-            logger.log(Level.SEVERE,
-                    "###Checker(" + toString() + ").write: Caught "
-                    + thr + " at parameter " + obj);
+            LOGGER.log(Level.SEVERE, "###Checker({0}).write: Caught {1} at parameter {2}",
+                    new Object[]{toString(), thr, obj});
         }
 
         protected void rerrMsg(Object obj, Throwable thr) {
-            logger.log(Level.SEVERE, "###Checker(" + toString()
-                    + ").readAndCheck: Caught " + thr + " at parameter " + obj);
+            LOGGER.log(Level.SEVERE, "###Checker({0}).readAndCheck: Caught {1} at parameter {2}",
+                    new Object[]{toString(), thr, obj});
         }
 
         public void wmsg() {
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.log(Level.SEVERE, "Write:" + toString());
+            if (LOGGER.isLoggable(Level.FINEST)) {
+                LOGGER.log(Level.SEVERE, "Write:{0}", toString());
             }
         }
 
         public void rmsg() {
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.log(Level.SEVERE, "ReadAndCheck:" + toString());
+            if (LOGGER.isLoggable(Level.FINEST)) {
+                LOGGER.log(Level.SEVERE, "ReadAndCheck:{0}", toString());
             }
         }
 
@@ -169,9 +167,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
         public CompositeChecker(Checker... args) {
             checkers = new ArrayList<Checker>();
-            for (Checker ch : args) {
-                checkers.add(ch);
-            }
+            checkers.addAll(Arrays.asList(args));
         }
 
         public void add(Checker ch) {
@@ -1119,7 +1115,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
         future.get(10, TimeUnit.SECONDS);
         
         // test streaming
-        MemoryManager alloc = SlabMemoryManagerFactory.makeAllocator(10000, false);
+        MemoryManager alloc = TransportFactory.getInstance().getDefaultMemoryManager();
         byte[] testdata = new byte[500];
 
 
@@ -1166,7 +1162,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
         try {
             reader.readByteArray(checkArray, 0, 500);
         } catch (Exception e) {
-            logger.log(Level.SEVERE, "Data generate error", e);
+            LOGGER.log(Level.SEVERE, "Data generate error", e);
         }
 
         Assert.assertTrue(Arrays.equals(checkArray, testdata));
@@ -1190,7 +1186,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
             TransportFactory.getInstance().close();
 
         } catch (Exception ex) {
-            logger.log(Level.SEVERE, "Close", ex);
+            LOGGER.log(Level.SEVERE, "Close", ex);
         }
     }
 
@@ -1207,7 +1203,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
             startEchoServerThread(servertransport, serverConnection);
 
         } catch (Exception ex) {
-            logger.log(Level.SEVERE, "Server start error", ex);
+            LOGGER.log(Level.SEVERE, "Server start error", ex);
         }
 
     }
@@ -1239,7 +1235,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
                     getStreamWriter(clientconnection);
             
         } catch (Exception ex) {
-            logger.log(Level.SEVERE, "Client start error", ex);
+            LOGGER.log(Level.SEVERE, "Client start error", ex);
         }
     }
 
@@ -1267,10 +1263,9 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
                                     return;
                                 }
 
-                                if (logger.isLoggable(Level.FINEST)) {
-                                    logger.log(Level.FINEST, "reader.availableDataSize():"
-                                            + reader.available() + ","
-                                            + checker.byteSize());
+                                if (LOGGER.isLoggable(Level.FINEST)) {
+                                    LOGGER.log(Level.FINEST, "reader.availableDataSize():{0},{1}",
+                                            new Object[]{reader.available(), checker.byteSize()});
                                 }
 
                                 Future f = reader.notifyAvailable((int) checker.byteSize());
@@ -1291,7 +1286,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
 
                         } catch (Throwable e) {
-                            logger.log(Level.WARNING,
+                            LOGGER.log(Level.WARNING,
                                     "Error working with accepted connection", e);
                         } finally {
                             connection.close();
@@ -1299,7 +1294,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
                     } catch (Exception e) {
                         if (!transport.isStopped()) {
-                            logger.log(Level.WARNING,
+                            LOGGER.log(Level.WARNING,
                                     "Error accepting connection", e);
                             assertTrue("Error accepting connection", false);
                         }

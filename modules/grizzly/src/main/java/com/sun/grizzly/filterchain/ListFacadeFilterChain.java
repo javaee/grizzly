@@ -165,6 +165,7 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      * {@inheritDoc}
      */
     @Override
+    @SuppressWarnings({""})
     public boolean contains(Object filter) {
         return filters.contains(filter);
     }

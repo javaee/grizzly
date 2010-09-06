@@ -305,7 +305,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
 
             for (int i = 0; i < 100; i++) {
-                byte[] originalMessage = new String("Hello world #" + i).getBytes();
+                byte[] originalMessage = ("Hello world #" + i).getBytes();
                 writer.writeByteArray(originalMessage);
                 Future<Integer> writeFuture = writer.flush();
 
@@ -479,7 +479,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             public NextAction handleRead(FilterChainContext ctx)
                     throws IOException {
                 final Buffer buffer = (Buffer) ctx.getMessage();
-                logger.log(Level.INFO, "Feeder. Check size filter: " + buffer);
+                logger.log(Level.INFO, "Feeder. Check size filter: {0}", buffer);
                 if (buffer.remaining() >= size) {
                     latch.countDown();
                     return ctx.getInvokeAction();

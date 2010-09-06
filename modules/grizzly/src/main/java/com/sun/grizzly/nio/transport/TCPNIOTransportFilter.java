@@ -50,8 +50,9 @@ import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.ReadResult;
-import com.sun.grizzly.attributes.Attribute;
+import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.impl.FutureImpl;
+import com.sun.grizzly.memory.BufferUtils;
 import com.sun.grizzly.utils.CompletionHandlerAdapter;
 import java.util.concurrent.ExecutionException;
 
@@ -61,15 +62,10 @@ import java.util.concurrent.ExecutionException;
  * @author Alexey Stashok
  */
 public final class TCPNIOTransportFilter extends BaseFilter {
-
-    public static final int DEFAULT_BUFFER_SIZE = 8192;
     private final TCPNIOTransport transport;
-    private final Attribute<Buffer> compositeBufferAttr;
 
     TCPNIOTransportFilter(final TCPNIOTransport transport) {
         this.transport = transport;
-        compositeBufferAttr = transport.getAttributeBuilder().createAttribute(
-                getClass().getName() + hashCode());
     }
 
     @Override
@@ -139,9 +135,44 @@ public final class TCPNIOTransportFilter extends BaseFilter {
             transport.getWriter(transportContext.isBlocking()).write(connection,
                     (Buffer) message, writeCompletionHandler).markForRecycle(
                     !hasFuture);
+
+            transportContext.setFuture(null);
+            transportContext.setCompletionHandler(null);
         }
 
 
+        return ctx.getInvokeAction();
+    }
+
+    @Override
+    public NextAction handleEvent(final FilterChainContext ctx,
+            final Object event) throws IOException {
+        if (event == TransportFilter.FLUSH_EVENT) {
+            final Connection connection = ctx.getConnection();
+            final FilterChainContext.TransportContext transportContext =
+                    ctx.getTransportContext();
+
+            final FutureImpl contextFuture = transportContext.getFuture();
+            final CompletionHandler completionHandler = transportContext.getCompletionHandler();
+
+            if (contextFuture == null && completionHandler == null) return ctx.getInvokeAction();
+
+
+            final CompletionHandler writeCompletionHandler;
+
+            final boolean hasFuture = (contextFuture != null);
+            if (hasFuture) {
+                writeCompletionHandler = new CompletionHandlerAdapter(
+                        contextFuture, completionHandler);
+            } else {
+                writeCompletionHandler = completionHandler;
+            }
+
+            transport.getWriter(transportContext.isBlocking()).write(connection,
+                    BufferUtils.EMPTY_BUFFER, writeCompletionHandler)
+                    .markForRecycle(!hasFuture);
+        }
+        
         return ctx.getInvokeAction();
     }
 

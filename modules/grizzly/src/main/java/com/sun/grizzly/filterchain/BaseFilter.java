@@ -74,16 +74,7 @@ public class BaseFilter implements Filter {
     }
 
     /**
-     * Execute a unit of processing work to be performed, when channel will 
-     * become available for reading. 
-     * This {@link Filter} may either complete the required processing and 
-     * return false, or delegate remaining processing to the next 
-     * {@link Filter} in a {@link FilterChain} containing this {@link Filter} 
-     * by returning true.
-     * @param ctx {@link FilterChainContext}
-     * @return {@link NextAction} instruction for {@link FilterChain}, how it
-     *         should continue the execution
-     * @throws {@link java.io.IOException} 
+     * {@inheritDoc}
      */
     @Override
     public NextAction handleRead(FilterChainContext ctx) throws IOException {
@@ -91,16 +82,7 @@ public class BaseFilter implements Filter {
     }
 
     /**
-     * Execute a unit of processing work to be performed, when channel will 
-     * become available for writing. 
-     * This {@link Filter} may either complete the required processing and 
-     * return false, or delegate remaining processing to the next 
-     * {@link Filter} in a {@link FilterChain} containing this {@link Filter} 
-     * by returning true.
-     * @param ctx {@link FilterChainContext}
-     * @return {@link NextAction} instruction for {@link FilterChain}, how it
-     *         should continue the execution
-     * @throws {@link java.io.IOException}
+     * {@inheritDoc}
      */
     @Override
     public NextAction handleWrite(FilterChainContext ctx) throws IOException {
@@ -108,16 +90,7 @@ public class BaseFilter implements Filter {
     }
 
     /**
-     * Execute a unit of processing work to be performed, when channel gets
-     * connected.
-     * This {@link Filter} may either complete the required processing and 
-     * return false, or delegate remaining processing to the next 
-     * {@link Filter} in a {@link FilterChain} containing this {@link Filter} 
-     * by returning true.
-     * @param ctx {@link FilterChainContext}
-     * @return {@link NextAction} instruction for {@link FilterChain}, how it
-     *         should continue the execution
-     * @throws {@link java.io.IOException} 
+     * {@inheritDoc}
      */
     @Override
     public NextAction handleConnect(FilterChainContext ctx) throws IOException {
@@ -125,16 +98,7 @@ public class BaseFilter implements Filter {
     }
 
     /**
-     * Execute a unit of processing work to be performed, when server channel
-     * has accepted the client connection.
-     * This {@link Filter} may either complete the required processing and 
-     * return false, or delegate remaining processing to the next 
-     * {@link Filter} in a {@link FilterChain} containing this {@link Filter} 
-     * by returning true.
-     * @param ctx {@link FilterChainContext}
-     * @return {@link NextAction} instruction for {@link FilterChain}, how it
-     *         should continue the execution
-     * @throws {@link java.io.IOException} 
+     * {@inheritDoc}
      */
     @Override
     public NextAction handleAccept(FilterChainContext ctx) throws IOException {
@@ -142,16 +106,16 @@ public class BaseFilter implements Filter {
     }
 
     /**
-     * Execute a unit of processing work to be performed, when connection
-     * has been closed.
-     * This {@link Filter} may either complete the required processing and 
-     * return false, or delegate remaining processing to the next 
-     * {@link Filter} in a {@link FilterChain} containing this {@link Filter} 
-     * by returning true.
-     * @param ctx {@link FilterChainContext}
-     * @return {@link NextAction} instruction for {@link FilterChain}, how it
-     *         should continue the execution
-     * @throws {@link java.io.IOException} 
+     * {@inheritDoc}
+     */
+    @Override
+    public NextAction handleEvent(FilterChainContext ctx, Object event)
+            throws IOException {
+        return ctx.getInvokeAction();
+    }
+
+    /**
+     * {@inheritDoc}
      */
     @Override
     public NextAction handleClose(FilterChainContext ctx) throws IOException {

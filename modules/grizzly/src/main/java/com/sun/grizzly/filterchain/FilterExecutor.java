@@ -37,53 +37,35 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+package com.sun.grizzly.filterchain;
 
-package com.sun.grizzly.memory.slab;
+import com.sun.grizzly.IOEvent;
+import java.io.IOException;
 
-import java.nio.ByteBuffer;
-
-/** 
- * A simple non-pooled implementation of an Allocator.
- * It creates a Slab whenever the current Slab is
- * exhausted, and relies on the garbage collector to recover the space.
- * Generally this should only be used with BufferType HEAP.
- * @author Ken Cavanaugh 
+/**
+ * Executes appropriate {@link Filter} processing method to process occurred
+ * {@link IOEvent}.
  */
-public class SlabMemoryManagerImpl extends SlabMemoryManagerBase {
+public interface FilterExecutor {
 
-    private final int _maxAllocationSize;
-    private final boolean _bufferType;
+    public NextAction execute(Filter filter, FilterChainContext context)
+            throws IOException;
 
-    public SlabMemoryManagerImpl(
-            final int maxAllocationSize,
-            final boolean bufferType) {      
-        this._maxAllocationSize = maxAllocationSize;
-        this._bufferType = bufferType;
-    }
+    public int defaultStartIdx(FilterChainContext context);
 
-    @Override
-    public int maxAllocationSize() {
+    public int defaultEndIdx(FilterChainContext context);
 
-        return _maxAllocationSize;
-    }
+    public int getNextFilter(FilterChainContext context);
 
-    public boolean bufferType() {
+    public int getPreviousFilter(FilterChainContext context);
 
-        return _bufferType;
-    }
+    public void initIndexes(FilterChainContext context);
 
-    @Override
-    public void dispose(final Slab slab, final ByteBuffer store) {
-        // NO-OP in this version
-    }
+    public boolean hasNextFilter(FilterChainContext context, int idx);
 
-    @Override
-    Slab obtainSlab() {
-        return new Slab(_maxAllocationSize, _bufferType);
-    }
+    public boolean hasPreviousFilter(FilterChainContext context, int idx);
 
-    @Override
-    void releaseSlab(final Slab slab) {
-        // NO-OP in this version
-    }
+    public boolean isUpstream();
+
+    public boolean isDownstream();
 }

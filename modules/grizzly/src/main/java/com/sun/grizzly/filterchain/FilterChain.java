@@ -44,9 +44,12 @@ import java.util.List;
 
 import com.sun.grizzly.Processor;
 import com.sun.grizzly.Codec;
+import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.ProcessorResult;
 import com.sun.grizzly.ReadResult;
+import com.sun.grizzly.WriteResult;
 import java.io.IOException;
 
 /**
@@ -104,5 +107,16 @@ public interface FilterChain extends Processor, List<Filter> {
      */
     public ProcessorResult execute(FilterChainContext context) throws IOException;
 
+    public <M> GrizzlyFuture<WriteResult> flush(Connection connection,
+            CompletionHandler<WriteResult> completionHandler) throws IOException;
+
+    public GrizzlyFuture fireEventUpstream(Connection connection, Object event,
+            CompletionHandler completionHandler) throws IOException;
+    
+    public GrizzlyFuture fireEventDownstream(Connection connection, Object event,
+            CompletionHandler completionHandler) throws IOException;
+
     public ReadResult read(FilterChainContext context) throws IOException;
+
+    public void fail(FilterChainContext context, Throwable failure);
 }
