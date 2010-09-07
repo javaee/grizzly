@@ -558,6 +558,7 @@ public final class FilterChainContext {
         StringBuilder sb = new StringBuilder(384);
         sb.append("FilterChainContext [");
         sb.append("connection=").append(getConnection());
+        sb.append(", operation=").append(getOperation());
         sb.append(", message=").append(getMessage());
         sb.append(", address=").append(getAddress());
         sb.append(']');

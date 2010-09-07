@@ -132,12 +132,12 @@ public final class TCPNIOTransportFilter extends BaseFilter {
                 writeCompletionHandler = completionHandler;
             }
 
+            transportContext.setFuture(null);
+            transportContext.setCompletionHandler(null);
+
             transport.getWriter(transportContext.isBlocking()).write(connection,
                     (Buffer) message, writeCompletionHandler).markForRecycle(
                     !hasFuture);
-
-            transportContext.setFuture(null);
-            transportContext.setCompletionHandler(null);
         }
 
 
@@ -168,9 +168,12 @@ public final class TCPNIOTransportFilter extends BaseFilter {
                 writeCompletionHandler = completionHandler;
             }
 
+            transportContext.setFuture(null);
+            transportContext.setCompletionHandler(null);
+
             transport.getWriter(transportContext.isBlocking()).write(connection,
                     BufferUtils.EMPTY_BUFFER, writeCompletionHandler)
-                    .markForRecycle(!hasFuture);
+                    .markForRecycle(false);
         }
         
         return ctx.getInvokeAction();

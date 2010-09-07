@@ -262,7 +262,7 @@ public class ByteBufferWrapper implements Buffer {
         try {
             BufferUtils.setPositionLimit(visible, position, limit);
 
-            ByteBuffer slice = visible.slice();
+            final ByteBuffer slice = visible.slice();
             return memoryManager.wrap(slice);
         } finally {
             BufferUtils.setPositionLimit(visible, oldPosition, oldLimit);

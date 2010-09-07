@@ -49,7 +49,9 @@ import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
+import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.impl.FutureImpl;
+import com.sun.grizzly.memory.BufferUtils;
 import com.sun.grizzly.utils.CompletionHandlerAdapter;
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -142,17 +144,54 @@ public final class UDPNIOTransportFilter extends BaseFilter {
                 writeCompletionHandler = completionHandler;
             }
 
+            transportContext.setFuture(null);
+            transportContext.setCompletionHandler(null);
+
             transport.getWriter(transportContext.isBlocking()).write(
                     connection, address,
                     (Buffer) message, writeCompletionHandler).markForRecycle(
                     !hasFuture);
-
-            transportContext.setFuture(null);
-            transportContext.setCompletionHandler(null);
         }
 
         return ctx.getInvokeAction();
     }
+
+    @Override
+    public NextAction handleEvent(final FilterChainContext ctx,
+            final Object event) throws IOException {
+        
+        if (event == TransportFilter.FLUSH_EVENT) {
+            final Connection connection = ctx.getConnection();
+            final FilterChainContext.TransportContext transportContext =
+                    ctx.getTransportContext();
+
+            final FutureImpl contextFuture = transportContext.getFuture();
+            final CompletionHandler completionHandler = transportContext.getCompletionHandler();
+
+            if (contextFuture == null && completionHandler == null) return ctx.getInvokeAction();
+
+
+            final CompletionHandler writeCompletionHandler;
+
+            final boolean hasFuture = (contextFuture != null);
+            if (hasFuture) {
+                writeCompletionHandler = new CompletionHandlerAdapter(
+                        contextFuture, completionHandler);
+            } else {
+                writeCompletionHandler = completionHandler;
+            }
+
+            transportContext.setFuture(null);
+            transportContext.setCompletionHandler(null);
+
+            transport.getWriter(transportContext.isBlocking()).write(connection,
+                    BufferUtils.EMPTY_BUFFER, writeCompletionHandler)
+                    .markForRecycle(false);
+        }
+
+        return ctx.getInvokeAction();
+    }
+    
     @Override
     public void exceptionOccurred(final FilterChainContext ctx,
             final Throwable error) {
