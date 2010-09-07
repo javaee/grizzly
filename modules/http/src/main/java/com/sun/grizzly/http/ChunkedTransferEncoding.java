@@ -108,6 +108,11 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
         // Check if HTTP chunk length was parsed
         if (!isLastChunk && contentParsingState.chunkRemainder <= 0) {
             // We expect next chunk header
+            input = parseTrailerCRLF(httpPacketParsing, input);
+            if (input == null) {
+                return ParsingResult.create(null, null);
+            }
+
             if (!parseHttpChunkLength(httpPacketParsing, input)) {
                 // if we don't have enough data to parse chunk length - stop execution
                 return ParsingResult.create(null, input);
@@ -199,7 +204,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
         headerParsingState.packetLimit = start + maxHeadersSize;
     }
 
-    private boolean parseLastChunkTrailer(HttpPacketParsing httpPacket,
+    private static boolean parseLastChunkTrailer(HttpPacketParsing httpPacket,
             Buffer input) {
         final ParsingState headerParsingState =
                 httpPacket.getHeaderParsingState();
@@ -210,12 +215,11 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
                 headerParsingState, input);
     }
 
-    private boolean parseHttpChunkLength(HttpPacketParsing httpPacket,
+    private static boolean parseHttpChunkLength(HttpPacketParsing httpPacket,
             Buffer input) {
         final ParsingState parsingState = httpPacket.getHeaderParsingState();
 
         while (true) {
-            _1:
             switch (parsingState.state) {
                 case 0: {// Initialize chunk parsing
                     final int pos = input.position();
@@ -258,26 +262,32 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
                     return false;
 
                 }
-
-                case 2: { // skip CRLF
-                    while (input.hasRemaining()) {
-                        if (input.get() == Constants.LF) {
-                            parsingState.recycle();
-                            if (input.hasRemaining()) {
-                                break _1;
-                            }
-
-                            return false;
-                        }
-                    }
-
-                    return false;
-                }
             }
         }
     }
 
-    private Buffer encodeHttpChunk(MemoryManager memoryManager,
+    private static Buffer parseTrailerCRLF(HttpPacketParsing httpPacket, Buffer input) {
+        final ParsingState parsingState = httpPacket.getHeaderParsingState();
+
+        if (parsingState.state == 2) {
+            while (input.hasRemaining()) {
+                if (input.get() == Constants.LF) {
+                    parsingState.recycle();
+                    if (input.hasRemaining()) {
+                        return input.slice();
+                    }
+
+                    return null;
+                }
+            }
+
+            return null;
+        }
+
+        return input;
+    }
+
+    private static Buffer encodeHttpChunk(MemoryManager memoryManager,
             HttpContent httpContent, boolean isLastChunk) {
         final Buffer content = httpContent.getContent();
 

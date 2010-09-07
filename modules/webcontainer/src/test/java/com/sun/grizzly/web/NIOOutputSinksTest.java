@@ -100,7 +100,7 @@ public class NIOOutputSinksTest extends TestCase {
         filterChainBuilder.add(new BaseFilter() {
 
             private final StringBuilder sb = new StringBuilder();
-
+            
             @Override
             public NextAction handleConnect(FilterChainContext ctx) throws IOException {
                 // Build the HttpRequestPacket, which will be sent to a server
@@ -123,9 +123,15 @@ public class NIOOutputSinksTest extends TestCase {
 
                 HttpContent message = (HttpContent) ctx.getMessage();
                 Buffer b = message.getContent();
-                if (b.remaining() > 0) {
+                if (b.hasRemaining()) {
                     sb.append(b.toStringContent());
-                } 
+                    try {
+                        check(sb, b.remaining());
+                    } catch (Exception e) {
+                        parseResult.failure(e);
+                    }
+                }
+
                 if (message.isLast()) {
                     parseResult.result(sb.length());
                 }
@@ -149,7 +155,7 @@ public class NIOOutputSinksTest extends TestCase {
 
                 while (out.canWrite(LENGTH)) {
                     byte[] b = new byte[LENGTH];
-                    Arrays.fill(b, (byte) 'a');
+                    fill(b);
                     writeCounter.addAndGet(b.length);
                     out.write(b);
                     out.flush();
@@ -177,7 +183,7 @@ public class NIOOutputSinksTest extends TestCase {
                         }
                         try {
                             byte[] b = new byte[LENGTH];
-                            Arrays.fill(b, (byte) 'a');
+                            fill(b);
                             writeCounter.addAndGet(b.length);
                             out.write(b);
                             out.flush();
@@ -278,9 +284,15 @@ public class NIOOutputSinksTest extends TestCase {
 
                 HttpContent message = (HttpContent) ctx.getMessage();
                 Buffer b = message.getContent();
-                if (b.remaining() > 0) {
+                if (b.hasRemaining()) {
                     sb.append(b.toStringContent());
-                } 
+                    try {
+                        check(sb, b.remaining());
+                    } catch (Exception e) {
+                        parseResult.failure(e);
+                    }
+                }
+                
                 if (message.isLast()) {
                     parseResult.result(sb.length());
                 }
@@ -304,7 +316,7 @@ public class NIOOutputSinksTest extends TestCase {
 
                 while (out.canWrite(LENGTH)) {
                     char[] c = new char[LENGTH];
-                    Arrays.fill(c, 'a');
+                    fill(c);
                     writeCounter.addAndGet(c.length);
                     out.write(c);
                     out.flush();
@@ -332,7 +344,7 @@ public class NIOOutputSinksTest extends TestCase {
                         }
                         try {
                             char[] c = new char[LENGTH];
-                            Arrays.fill(c, 'a');
+                            fill(c);
                             writeCounter.addAndGet(c.length);
                             out.write(c);
                             out.flush();
@@ -490,7 +502,30 @@ public class NIOOutputSinksTest extends TestCase {
             clientTransport.stop();
             server.stop();
             TransportFactory.getInstance().close();
+        }        
+    }
+
+    private static void fill(byte[] array) {
+        for (int i=0; i<array.length; i++) {
+            array[i] = (byte) ('a' + i % ('z' - 'a'));
         }
-        
+    }
+
+    private static void fill(char[] array) {
+        for (int i=0; i<array.length; i++) {
+            array[i] = (char) ('a' + i % ('z' - 'a'));
+        }
+    }
+
+    private static void check(StringBuilder sb, int lastCameSize) {
+        final int start = sb.length() - lastCameSize;
+
+        for (int i=0; i<lastCameSize; i++) {
+            final char c = sb.charAt(start + i);
+            final char expect = (char) ('a' + (i + start) % ('z' - 'a'));
+            if (c != expect) {
+                throw new IllegalStateException("Result at [" + (i + start) + "] don't match. Expected=" + expect + " got=" + c);
+            }
+        }
     }
 }
