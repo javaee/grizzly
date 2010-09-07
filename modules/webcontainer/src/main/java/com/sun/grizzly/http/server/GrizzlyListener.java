@@ -95,9 +95,9 @@ public class GrizzlyListener {
     private final String name;
 
     /**
-     * The number int seconds a connection may be idle before being timed out.
+     * The configuration for HTTP keep-alive connections
      */
-    private int keepAliveTimeoutInSeconds = Constants.KEEP_ALIVE_TIMEOUT_IN_SECONDS;
+    private final KeepAlive keepAliveConfig = new KeepAlive();
 
 
     /**
@@ -145,7 +145,7 @@ public class GrizzlyListener {
     /**
      * {@link FileCache} to be used by this <code>GrizzlyListener</code>.
      */
-    private FileCache fileCache = new FileCache();
+    private final FileCache fileCache = new FileCache();
 
 
     /**
@@ -272,35 +272,11 @@ public class GrizzlyListener {
 
 
     /**
-     * @return the number in seconds a connection may be idle before being
-     *  timed out.
+     * @return the configuration for the keep-alive HTTP connections.
      */
-    public int getKeepAliveTimeoutInSeconds() {
+    public KeepAlive getKeepAlive() {
 
-        return keepAliveTimeoutInSeconds;
-
-    }
-
-
-    /**
-     * <p>
-     * Configures idle connection timeout behavior.
-     * </p>
-     *
-     * @param keepAliveTimeoutInSeconds the number in seconds a connection may
-     *  be idle before being timed out.  Values less than zero are considered as FOREVER.
-     */
-    public void setKeepAliveTimeoutInSeconds(final int keepAliveTimeoutInSeconds) {
-
-        if (!transport.isStopped()) {
-            return;
-        }
-
-        if (keepAliveTimeoutInSeconds < 0) {
-            this.keepAliveTimeoutInSeconds = -1;
-        } else {
-            this.keepAliveTimeoutInSeconds = keepAliveTimeoutInSeconds;
-        }
+        return keepAliveConfig;
 
     }
 

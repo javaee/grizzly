@@ -738,6 +738,9 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
         return true;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public JmxMonitoringConfig<FileCacheProbe> getMonitoringConfig() {
         return monitoringConfig;

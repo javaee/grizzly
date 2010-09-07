@@ -501,7 +501,8 @@ public class GrizzlyWebServer {
             final FilterChainBuilder builder = FilterChainBuilder.stateless();
             builder.add(new TransportFilter());
             builder.add(new SilentConnectionFilter(delayedExecutor,
-                    listener.getKeepAliveTimeoutInSeconds(), TimeUnit.SECONDS));
+                    listener.getKeepAlive().getTimeoutInSeconds(),
+                    TimeUnit.SECONDS));
             if (listener.isSecure()) {
                 SSLEngineConfigurator sslConfig = listener.getSslEngineConfig();
                 if (sslConfig == null) {

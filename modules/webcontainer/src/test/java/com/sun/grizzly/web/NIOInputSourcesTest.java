@@ -50,7 +50,6 @@ import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.http.HttpClientFilter;
-import com.sun.grizzly.http.HttpCodecFilter;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
@@ -339,7 +338,7 @@ public class NIOInputSourcesTest extends TestCase {
                 new GrizzlyListener("grizzly",
                         GrizzlyListener.DEFAULT_NETWORK_HOST,
                         PORT);
-        listener.setKeepAliveTimeoutInSeconds(-1);
+        listener.getKeepAlive().setTimeoutInSeconds(-1);
         server.addListener(listener);
         server.getServerConfiguration().addGrizzlyAdapter(adapter, "/path/*");
 

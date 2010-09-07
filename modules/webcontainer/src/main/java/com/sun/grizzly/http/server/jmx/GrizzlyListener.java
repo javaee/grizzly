@@ -64,9 +64,11 @@ public class GrizzlyListener extends JmxObject {
 
     private FileCache currentFileCache;
     private Transport currentTransport;
+    private com.sun.grizzly.http.server.KeepAlive currentKeepAlive;
 
     private JmxObject fileCacheJmx;
     private JmxObject transportJmx;
+    private JmxObject keepAliveJmx;
 
     private WebServerFilter currentWebServerFilter;
     private JmxObject webServerFilterJmx;
@@ -155,7 +157,7 @@ public class GrizzlyListener extends JmxObject {
     @ManagedAttribute(id="keep-alive-timeout-in-seconds")
     @Description("The time, in seconds, to keep an inactive request alive.")
     public int getKeepAliveTimeoutInSeconds() {
-        return listener.getKeepAliveTimeoutInSeconds();
+        return listener.getKeepAlive().getTimeoutInSeconds();
     }
 
 
@@ -245,6 +247,23 @@ public class GrizzlyListener extends JmxObject {
                 mom.register(this, jmx, jmx.getJmxName());
                 currentTransport = transport;
                 transportJmx = jmx;
+            }
+        }
+
+        final com.sun.grizzly.http.server.KeepAlive keepAlive = listener.getKeepAlive();
+        if (currentKeepAlive != keepAlive) {
+            if (currentKeepAlive != null) {
+                mom.unregister(keepAliveJmx);
+
+                currentKeepAlive = null;
+                keepAliveJmx = null;
+            }
+
+            if (transport != null) {
+                final JmxObject jmx = keepAlive.getMonitoringConfig().createManagementObject();
+                mom.register(this, jmx, jmx.getJmxName());
+                currentKeepAlive = keepAlive;
+                keepAliveJmx = jmx;
             }
         }
 
