@@ -157,7 +157,7 @@ public class GrizzlyListener extends JmxObject {
     @ManagedAttribute(id="keep-alive-timeout-in-seconds")
     @Description("The time, in seconds, to keep an inactive request alive.")
     public int getKeepAliveTimeoutInSeconds() {
-        return listener.getKeepAlive().getTimeoutInSeconds();
+        return listener.getKeepAlive().getIdleTimeoutInSeconds();
     }
 
 

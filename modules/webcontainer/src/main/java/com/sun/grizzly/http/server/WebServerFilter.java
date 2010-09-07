@@ -287,7 +287,7 @@ public class WebServerFilter extends BaseFilter
 
         wsContext.associatedRequest = null;
         keepAliveQueue.add(wsContext,
-                listener.getKeepAlive().getTimeoutInSeconds(),
+                listener.getKeepAlive().getIdleTimeoutInSeconds(),
                 TimeUnit.SECONDS);
         
         grizzlyResponse.finish();

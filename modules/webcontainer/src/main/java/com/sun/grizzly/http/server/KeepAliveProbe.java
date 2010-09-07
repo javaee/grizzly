@@ -52,6 +52,8 @@ public interface KeepAliveProbe {
 
     /**
      * Method will be called, when new keep-alive HTTP connection is getting established.
+     * This method is getting invoked, when 1st HTTP request processing completes,
+     * but the Connection will be kept alive to process next HTTP request.
      *
      * @param connection {@link Connection}, the event belongs to.
      */
@@ -64,9 +66,26 @@ public interface KeepAliveProbe {
      */
     public void onConnectionCloseEvent(Connection connection);
 
-    public void onHitEvent(Connection connection, int requestCounter);
+    /**
+     * Method will be called, when HTTP request comes on a kept alive connection.
+     *
+     * @param connection {@link Connection}, the event belongs to.
+     * @param requestNumber HTTP request number, being processed on the given keep-alive connection.
+     */
+    public void onHitEvent(Connection connection, int requestNumber);
 
+    /**
+     * Method will be called, when the Connection could be used in the keep alive mode,
+     * but due to KeepAlive config limitations it will be closed.
+     *
+     * @param connection {@link Connection}, the event belongs to.
+     */
     public void onRefuseEvent(Connection connection);
 
+    /**
+     * Method will be called, when the keep alive Connection idle timeout expired.
+     *
+     * @param connection {@link Connection}, the event belongs to.
+     */
     public void onTimeoutEvent(Connection connection);
 }

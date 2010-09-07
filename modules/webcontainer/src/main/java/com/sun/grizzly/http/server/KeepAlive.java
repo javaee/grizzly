@@ -40,6 +40,7 @@
 
 package com.sun.grizzly.http.server;
 
+import com.sun.grizzly.Connection;
 import com.sun.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
 import com.sun.grizzly.monitoring.jmx.JmxMonitoringAware;
 import com.sun.grizzly.monitoring.jmx.JmxMonitoringConfig;
@@ -67,8 +68,12 @@ public final class KeepAlive implements JmxMonitoringAware<KeepAliveProbe> {
     /**
      * The number int seconds a connection may be idle before being timed out.
      */
-    private int timeoutInSeconds = Constants.KEEP_ALIVE_TIMEOUT_IN_SECONDS;
+    private int idleTimeoutInSeconds = Constants.KEEP_ALIVE_TIMEOUT_IN_SECONDS;
 
+    /**
+     * The max number of HTTP requests allowed to be processed on one keep-alive connection.
+     */
+    private int maxRequestsCount = Constants.DEFAULT_MAX_KEEP_ALIVE;
 
 
 
@@ -76,9 +81,9 @@ public final class KeepAlive implements JmxMonitoringAware<KeepAliveProbe> {
      * @return the number in seconds a connection may be idle before being
      *  timed out.
      */
-    public int getTimeoutInSeconds() {
+    public int getIdleTimeoutInSeconds() {
 
-        return timeoutInSeconds;
+        return idleTimeoutInSeconds;
 
     }
 
@@ -88,17 +93,36 @@ public final class KeepAlive implements JmxMonitoringAware<KeepAliveProbe> {
      * Configures idle connection timeout behavior.
      * </p>
      *
-     * @param keepAliveTimeoutInSeconds the number in seconds a connection may
+     * @param idleTimeoutInSeconds the number in seconds a connection may
      *  be idle before being timed out.  Values less than zero are considered as FOREVER.
      */
-    public void setTimeoutInSeconds(final int keepAliveTimeoutInSeconds) {
+    public void setIdleTimeoutInSeconds(final int idleTimeoutInSeconds) {
 
-        if (keepAliveTimeoutInSeconds < 0) {
-            timeoutInSeconds = -1;
+        if (idleTimeoutInSeconds < 0) {
+            this.idleTimeoutInSeconds = -1;
         } else {
-            timeoutInSeconds = keepAliveTimeoutInSeconds;
+            this.idleTimeoutInSeconds = idleTimeoutInSeconds;
         }
 
+    }
+
+    /**
+     * @return the max number of HTTP requests allowed to be processed on one keep-alive connection.
+     */
+    public int getMaxRequestsCount() {
+        return maxRequestsCount;
+    }
+
+    /**
+     * <p>
+     * Configures the max number of HTTP requests allowed to be processed on one keep-alive connection.
+     * </p>
+     *
+     * @param maxRequestsCount the max number of HTTP requests allowed to be
+     * processed on one keep-alive connection. Values less than zero are considered as UNLIMITED.
+     */
+    public void setMaxRequestsCount(int maxRequestsCount) {
+        this.maxRequestsCount = maxRequestsCount;
     }
 
     /**
@@ -112,4 +136,95 @@ public final class KeepAlive implements JmxMonitoringAware<KeepAliveProbe> {
     protected JmxObject createJmxManagementObject() {
         return new com.sun.grizzly.http.server.jmx.KeepAlive(this);
     }
+
+    /**
+     * Notify registered {@link KeepAliveProbe}s about the "keep-alive connection accepted" event.
+     *
+     * @param keepAlive the <tt>KeepAlive</tt> event occurred on.
+     * @param connection {@link Connection} been accepted.
+     */
+    protected static void notifyProbesConnectionAccepted(
+            final KeepAlive keepAlive, final Connection connection) {
+        final KeepAliveProbe[] probes =
+                keepAlive.monitoringConfig.getProbesUnsafe();
+        if (probes != null) {
+            for (KeepAliveProbe probe : probes) {
+                probe.onConnectionAcceptEvent(connection);
+            }
+        }
+    }
+
+    /**
+     * Notify registered {@link KeepAliveProbe}s about the "keep-alive connection closed" event.
+     *
+     * @param keepAlive the <tt>KeepAlive</tt> event occurred on.
+     * @param connection {@link Connection} been closed.
+     */
+    protected static void notifyProbesConnectionClosed(
+            final KeepAlive keepAlive, final Connection connection) {
+        final KeepAliveProbe[] probes =
+                keepAlive.monitoringConfig.getProbesUnsafe();
+        if (probes != null) {
+            for (KeepAliveProbe probe : probes) {
+                probe.onConnectionCloseEvent(connection);
+            }
+        }
+    }
+
+    /**
+     * Notify registered {@link KeepAliveProbe}s about the "keep-alive connection hit" event.
+     *
+     * @param keepAlive the <tt>KeepAlive</tt> event occurred on.
+     * @param connection {@link Connection} been hit.
+     * @param requestNumber the request number being processed on the given {@link Connection}.
+     */
+    protected static void notifyProbesHit(
+            final KeepAlive keepAlive, final Connection connection,
+            final int requestNumber) {
+        
+        final KeepAliveProbe[] probes =
+                keepAlive.monitoringConfig.getProbesUnsafe();
+        if (probes != null) {
+            for (KeepAliveProbe probe : probes) {
+                probe.onHitEvent(connection, requestNumber);
+            }
+        }
+    }
+
+    /**
+     * Notify registered {@link KeepAliveProbe}s about the "keep-alive connection refused" event.
+     *
+     * @param keepAlive the <tt>KeepAlive</tt> event occurred on.
+     * @param connection {@link Connection} been refused.
+     */
+    protected static void notifyProbesRefused(
+            final KeepAlive keepAlive, final Connection connection) {
+
+        final KeepAliveProbe[] probes =
+                keepAlive.monitoringConfig.getProbesUnsafe();
+        if (probes != null) {
+            for (KeepAliveProbe probe : probes) {
+                probe.onRefuseEvent(connection);
+            }
+        }
+    }
+
+    /**
+     * Notify registered {@link KeepAliveProbe}s about the "keep-alive connection timeout" event.
+     *
+     * @param keepAlive the <tt>KeepAlive</tt> event occurred on.
+     * @param connection {@link Connection} been timeout.
+     */
+    protected static void notifyProbesTimeout(
+            final KeepAlive keepAlive, final Connection connection) {
+
+        final KeepAliveProbe[] probes =
+                keepAlive.monitoringConfig.getProbesUnsafe();
+        if (probes != null) {
+            for (KeepAliveProbe probe : probes) {
+                probe.onTimeoutEvent(connection);
+            }
+        }
+    }
+
 }

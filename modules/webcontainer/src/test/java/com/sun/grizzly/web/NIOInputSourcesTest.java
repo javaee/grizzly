@@ -338,7 +338,7 @@ public class NIOInputSourcesTest extends TestCase {
                 new GrizzlyListener("grizzly",
                         GrizzlyListener.DEFAULT_NETWORK_HOST,
                         PORT);
-        listener.getKeepAlive().setTimeoutInSeconds(-1);
+        listener.getKeepAlive().setIdleTimeoutInSeconds(-1);
         server.addListener(listener);
         server.getServerConfiguration().addGrizzlyAdapter(adapter, "/path/*");
 
