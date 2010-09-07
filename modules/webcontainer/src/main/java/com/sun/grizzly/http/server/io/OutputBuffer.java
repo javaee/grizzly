@@ -74,9 +74,6 @@ public class OutputBuffer {
 
     private static final int DEFAULT_BUFFER_SIZE = 1024 * 8;
 
-    private static final int CAPACITY_OK = -1;
-
-
     private HttpResponsePacket response;
 
     private FilterChainContext ctx;
