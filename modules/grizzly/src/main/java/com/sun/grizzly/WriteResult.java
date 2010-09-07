@@ -41,7 +41,7 @@
 package com.sun.grizzly;
 
 /**
- * Result of write operation, retuned by {@link Writable}.
+ * Result of write operation, returned by {@link Writable}.
  *
  * @author Alexey Stashok
  */
@@ -51,7 +51,7 @@ public final class WriteResult<K, L> implements Result, Cacheable {
 
     private boolean isRecycled = false;
 
-    public static final WriteResult create(Connection connection) {
+    public static WriteResult create(Connection connection) {
         final WriteResult writeResult = ThreadCache.takeFromCache(CACHE_IDX);
         if (writeResult != null) {
             writeResult.connection = connection;
@@ -62,7 +62,7 @@ public final class WriteResult<K, L> implements Result, Cacheable {
         return new WriteResult(connection);
     }
 
-    public static final <K, L> WriteResult create(Connection connection,
+    public static <K, L> WriteResult create(Connection connection,
             K message, L dstAddress, int writeSize) {
         final WriteResult writeResult = ThreadCache.takeFromCache(CACHE_IDX);
         if (writeResult != null) {
