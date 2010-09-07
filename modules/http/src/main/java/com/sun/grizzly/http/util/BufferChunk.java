@@ -145,7 +145,11 @@ public class BufferChunk {
     }
 
     public int size() {
-        return end - start;
+        if (!hasString()) {
+            return end - start;
+        }
+        
+        return stringValue.length();
     }
 
     @Override
