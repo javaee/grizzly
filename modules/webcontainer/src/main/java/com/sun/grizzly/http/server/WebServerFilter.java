@@ -77,6 +77,9 @@ import java.util.concurrent.TimeUnit;
 public class WebServerFilter extends BaseFilter
         implements JmxMonitoringAware<WebServerProbe> {
 
+    private static final FlushAndCloseHandler FLUSH_AND_CLOSE_HANDLER =
+            new FlushAndCloseHandler();
+    
     private final Attribute<WebServerContext> webServerContextAttr;
 
     private final DelayedExecutor delayedExecutor;
@@ -284,7 +287,8 @@ public class WebServerFilter extends BaseFilter
 
         wsContext.associatedRequest = null;
         keepAliveQueue.add(wsContext,
-                listener.getKeepAliveTimeoutInSeconds(), TimeUnit.SECONDS);
+                listener.getKeepAlive().getTimeoutInSeconds(),
+                TimeUnit.SECONDS);
         
         grizzlyResponse.finish();
 
@@ -302,19 +306,7 @@ public class WebServerFilter extends BaseFilter
             grizzlyRequest.recycle(!isExpectContent);
             grizzlyResponse.recycle(!isExpectContent);
         } else {
-            grizzlyRequest.getContext().flush(new EmptyCompletionHandler() {
-
-                @Override
-                public void completed(Object result) {
-                    final WriteResult wr = (WriteResult) result;
-                    try {
-                        wr.getConnection().close().markForRecycle(false);
-                    } catch (IOException ignore) {
-                    } finally {
-                        wr.recycle();
-                    }
-                }
-            });
+            grizzlyRequest.getContext().flush(FLUSH_AND_CLOSE_HANDLER);
             grizzlyRequest.recycle();
             grizzlyResponse.recycle();
         }
@@ -385,6 +377,19 @@ public class WebServerFilter extends BaseFilter
         @Override
         public void setTimeoutMillis(WebServerContext element, long timeoutMillis) {
             element.keepAliveTimeoutMillis = timeoutMillis;
+        }
+    }
+
+    private static class FlushAndCloseHandler extends EmptyCompletionHandler {
+        @Override
+        public void completed(Object result) {
+            final WriteResult wr = (WriteResult) result;
+            try {
+                wr.getConnection().close().markForRecycle(false);
+            } catch (IOException ignore) {
+            } finally {
+                wr.recycle();
+            }
         }
     }
 }
