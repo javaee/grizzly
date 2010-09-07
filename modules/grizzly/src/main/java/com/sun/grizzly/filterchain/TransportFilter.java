@@ -151,6 +151,22 @@ public final class TransportFilter extends BaseFilter {
     }
 
     /**
+     * Delegates event operation to {@link Transport}'s specific transport
+     * filter.
+     */
+    @Override
+    public NextAction handleEvent(FilterChainContext ctx, Object event) throws IOException {
+        final Filter transportFilter0 = getTransportFilter0(
+                ctx.getConnection().getTransport());
+
+        if (transportFilter0 != null) {
+            return transportFilter0.handleEvent(ctx, event);
+        }
+
+        return null;
+    }
+
+    /**
      * Delegates close operation to {@link Transport}'s specific transport
      * filter.
      */
