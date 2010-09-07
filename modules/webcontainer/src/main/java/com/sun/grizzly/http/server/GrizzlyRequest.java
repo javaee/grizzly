@@ -58,6 +58,7 @@
 
 package com.sun.grizzly.http.server;
 
+import com.sun.grizzly.http.Protocol;
 import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.http.HttpContent;
@@ -83,7 +84,6 @@ import javax.security.auth.Subject;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.net.Socket;
 import java.security.AccessController;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
@@ -265,7 +265,6 @@ public class GrizzlyRequest {
      */
     protected static final StringManager sm =
         StringManager.getManager(Constants.Package);
-
 
     /**
      * The set of cookies associated with this Request.
@@ -453,12 +452,6 @@ public class GrizzlyRequest {
 
 
     /**
-     * The socket through which this Request was received.
-     */
-    protected Socket socket = null;
-
-
-    /**
      * Parse locales.
      */
     protected boolean localesParsed = false;
@@ -623,32 +616,6 @@ public class GrizzlyRequest {
      */
     public void setAuthorization(String authorization) {
         // Not used
-    }
-
-
-    /**
-     * Return the Socket (if any) through which this Request was received.
-     * This should <strong>only</strong> be used to access underlying state
-     * information about this Socket, such as the SSLSession associated with
-     * an SSLSocket.
-     */
-    public Socket getSocket() {
-        return (socket);
-    }
-
-    /**
-     * Set the Socket (if any) through which this Request was received.
-     *
-     * @param socket The socket through which this request was received
-     */
-    public void setSocket(Socket socket) {
-        this.socket = socket;
-        remoteHost = null;
-        remoteAddr = null;
-        remotePort = -1;
-        localPort = -1;
-        localAddr = null;
-        localName = null;
     }
 
 
@@ -1031,7 +998,7 @@ public class GrizzlyRequest {
     /**
      * Return the protocol and version used to make this Request.
      */
-    public String getProtocol() {
+    public Protocol getProtocol() {
         return request.getProtocol();
     }
 

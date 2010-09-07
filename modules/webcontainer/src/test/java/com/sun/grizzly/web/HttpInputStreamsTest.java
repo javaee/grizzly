@@ -50,10 +50,10 @@ import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.http.HttpClientFilter;
-import com.sun.grizzly.http.HttpCodecFilter;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
+import com.sun.grizzly.http.Protocol;
 import com.sun.grizzly.http.server.GrizzlyRequest;
 import com.sun.grizzly.http.server.GrizzlyResponse;
 import com.sun.grizzly.http.server.ServerConfiguration;
@@ -904,7 +904,7 @@ public class HttpInputStreamsTest extends TestCase {
             null;
         
         HttpRequestPacket.Builder b = HttpRequestPacket.builder();
-        b.method(method).protocol(HttpCodecFilter.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost");
+        b.method(method).protocol(Protocol.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost");
         if (content != null) {
             b.contentLength(contentBuffer.remaining());
         }

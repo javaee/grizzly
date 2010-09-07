@@ -42,7 +42,9 @@ package com.sun.grizzly.http.server;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.EmptyCompletionHandler;
 import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.FilterChainContext;
@@ -51,6 +53,7 @@ import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpResponsePacket;
+import com.sun.grizzly.http.ProcessingState;
 import com.sun.grizzly.http.server.io.ReadHandler;
 import com.sun.grizzly.http.server.util.HtmlHelper;
 import com.sun.grizzly.http.util.HttpStatus;
@@ -64,7 +67,6 @@ import com.sun.grizzly.utils.DelayedExecutor;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -147,7 +149,7 @@ public class WebServerFilter extends BaseFilter
                         suspendedResponseQueue, suspendStatus);
                 wsContext.associatedRequest = grizzlyRequest;
 
-                WebServerProbeNotifier.notifyRequestReceived(this, connection,
+                WebServerProbeNotifier.notifyRequestReceive(this, connection,
                         grizzlyRequest);
 
                 try {
@@ -160,6 +162,8 @@ public class WebServerFilter extends BaseFilter
                         adapter.doService(grizzlyRequest, grizzlyResponse);
                     }
                 } catch (Throwable t) {
+                    grizzlyRequest.getRequest().getProcessingState().setError(true);
+                    
                     if (!response.isCommitted()) {
                         ByteBuffer b = HtmlHelper.getExceptionErrorPage("Internal Server Error", "Grizzly/2.0", t);
                         grizzlyResponse.reset();
@@ -284,21 +288,50 @@ public class WebServerFilter extends BaseFilter
         
         grizzlyResponse.finish();
 
-        final HttpRequestPacket request = grizzlyRequest.getRequest();
-        final boolean isExpectContent = request.isExpectContent();
-
-        if (isExpectContent) {
-            request.setSkipRemainder(true);
-        }
-
-        WebServerProbeNotifier.notifyRequestCompleted(this, connection,
+        WebServerProbeNotifier.notifyRequestComplete(this, connection,
                 grizzlyResponse);
 
-        grizzlyRequest.recycle(!isExpectContent);
-        grizzlyResponse.recycle(!isExpectContent);
+        if (isKeepAlive(grizzlyRequest, grizzlyResponse, wsContext)) {
+            final HttpRequestPacket request = grizzlyRequest.getRequest();
+            final boolean isExpectContent = request.isExpectContent();
+
+            if (isExpectContent) {
+                request.setSkipRemainder(true);
+            }
+
+            grizzlyRequest.recycle(!isExpectContent);
+            grizzlyResponse.recycle(!isExpectContent);
+        } else {
+            grizzlyRequest.getContext().flush(new EmptyCompletionHandler() {
+
+                @Override
+                public void completed(Object result) {
+                    final WriteResult wr = (WriteResult) result;
+                    try {
+                        wr.getConnection().close().markForRecycle(false);
+                    } catch (IOException ignore) {
+                    } finally {
+                        wr.recycle();
+                    }
+                }
+            });
+            grizzlyRequest.recycle();
+            grizzlyResponse.recycle();
+        }
 
     }
 
+    /**
+     * Checks if the HTTP connection should be kept alive
+     */
+    private static boolean isKeepAlive(final GrizzlyRequest grizzlyRequest,
+            final GrizzlyResponse grizzlyResponse,
+            final WebServerContext wsContext) {
+
+        final ProcessingState ps = grizzlyRequest.getRequest().getProcessingState();
+        return !ps.isError() && ps.isKeepAlive();
+    }
+    
     private WebServerContext obtainWebServerContext(final Connection connection) {
         WebServerContext context = webServerContextAttr.get(connection);
         if (context == null) {

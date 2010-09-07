@@ -81,6 +81,7 @@ class HttpRequestPacketImpl extends HttpRequestPacket implements HttpPacketParsi
         setConnection(connection);
     }
 
+    @Override
     public ProcessingState getProcessingState() {
         return processingState;
     }

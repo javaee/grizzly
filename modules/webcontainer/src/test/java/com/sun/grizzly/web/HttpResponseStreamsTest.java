@@ -50,9 +50,9 @@ import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.http.HttpClientFilter;
-import com.sun.grizzly.http.HttpCodecFilter;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpRequestPacket;
+import com.sun.grizzly.http.Protocol;
 import com.sun.grizzly.http.server.GrizzlyRequest;
 import com.sun.grizzly.http.server.GrizzlyResponse;
 import com.sun.grizzly.http.server.ServerConfiguration;
@@ -670,11 +670,10 @@ public class HttpResponseStreamsTest extends TestCase {
             // We construct HTTP request version 1.1 and specifying the URL of the
             // resource we want to download
             final HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("GET")
-                  .uri("/path").protocol(HttpCodecFilter.HTTP_1_1)
+                  .uri("/path").protocol(Protocol.HTTP_1_1)
                   .header("Host", "localhost:" + PORT).build();
             if (logger.isLoggable(Level.FINE)) {
-                logger.log(Level.FINE,
-                           "Connected... Sending the request: " + httpRequest);
+                logger.log(Level.FINE, "Connected... Sending the request: {0}", httpRequest);
             }
 
             // Write the request asynchronously
@@ -699,8 +698,7 @@ public class HttpResponseStreamsTest extends TestCase {
                 final Buffer buffer = httpContent.getContent();
 
                 if (logger.isLoggable(Level.FINE)) {
-                    logger.log(Level.FINE,
-                               "HTTP content size: " + buffer.remaining());
+                    logger.log(Level.FINE, "HTTP content size: {0}", buffer.remaining());
                 }
                 if (buffer.remaining() > 0) {
                     bytesDownloaded += buffer.remaining();
@@ -711,10 +709,7 @@ public class HttpResponseStreamsTest extends TestCase {
 
                 if (httpContent.isLast()) {
                     if (logger.isLoggable(Level.FINE)) {
-                        logger.log(Level.FINE,
-                                   "Response complete: "
-                                   + bytesDownloaded
-                                   + " bytes");
+                        logger.log(Level.FINE, "Response complete: {0} bytes", bytesDownloaded);
                     }
                     completeFuture.result(buf.toStringContent());
                     close();

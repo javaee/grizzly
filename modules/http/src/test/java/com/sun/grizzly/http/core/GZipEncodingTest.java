@@ -60,6 +60,7 @@ import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.http.HttpServerFilter;
+import com.sun.grizzly.http.Protocol;
 import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.HttpStatus;
 import com.sun.grizzly.impl.FutureImpl;
@@ -111,7 +112,7 @@ public class GZipEncodingTest extends TestCase {
             .header("Host", "localhost:" + PORT)
             .uri("/path")
             .header("accept-encoding", "gzip")
-            .protocol("HTTP/1.1")
+            .protocol(Protocol.HTTP_1_1)
             .build();
 
         ExpectedResult result = new ExpectedResult();
@@ -141,7 +142,7 @@ public class GZipEncodingTest extends TestCase {
             .method("POST")
             .header("Host", "localhost:" + PORT)
             .uri("/path")
-            .protocol("HTTP/1.1")
+            .protocol(Protocol.HTTP_1_1)
             .header("content-encoding", "gzip")
             .contentLength(gzippedContent.length)
             .build();
@@ -190,7 +191,7 @@ public class GZipEncodingTest extends TestCase {
             .method("POST")
             .header("Host", "localhost:" + PORT)
             .uri("/path")
-            .protocol("HTTP/1.1")
+            .protocol(Protocol.HTTP_1_1)
             .header("accept-encoding", "gzip")
             .header("content-encoding", "gzip")
             .contentLength(gzippedContent.length)
@@ -239,7 +240,7 @@ public class GZipEncodingTest extends TestCase {
                 .method("POST")
                 .header("Host", "localhost:" + PORT)
                 .uri("/path")
-                .protocol("HTTP/1.1")
+                .protocol(Protocol.HTTP_1_1)
                 .header("accept-encoding", "gzip")
                 .header("content-encoding", "gzip")
                 .chunked(true)
@@ -359,8 +360,8 @@ public class GZipEncodingTest extends TestCase {
         public NextAction handleConnect(FilterChainContext ctx)
               throws IOException {
             if (logger.isLoggable(Level.FINE)) {
-                logger.log(Level.FINE,
-                           "Connected... Sending the request: " + request);
+                logger.log(Level.FINE, "Connected... Sending the request: {0}",
+                        request);
             }
 
             ctx.write(request);
@@ -388,7 +389,7 @@ public class GZipEncodingTest extends TestCase {
                     }
                     if (expectedResult.getProtocol() != null) {
                         assertEquals(expectedResult.getProtocol(),
-                                     response.getProtocol());
+                                     response.getProtocol().getProtocolString());
                     }
                     if (expectedResult.getStatusMessage() != null) {
                         assertEquals(expectedResult.getStatusMessage().toLowerCase(),

@@ -55,6 +55,7 @@ import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpHeader;
 import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpServerFilter;
+import com.sun.grizzly.http.Protocol;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.MemoryUtils;
@@ -79,7 +80,7 @@ public class ContentTest extends TestCase {
 
     @SuppressWarnings({"unchecked"})
     public void testExplicitContentLength() throws Exception {
-        HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("POST").protocol("HTTP/1.1").uri("/default").contentLength(10).build();
+        HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("POST").protocol(Protocol.HTTP_1_1).uri("/default").contentLength(10).build();
         httpRequest.addHeader("Host", "localhost:" + PORT);
         HttpContent content = httpRequest.httpContentBuilder().content(MemoryUtils.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "1234567890")).build();
 
@@ -88,7 +89,7 @@ public class ContentTest extends TestCase {
 
     @SuppressWarnings({"unchecked"})
     public void testHeaderContentLength() throws Exception {
-        HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("POST").protocol("HTTP/1.1").uri("/default").header("Content-Length", "10").build();
+        HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("POST").protocol(Protocol.HTTP_1_1).uri("/default").header("Content-Length", "10").build();
         httpRequest.addHeader("Host", "localhost:" + PORT);
         HttpContent content = httpRequest.httpContentBuilder().content(MemoryUtils.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "1234567890")).build();
 
@@ -97,7 +98,7 @@ public class ContentTest extends TestCase {
 
     @SuppressWarnings({"unchecked"})
     public void testSimpleChunked() throws Exception {
-        HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("POST").protocol("HTTP/1.1").uri("/default").chunked(true).build();
+        HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("POST").protocol(Protocol.HTTP_1_1).uri("/default").chunked(true).build();
         httpRequest.addHeader("Host", "localhost:" + PORT);
         HttpContent content = httpRequest.httpTrailerBuilder().content(MemoryUtils.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "1234567890")).build();
 
@@ -106,7 +107,7 @@ public class ContentTest extends TestCase {
 
     @SuppressWarnings({"unchecked"})
     public void testSeveralChunked() throws Exception {
-        HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("POST").protocol("HTTP/1.1").uri("/default").chunked(true).build();
+        HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("POST").protocol(Protocol.HTTP_1_1).uri("/default").chunked(true).build();
         httpRequest.addHeader("Host", "localhost:" + PORT);
         HttpContent content1 = httpRequest.httpContentBuilder().content(MemoryUtils.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "1234567890")).build();
         HttpContent content2 = httpRequest.httpContentBuilder().content(MemoryUtils.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "0987654321")).build();

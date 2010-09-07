@@ -45,9 +45,9 @@ import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
-import com.sun.grizzly.http.HttpCodecFilter;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpRequestPacket;
+import com.sun.grizzly.http.Protocol;
 import com.sun.grizzly.impl.FutureImpl;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -122,9 +122,9 @@ public class ClientDownloadFilter extends BaseFilter {
         // We construct HTTP request version 1.1 and specifying the URL of the
         // resource we want to download
         final HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("GET")
-                .uri(uri.toString()).protocol(HttpCodecFilter.HTTP_1_1)
+                .uri(uri.toString()).protocol(Protocol.HTTP_1_1)
                 .header("Host", uri.getHost()).build();
-        logger.log(Level.INFO, "Connected... Sending the request: " + httpRequest);
+        logger.log(Level.INFO, "Connected... Sending the request: {0}", httpRequest);
 
         // Write the request asynchronously
         ctx.write(httpRequest);
@@ -152,8 +152,8 @@ public class ClientDownloadFilter extends BaseFilter {
             logger.log(Level.FINE, "Got HTTP response chunk");
             if (output == null) {
                 // If local file wasn't created - create it
-                logger.log(Level.INFO, "HTTP response: " + httpContent.getHttpHeader());
-                logger.log(Level.FINE, "Create a file: " + fileName);
+                logger.log(Level.INFO, "HTTP response: {0}", httpContent.getHttpHeader());
+                logger.log(Level.FINE, "Create a file: {0}", fileName);
                 FileOutputStream fos = new FileOutputStream(fileName);
                 output = fos.getChannel();
             }
@@ -161,7 +161,7 @@ public class ClientDownloadFilter extends BaseFilter {
             // Get HttpContent's Buffer
             final Buffer buffer = httpContent.getContent();
 
-            logger.log(Level.FINE, "HTTP content size: " + buffer.remaining());
+            logger.log(Level.FINE, "HTTP content size: {0}", buffer.remaining());
             if (buffer.remaining() > 0) {
                 bytesDownloaded += buffer.remaining();
                 
@@ -178,7 +178,7 @@ public class ClientDownloadFilter extends BaseFilter {
             if (httpContent.isLast()) {
                 // it's last HttpContent - we close the local file and
                 // notify about download completion
-                logger.log(Level.FINE, "Downloaded done: " + bytesDownloaded + " bytes");
+                logger.log(Level.FINE, "Downloaded done: {0} bytes", bytesDownloaded);
                 completeFuture.result(fileName);
                 close();
             }

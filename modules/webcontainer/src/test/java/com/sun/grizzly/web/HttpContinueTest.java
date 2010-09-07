@@ -139,7 +139,7 @@ public class HttpContinueTest extends TestCase {
             InputStream in = s.getInputStream();
             StringBuilder post = new StringBuilder();
             post.append("POST /path HTTP/1.1\r\n");
-            post.append("Host: localhost:" + PORT + "\r\n");
+            post.append("Host: localhost:").append(PORT).append("\r\n");
             post.append("Expect: 100-Continue\r\n");
             post.append("Content-Type: application/x-www-form-urlencoded\r\n");
             post.append("Content-Length: 7\r\n");

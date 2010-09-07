@@ -41,89 +41,22 @@
 package com.sun.grizzly.http;
 
 /**
- * Maintains semantic state necessary to proper HTTP processing.
+ * Predefined HTTP protocol versions
+ * 
+ * @author Alexey Stashok
  */
-public final class ProcessingState {
+public enum Protocol {
+    HTTP_0_9 ("HTTP/0.9"),
+    HTTP_1_0 ("HTTP/1.0"),
+    HTTP_1_1 ("HTTP/1.1");
 
-    /**
-     * <p>
-     * This flag controls the semantics of the Connection response header.
-     * </p>
-     */
-    boolean keepAlive = false;
+    private final String protocolString;
 
-    /**
-     * <p>
-     * Indicates if an error occurred during request/response processing.
-     * </p>
-     */
-    boolean error;
-
-    /**
-     * <p>
-     * Content delimitation for the request.  If <code>false</code>, the
-     * connection will be closed at the end of the request.
-     * </p>
-     */
-    boolean contentDelimitation = true;
-
-    /**
-     * <p>
-     * This flag indicates whether error occurred during the HTTP processing.
-     * </p>
-     *
-     * @return <tt>true</tt>, if error occurred during the HTTP processing, or
-     * <tt>false</tt> otherwise.
-     */
-    public boolean isError() {
-        return error;
+    private Protocol(String protocolString) {
+        this.protocolString = protocolString;
     }
 
-    /**
-     * <p>
-     * This flag indicates whether error occurred during the HTTP processing.
-     * </p>
-     *
-     * @param error <tt>true</tt>, if error occurred during the HTTP processing, or
-     * <tt>false</tt> otherwise.
-     */
-    public void setError(boolean error) {
-        this.error = error;
+    public String getProtocolString() {
+        return protocolString;
     }
-
-    /**
-     * <p>
-     * This flag controls the connection keep-alive feature.
-     * </p>
-     *
-     * @return <tt>true</tt> if connection may work in keep-alive mode or <tt>false</tt> otherwise.
-     */
-    public boolean isKeepAlive() {
-        return keepAlive;
-    }
-
-    /**
-     * <p>
-     * This flag controls the connection keep-alive feature.
-     * </p>
-     *
-     * @param keepAlive <tt>true</tt> if connection may work in keep-alive mode or <tt>false</tt> otherwise.
-     */
-    public void setKeepAlive(boolean keepAlive) {
-        this.keepAlive = keepAlive;
-    }
-
-
-
-    /**
-     * <p>
-     * Resets values to their initial states.
-     * </p>
-     */
-    public void recycle() {
-        keepAlive = false;
-        error = false;
-        contentDelimitation = true;
-    }
-
 }

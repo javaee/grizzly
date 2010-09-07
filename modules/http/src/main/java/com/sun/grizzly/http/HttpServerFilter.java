@@ -305,7 +305,7 @@ public class HttpServerFilter extends HttpCodecFilter {
                                 input, parsingState.start,
                                 parsingState.checkpoint);
                     } else {
-                        httpRequest.setProtocol("");
+                        httpRequest.getProtocolBC().setString("");
                     }
 
                     parsingState.subState = 0;
@@ -323,7 +323,7 @@ public class HttpServerFilter extends HttpCodecFilter {
     @Override
     Buffer encodeInitialLine(HttpPacket httpPacket, Buffer output, MemoryManager memoryManager) {
         final HttpResponsePacket httpResponse = (HttpResponsePacket) httpPacket;
-        output = put(memoryManager, output, httpResponse.getProtocolBC());
+        output = put(memoryManager, output, httpResponse.getProtocolString());
         output = put(memoryManager, output, Constants.SP);
         output = put(memoryManager, output, httpResponse.getStatusBC());
         output = put(memoryManager, output, Constants.SP);
@@ -381,14 +381,15 @@ public class HttpServerFilter extends HttpCodecFilter {
 
     private void prepareResponse(HttpRequestPacket request,
                                  HttpResponsePacketImpl response) {
+        final Protocol protocol = request.getProtocol();
 
-        response.setProtocol(HttpCodecFilter.HTTP_1_1);
+        response.setProtocol(protocol);
         if (response.parsedStatusInt == NON_PARSED_STATUS) {
             HttpStatus.OK_200.setValues(response);
         }
-        ProcessingState state = response.getProcessingState();
+        final ProcessingState state = response.getProcessingState();
 
-        if (state.http09) {
+        if (protocol == Protocol.HTTP_0_9) {
             return;
         }
 
@@ -414,13 +415,14 @@ public class HttpServerFilter extends HttpCodecFilter {
 //            }
 //        }
 
-        MimeHeaders headers = response.getHeaders();
+        final boolean isHttp11 = protocol == Protocol.HTTP_1_1;
+        final MimeHeaders headers = response.getHeaders();
 
         long contentLength = response.getContentLength();
         if (contentLength != -1L) {
             state.contentDelimitation = true;
         } else {
-            if (isChunking() && entityBody && state.http11) {
+            if (isChunking() && entityBody && isHttp11) {
                 state.contentDelimitation = true;
                 response.setChunked(true);
             }
@@ -461,7 +463,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         if (!state.keepAlive) {
             headers.setValue("Connection").setString("close");
             //connectionHeaderValueSet = false;
-        } else if (!state.http11 && !state.error) {
+        } else if (!isHttp11 && !state.error) {
             headers.setValue("Connection").setString("Keep-Alive");
         }
 
@@ -480,25 +482,15 @@ public class HttpServerFilter extends HttpCodecFilter {
             request.setExpectContent(false);
         }
 
-        final BufferChunk protocolBC = request.getProtocolBC();
-        if (protocolBC.equals(HttpCodecFilter.HTTP_1_1)) {
-            protocolBC.setString(HttpCodecFilter.HTTP_1_1);
-            state.http11 = true;
-        } else if (protocolBC.equals(HttpCodecFilter.HTTP_1_0)) {
-            protocolBC.setString(HttpCodecFilter.HTTP_1_0);
-            state.http11 = false;
-            state.keepAlive = false;
-        } else if (protocolBC.equals(HttpCodecFilter.HTTP_0_9)) {
-            protocolBC.setString(HttpCodecFilter.HTTP_0_9);
-            state.http09 = true;
-            state.http11 = false;
-            state.keepAlive = false;
-        } else {
-            // Unsupported protocol
-            state.http11 = false;
+        Protocol protocol;
+        try {
+            protocol = request.getProtocol();
+        } catch (IllegalStateException e) {
             state.error = true;
             // Send 505; Unsupported HTTP version
             HttpStatus.HTTP_VERSION_NOT_SUPPORTED_505.setValues(response);
+            protocol = Protocol.HTTP_1_1;
+            request.setProtocol(protocol);
         }
 
         MimeHeaders headers = request.getHeaders();
@@ -515,13 +507,13 @@ public class HttpServerFilter extends HttpCodecFilter {
                 Buffer uriB = uriBC.getBuffer();
                 slashPos = uriBC.indexOf('/', pos + 3);
                 if (slashPos == -1) {
-                    slashPos = uriBC.length();
+                    slashPos = uriBC.size();
                     // Set URI as "/"
                     uriBC.setBuffer(uriB, uriBCStart + pos + 1, 1);
                 } else {
                     uriBC.setBuffer(uriB,
                                     uriBCStart + slashPos,
-                                    uriBC.length() - slashPos);
+                                    uriBC.size() - slashPos);
                 }
                 BufferChunk hostMB = headers.setValue("host");
                 hostMB.setBuffer(uriB,
@@ -531,16 +523,18 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         }
 
-        BufferChunk connectionValueMB = headers.getValue("connection");
-        if (connectionValueMB != null) {
-            if (connectionValueMB.findBytesAscii(Constants.CLOSE_BYTES) != -1) {
-                state.keepAlive = false;
-                //connectionHeaderValueSet = false;
-            } else if (connectionValueMB.findBytesAscii(Constants.KEEPALIVE_BYTES) != -1) {
-                state.keepAlive = true;
-                // connectionHeaderValueSet = true
-            }
+        final boolean isHttp11 = protocol == Protocol.HTTP_1_1;
+
+        // ------ Set keep-alive flag
+        final BufferChunk connectionValueMB = headers.getValue("connection");
+        final boolean isConnectionClose = (connectionValueMB != null &&
+                connectionValueMB.findBytesAscii(Constants.CLOSE_BYTES) != -1);
+
+        if (!isConnectionClose) {
+            state.keepAlive = isHttp11 ||
+                    (connectionValueMB != null && connectionValueMB.findBytesAscii(Constants.KEEPALIVE_BYTES) != -1);
         }
+        // --------------------------
 
         long contentLength = request.getContentLength();
         if (contentLength >= 0) {
@@ -550,7 +544,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         BufferChunk hostBC = headers.getValue("host");
 
         // Check host header
-        if (state.http11 && hostBC == null) {
+        if (isHttp11 && hostBC == null) {
             state.error = true;
             // 400 - Bad request
             HttpStatus.BAD_REQUEST_400.setValues(response);
@@ -568,7 +562,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         if (request.requiresAcknowledgement()) {
             // if we have any request content, we can ignore the Expect
             // request
-            request.requiresAcknowledgement(state.http11 && !hasReadyContent);
+            request.requiresAcknowledgement(isHttp11 && !hasReadyContent);
         }
     }
 

@@ -54,6 +54,7 @@ import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.http.HttpServerFilter;
+import com.sun.grizzly.http.Protocol;
 import com.sun.grizzly.http.util.HttpStatus;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
@@ -188,9 +189,8 @@ public class WebSocketFilter extends BaseFilter {
         WebSocket ws = getWebSocket(connection);
 
         if (logger.isLoggable(Level.FINE)) {
-            logger.log(Level.FINE, "handleRead websocket: " + ws +
-                    " content-size=" + content.getContent().remaining() +
-                    " headers=\n" + header);
+            logger.log(Level.FINE, "handleRead websocket: {0} content-size={1} headers=\n{2}",
+                    new Object[]{ws, content.getContent().remaining(), header});
         }
 
         // If websocket is null - it means either non-websocket Connection, or websocket with incompleted handshake
@@ -527,6 +527,7 @@ public class WebSocketFilter extends BaseFilter {
 
         HttpStatus.WEB_SOCKET_PROTOCOL_HANDSHAKE_101.setValues(response);
 
+        response.setProtocol(Protocol.HTTP_1_1);
         response.setUpgrade("WebSocket");
         response.setHeader("Connection", "Upgrade");
 

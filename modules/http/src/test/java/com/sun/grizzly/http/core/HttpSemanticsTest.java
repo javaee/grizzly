@@ -55,6 +55,7 @@ import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.http.HttpServerFilter;
+import com.sun.grizzly.http.Protocol;
 import com.sun.grizzly.http.util.HttpStatus;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
@@ -108,7 +109,7 @@ public class HttpSemanticsTest extends TestCase {
         HttpRequestPacket request = HttpRequestPacket.builder()
                 .method("GET")
                 .uri("/path")
-                .protocol("HTTP/1.1")
+                .protocol(Protocol.HTTP_1_1)
                 .build();
 
         ExpectedResult result = new ExpectedResult();
@@ -130,7 +131,7 @@ public class HttpSemanticsTest extends TestCase {
                 .build();
 
         ExpectedResult result = new ExpectedResult();
-        result.setProtocol("HTTP/1.1");
+        result.setProtocol("HTTP/0.9");
         result.setStatusCode(200);
         result.addHeader("!Connection", "close");
         result.setStatusMessage("ok");
@@ -148,7 +149,7 @@ public class HttpSemanticsTest extends TestCase {
                 .build();
 
         ExpectedResult result = new ExpectedResult();
-        result.setProtocol("HTTP/1.1");
+        result.setProtocol("HTTP/1.0");
         result.setStatusCode(200);
         result.addHeader("Connection", "close");
         result.setStatusMessage("ok");
@@ -281,8 +282,7 @@ public class HttpSemanticsTest extends TestCase {
         public NextAction handleConnect(FilterChainContext ctx)
               throws IOException {
             if (logger.isLoggable(Level.FINE)) {
-                logger.log(Level.FINE,
-                           "Connected... Sending the request: " + request);
+                logger.log(Level.FINE, "Connected... Sending the request: {0}", request);
             }
 
             ctx.write(request);
@@ -310,7 +310,7 @@ public class HttpSemanticsTest extends TestCase {
                     }
                     if (expectedResult.getProtocol() != null) {
                         assertEquals(expectedResult.getProtocol(),
-                                     response.getProtocol());
+                                     response.getProtocol().getProtocolString());
                     }
                     if (expectedResult.getStatusMessage() != null) {
                         assertEquals(expectedResult.getStatusMessage().toLowerCase(),

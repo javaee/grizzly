@@ -51,9 +51,9 @@ import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.http.HttpClientFilter;
-import com.sun.grizzly.http.HttpCodecFilter;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpRequestPacket;
+import com.sun.grizzly.http.Protocol;
 import com.sun.grizzly.http.server.GrizzlyAdapter;
 import com.sun.grizzly.http.server.GrizzlyListener;
 import com.sun.grizzly.http.server.GrizzlyRequest;
@@ -107,7 +107,7 @@ public class NIOOutputSinksTest extends TestCase {
                 // We construct HTTP request version 1.1 and specifying the URL of the
                 // resource we want to download
                 final HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("GET")
-                        .uri("/path").protocol(HttpCodecFilter.HTTP_1_1)
+                        .uri("/path").protocol(Protocol.HTTP_1_1)
                         .header("Host", "localhost:" + PORT).build();
 
                 // Write the request asynchronously
@@ -268,7 +268,7 @@ public class NIOOutputSinksTest extends TestCase {
                 // We construct HTTP request version 1.1 and specifying the URL of the
                 // resource we want to download
                 final HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("GET")
-                        .uri("/path").protocol(HttpCodecFilter.HTTP_1_1)
+                        .uri("/path").protocol(Protocol.HTTP_1_1)
                         .header("Host", "localhost:" + PORT).build();
 
                 // Write the request asynchronously
@@ -427,7 +427,7 @@ public class NIOOutputSinksTest extends TestCase {
                 // We construct HTTP request version 1.1 and specifying the URL of the
                 // resource we want to download
                 final HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("GET")
-                        .uri("/path").protocol(HttpCodecFilter.HTTP_1_1)
+                        .uri("/path").protocol(Protocol.HTTP_1_1)
                         .header("Host", "localhost:" + PORT).build();
 
                 // Write the request asynchronously
@@ -502,7 +502,7 @@ public class NIOOutputSinksTest extends TestCase {
             clientTransport.stop();
             server.stop();
             TransportFactory.getInstance().close();
-        }        
+        }
     }
 
     private static void fill(byte[] array) {

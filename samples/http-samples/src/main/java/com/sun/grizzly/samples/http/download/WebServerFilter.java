@@ -59,6 +59,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -138,7 +139,7 @@ public class WebServerFilter extends BaseFilter {
         // Locate corresponding file
         final File file = new File(rootFolderFile, localURL);
 
-        logger.info("Request file: " + file.getAbsolutePath());
+        logger.log(Level.INFO, "Request file: {0}", file.getAbsolutePath());
 
         if (!file.isFile()) {
             // If file doesn't exist - response 404
@@ -333,7 +334,7 @@ public class WebServerFilter extends BaseFilter {
         }
 
         /**
-         * The method will be called, when file transferring was cancelled
+         * The method will be called, when file transferring was canceled
          */
         @Override
         public void cancelled() {
@@ -357,10 +358,10 @@ public class WebServerFilter extends BaseFilter {
 
         /**
          * Returns <tt>true</tt>, if file transfer was completed, or
-         * <tt>failse</tt> otherwise.
+         * <tt>false</tt> otherwise.
          *
          * @return <tt>true</tt>, if file transfer was completed, or
-         * <tt>failse</tt> otherwise.
+         * <tt>false</tt> otherwise.
          */
         public boolean isDone() {
             return isDone;

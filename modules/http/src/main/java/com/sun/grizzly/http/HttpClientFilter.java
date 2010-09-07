@@ -264,7 +264,7 @@ public class HttpClientFilter extends HttpCodecFilter {
             output = put(memoryManager, output, httpRequest.getQueryStringBC());
         }
         output = put(memoryManager, output, Constants.SP);
-        output = put(memoryManager, output, httpRequest.getProtocolBC());
+        output = put(memoryManager, output, httpRequest.getProtocolString());
 
         return output;
     }

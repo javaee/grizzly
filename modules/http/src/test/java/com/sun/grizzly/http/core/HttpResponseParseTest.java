@@ -265,7 +265,7 @@ public class HttpResponseParseTest extends TestCase {
             HttpResponsePacket httpResponse = (HttpResponsePacket) httpContent.getHttpHeader();
             
             try {
-                assertEquals(protocol, httpResponse.getProtocol());
+                assertEquals(protocol, httpResponse.getProtocol().getProtocolString());
                 assertEquals(code, httpResponse.getStatus());
                 assertEquals(phrase, httpResponse.getReasonPhrase());
 

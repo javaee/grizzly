@@ -144,14 +144,6 @@ public class BufferChunk {
         onContentChanged();
     }
 
-    public int size() {
-        if (!hasString()) {
-            return end - start;
-        }
-        
-        return stringValue.length();
-    }
-
     @Override
     public String toString() {
         return toString(null);
@@ -182,7 +174,7 @@ public class BufferChunk {
      *
      * @return the <tt>BufferChunk</tt> length.
      */
-    public int length() {
+    public int size() {
         if (hasBuffer()) {
             return end - start;
         } else if (hasString()) {

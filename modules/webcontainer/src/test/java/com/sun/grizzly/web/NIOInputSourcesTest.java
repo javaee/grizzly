@@ -54,6 +54,7 @@ import com.sun.grizzly.http.HttpCodecFilter;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
+import com.sun.grizzly.http.Protocol;
 import com.sun.grizzly.http.server.GrizzlyAdapter;
 import com.sun.grizzly.http.server.GrizzlyListener;
 import com.sun.grizzly.http.server.GrizzlyRequest;
@@ -128,7 +129,7 @@ public class NIOInputSourcesTest extends TestCase {
             public void doWrite(FilterChainContext ctx) throws IOException {
 
                 HttpRequestPacket.Builder b = HttpRequestPacket.builder();
-                b.method("POST").protocol(HttpCodecFilter.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost:" + PORT);
+                b.method("POST").protocol(Protocol.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost:" + PORT);
                 b.contentLength(expected.length());
                 HttpRequestPacket request = b.build();
                 ctx.write(request);
@@ -173,7 +174,7 @@ public class NIOInputSourcesTest extends TestCase {
             public void doWrite(FilterChainContext ctx) throws IOException {
 
                 HttpRequestPacket.Builder b = HttpRequestPacket.builder();
-                b.method("POST").protocol(HttpCodecFilter.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost:" + PORT);
+                b.method("POST").protocol(Protocol.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost:" + PORT);
                 b.contentLength(expected.length());
                 HttpRequestPacket request = b.build();
                 ctx.write(request);
@@ -248,7 +249,7 @@ public class NIOInputSourcesTest extends TestCase {
             public void doWrite(FilterChainContext ctx) throws IOException {
 
                 HttpRequestPacket.Builder b = HttpRequestPacket.builder();
-                b.method("POST").protocol(HttpCodecFilter.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost:" + PORT);
+                b.method("POST").protocol(Protocol.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost:" + PORT);
                 b.contentLength(expected.length());
                 HttpRequestPacket request = b.build();
                 ctx.write(request);
@@ -293,7 +294,7 @@ public class NIOInputSourcesTest extends TestCase {
             public void doWrite(FilterChainContext ctx) throws IOException {
 
                 HttpRequestPacket.Builder b = HttpRequestPacket.builder();
-                b.method("POST").protocol(HttpCodecFilter.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost:" + PORT);
+                b.method("POST").protocol(Protocol.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost:" + PORT);
                 b.contentLength(expected.length());
                 HttpRequestPacket request = b.build();
                 ctx.write(request);
@@ -419,7 +420,7 @@ public class NIOInputSourcesTest extends TestCase {
                 null;
 
         HttpRequestPacket.Builder b = HttpRequestPacket.builder();
-        b.method(method).protocol(HttpCodecFilter.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost:" + PORT);
+        b.method(method).protocol(Protocol.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost:" + PORT);
         if (content != null) {
             b.contentLength(contentBuffer.remaining());
         }

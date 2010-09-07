@@ -56,7 +56,7 @@ final class WebServerProbeNotifier {
      * @param connection {@link Connection}, the event belongs to.
      * @param request received {@link GrizzlyRequest}.
      */
-    static void notifyRequestReceived(final WebServerFilter filter,
+    static void notifyRequestReceive(final WebServerFilter filter,
             final Connection connection, final GrizzlyRequest request) {
 
         final WebServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
@@ -74,7 +74,7 @@ final class WebServerProbeNotifier {
      * @param connection {@link Connection}, the event belongs to.
      * @param response {@link GrizzlyResponse}.
      */
-    static void notifyRequestCompleted(final WebServerFilter filter,
+    static void notifyRequestComplete(final WebServerFilter filter,
             final Connection connection, final GrizzlyResponse response) {
 
         final WebServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
@@ -92,7 +92,7 @@ final class WebServerProbeNotifier {
      * @param connection {@link Connection}, the event belongs to.
      * @param request {@link GrizzlyRequest}.
      */
-    static void notifyRequestSuspended(final WebServerFilter filter,
+    static void notifyRequestSuspend(final WebServerFilter filter,
             final Connection connection, final GrizzlyRequest request) {
 
         final WebServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
@@ -110,7 +110,7 @@ final class WebServerProbeNotifier {
      * @param connection {@link Connection}, the event belongs to.
      * @param request {@link GrizzlyRequest}.
      */
-    static void notifyRequestResumed(final WebServerFilter filter,
+    static void notifyRequestResume(final WebServerFilter filter,
             final Connection connection, final GrizzlyRequest request) {
 
         final WebServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
@@ -140,13 +140,13 @@ final class WebServerProbeNotifier {
     }
 
     /**
-     * Notify registered {@link HttpMonitoringProbe}s about the "request cancelled after suspend" event.
+     * Notify registered {@link HttpMonitoringProbe}s about the "request canceled after suspend" event.
      *
      * @param filter {@link WebServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
      * @param request  {@link GrizzlyRequest}.
      */
-    static void notifyRequestCancelled(final WebServerFilter filter,
+    static void notifyRequestCancel(final WebServerFilter filter,
             final Connection connection, final GrizzlyRequest request) {
 
         final WebServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();

@@ -1819,7 +1819,7 @@ public class GrizzlyResponse {
 
             final Connection connection = ctx.getConnection();
 
-            WebServerProbeNotifier.notifyRequestSuspended(
+            WebServerProbeNotifier.notifyRequestSuspend(
                     request.webServerFilter, connection, request);
             
             connection.addCloseListener(suspendedRunnable);
@@ -1857,7 +1857,7 @@ public class GrizzlyResponse {
 
             isSuspended = false;
 
-            WebServerProbeNotifier.notifyRequestResumed(request.webServerFilter,
+            WebServerProbeNotifier.notifyRequestResume(request.webServerFilter,
                     connection, request);
 
             ctx.resume();
@@ -1892,7 +1892,7 @@ public class GrizzlyResponse {
 
             suspendedRunnable.reset();
 
-            WebServerProbeNotifier.notifyRequestCancelled(
+            WebServerProbeNotifier.notifyRequestCancel(
                     request.webServerFilter, connection, request);
 
             ctx.resume();

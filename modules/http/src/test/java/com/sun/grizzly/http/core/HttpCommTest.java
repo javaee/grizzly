@@ -56,6 +56,7 @@ import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.http.HttpServerFilter;
+import com.sun.grizzly.http.Protocol;
 import com.sun.grizzly.http.util.HttpStatus;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.utils.ChunkingFilter;
@@ -68,6 +69,7 @@ import java.util.Enumeration;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import junit.framework.TestCase;
 
@@ -122,7 +124,7 @@ public class HttpCommTest extends TestCase {
             connection.setProcessor(clientFilterChain);
 
             HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("GET").
-                    uri("/dummyURL").query("p1=v1&p2=v2").protocol("HTTP/1.0").
+                    uri("/dummyURL").query("p1=v1&p2=v2").protocol(Protocol.HTTP_1_0).
                     header("client-port",  Integer.toString(clientPort)).
                     header("Host", "localhost").build();
 
@@ -154,7 +156,7 @@ public class HttpCommTest extends TestCase {
             final HttpContent httpContent = (HttpContent) ctx.getMessage();
             final HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
 
-            logger.fine("Got the request: " + request);
+            logger.log(Level.FINE, "Got the request: {0}", request);
 
             assertEquals(PORT, request.getLocalPort());
             assertTrue(isLocalAddress(request.getLocalAddress()));

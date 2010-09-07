@@ -42,7 +42,6 @@ package com.sun.grizzly.web;
 
 import com.sun.grizzly.http.server.GrizzlyWebServer;
 import com.sun.grizzly.http.server.GrizzlyListener;
-import com.sun.grizzly.monitoring.jmx.GrizzlyJmxManager;
 import org.junit.Test;
 import static org.junit.Assert.*;
 

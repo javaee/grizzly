@@ -65,7 +65,10 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
 
     protected boolean isCommitted;
     protected final MimeHeaders headers = new MimeHeaders();
+    
     protected final BufferChunk protocolBC = BufferChunk.newInstance();
+    protected Protocol parsedProtocol;
+
     protected boolean isChunked;
     protected long contentLength = -1;
     protected String charEncoding;
@@ -73,7 +76,7 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
     protected boolean contentTypeParsed;
     protected String contentType;
 
-    protected boolean isExpectContent;
+    protected boolean isExpectContent = true;
 
     protected boolean isSkipRemainder;
     
@@ -112,6 +115,8 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
     public final boolean isHeader() {
         return true;
     }
+
+    public abstract ProcessingState getProcessingState();
 
     protected void addContentEncoding(ContentEncoding contentEncoding) {
         contentEncodings.add(contentEncoding);
@@ -500,16 +505,44 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
      *
      * @return the HTTP message protocol version. The result format is "HTTP/1.x".
      */
-    public String getProtocol() {
-        return getProtocolBC().toString();
+    public String getProtocolString() {
+        if (parsedProtocol == null) {
+            return getProtocolBC().toString();
+        }
+
+        return parsedProtocol.getProtocolString();
+    }
+
+    /**
+     * Get HTTP protocol version.
+     * @return {@link Protocol}.
+     */
+    public Protocol getProtocol() {
+        if (parsedProtocol != null) {
+            return parsedProtocol;
+        }
+
+        if (protocolBC.isNull() || protocolBC.size() == 0) {
+            parsedProtocol = Protocol.HTTP_0_9;
+        } else if (protocolBC.equals(Protocol.HTTP_1_1.getProtocolString())) {
+            parsedProtocol = Protocol.HTTP_1_1;
+        } else if (protocolBC.equals(Protocol.HTTP_1_0.getProtocolString())) {
+            parsedProtocol = Protocol.HTTP_1_0;
+        } else if (protocolBC.equals(Protocol.HTTP_0_9.getProtocolString())) {
+            parsedProtocol = Protocol.HTTP_0_9;
+        } else {
+            throw new IllegalStateException("Unknown protocol " + protocolBC.toString());
+        }
+
+        return parsedProtocol;
     }
 
     /**
      * Set the HTTP message protocol version.
-     * @param protocol protocol version in format "HTTP/1.x".
+     * @param protocol {@link Protocol}
      */
-    public void setProtocol(String protocol) {
-        this.protocolBC.setString(protocol);
+    public void setProtocol(Protocol protocol) {
+        parsedProtocol = protocol;
     }
 
     /**
@@ -553,6 +586,7 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
         secure = false;
         attributes.recycle();
         protocolBC.recycle();
+        parsedProtocol = null;
         contentEncodings.clear();
         headers.clear();
         isCommitted = false;
@@ -563,6 +597,7 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
         contentType = null;
         contentTypeParsed = false;
         transferEncoding = null;
+        isExpectContent = true;
         upgrade.recycle();
     }
     
@@ -583,11 +618,21 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
 
         /**
          * Set the HTTP message protocol version.
+         * @param protocol {@link Protocol}
+         */
+        @SuppressWarnings({"unchecked"})
+        public final T protocol(Protocol protocol) {
+            packet.setProtocol(protocol);
+            return (T) this;
+        }
+
+        /**
+         * Set the HTTP message protocol version.
          * @param protocol protocol version in format "HTTP/1.x".
          */
         @SuppressWarnings({"unchecked"})
         public final T protocol(String protocol) {
-            packet.setProtocol(protocol);
+            packet.getProtocolBC().setString(protocol);
             return (T) this;
         }
 
