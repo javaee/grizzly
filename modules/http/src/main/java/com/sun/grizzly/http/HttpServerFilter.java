@@ -404,17 +404,6 @@ public class HttpServerFilter extends HttpCodecFilter {
             state.contentDelimitation = true;
         }
 
-//        // TODO: Check for compression
-//        boolean useCompression = false;
-//        if (entityBody && (compressionLevel > 0)) {
-//            useCompression = isCompressable();
-//
-//            // Change content-length to -1 to force chunking
-//            if (useCompression) {
-//                response.setContentLength(-1);
-//            }
-//        }
-
         final boolean isHttp11 = protocol == Protocol.HTTP_1_1;
         final MimeHeaders headers = response.getHeaders();
 
