@@ -50,6 +50,8 @@ import com.sun.grizzly.ProcessorExecutor;
 import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.WriteResult;
+import com.sun.grizzly.attributes.AttributeHolder;
+import com.sun.grizzly.attributes.AttributeStorage;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.memory.BufferUtils;
 import java.io.IOException;
@@ -64,7 +66,7 @@ import java.util.logging.Logger;
  * 
  * @author Alexey Stashok
  */
-public final class FilterChainContext {
+public final class FilterChainContext implements AttributeStorage {
     private static final Logger logger = Grizzly.logger(FilterChainContext.class);
 
     public enum State {
@@ -531,7 +533,15 @@ public final class FilterChainContext {
     public void fail(Throwable error) {
         getFilterChain().fail(this, error);
     }
-    
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public AttributeHolder getAttributes() {
+        return internalContext.getAttributes();
+    }
+
     /**
      * Release the context associated resources.
      */
