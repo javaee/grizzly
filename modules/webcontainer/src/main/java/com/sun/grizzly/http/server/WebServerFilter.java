@@ -145,8 +145,9 @@ public class WebServerFilter extends BaseFilter
                 HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
                 HttpResponsePacket response = request.getResponse();
                 grizzlyRequest = GrizzlyRequest.create();
-                grizzlyRequest.initialize(request, httpContent, ctx, this);
                 final GrizzlyResponse grizzlyResponse = GrizzlyResponse.create();
+
+                grizzlyRequest.initialize(grizzlyResponse, request, httpContent, ctx, this);
                 final SuspendStatus suspendStatus = new SuspendStatus();
 
                 grizzlyResponse.initialize(grizzlyRequest, response, ctx,

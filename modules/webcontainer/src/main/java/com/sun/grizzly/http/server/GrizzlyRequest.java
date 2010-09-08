@@ -232,10 +232,12 @@ public class GrizzlyRequest {
 
     protected WebServerFilter webServerFilter;
 
-    public void initialize(HttpRequestPacket request,
+    public void initialize(GrizzlyResponse response,
+                           HttpRequestPacket request,
                            HttpContent initialRequestContent,
                            FilterChainContext ctx,
                            WebServerFilter webServerFilter) {
+        this.response = response;
         this.request = request;
         this.ctx = ctx;
         this.webServerFilter = webServerFilter;
@@ -526,15 +528,6 @@ public class GrizzlyRequest {
         return response;
     }
 
-    /**
-     * Set the Response with which this Request is associated.
-     *
-     * @param response The new associated response
-     */
-    public void setResponse(GrizzlyResponse response) {
-        this.response = response;
-    }
-
     // --------------------------------------------------------- Public Methods
 
     /**
@@ -572,6 +565,7 @@ public class GrizzlyRequest {
             request.recycle();
         }
         
+        response = null;
         request = null;
         ctx = null;
         webServerFilter = null;

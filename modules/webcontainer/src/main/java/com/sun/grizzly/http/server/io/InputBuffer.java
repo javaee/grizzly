@@ -573,6 +573,8 @@ public class InputBuffer {
             }
             long nlen = Math.min(compositeBuffer.remaining(), n);
             compositeBuffer.position(compositeBuffer.position() + (int) nlen);
+            compositeBuffer.shrink();
+            
             return nlen;
         } else {
             if (n < 0) { // required by java.io.Reader.skip()
