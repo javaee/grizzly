@@ -303,8 +303,8 @@ public class CookiesTest extends TestCase {
             }
             @Override
             public boolean check(Object pattern, Cookie cookie) {
-                    // In the tests we allow max-age to have 5sec precision.
-                return Math.abs((Integer) pattern - cookie.getMaxAge()) < 5000;
+                    // In the tests we allow max-age to have 15sec precision.
+                return Math.abs((Integer) pattern - cookie.getMaxAge()) < 15000;
             }
         };
 
