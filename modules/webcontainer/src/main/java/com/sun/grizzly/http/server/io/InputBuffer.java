@@ -258,7 +258,7 @@ public class InputBuffer {
         if (enc != null) {
             encoding = enc;
         }
-        if (compositeBuffer.remaining() > 0) {
+        if (compositeBuffer.hasRemaining()) {
             fillChar(0, false, true);
         } else {
             charBuf.flip();
@@ -280,7 +280,7 @@ public class InputBuffer {
         if (closed) {
             throw new IOException();
         }
-        if (compositeBuffer.remaining() == 0) {
+        if (!compositeBuffer.hasRemaining()) {
             if (fill(1) == -1) {
                 return -1;
             }
@@ -308,7 +308,7 @@ public class InputBuffer {
         if (len == 0) {
             return 0;
         }
-        if (!asyncEnabled && compositeBuffer.remaining() == 0) {
+        if (!asyncEnabled && !compositeBuffer.hasRemaining()) {
             if (fill(len) == -1) {
                 return -1;
             }
@@ -369,7 +369,7 @@ public class InputBuffer {
             throw new IllegalArgumentException("target cannot be null.");
         }
 
-        if (charBuf.remaining() == 0) {
+        if (!charBuf.hasRemaining()) {
             if (fillChar(target.capacity(), !asyncEnabled, true) == -1) {
                 return -1;
             }
@@ -393,7 +393,7 @@ public class InputBuffer {
         if (!processingChars) {
             throw new IllegalStateException();
         }
-        if (charBuf.remaining() == 0) {
+        if (!charBuf.hasRemaining()) {
             if (fillChar(1, true, true) == -1) {
                 return -1;
             }
@@ -562,7 +562,7 @@ public class InputBuffer {
                 return 0L;
             }
             if (block) {
-                if (compositeBuffer.remaining() == 0) {
+                if (!compositeBuffer.hasRemaining()) {
                     if (fill((int) n) == -1) {
                         return -1;
                     }
@@ -581,7 +581,7 @@ public class InputBuffer {
             if (n == 0) {
                 return 0L;
             }
-            if (charBuf.remaining() == 0) {
+            if (!charBuf.hasRemaining()) {
                 if (fillChar((int) n, block, true) == -1) {
                     return 0;
                 }
