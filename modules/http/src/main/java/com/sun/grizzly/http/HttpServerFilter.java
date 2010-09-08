@@ -442,16 +442,24 @@ public class HttpServerFilter extends HttpCodecFilter {
             // connection: close header
             state.keepAlive = false;
         }
+        
+        if (entityBody && !isHttp11 && response.getContentLength() == -1) {
+            // HTTP 1.0 response with no content-length having been set.
+            // Close the connection to signal the response as being complete.
+            state.keepAlive = false;
+        } else if (entityBody && !response.isChunked() && response.getContentLength() == -1) {
+            // HTTP 1.1 response with chunking disabled and no content-length having been set.
+            // Close the connection to signal the response as being complete.
+            state.keepAlive = false;
+        }
 
         // If we know that the request is bad this early, add the
         // Connection: close header.
         state.keepAlive = (state.keepAlive &&
                 !statusDropsConnection(response.getStatus()));
-        //       && !dropConnection;
 
         if (!state.keepAlive) {
             headers.setValue("Connection").setString("close");
-            //connectionHeaderValueSet = false;
         } else if (!isHttp11 && !state.error) {
             headers.setValue("Connection").setString("Keep-Alive");
         }
