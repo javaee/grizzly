@@ -270,7 +270,7 @@ public final class FilterChainContext implements AttributeStorage {
      *
      * @param connection {@link Connection} object, associated with the current processing.
      */
-    public void setConnection(final Connection connection) {
+    void setConnection(final Connection connection) {
         internalContext.setConnection(connection);
     }
 
@@ -327,6 +327,11 @@ public final class FilterChainContext implements AttributeStorage {
         return contextRunnable;
     }
 
+    /**
+     * Get the {@link TransportFilter} related context.
+     *
+     * @return {@link TransportFilter}.
+     */
     public TransportContext getTransportContext() {
         return transportFilterContext;
     }
