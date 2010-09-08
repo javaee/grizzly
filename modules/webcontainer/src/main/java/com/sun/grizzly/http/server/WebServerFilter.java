@@ -112,7 +112,8 @@ public class WebServerFilter extends BaseFilter
         this.listener = listener;
         delayedExecutor = webServer.getDelayedExecutor();
         suspendedResponseQueue = GrizzlyResponse.createDelayQueue(delayedExecutor);
-        keepAliveQueue = delayedExecutor.createDelayQueue(new KeepAliveWorker(),
+        keepAliveQueue = delayedExecutor.createDelayQueue(
+                new KeepAliveWorker(listener.getKeepAlive()),
                 new KeepAliveResolver());
         
         this.webServerContextAttr =
@@ -277,6 +278,11 @@ public class WebServerFilter extends BaseFilter
                               final WebServerContext wsContext)
     throws IOException {
         keepAliveQueue.remove(wsContext);
+        final int requestsProcessed = wsContext.requestsProcessed;
+        if (requestsProcessed > 0) {
+            KeepAlive.notifyProbesHit(listener.getKeepAlive(), connection,
+                    requestsProcessed);
+        }
     }
 
     private void afterService(final Connection connection,
@@ -316,12 +322,28 @@ public class WebServerFilter extends BaseFilter
     /**
      * Checks if the HTTP connection should be kept alive
      */
-    private static boolean isKeepAlive(final GrizzlyRequest grizzlyRequest,
+    private boolean isKeepAlive(final GrizzlyRequest grizzlyRequest,
             final GrizzlyResponse grizzlyResponse,
             final WebServerContext wsContext) {
 
         final ProcessingState ps = grizzlyRequest.getRequest().getProcessingState();
-        return !ps.isError() && ps.isKeepAlive();
+        boolean isKeepAlive = !ps.isError() && ps.isKeepAlive();
+
+        if (isKeepAlive) {
+            isKeepAlive &= (++wsContext.requestsProcessed <= listener.getKeepAlive().getMaxRequestsCount());
+
+            if (wsContext.requestsProcessed == 1) {
+                if (isKeepAlive) { // New keep-alive connection
+                    KeepAlive.notifyProbesConnectionAccepted(listener.getKeepAlive(),
+                            wsContext.connection);
+                } else { // Refused keep-alive connection
+                    KeepAlive.notifyProbesRefused(listener.getKeepAlive(),
+                            wsContext.connection);
+                }
+            }
+        }
+
+        return isKeepAlive;
     }
     
     private WebServerContext obtainWebServerContext(final Connection connection) {
@@ -342,15 +364,23 @@ public class WebServerFilter extends BaseFilter
         }
         
         private volatile long keepAliveTimeoutMillis = DelayedExecutor.UNSET_TIMEOUT;
+        private int requestsProcessed;
         private GrizzlyRequest associatedRequest;
     }
 
     private static class KeepAliveWorker implements
             DelayedExecutor.Worker<WebServerContext> {
+        private final KeepAlive keepAlive;
+
+        public KeepAliveWorker(KeepAlive keepAlive) {
+            this.keepAlive = keepAlive;
+        }
+
         @Override
-        public void doWork(WebServerContext element) {
+        public void doWork(WebServerContext context) {
             try {
-                element.connection.close();
+                KeepAlive.notifyProbesTimeout(keepAlive, context.connection);
+                context.connection.close().markForRecycle(false);
             } catch (IOException ignored) {
             }
         }
@@ -360,9 +390,9 @@ public class WebServerFilter extends BaseFilter
             DelayedExecutor.Resolver<WebServerContext> {
 
         @Override
-        public boolean removeTimeout(WebServerContext element) {
-            if (element.keepAliveTimeoutMillis != DelayedExecutor.UNSET_TIMEOUT) {
-                element.keepAliveTimeoutMillis = DelayedExecutor.UNSET_TIMEOUT;
+        public boolean removeTimeout(WebServerContext context) {
+            if (context.keepAliveTimeoutMillis != DelayedExecutor.UNSET_TIMEOUT) {
+                context.keepAliveTimeoutMillis = DelayedExecutor.UNSET_TIMEOUT;
                 return true;
             }
 

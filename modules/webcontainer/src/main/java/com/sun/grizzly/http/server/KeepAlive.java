@@ -155,23 +155,6 @@ public final class KeepAlive implements JmxMonitoringAware<KeepAliveProbe> {
     }
 
     /**
-     * Notify registered {@link KeepAliveProbe}s about the "keep-alive connection closed" event.
-     *
-     * @param keepAlive the <tt>KeepAlive</tt> event occurred on.
-     * @param connection {@link Connection} been closed.
-     */
-    protected static void notifyProbesConnectionClosed(
-            final KeepAlive keepAlive, final Connection connection) {
-        final KeepAliveProbe[] probes =
-                keepAlive.monitoringConfig.getProbesUnsafe();
-        if (probes != null) {
-            for (KeepAliveProbe probe : probes) {
-                probe.onConnectionCloseEvent(connection);
-            }
-        }
-    }
-
-    /**
      * Notify registered {@link KeepAliveProbe}s about the "keep-alive connection hit" event.
      *
      * @param keepAlive the <tt>KeepAlive</tt> event occurred on.

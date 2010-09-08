@@ -132,7 +132,7 @@ public class KeepAliveTest extends TestCase {
         }
     }
 
-    public void testHttp11KeepAliveFailure() throws Exception {
+    public void testHttp11KeepAliveHeaderClose() throws Exception {
         final String msg = "Hello world #";
 
         GrizzlyWebServer server = createServer(new GrizzlyAdapter() {
@@ -178,11 +178,78 @@ public class KeepAliveTest extends TestCase {
 
                 buffer = resultFuture.get(10, TimeUnit.SECONDS);
 
-                fail("EOFException expected");
+                fail("IOException expected");
             } catch (ExecutionException ee) {
-                if (! (ee.getCause() instanceof EOFException)) {
-                    fail("EOFException expected");
-                }
+                final Throwable cause = ee.getCause();
+                assertTrue("IOException expected, but got" + cause.getClass() +
+                        " " + cause.getMessage(), cause instanceof IOException);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            fail();
+        } finally {
+            client.close();
+            clientTransport.stop();
+            server.stop();
+            TransportFactory.getInstance().close();
+        }
+    }
+
+    public void testHttp11KeepAliveMaxRequests() throws Exception {
+        final String msg = "Hello world #";
+
+        final int maxKeepAliveRequests = 5;
+
+        GrizzlyWebServer server = createServer(new GrizzlyAdapter() {
+            private final AtomicInteger ai = new AtomicInteger();
+
+            @Override
+            public void service(GrizzlyRequest request,
+                    GrizzlyResponse response) throws Exception {
+                response.setContentType("text/plain");
+                response.getWriter().write(msg + ai.getAndIncrement());
+            }
+
+        }, "/path");
+        server.getListeners().next().getKeepAlive().setMaxRequestsCount(maxKeepAliveRequests);
+
+        final TCPNIOTransport clientTransport = TransportFactory.getInstance().createTCPTransport();
+        final HttpClient client = new HttpClient(clientTransport);
+
+        try {
+            server.start();
+            clientTransport.start();
+
+            Future<Connection> connectFuture = client.connect("localhost", PORT);
+            connectFuture.get(10, TimeUnit.SECONDS);
+
+            for (int i=0; i <= maxKeepAliveRequests; i++) {
+                final Future<Buffer> resultFuture = client.get(HttpRequestPacket.builder()
+                        .method("GET")
+                            .uri("/path").protocol(Protocol.HTTP_1_1)
+                            .header("Host", "localhost:" + PORT)
+                            .build());
+
+                final Buffer buffer = resultFuture.get(10, TimeUnit.SECONDS);
+
+                assertEquals("Hello world #" + i, buffer.toStringContent());
+            }
+
+            try {
+                final Future<Buffer> resultFuture = client.get(HttpRequestPacket.builder()
+                        .method("GET")
+                        .uri("/path")
+                        .protocol(Protocol.HTTP_1_1)
+                        .header("Host", "localhost:" + PORT)
+                        .build());
+
+                final Buffer buffer = resultFuture.get(10000, TimeUnit.SECONDS);
+
+                fail("IOException expected");
+            } catch (ExecutionException ee) {
+                final Throwable cause = ee.getCause();
+                assertTrue("IOException expected, but got" + cause.getClass() +
+                        " " + cause.getMessage(), cause instanceof IOException);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -228,7 +295,14 @@ public class KeepAliveTest extends TestCase {
         public Future<Buffer> get(HttpRequestPacket request) throws IOException {
             final FutureImpl<Buffer> localFuture = SafeFutureImpl.<Buffer>create();
             asyncFuture = localFuture;
-            connection.write(request);
+            connection.write(request, new EmptyCompletionHandler() {
+
+                @Override
+                public void failed(Throwable throwable) {
+                    localFuture.failure(throwable);
+                }
+
+            });
             return localFuture;
         }
 

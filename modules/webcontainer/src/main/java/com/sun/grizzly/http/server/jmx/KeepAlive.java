@@ -40,11 +40,12 @@
 
 package com.sun.grizzly.http.server.jmx;
 
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.http.server.KeepAliveProbe;
 import com.sun.grizzly.monitoring.jmx.GrizzlyJmxManager;
 import com.sun.grizzly.monitoring.jmx.JmxObject;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.glassfish.gmbal.Description;
 import org.glassfish.gmbal.GmbalMBean;
 import org.glassfish.gmbal.ManagedAttribute;
@@ -212,11 +213,13 @@ public class KeepAlive extends JmxObject {
         @Override
         public void onConnectionAcceptEvent(Connection connection) {
             keepAliveConnectionsCount.incrementAndGet();
-        }
+            connection.addCloseListener(new Connection.CloseListener() {
 
-        @Override
-        public void onConnectionCloseEvent(Connection connection) {
-            keepAliveConnectionsCount.decrementAndGet();
+                @Override
+                public void onClosed(Connection connection) throws IOException {
+                    keepAliveConnectionsCount.decrementAndGet();
+                }
+            });
         }
 
         @Override

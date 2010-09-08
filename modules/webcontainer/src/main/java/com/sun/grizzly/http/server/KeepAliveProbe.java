@@ -60,13 +60,6 @@ public interface KeepAliveProbe {
     public void onConnectionAcceptEvent(Connection connection);
 
     /**
-     * Method will be called, when keep-alive HTTP connection is getting closed.
-     *
-     * @param connection {@link Connection}, the event belongs to.
-     */
-    public void onConnectionCloseEvent(Connection connection);
-
-    /**
      * Method will be called, when HTTP request comes on a kept alive connection.
      *
      * @param connection {@link Connection}, the event belongs to.
