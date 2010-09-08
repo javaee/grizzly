@@ -66,10 +66,8 @@ import com.sun.grizzly.impl.ReadyFutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.impl.UnsafeFutureImpl;
 import com.sun.grizzly.memory.BufferUtils;
-import com.sun.grizzly.utils.Pair;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Queue;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -95,11 +93,9 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         TERMINATE
     }
     
-    protected final static Attribute<FiltersState> FILTERS_STATE_ATTR =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("DefaultFilterChain-StoredData");
-
-    protected final static Attribute<Queue<Pair>> STANDALONE_READ_LISTENERS_ATTR =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("DefaultFilterChain-ReadListener");
+    protected final Attribute<FiltersState> FILTERS_STATE_ATTR =
+            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+            DefaultFilterChain.class.getName() + "-" + System.identityHashCode(this) + ".connection-state");
 
     /**
      * Logger
