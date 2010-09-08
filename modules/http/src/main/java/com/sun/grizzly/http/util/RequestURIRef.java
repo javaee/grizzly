@@ -96,7 +96,7 @@ public class RequestURIRef {
     }
 
     public final String getDecodedURI(final boolean isSlashAllowed) throws CharConversionException {
-        return getDecodedURI(true, null);
+        return getDecodedURI(isSlashAllowed, null);
     }
 
     public String getDecodedURI(final boolean isSlashAllowed, Charset charset)
