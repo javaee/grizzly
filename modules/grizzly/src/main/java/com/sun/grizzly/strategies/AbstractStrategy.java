@@ -58,7 +58,8 @@ import java.io.IOException;
  * @author oleksiys
  */
 public abstract class AbstractStrategy implements Strategy {
-    private final static boolean[] isRegisterMap = {true, false, true, false};
+    // COMPLETE, COMPLETE_LEAVE, REREGISTER, RERUN, ERROR, TERMINATE
+    private final static boolean[] isRegisterMap = {true, false, true, false, false, false};
 
     protected final static PostProcessor enableInterestPostProcessor =
             new EnableInterestPostProcessor();
