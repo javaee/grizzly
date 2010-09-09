@@ -396,12 +396,6 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
     
     private boolean useKeepAliveAlgorithm = false;
 
-    /**
-     * The maximum time a connection can stay open holding a {@link WorkerThread}.
-     * Default is 5 minutes like Apache.
-     */
-    private int transactionTimeout = Constants.DEFAULT_IDLE_TIMEOUT;
-    
     // ----------------------------------------------------- Constructor ---- //
 
     public DefaultProcessorTask(){
@@ -2289,32 +2283,14 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
         return !(inputStream instanceof ByteBufferInputStream);
     }
 
-    /**
-     * Set the maximum time, in milliseconds, a {@link WorkerThread} executing
-     * an instance of this class can execute.
-     *
-     * @return  the maximum time, in milliseconds
-     */
-    public int getTransactionTimeout() {
-        return transactionTimeout;
-    }
 
     /**
-     * Set the maximum time, in milliseconds, a {@link WrokerThread} processing
-     * an instance of this class.
-     *
-     * @param transactionTimeout  the maximum time, in milliseconds.
-     */
-    public void setTransactionTimeout(int transactionTimeout) {
-        this.transactionTimeout = transactionTimeout;
-    }
-
-    /**
-     * Confugure the maximum time a Thread can execute a transation
+     * Configure the maximum time a Thread can execute a transaction
      */
     void configureTransactionTimeout(){
-        if (key != null){
-            key.attach(System.currentTimeMillis() + Long.valueOf(transactionTimeout));
+        final int transactionTimeout = selectorThread.getTransactionTimeout();
+        if (key != null && transactionTimeout >= 0) {
+            key.attach(System.currentTimeMillis() + transactionTimeout);
         }
     }
 }

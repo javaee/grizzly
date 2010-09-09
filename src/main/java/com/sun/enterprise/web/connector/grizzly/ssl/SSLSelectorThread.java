@@ -163,7 +163,7 @@ public class SSLSelectorThread extends SelectorThread
     
     /**
      * Enable all registered interestOps. Due a a NIO bug, all interestOps
-     * invokation needs to occurs on the same thread as the selector thread.
+     * invocation needs to occurs on the same thread as the selector thread.
      */
     @Override
     public void enableSelectionKeys(){
@@ -227,22 +227,22 @@ public class SSLSelectorThread extends SelectorThread
             if ( !key.isValid() ) {
                 keepAlivePipeline.untrap(key);
                 continue;
-            }  
-                        
+            }
+            
             // Keep-alive expired
-            if (key.attachment() != null) {                
+            final Object attachment = key.attachment();
+            if (attachment != null) {                
                 SSLSession sslSession = null;
-                Object attachment = key.attachment(); 
                 long expire = -1L;
                 if (attachment instanceof SSLEngine){
-                    sslSession = ((SSLEngine)key.attachment()).getSession();
+                    sslSession = ((SSLEngine)attachment).getSession();
                     String hashString = String.valueOf(key.hashCode());
                     if (sslSession != null 
                             && sslSession.getValue(hashString) != null){
                         expire = (Long)sslSession.getValue(hashString); 
                     }
                 } else if (attachment instanceof Long){
-                    expire = (Long)attachment;
+                    expire = (Long) attachment;
                 }
                 
                 if (expire != -1L){
