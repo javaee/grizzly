@@ -168,7 +168,7 @@ public class HttpRequestParseTest extends TestCase {
         MemoryManager mm = TransportFactory.getInstance().getDefaultMemoryManager();
         Buffer input = MemoryUtils.wrap(mm, request);
         
-        HttpServerFilter filter = new HttpServerFilter(limit, null, null);
+        HttpServerFilter filter = new HttpServerFilter(true, limit, null, null);
         FilterChainContext ctx = FilterChainContext.create(new StandaloneConnection());
         ctx.setMessage(input);
 

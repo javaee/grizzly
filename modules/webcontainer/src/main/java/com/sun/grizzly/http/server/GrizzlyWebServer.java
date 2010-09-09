@@ -521,7 +521,8 @@ public class GrizzlyWebServer {
                                         : listener.getMaxHttpHeaderSize());
 
             final HttpServerFilter httpServerFilter =
-                    new HttpServerFilter(maxHeaderSize,
+                    new HttpServerFilter(listener.isChunkingEnabled(),
+                                         maxHeaderSize,
                                          listener.getKeepAlive(),
                                          delayedExecutor);
             httpServerFilter.getMonitoringConfig().addProbes(

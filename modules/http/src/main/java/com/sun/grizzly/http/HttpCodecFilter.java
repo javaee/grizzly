@@ -91,6 +91,8 @@ public abstract class HttpCodecFilter extends BaseFilter
     protected final ArraySet<ContentEncoding> contentEncodings =
             new ArraySet<ContentEncoding>();
 
+    protected boolean chunkingEnabled;
+
     /**
      * File cache probes
      */
@@ -185,9 +187,13 @@ public abstract class HttpCodecFilter extends BaseFilter
      * @param isSecure <tt>true</tt>, if the Filter will be used for secured HTTPS communication,
      *                 or <tt>false</tt> otherwise. It's possible to pass <tt>null</tt>, in this
      *                 case Filter will try to autodetect security.
+     * @param chunkingEnabled <code>true</code> if the chunked transfer encoding
+     *  should be used when no explicit content length has been set.
      * @param maxHeadersSize the maximum size of the HTTP message header.
      */
-    public HttpCodecFilter(Boolean isSecure, int maxHeadersSize) {
+    public HttpCodecFilter(Boolean isSecure,
+                           boolean chunkingEnabled,
+                           int maxHeadersSize) {
         if (isSecure == null) {
             isSecureSet = false;
         } else {
@@ -196,6 +202,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         }
 
         this.maxHeadersSize = maxHeadersSize;
+        this.chunkingEnabled = chunkingEnabled;
         transferEncodings.add(new FixedLengthTransferEncoding(),
                 new ChunkedTransferEncoding(maxHeadersSize));
     }

@@ -123,10 +123,17 @@ public class GrizzlyListener {
 
 
     /**
-     * Flag indicated whether or not Web Sockets is enabled.  Defaults to
+     * Flag indicating whether or not Web Sockets is enabled.  Defaults to
      * <code>false</code>
      */
     private boolean webSocketsEnabled;
+
+
+    /**
+     * Flag indicating whether or not the chunked transfer encoding is
+     * enabled.  Defaults to <code>true</code>.
+     */
+    private boolean chunkingEnabled = true;
 
 
     /**
@@ -330,6 +337,28 @@ public class GrizzlyListener {
 
     }
 
+    /**
+     * @return <code>true</code> if the http response bodies should be
+     *  chunked if not content length has been explicitly specified.
+     */
+    public boolean isChunkingEnabled() {
+
+        return chunkingEnabled;
+
+    }
+
+
+    /**
+     * Enable/disable chunking of an http response body if no content
+     * length has been explictly specified.  Chunking is enabled by
+     * default.
+     *
+     * @param chunkingEnabled <code>true</code> to enable chunking;
+     *  <code>false</code> to disable.
+     */
+    public void setChunkingEnabled(boolean chunkingEnabled) {
+        this.chunkingEnabled = chunkingEnabled;
+    }
 
     /**
      * Enables/disables Web Sockets support for this listener.

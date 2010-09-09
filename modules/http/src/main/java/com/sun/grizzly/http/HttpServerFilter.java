@@ -95,7 +95,7 @@ public class HttpServerFilter extends HttpCodecFilter {
      * Constructor, which creates <tt>HttpServerFilter</tt> instance
      */
     public HttpServerFilter() {
-        this(null, DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE, null, null);
+        this(null, true, DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE, null, null);
     }
 
     /**
@@ -104,10 +104,11 @@ public class HttpServerFilter extends HttpCodecFilter {
      *
      * @param maxHeadersSize the maximum size of the HTTP message header.
      */
-    public HttpServerFilter(int maxHeadersSize,
+    public HttpServerFilter(boolean chunkingEnabled,
+                            int maxHeadersSize,
                             KeepAlive keepAlive,
                             DelayedExecutor executor) {
-        this(null, maxHeadersSize, keepAlive, executor);
+        this(null, chunkingEnabled, maxHeadersSize, keepAlive, executor);
     }
 
     /**
@@ -120,10 +121,11 @@ public class HttpServerFilter extends HttpCodecFilter {
      * @param maxHeadersSize the maximum size of the HTTP message header.
      */
     public HttpServerFilter(Boolean isSecure,
+                            boolean chunkingEnabled,
                             int maxHeadersSize,
                             KeepAlive keepAlive,
                             DelayedExecutor executor) {
-        super(isSecure, maxHeadersSize);
+        super(isSecure, chunkingEnabled, maxHeadersSize);
 
         this.httpRequestInProcessAttr =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.
@@ -233,11 +235,9 @@ public class HttpServerFilter extends HttpCodecFilter {
             final Connection c = ctx.getConnection();
             final KeepAliveContext keepAliveContext =
                     keepAliveContextAttr.get(c);
-            if (keepAliveContext != null) {
-                keepAliveQueue.add(keepAliveContext,
-                                   keepAlive.getIdleTimeoutInSeconds(),
-                                   TimeUnit.SECONDS);
-            }
+            keepAliveQueue.add(keepAliveContext,
+                               keepAlive.getIdleTimeoutInSeconds(),
+                               TimeUnit.SECONDS);
             final HttpRequestPacket httpRequest = keepAliveContext.request;
             final boolean keepAlive = isKeepAlive(httpRequest, keepAliveContext);
             if (!keepAlive) {
@@ -486,7 +486,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         if (contentLength != -1L) {
             state.contentDelimitation = true;
         } else {
-            if (entityBody && isHttp11) {
+            if (chunkingEnabled && entityBody && isHttp11) {
                 state.contentDelimitation = true;
                 response.setChunked(true);
             }

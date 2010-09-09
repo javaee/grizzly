@@ -92,7 +92,7 @@ public class HttpClientFilter extends HttpCodecFilter {
      * @param maxHeadersSize the maximum size of the HTTP message header.
      */
     public HttpClientFilter(Boolean isSecure, int maxHeadersSize) {
-        super(isSecure, maxHeadersSize);
+        super(isSecure, true, maxHeadersSize);
 
         this.httpResponseInProcessAttr =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(

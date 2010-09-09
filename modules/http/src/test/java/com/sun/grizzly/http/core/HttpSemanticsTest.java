@@ -58,6 +58,7 @@ import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.http.HttpServerFilter;
+import com.sun.grizzly.http.KeepAlive;
 import com.sun.grizzly.http.Protocol;
 import com.sun.grizzly.http.util.HttpStatus;
 import com.sun.grizzly.impl.FutureImpl;
@@ -231,42 +232,40 @@ public class HttpSemanticsTest extends TestCase {
         });
     }
 
-    /*
-     * Uncomment once we have a way to disable chunking
-     */
-//    public void testHttp1NoContentLengthNoChunking() throws Throwable {
-//
-//        final HttpRequestPacket request = HttpRequestPacket.builder()
-//                .method("GET")
-//                .uri("/path")
-//                .chunked(false)
-//                .header("Host", "localhost:" + PORT)
-//                .protocol("HTTP/1.1")
-//                .build();
-//
-//        ExpectedResult result = new ExpectedResult();
-//        result.setProtocol("HTTP/1.1");
-//        result.setStatusCode(200);
-//        result.addHeader("Connection", "close");
-//        result.addHeader("!Transfer-Encoding", "chunked");
-//        result.setStatusMessage("ok");
-//        doTest(request, result, new BaseFilter() {
-//            @Override
-//            public NextAction handleRead(FilterChainContext ctx) throws IOException {
-//                HttpRequestPacket request =
-//                        (HttpRequestPacket)
-//                                ((HttpContent) ctx.getMessage()).getHttpHeader();
-//                HttpResponsePacket response = request.getResponse();
-//                HttpStatus.OK_200.setValues(response);
-//                MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
-//                HttpContent content = response.httpContentBuilder().content(MemoryUtils.wrap(mm, "Content")).build();
-//                content.setLast(true);
-//                ctx.write(content);
-//                ctx.flush(new FlushAndCloseHandler());
-//                return ctx.getStopAction();
-//            }
-//        });
-//    }
+
+    public void testHttp1NoContentLengthNoChunking() throws Throwable {
+
+        final HttpRequestPacket request = HttpRequestPacket.builder()
+                .method("GET")
+                .uri("/path")
+                .chunked(false)
+                .header("Host", "localhost:" + PORT)
+                .protocol("HTTP/1.1")
+                .build();
+
+        ExpectedResult result = new ExpectedResult();
+        result.setProtocol("HTTP/1.1");
+        result.setStatusCode(200);
+        result.addHeader("Connection", "close");
+        result.addHeader("!Transfer-Encoding", "chunked");
+        result.setStatusMessage("ok");
+        doTest(request, result, new BaseFilter() {
+            @Override
+            public NextAction handleRead(FilterChainContext ctx) throws IOException {
+                HttpRequestPacket request =
+                        (HttpRequestPacket)
+                                ((HttpContent) ctx.getMessage()).getHttpHeader();
+                HttpResponsePacket response = request.getResponse();
+                HttpStatus.OK_200.setValues(response);
+                MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
+                HttpContent content = response.httpContentBuilder().content(MemoryUtils.wrap(mm, "Content")).build();
+                content.setLast(true);
+                ctx.write(content);
+                ctx.flush(new FlushAndCloseHandler());
+                return ctx.getStopAction();
+            }
+        });
+    }
 
     // --------------------------------------------------------- Private Methods
 
@@ -284,7 +283,7 @@ public class HttpSemanticsTest extends TestCase {
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new ChunkingFilter(1024));
-        filterChainBuilder.add(new HttpServerFilter());
+        filterChainBuilder.add(new HttpServerFilter(false, 8192, new KeepAlive(), null));
         filterChainBuilder.add(serverFilter);
         FilterChain filterChain = filterChainBuilder.build();
 

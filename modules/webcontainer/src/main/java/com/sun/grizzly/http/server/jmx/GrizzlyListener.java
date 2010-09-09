@@ -193,6 +193,16 @@ public class GrizzlyListener extends JmxObject {
 
 
     /**
+     * @see {@link com.sun.grizzly.http.server.GrizzlyListener#isChunkingEnabled()}
+     */
+    @ManagedAttribute(id="chunking-enabled")
+    @Description("Flag indicating whether or not the http response body will be sent using the chunked transfer encoding.")
+    public boolean isChunkingEnabled() {
+        return listener.isChunkingEnabled();
+    }
+
+
+    /**
      * @see {@link com.sun.grizzly.http.server.GrizzlyListener#isStarted()}
      */
     @ManagedAttribute(id="started")
