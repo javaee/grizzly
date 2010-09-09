@@ -74,11 +74,11 @@ public interface Buffer extends Comparable<Buffer> {
     /**
      * Disposes the buffer part, outside [position, limit] interval if possible.
      * May return without changing capacity.
-     * After shrink is called, postion/limit/capacity values may have
+     * After shrink is called, position/limit/capacity values may have
      * different values, than before, but still point to the same <tt>Buffer</tt>
      * elements.
      */
-    public boolean shrink();
+    public void shrink();
 
     /**
      * Split up the buffer into two parts: [0..splitPosition) and [splitPosition, capacity).
@@ -87,7 +87,7 @@ public interface Buffer extends Comparable<Buffer> {
      * 
      * @param splitPosition position of split.
      *
-     * @return the <tt>Buffer</tt>, which represents splitted part [splitPosition, capacity)
+     * @return the <tt>Buffer</tt>, which represents split part [splitPosition, capacity)
      */
     public Buffer split(int splitPosition);
 
@@ -295,7 +295,7 @@ public interface Buffer extends Comparable<Buffer> {
      * <p> The content of the new buffer will start at passed position and end
      * at passed limit.
      * Changes to this buffer's content will be visible in the new
-     * buffer, and vice versa; the two buffers' position, limit, and mark
+     * buffer, and vice versa; the two buffer's position, limit, and mark
      * values will be independent.
      *
      * <p> The new buffer's position will be zero, its capacity and its limit
@@ -313,7 +313,7 @@ public interface Buffer extends Comparable<Buffer> {
      *
      * <p> The content of the new buffer will be that of this buffer.  Changes
      * to this buffer's content will be visible in the new buffer, and vice
-     * versa; the two buffers' position, limit, and mark values will be
+     * versa; the two buffer's position, limit, and mark values will be
      * independent.
      *
      * <p> The new buffer's capacity, limit, position, and mark values will be
@@ -332,7 +332,7 @@ public interface Buffer extends Comparable<Buffer> {
      * <p> The content of the new buffer will be that of this buffer.  Changes
      * to this buffer's content will be visible in the new buffer; the new
      * buffer itself, however, will be read-only and will not allow the shared
-     * content to be modified.  The two buffers' position, limit, and mark
+     * content to be modified.  The two buffer's position, limit, and mark
      * values will be independent.
      *
      * <p> The new buffer's capacity, limit, position, and mark values will be

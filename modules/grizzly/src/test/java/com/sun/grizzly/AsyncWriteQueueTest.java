@@ -79,7 +79,7 @@ import java.util.logging.Logger;
 public class AsyncWriteQueueTest extends GrizzlyTestCase {
     public static final int PORT = 7781;
 
-    private static Logger logger = Grizzly.logger(AsyncWriteQueueTest.class);
+    private static final Logger LOGGER = Grizzly.logger(AsyncWriteQueueTest.class);
 
     public void testAsyncWriteQueueEcho() throws Exception {
         Connection connection = null;
@@ -170,7 +170,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
             try {
                 available = readFuture.get(10, TimeUnit.SECONDS);
             } catch (Exception e) {
-                logger.log(Level.WARNING, "read error", e);
+                LOGGER.log(Level.WARNING, "read error", e);
             }
 
             assertTrue("Read timeout. Server received: " +serverRcvdBytes.get() +

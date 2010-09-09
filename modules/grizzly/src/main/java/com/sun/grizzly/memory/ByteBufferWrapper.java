@@ -96,9 +96,8 @@ public class ByteBufferWrapper implements Buffer {
     }
 
     @Override
-    public boolean shrink() {
+    public void shrink() {
         checkDispose();
-        return false;
     }
 
     @Override

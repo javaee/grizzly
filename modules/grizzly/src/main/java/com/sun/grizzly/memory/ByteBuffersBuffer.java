@@ -61,21 +61,21 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
     /**
      * Construct <tt>ByteBuffersBuffer</tt>.
      */
-    public static final ByteBuffersBuffer create() {
+    public static ByteBuffersBuffer create() {
         return create(TransportFactory.getInstance().getDefaultMemoryManager(),
                 null, false);
     }
 
-    public static final ByteBuffersBuffer create(MemoryManager memoryManager) {
+    public static ByteBuffersBuffer create(MemoryManager memoryManager) {
         return create(memoryManager, null, false);
     }
 
-    public static final ByteBuffersBuffer create(MemoryManager memoryManager,
+    public static ByteBuffersBuffer create(MemoryManager memoryManager,
             ByteBuffer... buffers) {
         return create(memoryManager, buffers, false);
     }
 
-    public static final ByteBuffersBuffer create(MemoryManager memoryManager,
+    public static ByteBuffersBuffer create(MemoryManager memoryManager,
             ByteBuffer[] buffers, boolean isReadOnly) {
         final ByteBuffersBuffer buffer = ThreadCache.takeFromCache(CACHE_IDX);
         if (buffer != null) {
@@ -422,11 +422,12 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
     }
 
     @Override
-    public boolean shrink() {
+    public void shrink() {
         checkDispose();
 
         if (position == limit) {
-            return tryDispose();
+            removeAndDisposeBuffers(false);
+            return;
         }
 
         final long posLocation = locateBufferPosition(position);
@@ -496,8 +497,6 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         }
 
         resetLastLocation();
-
-        return false;
     }
 
     @Override

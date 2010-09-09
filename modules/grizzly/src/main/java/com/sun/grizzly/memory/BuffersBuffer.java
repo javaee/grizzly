@@ -376,11 +376,12 @@ public final class BuffersBuffer implements CompositeBuffer {
     }
 
     @Override
-    public boolean shrink() {
+    public void shrink() {
         checkDispose();
 
         if (position == limit) {
-            return tryDispose();
+            removeAndDisposeBuffers(false);
+            return;
         }
 
         final long posLocation = locateBufferPosition(position);
@@ -453,8 +454,6 @@ public final class BuffersBuffer implements CompositeBuffer {
         }
 
         resetLastLocation();
-
-        return false;
     }
 
     @Override

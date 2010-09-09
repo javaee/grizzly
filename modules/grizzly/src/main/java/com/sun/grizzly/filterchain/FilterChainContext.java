@@ -130,6 +130,11 @@ public final class FilterChainContext implements AttributeStorage {
     private Operation operation = Operation.NONE;
 
     /**
+     * Custom attribute set, which overrides the {@link #internalContext} attribute set.
+     */
+    private AttributeHolder customAttributes;
+
+    /**
      * {@link Future}, which will be notified, when operation will be
      * complete. For WRITE it means the data will be written on wire, for other
      * operations - the last Filter has finished the processing.
@@ -486,6 +491,7 @@ public final class FilterChainContext implements AttributeStorage {
         newContext.setStartIdx(0);
         newContext.setFilterIdx(0);
         newContext.setEndIdx(filterIdx);
+        newContext.customAttributes = getAttributes();
 
         final ReadResult rr = getFilterChain().read(newContext);
         newContext.recycle();
@@ -515,6 +521,7 @@ public final class FilterChainContext implements AttributeStorage {
         newContext.setStartIdx(filterIdx - 1);
         newContext.setFilterIdx(filterIdx - 1);
         newContext.setEndIdx(-1);
+        newContext.customAttributes = getAttributes();
 
         ProcessorExecutor.execute(newContext.internalContext);
     }
@@ -531,6 +538,37 @@ public final class FilterChainContext implements AttributeStorage {
         newContext.setStartIdx(filterIdx - 1);
         newContext.setFilterIdx(filterIdx - 1);
         newContext.setEndIdx(-1);
+        newContext.customAttributes = getAttributes();
+
+        ProcessorExecutor.execute(newContext.internalContext);
+    }
+
+    public void notifyUpstream(final Object event) throws IOException {
+        final FilterChainContext newContext =
+                getFilterChain().obtainFilterChainContext(getConnection());
+
+        newContext.setOperation(Operation.EVENT);
+        newContext.event = event;
+        newContext.setAddress(address);
+        newContext.setStartIdx(0);
+        newContext.setFilterIdx(0);
+        newContext.setEndIdx(filterIdx);
+        newContext.customAttributes = getAttributes();
+
+        ProcessorExecutor.execute(newContext.internalContext);
+    }
+
+    public void notifyDownstream(final Object event) throws IOException {
+        final FilterChainContext newContext =
+                getFilterChain().obtainFilterChainContext(getConnection());
+
+        newContext.setOperation(Operation.EVENT);
+        newContext.event = event;
+        newContext.setAddress(address);
+        newContext.setStartIdx(filterIdx - 1);
+        newContext.setFilterIdx(filterIdx - 1);
+        newContext.setEndIdx(-1);
+        newContext.customAttributes = getAttributes();
 
         ProcessorExecutor.execute(newContext.internalContext);
     }
@@ -544,7 +582,11 @@ public final class FilterChainContext implements AttributeStorage {
      */
     @Override
     public AttributeHolder getAttributes() {
-        return internalContext.getAttributes();
+        if (customAttributes == null) {
+            return internalContext.getAttributes();
+        }
+        
+        return customAttributes;
     }
 
     /**
@@ -558,6 +600,7 @@ public final class FilterChainContext implements AttributeStorage {
         state = State.RUNNING;
         operationCompletionFuture = null;
         operationCompletionHandler = null;
+        customAttributes = null;
         operation = Operation.NONE;
         internalContext.reset();
         transportFilterContext.reset();

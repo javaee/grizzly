@@ -367,13 +367,17 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                     boolean isStoreRemainder = true;
                     
                     if (remainder == inputMessage && remainder instanceof Buffer) {
-                        isStoreRemainder = !((Buffer) remainder).shrink();
+                        final Buffer bufferToStore = (Buffer) remainder;
+                        bufferToStore.shrink();
+                        isStoreRemainder = bufferToStore.hasRemaining();
                     }
 
                     if (isStoreRemainder) {
                         filtersState = storeMessage(ctx,
                             filtersState, FILTER_STATE_TYPE.REMAINDER, i,
                             remainder, null);
+                    } else {
+                        ((Buffer) remainder).tryDispose();
                     }
                 }
             } else if (nextNextActionType == SuspendingStopAction.TYPE) {
