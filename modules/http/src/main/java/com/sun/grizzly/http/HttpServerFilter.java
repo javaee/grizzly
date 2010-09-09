@@ -411,7 +411,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         if (contentLength != -1L) {
             state.contentDelimitation = true;
         } else {
-            if (isChunking() && entityBody && isHttp11) {
+            if (response.isChunked() && entityBody && isHttp11) {
                 state.contentDelimitation = true;
                 response.setChunked(true);
             }
