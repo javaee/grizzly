@@ -159,7 +159,10 @@ public class OutputBuffer {
         if (committed)
             throw new IllegalStateException(/*FIXME:Put an error message*/);
 
-        compositeBuffer.removeAll();
+        if (compositeBuffer != null) {
+            compositeBuffer.removeAll();
+        }
+        
         if (currentBuffer != null) {
             currentBuffer.clear();
         }
@@ -175,8 +178,10 @@ public class OutputBuffer {
 
         response = null;
 
-        compositeBuffer.dispose();
-        compositeBuffer = null;
+        if (compositeBuffer != null) {
+            compositeBuffer.dispose();
+            compositeBuffer = null;
+        }
         
         if (currentBuffer != null) {
             currentBuffer.dispose();
@@ -540,8 +545,12 @@ public class OutputBuffer {
             HttpContent.Builder builder = response.httpContentBuilder();
             builder.content(bufferToFlush);
             ctx.write(builder.build(), asyncCompletionHandler);
-            if (!includeTrailer && isFlushComposite) { // recreate composite if needed
-                compositeBuffer = createCompositeBuffer();
+            if (isFlushComposite) { // recreate composite if needed
+                if (!includeTrailer) {
+                    compositeBuffer = createCompositeBuffer();
+                } else {
+                    compositeBuffer = null;
+                }
             }
         }
         

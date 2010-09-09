@@ -71,7 +71,7 @@ public class DebugPoint {
         sb.append(", stackTrace=\n");
         StackTraceElement[] trace = stackTrace.getStackTrace();
         for (int i = 0; i < trace.length; i++) {
-            sb.append("\tat " + trace[i]).append('\n');
+            sb.append("\tat ").append(trace[i]).append('\n');
         }
 
         return sb.toString();
