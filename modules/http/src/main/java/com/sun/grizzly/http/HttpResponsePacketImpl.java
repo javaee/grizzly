@@ -87,7 +87,7 @@ class HttpResponsePacketImpl extends HttpResponsePacket implements HttpPacketPar
 
     @Override
     public ProcessingState getProcessingState() {
-        return (((HttpRequestPacketImpl) getRequest()).getProcessingState());
+        return (getRequest().getProcessingState());
     }
 
     @Override
@@ -116,6 +116,9 @@ class HttpResponsePacketImpl extends HttpResponsePacket implements HttpPacketPar
      */
     @Override
     public void recycle() {
+        if (getRequest().isExpectContent()) {
+            return;
+        }
         reset();
         ThreadCache.putToCache(CACHE_IDX, this);
     }

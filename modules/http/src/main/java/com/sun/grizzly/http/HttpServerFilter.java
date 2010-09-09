@@ -42,7 +42,9 @@ package com.sun.grizzly.http;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.EmptyCompletionHandler;
 import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
@@ -52,9 +54,12 @@ import com.sun.grizzly.http.util.HexUtils;
 import com.sun.grizzly.http.util.HttpStatus;
 import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.memory.MemoryManager;
+import com.sun.grizzly.utils.DelayedExecutor;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.concurrent.TimeUnit;
 
 import static com.sun.grizzly.http.HttpResponsePacket.NON_PARSED_STATUS;
 
@@ -72,15 +77,25 @@ import static com.sun.grizzly.http.HttpResponsePacket.NON_PARSED_STATUS;
  */
 public class HttpServerFilter extends HttpCodecFilter {
 
-    private final Attribute<HttpRequestPacketImpl> httpRequestInProcessAttr;
+    public static final Object RESPONSE_COMPLETE_EVENT = new Object();
 
-    private boolean chunking = true;
+    private static final FlushAndCloseHandler FLUSH_AND_CLOSE_HANDLER =
+            new FlushAndCloseHandler();
+
+    private final Attribute<HttpRequestPacketImpl> httpRequestInProcessAttr;
+    private final Attribute<KeepAliveContext> keepAliveContextAttr;
+
+    private final DelayedExecutor.DelayQueue<KeepAliveContext> keepAliveQueue;
+
+    private final KeepAlive keepAlive;
+
+    private final boolean processKeepAlive;
 
     /**
      * Constructor, which creates <tt>HttpServerFilter</tt> instance
      */
     public HttpServerFilter() {
-        this(null, DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE);
+        this(null, DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE, null, null);
     }
 
     /**
@@ -89,8 +104,10 @@ public class HttpServerFilter extends HttpCodecFilter {
      *
      * @param maxHeadersSize the maximum size of the HTTP message header.
      */
-    public HttpServerFilter(int maxHeadersSize) {
-        this(null, maxHeadersSize);
+    public HttpServerFilter(int maxHeadersSize,
+                            KeepAlive keepAlive,
+                            DelayedExecutor executor) {
+        this(null, maxHeadersSize, keepAlive, executor);
     }
 
     /**
@@ -102,12 +119,29 @@ public class HttpServerFilter extends HttpCodecFilter {
      *                 case Filter will try to autodetect security.
      * @param maxHeadersSize the maximum size of the HTTP message header.
      */
-    public HttpServerFilter(Boolean isSecure, int maxHeadersSize) {
+    public HttpServerFilter(Boolean isSecure,
+                            int maxHeadersSize,
+                            KeepAlive keepAlive,
+                            DelayedExecutor executor) {
         super(isSecure, maxHeadersSize);
 
         this.httpRequestInProcessAttr =
-                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-                "HttpServerFilter.httpRequest");
+                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.
+                        createAttribute("HttpServerFilter.HttpRequest");
+        this.keepAliveContextAttr = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.
+                createAttribute("HttpServerFilter.KeepAliveContext");
+
+        if (executor != null) {
+            keepAliveQueue = executor.createDelayQueue(new KeepAliveWorker(keepAlive),
+                                                       new KeepAliveResolver());
+            this.keepAlive = keepAlive;
+            processKeepAlive = true;
+        } else {
+            keepAliveQueue = null;
+            this.keepAlive = null;
+            processKeepAlive = false;
+        }
+
         contentEncodings.add(
                     new GZipContentEncoding(GZipContentEncoding.DEFAULT_IN_BUFFER_SIZE,
                     GZipContentEncoding.DEFAULT_OUT_BUFFER_SIZE,
@@ -134,14 +168,6 @@ public class HttpServerFilter extends HttpCodecFilter {
     // ----------------------------------------------------------- Configuration
 
 
-    public boolean isChunking() {
-        return chunking;
-    }
-
-    public void setChunking(boolean chunking) {
-        this.chunking = chunking;
-    }
-
     /**
      * The method is called, once we have received a {@link Buffer},
      * which has to be transformed into HTTP request packet part.
@@ -164,6 +190,9 @@ public class HttpServerFilter extends HttpCodecFilter {
         
         HttpRequestPacketImpl httpRequest = httpRequestInProcessAttr.get(connection);
         if (httpRequest == null) {
+
+
+
             final boolean isSecureLocal = isSecure;
             httpRequest = HttpRequestPacketImpl.create();
             httpRequest.initialize(connection, input.position(), maxHeadersSize);
@@ -173,12 +202,58 @@ public class HttpServerFilter extends HttpCodecFilter {
             response.setSecure(isSecureLocal);
             httpRequest.setResponse(response);
             response.setRequest(httpRequest);
-            
+            if (processKeepAlive) {
+                KeepAliveContext keepAliveContext = keepAliveContextAttr.get(connection);
+                if (keepAliveContext == null) {
+                    keepAliveContext = new KeepAliveContext(connection);
+                    keepAliveContextAttr.set(connection, keepAliveContext);
+                }
+                keepAliveContext.request = httpRequest;
+                final int requestsProcessed = keepAliveContext.requestsProcessed;
+                if (requestsProcessed > 0) {
+                    KeepAlive.notifyProbesHit(keepAlive,
+                                              connection,
+                                              requestsProcessed);
+                }
+                keepAliveQueue.remove(keepAliveContext);
+            }
             httpRequestInProcessAttr.set(connection, httpRequest);
         }
 
         return handleRead(ctx, httpRequest);
     }
+
+
+    @Override
+    public NextAction handleEvent(FilterChainContext ctx, Object event)
+    throws IOException {
+
+        if (event == RESPONSE_COMPLETE_EVENT) {
+
+            final Connection c = ctx.getConnection();
+            final KeepAliveContext keepAliveContext =
+                    keepAliveContextAttr.get(c);
+            if (keepAliveContext != null) {
+                keepAliveQueue.add(keepAliveContext,
+                                   keepAlive.getIdleTimeoutInSeconds(),
+                                   TimeUnit.SECONDS);
+            }
+            final HttpRequestPacket httpRequest = keepAliveContext.request;
+            final boolean keepAlive = isKeepAlive(httpRequest, keepAliveContext);
+            if (!keepAlive) {
+                ctx.flush(FLUSH_AND_CLOSE_HANDLER);
+            } else {
+                if (httpRequest.isExpectContent()) {
+                    httpRequest.setSkipRemainder(true);
+                }
+            }
+            keepAliveContext.request = null;
+        }
+
+        return ctx.getInvokeAction();
+        
+    }
+
 
     @Override
     boolean onHttpHeaderParsed(final HttpHeader httpHeader, final Buffer buffer,
@@ -411,7 +486,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         if (contentLength != -1L) {
             state.contentDelimitation = true;
         } else {
-            if (response.isChunked() && entityBody && isHttp11) {
+            if (entityBody && isHttp11) {
                 state.contentDelimitation = true;
                 response.setChunked(true);
             }
@@ -565,8 +640,7 @@ public class HttpServerFilter extends HttpCodecFilter {
 
     protected HttpContent customizeErrorResponse(HttpResponsePacket response) {
         response.setContentLength(0);
-        final HttpContent content = HttpContent.builder(response).last(true).build();
-        return content;
+        return HttpContent.builder(response).last(true).build();
     }
 
     /**
@@ -656,4 +730,109 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
 
     }
+
+
+    private boolean isKeepAlive(final HttpRequestPacket request,
+                                final KeepAliveContext keepAliveContext) {
+
+        final ProcessingState ps = request.getProcessingState();
+        boolean isKeepAlive = !ps.isError() && ps.isKeepAlive();
+
+        if (isKeepAlive && keepAliveContext != null) {
+            isKeepAlive = (isKeepAlive & (++keepAliveContext.requestsProcessed <= keepAlive.getMaxRequestsCount()));
+
+            if (keepAliveContext.requestsProcessed == 1) {
+                if (isKeepAlive) { // New keep-alive connection
+                    KeepAlive.notifyProbesConnectionAccepted(keepAlive,
+                            keepAliveContext.connection);
+                } else { // Refused keep-alive connection
+                    KeepAlive.notifyProbesRefused(keepAlive, keepAliveContext.connection);
+                }
+            }
+        }
+
+        return isKeepAlive;
+    }
+
+
+    // ---------------------------------------------------------- Nested Classes
+
+
+    private static class FlushAndCloseHandler extends EmptyCompletionHandler {
+
+        @Override
+        public void completed(Object result) {
+
+            final WriteResult wr = (WriteResult) result;
+            try {
+                wr.getConnection().close().markForRecycle(false);
+            } catch (IOException ignore) {
+            } finally {
+                wr.recycle();
+            }
+
+        }
+
+    } // END FlushAndCloseHandler
+
+
+     private static class KeepAliveContext {
+        private final Connection connection;
+
+        public KeepAliveContext(Connection connection) {
+            this.connection = connection;
+        }
+
+        private volatile long keepAliveTimeoutMillis = DelayedExecutor.UNSET_TIMEOUT;
+        private int requestsProcessed;
+        private HttpRequestPacket request;
+
+    } // END KeepAliveContext
+
+
+    private static class KeepAliveWorker implements DelayedExecutor.Worker<KeepAliveContext> {
+
+        private final KeepAlive keepAlive;
+
+        public KeepAliveWorker(KeepAlive keepAlive) {
+            this.keepAlive = keepAlive;
+        }
+
+        @Override
+        public void doWork(KeepAliveContext context) {
+            try {
+                KeepAlive.notifyProbesTimeout(keepAlive, context.connection);
+                context.connection.close().markForRecycle(false);
+            } catch (IOException ignored) {
+            }
+        }
+
+    } // END KeepAliveWorker
+
+
+    private static class KeepAliveResolver implements
+            DelayedExecutor.Resolver<KeepAliveContext> {
+
+        @Override
+        public boolean removeTimeout(KeepAliveContext context) {
+            if (context.keepAliveTimeoutMillis != DelayedExecutor.UNSET_TIMEOUT) {
+                context.keepAliveTimeoutMillis = DelayedExecutor.UNSET_TIMEOUT;
+                return true;
+            }
+
+            return false;
+        }
+
+        @Override
+        public Long getTimeoutMillis(KeepAliveContext element) {
+            return element.keepAliveTimeoutMillis;
+        }
+
+        @Override
+        public void setTimeoutMillis(KeepAliveContext element, long timeoutMillis) {
+            element.keepAliveTimeoutMillis = timeoutMillis;
+        }
+
+    } // END KeepAliveResolver
+
 }

@@ -114,14 +114,8 @@ public final class Constants {
      * Default recycle value.
      */
     public final static boolean DEFAULT_RECYCLE = true;
-    public static final int KEEP_ALIVE_TIMEOUT_IN_SECONDS = 30;
 
-    /**
-     * Default max keep-alive count.
-     */
-    public final static int DEFAULT_MAX_KEEP_ALIVE = 256;
-       
-    
+
     /**
      * Default queue in bytes size.
      */

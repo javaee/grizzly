@@ -530,15 +530,12 @@ public class GrizzlyRequest {
 
     // --------------------------------------------------------- Public Methods
 
+
     /**
      * Release all object references, and initialize instance variables, in
      * preparation for reuse of this object.
      */
-    public void recycle() {
-        recycle(true);
-    }
-
-    protected final void recycle(boolean isRecycleUnderlyingRequest) {
+    protected final void recycle() {
         dispatcherType = null;
         requestDispatcherPath = null;
 
@@ -561,10 +558,8 @@ public class GrizzlyRequest {
         localAddr = null;
         localName = null;
 
-        if (isRecycleUnderlyingRequest) {
-            request.recycle();
-        }
-        
+        request.recycle();
+
         response = null;
         request = null;
         ctx = null;

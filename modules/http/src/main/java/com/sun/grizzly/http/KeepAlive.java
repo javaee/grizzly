@@ -38,7 +38,7 @@
  * holder.
  */
 
-package com.sun.grizzly.http.server;
+package com.sun.grizzly.http;
 
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
@@ -134,7 +134,7 @@ public final class KeepAlive implements JmxMonitoringAware<KeepAliveProbe> {
     }
 
     protected JmxObject createJmxManagementObject() {
-        return new com.sun.grizzly.http.server.jmx.KeepAlive(this);
+        return new com.sun.grizzly.http.jmx.KeepAlive(this);
     }
 
     /**

@@ -324,11 +324,7 @@ public class GrizzlyResponse {
      * Release all object references, and initialize instance variables, in
      * preparation for reuse of this object.
      */
-    public void recycle() {
-        recycle(true);
-    }
-
-    protected final void recycle(boolean isRecycleUnderlyingResponse) {
+    protected final void recycle() {
         suspendStatus = null;
         delayQueue = null;
         suspendedRunnable.reset();
@@ -342,10 +338,8 @@ public class GrizzlyResponse {
         isCharacterEncodingSet = false;
         detailErrorMsg = null;
         request = null;
-        if (isRecycleUnderlyingResponse) {
-            response.recycle();
-        }
-        
+        response.recycle();
+
         response = null;
         ctx = null;
         isSuspended = false;

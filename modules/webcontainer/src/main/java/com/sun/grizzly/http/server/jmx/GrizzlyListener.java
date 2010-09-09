@@ -42,6 +42,7 @@ package com.sun.grizzly.http.server.jmx;
 
 import com.sun.grizzly.Transport;
 import com.sun.grizzly.http.HttpCodecFilter;
+import com.sun.grizzly.http.KeepAlive;
 import com.sun.grizzly.http.server.filecache.FileCache;
 import com.sun.grizzly.http.server.WebServerFilter;
 import com.sun.grizzly.monitoring.jmx.GrizzlyJmxManager;
@@ -64,7 +65,7 @@ public class GrizzlyListener extends JmxObject {
 
     private FileCache currentFileCache;
     private Transport currentTransport;
-    private com.sun.grizzly.http.server.KeepAlive currentKeepAlive;
+    private KeepAlive currentKeepAlive;
 
     private JmxObject fileCacheJmx;
     private JmxObject transportJmx;
@@ -250,7 +251,7 @@ public class GrizzlyListener extends JmxObject {
             }
         }
 
-        final com.sun.grizzly.http.server.KeepAlive keepAlive = listener.getKeepAlive();
+        final KeepAlive keepAlive = listener.getKeepAlive();
         if (currentKeepAlive != keepAlive) {
             if (currentKeepAlive != null) {
                 mom.unregister(keepAliveJmx);

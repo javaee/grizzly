@@ -50,6 +50,7 @@ import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.http.Constants;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpResponsePacket;
+import com.sun.grizzly.http.HttpServerFilter;
 import com.sun.grizzly.http.util.Utils;
 import com.sun.grizzly.memory.BuffersBuffer;
 import com.sun.grizzly.memory.CompositeBuffer;
@@ -221,6 +222,8 @@ public class OutputBuffer {
         }
 
         close();
+
+        ctx.notifyDownstream(HttpServerFilter.RESPONSE_COMPLETE_EVENT);
 
         finished = true;
 

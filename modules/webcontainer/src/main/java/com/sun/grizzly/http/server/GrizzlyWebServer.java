@@ -520,7 +520,10 @@ public class GrizzlyWebServer {
                                         ? HttpServerFilter.DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE
                                         : listener.getMaxHttpHeaderSize());
 
-            final HttpServerFilter httpServerFilter = new HttpServerFilter(maxHeaderSize);
+            final HttpServerFilter httpServerFilter =
+                    new HttpServerFilter(maxHeaderSize,
+                                         listener.getKeepAlive(),
+                                         delayedExecutor);
             httpServerFilter.getMonitoringConfig().addProbes(
                     serverConfig.getMonitoringConfig().getHttpConfig().getProbes());
             builder.add(httpServerFilter);
@@ -539,7 +542,7 @@ public class GrizzlyWebServer {
                     serverConfig.getMonitoringConfig().getFileCacheConfig().getProbes());
             builder.add(fileCacheFilter);
 
-            final WebServerFilter webServerFilter = new WebServerFilter(this, listener);
+            final WebServerFilter webServerFilter = new WebServerFilter(this);
             webServerFilter.getMonitoringConfig().addProbes(
                     serverConfig.getMonitoringConfig().getWebServerConfig().getProbes());
             builder.add(webServerFilter);

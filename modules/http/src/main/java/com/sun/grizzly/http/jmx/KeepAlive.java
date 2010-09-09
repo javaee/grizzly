@@ -38,12 +38,12 @@
  * holder.
  */
 
-package com.sun.grizzly.http.server.jmx;
+package com.sun.grizzly.http.jmx;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 import com.sun.grizzly.Connection;
-import com.sun.grizzly.http.server.KeepAliveProbe;
+import com.sun.grizzly.http.KeepAliveProbe;
 import com.sun.grizzly.monitoring.jmx.GrizzlyJmxManager;
 import com.sun.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.gmbal.Description;
@@ -52,7 +52,7 @@ import org.glassfish.gmbal.ManagedAttribute;
 import org.glassfish.gmbal.ManagedObject;
 
 /**
- * JMX management object for {@link com.sun.grizzly.http.server.KeepAlive}.
+ * JMX management object for {@link com.sun.grizzly.http.KeepAlive}.
  *
  * @since 2.0
  */
@@ -62,7 +62,7 @@ public class KeepAlive extends JmxObject {
     /**
      * The {@link com.sun.grizzly.http.server.KeepAlive} being managed.
      */
-    private final com.sun.grizzly.http.server.KeepAlive keepAlive;
+    private final com.sun.grizzly.http.KeepAlive keepAlive;
 
     /**
      * The number of live keep-alive connections.
@@ -99,7 +99,7 @@ public class KeepAlive extends JmxObject {
      * @param keepAlive the {@link com.sun.grizzly.http.server.KeepAlive}
      *  to manage.
      */
-    public KeepAlive(com.sun.grizzly.http.server.KeepAlive keepAlive) {
+    public KeepAlive(com.sun.grizzly.http.KeepAlive keepAlive) {
         this.keepAlive = keepAlive;
     }
 

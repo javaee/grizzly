@@ -128,6 +128,9 @@ class HttpRequestPacketImpl extends HttpRequestPacket implements HttpPacketParsi
      */
     @Override
     public void recycle() {
+        if (isExpectContent()) {
+            return;
+        }
         reset();
         ThreadCache.putToCache(CACHE_IDX, this);
     }

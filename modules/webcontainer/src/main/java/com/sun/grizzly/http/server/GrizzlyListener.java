@@ -45,6 +45,7 @@ import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.filterchain.Filter;
 import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.http.HttpCodecFilter;
+import com.sun.grizzly.http.KeepAlive;
 import com.sun.grizzly.http.server.filecache.FileCache;
 import com.sun.grizzly.monitoring.jmx.JmxObject;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;

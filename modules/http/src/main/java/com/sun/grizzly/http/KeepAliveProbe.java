@@ -37,12 +37,12 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package com.sun.grizzly.http.server;
+package com.sun.grizzly.http;
 
 import com.sun.grizzly.Connection;
 
 /**
- * Monitoring probe providing callbacks that may be invoked by Grizzly {@link KeepAlive}.
+ * Monitoring probe providing callbacks that may be invoked by Grizzly {@link com.sun.grizzly.http.KeepAlive}.
  *
  * @author Alexey Stashok
  *

@@ -336,4 +336,9 @@ public class Constants {
 
     public static final byte[] EXPECT_100_CONTINUE_VALUE_BYTES = EXPECT_100_CONTINUE_VALUE.getBytes(ASCII_CHARSET);
 
+    public static final int KEEP_ALIVE_TIMEOUT_IN_SECONDS = 30;
+    /**
+     * Default max keep-alive count.
+     */
+    public final static int DEFAULT_MAX_KEEP_ALIVE = 256;
 }
