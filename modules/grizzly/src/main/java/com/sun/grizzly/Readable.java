@@ -44,7 +44,7 @@ import java.io.IOException;
 import java.util.concurrent.Future;
 
 /**
- * Implementatios of this interface are able to read data from internal source
+ * Implementations of this interface are able to read data from internal source
  * to a {@link Buffer}.
  *
  * Grizzly {@link Connection} extends {@link Readable}.
@@ -52,17 +52,9 @@ import java.util.concurrent.Future;
  * @author Alexey Stashok
  */
 public interface Readable<L> extends Closeable {
+
     /**
-     * Method reads data to the <tt>buffer</tt>.
-     *
-     * @param buffer the buffer, where data will be read
-     * @param completionHandler {@link CompletionHandler},
-     *        which will get notified, when read will be completed
-     * @param interceptor {@link Interceptor}, which will be able to intercept
-     *        control each time new portion of a data was read to a
-     *        <tt>buffer</tt>.
-     *        The <tt>interceptor</tt> can decide, whether asynchronous read is
-     *        completed or not, or provide other processing instructions.
+     * Method reads data.
      * @return {@link Future}, using which it's possible to check the result
      * @throws java.io.IOException
      */

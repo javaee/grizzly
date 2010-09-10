@@ -148,9 +148,16 @@ public abstract class TemporarySelectorWriter
     
     /**
      * Flush the buffer by looping until the {@link Buffer} is empty
-     * @param channel {@link SelectableChannel}
-     * @param bb the Buffer to write.
-     * @return The number of bytes written
+     *
+     * @param connection the {@link Connection}.
+     * @param dstAddress the destination address.
+     * @param buffer the {@link Buffer} to write.
+     * @param currentResult the result of the write operation
+     * @param timeout operation timeout value value
+     * @param timeunit the timeout unit
+     *
+     * @return The number of bytes written.
+     * 
      * @throws java.io.IOException
      */
     protected int write0(final Connection connection,

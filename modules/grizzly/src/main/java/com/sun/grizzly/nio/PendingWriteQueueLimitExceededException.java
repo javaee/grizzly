@@ -43,11 +43,11 @@ package com.sun.grizzly.nio;
 import java.io.IOException;
 
 /**
- * Thrown when an attempt is made to add a {@AsyncWriteQueueRecord} that exceeds
+ * Thrown when an attempt is made to add a {@link com.sun.grizzly.asyncqueue.AsyncWriteQueueRecord} that exceeds
  * the configured maximum queue size.
  *
- * @see com.sun.grizzly.asyncqueue.AsyncQueueWriter#canWrite(com.sun.grizzly.Connection)
- * @see com.sun.grizzly.asyncqueue.AsyncQueueWriter#setMaxQueuedWritesPerConnection(int)
+ * @see com.sun.grizzly.asyncqueue.AsyncQueueWriter#canWrite(com.sun.grizzly.Connection, int)
+ * @see com.sun.grizzly.asyncqueue.AsyncQueueWriter#setMaxPendingBytesPerConnection(int) 
  *
  * @since 2.0
  */

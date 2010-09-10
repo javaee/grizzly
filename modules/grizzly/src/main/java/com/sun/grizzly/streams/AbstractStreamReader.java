@@ -43,7 +43,6 @@ package com.sun.grizzly.streams;
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.BufferUnderflowException;
-import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
@@ -115,9 +114,10 @@ public abstract class AbstractStreamReader implements StreamReader {
 
     /**
      * Create a new ByteBufferReader.
-     * @param timeout Time in milliseconds to wait for more data:  If 0, the reader will
-     * never block.
-     * @throws TimeoutException when a read operation times out waiting for more data.
+     *
+     * @param connection the {@link Connection} to be associated with this
+     *  <code>AbstractStreamReader</code>
+     * @param streamInput the stream source
      */
     protected AbstractStreamReader(Connection connection, Input streamInput) {
         this.input = streamInput;

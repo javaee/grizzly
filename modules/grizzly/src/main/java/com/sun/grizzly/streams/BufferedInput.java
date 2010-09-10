@@ -78,10 +78,8 @@ public abstract class BufferedInput implements Input {
     protected abstract void onOpenInputSource() throws IOException;
 
     protected abstract void onCloseInputSource() throws IOException;
+
     
-    /**
-     * {@inheritDoc}
-     */
     public boolean append(final Buffer buffer) {
         if (buffer == null) {
             return false;
@@ -106,9 +104,7 @@ public abstract class BufferedInput implements Input {
         return true;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    
     public boolean prepend(final Buffer buffer) {
         if (buffer == null) {
             return false;

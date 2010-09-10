@@ -43,7 +43,7 @@ package com.sun.grizzly.asyncqueue;
 import com.sun.grizzly.Reader;
 
 /**
- * The {@link AsyncQueueProcessor}, which implements asynchronous read queue.
+ * The {@link AsyncQueue}, which implements asynchronous read queue.
  * 
  * @author Alexey Stashok
  */

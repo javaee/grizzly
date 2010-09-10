@@ -52,7 +52,7 @@ public interface ProcessorSelector {
      * Selects {@link Processor}, which will process connection event.
      * 
      * @param ioEvent connection event to be processed
-     * @param connection, where event occured
+     * @param connection where event occurred
      * 
      * @return the {@link Processor}, which will process connection event.
      */

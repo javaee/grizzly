@@ -85,7 +85,6 @@ public class SSLUtils {
     /**
      * Complete hanshakes operations.
      * @param sslEngine The SSLEngine used to manage the SSL operations.
-     * @return SSLEngineResult.HandshakeStatus
      */
     public static void executeDelegatedTask(SSLEngine sslEngine) {
 

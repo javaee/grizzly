@@ -43,7 +43,7 @@ package com.sun.grizzly;
 /**
  * Default {@link ProcessorSelector} implementation, which uses
  * {@link Connection}'s {@link Processor} preferences.
- * The {@link DefaultProcessorSelector} first checks {@link Connection's}
+ * The {@link DefaultProcessorSelector} first checks {@link Connection}'s
  * associated {@link Processor} ({@link Connection#getProcessor()}). If returned
  * {@link Processor} is <tt>null</tt> - if delegates selection to
  * {@link Connection}'s {@link ProcessorSelector}

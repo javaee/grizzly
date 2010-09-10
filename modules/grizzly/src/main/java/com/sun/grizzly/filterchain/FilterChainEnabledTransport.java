@@ -43,23 +43,23 @@ package com.sun.grizzly.filterchain;
 /**
  * Common interface for Transports, which support {@link FilterChain}s.
  *
- * @see Transport
+ * @see com.sun.grizzly.Transport
  * @see FilterChain
  * 
  * @author Alexey Stashok
  */
 public interface FilterChainEnabledTransport {
     /**
-     * Get transport {@link Filter}, which is aware of {@link Transport}
-     * specifics; knows how to read/write from/to {@link Transport}
-     * specific {@link Connection} streams.
+     * Get transport {@link Filter}, which is aware of {@link com.sun.grizzly.Transport}
+     * specifics; knows how to read/write from/to {@link com.sun.grizzly.Transport}
+     * specific {@link com.sun.grizzly.Connection} streams.
      * 
-     * Each {@link Transport} should provide transport {@link Filter}
+     * Each {@link com.sun.grizzly.Transport} should provide transport {@link Filter}
      * implementation.
      *
-     * @return transport {@link Filter}, which is aware of {@link Transport}
-     * specifics; knows how to read/write from/to {@link Transport}
-     * specific {@link Connection}s.
+     * @return transport {@link Filter}, which is aware of {@link com.sun.grizzly.Transport}
+     * specifics; knows how to read/write from/to {@link com.sun.grizzly.Transport}
+     * specific {@link com.sun.grizzly.Connection}s.
      */
     public Filter getTransportFilter();
 }

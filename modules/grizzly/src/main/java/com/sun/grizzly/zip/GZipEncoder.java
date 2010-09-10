@@ -55,7 +55,7 @@ import java.util.zip.CRC32;
 import java.util.zip.Deflater;
 
 /**
- * This class implements a {@link Transformer} which encodes plain data to
+ * This class implements a {@link com.sun.grizzly.Transformer} which encodes plain data to
  * the GZIP format.
  *
  * @author Alexey Stashok

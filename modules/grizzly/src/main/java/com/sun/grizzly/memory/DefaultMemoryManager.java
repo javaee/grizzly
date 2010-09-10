@@ -49,8 +49,8 @@ import java.util.Arrays;
 
 /**
  * Default {@link MemoryManager}, used in Grizzly.
- * <tt>DefaultMemory</tt> has simple {@link Buffer} pooling implementation,
- * which makes released {@link Buffer}'s memory to be reused.
+ * <tt>DefaultMemory</tt> has simple {@link com.sun.grizzly.Buffer} pooling implementation,
+ * which makes released {@link com.sun.grizzly.Buffer}'s memory to be reused.
  *
  * @author Alexey Stashok
  */
@@ -62,9 +62,6 @@ public final class DefaultMemoryManager extends ByteBufferManager {
         super();
     }
 
-    /**
-     * Construct {@link Future}.
-     */
     private TrimAwareWrapper createTrimAwareBuffer(
             ByteBufferManager memoryManager,
             ByteBuffer underlyingByteBuffer) {
@@ -159,8 +156,8 @@ public final class DefaultMemoryManager extends ByteBufferManager {
      * memory pool. If it's not possible - it delegates reallocation to
      * {@link ByteBufferViewManager}.
      *
-     * @param oldBuffer old {@link ByteBuffer} we want to reallocate.
-     * @param newSize {@link Buffer} required size.
+     * @param oldByteBuffer old {@link ByteBuffer} we want to reallocate.
+     * @param newSize required size.
      *
      * @return reallocated {@link ByteBuffer}.
      */
@@ -203,7 +200,7 @@ public final class DefaultMemoryManager extends ByteBufferManager {
      * the buffer to thread local pool. If not - let's garbage collector utilize
      * the memory.
      *
-     * @param buffer {@link ByteBuffer} to be released.
+     * @param byteBuffer {@link ByteBuffer} to be released.
      */
     @Override
     public void releaseByteBuffer(ByteBuffer byteBuffer) {
@@ -390,7 +387,7 @@ public final class DefaultMemoryManager extends ByteBufferManager {
 
     /**
      * {@link ByteBufferWrapper} implementation, which supports triming. In
-     * other words it's possible to return unused {@link Buffer} space to
+     * other words it's possible to return unused {@link com.sun.grizzly.Buffer} space to
      * pool.
      */
     public final class TrimAwareWrapper extends ByteBufferWrapper

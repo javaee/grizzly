@@ -50,17 +50,17 @@ import com.sun.grizzly.Connection;
  * to the {@link Transport}'s specific transport {@link Filter}. If
  * {@link Transport} doesn't have own implementation - uses common I/O event
  * processing logic.
- * <tt>TransportFilter</tt> could be set to work in 2 modes: {@link Mode#Stream}
- * or {@link Mode#Message}. In the {@link Mode#Stream} mode,
- * <tt>TransportFilter</tt> produces/consumes {@link Connection} data using
- * {@link FilterChainContext#getStreamReader()}, {@link FilterChainContext#getStreamWriter()}.
- * In the {@link Mode#Message} mode, <tt>TransportFilter</tt> represents {@link Connection}
- * data as {@link Buffer}, using {@link FilterChainContext#getMessage(}},
- * {@link FilterChainContext#setMessage()}.
+ * <tt>TransportFilter</tt> could be set to work in 2 modes: <code>stream</code>
+ * or <code>message</code>. In <code>stream</code> mode,
+ * <tt>TransportFilter</tt> produces/consumes the socket channel directly.
+ * In <code>message</code> mode, <tt>TransportFilter</tt> represents {@link Connection}
+ * data as {@link com.sun.grizzly.Buffer}, using {@link FilterChainContext#getMessage()}},
+ * {@link FilterChainContext#setMessage(Object)}.
  * For specific {@link Transport}, one mode could be more preferable than another.
- * For example {@link TCPNIOTransport} works just in {@link Mode#Stream} mode,
- * {@link UDPNIOTransport} prefers {@link Mode#Message} mode, but could also work
- * in {@link Mode#Stream} mode.
+ * For example {@link com.sun.grizzly.nio.transport.TCPNIOTransport } works just in
+ * <code>stream</code> mode.  {@link com.sun.grizzly.nio.transport.UDPNIOTransport }
+ * prefers <code>message</code> mode, but could also work
+ * in <code>stream</code> mode.
  * 
  * @author Alexey Stashok
  */

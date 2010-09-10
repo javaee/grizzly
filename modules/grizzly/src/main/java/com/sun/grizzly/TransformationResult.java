@@ -107,7 +107,7 @@ public class TransformationResult<I, O> implements Cacheable {
     /**
      * Creates error transformation result with specific code and description.
      *
-     * @param errorId id of the error
+     * @param errorCode id of the error
      * @param errorDescription error description
      */
     public TransformationResult(int errorCode, String errorDescription) {
@@ -181,9 +181,9 @@ public class TransformationResult<I, O> implements Cacheable {
     }
 
     /**
-     * If implementation uses {@link ObjectPool} to store and reuse
-     * {@link TransformationResult} instances - this method will be called before
-     * {@link TransformationResult} will be offered to pool.
+     * If implementation uses {@link com.sun.grizzly.utils.ObjectPool} to store
+     * and reuse {@link TransformationResult} instances - this method will be
+     * called before {@link TransformationResult} will be offered to pool.
      */
     public void reset() {
         message = null;

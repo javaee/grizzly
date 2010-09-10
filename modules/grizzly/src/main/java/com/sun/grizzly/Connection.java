@@ -71,21 +71,17 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
     public boolean isOpen();
 
     /**
-     * Returns the {@link Connection} mode.
-     * <tt>true</tt>, if {@link Connection} is operating in blocking mode, or
-     * <tt>false</tt> otherwise.
+     * Sets the {@link Connection} mode.
      *
-     * @return the {@link Connection} mode.
-     * <tt>true</tt>, if {@link Connection} is operating in blocking mode, or
+     * @param isBlocking the {@link Connection} mode. <tt>true</tt>,
+     * if {@link Connection} should operate in blocking mode, or
      * <tt>false</tt> otherwise.
      */
     public void configureBlocking(boolean isBlocking);
 
     /**
-     * Sets the {@link Connection} mode.
-     *
-     * @param isBlocking the {@link Connection} mode. <tt>true</tt>,
-     * if {@link Connection} should operate in blocking mode, or
+     * @return the {@link Connection} mode.
+     * <tt>true</tt>, if {@link Connection} is operating in blocking mode, or
      * <tt>false</tt> otherwise.
      */
     public boolean isBlocking();
@@ -231,9 +227,7 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
     public void setWriteTimeout(long timeout, TimeUnit timeUnit);
 
     /**
-     * Get the <tt>Connection</tt> monitoring configuration {@link MonitoringConfig}.
-     *
-     * @param the <tt>Connection</tt> monitoring configuration {@link MonitoringConfig}.
+     * @return the <tt>Connection</tt> monitoring configuration {@link MonitoringConfig}.
      */
     @Override
     public MonitoringConfig<ConnectionProbe> getMonitoringConfig();

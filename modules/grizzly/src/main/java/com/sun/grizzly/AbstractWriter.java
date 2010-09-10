@@ -44,7 +44,7 @@ import java.io.IOException;
 
 /**
  * Abstract class, which provides transitive dependencies for overloaded
- * {@link Writer#read(...)} methods.
+ * {@link Writer} methods.
  *
  * @author Alexey Stashok
  */

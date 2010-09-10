@@ -46,9 +46,8 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 /**
- * minimalistic fixed threadpool to allow for nice scalability if a
+ * Minimalistic fixed thread pool to allow for nice scalability if a
  * good Queue impl is used.
- * by default: {@link WorkerThreadImpl} is used,
  *
  * @author gustav trede
  */
@@ -56,14 +55,6 @@ public class FixedThreadPool extends AbstractThreadPool {
 
     protected final BlockingQueue<Runnable> workQueue;
 
-    /**
-     *
-     * @param name
-     * @param poolsize
-     * @param workQueue
-     * @param threadfactory
-     * @param probe
-     */
     public FixedThreadPool(ThreadPoolConfig config) {
         super(config);
 
@@ -86,7 +77,6 @@ public class FixedThreadPool extends AbstractThreadPool {
 
     /**
      * Must hold statelock while calling this method.
-     * @param wt
      */
     private void doStartWorker() {
         startWorker(new BasicWorker());

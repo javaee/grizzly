@@ -185,9 +185,9 @@ public class Context implements AttributeStorage, Cacheable {
     }
 
     /**
-     * If implementation uses {@link ObjectPool} to store and reuse
-     * {@link Context} instances - this method will be called before
-     * {@link Context} will be offered to pool.
+     * If implementation uses {@link com.sun.grizzly.utils.ObjectPool}
+     * to store and reuse {@link Context} instances - this method will be
+     * called before {@link Context} will be offered to pool.
      */
     public void reset() {
         attributes.recycle();

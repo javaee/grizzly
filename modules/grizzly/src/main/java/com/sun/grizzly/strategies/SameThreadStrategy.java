@@ -50,7 +50,7 @@ import com.sun.grizzly.nio.NIOConnection;
 import com.sun.grizzly.utils.CurrentThreadExecutor;
 
 /**
- * {@link Strategy}, which executes {@link Processor}s in a current thread.
+ * {@link Strategy}, which executes {@link com.sun.grizzly.Processor}s in a current thread.
  *
  * @author Alexey Stashok
  */

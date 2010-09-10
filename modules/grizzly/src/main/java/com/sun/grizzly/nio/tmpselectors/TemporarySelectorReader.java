@@ -62,7 +62,6 @@ import com.sun.grizzly.Reader;
 import com.sun.grizzly.Transport;
 import com.sun.grizzly.impl.ReadyFutureImpl;
 import com.sun.grizzly.nio.NIOConnection;
-import com.sun.grizzly.utils.conditions.Condition;
 
 /**
  *
@@ -109,10 +108,7 @@ public abstract class TemporarySelectorReader
      * @param message the message, where data will be read
      * @param completionHandler {@link CompletionHandler},
      *        which will get notified, when read will be completed
-     * @param condition {@link Condition}, which will be checked
-     *        each time new portion of a data was read to a <tt>buffer</tt>.
-     *        The <tt>condition</tt> can decide, whether asynchronous read is
-     *        completed or not.
+     * @param interceptor intercept to invoke on operation
      * @param timeout operation timeout value value
      * @param timeunit the timeout unit
      * @return {@link Future}, using which it's possible to check the result

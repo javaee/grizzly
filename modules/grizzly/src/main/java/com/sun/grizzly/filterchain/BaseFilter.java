@@ -134,11 +134,8 @@ public class BaseFilter implements Filter {
     
     /**
      * Returns the {@link FilterChain}, which is executing this {@link Filter}
-     * on the current thread. Because {@link Filter} could be shared among
-     * several {@link FilterChain} - we need {@link IOEventContext} to get
-     * the {@link FilterChain}, which is running this {@link Filter}
+     * on the current thread.
      * 
-     * @param ctx the execution {@link IOEventContext}
      * @return the {@link FilterChain}, which is currently 
      *         executing this {@link Filter}
      */
@@ -148,7 +145,7 @@ public class BaseFilter implements Filter {
     }
 
     /**
-     * {@inheritDoc}
+     * @return the index of this filter within the {@link FilterChain}.
      */
     public int getIndex() {
         return index;

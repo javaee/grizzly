@@ -123,7 +123,7 @@ public class MemoryUtils {
      *
      * @param memoryManager {@link MemoryManager}, which should be
      *                       used for wrapping.
-     * @param data byte array to wrap.
+     * @param array byte array to wrap.
      *
      * @return {@link Buffer} wrapper on top of passed byte array.
      */
@@ -138,7 +138,7 @@ public class MemoryUtils {
      *
      * @param memoryManager {@link MemoryManager}, which should be
      *                       used for wrapping.
-     * @param data byte array to wrap
+     * @param array byte array to wrap
      * @param offset byte buffer offset
      * @param length byte buffer length
      *

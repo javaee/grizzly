@@ -40,15 +40,12 @@
 
 package com.sun.grizzly.strategies;
 
-import com.sun.grizzly.Context;
-import com.sun.grizzly.ProcessorResult.Status;
 import java.io.IOException;
 import java.util.concurrent.Executor;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.PostProcessor;
 import com.sun.grizzly.Strategy;
-import com.sun.grizzly.Transport.IOEventReg;
 import com.sun.grizzly.nio.NIOConnection;
 import com.sun.grizzly.nio.SelectorRunner;
 import com.sun.grizzly.utils.CurrentThreadExecutor;
@@ -56,7 +53,7 @@ import com.sun.grizzly.utils.WorkerThreadExecutor;
 import java.util.concurrent.ExecutorService;
 
 /**
- * {@link Strategy}, which executes {@link Processor}s in a current threads, and
+ * {@link Strategy}, which executes {@link com.sun.grizzly.Processor}s in a current threads, and
  * resumes selector thread logic in separate thread.
  *
  * @author Alexey Stashok

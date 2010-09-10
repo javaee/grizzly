@@ -56,7 +56,7 @@ public class ArraySet<T> {
     /**
      * Add the element(s) to the set.
      *
-     * @param element(s) the elements to add.
+     * @param elements the elements to add.
      * @return <tt>true</tt>, if at least one element was added to the set and,
      * as result, the size of the set was increased, or <tt>false</tt>, all
      * element(s) was/were present in the set and, as the result, the set values
@@ -92,7 +92,7 @@ public class ArraySet<T> {
     /**
      * Add all the elements from the source <tt>ArraySet</tt>.
      *
-     * @param element(s) the elements to add.
+     * @param source the elements to add.
      * @return <tt>true</tt>, if at least one element was added to the set and,
      * as result, the size of the set was increased, or <tt>false</tt>, all
      * element(s) was/were present in the set and, as the result, the set values
@@ -156,7 +156,7 @@ public class ArraySet<T> {
     /**
      * Get the underlying array.
      * Please note, it's not appropriate to modify the returned array's content.
-     * Please use {@link #add(java.lang.Object)} and {@link #remove(java.lang.Object)} instead.
+     * Please use {@link #add(Object[])} and {@link #remove(Object[])} instead.
      *
      * @return the array.
      */

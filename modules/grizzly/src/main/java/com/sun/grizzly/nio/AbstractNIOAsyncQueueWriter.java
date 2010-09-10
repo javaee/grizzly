@@ -431,10 +431,7 @@ public abstract class AbstractNIOAsyncQueueWriter
      * Performs real write on the NIO channel
 
      * @param connection the {@link Connection} to write to
-     * @param currentResult current result of the write operation
-     * @param dstAddress destination address
-     * @param message the message to write
-     * @param writePreProcessor write post-processor
+     * @param queueRecord the record to write
      * @throws java.io.IOException
      */
     protected final <E> int doWrite(final Connection connection,

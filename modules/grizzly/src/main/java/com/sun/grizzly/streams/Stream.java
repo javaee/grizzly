@@ -47,7 +47,7 @@ import java.io.Closeable;
  * Common interface for Stream readers and writers.
  *
  * @see StreamReader
- * @see StreadWriter
+ * @see StreamWriter
  * 
  * @author Alexey Stashok
  */

@@ -98,7 +98,7 @@ public interface Reader<L> {
      * Method reads data to the <tt>buffer</tt>.
      *
      * @param connection the {@link Connection} to read from
-     * @param message the Message to which data will be read
+     * @param buffer the {@link Buffer} to which data will be read
      * @param completionHandler {@link CompletionHandler},
      *        which will get notified, when read will be completed
      * @param interceptor {@link Interceptor}, which will be able to intercept

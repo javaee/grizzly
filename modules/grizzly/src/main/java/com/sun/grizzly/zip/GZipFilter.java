@@ -50,8 +50,8 @@ import com.sun.grizzly.memory.BufferUtils;
 import java.io.IOException;
 
 /**
- * This class implements a {@link Filter} which encodes/decodes data in
- * the GZIP format.
+ * This class implements a {@link com.sun.grizzly.filterchain.Filter} which
+ * encodes/decodes data in the GZIP format.
  *
  * @author Alexey Stashok
  */

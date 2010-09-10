@@ -332,8 +332,7 @@ public abstract class AbstractNIOAsyncQueueReader
      * Performs real read on the NIO channel
      * 
      * @param connection the {@link Connection} to read from
-     * @param readFuture the asynchronous operation result holder
-     * @param message the message to read to
+     * @param queueRecord the record to be read to
      * @throws java.io.IOException
      */
     final protected int doRead(final Connection connection,

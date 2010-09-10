@@ -44,7 +44,7 @@ import java.io.IOException;
 
 /**
  * <tt>Strategy</tt> is responsible for making decision how
- * {@link ProcessorRunnable} task will be run: in current thread, worker thread.
+ * {@link Runnable} task will be run: in current thread, worker thread.
  *
  * <tt>Strategy</tt> can make any other processing decisions.
  * 

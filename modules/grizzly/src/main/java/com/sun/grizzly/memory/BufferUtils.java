@@ -107,7 +107,7 @@ public class BufferUtils {
      * equal to number of sliced bytes (limit - position).
      *
      * @param byteBuffer {@link ByteBuffer} to slice/
-     * @param postion the position in the passed byteBuffer, the slice will start from.
+     * @param position the position in the passed byteBuffer, the slice will start from.
      * @param limit the limit in the passed byteBuffer, the slice will be ended.
      *
      * @return sliced {@link ByteBuffer} of required size.
@@ -344,7 +344,7 @@ public class BufferUtils {
      * Fill the {@link ByteBuffer} with the specific byte value. {@link ByteBuffer}'s
      * postion won't be changed.
      *
-     * @param buffer {@link ByteBuffer}
+     * @param byteBuffer {@link ByteBuffer}
      * @param b value
      */
     public static final void fill(ByteBuffer byteBuffer, byte b) {
@@ -355,7 +355,7 @@ public class BufferUtils {
      * Fill the {@link ByteBuffer}'s part [postion, limit) with the specific byte value starting from the
      * {@link ByteBuffer}'s postion won't be changed.
      *
-     * @param buffer {@link ByteBuffer}
+     * @param byteBuffer {@link ByteBuffer}
      * @param position {@link ByteBuffer} position to start with (inclusive)
      * @param limit {@link Buffer} limit, where filling ends (exclusive)
      * @param b value

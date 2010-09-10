@@ -54,8 +54,8 @@ import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
 /**
- * This class implements a {@link Transformer} which decodes data represented in
- * the GZIP format.
+ * This class implements a {@link com.sun.grizzly.Transformer} which decodes data
+ * represented in the GZIP format.
  *
  * @author Alexey Stashok
  */

@@ -44,7 +44,7 @@ import java.util.concurrent.TimeUnit;
 import com.sun.grizzly.attributes.AttributeStorage;
 
 /**
- * Interface, which {@link ThreadPool} threads should implement
+ * Interface, which Grizzly thread pool threads should implement.
  * 
  * @author Alexey Stashok
  */

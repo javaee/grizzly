@@ -135,7 +135,7 @@ public final class FilterChainContext implements AttributeStorage {
     private AttributeHolder customAttributes;
 
     /**
-     * {@link Future}, which will be notified, when operation will be
+     * {@link FutureImpl}, which will be notified, when operation will be
      * complete. For WRITE it means the data will be written on wire, for other
      * operations - the last Filter has finished the processing.
      */
@@ -166,7 +166,7 @@ public final class FilterChainContext implements AttributeStorage {
 
     /**
      * Index of the currently executing {@link Filter} in
-     * the {@link FilterChainContext#filters} list.
+     * the {@link FilterChainContext} list.
      */
     private int filterIdx;
 
@@ -307,22 +307,22 @@ public final class FilterChainContext implements AttributeStorage {
     }
 
     /**
-     * Get address, associated with the current {@link IOEvent} processing.
-     * When we process {@link IOEvent#READ} event - it represents sender address,
-     * or when process {@link IOEvent#WRITE} - address of receiver.
+     * Get address, associated with the current {@link com.sun.grizzly.IOEvent} processing.
+     * When we process {@link com.sun.grizzly.IOEvent#READ} event - it represents sender address,
+     * or when process {@link com.sun.grizzly.IOEvent#WRITE} - address of receiver.
      * 
-     * @return address, associated with the current {@link IOEvent} processing.
+     * @return address, associated with the current {@link com.sun.grizzly.IOEvent} processing.
      */
     public Object getAddress() {
         return address;
     }
 
     /**
-     * Set address, associated with the current {@link IOEvent} processing.
-     * When we process {@link IOEvent#READ} event - it represents sender address,
-     * or when process {@link IOEvent#WRITE} - address of receiver.
+     * Set address, associated with the current {@link com.sun.grizzly.IOEvent} processing.
+     * When we process {@link com.sun.grizzly.IOEvent#READ} event - it represents sender address,
+     * or when process {@link com.sun.grizzly.IOEvent#WRITE} - address of receiver.
      *
-     * @param address address, associated with the current {@link IOEvent} processing.
+     * @param address address, associated with the current {@link com.sun.grizzly.IOEvent} processing.
      */
     public void setAddress(Object address) {
         this.address = address;

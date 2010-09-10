@@ -44,11 +44,12 @@ import java.io.IOException;
 import java.util.concurrent.Future;
 
 /**
- * Implementatios of this interface are able to write data from a {@link Buffer}
+ * Implementations of this interface are able to write data from a {@link Buffer}
  * to {@link Connection}.
  *
  * There are two basic Writer implementations in Grizzly:
- * {@link AsyncQueueWriter}, {@link TemporarySelectorWriter}.
+ * {@link com.sun.grizzly.asyncqueue.AsyncQueueWriter},
+ * {@link com.sun.grizzly.nio.tmpselectors.TemporarySelectorWriter}.
  *
  * @author Alexey Stashok
  */

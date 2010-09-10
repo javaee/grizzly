@@ -449,7 +449,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
      *
      * @param host remote host to connect to.
      * @param port remote port to connect to.
-     * @return {@link Future} of connect operation, which could be used to get
+     * @return {@link GrizzlyFuture} of connect operation, which could be used to get
      * resulting {@link Connection}.
      *
      * @throws java.io.IOException
@@ -464,7 +464,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
      * {@link SocketAddress} and returns {@link Connection}, representing socket.
      *
      * @param remoteAddress remote address to connect to.
-     * @return {@link Future} of connect operation, which could be used to get
+     * @return {@link GrizzlyFuture} of connect operation, which could be used to get
      * resulting {@link Connection}.
      *
      * @throws java.io.IOException
@@ -480,7 +480,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
      *
      * @param remoteAddress remote address to connect to.
      * @param completionHandler {@link CompletionHandler}.
-     * @return {@link Future} of connect operation, which could be used to get
+     * @return {@link GrizzlyFuture} of connect operation, which could be used to get
      * resulting {@link Connection}.
      *
      * @throws java.io.IOException
@@ -497,7 +497,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
      *
      * @param remoteAddress remote address to connect to.
      * @param localAddress local address to bind socket to.
-     * @return {@link Future} of connect operation, which could be used to get
+     * @return {@link GrizzlyFuture} of connect operation, which could be used to get
      * resulting {@link Connection}.
      *
      * @throws java.io.IOException
@@ -514,7 +514,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
      * @param remoteAddress remote address to connect to.
      * @param localAddress local address to bind socket to.
      * @param completionHandler {@link CompletionHandler}.
-     * @return {@link Future} of connect operation, which could be used to get
+     * @return {@link GrizzlyFuture} of connect operation, which could be used to get
      * resulting {@link Connection}.
      *
      * @throws java.io.IOException

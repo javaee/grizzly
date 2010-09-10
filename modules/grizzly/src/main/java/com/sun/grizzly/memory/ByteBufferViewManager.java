@@ -87,7 +87,7 @@ public class ByteBufferViewManager extends ByteBufferManager {
     }
 
     /**
-     * Allocates {@link Buffer} of required size, which is actually sliced from
+     * Allocates {@link com.sun.grizzly.Buffer} of required size, which is actually sliced from
      * large preallocated {@link ByteBuffer} pool.
      *
      * @param size size of the {@link ByteBuffer} to be allocated.

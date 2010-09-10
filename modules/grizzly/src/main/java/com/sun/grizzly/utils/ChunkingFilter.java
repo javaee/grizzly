@@ -53,9 +53,9 @@ import java.util.logging.Logger;
 
 /**
  * The Filter is responsible to break the incoming/outgoing data into chunks and
- * pass them down/up by the {@link FilterChain}.
+ * pass them down/up by the {@link com.sun.grizzly.filterchain.FilterChain}.
  * This Filter could be useful for testing reasons to check if all Filters in
- * the {@link FilterChain} work properly with chunked data.
+ * the {@link com.sun.grizzly.filterchain.FilterChain} work properly with chunked data.
  * 
  * @author Alexey Stashok
  */

@@ -266,7 +266,6 @@ public final class SelectorRunner implements Runnable {
      * using SelectorHandler. All SelectionKey operations are implemented by
      * SelectionKeyHandler. Finally, ProtocolChain creation/re-use are implemented
      * by InstanceHandler.
-     * @param selectorHandler - the <code>SelectorHandler</code>
      */
     protected boolean doSelect() {
         final SelectorHandler selectorHandler = transport.getSelectorHandler();

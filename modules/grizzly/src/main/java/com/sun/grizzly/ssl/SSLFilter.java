@@ -402,14 +402,6 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
-//    public SSLSupport createSSLSupport(Connection connection) {
-//        return new SSLSupportImpl(connection,
-//                sslEngineConfigurator, sslHandshaker);
-//
-//    }
 
     /*
      * Check if there is enough inbound data in the ByteBuffer

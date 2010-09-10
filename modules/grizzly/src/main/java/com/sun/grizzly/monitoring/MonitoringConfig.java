@@ -63,8 +63,8 @@ public interface MonitoringConfig<E> {
     /**
      * Get the the monitoring probes, which are registered on the objet.
      * Please note, it's not appropriate to modify the returned array's content.
-     * Please use {@link #addMonitoringProbe(java.lang.Object)} and
-     * {@link #removeMonitoringProbe(java.lang.Object)} instead.
+     * Please use {@link #addProbes(Object[])} and
+     * {@link #removeProbes(Object[])} instead.
      *
      * @return the the monitoring probes, which are registered on the object.
      */

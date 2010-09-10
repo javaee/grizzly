@@ -61,7 +61,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Abstract {@link ExtendedThreadPool} implementation.
+ * Abstract {@link java.util.concurrent.ExecutorService} implementation.
  *
  * @author Alexey Stashok
  */

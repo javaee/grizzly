@@ -113,8 +113,8 @@ public class ThreadPoolConfig {
 
     /**
      *
-     * @param queue
-     * @return
+     * @param queue the queue implemenation to use
+     * @return the {@link ThreadPoolConfig} with the new {@link Queue} implementation.
      */
     public ThreadPoolConfig setQueue(Queue<Runnable> queue) {
         this.queue = queue;
@@ -130,8 +130,8 @@ public class ThreadPoolConfig {
 
     /**
      *
-     * @param threadFactory
-     * @return
+     * @param threadFactory custom {@link ThreadFactory}
+     * @return the {@link ThreadPoolConfig} with the new {@link ThreadFactory}
      */
     public ThreadPoolConfig setThreadFactory(ThreadFactory threadFactory) {
         this.threadFactory = threadFactory;
@@ -147,8 +147,8 @@ public class ThreadPoolConfig {
 
     /**
      *
-     * @param poolname
-     * @return
+     * @param poolname the thread pool name.
+     * @return the {@link ThreadPoolConfig} with the new thread pool name.
      */
     public ThreadPoolConfig setPoolName(String poolname) {
         this.poolName = poolname;
@@ -173,8 +173,8 @@ public class ThreadPoolConfig {
 
     /**
      *
-     * @param maxPoolSize
-     * @return
+     * @param maxPoolSize the max thread pool size
+     * @return the {@link ThreadPoolConfig} with the new max pool size
      */
     public ThreadPoolConfig setMaxPoolSize(int maxPoolSize) {
         this.maxPoolSize = maxPoolSize;
@@ -190,8 +190,8 @@ public class ThreadPoolConfig {
 
     /**
      *
-     * @param corePoolSize
-     * @return
+     * @param corePoolSize the core thread pool size
+     * @return the {@link ThreadPoolConfig} with the new core pool size
      */
     public ThreadPoolConfig setCorePoolSize(int corePoolSize) {
         this.corePoolSize = corePoolSize;
@@ -206,8 +206,8 @@ public class ThreadPoolConfig {
     }
 
     /**
-     * @param queueLimit
-     * @return
+     * @param queueLimit the queue limit
+     * @return the {@link ThreadPoolConfig} with the new queue limite
      */
     public ThreadPoolConfig setQueueLimit(int queueLimit) {
         this.queueLimit = queueLimit;
@@ -216,9 +216,9 @@ public class ThreadPoolConfig {
 
     /**
      *
-     * @param time
-     * @param unit
-     * @return
+     * @param time max keep alive time
+     * @param unit time unit
+     * @return the {@link ThreadPoolConfig} with the new keep alive time
      */
     public ThreadPoolConfig setKeepAliveTime(long time, TimeUnit unit) {
         this.keepAliveTimeMillis = TimeUnit.MILLISECONDS.convert(time, unit);

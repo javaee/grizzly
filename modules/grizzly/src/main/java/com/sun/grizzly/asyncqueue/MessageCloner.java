@@ -61,11 +61,11 @@ public interface MessageCloner<E> {
      * Using MessageCloner, developer has a chance to clone a message only in
      * case, when it is really required.
      *
-     * @param connection {@link Connection}, where the {@link Buffer} will
+     * @param connection {@link Connection}, where the {@link com.sun.grizzly.Buffer} will
      * be written.
-     * @param originalByteBuffer {@link Buffer} to be written.
+     * @param originalByteBuffer {@link com.sun.grizzly.Buffer} to be written.
      *
-     * @return original {@link Buffer} or its clone to be added to asynchronous
+     * @return original {@link com.sun.grizzly.Buffer} or its clone to be added to asynchronous
      * queue.
      */
     public E clone(Connection connection, E originalByteBuffer);

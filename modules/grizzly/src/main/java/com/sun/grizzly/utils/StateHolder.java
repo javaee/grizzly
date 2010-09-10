@@ -125,7 +125,7 @@ public final class StateHolder<E> {
      * one. Once listener will be notified - it will be removed from this 
      * <code>StateHolder</code>'s listener set.
      * @param state State, listener is interested in
-     * @param notificationObject Object, which will be notified. This <code>StateHolder</code>
+     * @param completionHandler that will be notified. This <code>StateHolder</code>
      *          implementation works with Runnable, Callable, CountDownLatch, Object
      *          listeners
      * @return <code>ConditionListener</code>, if current state is not equal to required 
@@ -149,7 +149,7 @@ public final class StateHolder<E> {
      * to passed one. Once listener will be notified - it will be removed from
      * this <code>StateHolder</code>'s listener set.
      * @param state State, listener is interested in
-     * @param notificationObject Object, which will be notified. This <code>StateHolder</code>
+     * @param completionHandler that will be notified. This <code>StateHolder</code>
      *          implementation works with Runnable, Callable, CountDownLatch, Object
      *          listeners
      * @return <code>ConditionListener</code>, if current state is equal to required 
@@ -173,7 +173,7 @@ public final class StateHolder<E> {
      * Once listener will be notified - it will be removed from this 
      * <code>StateHolder</code>'s listener set.
      * @param condition Condition, the listener is interested in
-     * @param notificationObject Object, which will be notified. This <code>StateHolder</code>
+     * @param completionHandler that will be notified. This <code>StateHolder</code>
      *          implementation works with Runnable, Callable, CountDownLatch, Object
      *          listeners
      * @return <code>ConditionListener</code>, if current state doesn't match the condition

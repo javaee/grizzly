@@ -44,8 +44,8 @@ import java.io.IOException;
 import java.net.SocketAddress;
 
 /**
- * Common API for {@link Socket} based {@link Transport}s, which are able
- * to bind server {@link Socket} to specific address and listen for incoming
+ * Common API for {@link java.net.Socket} based {@link Transport}s, which are able
+ * to bind server {@link java.net.Socket} to specific address and listen for incoming
  * data.
  *
  * @author Alexey Stashok
@@ -106,7 +106,7 @@ public interface SocketBinder {
 
     /**
      * Unbinds bound {@link Transport} connection.
-     * @param bound {@link Connection}
+     * @param connection {@link Connection}
      *
      * @throws java.io.IOException
      */

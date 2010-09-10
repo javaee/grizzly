@@ -119,7 +119,7 @@ public abstract class ExecutorResolver {
 
     /**
      * Executes appropriate {@link Filter} processing method to process occurred
-     * {@link IOEvent}.
+     * {@link com.sun.grizzly.IOEvent}.
      */
     public static class UpstreamExecutor implements FilterExecutor {
 
@@ -185,7 +185,7 @@ public abstract class ExecutorResolver {
 
     /**
      * Executes appropriate {@link Filter} processing method to process occurred
-     * {@link IOEvent}.
+     * {@link com.sun.grizzly.IOEvent}.
      */
     public static class DownstreamExecutor implements FilterExecutor {
         @Override
