@@ -303,7 +303,7 @@ public class StringCache {
                             Object key = tempMap.lastKey();
                             ArrayList<ByteEntry> list = tempMap.get(key);
                             for (int i = 0; i < list.size() && n < size; i++) {
-                                ByteEntry entry = (ByteEntry) list.get(i);
+                                ByteEntry entry = list.get(i);
                                 tempChunk.setBytes(entry.name, 0, entry.name.length);
                                 int insertPos = findClosest(tempChunk, tempbcCache, n);
                                 if (insertPos == n) {
@@ -416,7 +416,7 @@ public class StringCache {
                             Object key = tempMap.lastKey();
                             ArrayList<CharEntry> list = tempMap.get(key);
                             for (int i = 0; i < list.size() && n < size; i++) {
-                                CharEntry entry = (CharEntry) list.get(i);
+                                CharEntry entry = list.get(i);
                                 tempChunk.setChars(entry.name, 0, entry.name.length);
                                 int insertPos = findClosest(tempChunk, tempccCache, n);
                                 if (insertPos == n) {
@@ -483,7 +483,7 @@ public class StringCache {
      * Compare given byte chunk with byte array.
      * Return -1, 0 or +1 if inferior, equal, or superior to the String.
      */
-    protected static final int compare(ByteChunk name, byte[] compareTo) {
+    protected static int compare(ByteChunk name, byte[] compareTo) {
         int result = 0;
 
         byte[] b = name.getBuffer();
@@ -515,7 +515,7 @@ public class StringCache {
     /**
      * Find an entry given its name in the cache and return the associated String.
      */
-    protected static final String find(ByteChunk name) {
+    protected static String find(ByteChunk name) {
         int pos = findClosest(name, bcCache, bcCache.length);
         if ((pos < 0) || (compare(name, bcCache[pos].name) != 0)
                 || !(name.getEncoding().equals(bcCache[pos].enc))) {
@@ -531,7 +531,7 @@ public class StringCache {
      * This will return the index for the closest inferior or equal item in the
      * given array.
      */
-    protected static final int findClosest(ByteChunk name, ByteEntry[] array, int len) {
+    protected static int findClosest(ByteChunk name, ByteEntry[] array, int len) {
 
         int a = 0;
         int b = len - 1;
@@ -576,7 +576,7 @@ public class StringCache {
      * Compare given char chunk with char array.
      * Return -1, 0 or +1 if inferior, equal, or superior to the String.
      */
-    protected static final int compare(CharChunk name, char[] compareTo) {
+    protected static int compare(CharChunk name, char[] compareTo) {
         int result = 0;
 
         char[] c = name.getBuffer();
@@ -608,7 +608,7 @@ public class StringCache {
     /**
      * Find an entry given its name in the cache and return the associated String.
      */
-    protected static final String find(CharChunk name) {
+    protected static String find(CharChunk name) {
         int pos = findClosest(name, ccCache, ccCache.length);
         if ((pos < 0) || (compare(name, ccCache[pos].name) != 0)) {
             return null;
@@ -623,7 +623,7 @@ public class StringCache {
      * This will return the index for the closest inferior or equal item in the
      * given array.
      */
-    protected static final int findClosest(CharChunk name, CharEntry[] array, int len) {
+    protected static int findClosest(CharChunk name, CharEntry[] array, int len) {
 
         int a = 0;
         int b = len - 1;
@@ -680,10 +680,7 @@ public class StringCache {
             return value.hashCode();
         }
         public boolean equals(Object obj) {
-            if (obj instanceof ByteEntry) {
-                return value.equals(((ByteEntry) obj).value);
-            }
-            return false;
+            return obj instanceof ByteEntry && value.equals(((ByteEntry) obj).value);
         }
         
     }
@@ -704,10 +701,7 @@ public class StringCache {
             return value.hashCode();
         }
         public boolean equals(Object obj) {
-            if (obj instanceof CharEntry) {
-                return value.equals(((CharEntry) obj).value);
-            }
-            return false;
+            return obj instanceof CharEntry && value.equals(((CharEntry) obj).value);
         }
         
     }

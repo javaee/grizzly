@@ -69,7 +69,7 @@ import java.util.logging.Logger;
 
 /** Efficient conversion of bytes  to character .
  *
- *  This uses the standard JDK mechansim - a reader - but provides mechanisms
+ *  This uses the standard JDK mechanism - a reader - but provides mechanisms
  *  to recycle all the objects that are used. It is compatible with JDK1.1
  *  and up,
  *  ( nio is better, but it's not available even in 1.2 or 1.3 )
@@ -85,7 +85,7 @@ public class B2CConverterBlocking {
     private final static Logger logger = Grizzly.logger(B2CConverterBlocking.class);
 
     private IntermediateInputStream iis;
-    private ReadConvertor conv;
+    private ReadConverter conv;
     private String encoding;
 
     protected B2CConverterBlocking() {
@@ -145,7 +145,7 @@ public class B2CConverterBlocking {
 	    }
 	} catch( IOException ex) {
 	    if( debug>0)
-		log( "Reseting the converter " + ex.toString() );
+		log( "Resetting the converter " + ex.toString() );
 	    reset();
 	    throw ex;
 	}
@@ -183,7 +183,7 @@ public class B2CConverterBlocking {
     {
 	// destroy the reader/iis
 	iis=new IntermediateInputStream();
-	conv=new ReadConvertor( iis, encoding );
+	conv=new ReadConverter( iis, encoding );
     }
 
     private final int debug=0;
@@ -192,7 +192,7 @@ public class B2CConverterBlocking {
 	    logger.log(Level.FINEST,"B2CConverter: " + s );
     }
 
-    // -------------------- Not used - the speed improvemnt is quite small
+    // -------------------- Not used - the speed improvement is quite small
 
     /*
     private Hashtable decoders;
@@ -255,11 +255,11 @@ public class B2CConverterBlocking {
 /**
  *
  */
-final class  ReadConvertor extends InputStreamReader {
+final class ReadConverter extends InputStreamReader {
 
     /** Create a converter.
      */
-    public ReadConvertor( IntermediateInputStream in, String enc )
+    public ReadConverter( IntermediateInputStream in, String enc )
 	throws UnsupportedEncodingException
     {
 	super( in, enc );
@@ -288,7 +288,7 @@ final class  ReadConvertor extends InputStreamReader {
                 // InputStreamReader#skip(long) will allocate buffer to skip.
                 read();
             }
-        } catch(IOException ioe){
+        } catch(IOException ignore){
         }
     }
 }

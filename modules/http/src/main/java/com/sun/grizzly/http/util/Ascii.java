@@ -177,7 +177,7 @@ public final class Ascii {
     }
 
     /**
-     * Parses an unsigned integer from the specified subarray of bytes.
+     * Parses an unsigned integer from the specified sub-array of bytes.
      * @param b the bytes to parse
      * @param off the start offset of the bytes
      * @param len the length of the bytes
@@ -224,7 +224,7 @@ public final class Ascii {
     }
 
     /**
-     * Parses an unsigned int from the specified subarray of bytes.
+     * Parses an unsigned int from the specified sub-array of bytes.
      * @param b the Buffer to parse
      * @param off the start offset of the bytes
      * @param len the length of the bytes
@@ -251,7 +251,7 @@ public final class Ascii {
     }
     
     /**
-     * Parses an unsigned long from the specified subarray of bytes.
+     * Parses an unsigned long from the specified sub-array of bytes.
      * @param b the bytes to parse
      * @param off the start offset of the bytes
      * @param len the length of the bytes
@@ -342,7 +342,7 @@ public final class Ascii {
     }
 
     /**
-     * Parses an unsigned long from the specified subarray of bytes.
+     * Parses an unsigned long from the specified sub-array of bytes.
      * @param b the Buffer to parse
      * @param off the start offset of the bytes
      * @param len the length of the bytes

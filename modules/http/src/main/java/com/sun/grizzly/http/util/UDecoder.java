@@ -155,7 +155,6 @@ public final class UDecoder {
 
         mb.setEnd(idx);
 
-        return;
     }
 
     // -------------------- Additional methods --------------------
@@ -304,7 +303,6 @@ public final class UDecoder {
             if (metaChar == '+') {
                 dec.append(' ');
                 strPos++;
-                continue;
             } else if (metaChar == '%') {
                 // We throw the original exception - the super will deal with
                 // it

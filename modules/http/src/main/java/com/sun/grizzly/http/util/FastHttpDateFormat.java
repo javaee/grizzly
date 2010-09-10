@@ -149,7 +149,7 @@ public final class FastHttpDateFormat {
     /**
      * Get the current date in HTTP format.
      */
-    public static final String getCurrentDate() {
+    public static String getCurrentDate() {
         long now = System.currentTimeMillis();
         if (now > nextGeneration) {
             synchronized(FORMAT) {
@@ -173,7 +173,7 @@ public final class FastHttpDateFormat {
      * @param threadLocalFormat the {@link DateFormat} used if cache value was 
      *  not found
      */
-    public static final String formatDate(long value, DateFormat threadLocalFormat) {
+    public static String formatDate(long value, DateFormat threadLocalFormat) {
         // truncating to second precision
         // this way we optimally use the cache to only store needed http values
         value = (value/1000)*1000;
@@ -198,7 +198,7 @@ public final class FastHttpDateFormat {
     /**
      * Try to parse the given date as a HTTP date.
      */
-    public static final long parseDate(final String value,
+    public static long parseDate(final String value,
             DateFormat[] threadLocalformats) {
 
         Long cachedDate = parseCache.get(value);
@@ -221,12 +221,11 @@ public final class FastHttpDateFormat {
     /**
      * Parse date with given formatters.
      */
-    private static final long internalParseDate (String value, DateFormat[] formats){
+    private static long internalParseDate (String value, DateFormat[] formats){
         for (int i = 0;i < formats.length; i++) {
             try {
                 return formats[i].parse(value).getTime();
-            } catch (ParseException e) {
-                return -1;
+            } catch (ParseException ignore) {
             }
         }
         return -1;

@@ -72,7 +72,7 @@ public class HttpRequestURIDecoder {
      * @param urlDecoder - The urlDecoder to use to decode.
      * @throws java.lang.Exception
      */
-    public final static void decode(MessageBytes decodedURI, UDecoder urlDecoder)
+    public static void decode(MessageBytes decodedURI, UDecoder urlDecoder)
             throws Exception {
         decode(decodedURI, urlDecoder, null, null);
     }
@@ -87,7 +87,7 @@ public class HttpRequestURIDecoder {
      * @param b2cConverter the Bytes to Char Converter.
      * @throws java.lang.Exception
      */
-    public final static void decode(MessageBytes decodedURI, UDecoder urlDecoder,
+    public static void decode(MessageBytes decodedURI, UDecoder urlDecoder,
             String encoding, B2CConverter b2cConverter) throws Exception {
         // %xx decoding of the URL
         urlDecoder.convert(decodedURI, false);
@@ -116,7 +116,7 @@ public class HttpRequestURIDecoder {
      * @param b2cConverter the Bytes to Char Converter.
      * @throws java.lang.Exception
      */
-    private final static void convertURI(MessageBytes uri, String encoding,
+    private  static void convertURI(MessageBytes uri, String encoding,
             B2CConverter b2cConverter)
             throws Exception {
 
@@ -226,11 +226,7 @@ public class HttpRequestURIDecoder {
         }
 
         // Check for "/./"
-        if (uriCC.indexOf("/./", 0, 3, 0) >= 0) {
-            return false;
-        }
-
-        return true;
+        return uriCC.indexOf("/./", 0, 3, 0) < 0;
 
     }
 
@@ -243,7 +239,7 @@ public class HttpRequestURIDecoder {
         int end = uriCC.getEnd();
 
         // URL * is acceptable
-        if ((end - start == 1) && c[start] == (char) '*') {
+        if ((end - start == 1) && c[start] == '*') {
             return true;
         }
 
@@ -253,9 +249,9 @@ public class HttpRequestURIDecoder {
         // Replace '\' with '/'
         // Check for null char
         for (pos = start; pos < end; pos++) {
-            if (c[pos] == (char) '\\') {
+            if (c[pos] == '\\') {
                 if (ALLOW_BACKSLASH) {
-                    c[pos] = (char) '/';
+                    c[pos] = '/';
                 } else {
                     return false;
                 }
@@ -266,15 +262,15 @@ public class HttpRequestURIDecoder {
         }
 
         // The URL must start with '/'
-        if (c[start] != (char) '/') {
+        if (c[start] != '/') {
             return false;
         }
 
         // Replace "//" with "/"
         if (COLLAPSE_ADJACENT_SLASHES) {
             for (pos = start; pos < (end - 1); pos++) {
-                if (c[pos] == (char) '/') {
-                    while ((pos + 1 < end) && (c[pos + 1] == (char) '/')) {
+                if (c[pos] == '/') {
+                    while ((pos + 1 < end) && (c[pos + 1] == '/')) {
                         copyChars(c, pos, pos + 1, end - pos - 1);
                         end--;
                     }
@@ -285,9 +281,9 @@ public class HttpRequestURIDecoder {
         // If the URI ends with "/." or "/..", then we append an extra "/"
         // Note: It is possible to extend the URI by 1 without any side effect
         // as the next character is a non-significant WS.
-        if (((end - start) > 2) && (c[end - 1] == (char) '.')) {
-            if ((c[end - 2] == (char) '/') || ((c[end - 2] == (char) '.') && (c[end - 3] == (char) '/'))) {
-                c[end] = (char) '/';
+        if (((end - start) > 2) && (c[end - 1] == '.')) {
+            if ((c[end - 2] == '/') || ((c[end - 2] == '.') && (c[end - 3] == '/'))) {
+                c[end] = '/';
                 end++;
             }
         }
@@ -322,7 +318,7 @@ public class HttpRequestURIDecoder {
             }
             int index2 = -1;
             for (pos = start + index - 1; (pos >= 0) && (index2 < 0); pos--) {
-                if (c[pos] == (char) '/') {
+                if (c[pos] == '/') {
                     index2 = pos;
                 }
             }

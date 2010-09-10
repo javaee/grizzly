@@ -164,7 +164,7 @@ public class CookieParserUtils {
                 // token, name-only with an '=', or other (bad)
                 switch (buffer.get(pos)) {
                     case '"':
-                        ; // Quoted Value
+                        // Quoted Value
                         isQuoted = true;
                         valueStart = pos + 1; // strip "
                         // getQuotedValue returns the position before
@@ -310,7 +310,6 @@ public class CookieParserUtils {
 
                 cookies.add(cookie);
 
-                continue;
             }
         }
     }
@@ -389,7 +388,7 @@ public class CookieParserUtils {
                 // token, name-only with an '=', or other (bad)
                 switch (cookiesStr.charAt(pos)) {
                     case '"':
-                        ; // Quoted Value
+                        // Quoted Value
                         isQuoted = true;
                         valueStart = pos + 1; // strip "
                         // getQuotedValue returns the position before
@@ -534,7 +533,6 @@ public class CookieParserUtils {
 
                 cookies.add(cookie);
 
-                continue;
             }
         }
     }
@@ -601,7 +599,7 @@ public class CookieParserUtils {
                 // token, name-only with an '=', or other (bad)
                 switch (buffer.get(pos)) {
                     case '"':
-                        ; // Quoted Value
+                        // Quoted Value
                         isQuoted = true;
                         valueStart = pos + 1; // strip "
                         // getQuotedValue returns the position before
@@ -848,7 +846,7 @@ public class CookieParserUtils {
                 // token, name-only with an '=', or other (bad)
                 switch (cookiesStr.charAt(pos)) {
                     case '"':
-                        ; // Quoted Value
+                        // Quoted Value
                         isQuoted = true;
                         valueStart = pos + 1; // strip "
                         // getQuotedValue returns the position before

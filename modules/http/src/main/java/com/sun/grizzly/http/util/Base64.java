@@ -125,25 +125,25 @@ public final class Base64 {
     }
 
 
-    static boolean isBase64( byte octect ) {
+    static boolean isBase64( byte octet ) {
         //shall we ignore white space? JEFF??
-        return(octect == PAD || base64Alphabet[octect] != -1 );
+        return(octet == PAD || base64Alphabet[octet] != -1 );
     }
 
 
-    static boolean isArrayByteBase64( byte[] arrayOctect ) {
-        int length = arrayOctect.length;
+    static boolean isArrayByteBase64( byte[] arrayOctet ) {
+        int length = arrayOctet.length;
         if ( length == 0 )
             return false;
         for ( int i=0; i < length; i++ ) {
-            if ( Base64.isBase64( arrayOctect[i] ) == false)
+            if (!Base64.isBase64(arrayOctet[i]))
                 return false;
         }
         return true;
     }
 
     /**
-     * Encodes hex octects into Base64
+     * Encodes hex octets into Base64
      *
      * @param binaryData Array containing binaryData
      * @return Encoded Base64 array
@@ -211,7 +211,7 @@ public final class Base64 {
 
 
     /**
-     * Decodes Base64 data into octects
+     * Decodes Base64 data into octets
      *
      * @param base64Data Byte array containing Base64 data
      * @return Array containing decoded data.

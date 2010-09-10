@@ -180,7 +180,6 @@ public final class UTF8Decoder extends B2CConverter {
                             + 0xdc00));
                 }
                 j++;
-                continue;
             } else {
                 // XXX Throw conversion exception !!!
                 if (debug > 0) {

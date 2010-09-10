@@ -188,7 +188,7 @@ public final class ByteChunk implements Cloneable, Serializable {
     }
 
     /**
-     * Sets the message bytes to the specified subarray of bytes.
+     * Sets the message bytes to the specified sub-array of bytes.
      *
      * @param b the ascii bytes
      * @param off the start offset of the bytes
@@ -255,7 +255,7 @@ public final class ByteChunk implements Cloneable, Serializable {
 
     /** Maximum amount of data in this buffer.
      *
-     *  If -1 or not set, the buffer will grow undefinitely.
+     *  If -1 or not set, the buffer will grow indefinitely.
      *  Can be smaller than the current buffer size ( which will not shrink ).
      *  When the limit is reached, the buffer will be flushed ( if out is set )
      *  or throw exception.
@@ -724,22 +724,20 @@ public final class ByteChunk implements Cloneable, Serializable {
         return hashBytesIC( buff, start, end-start );
     }
 
-    private static int hashBytes( byte buff[], int start, int bytesLen ) {
+    private static int hashBytes(byte[] buff, int start, int bytesLen ) {
         int max=start+bytesLen;
-        byte bb[]=buff;
         int code=0;
         for (int i = start; i < max ; i++) {
-            code = code * 37 + bb[i];
+            code = code * 37 + buff[i];
         }
         return code;
     }
 
-    private static int hashBytesIC( byte bytes[], int start, int bytesLen ) {
+    private static int hashBytesIC(byte[] bytes, int start, int bytesLen ) {
         int max=start+bytesLen;
-        byte bb[]=bytes;
         int code=0;
         for (int i = start; i < max ; i++) {
-            code = code * 37 + Ascii.toLower(bb[i]);
+            code = code * 37 + Ascii.toLower(bytes[i]);
         }
         return code;
     }
@@ -827,7 +825,7 @@ public final class ByteChunk implements Cloneable, Serializable {
      * @param value to convert to byte array
      * @return the byte array value
      */
-    public static final byte[] convertToBytes(String value) {
+    public static byte[] convertToBytes(String value) {
         byte[] result = new byte[value.length()];
         for (int i = 0; i < value.length(); i++) {
             result[i] = (byte) value.charAt(i);

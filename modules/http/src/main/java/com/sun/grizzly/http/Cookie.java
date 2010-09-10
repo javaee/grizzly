@@ -650,7 +650,7 @@ public class Cookie implements Cloneable {
      *
      */
 
-    public Object clone() {
+    public Object clone() throws CloneNotSupportedException {
 	try {
 	    return super.clone();
 	} catch (CloneNotSupportedException e) {

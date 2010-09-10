@@ -144,7 +144,6 @@ public class URLDecoder {
             if (metaChar == '+') {
                 dec.append(' ');
                 strPos++;
-                continue;
             } else if (metaChar == '%') {
                 // We throw the original exception - the super will deal with
                 // it

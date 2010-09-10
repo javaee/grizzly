@@ -222,17 +222,14 @@ public class GZipContentEncoding implements ContentEncoding {
             return false;
         }
         final GZipContentEncoding other = (GZipContentEncoding) obj;
-        if ((this.name == null) ? (other.name != null) : !this.name.equals(other.name)) {
-            return false;
-        }
-        
-        return true;
+        return this.name.equals(other.name);
+
     }
 
     @Override
     public int hashCode() {
         int hash = 3;
-        hash = 53 * hash + (this.name != null ? this.name.hashCode() : 0);
+        hash = 53 * hash + (this.name.hashCode());
         return hash;
     }
 }

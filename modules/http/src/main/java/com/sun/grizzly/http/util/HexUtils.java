@@ -182,8 +182,8 @@ public final class HexUtils {
 
 	StringBuilder sb = new StringBuilder(bytes.length * 2);
 	for (int i = 0; i < bytes.length; i++) {
-	    sb.append(convertDigit((int) (bytes[i] >> 4)));
-	    sb.append(convertDigit((int) (bytes[i] & 0x0f)));
+	    sb.append(convertDigit(bytes[i] >> 4));
+	    sb.append(convertDigit(bytes[i] & 0x0f));
 	}
 	return (sb.toString());
 
@@ -241,11 +241,11 @@ public final class HexUtils {
 
     }
 
-    public static final boolean isHexDigit(byte c) {
+    public static boolean isHexDigit(byte c) {
         return IS_HEX_DIGIT[c];
     }
 
-    public static final int hexDigit2Dec(byte hexDigit) {
+    public static int hexDigit2Dec(byte hexDigit) {
         return DEC[hexDigit];
     }
 }

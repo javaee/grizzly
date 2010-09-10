@@ -236,8 +236,7 @@ public final class Parameters extends MultiMap {
 	}
 
 	// no "facade"
-	String values[] = paramHashStringArray.get(name);
-	return values;
+        return paramHashStringArray.get(name);
     }
  
     public Enumeration<String> getParameterNames() {
@@ -359,8 +358,7 @@ public final class Parameters extends MultiMap {
             String[] combinedValue;
 
 	    if (twoValue == null) {
-		continue;
-	    } else {
+        } else {
 		if( oneValue==null ) {
 		    combinedValue = new String[twoValue.length];
 		    System.arraycopy(twoValue, 0, combinedValue,

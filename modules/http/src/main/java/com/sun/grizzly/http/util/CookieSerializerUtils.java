@@ -505,10 +505,9 @@ public class CookieSerializerUtils {
     }
     
     public static boolean alreadyQuoted(String value) {
-        if (value == null || value.length() == 0) {
-            return false;
-        }
-        return (value.charAt(0) == '\"' && value.charAt(value.length() - 1) == '\"');
+        return !(value == null || value.length() == 0)
+                  && (value.charAt(0) == '\"'
+                  && value.charAt(value.length() - 1) == '\"');
     }
     
     static void put(Buffer dstBuffer, int c) {

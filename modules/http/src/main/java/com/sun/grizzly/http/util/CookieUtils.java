@@ -279,11 +279,7 @@ public class CookieUtils {
 
     public static boolean isSeparator(final int c, final boolean parseAsVersion1) {
         if (parseAsVersion1) {
-            if (c > 0 && c < 126) {
-                return separators[c];
-            } else {
-                return false;
-            }
+            return c > 0 && c < 126 && separators[c];
         } else {
             return (c == ';' || c == ',');
         }

@@ -205,7 +205,7 @@ public final class UEncoder {
 	    CharArrayWriter out = new CharArrayWriter();
 	    urlEncode(out, uri, toHexUpperCase);
 	    outUri=out.toString();
-	} catch (IOException iex) {
+	} catch (IOException ignore) {
 	}
 	return outUri;
     }

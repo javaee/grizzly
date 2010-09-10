@@ -137,8 +137,7 @@ public final class CharChunk implements Cloneable, Serializable {
     }
 
     public boolean isNull() {
-        if( end > 0 ) return false;
-        return !isSet; //XXX
+        return end <= 0 && !isSet;
     }
 
     /**
