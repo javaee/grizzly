@@ -155,7 +155,8 @@ public abstract class HttpCodecFilter extends BaseFilter
 
 
     /**
-     * TODO Docs.
+     * Callback invoked when the HTTP message header parsing is complete.
+     *
      * @param httpHeader {@link HttpHeader}, which represents parsed HTTP packet header
      * @param buffer {@link Buffer} the header was parsed from
      * @param ctx
@@ -170,7 +171,7 @@ public abstract class HttpCodecFilter extends BaseFilter
     
     /**
      * <p>
-     * TODO Docs.
+     * Callback which is invoked when parsing an http message fails.
      * </p>
      *
      * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
@@ -683,8 +684,7 @@ public abstract class HttpCodecFilter extends BaseFilter
 
         name.setString(Constants.CONTENT_ENCODING_HEADER);
         httpHeader.extractContentEncoding(value);
-        final boolean hasValue = !value.isNull();
-        boolean needComma = hasValue;
+        boolean needComma = !value.isNull();
         
         buffer = encodeMimeHeader(memoryManager, buffer, name, value, false);
         for (ContentEncoding encoding : packetContentEncodings) {
@@ -1156,15 +1156,6 @@ public abstract class HttpCodecFilter extends BaseFilter
                 (headerBuffer.capacity() * 3) / 2 + 1));
     }
 
-    private static int indexOf(Object[] array, Object element) {
-        for (int i = 0; i < array.length; i++) {
-            if (array[i].equals(element)) {
-                return i;
-            }
-        }
-
-        return -1;
-    }
 
     final void setTransferEncodingOnParsing(HttpHeader httpHeader) {
         final TransferEncoding[] encodings = transferEncodings.getArray();
@@ -1312,7 +1303,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         
         for (ContentEncoding encoding : encodingsLibrary) {
             if (isSomeEncodingApplied) {
-                if (lookupAlias(encoding, bc, 0, bc.size())) {
+                if (lookupAlias(encoding, bc, 0)) {
                     continue;
                 }
             }
@@ -1329,7 +1320,7 @@ public abstract class HttpCodecFilter extends BaseFilter
 
         if (encodings != null) {
             for (ContentEncoding encoding : encodings) {
-                if (lookupAlias(encoding, bc, startIdx, endIdx)) {
+                if (lookupAlias(encoding, bc, startIdx)) {
                     return encoding;
                 }
             }
@@ -1366,7 +1357,9 @@ public abstract class HttpCodecFilter extends BaseFilter
     }
 
     private static boolean lookupAlias(ContentEncoding encoding,
-            BufferChunk aliasBuffer, int startIdx, int endIdx) {
+                                       BufferChunk aliasBuffer,
+                                       int startIdx) {
+
         final String[] aliases = encoding.getAliases();
         
         for (String alias : aliases) {
@@ -1380,6 +1373,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         }
 
         return false;
+
     }
 
     /**
@@ -1506,18 +1500,5 @@ public abstract class HttpCodecFilter extends BaseFilter
             contentDecodingRemainders[i] = remainder;
         }
 
-        private Buffer removeContentEncodingRemainder(int i) {
-            final Buffer remainder = contentEncodingRemainders[i];
-            contentEncodingRemainders[i] = null;
-            return remainder;
-        }
-
-        private void setContentEncodingRemainder(int i, Buffer remainder) {
-            if (i >= contentEncodingRemainders.length) {
-                contentEncodingRemainders = Arrays.copyOf(contentEncodingRemainders, i + 1);
-            }
-            
-            contentEncodingRemainders[i] = remainder;
-        }
     }
 }
