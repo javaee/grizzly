@@ -143,7 +143,6 @@ public class Mapper {
 
     /**
      * The Port this instance is used for mapping.
-     * @return
      */
     public void setPort(int port){
          this.port = port;
@@ -151,8 +150,7 @@ public class Mapper {
 
 
     /**
-     * The Port this instance is used for mapping.
-     * @return
+     * @return the port used for mapping.
      */
     public int getPort(){
         return port;

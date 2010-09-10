@@ -241,7 +241,7 @@ public abstract class GrizzlyAdapter {
 
     /**
      * Customize the error page.
-     * @param The {@link GrizzlyWebServer} associated with this adapter.
+     * @param server the {@link GrizzlyWebServer} associated with this adapter.
      * @param req The {@link GrizzlyRequest} object
      * @param res The {@link GrizzlyResponse} object
      * @throws Exception

@@ -43,7 +43,7 @@ package com.sun.grizzly.http.server;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Simple session object used.
+ * Simple session object.
  *
  * @author Jeanfrancois Arcand
  */
@@ -104,7 +104,7 @@ public class GrizzlySession {
 
 
     /**
-     * Set this object valifity.
+     * Set this object as validated.
      * @param isValid
      */
     public void setIsValid(boolean isValid){
@@ -162,10 +162,10 @@ public class GrizzlySession {
 
 
     /**
-     * Return a {@link ConcurrentHashMap} of attibutes.
-     * @return
+     * Return a {@link ConcurrentHashMap} of attributes.
+     * @return the attributes associated with this session.
      */
-    public ConcurrentHashMap<String,Object> atttibutes(){
+    public ConcurrentHashMap<String,Object> attributes(){
         return attributes;
     }
 
@@ -189,8 +189,7 @@ public class GrizzlySession {
 
 
     /**
-     * Return the timespam when this session has been created.
-     * @return
+     * @return the timestamp when this session has been created.
      */
     public long getTimestamp() {
         return timestamp;
@@ -198,8 +197,8 @@ public class GrizzlySession {
 
 
     /**
-     * Set the timespam when this session has been created.
-     * @param timestamp a long representin when the session has been created.
+     * Set the timestamp when this session has been created.
+     * @param timestamp a long representing when the session has been created.
      */
     public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;

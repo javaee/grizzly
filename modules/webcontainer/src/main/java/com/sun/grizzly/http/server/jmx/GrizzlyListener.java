@@ -94,7 +94,7 @@ public class GrizzlyListener extends JmxObject {
 
 
     /**
-     * {@inerhitDoc
+     * {@inheritDoc}
      */
     @Override
     public String getJmxName() {
@@ -123,7 +123,7 @@ public class GrizzlyListener extends JmxObject {
 
 
     /**
-     * @see {@link com.sun.grizzly.http.server.GrizzlyListener#getName()}
+     * @see com.sun.grizzly.http.server.GrizzlyListener#getName()
      */
     @ManagedAttribute(id="name")
     @Description("The logical name of the listener.")
@@ -133,7 +133,7 @@ public class GrizzlyListener extends JmxObject {
 
 
     /**
-     * @see {@link com.sun.grizzly.http.server.GrizzlyListener#getHost()}
+     * @see com.sun.grizzly.http.server.GrizzlyListener#getHost()
      */
     @ManagedAttribute(id="host")
     @Description("The network host to which this listener is bound.")
@@ -143,7 +143,7 @@ public class GrizzlyListener extends JmxObject {
 
 
     /**
-     * @see {@link com.sun.grizzly.http.server.GrizzlyListener#getPort()}
+     * @see com.sun.grizzly.http.server.GrizzlyListener#getPort()
      */
     @ManagedAttribute(id="port")
     @Description("The network port to which this listener is bound.")
@@ -153,17 +153,17 @@ public class GrizzlyListener extends JmxObject {
 
 
     /**
-     * @see {@link com.sun.grizzly.http.server.GrizzlyListener#getKeepAliveTimeoutInSeconds()}
+     * @see com.sun.grizzly.http.KeepAlive#getIdleTimeoutInSeconds()
      */
-    @ManagedAttribute(id="keep-alive-timeout-in-seconds")
+    @ManagedAttribute(id="idle-timeout-in-seconds")
     @Description("The time, in seconds, to keep an inactive request alive.")
-    public int getKeepAliveTimeoutInSeconds() {
+    public int getIdleTimeoutInSeconds() {
         return listener.getKeepAlive().getIdleTimeoutInSeconds();
     }
 
 
     /**
-     * @see {@link com.sun.grizzly.http.server.GrizzlyListener#isSecure()}
+     * @see com.sun.grizzly.http.server.GrizzlyListener#isSecure()
      */
     @ManagedAttribute(id="secure")
     @Description("Indicates whether or not this listener is secured via SSL.")
@@ -173,7 +173,7 @@ public class GrizzlyListener extends JmxObject {
 
 
     /**
-     * @see {@link com.sun.grizzly.http.server.GrizzlyListener#getMaxHttpHeaderSize()} ()}
+     * @see com.sun.grizzly.http.server.GrizzlyListener#getMaxHttpHeaderSize()
      */
     @ManagedAttribute(id="max-http-header-size")
     @Description("The maximum size, in bytes, an HTTP request may be.")
@@ -183,7 +183,7 @@ public class GrizzlyListener extends JmxObject {
 
 
     /**
-     * @see {@link com.sun.grizzly.http.server.GrizzlyListener#getName()}
+     * @see com.sun.grizzly.http.server.GrizzlyListener#getName()
      */
     @ManagedAttribute(id="max-pending-bytes")
     @Description("The maximum size, in bytes, a connection may have waiting to be sent to the client.")
@@ -193,7 +193,7 @@ public class GrizzlyListener extends JmxObject {
 
 
     /**
-     * @see {@link com.sun.grizzly.http.server.GrizzlyListener#isChunkingEnabled()}
+     * @see com.sun.grizzly.http.server.GrizzlyListener#isChunkingEnabled()
      */
     @ManagedAttribute(id="chunking-enabled")
     @Description("Flag indicating whether or not the http response body will be sent using the chunked transfer encoding.")
@@ -203,7 +203,7 @@ public class GrizzlyListener extends JmxObject {
 
 
     /**
-     * @see {@link com.sun.grizzly.http.server.GrizzlyListener#isStarted()}
+     * @see com.sun.grizzly.http.server.GrizzlyListener#isStarted()
      */
     @ManagedAttribute(id="started")
     @Description("Indicates whether or not this listener is started.")
@@ -213,7 +213,7 @@ public class GrizzlyListener extends JmxObject {
 
 
     /**
-     * @see {@link com.sun.grizzly.http.server.GrizzlyListener#isPaused()}
+     * @see com.sun.grizzly.http.server.GrizzlyListener#isPaused()
      */
     @Description("Indicates whether or not a started listener is actively processing requests.")
     @ManagedAttribute(id="paused")
