@@ -405,7 +405,7 @@ public class WebSocketFilter extends BaseFilter {
      * Handle client-side websocket handshake
      *
      * @param ctx {@link FilterChainContext}
-     * @param requestContent HTTP message
+     * @param responseContent HTTP message
      *
      * @throws {@link java.io.IOException}
      */
