@@ -106,7 +106,7 @@ public abstract class WebSocketApplication<W extends WebSocket>
     /**
      * Remove the {@link WebSocket} from the <tt>WebSocketApplication</tt> websockets list.
      *
-     * @param websocket {@link WebSocket} to remove.
+     * @param socket {@link WebSocket} to remove.
      *
      * @return <tt>true</tt>, if the {@link WebSocket} was succeessfully removed, or
      * <tt>false</tt> otherwise.

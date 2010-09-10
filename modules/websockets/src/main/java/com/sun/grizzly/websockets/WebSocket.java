@@ -115,7 +115,7 @@ public interface WebSocket {
     /**
      * Returns the <tt>WebSocket</tt>'s meta data.
      *
-     * @return {@link WebSocketMeta>.
+     * @return {@link WebSocketMeta}.
      */
     public WebSocketMeta getMeta();
 

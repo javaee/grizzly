@@ -67,7 +67,8 @@ public class WebSocketConnectorHandler {
     private final Processor processor;
 
     /**
-     * Construct a <tt>WebSocketConnectorHandler</tt> basing on the specific TCP {@link Transport} object.
+     * Construct a <tt>WebSocketConnectorHandler</tt> basing on the specific TCP
+     * {@link com.sun.grizzly.Transport} object.
      *
      * @param transport {@link TCPNIOTransport}
      */
@@ -76,8 +77,8 @@ public class WebSocketConnectorHandler {
     }
 
     /**
-     * Construct a <tt>WebSocketConnectorHandler</tt> basing on the specific TCP {@link Transport} object.
-     * The underlying Grizzly {@link Connection} will use a {@link Processor}, different from one
+     * Construct a <tt>WebSocketConnectorHandler</tt> basing on the specific TCP {@link com.sun.grizzly.Transport}
+     * object.  The underlying Grizzly {@link Connection} will use a {@link Processor}, different from one
      * used by transport {@link TCPNIOTransport}.
      *
      * @param transport {@link TCPNIOTransport}

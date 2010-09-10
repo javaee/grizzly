@@ -68,8 +68,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * WebSocket {@link Filter} implementation, which supposed to be placed into a
- * {@link FilterChain} right after HTTP Filter: {@link HttpServerFilter}, {@link HttpClientFilter};
+ * WebSocket {@link com.sun.grizzly.filterchain.Filter} implementation, which supposed to be placed into a
+ * {@link com.sun.grizzly.filterchain.FilterChain} right after HTTP Filter: {@link HttpServerFilter}, {@link HttpClientFilter};
  * depending whether it's server or client side.
  * The <tt>WebSocketFilter</tt> handles websocket connection, handshake phases and, when
  * receives a websocket frame - redirects it to appropriate handler ({@link WebSocketApplication}, {@link WebSocketClientHandler}) for processing.
@@ -91,11 +91,11 @@ public class WebSocketFilter extends BaseFilter {
      * Method handles Grizzly {@link Connection} connect phase. Check if the {@link Connection}
      * is a client-side {@link WebSocket}, if yes - creates websocket handshake packet
      * and send it to a server. Otherwise, if it's not websocket connection - pass processing
-     * to the next {@link Filter} in a chain.
+     * to the next {@link com.sun.grizzly.filterchain.Filter} in a chain.
      * 
      * @param ctx {@link FilterChainContext}
-     * @return {@link NextAction} instruction for {@link FilterChain}, how it
-     *         should continue the execution
+     * @return {@link NextAction} instruction for {@link com.sun.grizzly.filterchain.FilterChain},
+     *  how it should continue the execution
      * @throws {@link java.io.IOException}
      */
     @Override
@@ -130,8 +130,8 @@ public class WebSocketFilter extends BaseFilter {
      * If the Grizzly {@link Connection} is not websocket - passes processing to the next filter in the chain.
      *
      * @param ctx {@link FilterChainContext}
-     * @return {@link NextAction} instruction for {@link FilterChain}, how it
-     *         should continue the execution
+     * @return {@link NextAction} instruction for {@link com.sun.grizzly.filterchain.FilterChain},
+     *  how it should continue the execution
      * @throws {@link java.io.IOException}
      */
     @Override
@@ -172,8 +172,8 @@ public class WebSocketFilter extends BaseFilter {
      * for server- and client- side connections.
      *
      * @param ctx {@link FilterChainContext}
-     * @return {@link NextAction} instruction for {@link FilterChain}, how it
-     *         should continue the execution
+     * @return {@link NextAction} instruction for {@link com.sun.grizzly.filterchain.FilterChain},
+     *  how it should continue the execution
      * @throws {@link java.io.IOException}
      */
     @Override
@@ -269,8 +269,8 @@ public class WebSocketFilter extends BaseFilter {
      * we assume that message is websocket {@link Frame} and serialize it into a {@link Buffer}.
      *
      * @param ctx {@link FilterChainContext}
-     * @return {@link NextAction} instruction for {@link FilterChain}, how it
-     *         should continue the execution
+     * @return {@link NextAction} instruction for {@link com.sun.grizzly.filterchain.FilterChain},
+     *  how it should continue the execution
      * @throws {@link java.io.IOException}
      */
     @Override
@@ -299,8 +299,8 @@ public class WebSocketFilter extends BaseFilter {
      * @param ctx {@link FilterChainContext}
      * @param content HTTP message
      * 
-     * @return {@link NextAction} instruction for {@link FilterChain}, how it
-     *         should continue the execution
+     * @return {@link NextAction} instruction for {@link com.sun.grizzly.filterchain.FilterChain},
+     *  how it should continue the execution
      * @throws {@link java.io.IOException}
      */
     private NextAction handleHandshake(FilterChainContext ctx,
@@ -358,7 +358,7 @@ public class WebSocketFilter extends BaseFilter {
      * Handle server-side websocket handshake
      *
      * @param ctx {@link FilterChainContext}
-     * @param content HTTP message
+     * @param requestContent HTTP message
      *
      * @throws {@link java.io.IOException}
      */
@@ -405,7 +405,7 @@ public class WebSocketFilter extends BaseFilter {
      * Handle client-side websocket handshake
      *
      * @param ctx {@link FilterChainContext}
-     * @param content HTTP message
+     * @param requestContent HTTP message
      *
      * @throws {@link java.io.IOException}
      */
