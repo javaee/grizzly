@@ -169,10 +169,11 @@ public final class FastHttpDateFormat {
      * therefore we dont use the millisecond precision , but second .
      * truncation is done in the same way for second precision in SimpleDateFormat:<br>
      * (999 millisec. = 0 sec.)
-     * @param timestamp in millisec
-     * @param the formater used if cache value was not found
+     * @param value in milli-seconds
+     * @param threadLocalFormat the {@link DateFormat} used if cache value was 
+     *  not found
      */
-    public static final String formatDate(long value, DateFormat threadLocalformat) {
+    public static final String formatDate(long value, DateFormat threadLocalFormat) {
         // truncating to second precision
         // this way we optimally use the cache to only store needed http values
         value = (value/1000)*1000;
@@ -183,8 +184,8 @@ public final class FastHttpDateFormat {
         }
         String newDate = null;
         Date dateValue = new Date(value);
-        if (threadLocalformat != null) {
-            newDate = threadLocalformat.format(dateValue);
+        if (threadLocalFormat != null) {
+            newDate = threadLocalFormat.format(dateValue);
         } else {
             newDate = FORMAT.get().format(dateValue);
         }

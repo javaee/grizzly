@@ -102,9 +102,8 @@ public final class UEncoder {
     }
 
     /** URL Encode string, using a specified encoding.
-     *  @param s string to be encoded
-     *  @param enc character encoding, for chars >%80 ( use UTF8 if not set,
-     *         as recommended in RFCs)
+     *  @param buf the {@link Writer} to write the encoded result to.
+     *  @param s the String to encode.
      */
     public void urlEncode( Writer buf, String s )
 	        throws IOException {
@@ -112,9 +111,8 @@ public final class UEncoder {
     }
 
     /** URL Encode string, using a specified encoding.
-     *  @param s string to be encoded
-     *  @param enc character encoding, for chars >%80 ( use UTF8 if not set,
-     *         as recommended in RFCs)
+     *  @param buf the {@link Writer} to write the encoded result to.
+     *  @param s the String to encode.
      *  @param toHexUpperCase the hex string will be in upper case
      */
     public void urlEncode( Writer buf, String s, boolean toHexUpperCase )
@@ -194,11 +192,11 @@ public final class UEncoder {
     }
 
     /**
-     * Utility funtion to re-encode the URL.
+     * Utility function to re-encode the URL.
      * Still has problems with charset, since UEncoder mostly
      * ignores it.
-     * @param url
-     * @param toHexUpperCase
+     * @param uri the URI to encode.
+     * @param toHexUpperCase the hex string will be in upper case
      */
     public String encodeURL(String uri, boolean toHexUpperCase) {
 	String outUri=null;

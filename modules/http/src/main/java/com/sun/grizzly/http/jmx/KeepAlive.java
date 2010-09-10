@@ -60,7 +60,7 @@ import org.glassfish.gmbal.ManagedObject;
 @Description("The configuration for HTTP keep-alive connections.")
 public class KeepAlive extends JmxObject {
     /**
-     * The {@link com.sun.grizzly.http.server.KeepAlive} being managed.
+     * The {@link com.sun.grizzly.http.KeepAlive} being managed.
      */
     private final com.sun.grizzly.http.KeepAlive keepAlive;
 
@@ -94,9 +94,9 @@ public class KeepAlive extends JmxObject {
 
     /**
      * Constructs a new JMX managed KeepAlive for the specified
-     * {@link com.sun.grizzly.http.server.KeepAlive} instance.
+     * {@link com.sun.grizzly.http.KeepAlive} instance.
      *
-     * @param keepAlive the {@link com.sun.grizzly.http.server.KeepAlive}
+     * @param keepAlive the {@link com.sun.grizzly.http.KeepAlive}
      *  to manage.
      */
     public KeepAlive(com.sun.grizzly.http.KeepAlive keepAlive) {
@@ -149,7 +149,7 @@ public class KeepAlive extends JmxObject {
 
 
     /**
-     * @see com.sun.grizzly.http.server.KeepAlive#getIdleTimeoutInSeconds()
+     * @see com.sun.grizzly.http.KeepAlive#getIdleTimeoutInSeconds()
      */
     @ManagedAttribute(id="idle-timeout-seconds")
     @Description("The time period keep-alive connection may stay idle")
@@ -158,7 +158,7 @@ public class KeepAlive extends JmxObject {
     }
 
     /**
-     * @see com.sun.grizzly.http.server.KeepAlive#getMaxRequestsCount()
+     * @see com.sun.grizzly.http.KeepAlive#getMaxRequestsCount()
      */
     @ManagedAttribute(id="max-requests-count")
     @Description("the max number of HTTP requests allowed to be processed on one keep-alive connection")

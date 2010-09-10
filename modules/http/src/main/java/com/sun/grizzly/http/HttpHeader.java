@@ -198,13 +198,13 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
     /**
      * Returns <tt>true</tt>, if either application or HTTP core part is not
      * interested in parsing the rest of this HTTP message content and waits
-     * for the next HTTP message to come on this {@link Connection}. Otherwise
-     * returns <tt>false</tt>.
+     * for the next HTTP message to come on this {@link com.sun.grizzly.Connection}.
+     * Otherwise returns <tt>false</tt>.
      * 
      * @return <tt>true</tt>, if either application or HTTP core part is not
      * interested in parsing the rest of this HTTP message content and waits
-     * for the next HTTP message to come on this {@link Connection}. Otherwise
-     * returns <tt>false</tt>.
+     * for the next HTTP message to come on this {@link com.sun.grizzly.Connection}.
+     * Otherwise returns <tt>false</tt>.
      */
     public boolean isSkipRemainder() {
         return isSkipRemainder;
@@ -213,11 +213,11 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
     /**
      * Set flag, which is set to <tt>true</tt>, means that we're not
      * interested in parsing the rest of this HTTP message content and wait
-     * for the next HTTP message to come on this {@link Connection}.
+     * for the next HTTP message to come on this {@link com.sun.grizzly.Connection}.
      *
      * @param isSkipRemainder <tt>true</tt> means that we're not
      * interested in parsing the rest of this HTTP message content and wait
-     * for the next HTTP message to come on this {@link Connection}.
+     * for the next HTTP message to come on this {@link com.sun.grizzly.Connection}.
      */
     public void setSkipRemainder(boolean isSkipRemainder) {
         this.isSkipRemainder = isSkipRemainder;
@@ -292,8 +292,9 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
 
 
     /**
-     * TODO DOCS
-     * @param len
+     * Set the lenth of this HTTP message.
+     *
+     * @param len the length of this HTTP message.
      */
     public void setContentLength(int len) {
         this.contentLength = len;
@@ -368,8 +369,7 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
     }
 
     /**
-     * TODO: docs
-     * Get the character encoding used for this request.
+     * @return the character encoding of this HTTP message.
      */
     public String getCharacterEncoding() {
 
@@ -386,8 +386,9 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
 
 
     /**
-     * TODO DOCS
-     * @param enc
+     * Set the character encoding of this HTTP message.
+     *
+     * @param enc the encoding.
      */
     public void setCharacterEncoding(String enc) {
         this.charEncoding = enc;
@@ -417,8 +418,7 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
     }
 
     /**
-     * TODO DOCS
-     * @return
+     * @return the content type of this HTTP message.
      */
     public String getContentType() {
         if (!contentTypeParsed) {
@@ -438,8 +438,9 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
 
 
     /**
-     * TODO DOCS
-     * @param type
+     * Set the content type of this HTTP message.
+     *
+     * @param type the content type.
      */
     public void setContentType(String type) {
         contentType = type;
@@ -546,16 +547,17 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
     }
 
     /**
-     * TODO Docs
-     * @return
+     * @return <code>true</code> if this HTTP message is being transmitted
+     *  in a secure fashion, otherwise returns <code>false</code>.
      */
     public boolean isSecure() {
         return secure;
     }
 
     /**
-     * TODO Docs
-     * @return
+     * Sets the secure status of this HTTP message.
+     *
+     * @param secure <code>true</code> if secure, otherwise <code>false</code>.
      */
     protected void setSecure(boolean secure) {
         this.secure = secure;

@@ -179,7 +179,7 @@ public class StringCache {
     
     
     /**
-     * @param enabled The enabled to set.
+     * @param byteEnabled The enabled to set.
      */
     public static void setByteEnabled(boolean byteEnabled) {
         StringCache.byteEnabled = byteEnabled;
@@ -195,7 +195,7 @@ public class StringCache {
     
     
     /**
-     * @param enabled The enabled to set.
+     * @param charEnabled The enabled to set.
      */
     public static void setCharEnabled(boolean charEnabled) {
         StringCache.charEnabled = charEnabled;

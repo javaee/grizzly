@@ -1062,9 +1062,11 @@ public class CookieParserUtils {
     }
 
     /**
-     * Unescapes any double quotes in the given cookie value.
+     * Un-escapes any double quotes in the given cookie value.
      *
-     * @param bc The cookie value to modify
+     * @param buffer the cookie buffer.
+     * @param start start position.
+     * @param length number of bytes to un-escape.
      * @return new length
      */
     public static int unescapeDoubleQuotes(Buffer buffer, int start, int length) {

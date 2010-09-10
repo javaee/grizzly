@@ -186,9 +186,13 @@ public class BufferChunk {
     
 
     /**
-     * TODO docs
-     * @param b
-     * @return
+     * Returns the starting index of the specified byte sequence within this
+     * <code>Buffer</code>.
+     *
+     * @param b byte sequence to search for.
+     *
+     * @return the starting index of the specified byte sequence within this
+     *  <code>Buffer</code>
      */
     public int findBytesAscii(byte[] b) {
 

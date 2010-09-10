@@ -45,7 +45,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Utility class that make sure an HTTP url defined inside a {@link MessagesBytes}
+ * Utility class that make sure an HTTP url defined inside a {@link MessageBytes}
  * is normalized, converted and valid. It also makes sure there is no security
  * hole. Mainly, this class can be used by doing:
  * <p><pre><code>

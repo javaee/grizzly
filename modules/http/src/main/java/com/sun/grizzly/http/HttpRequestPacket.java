@@ -427,8 +427,7 @@ public abstract class HttpRequestPacket extends HttpHeader {
 
 
     /**
-     * TODO Docs
-     * @return
+     * @return the host name of the server servicing this request.
      */
     public String getLocalHost() {
         return localHost;
@@ -436,8 +435,8 @@ public abstract class HttpRequestPacket extends HttpHeader {
 
 
     /**
-     * TODO Docs
-     * @param host
+     * Set the host name of the server servicing this request.
+     * @param host the host name of the server servicing this request.
      */
     public void setLocalHost(String host) {
         this.localHost = host;
