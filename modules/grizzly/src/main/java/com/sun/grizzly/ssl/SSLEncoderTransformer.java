@@ -71,7 +71,7 @@ public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buf
     private Logger logger = Grizzly.logger(SSLEncoderTransformer.class);
     
     private static final TransformationResult<Buffer, Buffer> HANDSHAKE_NOT_EXECUTED_RESULT =
-            TransformationResult.<Buffer, Buffer>createErrorResult(
+            TransformationResult.createErrorResult(
             NEED_HANDSHAKE_ERROR, "Handshake was not executed");
     
     private final MemoryManager<Buffer> memoryManager;
@@ -140,25 +140,25 @@ public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buf
                 targetBuffer.trim();
                 
                 transformationResult =
-                        TransformationResult.<Buffer, Buffer>createCompletedResult(
+                        TransformationResult.createCompletedResult(
                         targetBuffer, originalMessage);
             } else if (status == SSLEngineResult.Status.CLOSED) {
                 targetBuffer.dispose();
                 
                 transformationResult =
-                        TransformationResult.<Buffer, Buffer>createCompletedResult(
+                        TransformationResult.createCompletedResult(
                         BufferUtils.EMPTY_BUFFER, originalMessage);
             } else {
                 targetBuffer.dispose();
 
                 if (status == SSLEngineResult.Status.BUFFER_UNDERFLOW) {
                     transformationResult =
-                            TransformationResult.<Buffer, Buffer>createErrorResult(
+                            TransformationResult.createErrorResult(
                             BUFFER_UNDERFLOW_ERROR,
                             "Buffer underflow during wrap operation");
                 } else if (status == SSLEngineResult.Status.BUFFER_OVERFLOW) {
                     transformationResult =
-                            TransformationResult.<Buffer, Buffer>createErrorResult(
+                            TransformationResult.createErrorResult(
                             BUFFER_OVERFLOW_ERROR,
                             "Buffer overflow during wrap operation");
                 }

@@ -42,8 +42,8 @@ package com.sun.grizzly.filterchain;
 
 /**
  * {@link NextAction} type, which is expected only on post processing phase.
- * Instructs {@link FilterChain} to re-process the {@link IOEvent} processing
- * again from the beginning.
+ * Instructs {@link FilterChain} to re-process the {@link com.sun.grizzly.IOEvent}
+ * processing again from the beginning.
  * 
  * @author Alexey Stashok
  */

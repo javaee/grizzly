@@ -163,7 +163,7 @@ public final class DefaultMemoryManager extends ByteBufferManager {
      */
     @Override
     public ByteBuffer reallocateByteBuffer(ByteBuffer oldByteBuffer, int newSize) {
-        if (oldByteBuffer.capacity() >= newSize) return (ByteBuffer) oldByteBuffer;
+        if (oldByteBuffer.capacity() >= newSize) return oldByteBuffer;
 
         if (isDefaultWorkerThread()) {
             final ThreadLocalPool memoryPool = getThreadLocalPool();

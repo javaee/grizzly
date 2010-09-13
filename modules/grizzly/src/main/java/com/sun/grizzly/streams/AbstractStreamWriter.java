@@ -69,7 +69,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     
     protected static final Integer ZERO = new Integer(0);
     protected static final GrizzlyFuture<Integer> ZERO_READY_FUTURE =
-            ReadyFutureImpl.<Integer>create(ZERO);
+            ReadyFutureImpl.create(ZERO);
     
     private Connection connection;
 
@@ -136,7 +136,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
             return output.close(completionHandler);
         }
 
-        return ReadyFutureImpl.<Integer>create(0);
+        return ReadyFutureImpl.create(0);
     }
 
     /**
@@ -174,7 +174,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
             output.getBuffer().putChar(data);
         } else {
             output.write((byte) ((data >>> 8) & 0xFF));
-            output.write((byte) ((data >>> 0) & 0xFF));
+            output.write((byte) ((data) & 0xFF));
         }
     }
 
@@ -188,7 +188,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
             output.getBuffer().putShort(data);
         } else {
             output.write((byte) ((data >>> 8) & 0xFF));
-            output.write((byte) ((data >>> 0) & 0xFF));
+            output.write((byte) ((data) & 0xFF));
         }
     }
 
@@ -201,7 +201,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
             output.write((byte) ((data >>> 24) & 0xFF));
             output.write((byte) ((data >>> 16) & 0xFF));
             output.write((byte) ((data >>> 8) & 0xFF));
-            output.write((byte) ((data >>> 0) & 0xFF));
+            output.write((byte) ((data) & 0xFF));
         }
     }
 
@@ -221,7 +221,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
             output.write((byte) ((data >>> 24) & 0xFF));
             output.write((byte) ((data >>> 16) & 0xFF));
             output.write((byte) ((data >>> 8) & 0xFF));
-            output.write((byte) ((data >>> 0) & 0xFF));
+            output.write((byte) ((data) & 0xFF));
         }
     }
 
@@ -369,7 +369,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
                 result.getErrorDescription());
         }
 
-        return ReadyFutureImpl.<Stream>create(exception);
+        return ReadyFutureImpl.create(exception);
     }
 
     /**

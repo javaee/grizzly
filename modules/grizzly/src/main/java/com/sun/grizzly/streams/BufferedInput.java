@@ -201,14 +201,14 @@ public abstract class BufferedInput implements Input {
             if (!isCompletionHandlerRegistered) {
                 if (condition.check()) {
                     notifyCompleted(completionHandler);
-                    return ReadyFutureImpl.<Integer>create(
+                    return ReadyFutureImpl.create(
                             compositeBuffer.remaining());
                 }
 
                 registrationStackTrace = new Exception();
                 isCompletionHandlerRegistered = true;
                 this.completionHandler = completionHandler;
-                final FutureImpl<Integer> localFuture = SafeFutureImpl.<Integer>create();
+                final FutureImpl<Integer> localFuture = SafeFutureImpl.create();
                 this.future = localFuture;
                 this.condition = condition;
                 
@@ -216,7 +216,7 @@ public abstract class BufferedInput implements Input {
                     onOpenInputSource();
                 } catch (IOException e) {
                     notifyFailure(completionHandler, e);
-                    return ReadyFutureImpl.<Integer>create(e);
+                    return ReadyFutureImpl.create(e);
                 }
 
                 return localFuture;

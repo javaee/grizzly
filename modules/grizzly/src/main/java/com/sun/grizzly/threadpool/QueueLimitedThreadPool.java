@@ -58,11 +58,7 @@ final class QueueLimitedThreadPool extends FixedThreadPool {
     private final AtomicInteger queueSize = new AtomicInteger();
 
     /**
-     * @param name
-     * @param poolsize
-     * @param threadFactory {@link ThreadFactory}
-     * @param workQueue {@link BlockingQueue}
-     * @param maxQueuedTasks
+     * @param config the {@link ThreadPoolConfig} to configure this pool.
      */
     QueueLimitedThreadPool(ThreadPoolConfig config) {
         super(config);

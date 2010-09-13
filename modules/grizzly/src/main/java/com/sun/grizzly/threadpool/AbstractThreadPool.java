@@ -203,7 +203,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
         }
     }
 
-    protected static final void drain(Queue<Runnable> from,
+    protected static void drain(Queue<Runnable> from,
             Collection<Runnable> to) {
         boolean cont = true;
         while (cont) {

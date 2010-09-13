@@ -153,7 +153,7 @@ public class DelayedExecutor {
                     
                     try {
                         sync.wait(checkIntervalMillis);
-                    } catch (InterruptedException e) {
+                    } catch (InterruptedException ignored) {
                     }
                 }
             }

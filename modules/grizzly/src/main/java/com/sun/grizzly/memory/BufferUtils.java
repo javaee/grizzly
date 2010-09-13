@@ -64,7 +64,7 @@ public class BufferUtils {
             }
 
             final CompositeBuffer compositeBuffer =
-                    BuffersBuffer.create((MemoryManager) null,
+                    BuffersBuffer.create(null,
                     element1);
             compositeBuffer.append(element2);
             return compositeBuffer;
@@ -281,7 +281,7 @@ public class BufferUtils {
         }
     }
 
-    public static final Buffer appendBuffers(MemoryManager memoryManager,
+    public static Buffer appendBuffers(MemoryManager memoryManager,
             Buffer buffer1, Buffer buffer2) {
 
         if (buffer1 == null) {
@@ -314,7 +314,7 @@ public class BufferUtils {
      * @param buffer {@link Buffer}
      * @param b value
      */
-    public static final void fill(Buffer buffer, byte b) {
+    public static void fill(Buffer buffer, byte b) {
         fill(buffer, buffer.position(), buffer.limit(), b);
     }
 
@@ -327,7 +327,7 @@ public class BufferUtils {
      * @param limit {@link Buffer} limit, where filling ends (exclusive)
      * @param b value
      */
-    public static final void fill(Buffer buffer, int position, int limit, byte b) {
+    public static void fill(Buffer buffer, int position, int limit, byte b) {
         if (!buffer.isComposite()) {
             final ByteBuffer byteBuffer = buffer.toByteBuffer();
             fill(byteBuffer, position, limit, b);
@@ -347,7 +347,7 @@ public class BufferUtils {
      * @param byteBuffer {@link ByteBuffer}
      * @param b value
      */
-    public static final void fill(ByteBuffer byteBuffer, byte b) {
+    public static void fill(ByteBuffer byteBuffer, byte b) {
         fill(byteBuffer, byteBuffer.position(), byteBuffer.limit(), b);
     }
 
@@ -360,7 +360,7 @@ public class BufferUtils {
      * @param limit {@link Buffer} limit, where filling ends (exclusive)
      * @param b value
      */
-    public static final void fill(ByteBuffer byteBuffer, int position,
+    public static void fill(ByteBuffer byteBuffer, int position,
             int limit, byte b) {
         if (byteBuffer.hasArray()) {
             final int arrayOffset = byteBuffer.arrayOffset();

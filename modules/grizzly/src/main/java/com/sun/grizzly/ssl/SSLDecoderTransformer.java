@@ -68,7 +68,7 @@ public final class SSLDecoderTransformer extends AbstractTransformer<Buffer, Buf
     public static final int BUFFER_OVERFLOW_ERROR = 3;
 
     private static final TransformationResult<Buffer, Buffer> HANDSHAKE_NOT_EXECUTED_RESULT =
-            TransformationResult.<Buffer, Buffer>createErrorResult(
+            TransformationResult.createErrorResult(
             NEED_HANDSHAKE_ERROR, "Handshake was not executed");
 
     private Logger logger = Grizzly.logger(SSLDecoderTransformer.class);
@@ -102,7 +102,7 @@ public final class SSLDecoderTransformer extends AbstractTransformer<Buffer, Buf
         try {
             expectedLength = SSLFilter.getSSLPacketSize(originalMessage);
             if (expectedLength == -1 || originalMessage.remaining() < expectedLength) {
-                return TransformationResult.<Buffer, Buffer>createIncompletedResult(
+                return TransformationResult.createIncompletedResult(
                             originalMessage);
             }
         } catch (SSLException e) {
@@ -148,23 +148,23 @@ public final class SSLDecoderTransformer extends AbstractTransformer<Buffer, Buf
             if (status == SSLEngineResult.Status.OK) {
                 targetBuffer.trim();
 
-                return TransformationResult.<Buffer, Buffer>createCompletedResult(
+                return TransformationResult.createCompletedResult(
                         targetBuffer, originalMessage);
             } else if (status == SSLEngineResult.Status.CLOSED) {
                 targetBuffer.dispose();
 
-                return TransformationResult.<Buffer, Buffer>createCompletedResult(
+                return TransformationResult.createCompletedResult(
                         BufferUtils.EMPTY_BUFFER, originalMessage);
             } else {
                 targetBuffer.dispose();
 
                 if (status == SSLEngineResult.Status.BUFFER_UNDERFLOW) {
                     transformationResult =
-                            TransformationResult.<Buffer, Buffer>createIncompletedResult(
+                            TransformationResult.createIncompletedResult(
                             originalMessage);
                 } else if (status == SSLEngineResult.Status.BUFFER_OVERFLOW) {
                     transformationResult =
-                            TransformationResult.<Buffer, Buffer>createErrorResult(
+                            TransformationResult.createErrorResult(
                             BUFFER_OVERFLOW_ERROR,
                             "Buffer overflow during unwrap operation");
                 }

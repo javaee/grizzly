@@ -400,7 +400,7 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     @Override
     public <E> GrizzlyFuture<E> decode(Transformer<Stream, E> decoder, CompletionHandler<E> completionHandler) {
-        final FutureImpl<E> future = SafeFutureImpl.<E>create();
+        final FutureImpl<E> future = SafeFutureImpl.create();
 
         final DecodeCompletionHandler completionHandlerWrapper =
                 new DecodeCompletionHandler(future, completionHandler);
@@ -455,7 +455,7 @@ public abstract class AbstractStreamReader implements StreamReader {
                 completionHandler.failed(exception);
             }
 
-            return ReadyFutureImpl.<Integer>create(exception);
+            return ReadyFutureImpl.create(exception);
         }
 
         return input.notifyCondition(condition, completionHandler);
@@ -471,7 +471,7 @@ public abstract class AbstractStreamReader implements StreamReader {
             if (input != null) {
                 try {
                     input.close();
-                } catch (IOException e) {
+                } catch (IOException ignored) {
                 }
             }
         }

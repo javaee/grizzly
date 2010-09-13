@@ -187,7 +187,7 @@ public final class TCPNIOTransportFilter extends BaseFilter {
         if (connection != null) {
             try {
                 connection.close().markForRecycle(true);
-            } catch (IOException e) {
+            } catch (IOException ignored) {
             }
         }
     }

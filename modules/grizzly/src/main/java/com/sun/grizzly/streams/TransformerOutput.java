@@ -116,7 +116,7 @@ public class TransformerOutput extends BufferedOutput {
                     }
                     outputBufferAttr.set(attributeStorage, (CompositeBuffer) buffer);
 
-                    return ReadyFutureImpl.<Integer>create(
+                    return ReadyFutureImpl.create(
                             new IllegalStateException("Can not flush data: " +
                             "Insufficient input data for transformer"));
                 } else if (status == Status.ERROR) {

@@ -854,7 +854,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         int ch1 = get() & 0xFF;
         int ch2 = get() & 0xFF;
 
-        return (char) ((ch1 << 8) + (ch2 << 0));
+        return (char) ((ch1 << 8) + (ch2));
     }
 
     @Override
@@ -882,7 +882,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
             location = incLocation(location);
             int ch2 = bufferGet(location) & 0xFF;
 
-            return (char) ((ch1 << 8) + (ch2 << 0));
+            return (char) ((ch1 << 8) + (ch2));
         }
     }
 
@@ -942,7 +942,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
             location = incLocation(location);
             int ch2 = bufferGet(location) & 0xFF;
 
-            return (short) ((ch1 << 8) + (ch2 << 0));
+            return (short) ((ch1 << 8) + (ch2));
         }
     }
 
@@ -982,7 +982,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         put((byte) ((value >>> 24) & 0xFF));
         put((byte) ((value >>> 16) & 0xFF));
         put((byte) ((value >>>  8) & 0xFF));
-        put((byte) ((value >>>  0) & 0xFF));
+        put((byte) ((value) & 0xFF));
 
         return this;
     }
@@ -1010,7 +1010,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
             location = incLocation(location);
             int ch4 = bufferGet(location) & 0xFF;
 
-            return ((ch1 << 24) + (ch2 << 16) + (ch3 << 8) + (ch4 << 0));
+            return ((ch1 << 24) + (ch2 << 16) + (ch3 << 8) + (ch4));
         }
     }
 
@@ -1036,7 +1036,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
             bufferPut(location, (byte) ((value >>> 8) & 0xFF));
 
             location = incLocation(location);
-            bufferPut(location, (byte) ((value >>> 0) & 0xFF));
+            bufferPut(location, (byte) ((value) & 0xFF));
         }
 
         return this;
@@ -1060,7 +1060,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         put((byte) ((value >>> 24) & 0xFF));
         put((byte) ((value >>> 16) & 0xFF));
         put((byte) ((value >>> 8) & 0xFF));
-        put((byte) ((value >>> 0) & 0xFF));
+        put((byte) ((value) & 0xFF));
 
         return this;
     }
@@ -1107,7 +1107,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
                 ((long) ch5 << 24) +
                 (ch6 << 16) +
                 (ch7 <<  8) +
-                (ch8 <<  0));
+                (ch8));
         }
     }
 
@@ -1145,7 +1145,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
             bufferPut(location, (byte) ((value >>> 8) & 0xFF));
 
             location = incLocation(location);
-            bufferPut(location, (byte) ((value >>> 0) & 0xFF));
+            bufferPut(location, (byte) ((value) & 0xFF));
         }
 
         return this;
@@ -1215,7 +1215,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         sb.append(" lim=").append(limit);
         sb.append(" cap=").append(capacity);
         sb.append(" bufferSize=").append(buffersSize);
-        sb.append(" buffers=" + Arrays.toString(buffers));
+        sb.append(" buffers=").append(Arrays.toString(buffers));
         sb.append(']');
         return sb.toString();
     }
@@ -1551,12 +1551,12 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
     }
 
     private static int getBufferPosition(long bufferLocation) {
-        return (int) (bufferLocation & 0xFFFFFFFF);
+        return (int) (bufferLocation);
     }
 
     private static long makeLocation(final int bufferIndex,
             final int bufferPosition) {
-        return (long) (((long) bufferIndex) << 32) | (long) bufferPosition;
+        return ((long) bufferIndex) << 32 | (long) bufferPosition;
     }
 
     private void setPosLim(int position, int limit) {

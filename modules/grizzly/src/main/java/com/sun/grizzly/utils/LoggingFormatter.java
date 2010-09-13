@@ -139,7 +139,7 @@ public class LoggingFormatter extends Formatter {
                 record.getThrown().printStackTrace(pw);
                 pw.close();
                 sb.append(sw.toString());
-            } catch (Exception ex) {
+            } catch (Exception ignored) {
             }
         }
         sb.append(lineSeparator);

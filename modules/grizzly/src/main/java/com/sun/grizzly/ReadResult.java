@@ -51,7 +51,7 @@ public class ReadResult<K, L> implements Result, Cacheable {
 
     private boolean isRecycled = false;
 
-    public static final ReadResult create(Connection connection) {
+    public static ReadResult create(Connection connection) {
         final ReadResult readResult = ThreadCache.takeFromCache(CACHE_IDX);
         if (readResult != null) {
             readResult.connection = connection;
@@ -62,7 +62,7 @@ public class ReadResult<K, L> implements Result, Cacheable {
         return new ReadResult(connection);
     }
 
-    public static final <K, L> ReadResult create(Connection connection,
+    public static <K, L> ReadResult create(Connection connection,
             K message, L srcAddress, int readSize) {
         final ReadResult readResult = ThreadCache.takeFromCache(CACHE_IDX);
         if (readResult != null) {

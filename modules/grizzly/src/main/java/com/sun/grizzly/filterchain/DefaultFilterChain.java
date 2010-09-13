@@ -710,7 +710,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                 final FILTER_STATE_TYPE type,
                 final Object remainder) {
             if (remainder instanceof Buffer) {
-                return create(type, (Buffer) remainder,
+                return create(type, remainder,
                         BufferUtils.BUFFER_APPENDER);
             } else {
                 return create(type, (Appendable) remainder);

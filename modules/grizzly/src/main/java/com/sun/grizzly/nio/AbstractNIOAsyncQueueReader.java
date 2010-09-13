@@ -196,7 +196,7 @@ public abstract class AbstractNIOAsyncQueueReader
                 return future;            }
         } catch (IOException e) {
             onReadFailure(connection, queueRecord, e);
-            return ReadyFutureImpl.<ReadResult<Buffer, SocketAddress>>create(e);
+            return ReadyFutureImpl.create(e);
         }
     }
 
@@ -389,7 +389,7 @@ public abstract class AbstractNIOAsyncQueueReader
         failReadRecord(connection, failedRecord, e);
         try {
             connection.close().markForRecycle(true);
-        } catch (IOException ioe) {
+        } catch (IOException ignored) {
         }
     }
 

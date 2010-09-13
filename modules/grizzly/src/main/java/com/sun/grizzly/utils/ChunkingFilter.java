@@ -128,7 +128,7 @@ public class ChunkingFilter extends AbstractCodecFilter<Buffer, Buffer> {
                 throws TransformationException {
 
             if (!input.hasRemaining()) {
-                return TransformationResult.<Buffer, Buffer>createIncompletedResult(input);
+                return TransformationResult.createIncompletedResult(input);
             }
 
             final int chunkSize = Math.min(chunk, input.remaining());
@@ -143,7 +143,7 @@ public class ChunkingFilter extends AbstractCodecFilter<Buffer, Buffer> {
 
             BufferUtils.setPositionLimit(input, oldInputPos + chunkSize, oldInputLimit);
 
-            return TransformationResult.<Buffer, Buffer>createCompletedResult(
+            return TransformationResult.createCompletedResult(
                     output, input);
         }
 

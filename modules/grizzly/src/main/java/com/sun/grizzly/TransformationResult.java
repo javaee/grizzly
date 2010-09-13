@@ -64,7 +64,7 @@ public class TransformationResult<I, O> implements Cacheable {
         return create(Status.INCOMPLETED, null, externalRemainder, 0, null);
     }
 
-    private static final <I, O> TransformationResult<I, O> create(Status status,
+    private static <I, O> TransformationResult<I, O> create(Status status,
             O message, I externalRemainder, int errorCode, String errorDescription) {
         
         final TransformationResult result = ThreadCache.takeFromCache(CACHE_IDX);
@@ -83,7 +83,7 @@ public class TransformationResult<I, O> implements Cacheable {
     }
 
     public enum Status {
-        COMPLETED, INCOMPLETED, ERROR;
+        COMPLETED, INCOMPLETED, ERROR
     }
 
     private O message;

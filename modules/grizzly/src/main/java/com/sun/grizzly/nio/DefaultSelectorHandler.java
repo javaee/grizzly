@@ -183,7 +183,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
             throws IOException {
 
         final FutureImpl<RegisterChannelResult> future =
-                SafeFutureImpl.<RegisterChannelResult>create();
+                SafeFutureImpl.create();
 
         if (Thread.currentThread() == selectorRunner.getRunnerThread()) {
             registerChannel0(selectorRunner, channel, interest, attachment,
@@ -210,15 +210,15 @@ public class DefaultSelectorHandler implements SelectorHandler {
                     completionHandler.failed(e);
                 }
                 
-                return ReadyFutureImpl.<Runnable>create(e);
+                return ReadyFutureImpl.create(e);
             }
             if (completionHandler != null) {
                 completionHandler.completed(runnableTask);
             }
             
-            return ReadyFutureImpl.<Runnable>create(runnableTask);
+            return ReadyFutureImpl.create(runnableTask);
         } else {
-            final FutureImpl<Runnable> future = SafeFutureImpl.<Runnable>create();
+            final FutureImpl<Runnable> future = SafeFutureImpl.create();
 
             final SelectorHandlerTask task = new RunnableTask(runnableTask,
                     future, completionHandler);
@@ -284,8 +284,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
                     final SelectionKey key = channel.keyFor(selector);
 
                     // Check whether the channel has been registered on a selector
-                    boolean isKeyValid = true;
-                    if (key == null || (isKeyValid = key.isValid())) {
+                    if (key == null || key.isValid()) {
                         // If channel is not registered or key is valid
                         final SelectionKey registeredSelectionKey =
                                 channel.register(selector, interest, attachment);
@@ -307,13 +306,11 @@ public class DefaultSelectorHandler implements SelectorHandler {
                         return;
                     }
 
-                    if (!isKeyValid) {
-                        // Channel has been registered already,
-                        // but the key is not valid
-                        selectorRunner.getPostponedTasks().add(
-                                new RegisterChannelOperation(channel, interest,
-                                attachment, future, completionHandler));
-                    }
+                    // Channel has been registered already,
+                    // but the key is not valid
+                    selectorRunner.getPostponedTasks().add(
+                            new RegisterChannelOperation(channel, interest,
+                            attachment, future, completionHandler));
                 } else {
                     Throwable error = new ClosedChannelException();
                     if (completionHandler != null) {

@@ -58,7 +58,7 @@ public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult> {
     private static final ThreadCache.CachedTypeIndex<AsyncReadQueueRecord> CACHE_IDX =
             ThreadCache.obtainIndex(AsyncReadQueueRecord.class, 2);
     
-    public static final AsyncReadQueueRecord create(Object message,
+    public static AsyncReadQueueRecord create(Object message,
             Future future,
             ReadResult currentResult, CompletionHandler completionHandler,
             Interceptor<ReadResult> interceptor) {

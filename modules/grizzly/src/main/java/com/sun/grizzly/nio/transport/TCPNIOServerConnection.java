@@ -120,7 +120,7 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
         if (isBlocking()) {
             try {
                 future.get();
-            } catch (Exception e) {
+            } catch (Exception ignored) {
             }
         }
 

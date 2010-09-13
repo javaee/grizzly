@@ -88,13 +88,13 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
         if (stringTerminator != null) {
             try {
                 this.stringTerminateBytes = stringTerminator.getBytes(
-                        charset.name());
+                        this.charset.name());
             } catch (UnsupportedEncodingException e) {
                 // should never happen as we are getting charset name from Charset
             }
         }
 
-        lengthAttribute = attributeBuilder.<Integer>createAttribute(
+        lengthAttribute = attributeBuilder.createAttribute(
                 "StringDecoder.StringSize");
     }
 
@@ -134,7 +134,7 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
 
         if (stringSize == null) {
             if (input.remaining() < 2) {
-                return TransformationResult.<Buffer, String>createIncompletedResult(input);
+                return TransformationResult.createIncompletedResult(input);
             }
 
             stringSize = (int) input.getShort();
@@ -142,7 +142,7 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
         }
         
         if (input.remaining() < stringSize) {
-            return TransformationResult.<Buffer, String>createIncompletedResult(input);
+            return TransformationResult.createIncompletedResult(input);
         }
 
         int tmpLimit = input.limit();
@@ -151,7 +151,7 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
         input.position(input.limit());
         input.limit(tmpLimit);
 
-        return TransformationResult.<Buffer, String>createCompletedResult(
+        return TransformationResult.createCompletedResult(
                 stringMessage, input);
     }
 
@@ -178,7 +178,6 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
             }
         }
 
-        TransformationResult<Buffer, String> result;
         if (termIndex >= 0) {
             // Terminating sequence was found
             int tmpLimit = input.limit();
@@ -186,7 +185,7 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
             String stringMessage = input.toStringContent(charset);
             input.limit(tmpLimit);
             input.position(termIndex + terminationBytesLength);
-            return TransformationResult.<Buffer, String>createCompletedResult(
+            return TransformationResult.createCompletedResult(
                     stringMessage, input);
         } else {
             offset = input.remaining() - terminationBytesLength;
@@ -195,7 +194,7 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
             }
 
             lengthAttribute.set(storage, offset);            
-            return TransformationResult.<Buffer, String>createIncompletedResult(
+            return TransformationResult.createIncompletedResult(
                     input);
         }
     }

@@ -240,7 +240,7 @@ public class SSLEngineConfigurator {
      * Return the list of allowed protocol.
      * @return String[] an array of supported protocols.
      */
-    private final static String[] configureEnabledProtocols(
+    private static String[] configureEnabledProtocols(
             SSLEngine sslEngine, String[] requestedProtocols) {
 
         String[] supportedProtocols = sslEngine.getSupportedProtocols();
@@ -276,7 +276,7 @@ public class SSLEngineConfigurator {
      * @return Array of SSL cipher suites to be enabled, or null if none of the
      * requested ciphers are supported
      */
-    private final static String[] configureEnabledCiphers(SSLEngine sslEngine,
+    private static String[] configureEnabledCiphers(SSLEngine sslEngine,
             String[] requestedCiphers) {
 
         String[] supportedCiphers = sslEngine.getSupportedCipherSuites();

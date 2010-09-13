@@ -120,7 +120,7 @@ public class StringEncoder extends AbstractTransformer<String, Buffer> {
         output.allowBufferDispose(true);
 
         final TransformationResult<String, Buffer> result =
-                TransformationResult.<String, Buffer>createCompletedResult(
+                TransformationResult.createCompletedResult(
                 output, null);
         return result;
     }

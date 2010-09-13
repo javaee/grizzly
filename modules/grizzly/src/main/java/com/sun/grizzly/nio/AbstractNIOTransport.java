@@ -126,7 +126,7 @@ public abstract class AbstractNIOTransport extends AbstractTransport
                 if (selector != null) {
                     try {
                         selector.close();
-                    } catch (IOException e) {
+                    } catch (IOException ignored) {
                     }
                 }
             }

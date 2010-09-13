@@ -59,7 +59,7 @@ public abstract class BufferedOutput implements Output {
 
     protected static final Integer ZERO = new Integer(0);
     protected static final GrizzlyFuture<Integer> ZERO_READY_FUTURE =
-            ReadyFutureImpl.<Integer>create(0);
+            ReadyFutureImpl.create(0);
     
     protected int bufferSize;
     protected CompositeBuffer multiBufferWindow;
@@ -205,7 +205,7 @@ public abstract class BufferedOutput implements Output {
             throws IOException {
 
         if (!isClosed.getAndSet(true) && buffer != null && buffer.position() > 0) {
-            final FutureImpl<Integer> future = SafeFutureImpl.<Integer>create();
+            final FutureImpl<Integer> future = SafeFutureImpl.create();
 
             try {
                 overflow(new CompletionHandler<Integer>() {
@@ -232,7 +232,7 @@ public abstract class BufferedOutput implements Output {
                     public void close(Integer result) {
                         try {
                             onClosed();
-                        } catch (IOException e) {
+                        } catch (IOException ignored) {
                         } finally {
                             if (completionHandler != null) {
                                 completionHandler.completed(result);
@@ -242,7 +242,7 @@ public abstract class BufferedOutput implements Output {
                         }
                     }
                 });
-            } catch (IOException e) {
+            } catch (IOException ignored) {
             }
 
             return future;

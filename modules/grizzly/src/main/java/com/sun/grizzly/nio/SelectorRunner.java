@@ -153,8 +153,8 @@ public final class SelectorRunner implements Runnable {
                 State.START, null);
         try {
             future.get(5000, TimeUnit.MILLISECONDS);
-        } catch (ExecutionException e) {
-        } catch (InterruptedException e) {
+        } catch (ExecutionException ignored) {
+        } catch (InterruptedException ignored) {
         }
     }
 
@@ -177,7 +177,7 @@ public final class SelectorRunner implements Runnable {
                                     getConnectionForKey(selectionKey);
                             try {
                                 ((AbstractNIOTransport) transport).closeConnection(connection);
-                            } catch (IOException e) {
+                            } catch (IOException ignored) {
                             }
                         }
 
@@ -198,8 +198,8 @@ public final class SelectorRunner implements Runnable {
                 State.STOP, null);
         try {
             future.get(5000, TimeUnit.MILLISECONDS);
-        } catch (ExecutionException e) {
-        } catch (InterruptedException e) {
+        } catch (ExecutionException ignored) {
+        } catch (InterruptedException ignored) {
         }
     }
     
@@ -243,7 +243,7 @@ public final class SelectorRunner implements Runnable {
                                 transportStateHolder.notifyWhenStateIsNotEqual(
                                 State.PAUSE, null);
                         future.get(5000, TimeUnit.MILLISECONDS);
-                    } catch (Exception e) {
+                    } catch (Exception ignored) {
                     }
                 }
             }
@@ -453,7 +453,7 @@ public final class SelectorRunner implements Runnable {
 
         try {
             oldSelector.close();
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
     }
 }

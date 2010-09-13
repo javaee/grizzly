@@ -129,7 +129,7 @@ public abstract class TemporarySelectorReader
                 ReadResult.<Buffer, SocketAddress>create(connection, message, null, 0);
 
         final int readBytes = read0(connection, interceptor,
-                currentResult, (Buffer) message, timeout, timeunit);
+                currentResult, message, timeout, timeunit);
 
         if (readBytes > 0) {
 
@@ -141,9 +141,9 @@ public abstract class TemporarySelectorReader
                 interceptor.intercept(timeoutMillis, connection, currentResult);
             }
 
-            return ReadyFutureImpl.<ReadResult<Buffer, SocketAddress>>create(currentResult);
+            return ReadyFutureImpl.create(currentResult);
         } else {
-            return ReadyFutureImpl.<ReadResult<Buffer, SocketAddress>>create(new TimeoutException());
+            return ReadyFutureImpl.create(new TimeoutException());
         }
     }
 

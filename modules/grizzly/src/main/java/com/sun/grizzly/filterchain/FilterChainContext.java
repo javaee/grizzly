@@ -74,7 +74,7 @@ public final class FilterChainContext implements AttributeStorage {
     }
 
     public enum Operation {
-        NONE, ACCEPT, CONNECT, READ, WRITE, EVENT, CLOSE;
+        NONE, ACCEPT, CONNECT, READ, WRITE, EVENT, CLOSE
     }
 
     private static final ThreadCache.CachedTypeIndex<FilterChainContext> CACHE_IDX =

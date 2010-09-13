@@ -131,7 +131,7 @@ public abstract class TemporarySelectorWriter
         final WriteResult writeResult =
                 WriteResult.create(connection, message, dstAddress, 0);
 
-        write0(connection, dstAddress, (Buffer) message, writeResult,
+        write0(connection, dstAddress, message, writeResult,
                 timeout, timeunit);
 
         final GrizzlyFuture<WriteResult<Buffer, SocketAddress>> writeFuture =

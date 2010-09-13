@@ -308,6 +308,7 @@ public final class ServiceFinder<T> implements Iterable<T> {
             in = u.openStream();
             r = new BufferedReader(new InputStreamReader(in, "utf-8"));
             int lc = 1;
+            //noinspection StatementWithEmptyBody
             while ((lc = parseLine(service, u, r, lc, names, returned)) >= 0);
         } catch (IOException x) {
             fail(service, ": " + x);

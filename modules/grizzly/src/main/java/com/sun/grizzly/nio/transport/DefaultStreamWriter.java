@@ -85,7 +85,7 @@ public final class DefaultStreamWriter extends AbstractStreamWriter {
                 final CompletionHandler<Integer> completionHandler)
                 throws IOException {
             
-            final FutureImpl<Integer> future = SafeFutureImpl.<Integer>create();
+            final FutureImpl<Integer> future = SafeFutureImpl.create();
             
             if (buffer == null) {
                 buffer = BufferUtils.EMPTY_BUFFER;

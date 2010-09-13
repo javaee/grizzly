@@ -78,7 +78,7 @@ public abstract class SelectorFactory {
                 for (int i = 0; i < 5; i++) {
                     try {
                         return Selector.open();
-                    } catch (NullPointerException e2) {
+                    } catch (NullPointerException ignored) {
                     }
                 }
 

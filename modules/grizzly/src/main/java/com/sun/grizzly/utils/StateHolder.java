@@ -191,9 +191,9 @@ public final class StateHolder<E> {
                 completionHandler.completed(state);
             }
 
-            resultFuture = ReadyFutureImpl.<E>create(state);
+            resultFuture = ReadyFutureImpl.create(state);
         } else {
-            final FutureImpl<E> future = SafeFutureImpl.<E>create();
+            final FutureImpl<E> future = SafeFutureImpl.create();
             final ConditionElement elem = new ConditionElement(
                     condition, future, completionHandler);
 

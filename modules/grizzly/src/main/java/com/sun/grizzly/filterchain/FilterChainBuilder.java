@@ -56,11 +56,11 @@ public abstract class FilterChainBuilder {
         patternFilterChain = new DefaultFilterChain();
     }
 
-    public static final FilterChainBuilder stateless() {
+    public static FilterChainBuilder stateless() {
         return new StatelessFilterChainBuilder();
     }
     
-    public static final FilterChainBuilder stateful() {
+    public static FilterChainBuilder stateful() {
         throw new UnsupportedOperationException("Not implemented yet");
     }
 

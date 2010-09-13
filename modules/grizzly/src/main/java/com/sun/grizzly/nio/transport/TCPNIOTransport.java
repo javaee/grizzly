@@ -407,7 +407,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
         try {
             if (connection != null
-                    && serverConnections.remove((TCPNIOServerConnection) connection)) {
+                    && serverConnections.remove(connection)) {
                 final GrizzlyFuture future = connection.close();
                 try {
                     future.get(1000, TimeUnit.MILLISECONDS);
@@ -793,7 +793,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
                 ((WorkerThread) currentThread).isSelectorThread();
         
         final TCPNIOConnection tcpConnection = (TCPNIOConnection) connection;
-        int read = 0;
+        int read;
 
         final boolean isAllocate = (buffer == null);
         if (isAllocate) {
@@ -942,7 +942,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         } else {
             final ByteBuffer byteBuffer = buffer.toByteBuffer();
 
-            written = (int) ((SocketChannel) tcpConnection.getChannel()).write(byteBuffer);
+            written = ((SocketChannel) tcpConnection.getChannel()).write(byteBuffer);
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (plain) write {1} bytes",
                         new Object[]{connection, written});

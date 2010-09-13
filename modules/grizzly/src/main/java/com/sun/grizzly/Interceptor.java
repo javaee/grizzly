@@ -41,7 +41,7 @@
 package com.sun.grizzly;
 
 /**
- * Handler, which is used to finer control {@link Readable#read(...)}.
+ * Handler, which is used to finer control {@link Readable}.
  * 
  * @author Alexey Stashok
  */

@@ -61,11 +61,11 @@ public class SSLUtils {
     public static final Attribute<SSLEngine> sslEngineAttribute =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(SSL_ENGINE_ATTR_NAME);
 
-    public static final SSLEngine getSSLEngine(AttributeStorage storage) {
+    public static SSLEngine getSSLEngine(AttributeStorage storage) {
         return sslEngineAttribute.get(storage);
     }
 
-    public static final void setSSLEngine(AttributeStorage storage,
+    public static void setSSLEngine(AttributeStorage storage,
             SSLEngine sslEngine) {
         sslEngineAttribute.set(storage, sslEngine);
     }

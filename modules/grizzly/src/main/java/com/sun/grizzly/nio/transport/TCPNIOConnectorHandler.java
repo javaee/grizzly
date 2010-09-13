@@ -75,7 +75,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
     public TCPNIOConnectorHandler(TCPNIOTransport transport) {
         super(transport);
-        TCPNIOTransport nioTransport = (TCPNIOTransport) transport;
+        TCPNIOTransport nioTransport = transport;
         connectionTimeout = nioTransport.getConnectionTimeout();
         isReuseAddress = nioTransport.isReuseAddress();
     }
@@ -120,8 +120,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
         TCPNIOTransport nioTransport = (TCPNIOTransport) transport;
         
-        final TCPNIOConnection newConnection = (TCPNIOConnection)
-                nioTransport.obtainNIOConnection(socketChannel);
+        final TCPNIOConnection newConnection = nioTransport.obtainNIOConnection(socketChannel);
 
         preConfigure(newConnection);
 

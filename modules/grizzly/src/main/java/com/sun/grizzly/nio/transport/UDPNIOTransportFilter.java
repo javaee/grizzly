@@ -200,7 +200,7 @@ public final class UDPNIOTransportFilter extends BaseFilter {
         if (connection != null) {
             try {
                 connection.close().markForRecycle(true);
-            } catch (IOException e) {
+            } catch (IOException ignored) {
             }
         }
     }

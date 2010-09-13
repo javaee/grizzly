@@ -45,7 +45,7 @@ package com.sun.grizzly.utils;
  * @author oleksiys
  */
 public interface ExceptionHandler {
-    public enum Severity {UNKNOWN, CONNECTION, TRANSPORT, FATAL};
-    
+    public enum Severity {UNKNOWN, CONNECTION, TRANSPORT, FATAL}
+
     public void notifyException(Severity severity, Throwable throwable);
 }

@@ -76,7 +76,7 @@ public final class SilentConnectionFilter extends BaseFilter {
     public SilentConnectionFilter(DelayedExecutor executor,
             long timeout, TimeUnit timeunit) {
         this.timeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
-        queue = executor.<Connection>createDelayQueue(
+        queue = executor.createDelayQueue(
                 new DelayedExecutor.Worker<Connection>() {
 
             @Override

@@ -102,7 +102,7 @@ public class IdleTimeoutFilter extends BaseFilter {
         }
 
         this.executor = executor;
-        queue = executor.<Connection>createDelayQueue(
+        queue = executor.createDelayQueue(
                 new DelayedExecutor.Worker<Connection>() {
 
             @Override

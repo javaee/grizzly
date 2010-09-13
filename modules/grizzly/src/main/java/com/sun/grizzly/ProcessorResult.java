@@ -68,7 +68,7 @@ public class ProcessorResult {
      * Enum represents the status/code of {@link ProcessorResult}.
      */
     public enum Status {
-        COMPLETE, COMPLETE_LEAVE, REREGISTER, RERUN, ERROR, TERMINATE;
+        COMPLETE, COMPLETE_LEAVE, REREGISTER, RERUN, ERROR, TERMINATE
     }
 
     private final boolean canRecycle;

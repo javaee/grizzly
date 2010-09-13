@@ -133,7 +133,7 @@ public abstract class AbstractSocketConnectorHandler
 
     @Override
     public ConnectionProbe[] getMonitoringProbes() {
-        return probes.toArray(new ConnectionProbe[0]);
+        return probes.toArray(new ConnectionProbe[probes.size()]);
     }
 
     /**

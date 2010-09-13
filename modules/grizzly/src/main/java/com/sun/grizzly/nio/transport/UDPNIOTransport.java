@@ -241,7 +241,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
 
         try {
             if (connection != null
-                    && serverConnections.remove((UDPNIOServerConnection) connection)) {
+                    && serverConnections.remove(connection)) {
                 final GrizzlyFuture future = connection.close();
                 try {
                     future.get(1000, TimeUnit.MILLISECONDS);
@@ -681,7 +681,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
                 buffer.position(buffer.position() + read);
             }
         } else {
-            read = (int) ((DatagramChannel) connection.getChannel()).read(
+            read = ((DatagramChannel) connection.getChannel()).read(
                     buffer.toByteBuffer());
         }
 
@@ -747,6 +747,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         } finally {
             if (isAllocate && read <= 0) {
                 buffer.dispose();
+                //noinspection UnusedAssignment
                 buffer = null;
             }
         }
@@ -780,7 +781,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
                     buffer.position(buffer.position() + written);
                 }
             } else {
-                written = (int) ((DatagramChannel) connection.getChannel()).write(
+                written = ((DatagramChannel) connection.getChannel()).write(
                         buffer.toByteBuffer());
             }
         }

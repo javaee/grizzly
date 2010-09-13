@@ -57,7 +57,7 @@ final class StopAction extends AbstractNextAction {
 
 
     StopAction() {
-        this((Appendable) null);
+        this(null);
     }
 
     StopAction(Object remainder, Appender appender) {

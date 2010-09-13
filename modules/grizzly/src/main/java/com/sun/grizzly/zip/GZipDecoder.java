@@ -41,7 +41,6 @@
 package com.sun.grizzly.zip;
 
 import com.sun.grizzly.AbstractTransformer;
-import com.sun.grizzly.AbstractTransformer.LastResultAwareState;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.TransformationException;
 import com.sun.grizzly.TransformationResult;
@@ -62,7 +61,7 @@ import java.util.zip.Inflater;
 public class GZipDecoder extends AbstractTransformer<Buffer, Buffer> {
     protected enum DecodeStatus {
         INITIAL, FEXTRA1, FEXTRA2, FNAME, FCOMMENT, FHCRC, PAYLOAD, TRAILER, DONE
-    };
+    }
 
     private static final int GZIP_MAGIC = 0x8b1f;
 
@@ -176,7 +175,7 @@ public class GZipDecoder extends AbstractTransformer<Buffer, Buffer> {
 
             inflater.setInput(array, offset, len);
 
-            int lastInflated = 0;
+            int lastInflated;
             do {
                 final Buffer decodedBuffer = memoryManager.allocate(bufferSize);
                 final ByteBuffer decodedBB = decodedBuffer.toByteBuffer();
@@ -248,10 +247,10 @@ public class GZipDecoder extends AbstractTransformer<Buffer, Buffer> {
 
         final CRC32 crc32 = state.getCrc32();
 
-        DecodeStatus DecodeStatus;
-        while((DecodeStatus = state.getDecodeStatus()) != DecodeStatus.PAYLOAD) {
+        DecodeStatus decodeStatus;
+        while((decodeStatus = state.getDecodeStatus()) != DecodeStatus.PAYLOAD) {
 
-            switch (DecodeStatus) {
+            switch (decodeStatus) {
                 case INITIAL: {
                     if (buffer.remaining() < 10) {
                         return false;
@@ -384,16 +383,14 @@ public class GZipDecoder extends AbstractTransformer<Buffer, Buffer> {
     private static long getUInt(Buffer buffer, CRC32 crc32) {
         final int short1 = getUShort(buffer, crc32);
         final int short2 = getUShort(buffer, crc32);
-        final long intValue = (((long) short2 << 16) | short1);
-        return intValue;
+        return (((long) short2 << 16) | short1);
     }
 
     private static int getUShort(Buffer buffer, CRC32 crc32) {
         final int b1 = getUByte(buffer, crc32);
         final int b2 = getUByte(buffer, crc32);
 
-        final int shortValue = (b2 << 8) | b1;
-        return shortValue;
+        return (b2 << 8) | b1;
     }
 
     private static int getUByte(Buffer buffer, CRC32 crc32) {

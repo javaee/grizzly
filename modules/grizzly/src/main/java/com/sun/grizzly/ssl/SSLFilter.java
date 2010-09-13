@@ -138,9 +138,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                 SSLUtils.setSSLEngine(connection, sslEngine);
             }
 
-            Buffer buffer = (Buffer) ctx.getMessage();
-
-            buffer = doHandshakeStep(sslEngine, ctx);
+            Buffer buffer = doHandshakeStep(sslEngine, ctx);
 
             final boolean hasRemaining = buffer.hasRemaining();
             
@@ -249,7 +247,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     }
 
     protected Buffer doHandshakeStep(final SSLEngine sslEngine,
-            FilterChainContext context) throws SSLException, IOException {
+            FilterChainContext context) throws IOException {
 
         final Connection connection = context.getConnection();
         final Object dstAddress = context.getAddress();
@@ -347,8 +345,8 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                     buffer.allowBufferDispose(true);
 
                     try {
-                        final SSLEngineResult result = sslEngine.wrap(
-                                BufferUtils.EMPTY_BYTE_BUFFER, buffer.toByteBuffer());
+                        sslEngine.wrap(BufferUtils.EMPTY_BYTE_BUFFER,
+                                       buffer.toByteBuffer());
 
                         buffer.trim();
 
@@ -422,7 +420,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         int pos = buf.position();
         byte byteZero = buf.get(pos);
 
-        int len = 0;
+        int len;
 
         /*
          * If we have already verified previous packets, we can
@@ -559,7 +557,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
 
             try {
                 connection.close();
-            } catch (IOException e) {
+            } catch (IOException ignored) {
             }
         }        
     }

@@ -72,7 +72,7 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
     public UDPNIOConnectorHandler(UDPNIOTransport transport) {
         super(transport);
-        UDPNIOTransport nioTransport = (UDPNIOTransport) transport;
+        UDPNIOTransport nioTransport = transport;
         connectionTimeout = nioTransport.getConnectionTimeout();
         isReuseAddress = nioTransport.isReuseAddress();
     }
@@ -124,8 +124,7 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
         UDPNIOTransport nioTransport = (UDPNIOTransport) transport;
         
-        UDPNIOConnection newConnection = (UDPNIOConnection)
-                nioTransport.obtainNIOConnection(datagramChannel);
+        UDPNIOConnection newConnection = nioTransport.obtainNIOConnection(datagramChannel);
 
         preConfigure(newConnection);
         

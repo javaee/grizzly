@@ -58,7 +58,7 @@ public final class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     private static final ThreadCache.CachedTypeIndex<AsyncWriteQueueRecord> CACHE_IDX =
             ThreadCache.obtainIndex(AsyncWriteQueueRecord.class, 2);
 
-    public static final AsyncWriteQueueRecord create(Object message,
+    public static AsyncWriteQueueRecord create(Object message,
             Future future,
             WriteResult currentResult, CompletionHandler completionHandler,
             Interceptor interceptor, Object dstAddress,
