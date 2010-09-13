@@ -52,8 +52,8 @@ import com.sun.grizzly.memory.MemoryManager;
  */
 class StreamFrame extends Frame {
     // parsing states
-    private enum ParseState {TYPE, CONTENT, DONE};
-    
+    private enum ParseState {TYPE, CONTENT, DONE}
+
     // last parsing result
     private ParseState parseState = ParseState.TYPE;
 

@@ -53,10 +53,10 @@ import com.sun.grizzly.memory.MemoryManager;
 class FixedLengthFrame extends Frame {
 
     // parsing states
-    private enum ParseState {TYPE, LENGTH, CONTENT, DONE};
+    private enum ParseState {TYPE, LENGTH, CONTENT, DONE}
 
-    // the length encoding masks
-    private static int[][] masks = {{0x70000000, 28}, {0xFE00000, 21},
+    // the length encoding MASKS
+    private static final int[][] MASKS = {{0x70000000, 28}, {0xFE00000, 21},
         {0x1FC000, 14}, {0x3F80, 7}, {0x7F, 0}};
 
     // last parsing result
@@ -94,9 +94,7 @@ class FixedLengthFrame extends Frame {
         encodeLength(length, startBuffer);
         startBuffer.trim();
 
-        Buffer resultBuffer = BufferUtils.appendBuffers(mm, startBuffer, buffer);
-
-        return resultBuffer;
+        return BufferUtils.appendBuffers(mm, startBuffer, buffer);
     }
 
     /**
@@ -170,10 +168,10 @@ class FixedLengthFrame extends Frame {
      */
     private static void encodeLength(int length, Buffer startBuffer) {
         boolean written = false;
-        for (int i=0; i<masks.length; i++) {
-            int sevenBits = (length & masks[i][0]) >> masks[i][1];
+        for (int i=0; i< MASKS.length; i++) {
+            int sevenBits = (length & MASKS[i][0]) >> MASKS[i][1];
 
-            if (i == (masks.length - 1)) { // last seven bits
+            if (i == (MASKS.length - 1)) { // last seven bits
                 startBuffer.put((byte) sevenBits);
             } else {
                 if (written || sevenBits != 0) {
