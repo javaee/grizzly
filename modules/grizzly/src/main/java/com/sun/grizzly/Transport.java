@@ -204,7 +204,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * which will be used by the {@link Transport}, its {@link Connection}s
      * and by during processing I/O events, occurred on {@link Connection}s.
      */
-    public MemoryManager<? extends Buffer> getMemoryManager();
+    public MemoryManager getMemoryManager();
 
     /**
      * Set the {@link Transport} associated {@link MemoryManager}, which will
@@ -216,7 +216,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * its {@link Connection}s and by during processing I/O events, occurred
      * on {@link Connection}s.
      */
-    public void setMemoryManager(MemoryManager<? extends Buffer> memoryManager);
+    public void setMemoryManager(MemoryManager memoryManager);
 
     /**
      * Get the {@link Strategy} implementation, which will be used by

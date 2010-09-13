@@ -95,7 +95,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * Transport MemoryManager
      */
-    protected MemoryManager<? extends Buffer> memoryManager;
+    protected MemoryManager memoryManager;
 
     /**
      * Transport thread pool
@@ -314,7 +314,7 @@ public abstract class AbstractTransport implements Transport {
      * {@inheritDoc}
      */
     @Override
-    public MemoryManager<? extends Buffer> getMemoryManager() {
+    public MemoryManager getMemoryManager() {
         return memoryManager;
     }
 
@@ -322,7 +322,7 @@ public abstract class AbstractTransport implements Transport {
      * {@inheritDoc}
      */
     @Override
-    public void setMemoryManager(MemoryManager<? extends Buffer> memoryManager) {
+    public void setMemoryManager(MemoryManager memoryManager) {
         this.memoryManager = memoryManager;
         notifyProbesConfigChanged(this);
     }
