@@ -38,7 +38,7 @@
  * holder.
  */
 
-package com.antwerkz.stickies;
+package com.sun.grizzly.samples.stickies;
 
 import java.io.IOException;
 import java.io.InputStreamReader;

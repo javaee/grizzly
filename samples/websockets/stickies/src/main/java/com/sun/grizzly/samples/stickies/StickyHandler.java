@@ -38,14 +38,13 @@
  * holder.
  */
 
-package com.antwerkz.stickies;
+package com.sun.grizzly.samples.stickies;
 
 import java.io.IOException;
 import java.util.Arrays;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 
-import com.antwerkz.stickies.CometServlet.CometOperations;
 import com.sun.grizzly.comet.CometEvent;
 import com.sun.grizzly.comet.CometHandler;
 
@@ -76,9 +75,9 @@ public class StickyHandler implements CometHandler<HttpServletResponse> {
         System.out.println("CometServlet$StickyHandler.onEvent: event.getType() = " + event.getType());
         final String[] split = String.valueOf(event.attachment()).split("-");
         System.out.println("CometServlet$StickyHandler.onEvent: split = " + Arrays.toString(split));
-        final CometOperations operation;
+        final CometServlet.CometOperations operation;
         try {
-            operation = CometOperations.valueOf(split[0].toUpperCase());
+            operation = CometServlet.CometOperations.valueOf(split[0].toUpperCase());
             System.out.println("StickyHandler.onEvent: operation = " + operation);
             operation.accept(cometServlet, this, split);
         } catch (IllegalArgumentException e) {

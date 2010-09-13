@@ -43,16 +43,21 @@
 
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <parent>
+        <groupId>com.sun.grizzly</groupId>
+        <artifactId>grizzly-project</artifactId>
+        <version>1.9.20-SNAPSHOT</version>
+        <relativePath>../../../pom.xml</relativePath>
+    </parent>
+
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.antwerkz</groupId>
+    <groupId>com.sun.grizzly.samples</groupId>
     <artifactId>stickies</artifactId>
     <packaging>war</packaging>
-    <version>1.0</version>
+    <version>1.9.20-SNAPSHOT</version>
     <name>websocket-stickies</name>
-    <properties>
-        <grizzly.version>1.9.19</grizzly.version>
-    </properties>
-
+    <url>http://maven.apache.org</url>
+   
     <repositories>
         <repository>
             <id>glassfish</id>
@@ -76,13 +81,13 @@
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-websockets</artifactId>
-            <version>${grizzly.version}</version>
+            <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-comet</artifactId>
-            <version>${grizzly.version}</version>
+            <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
@@ -104,7 +109,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
 
                 <configuration>
-                    <mainClass>com.antwerkz.stickies.Main</mainClass>
+                    <mainClass>com.sun.grizzly.samples.stickies.Main</mainClass>
                     <classpathScope>test</classpathScope>
                     <arguments>
                         <argument>-Xmx512m</argument>
