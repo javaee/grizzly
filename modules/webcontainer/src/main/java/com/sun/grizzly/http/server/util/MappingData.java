@@ -98,14 +98,14 @@ public class MappingData {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("host: " + host);
-        sb.append("\ncontext: " + context);
-        sb.append("\nwrapper: " + wrapper);
-        sb.append("\ncontextPath: " + contextPath);
-        sb.append("\nrequestPath: " + requestPath);
-        sb.append("\nwrapperPath: " + wrapperPath);
-        sb.append("\npathInfo: " + pathInfo);
-        sb.append("\nredirectPath: " + redirectPath);
+        sb.append("host: ").append(host);
+        sb.append("\ncontext: ").append(context);
+        sb.append("\nwrapper: ").append(wrapper);
+        sb.append("\ncontextPath: ").append(contextPath);
+        sb.append("\nrequestPath: ").append(requestPath);
+        sb.append("\nwrapperPath: ").append(wrapperPath);
+        sb.append("\npathInfo: ").append(pathInfo);
+        sb.append("\nredirectPath: ").append(redirectPath);
         return sb.toString();
     }
 }

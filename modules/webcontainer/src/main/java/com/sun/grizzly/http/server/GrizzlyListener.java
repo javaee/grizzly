@@ -145,7 +145,6 @@ public class GrizzlyListener {
 
     /**
      * The maximum size of an incoming <code>HTTP</code> message.
-     * TODO: this doesn't feel like the right location
      */
     private int maxHttpHeaderSize = -1;
 
@@ -157,7 +156,7 @@ public class GrizzlyListener {
 
 
     /**
-     * Maximum size, in bytes, of all data within all pending writes.
+     * Maximum size, in bytes, of all data waiting to be written.
      */
     private volatile int maxPendingBytes;
 
@@ -518,8 +517,8 @@ public class GrizzlyListener {
 
 
     /**
-     * @return the maximum size, in bytes, of all writes pending to be written
-     *  to their associated {@link com.sun.grizzly.Connection}.
+     * @return the maximum size, in bytes, of all data waiting to be written
+     *  to the associated {@link com.sun.grizzly.Connection}.
      */
     public int getMaxPendingBytes() {
 
@@ -529,11 +528,11 @@ public class GrizzlyListener {
 
 
     /**
-     * The maximum size, in bytes, of all writes pending to be written
-     * to their associated {@link com.sun.grizzly.Connection}.
+     * The maximum size, in bytes, of all data waiting to be written
+     * to the associated {@link com.sun.grizzly.Connection}.
      *
-     * @param maxPendingBytes the maximum size, in bytes, of all writes pending
-     *  to be written to their associated {@link com.sun.grizzly.Connection}.
+     * @param maxPendingBytes the maximum size, in bytes, of all data waiting
+     *  to be written to the associated {@link com.sun.grizzly.Connection}.
      */
     public void setMaxPendingBytes(int maxPendingBytes) {
 

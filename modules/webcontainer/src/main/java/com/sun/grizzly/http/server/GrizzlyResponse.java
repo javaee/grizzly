@@ -81,8 +81,6 @@ import com.sun.grizzly.utils.DelayedExecutor;
 import com.sun.grizzly.utils.DelayedExecutor.DelayQueue;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.AccessController;
@@ -133,20 +131,13 @@ public class GrizzlyResponse {
 
     // ----------------------------------------------------------- Constructors
 
+
     protected GrizzlyResponse() {
-        this(false, false);
-    }
-
-
-    public GrizzlyResponse(boolean chunkingDisabled, boolean cacheEnabled) {
-        //outputBuffer = new GrizzlyOutputBuffer(chunkingDisabled);
-        //outputStream = new GrizzlyOutputStream(outputBuffer);
-        //writer = new GrizzlyWriter(outputBuffer);
 
         urlEncoder.addSafeCharacter('/');
 
-        this.cacheEnabled = cacheEnabled;
     }
+
 
     // ----------------------------------------------------- Instance Variables
     private boolean cacheEnabled = false;
@@ -229,23 +220,6 @@ public class GrizzlyResponse {
 
 
     /**
-     * The included flag.
-     */
-    protected boolean included = false;
-
-
-    /**
-     * The characterEncoding flag
-     */
-    private boolean isCharacterEncodingSet = false;
-
-    /**
-     * The contextType flag
-     */
-    private boolean isContentTypeSet = false;
-
-
-    /**
      * The error flag.
      */
     protected boolean error = false;
@@ -278,7 +252,7 @@ public class GrizzlyResponse {
     /**
      * Recyclable buffer to hold the redirect URL.
      */
-    protected MessageBytes redirectURLCC = new MessageBytes();
+    protected MessageBytes redirectURLCC = MessageBytes.newInstance();
 
 
     protected DelayedExecutor.DelayQueue<GrizzlyResponse> delayQueue;
@@ -313,7 +287,7 @@ public class GrizzlyResponse {
 
 
     /**
-     * Get the Coyote response.
+     * Get the {@link HttpResponsePacket}.
      */
     public HttpResponsePacket getResponse() {
         return response;
@@ -332,10 +306,7 @@ public class GrizzlyResponse {
         usingOutputStream = false;
         usingWriter = false;
         appCommitted = false;
-        included = false;
         error = false;
-        isContentTypeSet = false;
-        isCharacterEncodingSet = false;
         detailErrorMsg = null;
         request = null;
         response.recycle();
@@ -345,20 +316,6 @@ public class GrizzlyResponse {
         isSuspended = false;
         cookies.clear();
 
-        /*
-        if (System.getSecurityManager() != null) {
-            if (outputStream != null) {
-                outputStream.clear();
-                outputStream = null;
-            }
-            if (writer != null) {
-                writer.clear();
-                writer = null;
-            }
-        } else {
-            writer.recycle();
-        }
-        */
         cacheEnabled = false;
 
     }
@@ -425,7 +382,7 @@ public class GrizzlyResponse {
     private boolean doIsEncodeable(GrizzlyRequest request, GrizzlySession session,
                                    String location){
         // Is this a valid absolute URL?
-        URL url = null;
+        URL url;
         try {
             url = new URL(location);
         } catch (MalformedURLException e) {
@@ -455,66 +412,19 @@ public class GrizzlyResponse {
             return (false);
 
         String contextPath = "/";
-        if ( contextPath != null ) {
-            String file = url.getFile();
-            if ((file == null) || !file.startsWith(contextPath))
-                return (false);
-            if( file.indexOf(";jsessionid=" + session.getIdInternal()) >= 0 )
-                return (false);
+
+        String file = url.getFile();
+        if ((file == null) || !file.startsWith(contextPath)) {
+            return (false);
         }
+        if (file.indexOf(";jsessionid=" + session.getIdInternal()) >= 0) {
+            return (false);
+        }
+
 
         // This URL belongs to our web application, so it is encodeable
         return (true);
 
-    }
-
-
-    /**
-     * Return the number of bytes actually written to the output stream.
-     */
-    public int getContentCount() {
-        // TODO re-enable
-        //return outputBuffer.getContentWritten();
-        return 0;
-    }
-
-
-    /**
-     * Set the application commit flag.
-     *
-     * @param appCommitted The new application committed flag value
-     */
-    public void setAppCommitted(boolean appCommitted) {
-        this.appCommitted = appCommitted;
-    }
-
-
-    /**
-     * Application commit flag accessor.
-     */
-    public boolean isAppCommitted() {
-        return (this.appCommitted || isCommitted() || isBufferSuspended()
-                || ((getContentLength() > 0)
-                    && (getContentCount() >= getContentLength())));
-    }
-
-
-    /**
-     * Return the "processing inside an include" flag.
-     */
-    public boolean getIncluded() {
-        return included;
-    }
-
-
-    /**
-     * Set the "processing inside an include" flag.
-     *
-     * @param included <tt>true</tt> if we are currently inside a
-     *  RequestDispatcher.include(), else <tt>false</tt>
-     */
-    public void setIncluded(boolean included) {
-        this.included = included;
     }
 
 
@@ -525,36 +435,6 @@ public class GrizzlyResponse {
      */
     public String getInfo() {
         return (info);
-    }
-
-    /**
-     * Return the output stream associated with this Response.
-     */
-    private OutputStream getStream() {
-        if (outputStream == null) {
-            outputStream = new GrizzlyOutputStream(outputBuffer);
-        }
-        return outputStream;
-    }
-
-
-    /**
-     * Set the output stream associated with this Response.
-     *
-     * @param stream The new output stream
-     */
-    public void setStream(OutputStream stream) {
-        // This method is evil
-    }
-
-
-    /**
-     * Suspended flag accessor.
-     */
-    public boolean isBufferSuspended() {
-        // TODO re-enable
-        //return outputBuffer.isSuspended();
-        return false;
     }
 
 
@@ -654,56 +534,16 @@ public class GrizzlyResponse {
     }
 
 
-    /**
-     * Return a PrintWriter that can be used to render error messages,
-     * regardless of whether a stream or writer has already been acquired.
-     *
-     * @return Writer which can be used for error reports. If the response is
-     * not an error report returned using sendError or triggered by an
-     * unexpected exception thrown during the servlet processing
-     * (and only in that case), null will be returned if the response stream
-     * has already been used.
-     *
-     * @exception java.io.IOException if an input/output error occurs
-     */
-    public PrintWriter getReporter() throws IOException {
-        // TODO re-enable
-        /*
-        if (outputBuffer.isNew()) {
-            outputBuffer.checkConverter();
-            if (writer == null) {
-                writer = new GrizzlyWriter(outputBuffer);
-            }
-            return writer;
-        } else {
-            return null;
-        }
-        */
-        return null;
-    }
-
-
     // ------------------------------------------------ ServletResponse Methods
-
-
-    /**
-     * Flush the buffer and commit this response.
-     *
-     * @exception java.io.IOException if an input/output error occurs
-     */
-    public void flushBuffer()
-        throws IOException {
-        outputBuffer.flush();
-    }
 
 
     /**
      * Return the actual buffer size used for this Response.
      */
     public int getBufferSize() {
-        // TODO re-enabled
-        //return outputBuffer.getBufferSize();
-        return 0;
+
+        return outputBuffer.getBufferSize();
+
     }
 
 
@@ -744,9 +584,7 @@ public class GrizzlyResponse {
      */
     public Locale getLocale() {
         checkResponse();
-        // TODO re-enabled
-        //return (response.getLocale());
-        return Locale.getDefault();
+        return response.getLocale();
     }
 
 
@@ -779,8 +617,6 @@ public class GrizzlyResponse {
         setCharacterEncoding(getCharacterEncoding());
 
         usingWriter = true;
-        // TODO re-enable
-        //outputBuffer.checkConverter();
         if (writer == null) {
             outputBuffer.processingChars();
             writer = new GrizzlyWriter(outputBuffer);
@@ -800,7 +636,7 @@ public class GrizzlyResponse {
 
 
     /**
-     * TODO DOCS
+     * Flush the current buffered content to the network.
      * @throws IOException
      */
     public void flush() throws IOException {
@@ -825,10 +661,6 @@ public class GrizzlyResponse {
      */
     public void reset() {
         checkResponse();
-        if (included)
-            return;     // Ignore any call from an included servlet
-
-        //response.reset();
         outputBuffer.reset();
     }
 
@@ -866,7 +698,6 @@ public class GrizzlyResponse {
         if(resetWriterStreamFlags) {
             usingOutputStream = false;
             usingWriter = false;
-            isCharacterEncodingSet = false;
         }
 
     }
@@ -882,12 +713,10 @@ public class GrizzlyResponse {
      */
     public void setBufferSize(int size) {
 
-        // TODO re-enabled
-//        if (isCommitted() || !outputBuffer.isNew())
-//            throw new IllegalStateException
-//                (sm.getString("response.setBufferSize.ise"));
-//
-//        outputBuffer.setBufferSize(size);
+        if (isCommitted()) {
+            throw new IllegalStateException("Unable to change buffer size as the response has been committed"); 
+        }
+        outputBuffer.setBufferSize(size);
 
     }
 
@@ -900,10 +729,6 @@ public class GrizzlyResponse {
     public void setContentLengthLong(long length) {
         checkResponse();
         if (isCommitted())
-            return;
-
-        // Ignore any call from an included servlet
-        if (included)
             return;
 
         if (usingWriter)
@@ -924,10 +749,6 @@ public class GrizzlyResponse {
         if (isCommitted())
             return;
 
-        // Ignore any call from an included servlet
-        if (included)
-            return;
-
         if (usingWriter)
             return;
 
@@ -944,10 +765,6 @@ public class GrizzlyResponse {
     public void setContentType(String type) {
         checkResponse();
         if (isCommitted())
-            return;
-
-        // Ignore any call from an included servlet
-        if (included)
             return;
 
         // Ignore charset if getWriter() has already been called
@@ -968,7 +785,7 @@ public class GrizzlyResponse {
             if (index != -1) {
                 int len = type.length();
                 index++;
-                while (index < len && Character.isSpace(type.charAt(index))) {
+                while (index < len && Character.isSpaceChar((type.charAt(index)))) {
                     index++;
                 }
                 if (index+7 < len
@@ -980,12 +797,10 @@ public class GrizzlyResponse {
                         && type.charAt(index+5) == 'e'
                         && type.charAt(index+6) == 't'
                         && type.charAt(index+7) == '=') {
-                    isCharacterEncodingSet = true;
                 }
             }
         }
 
-        isContentTypeSet = true;
     }
 
 
@@ -1001,17 +816,12 @@ public class GrizzlyResponse {
         if (isCommitted())
             return;
 
-        // Ignore any call from an included servlet
-        if (included)
-            return;
-
         // Ignore any call made after the getWriter has been invoked
         // The default should be used
         if (usingWriter)
             return;
 
         response.setCharacterEncoding(charset);
-        isCharacterEncodingSet = true;
     }
 
 
@@ -1027,22 +837,7 @@ public class GrizzlyResponse {
         if (isCommitted())
             return;
 
-        // Ignore any call from an included servlet
-        if (included)
-            return;
-
-        // TODO re-enabled
-        //response.setLocale(locale);
-
-        // Ignore any call made after the getWriter has been invoked.
-        // The default should be used
-        if (usingWriter)
-            return;
-
-        if (isCharacterEncodingSet) {
-            return;
-        }
-
+        response.setLocale(locale);
     }
 
 
@@ -1054,7 +849,7 @@ public class GrizzlyResponse {
      * a zero-length array if no cookies have been set.
      */
     public Cookie[] getCookies() {
-        return ((Cookie[]) cookies.toArray(new Cookie[cookies.size()]));
+        return (cookies.toArray(new Cookie[cookies.size()]));
     }
 
 
@@ -1149,13 +944,10 @@ public class GrizzlyResponse {
      *
      * @param cookie Cookie to be added
      */
+    @SuppressWarnings({"unchecked"})
     public void addCookie(final Cookie cookie) {
 
         if (isCommitted())
-            return;
-
-        // Ignore any call from an included servlet
-        if (included)
             return;
 
         final StringBuilder sb = new StringBuilder();
@@ -1194,11 +986,6 @@ public class GrizzlyResponse {
         if (isCommitted())
             return;
 
-        // Ignore any call from an included servlet
-        if (included) {
-            return;
-        }
-
         if (format == null) {
             format = new SimpleDateFormat(HTTP_RESPONSE_DATE_HEADER,
                                           Locale.US);
@@ -1221,10 +1008,6 @@ public class GrizzlyResponse {
         if (isCommitted())
             return;
 
-        // Ignore any call from an included servlet
-        if (included)
-            return;
-
         response.addHeader(name, value);
 
     }
@@ -1239,10 +1022,6 @@ public class GrizzlyResponse {
     public void addIntHeader(String name, int value) {
 
         if (isCommitted())
-            return;
-
-        // Ignore any call from an included servlet
-        if (included)
             return;
 
         addHeader(name, "" + value);
@@ -1273,9 +1052,6 @@ public class GrizzlyResponse {
         if (isCommitted())
             return;
 
-        // Ignore any call from an included servlet
-        if (included)
-            return;
         response.setAcknowledgement(true);
         outputBuffer.acknowledge();
 
@@ -1314,10 +1090,6 @@ public class GrizzlyResponse {
             throw new IllegalStateException
                 (sm.getString("response.sendError.ise"));
 
-        // Ignore any call from an included servlet
-        if (included)
-            return;
-
         setError();
 
         response.setStatus(status);
@@ -1348,10 +1120,6 @@ public class GrizzlyResponse {
         if (isCommitted())
             throw new IllegalStateException
                 (sm.getString("response.sendRedirect.ise"));
-
-        // Ignore any call from an included servlet
-        if (included)
-            return;
 
         // Clear any data content that has been buffered
         resetBuffer();
@@ -1386,8 +1154,7 @@ public class GrizzlyResponse {
                 getWriter().flush();
             } catch (IllegalStateException ise1) {
                 try {
-                    // TODO re-enable
-                   //getOutputStream().print(sb.toString());
+                   getOutputStream().write(sb.toString().getBytes());
                 } catch (IllegalStateException ise2) {
                    // ignore; the RFC says "SHOULD" so it is acceptable
                    // to omit the body in case of an error
@@ -1414,11 +1181,6 @@ public class GrizzlyResponse {
         if (isCommitted())
             return;
 
-        // Ignore any call from an included servlet
-        if (included) {
-            return;
-        }
-
         if (format == null) {
             format = new SimpleDateFormat(HTTP_RESPONSE_DATE_HEADER,
                                           Locale.US);
@@ -1441,10 +1203,6 @@ public class GrizzlyResponse {
         if (isCommitted())
             return;
 
-        // Ignore any call from an included servlet
-        if (included)
-            return;
-
         response.setHeader(name, value);
 
     }
@@ -1459,10 +1217,6 @@ public class GrizzlyResponse {
     public void setIntHeader(String name, int value) {
 
         if (isCommitted())
-            return;
-
-        // Ignore any call from an included servlet
-        if (included)
             return;
 
         setHeader(name, "" + value);
@@ -1492,10 +1246,6 @@ public class GrizzlyResponse {
         if (isCommitted())
             return;
 
-        // Ignore any call from an included servlet
-        if (included)
-            return;
-
         response.setStatus(status);
         response.setReasonPhrase(message);
 
@@ -1510,10 +1260,6 @@ public class GrizzlyResponse {
 
         checkResponse();
         if (isCommitted())
-            return;
-
-        // Ignore any call from an included servlet
-        if (included)
             return;
 
         status.setValues(response);
@@ -1533,6 +1279,7 @@ public class GrizzlyResponse {
      * @exception IllegalArgumentException if a MalformedURLException is
      *  thrown when converting the relative URL to an absolute one
      */
+    @SuppressWarnings({"unchecked"})
     protected String toAbsolute(String location, boolean normalize) {
 
         if (location == null)
@@ -1565,7 +1312,7 @@ public class GrizzlyResponse {
                     int pos = relativePath.lastIndexOf('/');
                     relativePath = relativePath.substring(0, pos);
 
-                    String encodedURI = null;
+                    String encodedURI;
                     final String frelativePath = relativePath;
 
                      if (System.getSecurityManager() != null ){
@@ -1578,9 +1325,7 @@ public class GrizzlyResponse {
                                     }
                            });
                         } catch (PrivilegedActionException pae){
-                            final IllegalArgumentException iae =
-                                new IllegalArgumentException(location, pae.getCause());
-                            throw iae;
+                            throw new IllegalArgumentException(location, pae.getCause());
                         }
                     } else {
                         encodedURI = urlEncoder.encodeURL(relativePath);
@@ -1591,9 +1336,7 @@ public class GrizzlyResponse {
                 }
                 cc.append(location, 0, location.length());
             } catch (IOException e) {
-                final IllegalArgumentException iae =
-                    new IllegalArgumentException(location, e);
-                throw iae;
+                throw new IllegalArgumentException(location, e);
             }
 
             if (normalize){
@@ -1700,46 +1443,6 @@ public class GrizzlyResponse {
 
 
     /**
-     * Enable/disable the cache
-     */
-    public void enableCache(boolean cacheEnabled) {
-        this.cacheEnabled = cacheEnabled;
-        // TODO re-enable
-        //outputBuffer.enableCache(cacheEnabled);
-    }
-
-
-    /**
-     * Return the underlying {@link com.sun.grizzly.tcp.OutputBuffer}
-     */
-    //public GrizzlyOutputBuffer getOutputBuffer(){
-    //    return outputBuffer;
-    //}
-
-
-    /**
-     * Enabled or Disable response chunking.
-     * @param chunkingDisabled
-     */
-    public void setChunkingDisabled(boolean chunkingDisabled) {
-    //    if (outputBuffer != null){
-    //        outputBuffer.setChunkingDisabled(chunkingDisabled);
-    //    }
-    }
-
-
-    /**
-     * Is chunking enabled?
-     */
-    public boolean getChunkingDisabled() {
-    //    if (outputBuffer != null){
-    //        outputBuffer.getChunkingDisabled();
-    //    }
-    //    return true; // The default.
-        return true;
-    }
-
-    /**
      * Return <tt>true<//tt> if that {@link com.sun.grizzly.http.server.GrizzlyResponse#suspend()} has been
      * invoked and set to <tt>true</tt>
      * @return <tt>true<//tt> if that {@link com.sun.grizzly.http.server.GrizzlyResponse#suspend()} has been
@@ -1830,6 +1533,7 @@ public class GrizzlyResponse {
      * will first be invoked, then the {@link com.sun.grizzly.http.server.GrizzlyResponse#finish()}.
      * Those operations commit the response.
      */
+    @SuppressWarnings({"unchecked"})
     public void resume() {
         checkResponse();
         synchronized(suspendSync) {

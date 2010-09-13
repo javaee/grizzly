@@ -66,9 +66,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 /**
- * TODO:
- *   JMX
- *   Statistics
+ * Filter implementation to provide high-level HTTP request/response processing.
  */
 public class WebServerFilter extends BaseFilter
         implements JmxMonitoringAware<WebServerProbe> {
@@ -109,7 +107,7 @@ public class WebServerFilter extends BaseFilter
     // ----------------------------------------------------- Methods from Filter
 
 
-    @SuppressWarnings({"unchecked"})
+    @SuppressWarnings({"unchecked", "ReturnInsideFinallyBlock"})
     @Override
     public NextAction handleRead(FilterChainContext ctx)
           throws IOException {

@@ -50,7 +50,7 @@ import com.sun.grizzly.Connection;
  */
 final class WebServerProbeNotifier {
     /**
-     * Notify registered {@link HttpMonitoringProbe}s about the "request received" event.
+     * Notify registered {@link WebServerProbe}s about the "request received" event.
      *
      * @param filter {@link WebServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
@@ -68,7 +68,7 @@ final class WebServerProbeNotifier {
     }
 
     /**
-     * Notify registered {@link HttpMonitoringProbe}s about the "request completed" event.
+     * Notify registered {@link WebServerProbe}s about the "request completed" event.
      *
      * @param filter {@link WebServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
@@ -86,7 +86,7 @@ final class WebServerProbeNotifier {
     }
 
     /**
-     * Notify registered {@link HttpMonitoringProbe}s about the "request suspended" event.
+     * Notify registered {@link WebServerProbe}s about the "request suspended" event.
      *
      * @param filter {@link WebServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
@@ -104,7 +104,7 @@ final class WebServerProbeNotifier {
     }
 
     /**
-     * Notify registered {@link HttpMonitoringProbe}s about the "request resumed" event.
+     * Notify registered {@link WebServerProbe}s about the "request resumed" event.
      *
      * @param filter {@link WebServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
@@ -122,7 +122,7 @@ final class WebServerProbeNotifier {
     }
 
     /**
-     * Notify registered {@link HttpMonitoringProbe}s about the "request timeout after suspend" event.
+     * Notify registered {@link WebServerProbe}s about the "request timeout after suspend" event.
      *
      * @param filter {@link WebServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
@@ -140,7 +140,7 @@ final class WebServerProbeNotifier {
     }
 
     /**
-     * Notify registered {@link HttpMonitoringProbe}s about the "request canceled after suspend" event.
+     * Notify registered {@link WebServerProbe}s about the "request canceled after suspend" event.
      *
      * @param filter {@link WebServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.

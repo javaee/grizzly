@@ -94,6 +94,7 @@ import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
@@ -146,7 +147,7 @@ public class GrizzlyRequest {
      * The match string for identifying a session ID parameter.
      */
     private static final String match =
-        ";" + Globals.SESSION_PARAMETER_NAME + "=";
+        ';' + Globals.SESSION_PARAMETER_NAME + '=';
 
     /**
      * The match string for identifying a session ID parameter.
@@ -317,20 +318,20 @@ public class GrizzlyRequest {
     /**
      * List of read only attributes for this Request.
      */
-    private HashMap readOnlyAttributes = new HashMap();
+    private HashMap<String,Object> readOnlyAttributes = new HashMap<String,Object>();
 
 
     /**
      * The preferred Locales associated with this Request.
      */
-    protected ArrayList locales = new ArrayList();
+    protected ArrayList<Locale> locales = new ArrayList<Locale>();
 
 
     /**
      * Internal notes associated with this request by Catalina components
      * and event listeners.
      */
-    private transient HashMap notes = new HashMap();
+    private transient HashMap<String,Object> notes = new HashMap<String,Object>();
 
 
     /**
@@ -598,15 +599,6 @@ public class GrizzlyRequest {
         return (request.getHeader(Constants.AUTHORIZATION_HEADER));
     }
 
-    /**
-     * Set the authorization credentials sent with this request.
-     *
-     * @param authorization The new authorization credentials
-     */
-    public void setAuthorization(String authorization) {
-        // Not used
-    }
-
 
     /**
      * Return the input stream associated with this Request.
@@ -616,15 +608,6 @@ public class GrizzlyRequest {
             inputStream = new GrizzlyInputStream(inputBuffer);
         }
         return inputStream;
-    }
-
-    /**
-     * Set the input stream associated with this Request.
-     *
-     * @param stream The new input stream
-     */
-    public void setStream(InputStream stream) {
-        // Ignore
     }
 
 
@@ -857,18 +840,6 @@ public class GrizzlyRequest {
 
 
     /**
-     * TODO: Documentation
-     * 
-     * @return
-     */
-    InputBuffer getInputBuffer() {
-
-        return inputBuffer;
-
-    }
-
-
-    /**
      * Return the preferred Locale that the client will accept content in,
      * based on the value for the first <code>Accept-Language</code> header
      * that was encountered.  If the request did not specify a preferred
@@ -880,7 +851,7 @@ public class GrizzlyRequest {
             parseLocales();
 
         if (locales.size() > 0) {
-            return ((Locale) locales.get(0));
+            return (locales.get(0));
         } else {
             return (defaultLocale);
         }
@@ -894,16 +865,16 @@ public class GrizzlyRequest {
      * headers that were encountered.  If the request did not specify a
      * preferred language, the server's default Locale is returned.
      */
-    public Enumeration getLocales() {
+    public Enumeration<Locale> getLocales() {
 
         if (!localesParsed)
             parseLocales();
 
         if (locales.size() > 0)
-            return (new Enumerator(locales));
-        ArrayList results = new ArrayList();
+            return (new Enumerator<Locale>(locales));
+        ArrayList<Locale> results = new ArrayList<Locale>();
         results.add(defaultLocale);
-        return (new Enumerator(results));
+        return (new Enumerator<Locale>(results));
 
     }
 
@@ -936,7 +907,7 @@ public class GrizzlyRequest {
      * @return A {@link java.util.Map} containing parameter names as keys
      *  and parameter values as map values.
      */
-    public Map getParameterMap() {
+    public Map<String,String[]> getParameterMap() {
 
         if (parameterMap.isLocked())
             return parameterMap;
@@ -1264,9 +1235,6 @@ public class GrizzlyRequest {
             return;
         }
 
-        Object oldValue = null;
-        boolean replaced = false;
-
         // Add or replace the specified attribute
         // Check for read only attribute
         // requests are per thread so synchronization unnecessary
@@ -1274,18 +1242,8 @@ public class GrizzlyRequest {
             return;
         }
 
-        oldValue = attributes.put(name, value);
-        if (oldValue != null) {
-            replaced = true;
-        }
+        attributes.put(name, value);
 
-        // START SJSAS 6231069
-        // Pass special attributes to the ngrizzly layer
-        // TODO - Deal with this code path
-        //if (name.startsWith("grizzly.")) {
-        //    request.setAttribute(name, value);
-        //}
-        // END SJSAS 6231069
     }
 
 
@@ -1306,6 +1264,7 @@ public class GrizzlyRequest {
      *
      * @since Servlet 2.3
      */
+    @SuppressWarnings({"unchecked"})
     public void setCharacterEncoding(String enc)
         throws UnsupportedEncodingException {
 
@@ -1414,17 +1373,6 @@ public class GrizzlyRequest {
 
         cookies = newCookies;
 
-    }
-
-
-    /**
-     * Add a Header to the set of Headers associated with this Request.
-     *
-     * @param name The new header name
-     * @param value The new header value
-     */
-    public void addHeader(String name, String value) {
-        // Not used
     }
 
 
@@ -1816,8 +1764,20 @@ public class GrizzlyRequest {
 
         final Cookies serverCookies = getRawCookies();
         final Collection<Cookie> parsedCookies = serverCookies.get();
-        cookies = parsedCookies.toArray(new Cookie[0]);
+        cookies = parsedCookies.toArray(new Cookie[parsedCookies.size()]);
     }
+
+
+    /**
+     * @return the {@link InputBuffer} associated with this request.
+     */
+    protected InputBuffer getInputBuffer() {
+
+        return inputBuffer;
+
+    }
+
+
 
 
     /**
@@ -1910,7 +1870,7 @@ public class GrizzlyRequest {
     protected byte[] getPostBody() throws IOException {
 
         int len = getContentLength();
-        byte[] formData = null;
+        byte[] formData;
 
         if (len < CACHED_POST_LEN) {
             if (postData == null)
@@ -1974,7 +1934,7 @@ public class GrizzlyRequest {
         // a local collection, sorted by the quality value (so we can
         // add Locales in descending order).  The values will be ArrayLists
         // containing the corresponding Locales to be added
-        TreeMap localLocales = new TreeMap();
+        TreeMap<Double,List<Locale>> localLocales = new TreeMap<Double,List<Locale>>();
 
         // Preprocess the value to remove all whitespace
         int white = value.indexOf(' ');
@@ -2023,9 +1983,9 @@ public class GrizzlyRequest {
                 continue;       // FIXME - "*" entries are not handled
 
             // Extract the language and country for this entry
-            String language = null;
-            String country = null;
-            String variant = null;
+            String language;
+            String country;
+            String variant;
             int dash = entry.indexOf('-');
             if (dash < 0) {
                 language = entry;
@@ -2046,10 +2006,10 @@ public class GrizzlyRequest {
 
             // Add a new Locale to the list of Locales for this quality level
             Locale locale = new Locale(language, country, variant);
-            Double key = new Double(-quality);  // Reverse the order
-            ArrayList values = (ArrayList) localLocales.get(key);
+            Double key = -quality;  // Reverse the order
+            ArrayList<Locale> values = (ArrayList<Locale>) localLocales.get(key);
             if (values == null) {
-                values = new ArrayList();
+                values = new ArrayList<Locale>();
                 localLocales.put(key, values);
             }
             values.add(locale);
@@ -2183,7 +2143,6 @@ public class GrizzlyRequest {
      */
     protected void configureSessionCookie(Cookie cookie) {
         cookie.setMaxAge(-1);
-        String contextPath = null;
         cookie.setPath("/");
 
         if (isSecure()) {
@@ -2210,7 +2169,7 @@ public class GrizzlyRequest {
 
             int sessionIdStart = start + semicolon + match.length();
             int semicolon2 = uriCC.indexOf(';', sessionIdStart);
-            String sessionId = null;
+            String sessionId;
             if (semicolon2 >= 0) {
                 sessionId = new String(uriCC.getBuffer(), sessionIdStart,
                                        semicolon2 - semicolon - match.length());
@@ -2244,7 +2203,7 @@ public class GrizzlyRequest {
      */
     protected void parseSessionIdFromRequestURI() {
 
-        int start, end, sessionIdStart, semicolon, semicolon2;
+        int start, end, semicolon, semicolon2;
 
         // TODO Rework this to not depend on ByteChunk
         BufferChunk bc = request.getRequestURIRef().getRequestURIBC();

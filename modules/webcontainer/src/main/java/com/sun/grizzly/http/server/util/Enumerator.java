@@ -136,7 +136,7 @@ public final class Enumerator<E> implements Enumeration<E> {
         if (!clone) {
             this.iterator = iterator;
         } else {
-            List list = new ArrayList();
+            List<E> list = new ArrayList<E>();
             while (iterator.hasNext()) {
                 list.add(iterator.next());
             }

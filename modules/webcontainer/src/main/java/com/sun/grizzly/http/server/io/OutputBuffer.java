@@ -107,6 +107,8 @@ public class OutputBuffer {
 
     private AsyncQueueWriter asyncWriter;
 
+    private int bufferSize = DEFAULT_BUFFER_SIZE;
+
     private final CompletionHandler asyncCompletionHandler =
             new EmptyCompletionHandler() {
 
@@ -149,6 +151,15 @@ public class OutputBuffer {
         return encoding;
     }
 
+    public int getBufferSize() {
+        return bufferSize;
+    }
+
+    public void setBufferSize(final int bufferSize) {
+        if (!committed && currentBuffer == null) {
+            this.bufferSize = bufferSize;  
+        }
+    }
 
     /**
      * Reset current response.

@@ -63,18 +63,18 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Extended implementation of <strong>HashMap</strong> that includes a
+ * Extended implementation of <strong>LinkedHashMap</strong> that includes a
  * <code>locked</code> property.  This class can be used to safely expose
  * Catalina internal parameter map objects to user classes without having
  * to clone them in order to avoid modifications.  When first created, a
- * <code>ParmaeterMap</code> instance is not locked.
+ * <code>ParameterMap</code> instance is not locked.
  *
  * @author Craig R. McClanahan
  * @version $Revision: 1.4 $ $Date: 2007/06/18 17:41:35 $
  */
 
 
-public final class ParameterMap extends LinkedHashMap {
+public final class ParameterMap extends LinkedHashMap<String,String[]> {
 
     // ----------------------------------------------------------- Constructors
 
@@ -120,9 +120,9 @@ public final class ParameterMap extends LinkedHashMap {
     /**
      * Construct a new map with the same mappings as the given map.
      *
-     * @param map Map whose contents are dupliated in the new map
+     * @param map Map whose contents are duplicated in the new map
      */
-    public ParameterMap(Map map) {
+    public ParameterMap(Map<String,String[]> map) {
 
         super(map);
 
@@ -199,7 +199,7 @@ public final class ParameterMap extends LinkedHashMap {
      *
      * @exception IllegalStateException if this map is currently locked
      */
-    public Object put(Object key, Object value) {
+    public String[] put(String key, String[] value) {
 
         if (locked)
             throw new IllegalStateException
@@ -218,6 +218,7 @@ public final class ParameterMap extends LinkedHashMap {
      *
      * @exception IllegalStateException if this map is currently locked
      */
+    @SuppressWarnings({"unchecked"})
     public void putAll(Map map) {
 
         if (locked)
@@ -238,7 +239,7 @@ public final class ParameterMap extends LinkedHashMap {
      *
      * @exception IllegalStateException if this map is currently locked
      */
-    public Object remove(Object key) {
+    public Object remove(String key) {
 
         if (locked)
             throw new IllegalStateException

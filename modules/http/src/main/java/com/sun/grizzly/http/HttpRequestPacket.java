@@ -212,7 +212,6 @@ public abstract class HttpRequestPacket extends HttpHeader {
 
 
     /**
-     * TODO: Not currently used for anything
      * Return the buffer holding the server name, if
      * any. Use isNull() to check if there is no value
      * set.

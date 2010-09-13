@@ -59,7 +59,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * TODO: Documentation
+ * Configuration options for a particular {@link GrizzlyWebServer} instance.
  */
 public class ServerConfiguration {
 
@@ -150,6 +150,7 @@ public class ServerConfiguration {
 
         if (adapters.isEmpty()) {
             return new GrizzlyAdapter(docRoot) {
+                @SuppressWarnings({"unchecked"})
                 @Override
                 public void service(GrizzlyRequest request, GrizzlyResponse response) {
                     try {

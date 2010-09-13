@@ -62,7 +62,6 @@ import java.io.IOException;
 import java.util.Enumeration;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.Iterator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -348,32 +347,30 @@ public final class Parameters extends MultiMap {
     // START PWC 6057385
     private static void merge2(LinkedHashMap<String, String[]> one,
             LinkedHashMap<String, String[]> two ) {
-        Iterator<String> e = two.keySet().iterator();
 
-        while (e.hasNext()) {
-            String name = e.next();
-    // END PWC 6057385
+        for (final String name : two.keySet()) {
+            // END PWC 6057385
             String[] oneValue = one.get(name);
             String[] twoValue = two.get(name);
             String[] combinedValue;
 
-	    if (twoValue == null) {
-        } else {
-		if( oneValue==null ) {
-		    combinedValue = new String[twoValue.length];
-		    System.arraycopy(twoValue, 0, combinedValue,
-				     0, twoValue.length);
-		} else {
-		    combinedValue = new String[oneValue.length +
-					       twoValue.length];
-		    System.arraycopy(oneValue, 0, combinedValue, 0,
-				     oneValue.length);
-		    System.arraycopy(twoValue, 0, combinedValue,
-				     oneValue.length, twoValue.length);
-		}
-		one.put(name, combinedValue);
-	    }
-	}
+            if (twoValue == null) {
+            } else {
+                if (oneValue == null) {
+                    combinedValue = new String[twoValue.length];
+                    System.arraycopy(twoValue, 0, combinedValue,
+                            0, twoValue.length);
+                } else {
+                    combinedValue = new String[oneValue.length +
+                            twoValue.length];
+                    System.arraycopy(oneValue, 0, combinedValue, 0,
+                            oneValue.length);
+                    System.arraycopy(twoValue, 0, combinedValue,
+                            oneValue.length, twoValue.length);
+                }
+                one.put(name, combinedValue);
+            }
+        }
     }
 
     // incredibly inefficient data representation for parameters,
@@ -477,7 +474,7 @@ public final class Parameters extends MultiMap {
             urlDec=new UDecoder();   
         }
         urlDec.convert(bc);
-        String result = null;
+        String result;
         if (enc != null) {
             bc.setEncoding(enc);
             result = bc.toString();
@@ -589,24 +586,18 @@ public final class Parameters extends MultiMap {
     /** Debug purpose
      */
     public String paramsAsString() {
-	StringBuilder sb=new StringBuilder();
-        /* START PWC 6057385
-        Enumeration en= paramHashStringArray.keys();
-        while( en.hasMoreElements() ) {
-            String k=(String)en.nextElement();
-        */
-        // START PWC 6057385
-        Iterator<String> en = paramHashStringArray.keySet().iterator();
-        while( en.hasNext() ) {
-            String k = en.next();
-        // END PWC 6057385
-	    sb.append( k ).append("=");
-	    String v[] = paramHashStringArray.get( k );
-	    for( int i=0; i<v.length; i++ )
-		sb.append( v[i] ).append(",");
-	    sb.append("\n");
-	}
-	return sb.toString();
+
+        StringBuilder sb=new StringBuilder();
+
+        for (final String s : paramHashStringArray.keySet()) {
+            // END PWC 6057385
+            sb.append(s).append("=");
+            String v[] = paramHashStringArray.get(s);
+            for (int i = 0; i < v.length; i++)
+                sb.append(v[i]).append(",");
+            sb.append("\n");
+        }
+        return sb.toString();
     }
 
     private static int debug=0;
