@@ -455,7 +455,7 @@ public class WebSocketFilter extends BaseFilter {
         final byte[] key3 = new byte[8];
         buffer.get(key3);
 
-        final ClientWebSocketMeta clientMeta = new ClientWebSocketMeta(
+        return new ClientWebSocketMeta(
                 new URI(request.getRequestURI()),
                 request.getHeader(CLIENT_WS_ORIGIN_HEADER),
                 request.getHeader(SEC_WS_PROTOCOL_HEADER),
@@ -464,8 +464,6 @@ public class WebSocketFilter extends BaseFilter {
                 request.getHeader(SEC_WS_KEY2_HEADER),
                 key3,
                 request.isSecure());
-
-        return clientMeta;
     }
 
     private ServerWebSocketMeta composeServerWSMeta(
@@ -476,15 +474,13 @@ public class WebSocketFilter extends BaseFilter {
         final byte[] serverKey = new byte[16];
         buffer.get(serverKey);
 
-        ServerWebSocketMeta serverMeta = new ServerWebSocketMeta(
+        return new ServerWebSocketMeta(
                 null,
                 response.getHeader(SERVER_SEC_WS_ORIGIN_HEADER),
                 response.getHeader(SERVER_SEC_WS_LOCATION_HEADER),
                 response.getHeader(SEC_WS_PROTOCOL_HEADER),
                 serverKey,
                 response.isSecure());
-
-        return serverMeta;
     }
 
     private HttpContent composeWSRequest(Connection connection,
@@ -511,11 +507,10 @@ public class WebSocketFilter extends BaseFilter {
         final HttpRequestPacket httpRequest = builder.build();
 
         final MemoryManager mm = connection.getTransport().getMemoryManager();
-        final HttpContent content = HttpContent.builder(httpRequest)
+
+        return HttpContent.builder(httpRequest)
                 .content(MemoryUtils.wrap(mm, meta.getKey3()))
                 .build();
-
-        return content;
     }
 
     private HttpContent composeWSResponse(Connection connection,
@@ -541,11 +536,9 @@ public class WebSocketFilter extends BaseFilter {
 
         final Buffer serverKeyBuffer = MemoryUtils.wrap(mm, meta.getKey());
 
-        final HttpContent httpContent = HttpContent.builder(response)
+        return HttpContent.builder(response)
                 .content(serverKeyBuffer)
                 .build();
-
-        return httpContent;
     }
 
     private HttpResponsePacket composeHandshakeError(HttpRequestPacket request,

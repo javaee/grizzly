@@ -95,7 +95,7 @@ public abstract class WebSocketApplication<W extends WebSocket>
      *
      * @param websocket {@link WebSocket} to add.
      *
-     * @return <tt>true</tt>, if the {@link WebSocket} was succeessfully added, or
+     * @return <tt>true</tt>, if the {@link WebSocket} was successfully added, or
      * <tt>false</tt> otherwise.
      */
     public boolean add(W websocket) {

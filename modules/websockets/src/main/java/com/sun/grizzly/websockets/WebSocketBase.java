@@ -142,7 +142,7 @@ public class WebSocketBase implements WebSocket {
             final GrizzlyFuture future = send(Frame.createCloseFrame());
             try {
                 future.get(200, TimeUnit.MILLISECONDS);
-            } catch (Exception e) {
+            } catch (Exception ignored) {
             }
             
             connection.close();
