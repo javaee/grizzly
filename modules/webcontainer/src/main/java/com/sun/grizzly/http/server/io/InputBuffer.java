@@ -84,10 +84,6 @@ public class InputBuffer {
      */
     private boolean  processingChars;
 
-    /**
-     * Flag indicating whether or not all message chunks have been processed.
-     */
-//    private boolean contentRead;
 
     /**
      * Flag indicating whether or not this <code>InputBuffer</code> has been
@@ -164,7 +160,7 @@ public class InputBuffer {
     private int requestedSize;
 
     /**
-     * Flag indicating whehter or not async operations are being used on the
+     * Flag indicating whether or not async operations are being used on the
      * input streams.
      */
     private boolean asyncEnabled;
@@ -435,10 +431,10 @@ public class InputBuffer {
     /**
      * @see java.io.Reader#ready()
      */
-    public boolean ready() throws IOException {
+    public boolean ready() {
 
         if (closed) {
-            throw new IOException();
+            return false;
         }
         if (!processingChars) {
             throw new IllegalStateException();
