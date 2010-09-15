@@ -169,7 +169,7 @@ public class InputBuffer {
     private float averageCharsPerByte = 1.0f;
 
     /**
-     * Syncronization lock.
+     * Synchronization lock.
      */
     private final Object lock = new Object();
 
