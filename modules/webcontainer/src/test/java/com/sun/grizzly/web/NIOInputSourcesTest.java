@@ -375,7 +375,7 @@ public class NIOInputSourcesTest extends TestCase {
             Connection connection = null;
             try {
                 connection = connectFuture.get(timeout, TimeUnit.SECONDS);
-                String res = testResult.get(timeout, TimeUnit.SECONDS);
+                String res = testResult.get();
                 if (res != null) {
                     assertEquals("Expected a return content length of " + expectedResult.length() + ", received: " + res.length(),
                             expectedResult.length(),

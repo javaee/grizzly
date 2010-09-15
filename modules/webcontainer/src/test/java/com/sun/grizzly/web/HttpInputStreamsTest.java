@@ -468,7 +468,9 @@ public class HttpInputStreamsTest extends TestCase {
             }
         };
 
-        doTest(createRequest("POST", expected), reader, 1024);
+        for (int i = 0, chunkSize = 2; i < 14; i++, chunkSize += 2) {
+            doTest(createRequest("POST", expected), reader, chunkSize);
+        }
 
     }
 
@@ -490,7 +492,9 @@ public class HttpInputStreamsTest extends TestCase {
             }
         };
 
-        doTest(createRequest("POST", expected), reader, 1024);
+        for (int i = 0, chunkSize = 2; i < 14; i++, chunkSize += 2) {
+            doTest(createRequest("POST", expected), reader, 1024);
+        }
 
     }
 
@@ -511,7 +515,9 @@ public class HttpInputStreamsTest extends TestCase {
             }
         };
 
-        doTest(createRequest("POST", content), reader, 1024);
+        for (int i = 0, chunkSize = 2; i < 14; i++, chunkSize += 2) {
+            doTest(createRequest("POST", content), reader, 1024);
+        }
 
     }
 
@@ -535,7 +541,9 @@ public class HttpInputStreamsTest extends TestCase {
             }
         };
 
-        doTest(createRequest("POST", expected), reader, 1024);
+        for (int i = 0, chunkSize = 2; i < 14; i++, chunkSize += 2) {
+            doTest(createRequest("POST", expected), reader, 1024);
+        }
 
     }
 
@@ -652,7 +660,6 @@ public class HttpInputStreamsTest extends TestCase {
                 assertEquals(expected.length(), read);
                 assertEquals(-1, in.read());
                 in.close();
-                cbuf.flip();
                 assertEquals(expected.length(), cbuf.remaining());
                 assertEquals(expected, cbuf.toString());
                 return true;
@@ -675,7 +682,8 @@ public class HttpInputStreamsTest extends TestCase {
                 CharBuffer cbuf = CharBuffer.allocate(expected.length() / 2);
                 StringBuilder sb = new StringBuilder(expected.length());
                 for (int i = in.read(cbuf); i != -1; i = in.read(cbuf)) {
-                    sb.append(cbuf.flip().toString());
+                    sb.append(cbuf.toString());
+                    cbuf.clear();
                 }
                 assertEquals(-1, in.read());
                 assertEquals(expected.length(), sb.length());
@@ -708,7 +716,8 @@ public class HttpInputStreamsTest extends TestCase {
                 CharBuffer cbuf = CharBuffer.allocate(1024 / 2);
                 StringBuilder sb = new StringBuilder(len);
                 for (int i = in.read(cbuf); i != -1; i = in.read(cbuf)) {
-                    sb.append(cbuf.flip().toString());
+                    sb.append(cbuf.toString());
+                    cbuf.clear();
                 }
                 assertEquals(-1, in.read());
                 assertEquals(b.length(), sb.length());

@@ -111,7 +111,8 @@ public interface NIOInputSource {
 
     /**
      * @return the number of bytes (or characters) that may be obtained
-     *  without blocking.
+     *  without blocking.  Note when dealing with characters, this method
+     *  will return an estimate on the number of characters available. 
      */
     int readyData();
 

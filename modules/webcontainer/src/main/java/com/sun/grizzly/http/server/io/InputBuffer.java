@@ -64,8 +64,6 @@ import java.nio.charset.CodingErrorAction;
  */
 public class InputBuffer {
 
-    private static final int DEFAULT_BUFFER_SIZE = 1024 * 8;
-
     /**
      * The {@link com.sun.grizzly.http.HttpRequestPacket} associated with this <code>InputBuffer</code>
      */
@@ -96,12 +94,6 @@ public class InputBuffer {
      * message chunks.
      */
     private BuffersBuffer compositeBuffer;
-
-    /**
-     * {@link CharBuffer} containing charset decoded bytes.  This is only
-     * allocated if {@link #processingChars} is <code>true</code>
-     */
-    private CharBuffer charBuf = CharBuffer.allocate(DEFAULT_BUFFER_SIZE);
 
     /**
      * The {@link Connection} associated with this {@link com.sun.grizzly.http.HttpRequestPacket}.
@@ -139,7 +131,7 @@ public class InputBuffer {
 
     /**
      * This {@link ByteBuffer} is used when content being converted to characters
-     * exceeds the capacity of the {@link #charBuf}.
+     * exceeds the capacity of the current character buffer.
      */
     private ByteBuffer remainder;
 
@@ -165,6 +157,9 @@ public class InputBuffer {
      */
     private boolean asyncEnabled;
 
+    private CharBuffer singleCharBuf;
+
+    private int averageCharsPerByte = 1;
 
     private final Object lock = new Object();
 
@@ -215,8 +210,6 @@ public class InputBuffer {
 
         compositeBuffer.tryDispose();
 
-        charBuf.clear();
-
         connection = null;
         decoder = null;
         remainder = null;
@@ -253,11 +246,10 @@ public class InputBuffer {
         String enc = request.getCharacterEncoding();
         if (enc != null) {
             encoding = enc;
-        }
-        if (compositeBuffer.hasRemaining()) {
-            fillChar(0, false, true);
-        } else {
-            charBuf.flip();
+            final CharsetDecoder decoder = getDecoder();
+            averageCharsPerByte = ((Double) Math.ceil(
+                                      ((Float) decoder.averageCharsPerByte())
+                                          .doubleValue())).intValue();
         }
 
     }
@@ -365,15 +357,7 @@ public class InputBuffer {
             throw new IllegalArgumentException("target cannot be null.");
         }
 
-        if (!charBuf.hasRemaining()) {
-            if (fillChar(target.capacity(), !asyncEnabled, true) == -1) {
-                return -1;
-            }
-        }
-
-        int pos = target.position();
-        charBuf.read(target);
-        return (target.position() - pos);
+        return fillChar(target.capacity(), target, !asyncEnabled, true);
 
     }
 
@@ -389,13 +373,16 @@ public class InputBuffer {
         if (!processingChars) {
             throw new IllegalStateException();
         }
-        if (!charBuf.hasRemaining()) {
-            if (fillChar(1, true, true) == -1) {
-                return -1;
-            }
+        if (singleCharBuf == null) {
+            singleCharBuf = CharBuffer.allocate(1);
         }
-        
-        return charBuf.get();
+        int read = read(singleCharBuf);
+        if (read == -1) {
+            return -1;
+        }
+        final char c = singleCharBuf.get();
+        singleCharBuf.clear();
+        return c;
 
     }
 
@@ -416,14 +403,9 @@ public class InputBuffer {
         if (len == 0) {
             return 0;
         }
-        if (!charBuf.hasRemaining()) {
-            if (fillChar(len, !asyncEnabled, true) == -1) {
-                return -1;
-            }
-        }
-        int nlen = Math.min(charBuf.remaining(), len);
-        charBuf.get(cbuf, off, nlen);
-        return nlen;
+
+        final CharBuffer buf = CharBuffer.wrap(cbuf, off, len);
+        return read(buf);
 
     }
 
@@ -439,15 +421,15 @@ public class InputBuffer {
         if (!processingChars) {
             throw new IllegalStateException();
         }
-        return ((remainder != null && remainder.remaining() > 0)
-                   || (charBuf.remaining() != 0)
+        return ((remainder != null && remainder.hasRemaining())
+                   || (compositeBuffer.hasRemaining())
                    || request.isExpectContent());
 
     }
 
 
     public int availableChar() {
-        return charBuf.remaining();
+        return (compositeBuffer.remaining() * averageCharsPerByte);
     }
 
 
@@ -579,14 +561,11 @@ public class InputBuffer {
             if (n == 0) {
                 return 0L;
             }
-            if (!charBuf.hasRemaining()) {
-                if (fillChar((int) n, block, true) == -1) {
+            final CharBuffer skipBuffer = CharBuffer.allocate((int) n);
+                if (fillChar((int) n, skipBuffer, block, true) == -1) {
                     return 0;
                 }
-            }
-            long nlen = Math.min(charBuf.remaining(), n);
-            charBuf.position(charBuf.position() + (int) nlen);
-            return nlen;
+            return Math.min(skipBuffer.remaining(), n);
         }
 
     }
@@ -701,27 +680,16 @@ public class InputBuffer {
             final int addSize = buffer.remaining();
             if (addSize > 0) {
                 compositeBuffer.append(buffer);
-                if (processingChars) {
-                    fillChar(0, false, true);
-                    synchronized (lock) {
-                        if (handler != null) {
-                            if (charBuf.remaining() > requestedSize) {
-                                final ReadHandler localHandler = handler;
-                                handler = null;
-                                localHandler.onDataAvailable();
-                                return true;
-                            }
-                        }
-                    }
-                } else {
-                    synchronized (lock) {
-                        if (handler != null) {
-                            if (compositeBuffer.remaining() > requestedSize) {
-                                final ReadHandler localHandler = handler;
-                                handler = null;
-                                localHandler.onDataAvailable();
-                                return true;
-                            }
+                synchronized (lock) {
+                    if (handler != null) {
+                        final int available = ((processingChars)
+                                                     ? availableChar()
+                                                     : available());
+                        if (available > requestedSize) {
+                            final ReadHandler localHandler = handler;
+                            handler = null;
+                            localHandler.onDataAvailable();
+                            return true;
                         }
                     }
                 }
@@ -775,7 +743,7 @@ public class InputBuffer {
 
     /**
      * <p>
-     * Used to add additional http message chunk content to {@link #charBuf}.
+     * Used to convert bytes to char.
      * </p>
      *
      * @param requestedLen how much content should attempt to be read
@@ -784,17 +752,19 @@ public class InputBuffer {
      *
      * @throws IOException if an I/O error occurs while reading content
      */
-    private int fillChar(int requestedLen, boolean block, boolean flip) throws IOException {
+    private int fillChar(int requestedLen,
+                         CharBuffer dst,
+                         boolean block,
+                         boolean flip) throws IOException {
 
-        if ((remainder != null && remainder.hasRemaining()) || !block) {
+        if ((remainder != null && remainder.hasRemaining() || compositeBuffer.hasRemaining()) || !block) {
             final CharsetDecoder decoderLocal = getDecoder();
-            charBuf.compact();
-            int charPos = charBuf.position();
+            int charPos = dst.position();
             final ByteBuffer bb = ((remainder != null) ? remainder : compositeBuffer.toByteBuffer());
             int bbPos = bb.position();
-            CoderResult result = decoderLocal.decode(bb, charBuf, false);
+            CoderResult result = decoderLocal.decode(bb, dst, false);
 
-            int readChars = charBuf.position() - charPos;
+            int readChars = dst.position() - charPos;
             int readBytes = bb.position() - bbPos;
             bb.position(bbPos);
             if (result == CoderResult.UNDERFLOW) {
@@ -808,34 +778,50 @@ public class InputBuffer {
                 if (remainder != null) {
                     remainder = null;
                 }
+            } else {
+                
+                if (remainder != null) {
+                    remainder.position(remainder.position() + readBytes);
+                } else {
+                    compositeBuffer.position(compositeBuffer.position() + readBytes);
+                }
             }
             
-            if (compositeBuffer.hasRemaining()) {
-                readChars += fillChar(0, false, false);
+            if (compositeBuffer.hasRemaining() && readChars < requestedLen) {
+                readChars += fillChar(0, dst, false, false);
             }
 
             if (flip) {
-                charBuf.flip();
+                dst.flip();
             }
             return readChars;
         }
         if (request.isExpectContent()) {
             int read = 0;
             CharsetDecoder decoderLocal = getDecoder();
-            charBuf.compact();
-            if (charBuf.position() == charBuf.capacity()) {
-                charBuf.clear();
+            dst.compact();
+            if (dst.position() == dst.capacity()) {
+                dst.clear();
             }
 
             while (read < requestedLen && request.isExpectContent()) {
-                ReadResult rr = ctx.read();
-                HttpContent c = (HttpContent) rr.getMessage();
-                ByteBuffer bytes = c.getContent().toByteBuffer();
-                CoderResult result = decoderLocal.decode(bytes, charBuf, false);
-                if (result == CoderResult.UNDERFLOW) {
-                    read += charBuf.capacity() - charBuf.remaining();
+
+                ByteBuffer bytes;
+                boolean last = false;
+                if (compositeBuffer.hasRemaining()) {
+                    bytes = compositeBuffer.toByteBuffer();
+                } else {
+                    ReadResult rr = ctx.read();
+                    HttpContent c = (HttpContent) rr.getMessage();
+                    bytes = c.getContent().toByteBuffer();
+                    last = c.isLast();
                 }
-                if (c.isLast()) {
+                CoderResult result = decoderLocal.decode(bytes, dst, false);
+                read += dst.capacity() - dst.remaining();
+                if (result == CoderResult.UNDERFLOW) {
+                    break;
+                }
+                if (last) {
                     if (result == CoderResult.OVERFLOW) {
                         remainder = bytes;
                     }
@@ -846,7 +832,7 @@ public class InputBuffer {
                     break;
                 }
             }
-            charBuf.flip();
+            dst.flip();
             return read;
         }
         return -1;
