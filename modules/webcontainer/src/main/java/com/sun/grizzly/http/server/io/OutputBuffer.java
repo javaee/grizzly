@@ -47,10 +47,10 @@ import com.sun.grizzly.EmptyCompletionHandler;
 import com.sun.grizzly.asyncqueue.AsyncQueueWriter;
 import com.sun.grizzly.asyncqueue.TaskQueue;
 import com.sun.grizzly.filterchain.FilterChainContext;
-import com.sun.grizzly.http.Constants;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.http.HttpServerFilter;
+import com.sun.grizzly.http.server.Constants;
 import com.sun.grizzly.http.util.Utils;
 import com.sun.grizzly.memory.BuffersBuffer;
 import com.sun.grizzly.memory.CompositeBuffer;
@@ -90,8 +90,6 @@ public class OutputBuffer {
     private boolean closed;
 
     private boolean processingChars;
-
-    private String encoding = Constants.DEFAULT_CHARACTER_ENCODING; // should this be UTF-8?
 
     private CharsetEncoder encoder;
 
@@ -139,16 +137,6 @@ public class OutputBuffer {
 
     public void processingChars() {
         processingChars = true;
-    }
-
-
-    public void setEncoding(String encoding) {
-        this.encoding = encoding;
-    }
-
-
-    public String getEncoding() {
-        return encoding;
     }
 
     public int getBufferSize() {
@@ -210,8 +198,6 @@ public class OutputBuffer {
         finished = false;
         closed = false;
         processingChars = false;
-
-        encoding = Constants.DEFAULT_CHARACTER_ENCODING;
 
     }
 
@@ -590,7 +576,11 @@ public class OutputBuffer {
     private CharsetEncoder getEncoder() {
 
         if (encoder == null) {
-            final Charset cs = Utils.lookupCharset(getEncoding());
+            String encoding = response.getCharacterEncoding();
+            if (encoding == null) {
+                encoding = Constants.DEFAULT_CHARACTER_ENCODING;
+            }
+            final Charset cs = Utils.lookupCharset(encoding);
             encoder = cs.newEncoder();
             encoder.onMalformedInput(CodingErrorAction.REPLACE);
             encoder.onUnmappableCharacter(CodingErrorAction.REPLACE);
