@@ -236,7 +236,7 @@ public class NIOInputSourcesTest extends TestCase {
         final String expected = buildString(5000);
         final HttpPacket request = createRequest("POST", expected, encoding);
         ClientFilter filter = new ClientFilter(testResult, request, null, encoding);
-        doTest(adapter, request, expected, testResult, null, filter, 30);
+        doTest(adapter, expected, testResult, filter, 30);
 
     }
 
@@ -374,10 +374,8 @@ public class NIOInputSourcesTest extends TestCase {
     throws Exception {
 
         doTest(adapter,
-               request,
                expectedResult,
                testResult,
-               strategy,
                new ClientFilter(testResult, request, strategy, null),
                timeout);
 
@@ -386,10 +384,8 @@ public class NIOInputSourcesTest extends TestCase {
 
 
     private void doTest(final GrizzlyAdapter adapter,
-                        final HttpPacket request,
                         final String expectedResult,
                         final FutureImpl<String> testResult,
-                        final WriteStrategy strategy,
                         final ClientFilter filter,
                         final int timeout)
             throws Exception {
@@ -524,8 +520,8 @@ public class NIOInputSourcesTest extends TestCase {
                 int available = reader.readyData();
                 if (available > 0) {
                     byte[] b = new byte[available];
-                    reader.read(b);
-                    res.getOutputStream().write(b);
+                    int read = reader.read(b);
+                    res.getOutputStream().write(b, 0, read);
                 }
                 if (reader.isFinished()) {
                     return;
@@ -574,13 +570,14 @@ public class NIOInputSourcesTest extends TestCase {
 
         private static void buffer(GrizzlyInputStream reader, StringBuffer sb) throws IOException {
             byte[] b = new byte[reader.readyData()];
+            int read;
             try {
-                reader.read(b);
+                read = reader.read(b);
             } catch (IOException ioe) {
                 throw new RuntimeException(ioe);
             }
             try {
-                sb.append(new String(b));
+                sb.append(new String(b, 0, read));
             } catch (Throwable ioe) {
                 throw new RuntimeException(ioe);
             }
