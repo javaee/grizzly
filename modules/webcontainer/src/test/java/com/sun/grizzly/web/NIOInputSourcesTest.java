@@ -233,7 +233,7 @@ public class NIOInputSourcesTest extends TestCase {
         final FutureImpl<String> testResult = SafeFutureImpl.create();
         final String encoding = "UTF-16";
         final GrizzlyAdapter adapter = new CharacterEchoAdapter(testResult, 0, encoding);
-        final String expected = buildString(10);
+        final String expected = buildString(5000);
         final HttpPacket request = createRequest("POST", expected, encoding);
         ClientFilter filter = new ClientFilter(testResult, request, null, encoding);
         doTest(adapter, request, expected, testResult, null, filter, 30);
