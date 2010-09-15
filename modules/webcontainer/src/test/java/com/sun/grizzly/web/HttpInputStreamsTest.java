@@ -45,14 +45,17 @@ import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.filterchain.BaseFilter;
+import com.sun.grizzly.filterchain.Filter;
 import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.http.HttpClientFilter;
 import com.sun.grizzly.http.HttpContent;
+import com.sun.grizzly.http.HttpHeader;
 import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
+import com.sun.grizzly.http.HttpTrailer;
 import com.sun.grizzly.http.Protocol;
 import com.sun.grizzly.http.server.GrizzlyRequest;
 import com.sun.grizzly.http.server.GrizzlyResponse;
@@ -62,6 +65,7 @@ import com.sun.grizzly.http.server.GrizzlyWebServer;
 import com.sun.grizzly.http.util.HttpStatus;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
+import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.utils.ChunkingFilter;
@@ -71,6 +75,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.nio.CharBuffer;
+import java.nio.charset.Charset;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -731,6 +736,31 @@ public class HttpInputStreamsTest extends TestCase {
     }
 
 
+    public void testMultiByteCharacter01() throws Throwable {
+        final String expected = "\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771";
+        ReadStrategy reader = new ReadStrategy() {
+            @Override public boolean doRead(GrizzlyRequest request)
+                    throws IOException {
+                StringBuilder sb = new StringBuilder(26);
+                Reader in = request.getReader(true);
+                for (int i = in.read(); i != -1; i = in.read()) {
+                    sb.append((char) i);
+                }
+                assertEquals(-1, in.read());
+                in.close();
+                assertEquals(expected.length(), sb.length());
+                assertEquals(expected, sb.toString());
+                return true;
+            }
+        };
+
+        final FutureImpl<Boolean> testResult = SafeFutureImpl.create();
+        Filter f = new CharsetClientFilter(createRequest("POST", null), expected, testResult, "UTF-16");
+        doTest(f, reader, testResult, 1024);
+
+    }
+
+
     public void testCharacterReady001() throws Throwable {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
@@ -913,7 +943,7 @@ public class HttpInputStreamsTest extends TestCase {
             null;
         
         HttpRequestPacket.Builder b = HttpRequestPacket.builder();
-        b.method(method).protocol(Protocol.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost");
+        b.method(method).protocol(Protocol.HTTP_1_1).uri("/path").chunked(((content == null))).header("Host", "localhost");
         if (content != null) {
             b.contentLength(contentBuffer.remaining());
         }
@@ -929,11 +959,21 @@ public class HttpInputStreamsTest extends TestCase {
         return request;
     }
 
-
-    private void doTest(HttpPacket request, ReadStrategy strategy, int chunkSize)
-    throws Throwable {
+    private void doTest(HttpPacket request,
+                        ReadStrategy strategy,
+                        int chunkSize) throws Throwable{
 
         final FutureImpl<Boolean> testResult = SafeFutureImpl.create();
+        doTest(new ClientFilter(request, testResult), strategy, testResult, chunkSize);
+
+    }
+
+
+    private void doTest(Filter clientFilter,
+                        ReadStrategy strategy,
+                        FutureImpl<Boolean> testResult,
+                        int chunkSize)
+    throws Throwable {
 
         GrizzlyWebServer server = GrizzlyWebServer.createSimpleServer("/tmp", PORT);
         ServerConfiguration sconfig = server.getServerConfiguration();
@@ -946,7 +986,7 @@ public class HttpInputStreamsTest extends TestCase {
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new ChunkingFilter(chunkSize));
             clientFilterChainBuilder.add(new HttpClientFilter());
-            clientFilterChainBuilder.add(new ClientFilter(request, testResult));
+            clientFilterChainBuilder.add(clientFilter);
             ctransport.setProcessor(clientFilterChainBuilder.build());
 
             ctransport.start();
@@ -1024,8 +1064,8 @@ public class HttpInputStreamsTest extends TestCase {
     private class ClientFilter extends BaseFilter {
         private final Logger logger = Grizzly.logger(ClientFilter.class);
 
-        private final HttpPacket request;
-        private final FutureImpl<Boolean> testResult;
+        protected final HttpPacket request;
+        protected final FutureImpl<Boolean> testResult;
 
         // -------------------------------------------------------- Constructors
 
@@ -1090,5 +1130,42 @@ public class HttpInputStreamsTest extends TestCase {
         }
 
     }
+
+
+    private final class CharsetClientFilter extends ClientFilter {
+
+        String encoding;
+        private String requestData;
+
+        public CharsetClientFilter(HttpPacket request,
+                                   String requestData,
+                                   FutureImpl<Boolean> testResult,
+                                   String encoding) {
+            super(request, testResult);
+            this.requestData = requestData;
+            this.encoding = encoding;
+        }
+
+
+        // -------------------------------------------------------- Constructors
+
+        @SuppressWarnings({"unchecked"})
+        @Override
+        public NextAction handleConnect(FilterChainContext ctx) throws IOException {
+            ((HttpHeader) request).addHeader("Content-Type", "plain/text;charset=" + encoding);
+            ctx.write(request);
+            byte[] bytes = requestData.getBytes(encoding);
+            MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
+            Buffer b = MemoryUtils.wrap(mm, bytes);
+            HttpContent.Builder builder = ((HttpHeader) request).httpContentBuilder();
+            builder.content(b);
+            ctx.write(builder.build());
+            if (((HttpHeader) request).isChunked()) {
+                HttpTrailer.Builder trailer = ((HttpHeader) request).httpTrailerBuilder();
+                ctx.write(trailer.build());
+            }
+            return ctx.getStopAction();
+        }
+    } // END CharsetClientFilter;
 
 }

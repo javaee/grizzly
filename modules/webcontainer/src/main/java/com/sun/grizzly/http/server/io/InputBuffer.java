@@ -159,7 +159,7 @@ public class InputBuffer {
 
     private CharBuffer singleCharBuf;
 
-    private int averageCharsPerByte = 1;
+    private float averageCharsPerByte = 1.0f;
 
     private final Object lock = new Object();
 
@@ -247,9 +247,7 @@ public class InputBuffer {
         if (enc != null) {
             encoding = enc;
             final CharsetDecoder decoder = getDecoder();
-            averageCharsPerByte = ((Double) Math.ceil(
-                                      ((Float) decoder.averageCharsPerByte())
-                                          .doubleValue())).intValue();
+            averageCharsPerByte = decoder.averageCharsPerByte();
         }
 
     }
@@ -429,7 +427,8 @@ public class InputBuffer {
 
 
     public int availableChar() {
-        return (compositeBuffer.remaining() * averageCharsPerByte);
+        final float available = compositeBuffer.remaining() * averageCharsPerByte;
+        return Float.valueOf(available).intValue();
     }
 
 
@@ -804,10 +803,11 @@ public class InputBuffer {
                 dst.clear();
             }
 
+            boolean last = false;
             while (read < requestedLen && request.isExpectContent()) {
 
                 ByteBuffer bytes;
-                boolean last = false;
+
                 if (compositeBuffer.hasRemaining()) {
                     bytes = compositeBuffer.toByteBuffer();
                 } else {
@@ -817,6 +817,7 @@ public class InputBuffer {
                     last = c.isLast();
                 }
                 CoderResult result = decoderLocal.decode(bytes, dst, false);
+               
                 read += dst.capacity() - dst.remaining();
                 if (result == CoderResult.UNDERFLOW) {
                     break;
@@ -833,6 +834,9 @@ public class InputBuffer {
                 }
             }
             dst.flip();
+            if (last && read == 0) {
+                read = -1;
+            }
             return read;
         }
         return -1;
