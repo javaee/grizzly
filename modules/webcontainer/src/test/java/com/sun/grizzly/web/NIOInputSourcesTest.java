@@ -51,6 +51,7 @@ import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.http.HttpClientFilter;
 import com.sun.grizzly.http.HttpContent;
+import com.sun.grizzly.http.HttpHeader;
 import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.Protocol;
@@ -72,6 +73,8 @@ import com.sun.grizzly.utils.ChunkingFilter;
 import junit.framework.TestCase;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -96,7 +99,7 @@ public class NIOInputSourcesTest extends TestCase {
         final FutureImpl<String> testResult = SafeFutureImpl.create();
         final GrizzlyAdapter adapter = new EchoAdapter(testResult, 0);
         final String expected = buildString(5000);
-        final HttpPacket request = createRequest("POST", expected);
+        final HttpPacket request = createRequest("POST", expected, null);
         doTest(adapter, request, expected, testResult, null, 10);
         
     }
@@ -111,7 +114,7 @@ public class NIOInputSourcesTest extends TestCase {
         final FutureImpl<String> testResult = SafeFutureImpl.create();
         final GrizzlyAdapter adapter = new EchoAdapter(testResult, 1000);
         final String expected = buildString(5000);
-        final HttpPacket request = createRequest("POST", expected);
+        final HttpPacket request = createRequest("POST", expected, null);
         doTest(adapter, request, expected, testResult, null, 10);
 
     }
@@ -122,7 +125,7 @@ public class NIOInputSourcesTest extends TestCase {
         final FutureImpl<String> testResult = SafeFutureImpl.create();
         final GrizzlyAdapter adapter = new EchoAdapter(testResult, 0);
         final String expected = buildString(5000);
-        final HttpPacket request = createRequest("POST", expected);
+        final HttpPacket request = createRequest("POST", expected, null);
         final WriteStrategy strategy = new WriteStrategy() {
             @Override
             public void doWrite(FilterChainContext ctx) throws IOException {
@@ -167,7 +170,7 @@ public class NIOInputSourcesTest extends TestCase {
         final FutureImpl<String> testResult = SafeFutureImpl.create();
         final GrizzlyAdapter adapter = new EchoAdapter(testResult, 2000);
         final String expected = buildString(5000);
-        final HttpPacket request = createRequest("POST", expected);
+        final HttpPacket request = createRequest("POST", expected, null);
         final WriteStrategy strategy = new WriteStrategy() {
             @Override
             public void doWrite(FilterChainContext ctx) throws IOException {
@@ -214,10 +217,26 @@ public class NIOInputSourcesTest extends TestCase {
     public void testBasicAsyncReadChar() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final GrizzlyAdapter adapter = new CharacterEchoAdapter(testResult, 0);
+        final GrizzlyAdapter adapter = new CharacterEchoAdapter(testResult, 0, null);
         final String expected = buildString(5000);
-        final HttpPacket request = createRequest("POST", expected);
+        final HttpPacket request = createRequest("POST", expected, null);
         doTest(adapter, request, expected, testResult, null, 30);
+
+    }
+
+
+    /*
+     * <em>POST</em> a message body with a length of 5000 bytes.
+     */
+    public void testBasicAsyncReadMultiByteChar() throws Throwable {
+
+        final FutureImpl<String> testResult = SafeFutureImpl.create();
+        final String encoding = "UTF-16";
+        final GrizzlyAdapter adapter = new CharacterEchoAdapter(testResult, 0, encoding);
+        final String expected = buildString(10);
+        final HttpPacket request = createRequest("POST", expected, encoding);
+        ClientFilter filter = new ClientFilter(testResult, request, null, encoding);
+        doTest(adapter, request, expected, testResult, null, filter, 30);
 
     }
 
@@ -229,9 +248,9 @@ public class NIOInputSourcesTest extends TestCase {
     public void testBasicAsyncReadCharSpecifiedSize() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final GrizzlyAdapter adapter = new CharacterEchoAdapter(testResult, 1000);
+        final GrizzlyAdapter adapter = new CharacterEchoAdapter(testResult, 1000, null);
         final String expected = buildString(5000);
-        final HttpPacket request = createRequest("POST", expected);
+        final HttpPacket request = createRequest("POST", expected, null);
         doTest(adapter, request, expected, testResult, null, 10);
 
     }
@@ -242,7 +261,7 @@ public class NIOInputSourcesTest extends TestCase {
         final FutureImpl<String> testResult = SafeFutureImpl.create();
         final GrizzlyAdapter adapter = new EchoAdapter(testResult, 0);
         final String expected = buildString(5000);
-        final HttpPacket request = createRequest("POST", expected);
+        final HttpPacket request = createRequest("POST", expected, null);
         final WriteStrategy strategy = new WriteStrategy() {
             @Override
             public void doWrite(FilterChainContext ctx) throws IOException {
@@ -287,7 +306,7 @@ public class NIOInputSourcesTest extends TestCase {
         final FutureImpl<String> testResult = SafeFutureImpl.create();
         final GrizzlyAdapter adapter = new EchoAdapter(testResult, 2000);
         final String expected = buildString(5000);
-        final HttpPacket request = createRequest("POST", expected);
+        final HttpPacket request = createRequest("POST", expected, null);
         final WriteStrategy strategy = new WriteStrategy() {
             @Override
             public void doWrite(FilterChainContext ctx) throws IOException {
@@ -346,12 +365,32 @@ public class NIOInputSourcesTest extends TestCase {
 
     }
 
+    private void doTest(final GrizzlyAdapter adapter,
+                        final HttpPacket request,
+                        final String expectedResult,
+                        final FutureImpl<String> testResult,
+                        final WriteStrategy strategy,
+                        final int timeout)
+    throws Exception {
+
+        doTest(adapter,
+               request,
+               expectedResult,
+               testResult,
+               strategy,
+               new ClientFilter(testResult, request, strategy, null),
+               timeout);
+
+    }
+
+
 
     private void doTest(final GrizzlyAdapter adapter,
                         final HttpPacket request,
                         final String expectedResult,
                         final FutureImpl<String> testResult,
                         final WriteStrategy strategy,
+                        final ClientFilter filter,
                         final int timeout)
             throws Exception {
 
@@ -364,9 +403,7 @@ public class NIOInputSourcesTest extends TestCase {
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new ChunkingFilter(128));
             clientFilterChainBuilder.add(new HttpClientFilter());
-            clientFilterChainBuilder.add(new ClientFilter(testResult,
-                                                          request,
-                                                          strategy));
+            clientFilterChainBuilder.add(filter);
             clientTransport.setProcessor(clientFilterChainBuilder.build());
 
             clientTransport.start();
@@ -413,23 +450,36 @@ public class NIOInputSourcesTest extends TestCase {
 
     @SuppressWarnings({"unchecked"})
     private HttpPacket createRequest(final String method,
-                                     final String content) {
-        final Buffer contentBuffer = content != null ?
-                MemoryUtils.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), content) :
-                null;
+                                     final String content,
+                                     String encoding) {
 
         HttpRequestPacket.Builder b = HttpRequestPacket.builder();
-        b.method(method).protocol(Protocol.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost:" + PORT);
-        if (content != null) {
-            b.contentLength(contentBuffer.remaining());
-        }
+        b.method(method).protocol(Protocol.HTTP_1_1).uri("/path").chunked(true).header("Host", "localhost:" + PORT);
 
         HttpRequestPacket request = b.build();
 
         if (content != null) {
             HttpContent.Builder cb = request.httpContentBuilder();
+            MemoryManager mm = TransportFactory.getInstance().getDefaultMemoryManager();
+            Buffer contentBuffer;
+            if (encoding != null) {
+                try {
+                    byte[] bytes = content.getBytes(encoding);
+                    contentBuffer = MemoryUtils.wrap(mm, bytes);
+                } catch (UnsupportedEncodingException e) {
+                    throw new RuntimeException(e);
+                }
+            } else {
+                contentBuffer = MemoryUtils.wrap(mm, content);
+            }
+
             cb.content(contentBuffer);
-            return cb.build();
+            HttpContent c = cb.build();
+            if (encoding != null) {
+                c.getHttpHeader().addHeader("content-type", "text/plain;charset=" + encoding);
+            }
+            return c;
+
         }
 
         return request;
@@ -543,16 +593,19 @@ public class NIOInputSourcesTest extends TestCase {
 
         private final FutureImpl<String> testResult;
         private final int readSize;
+        private final String encoding;
 
 
         // -------------------------------------------------------- Constructors
 
 
         CharacterEchoAdapter(final FutureImpl<String> testResult,
-                             final int readSize) {
+                             final int readSize,
+                             final String encoding) {
 
             this.testResult = testResult;
             this.readSize = readSize;
+            this.encoding = encoding;
 
         }
 
@@ -565,6 +618,9 @@ public class NIOInputSourcesTest extends TestCase {
                 throws Exception {
 
             try {
+                if (encoding != null) {
+                    res.setContentType("text/plain;charset=" + encoding);
+                }
                 final GrizzlyReader reader = req.getReader(false);
                 int available = reader.readyData();
                 if (available > 0) {
@@ -644,9 +700,11 @@ public class NIOInputSourcesTest extends TestCase {
         // number of bytes downloaded
         private volatile int bytesDownloaded;
 
-        private final HttpPacket request;
+        protected final HttpPacket request;
 
         private final WriteStrategy strategy;
+
+        private final String encoding;
 
 
         // -------------------------------------------------------- Constructors
@@ -654,11 +712,13 @@ public class NIOInputSourcesTest extends TestCase {
 
         public ClientFilter(FutureImpl<String> testFuture,
                             HttpPacket request,
-                            WriteStrategy strategy) {
+                            WriteStrategy strategy,
+                            String encoding) {
 
             this.testFuture = testFuture;
             this.request = request;
             this.strategy = strategy;
+            this.encoding = encoding;
 
         }
 
@@ -680,6 +740,18 @@ public class NIOInputSourcesTest extends TestCase {
             } else {
                 strategy.doWrite(ctx);
             }
+
+            HttpHeader header;
+            if (request.isHeader()) {
+                header = ((HttpHeader) request);
+            } else {
+                header = ((HttpContent) request).getHttpHeader();
+            }
+
+            if (header.isChunked()) {
+                ctx.write(header.httpTrailerBuilder().build());
+            }
+
 
             // Return the stop action, which means we don't expect next filter to process
             // connect event
@@ -714,7 +786,11 @@ public class NIOInputSourcesTest extends TestCase {
                         logger.log(Level.FINE, "Response complete: {0} bytes",
                                 bytesDownloaded);
                     }
-                    testFuture.result(buf.toStringContent());
+                    if (encoding != null) {
+                        testFuture.result(buf.toStringContent(Charset.forName(encoding)));
+                    } else {
+                        testFuture.result(buf.toStringContent());
+                    }
                     close();
                 }
             } catch (IOException e) {
