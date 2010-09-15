@@ -157,10 +157,20 @@ public class InputBuffer {
      */
     private boolean asyncEnabled;
 
+    /**
+     * {@link CharBuffer} for converting a single character at a time.
+     */
     private CharBuffer singleCharBuf;
 
+    /**
+     * Used to estimate how many characters can be produced from a variable
+     * number of bytes.
+     */
     private float averageCharsPerByte = 1.0f;
 
+    /**
+     * Syncronization lock.
+     */
     private final Object lock = new Object();
 
 
@@ -224,6 +234,8 @@ public class InputBuffer {
         readAheadLimit = -1;
         requestedSize = -1;
         readCount = 0;
+
+        averageCharsPerByte = 1.0f;
 
         encoding = Constants.DEFAULT_CHARACTER_ENCODING;
 
@@ -327,11 +339,18 @@ public class InputBuffer {
     }
 
 
+    /**
+     * @return the underlying {@link Buffer} used to buffer incoming request
+     *  data.
+     */
     public Buffer getBuffer() {
         return compositeBuffer;
     }
 
 
+    /**
+     * @return the {@link ReadHandler} current in use, if any.
+     */
     public ReadHandler getReadHandler() {
         return handler;
     }
@@ -437,7 +456,7 @@ public class InputBuffer {
 
     /**
      * <p>
-     * Not Supported.
+     * Only supported with binary data.
      * </p>
      *
      * @see java.io.InputStream#mark(int)
@@ -699,10 +718,21 @@ public class InputBuffer {
         
     }
 
+
+    /**
+     * @return if this buffer is being used to process asynchronous data.
+     */
     public boolean isAsyncEnabled() {
         return asyncEnabled;
     }
 
+
+    /**
+     * Sets the asynchronous processing state of this <code>InputBuffer</code>.
+     *
+     * @param asyncEnabled <code>true</code> if this <code>InputBuffer<code>
+     *  is to be used to process asynchronous request data.
+     */
     public void setAsyncEnabled(boolean asyncEnabled) {
         this.asyncEnabled = asyncEnabled;
     }
