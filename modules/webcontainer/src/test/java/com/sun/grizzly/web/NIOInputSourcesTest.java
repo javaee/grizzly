@@ -625,8 +625,8 @@ public class NIOInputSourcesTest extends TestCase {
                 int available = reader.readyData();
                 if (available > 0) {
                     char[] b = new char[available];
-                    reader.read(b);
-                    res.getWriter().write(b);
+                    int read = reader.read(b);
+                    res.getWriter().write(b, 0, read);
                 }
                 if (reader.isFinished()) {
                     return;
@@ -673,15 +673,17 @@ public class NIOInputSourcesTest extends TestCase {
 
         }
 
-        private static void buffer(GrizzlyReader reader, StringBuilder sb) throws IOException {
+        private static void buffer(GrizzlyReader reader, StringBuilder sb)
+        throws IOException {
             char[] c = new char[reader.readyData()];
+            int read;
             try {
-                reader.read(c);
+                read = reader.read(c);
             } catch (IOException ioe) {
                 throw new RuntimeException(ioe);
             }
             try {
-                sb.append(new String(c));
+                sb.append(new String(c, 0, read));
             } catch (Throwable ioe) {
                 throw new RuntimeException(ioe);
             }
