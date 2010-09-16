@@ -1387,66 +1387,6 @@ public class Mapper {
     }
 
 
-//    /**
-//     * Compare given char chunk with String.
-//     * Return -1, 0 or +1 if inferior, equal, or superior to the String.
-//     */
-//    private static int compare(CharChunk name, int start, int end,
-//                                     String compareTo) {
-//        int result = 0;
-//        char[] c = name.getBuffer();
-//        int len = compareTo.length();
-//        if ((end - start) < len) {
-//            len = end - start;
-//        }
-//        for (int i = 0; (i < len) && (result == 0); i++) {
-//            if (c[i + start] > compareTo.charAt(i)) {
-//                result = 1;
-//            } else if (c[i + start] < compareTo.charAt(i)) {
-//                result = -1;
-//            }
-//        }
-//        if (result == 0) {
-//            if (compareTo.length() > (end - start)) {
-//                result = -1;
-//            } else if (compareTo.length() < (end - start)) {
-//                result = 1;
-//            }
-//        }
-//        return result;
-//    }
-
-
-    /**
-     * Compare given char chunk with String ignoring case.
-     * Return -1, 0 or +1 if inferior, equal, or superior to the String.
-     */
-//    private static int compareIgnoreCase(CharChunk name, int start, int end,
-//                                     String compareTo) {
-//        int result = 0;
-//        char[] c = name.getBuffer();
-//        int len = compareTo.length();
-//        if ((end - start) < len) {
-//            len = end - start;
-//        }
-//        for (int i = 0; (i < len) && (result == 0); i++) {
-//            if (Ascii.toLower(c[i + start]) > Ascii.toLower(compareTo.charAt(i))) {
-//                result = 1;
-//            } else if (Ascii.toLower(c[i + start]) < Ascii.toLower(compareTo.charAt(i))) {
-//                result = -1;
-//            }
-//        }
-//        if (result == 0) {
-//            if (compareTo.length() > (end - start)) {
-//                result = -1;
-//            } else if (compareTo.length() < (end - start)) {
-//                result = 1;
-//            }
-//        }
-//        return result;
-//    }
-
-
     /**
      * Find the position of the last slash in the given char chunk.
      */
