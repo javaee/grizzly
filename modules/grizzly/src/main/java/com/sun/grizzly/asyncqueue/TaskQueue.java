@@ -272,7 +272,7 @@ public abstract class TaskQueue<E> {
 
 
     /**
-     * Notification mechanism which is currently invoked when
+     * Notification mechanism which will be invoked when
      * {@link TaskQueue#releaseSpace(int, boolean)} is called.
      */
     public interface QueueMonitor {
