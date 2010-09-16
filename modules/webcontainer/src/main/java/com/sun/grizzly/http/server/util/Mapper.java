@@ -61,13 +61,13 @@ package com.sun.grizzly.http.server.util;
 import javax.naming.NamingException;
 import javax.naming.directory.DirContext;
 
+import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.http.util.CharChunk;
-import com.sun.grizzly.http.util.MessageBytes;
-import com.sun.grizzly.http.util.Ascii;
-// START GlassFish 1024
+import com.sun.grizzly.http.util.BufferChunk;
+import com.sun.grizzly.memory.MemoryManager;
+import com.sun.grizzly.memory.MemoryUtils;
+
 import java.util.HashMap;
-// END GlassFish 1024
 import java.util.List;
 import java.util.ArrayList;
 import java.util.logging.Logger;
@@ -117,6 +117,20 @@ public class Mapper {
      * Allow replacement of already added {@link Host}, {@link Context} and {@link Wrapper}
      */
     private static boolean allowReplacement = false;
+
+
+    private final MemoryManager mm;
+
+
+    // ------------------------------------------------------------ Constructors
+
+
+    public Mapper(MemoryManager mm) {
+
+        this.mm = mm;
+        
+    }
+
 
     // --------------------------------------------------------- Public Methods
 
@@ -719,16 +733,18 @@ public class Mapper {
      * @param mappingData This structure will contain the result of the mapping
      *                    operation
      */
-    public void map(MessageBytes host, MessageBytes uri,
+    @SuppressWarnings({"unchecked"})
+    public void map(BufferChunk host,
+                    BufferChunk uri,
                     MappingData mappingData)
         throws Exception {
 
         if (host.isNull()) {
-            host.getCharChunk().append(defaultHostName);
+            host.setBuffer(MemoryUtils.wrap(mm, defaultHostName));
         }
-        host.toChars();
-        uri.toChars();
-        internalMap(host.getCharChunk(), uri.getCharChunk(), mappingData);
+        //host.toChars();
+        //uri.toChars();
+        internalMap(host, uri, mappingData);
 
     }
 
@@ -741,13 +757,13 @@ public class Mapper {
      * @param mappingData This structure will contain the result of the mapping
      *                    operation
      */
-    public void map(MessageBytes uri, MappingData mappingData)
+    public void map(BufferChunk uri, MappingData mappingData)
         throws Exception {
 
-        uri.toChars();
-        CharChunk uricc = uri.getCharChunk();
-        uricc.setLimit(-1);
-        internalMapWrapper(context, uricc, mappingData);
+        //uri.toChars();
+        //CharChunk uricc = uri.getCharChunk();
+        //uricc.setLimit(-1);
+        internalMapWrapper(context, uri, mappingData);
 
     }
 
@@ -758,12 +774,13 @@ public class Mapper {
     /**
      * Map the specified URI.
      */
-    private void internalMap(CharChunk host,
-                             CharChunk uri,
+    @SuppressWarnings({"unchecked"})
+    private void internalMap(BufferChunk host,
+                             BufferChunk uri,
                              MappingData mappingData)
     throws Exception {
 
-        uri.setLimit(-1);
+        //uri.setLimit(-1);
 
         Context[] contexts = null;
         Context context = null;
@@ -813,7 +830,7 @@ public class Mapper {
                 }
                 context = hosts[hostPos].defaultContexts[0];
                 mappingData.context = context.object;
-                mappingData.contextPath.setString(context.name);
+                mappingData.contextPath.setBuffer(MemoryUtils.wrap(mm, context.name));
                 found = true;
                 mappingData.isDefaultContext = true;
                 // END GlassFish 1024
@@ -830,9 +847,9 @@ public class Mapper {
                 */
                 while (pos >= 0) {
                     assert (contexts != null);
-                    if (uri.startsWith(contexts[pos].name)) {
+                    if (uri.startsWith(contexts[pos].name, 0)) {
                         length = contexts[pos].name.length();
-                        if (uri.getLength() == length) {
+                        if (uri.size() == length) {
                             found = true;
                             break;
                         } else if (uri.startsWithIgnoreCase("/", length)) {
@@ -865,7 +882,7 @@ public class Mapper {
                 }
                 if (context != null) {
                     mappingData.context = context.object;
-                    mappingData.contextPath.setString(context.name);
+                    mappingData.contextPath.setBuffer(MemoryUtils.wrap(mm, context.name));
                 }
             }
         }
@@ -881,12 +898,13 @@ public class Mapper {
     /**
      * Wrapper mapping.
      */
+    @SuppressWarnings({"unchecked"})
     private void internalMapWrapper(Context context,
-                                    CharChunk path,
+                                    BufferChunk path,
                                     MappingData mappingData)
     throws Exception {
 
-        int pathOffset = path.getOffset();
+        int pathOffset = path.getStart();
         int pathEnd = path.getEnd();
         int servletPath;
         boolean noServletPath = false;
@@ -901,8 +919,10 @@ public class Mapper {
                 servletPath = pathOffset + length;
             } else {
                 noServletPath = true;
-                path.append('/');
-                pathOffset = path.getOffset();
+                Buffer b = path.getBuffer();
+                b.putChar('/');
+                path.setBuffer(b);
+                pathOffset = path.getStart();
                 pathEnd = path.getEnd();
                 servletPath = pathOffset+length;
             }
@@ -910,7 +930,7 @@ public class Mapper {
         }
         // END GlassFish 1024
 
-        path.setOffset(servletPath);
+        path.setStart(servletPath);
 
         // Rule 1 -- Exact Match
         Wrapper[] exactWrappers = context.exactWrappers;
@@ -923,8 +943,8 @@ public class Mapper {
             internalMapWildcardWrapper(wildcardWrappers, context.nesting,
                                        path, mappingData);
             if (mappingData.wrapper != null && mappingData.jspWildCard) {
-                char[] buf = path.getBuffer();
-                if (buf[pathEnd - 1] == '/') {
+                Buffer buf = path.getBuffer();
+                if (buf.get(pathEnd - 1) == '/') {
                     /*
                      * Path ending in '/' was mapped to JSP servlet based on
                      * wildcard match (e.g., as specified in url-pattern of a
@@ -937,8 +957,9 @@ public class Mapper {
                     checkJspWelcomeFiles = true;
                 } else {
                     // See Bugzilla 27704
-                    mappingData.wrapperPath.setChars(buf, path.getStart(),
-                                                     path.getLength());
+                    mappingData.wrapperPath.setBuffer(buf,
+                                                      path.getStart(),
+                                                      path.size());
                     mappingData.pathInfo.recycle();
                 }
             }
@@ -954,8 +975,9 @@ public class Mapper {
 
             if (redirect) {
                 // The path is empty, redirect to "/"
-                mappingData.redirectPath.setChars
-                    (path.getBuffer(), pathOffset, pathEnd);
+                mappingData.redirectPath.setBuffer(path.getBuffer(),
+                                                   pathOffset,
+                                                   pathEnd);
                 path.setEnd(pathEnd - 1);
                 return;
             }
@@ -971,18 +993,23 @@ public class Mapper {
         if (mappingData.wrapper == null) {
             boolean checkWelcomeFiles = checkJspWelcomeFiles;
             if (!checkWelcomeFiles) {
-                char[] buf = path.getBuffer();
-                checkWelcomeFiles = (buf[pathEnd - 1] == '/');
+                Buffer buf = path.getBuffer();
+                checkWelcomeFiles = (buf.get(pathEnd - 1) == '/');
             }
 
             if (checkWelcomeFiles) {
                 for (int i = 0; (i < context.welcomeResources.length)
                          && (mappingData.wrapper == null); i++) {
-                    path.setOffset(pathOffset);
+                    path.setStart(pathOffset);
                     path.setEnd(pathEnd);
-                    path.append(context.welcomeResources[i], 0,
-                                context.welcomeResources[i].length());
-                    path.setOffset(servletPath);
+                    Buffer b = path.getBuffer();
+                    b.put(context.welcomeResources[0].getBytes(),
+                          0,
+                          context.welcomeResources[i].length());
+                    path.setBuffer(b);
+                    //path.append(context.welcomeResources[i], 0,
+                    //            context.welcomeResources[i].length());
+                    path.setStart(servletPath);
 
                     // Rule 4a -- Welcome resources processing for exact macth
                     internalMapExactWrapper(exactWrappers, path, mappingData);
@@ -1012,20 +1039,20 @@ public class Mapper {
                                 && context.defaultWrapper != null) {
                                 mappingData.wrapper =
                                     context.defaultWrapper.object;
-                                mappingData.requestPath.setChars
+                                mappingData.requestPath.setBuffer
                                     (path.getBuffer(), path.getStart(),
-                                     path.getLength());
-                                mappingData.wrapperPath.setChars
+                                     path.size());
+                                mappingData.wrapperPath.setBuffer
                                     (path.getBuffer(), path.getStart(),
-                                     path.getLength());
-                                mappingData.requestPath.setString(pathStr);
-                                mappingData.wrapperPath.setString(pathStr);
+                                     path.size());
+                                mappingData.requestPath.setBuffer(MemoryUtils.wrap(mm, pathStr));
+                                mappingData.wrapperPath.setBuffer(MemoryUtils.wrap(mm, pathStr));
                             }
                         }
                     }
                 }
 
-                path.setOffset(servletPath);
+                path.setStart(servletPath);
                 path.setEnd(pathEnd);
             }
         }
@@ -1035,14 +1062,14 @@ public class Mapper {
         if (mappingData.wrapper == null && !checkJspWelcomeFiles) {
             if (context.defaultWrapper != null) {
                 mappingData.wrapper = context.defaultWrapper.object;
-                mappingData.requestPath.setChars
-                    (path.getBuffer(), path.getStart(), path.getLength());
-                mappingData.wrapperPath.setChars
-                    (path.getBuffer(), path.getStart(), path.getLength());
+                mappingData.requestPath.setBuffer
+                    (path.getBuffer(), path.getStart(), path.size());
+                mappingData.wrapperPath.setBuffer
+                    (path.getBuffer(), path.getStart(), path.size());
             }
             // Redirection to a folder
-            char[] buf = path.getBuffer();
-            if (context.resources != null && buf[pathEnd -1 ] != '/') {
+            Buffer buf = path.getBuffer();
+            if (context.resources != null && buf.get(pathEnd -1) != '/') {
                 Object file = null;
                 String pathStr = path.toString();
                 try {
@@ -1054,18 +1081,20 @@ public class Mapper {
                     // Note: this mutates the path: do not do any processing
                     // after this (since we set the redirectPath, there
                     // shouldn't be any)
-                    path.setOffset(pathOffset);
-                    path.append('/');
-                    mappingData.redirectPath.setChars
-                        (path.getBuffer(), path.getStart(), path.getLength());
+                    path.setStart(pathOffset);
+                    Buffer b = path.getBuffer();
+                    b.put((byte) '/');
+                    path.setBuffer(b);
+                    mappingData.redirectPath.setBuffer
+                        (path.getBuffer(), path.getStart(), path.size());
                 } else {
-                    mappingData.requestPath.setString(pathStr);
-                    mappingData.wrapperPath.setString(pathStr);
+                    mappingData.requestPath.setBuffer(MemoryUtils.wrap(mm, pathStr));
+                    mappingData.wrapperPath.setBuffer(MemoryUtils.wrap(mm, pathStr));
                 }
             }
         }
 
-        path.setOffset(pathOffset);
+        path.setStart(pathOffset);
         path.setEnd(pathEnd);
     }
 
@@ -1073,12 +1102,14 @@ public class Mapper {
     /**
      * Exact mapping.
      */
-    private void internalMapExactWrapper
-        (Wrapper[] wrappers, CharChunk path, MappingData mappingData) {
+    @SuppressWarnings({"unchecked"})
+    private void internalMapExactWrapper(Wrapper[] wrappers,
+                                         BufferChunk path,
+                                         MappingData mappingData) {
         int pos = find(wrappers, path);
         if ((pos != -1) && (path.equals(wrappers[pos].name))) {
-            mappingData.requestPath.setString(wrappers[pos].name);
-            mappingData.wrapperPath.setString(wrappers[pos].name);
+            mappingData.requestPath.setBuffer(MemoryUtils.wrap(mm, wrappers[pos].name));
+            mappingData.wrapperPath.setBuffer(MemoryUtils.wrap(mm, wrappers[pos].name));
             mappingData.wrapper = wrappers[pos].object;
         }
     }
@@ -1087,9 +1118,10 @@ public class Mapper {
     /**
      * Wildcard mapping.
      */
+    @SuppressWarnings({"unchecked"})
     private void internalMapWildcardWrapper(Wrapper[] wrappers,
                                             int nesting,
-                                            CharChunk path,
+                                            BufferChunk path,
                                             MappingData mappingData) {
 
         int pathEnd = path.getEnd();
@@ -1100,9 +1132,9 @@ public class Mapper {
         if (pos != -1) {
             boolean found = false;
             while (pos >= 0) {
-                if (path.startsWith(wrappers[pos].name)) {
+                if (path.startsWith(wrappers[pos].name, 0)) {
                     length = wrappers[pos].name.length();
-                    if (path.getLength() == length) {
+                    if (path.size() == length) {
                         found = true;
                         break;
                     } else if (path.startsWithIgnoreCase("/", length)) {
@@ -1120,15 +1152,15 @@ public class Mapper {
             }
             path.setEnd(pathEnd);
             if (found) {
-                mappingData.wrapperPath.setString(wrappers[pos].name);
-                if (path.getLength() > length) {
-                    mappingData.pathInfo.setChars
+                mappingData.wrapperPath.setBuffer(MemoryUtils.wrap(mm, wrappers[pos].name));
+                if (path.size() > length) {
+                    mappingData.pathInfo.setBuffer
                         (path.getBuffer(),
-                         path.getOffset() + length,
-                         path.getLength() - length);
+                         path.getStart() + length,
+                         path.getEnd());
                 }
-                mappingData.requestPath.setChars
-                    (path.getBuffer(), path.getOffset(), path.getLength());
+                mappingData.requestPath.setBuffer
+                    (path.getBuffer(), path.getStart(), path.size());
                 mappingData.wrapper = wrappers[pos].object;
                 mappingData.jspWildCard = wrappers[pos].jspWildCard;
             }
@@ -1140,14 +1172,14 @@ public class Mapper {
      * Extension mappings.
      */
     private void internalMapExtensionWrapper(Wrapper[] wrappers,
-                                             CharChunk path,
+                                             BufferChunk path,
                                              MappingData mappingData) {
-        char[] buf = path.getBuffer();
+        Buffer buf = path.getBuffer();
         int pathEnd = path.getEnd();
-        int servletPath = path.getOffset();
+        int servletPath = path.getStart();
         int slash = -1;
         for (int i = pathEnd - 1; i >= servletPath; i--) {
-            if (buf[i] == '/') {
+            if (buf.get(i) == '/') {
                 slash = i;
                 break;
             }
@@ -1155,24 +1187,24 @@ public class Mapper {
         if (slash >= 0) {
             int period = -1;
             for (int i = pathEnd - 1; i > slash; i--) {
-                if (buf[i] == '.') {
+                if (buf.get(i) == '.') {
                     period = i;
                     break;
                 }
             }
             if (period >= 0) {
-                path.setOffset(period + 1);
+                path.setStart(period + 1);
                 path.setEnd(pathEnd);
                 int pos = find(wrappers, path);
                 if ((pos != -1)
                     && (path.equals(wrappers[pos].name))) {
-                    mappingData.wrapperPath.setChars
+                    mappingData.wrapperPath.setBuffer
                         (buf, servletPath, pathEnd - servletPath);
-                    mappingData.requestPath.setChars
+                    mappingData.requestPath.setBuffer
                         (buf, servletPath, pathEnd - servletPath);
                     mappingData.wrapper = wrappers[pos].object;
                 }
-                path.setOffset(servletPath);
+                path.setStart(servletPath);
                 path.setEnd(pathEnd);
             }
         }
@@ -1184,7 +1216,7 @@ public class Mapper {
      * This will return the index for the closest inferior or equal item in the
      * given array.
      */
-    private static int find(MapElement[] map, CharChunk name) {
+    private static int find(MapElement[] map, BufferChunk name) {
         return find(map, name, name.getStart(), name.getEnd());
     }
 
@@ -1194,8 +1226,10 @@ public class Mapper {
      * This will return the index for the closest inferior or equal item in the
      * given array.
      */
-    private static int find(MapElement[] map, CharChunk name,
-                                  int start, int end) {
+    private static int find(MapElement[] map,
+                            BufferChunk name,
+                            int start,
+                            int end) {
 
         int a = 0;
         int b = map.length - 1;
@@ -1205,7 +1239,7 @@ public class Mapper {
             return -1;
         }
 
-        if (compare(name, start, end, map[0].name) < 0 ) {
+        if (name.compare(start, end, map[0].name) < 0 ) {
             return -1;
         }
         if (b == 0) {
@@ -1215,7 +1249,7 @@ public class Mapper {
         int i;
         while (true) {
             i = (b + a) >>> 1;
-            int result = compare(name, start, end, map[i].name);
+            int result = name.compare(start, end, map[i].name);
             if (result == 1) {
                 a = i;
             } else if (result == 0) {
@@ -1224,7 +1258,7 @@ public class Mapper {
                 b = i;
             }
             if ((b - a) == 1) {
-                int result2 = compare(name, start, end, map[b].name);
+                int result2 = name.compare(start, end, map[b].name);
                 if (result2 < 0) {
                     return a;
                 } else {
@@ -1240,11 +1274,11 @@ public class Mapper {
      * This will return the index for the closest inferior or equal item in the
      * given array.
      */
-    private static int findIgnoreCase(MapElement[] map, String name) {
-        CharChunk cc = new CharChunk();
-        char[] chars = name.toCharArray();
-        cc.setChars(chars, 0, chars.length);
-        return findIgnoreCase(map, cc);
+    @SuppressWarnings({"unchecked"})
+    private int findIgnoreCase(MapElement[] map, String name) {
+        BufferChunk chunk = BufferChunk.newInstance();
+        chunk.setBuffer(MemoryUtils.wrap(mm, name));
+        return findIgnoreCase(map, chunk);
     }
 
 
@@ -1253,7 +1287,7 @@ public class Mapper {
      * This will return the index for the closest inferior or equal item in the
      * given array.
      */
-     private static int findIgnoreCase(MapElement[] map, CharChunk name) {
+     private static int findIgnoreCase(MapElement[] map, BufferChunk name) {
          return findIgnoreCase(map, name, name.getStart(), name.getEnd());
      }
 
@@ -1263,8 +1297,10 @@ public class Mapper {
      * This will return the index for the closest inferior or equal item in the
      * given array.
      */
-    private static int findIgnoreCase(MapElement[] map, CharChunk name,
-                                  int start, int end) {
+    private static int findIgnoreCase(MapElement[] map,
+                                      BufferChunk name,
+                                      int start,
+                                      int end) {
 
         int a = 0;
         int b = map.length - 1;
@@ -1273,7 +1309,8 @@ public class Mapper {
         if (b == -1) {
             return -1;
         }
-        if (compareIgnoreCase(name, start, end, map[0].name) < 0 ) {
+
+        if (name.compareIgnoreCase(start, end, map[0].name) < 0 ) {
             return -1;
         }
         if (b == 0) {
@@ -1283,7 +1320,7 @@ public class Mapper {
         int i;
         while (true) {
             i = (b + a) >>> 1;
-            int result = compareIgnoreCase(name, start, end, map[i].name);
+            int result = name.compareIgnoreCase(start, end, map[i].name);
             if (result == 1) {
                 a = i;
             } else if (result == 0) {
@@ -1292,7 +1329,7 @@ public class Mapper {
                 b = i;
             }
             if ((b - a) == 1) {
-                int result2 = compareIgnoreCase(name, start, end, map[b].name);
+                int result2 = name.compareIgnoreCase(start, end, map[b].name);
                 if (result2 < 0) {
                     return a;
                 } else {
@@ -1350,78 +1387,78 @@ public class Mapper {
     }
 
 
-    /**
-     * Compare given char chunk with String.
-     * Return -1, 0 or +1 if inferior, equal, or superior to the String.
-     */
-    private static int compare(CharChunk name, int start, int end,
-                                     String compareTo) {
-        int result = 0;
-        char[] c = name.getBuffer();
-        int len = compareTo.length();
-        if ((end - start) < len) {
-            len = end - start;
-        }
-        for (int i = 0; (i < len) && (result == 0); i++) {
-            if (c[i + start] > compareTo.charAt(i)) {
-                result = 1;
-            } else if (c[i + start] < compareTo.charAt(i)) {
-                result = -1;
-            }
-        }
-        if (result == 0) {
-            if (compareTo.length() > (end - start)) {
-                result = -1;
-            } else if (compareTo.length() < (end - start)) {
-                result = 1;
-            }
-        }
-        return result;
-    }
+//    /**
+//     * Compare given char chunk with String.
+//     * Return -1, 0 or +1 if inferior, equal, or superior to the String.
+//     */
+//    private static int compare(CharChunk name, int start, int end,
+//                                     String compareTo) {
+//        int result = 0;
+//        char[] c = name.getBuffer();
+//        int len = compareTo.length();
+//        if ((end - start) < len) {
+//            len = end - start;
+//        }
+//        for (int i = 0; (i < len) && (result == 0); i++) {
+//            if (c[i + start] > compareTo.charAt(i)) {
+//                result = 1;
+//            } else if (c[i + start] < compareTo.charAt(i)) {
+//                result = -1;
+//            }
+//        }
+//        if (result == 0) {
+//            if (compareTo.length() > (end - start)) {
+//                result = -1;
+//            } else if (compareTo.length() < (end - start)) {
+//                result = 1;
+//            }
+//        }
+//        return result;
+//    }
 
 
     /**
      * Compare given char chunk with String ignoring case.
      * Return -1, 0 or +1 if inferior, equal, or superior to the String.
      */
-    private static int compareIgnoreCase(CharChunk name, int start, int end,
-                                     String compareTo) {
-        int result = 0;
-        char[] c = name.getBuffer();
-        int len = compareTo.length();
-        if ((end - start) < len) {
-            len = end - start;
-        }
-        for (int i = 0; (i < len) && (result == 0); i++) {
-            if (Ascii.toLower(c[i + start]) > Ascii.toLower(compareTo.charAt(i))) {
-                result = 1;
-            } else if (Ascii.toLower(c[i + start]) < Ascii.toLower(compareTo.charAt(i))) {
-                result = -1;
-            }
-        }
-        if (result == 0) {
-            if (compareTo.length() > (end - start)) {
-                result = -1;
-            } else if (compareTo.length() < (end - start)) {
-                result = 1;
-            }
-        }
-        return result;
-    }
+//    private static int compareIgnoreCase(CharChunk name, int start, int end,
+//                                     String compareTo) {
+//        int result = 0;
+//        char[] c = name.getBuffer();
+//        int len = compareTo.length();
+//        if ((end - start) < len) {
+//            len = end - start;
+//        }
+//        for (int i = 0; (i < len) && (result == 0); i++) {
+//            if (Ascii.toLower(c[i + start]) > Ascii.toLower(compareTo.charAt(i))) {
+//                result = 1;
+//            } else if (Ascii.toLower(c[i + start]) < Ascii.toLower(compareTo.charAt(i))) {
+//                result = -1;
+//            }
+//        }
+//        if (result == 0) {
+//            if (compareTo.length() > (end - start)) {
+//                result = -1;
+//            } else if (compareTo.length() < (end - start)) {
+//                result = 1;
+//            }
+//        }
+//        return result;
+//    }
 
 
     /**
      * Find the position of the last slash in the given char chunk.
      */
-    private static int lastSlash(CharChunk name) {
+    private static int lastSlash(BufferChunk name) {
 
-        char[] c = name.getBuffer();
+        Buffer b = name.getBuffer();
         int end = name.getEnd();
         int start = name.getStart();
         int pos = end;
 
         while (pos > start) {
-            if (c[--pos] == '/') {
+            if (b.get(--pos) == '/') {
                 break;
             }
         }
@@ -1434,15 +1471,15 @@ public class Mapper {
     /**
      * Find the position of the nth slash, in the given char chunk.
      */
-    private static int nthSlash(CharChunk name, int n) {
+    private static int nthSlash(BufferChunk name, int n) {
 
-        char[] c = name.getBuffer();
+        Buffer b = name.getBuffer();
         int end = name.getEnd();
         int pos = name.getStart();
         int count = 0;
 
         while (pos < end) {
-            if ((c[pos++] == '/') && ((++count) == n)) {
+            if ((b.get(pos++) == '/') && ((++count) == n)) {
                 pos--;
                 break;
             }
@@ -1500,12 +1537,13 @@ public class Mapper {
      * any MapElement with matching name (this is an indication that
      * newElement has been inserted)
      */
-    private static MapElement insertMapIgnoreCase
-        (MapElement[] oldMap, MapElement[] newMap, MapElement newElement) {
-        CharChunk cc = new CharChunk();
-        char[] chars = newElement.name.toCharArray();
-        cc.setChars(chars, 0, chars.length);
-        int pos = findIgnoreCase(oldMap, cc);
+    @SuppressWarnings({"unchecked"})
+    private MapElement insertMapIgnoreCase(MapElement[] oldMap,
+                                           MapElement[] newMap,
+                                           MapElement newElement) {
+        BufferChunk chunk = BufferChunk.newInstance();
+        chunk.setBuffer(MemoryUtils.wrap(mm, newElement.name));
+        int pos = findIgnoreCase(oldMap, chunk);
         if ((pos != -1) && (newElement.name.equalsIgnoreCase(oldMap[pos].name))) {
             return oldMap[pos];
         }
@@ -1539,12 +1577,13 @@ public class Mapper {
      *
      * Name comparisons are performed in a case-insensitive manner.
      */
-    private static boolean removeMapIgnoreCase
-        (MapElement[] oldMap, MapElement[] newMap, String name) {
-        CharChunk cc = new CharChunk();
-        char[] chars = name.toCharArray();
-        cc.setChars(chars, 0, chars.length);
-        int pos = findIgnoreCase(oldMap, cc);
+    @SuppressWarnings({"unchecked"})
+    private boolean removeMapIgnoreCase(MapElement[] oldMap,
+                                        MapElement[] newMap,
+                                        String name) {
+        BufferChunk chunk = BufferChunk.newInstance();
+        chunk.setBuffer(MemoryUtils.wrap(mm, name));
+        int pos = findIgnoreCase(oldMap, chunk);
         if ((pos != -1) && (name.equalsIgnoreCase(oldMap[pos].name))) {
             System.arraycopy(oldMap, 0, newMap, 0, pos);
             System.arraycopy(oldMap, pos + 1, newMap, pos,
@@ -1623,12 +1662,12 @@ public class Mapper {
     // -------------------------------------------------------- Testing Methods
 
     // FIXME: Externalize this
-    /*
-    public static void main(String args[]) {
 
+    public static void main(String args[]) {
+        /*
         try {
 
-        Mapper mapper = new Mapper();
+        Mapper mapper = new Mapper(TransportFactory.getInstance().getDefaultMemoryManager());
         System.out.println("Start");
 
         mapper.addHost("sjbjdvwsbvhrb", new String[0], "blah1");
@@ -1673,12 +1712,10 @@ public class Mapper {
         mapper.addWrapper("iowejoiejfoiew", "/foo/bar", "*.htm", "wrapper6");
 
         MappingData mappingData = new MappingData();
-        MessageBytes host = MessageBytes.newInstance();
-        host.setString("iowejoiejfoiew");
-        MessageBytes uri = MessageBytes.newInstance();
-        uri.setString("/foo/bar/blah/bobou/foo");
-        uri.toChars();
-        uri.getCharChunk().setLimit(-1);
+        BufferChunk host = BufferChunk.newInstance();
+        host.setBuffer(MemoryUtils.wrap(mapper.mm, "iowejoiejfoiew"));
+        BufferChunk uri = BufferChunk.newInstance();
+        uri.setBuffer(MemoryUtils.wrap(mapper.mm, "/foo/bar/blah/bobou/foo"));
 
         mapper.map(host, uri, mappingData);
         System.out.println("MD Host:" + mappingData.host);
@@ -1726,9 +1763,8 @@ public class Mapper {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
+     */
     }
-    */
 
 
 }

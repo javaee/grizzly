@@ -41,16 +41,15 @@
 package com.sun.grizzly.http.server;
 
 import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.http.server.jmx.JmxEventListener;
 import com.sun.grizzly.http.server.jmx.Monitorable;
 import com.sun.grizzly.http.util.BufferChunk;
-import com.sun.grizzly.http.util.CharChunk;
 import com.sun.grizzly.http.util.HttpStatus;
 import com.sun.grizzly.http.util.RequestURIRef;
-import com.sun.grizzly.http.util.UDecoder;
-import com.sun.grizzly.http.util.MessageBytes;
 import com.sun.grizzly.http.server.util.Mapper;
 import com.sun.grizzly.http.server.util.MappingData;
+import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.monitoring.jmx.JmxObject;
 
 import java.util.Map.Entry;
@@ -74,7 +73,6 @@ import java.util.logging.Logger;
 public class GrizzlyAdapterChain extends GrizzlyAdapter implements JmxEventListener {
     private static final Logger logger = Grizzly.logger(GrizzlyAdapterChain.class);
 
-    private UDecoder urlDecoder = new UDecoder();
     protected final static int MAPPING_DATA = 12;
     protected final static int MAPPED_ADAPTER = 13;
     /**
@@ -87,7 +85,7 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter implements JmxEventListe
     /**
      * Internal {@link Mapper} used to Map request to their associated {@link GrizzlyAdapter}
      */
-    private Mapper mapper = new Mapper();
+    private Mapper mapper;
     /**
      * The default host.
      */
@@ -112,6 +110,7 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter implements JmxEventListe
 
     public GrizzlyAdapterChain(final GrizzlyWebServer gws) {
         this.gws = gws;
+        mapper = new Mapper(TransportFactory.getInstance().getDefaultMemoryManager());
         mapper.setDefaultHostName(LOCAL_HOST);
         // We will decode it
         setDecodeUrl(false);
@@ -196,15 +195,10 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter implements JmxEventListe
                     mappingData = (MappingData) request.getNote("MAPPING_DATA");
                 }
 
-                // TODO Mapper needs to be changes to not rely on MessageBytes/
-                //   CharChunk/ByteChunk, etc.
-                // Map the request to its Adapter
-
-                MessageBytes serverName = MessageBytes.newInstance();
-                serverName.setString(request.getServerName());
-                MessageBytes decURI = MessageBytes.newInstance();
-                decURI.setString(decodedURI.toString());
-                mapUriWithSemicolon(serverName, decURI, 0, mappingData);
+                mapUriWithSemicolon(request.getRequest().serverName(),
+                                    decodedURI,
+                                    0,
+                                    mappingData);
 
 
                 GrizzlyAdapter adapter;
@@ -352,29 +346,28 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter implements JmxEventListe
      *
      * @throws Exception if an error occurs mapping the request
      */
-    private void mapUriWithSemicolon(final MessageBytes serverName,
-                                     final MessageBytes decodedURI,
+    private void mapUriWithSemicolon(final BufferChunk serverName,
+                                     final BufferChunk decodedURI,
                                      int semicolonPos,
                                      final MappingData mappingData)
     throws Exception {
 
-        final CharChunk charChunk = decodedURI.getCharChunk();
-        final int oldEnd = charChunk.getEnd();
+        final int oldEnd = decodedURI.getEnd();
 
         if (semicolonPos == 0) {
-            semicolonPos = decodedURI.indexOf(';');
+            semicolonPos = decodedURI.indexOf(';', 0);
         }
 
         if (semicolonPos == -1) {
             semicolonPos = oldEnd;
         }
 
-        charChunk.setEnd(semicolonPos);
+        decodedURI.setEnd(semicolonPos);
 
         try {
             mapper.map(serverName, decodedURI, mappingData);
         } finally {
-            charChunk.setEnd(oldEnd);
+            decodedURI.setEnd(oldEnd);
         }
     }
 

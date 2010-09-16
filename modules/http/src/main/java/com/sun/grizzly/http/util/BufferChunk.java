@@ -338,11 +338,71 @@ public class BufferChunk {
         }
     }
 
+    /**
+     * @return -1, 0 or +1 if inferior, equal, or superior to the String.
+     */
+    public int compareIgnoreCase(int start, int end, String compareTo) {
+        int result = 0;
+
+        int len = compareTo.length();
+        if ((end - start) < len) {
+            len = end - start;
+        }
+        for (int i = 0; (i < len) && (result == 0); i++) {
+            if (Ascii.toLower(buffer.get(i + start)) > Ascii.toLower(compareTo.charAt(i))) {
+                result = 1;
+            } else if (Ascii.toLower(buffer.get(i + start)) < Ascii.toLower(compareTo.charAt(i))) {
+                result = -1;
+            }
+        }
+        if (result == 0) {
+            if (compareTo.length() > (end - start)) {
+                result = -1;
+            } else if (compareTo.length() < (end - start)) {
+                result = 1;
+            }
+        }
+        return result;
+    }
+
 
     /**
-     * Returns true if the message bytes starts with the specified string.
+     * @return -1, 0 or +1 if inferior, equal, or superior to the String.
+     */
+    public int compare(int start, int end, String compareTo) {
+        int result = 0;
+        int len = compareTo.length();
+        if ((end - start) < len) {
+            len = end - start;
+        }
+        for (int i = 0; (i < len) && (result == 0); i++) {
+            if (buffer.get(i + start) > compareTo.charAt(i)) {
+                result = 1;
+            } else if (buffer.get(i + start) < compareTo.charAt(i)) {
+                result = -1;
+            }
+        }
+        if (result == 0) {
+            if (compareTo.length() > (end - start)) {
+                result = -1;
+            } else if (compareTo.length() < (end - start)) {
+                result = 1;
+            }
+        }
+        return result;
+    }
+
+
+
+    /**
+     * Returns <code>true</code> if the <code>BufferChunk</code> starts with
+     * the specified string.
+     *  
      * @param s the string
      * @param pos The start position
+     *
+     * @return <code>true</code> if the </code>BufferChunk</code> starts with
+     *  the specified string.
      */
     public boolean startsWithIgnoreCase(String s, int pos) {
         if (!hasString()) {
@@ -367,6 +427,45 @@ public class BufferChunk {
             for (int i = 0; i < s.length(); i++) {
                 if (Ascii.toLower(s.charAt(i))
                         != Ascii.toLower(stringValue.charAt(pos + i))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
+
+    /**
+     * Returns <code>true</code> if the <code>BufferChunk</code> starts with
+     * the specified string.
+     * @param s the string
+     * @param pos The start position
+     *
+     * @return <code>true</code> if the <code>BufferChunk</code> starts with
+     *  the specified string.
+     */
+    public boolean startsWith(String s, int pos) {
+        if (!hasString()) {
+            int len = s.length();
+            if (len > end - start - pos) {
+                return false;
+            }
+
+            int off = start + pos;
+            for (int i = 0; i < len; i++) {
+                if (buffer.get(off++) != s.charAt(i)) {
+                    return false;
+                }
+            }
+
+            return true;
+        } else {
+            if (stringValue.length() < pos + s.length()) {
+                return false;
+            }
+
+            for (int i = 0; i < s.length(); i++) {
+                if (s.charAt(i) != stringValue.charAt(pos + i)) {
                     return false;
                 }
             }

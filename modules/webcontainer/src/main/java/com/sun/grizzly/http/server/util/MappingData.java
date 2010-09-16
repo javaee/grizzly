@@ -58,7 +58,7 @@
 
 package com.sun.grizzly.http.server.util;
 
-import com.sun.grizzly.http.util.MessageBytes;
+import com.sun.grizzly.http.util.BufferChunk;
 
 /**
  * Mapping data.
@@ -74,11 +74,11 @@ public class MappingData {
     // START GlassFish 1024
     public boolean isDefaultContext = false;
     // END GlassFish 1024
-    public MessageBytes contextPath = MessageBytes.newInstance();
-    public MessageBytes requestPath = MessageBytes.newInstance();
-    public MessageBytes wrapperPath = MessageBytes.newInstance();
-    public MessageBytes pathInfo = MessageBytes.newInstance();
-    public MessageBytes redirectPath = MessageBytes.newInstance();
+    public BufferChunk contextPath = BufferChunk.newInstance();
+    public BufferChunk requestPath = BufferChunk.newInstance();
+    public BufferChunk wrapperPath = BufferChunk.newInstance();
+    public BufferChunk pathInfo = BufferChunk.newInstance();
+    public BufferChunk redirectPath = BufferChunk.newInstance();
 
     public void recycle() {
         host = null;
