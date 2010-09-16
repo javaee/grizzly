@@ -1007,11 +1007,9 @@ public class Mapper {
                           0,
                           context.welcomeResources[i].length());
                     path.setBuffer(b);
-                    //path.append(context.welcomeResources[i], 0,
-                    //            context.welcomeResources[i].length());
                     path.setStart(servletPath);
 
-                    // Rule 4a -- Welcome resources processing for exact macth
+                    // Rule 4a -- Welcome resources processing for exact match
                     internalMapExactWrapper(exactWrappers, path, mappingData);
 
                     // Rule 4b -- Welcome resources processing for prefix match
