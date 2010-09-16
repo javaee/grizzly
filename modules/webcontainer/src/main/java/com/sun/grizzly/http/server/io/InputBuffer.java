@@ -219,6 +219,7 @@ public class InputBuffer {
     public void recycle() {
 
         compositeBuffer.tryDispose();
+        compositeBuffer = null;
 
         connection = null;
         decoder = null;
