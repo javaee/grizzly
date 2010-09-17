@@ -54,7 +54,7 @@ import com.sun.grizzly.threadpool.ThreadPoolProbe;
  * 
  * @author Alexey Stashok
  */
-public final class WebServerMonitoringConfig {
+public final class HttpServerMonitoringConfig {
     private final MonitoringConfigImpl<MemoryProbe> memoryConfig =
             new MonitoringConfigImpl<MemoryProbe>(MemoryProbe.class);
 
@@ -73,8 +73,8 @@ public final class WebServerMonitoringConfig {
     private final MonitoringConfigImpl<HttpProbe> httpConfig =
             new MonitoringConfigImpl<HttpProbe>(HttpProbe.class);
 
-    private final MonitoringConfigImpl<WebServerProbe> webServerConfig =
-            new MonitoringConfigImpl<WebServerProbe>(WebServerProbe.class);
+    private final MonitoringConfigImpl<HttpServerProbe> webServerConfig =
+            new MonitoringConfigImpl<HttpServerProbe>(HttpServerProbe.class);
 
     /**
      * Get the memory monitoring config.
@@ -135,7 +135,7 @@ public final class WebServerMonitoringConfig {
      *
      * @return the web server monitoring config.
      */
-    public MonitoringConfig<WebServerProbe> getWebServerConfig() {
+    public MonitoringConfig<HttpServerProbe> getWebServerConfig() {
         return webServerConfig;
     }
 }

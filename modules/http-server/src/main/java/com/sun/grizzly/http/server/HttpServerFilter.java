@@ -68,20 +68,20 @@ import java.nio.ByteBuffer;
 /**
  * Filter implementation to provide high-level HTTP request/response processing.
  */
-public class WebServerFilter extends BaseFilter
-        implements JmxMonitoringAware<WebServerProbe> {
+public class HttpServerFilter extends BaseFilter
+        implements JmxMonitoringAware<HttpServerProbe> {
 
 
-    private final Attribute<AdapterRequest> httpRequestInProcessAttr;
-    private final DelayedExecutor.DelayQueue<AdapterResponse> suspendedResponseQueue;
+    private final Attribute<Request> httpRequestInProcessAttr;
+    private final DelayedExecutor.DelayQueue<Response> suspendedResponseQueue;
 
-    private final GrizzlyWebServer gws;
+    private final HttpServer gws;
 
     /**
      * Web server probes
      */
-    protected final AbstractJmxMonitoringConfig<WebServerProbe> monitoringConfig =
-            new AbstractJmxMonitoringConfig<WebServerProbe>(WebServerProbe.class) {
+    protected final AbstractJmxMonitoringConfig<HttpServerProbe> monitoringConfig =
+            new AbstractJmxMonitoringConfig<HttpServerProbe>(HttpServerProbe.class) {
 
                 @Override
                 public JmxObject createManagementObject() {
@@ -94,12 +94,12 @@ public class WebServerFilter extends BaseFilter
     // ------------------------------------------------------------ Constructors
 
 
-    public WebServerFilter(final GrizzlyWebServer webServer) {
+    public HttpServerFilter(final HttpServer webServer) {
         gws = webServer;
         DelayedExecutor delayedExecutor = webServer.getDelayedExecutor();
-        suspendedResponseQueue = AdapterResponse.createDelayQueue(delayedExecutor);
+        suspendedResponseQueue = Response.createDelayQueue(delayedExecutor);
         httpRequestInProcessAttr = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.
-                createAttribute("WebServerFilter.AdapterRequest");
+                createAttribute("HttpServerFilter.Request");
 
     }
 
@@ -119,15 +119,15 @@ public class WebServerFilter extends BaseFilter
 
             final HttpContent httpContent = (HttpContent) message;
 
-            AdapterRequest adapterRequest = httpRequestInProcessAttr.get(connection);
+            Request adapterRequest = httpRequestInProcessAttr.get(connection);
 
             if (adapterRequest == null) {
                 // It's a new HTTP request
                 HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
                 HttpResponsePacket response = request.getResponse();
-                adapterRequest = AdapterRequest.create();
+                adapterRequest = Request.create();
                 httpRequestInProcessAttr.set(connection, adapterRequest);
-                final AdapterResponse adapterResponse = AdapterResponse.create();
+                final Response adapterResponse = Response.create();
 
                 adapterRequest.initialize(adapterResponse, request, httpContent, ctx, this);
                 final SuspendStatus suspendStatus = new SuspendStatus();
@@ -135,7 +135,7 @@ public class WebServerFilter extends BaseFilter
                 adapterResponse.initialize(adapterRequest, response, ctx,
                         suspendedResponseQueue, suspendStatus);
 
-                WebServerProbeNotifier.notifyRequestReceive(this, connection,
+                HttpServerProbeNotifier.notifyRequestReceive(this, connection,
                         adapterRequest);
 
                 try {
@@ -194,9 +194,9 @@ public class WebServerFilter extends BaseFilter
                 }
             }
         } else { // this code will be run, when we resume after suspend
-            final AdapterResponse adapterResponse = (AdapterResponse) message;
-            final AdapterRequest adapterRequest = adapterResponse.getRequest();
-            afterService(connection, adapterRequest, adapterResponse);
+            final Response response = (Response) message;
+            final Request request = response.getRequest();
+            afterService(connection, request, response);
         }
 
         return ctx.getStopAction();
@@ -214,11 +214,11 @@ public class WebServerFilter extends BaseFilter
     public void exceptionOccurred(FilterChainContext ctx, Throwable error) {
         final Connection c = ctx.getConnection();
 
-        final AdapterRequest adapterRequest =
+        final Request request =
                 httpRequestInProcessAttr.get(c);
 
-        if (adapterRequest != null) {
-            ReadHandler handler = adapterRequest.getInputBuffer().getReadHandler();
+        if (request != null) {
+            ReadHandler handler = request.getInputBuffer().getReadHandler();
             if (handler != null) {
                 handler.onError(error);
             }
@@ -233,7 +233,7 @@ public class WebServerFilter extends BaseFilter
      * {@inheritDoc}
      */
     @Override
-    public JmxMonitoringConfig<WebServerProbe> getMonitoringConfig() {
+    public JmxMonitoringConfig<HttpServerProbe> getMonitoringConfig() {
         return monitoringConfig;
     }
 
@@ -242,7 +242,7 @@ public class WebServerFilter extends BaseFilter
 
 
     protected JmxObject createJmxManagementObject() {
-        return new com.sun.grizzly.http.server.jmx.WebServerFilter(this);
+        return new com.sun.grizzly.http.server.jmx.HttpServerFilter(this);
     }
 
 
@@ -250,19 +250,19 @@ public class WebServerFilter extends BaseFilter
 
 
     private void afterService(final Connection connection,
-                              final AdapterRequest adapterRequest,
-                              final AdapterResponse adapterResponse)
+                              final Request request,
+                              final Response response)
     throws IOException {
 
         httpRequestInProcessAttr.remove(connection);
 
-        adapterResponse.finish();
+        response.finish();
 
-        WebServerProbeNotifier.notifyRequestComplete(this,
+        HttpServerProbeNotifier.notifyRequestComplete(this,
                                                      connection,
-                adapterResponse);
-        adapterRequest.recycle();
-        adapterResponse.recycle();
+                response);
+        request.recycle();
+        response.recycle();
 
     }
 

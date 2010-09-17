@@ -101,13 +101,13 @@ public class AdapterChain extends Adapter implements JmxEventListener {
      */
     private boolean started;
 
-    private final GrizzlyWebServer gws;
+    private final HttpServer gws;
 
 
     // ------------------------------------------------------------ Constructors
 
 
-    public AdapterChain(final GrizzlyWebServer gws) {
+    public AdapterChain(final HttpServer gws) {
         this.gws = gws;
         mapper = new Mapper(TransportFactory.getInstance().getDefaultMemoryManager());
         mapper.setDefaultHostName(LOCAL_HOST);
@@ -152,12 +152,12 @@ public class AdapterChain extends Adapter implements JmxEventListener {
     }
 
     /**
-     * Map the {@link AdapterRequest} to the proper {@link Adapter}
-     * @param request The {@link AdapterRequest}
-     * @param response The {@link AdapterResponse}
+     * Map the {@link Request} to the proper {@link Adapter}
+     * @param request The {@link Request}
+     * @param response The {@link Response}
      */
     @Override
-    public void service(AdapterRequest request, AdapterResponse response) throws Exception {
+    public void service(Request request, Response response) throws Exception {
         // For backward compatibility.
         if (oldMappingAlgorithm) {
             int i = 0;

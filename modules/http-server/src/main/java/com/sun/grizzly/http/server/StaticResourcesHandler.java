@@ -59,7 +59,7 @@ import java.util.logging.Logger;
  * Static resources handler, which handles static resources requests made to a
  * {@link Adapter}.
  *
- * This class doesn't not decode the {@link AdapterRequest} uri and just do
+ * This class doesn't not decode the {@link Request} uri and just do
  * basic security check. If you need more protection, use the {@link Adapter}.
  *
  * @author Jeanfrancois Arcand
@@ -87,14 +87,14 @@ public class StaticResourcesHandler {
     }
 
     /**
-     * Based on the {@link AdapterRequest} URI, try to map the file from the
+     * Based on the {@link Request} URI, try to map the file from the
      * {@link StaticResourcesHandler#getDocRoot()}, and send it synchronously
      * using send file.
-     * @param req the {@link AdapterRequest}
-     * @param res the {@link AdapterResponse}
+     * @param req the {@link Request}
+     * @param res the {@link Response}
      * @throws Exception
      */
-    public boolean handle(AdapterRequest req, final AdapterResponse res) throws Exception {
+    public boolean handle(Request req, final Response res) throws Exception {
         String uri = req.getRequestURI();
         if (uri.indexOf("..") >= 0 || !uri.startsWith(resourcesContextPath)) {
             return false;
@@ -112,13 +112,13 @@ public class StaticResourcesHandler {
      * Lookup a resource based on the request URI, and send it using send file.
      *
      * @param uri The request URI
-     * @param req the {@link AdapterRequest}
-     * @param res the {@link AdapterResponse}
+     * @param req the {@link Request}
+     * @param res the {@link Response}
      * @throws Exception
      */
     protected boolean handle(final String uri,
-            final AdapterRequest req,
-            final AdapterResponse res) throws Exception {
+            final Request req,
+            final Response res) throws Exception {
         
         FileInputStream fis = null;
         try {
@@ -239,7 +239,7 @@ public class StaticResourcesHandler {
         this.resourcesContextPath = resourcesContextPath;
     }
 
-    public final boolean addToFileCache(AdapterRequest req, File resource) {
+    public final boolean addToFileCache(Request req, File resource) {
         final FilterChainContext fcContext = req.getContext();
         final FileCacheFilter fileCacheFilter = lookupFileCache(fcContext);
         if (fileCacheFilter != null) {

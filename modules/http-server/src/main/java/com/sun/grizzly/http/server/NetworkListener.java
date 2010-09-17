@@ -47,7 +47,6 @@ import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.http.HttpCodecFilter;
 import com.sun.grizzly.http.KeepAlive;
 import com.sun.grizzly.http.server.filecache.FileCache;
-import com.sun.grizzly.http.server.jmx.NetworkListener;
 import com.sun.grizzly.monitoring.jmx.JmxObject;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.ssl.SSLEngineConfigurator;
@@ -56,26 +55,26 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class NetworlListener {
+public class NetworkListener {
 
-    private static final Logger LOGGER = Grizzly.logger(NetworlListener.class);
+    private static final Logger LOGGER = Grizzly.logger(NetworkListener.class);
 
     /**
-     * The default network host to which the {@link GrizzlyWebServer} will
+     * The default network host to which the {@link HttpServer} will
      * bind to in order to service <code>HTTP</code> requests.  
      */
     public static final String DEFAULT_NETWORK_HOST = "0.0.0.0";
 
 
     /**
-     * The default network port to which the {@link GrizzlyWebServer} will
+     * The default network port to which the {@link HttpServer} will
      * bind to in order to service <code>HTTP</code> requests.
      */
     public static final int DEFAULT_NETWORK_PORT = 8080;
 
 
     /**
-     * The network host to which the <code>GrizzlyWebServer<code> will
+     * The network host to which the <code>HttpServer<code> will
      * bind to in order to service <code>HTTP</code> requests.   If not
      * explicitly set, the value of {@link #DEFAULT_NETWORK_HOST} will be used.
      */
@@ -83,7 +82,7 @@ public class NetworlListener {
 
 
     /**
-     * The network port to which the <code>GrizzlyWebServer<code> will
+     * The network port to which the <code>HttpServer<code> will
      * bind to in order to service <code>HTTP</code> requests.  If not
      * explicitly set, the value of {@link #DEFAULT_NETWORK_PORT} will be used.
      */
@@ -92,7 +91,7 @@ public class NetworlListener {
 
     /**
      * The logical <code>name</code> of this particular
-     * <code>NetworlListener</code> instance.
+     * <code>NetworkListener</code> instance.
      */
     private final String name;
 
@@ -110,7 +109,7 @@ public class NetworlListener {
 
 
     /**
-     * The {@link TCPNIOTransport} used by this <code>NetworlListener</code>
+     * The {@link TCPNIOTransport} used by this <code>NetworkListener</code>
      */
     private TCPNIOTransport transport =
             TransportFactory.getInstance().createTCPTransport();
@@ -151,7 +150,7 @@ public class NetworlListener {
 
 
     /**
-     * {@link FileCache} to be used by this <code>NetworlListener</code>.
+     * {@link FileCache} to be used by this <code>NetworkListener</code>.
      */
     private final FileCache fileCache = new FileCache();
 
@@ -169,9 +168,9 @@ public class NetworlListener {
 
 
     /**
-     * {@link WebServerFilter} associated with this listener.
+     * {@link HttpServerFilter} associated with this listener.
      */
-    private WebServerFilter webServerFilter;
+    private HttpServerFilter httpServerFilter;
 
 
     /**
@@ -185,14 +184,14 @@ public class NetworlListener {
 
     /**
      * <p>
-     * Constructs a new <code>NetworlListener</code> using the specified
+     * Constructs a new <code>NetworkListener</code> using the specified
      * <code>name</code>.  The listener's host and port will default to
      * {@link #DEFAULT_NETWORK_HOST} and {@link #DEFAULT_NETWORK_PORT}.
      * </p>
      *
      * @param name the logical name of the listener.
      */
-    public NetworlListener(final String name) {
+    public NetworkListener(final String name) {
 
         validateArg("name", name);
         this.name = name;
@@ -202,7 +201,7 @@ public class NetworlListener {
 
     /**
      * <p>
-     * Constructs a new <code>NetworlListener</code> using the specified
+     * Constructs a new <code>NetworkListener</code> using the specified
      * <code>name</code> and <code>host</code>.  The listener's port will
      * default to {@link #DEFAULT_NETWORK_PORT}.
      * </p>
@@ -210,7 +209,7 @@ public class NetworlListener {
      * @param name the logical name of the listener.
      * @param host the network host to which this listener will bind.
      */
-    public NetworlListener(final String name, final String host) {
+    public NetworkListener(final String name, final String host) {
 
         validateArg("name", name);
         validateArg("host", host);
@@ -222,7 +221,7 @@ public class NetworlListener {
 
     /**
      * <p>
-     * Constructs a new <code>NetworlListener</code> using the specified
+     * Constructs a new <code>NetworkListener</code> using the specified
      * <code>name</code>, <code>host</code>, and <code>port</code>.
      * </p>
      *
@@ -230,7 +229,7 @@ public class NetworlListener {
      * @param host the network host to which this listener will bind.
      * @param port the network port to which this listener will bind..
      */
-    public NetworlListener(final String name,
+    public NetworkListener(final String name,
                            final String host,
                            final int port) {
 
@@ -678,7 +677,7 @@ public class NetworlListener {
      */
     @Override
     public String toString() {
-        return "NetworlListener{" +
+        return "NetworkListener{" +
                 "name='" + name + '\'' +
                 ", host='" + host + '\'' +
                 ", port=" + port +
@@ -689,21 +688,21 @@ public class NetworlListener {
 
 
     public JmxObject createManagementObject() {
-        return new NetworkListener(this);
+        return new com.sun.grizzly.http.server.jmx.NetworkListener(this);
     }
 
 
-    public WebServerFilter getWebServerFilter() {
+    public HttpServerFilter getHttpServerFilter() {
 
-        if (webServerFilter == null) {
+        if (httpServerFilter == null) {
             for (Filter f : filterChain) {
-                if (f instanceof WebServerFilter) {
-                    webServerFilter = (WebServerFilter) f;
+                if (f instanceof HttpServerFilter) {
+                    httpServerFilter = (HttpServerFilter) f;
                     break;
                 }
             }
         }
-        return webServerFilter;
+        return httpServerFilter;
 
     }
 

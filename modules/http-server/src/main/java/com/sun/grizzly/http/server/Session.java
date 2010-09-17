@@ -47,7 +47,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * @author Jeanfrancois Arcand
  */
-public class AdapterSession {
+public class Session {
 
     /**
      * Cache attribute (thread safe)
@@ -80,7 +80,7 @@ public class AdapterSession {
 
 
 
-    public AdapterSession() {
+    public Session() {
         this(null);
     }
 
@@ -89,7 +89,7 @@ public class AdapterSession {
      * Create a new session using a session identifier
      * @param requestedSessionId session identifier
      */
-    public AdapterSession(String requestedSessionId) {
+    public Session(String requestedSessionId) {
         this.requestedSessionId = requestedSessionId;
     }
 

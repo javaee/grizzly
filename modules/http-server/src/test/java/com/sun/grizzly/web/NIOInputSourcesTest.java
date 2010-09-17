@@ -347,12 +347,12 @@ public class NIOInputSourcesTest extends TestCase {
     // --------------------------------------------------------- Private Methods
 
 
-    private GrizzlyWebServer createWebServer(final Adapter adapter) {
+    private HttpServer createWebServer(final Adapter adapter) {
 
-        final GrizzlyWebServer server = new GrizzlyWebServer();
-        final NetworlListener listener =
-                new NetworlListener("grizzly",
-                        NetworlListener.DEFAULT_NETWORK_HOST,
+        final HttpServer server = new HttpServer();
+        final NetworkListener listener =
+                new NetworkListener("grizzly",
+                        NetworkListener.DEFAULT_NETWORK_HOST,
                         PORT);
         listener.getKeepAlive().setIdleTimeoutInSeconds(-1);
         server.addListener(listener);
@@ -389,7 +389,7 @@ public class NIOInputSourcesTest extends TestCase {
 
         final TCPNIOTransport clientTransport =
                 TransportFactory.getInstance().createTCPTransport();
-        final GrizzlyWebServer server = createWebServer(adapter);
+        final HttpServer server = createWebServer(adapter);
         try {
             server.start();
             FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
@@ -508,8 +508,8 @@ public class NIOInputSourcesTest extends TestCase {
         // ----------------------------------------- Methods from Adapter
 
         @Override
-        public void service(final AdapterRequest req,
-                            final AdapterResponse res)
+        public void service(final Request req,
+                            final Response res)
                 throws Exception {
 
             try {
@@ -607,8 +607,8 @@ public class NIOInputSourcesTest extends TestCase {
         // ----------------------------------------- Methods from Adapter
 
         @Override
-        public void service(final AdapterRequest req,
-                            final AdapterResponse res)
+        public void service(final Request req,
+                            final Response res)
                 throws Exception {
 
             try {

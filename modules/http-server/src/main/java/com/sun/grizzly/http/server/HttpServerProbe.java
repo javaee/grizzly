@@ -43,72 +43,72 @@ package com.sun.grizzly.http.server;
 import com.sun.grizzly.Connection;
 
 /**
- * Monitoring probe providing callbacks that may be invoked by Grizzly {@link WebServerFilter}.
+ * Monitoring probe providing callbacks that may be invoked by Grizzly {@link HttpServerFilter}.
  *
  * @author Alexey Stashok
  *
  * @since 2.0
  */
-public interface WebServerProbe {
+public interface HttpServerProbe {
     /**
-     * Method will be called, when new {@link AdapterRequest} will come.
+     * Method will be called, when new {@link Request} will come.
      *
-     * @param filter {@link WebServerFilter}, the event belongs to.
+     * @param filter {@link HttpServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
-     * @param request received {@link AdapterRequest}.
+     * @param request received {@link Request}.
      */
-    public void onRequestReceiveEvent(WebServerFilter filter,
-            Connection connection, AdapterRequest request);
+    public void onRequestReceiveEvent(HttpServerFilter filter,
+            Connection connection, Request request);
 
     /**
-     * Method will be called, when {@link AdapterRequest} processing will be completed.
+     * Method will be called, when {@link Request} processing will be completed.
      *
-     * @param filter {@link WebServerFilter}, the event belongs to.
+     * @param filter {@link HttpServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
-     * @param response sent {@link AdapterResponse}.
+     * @param response sent {@link Response}.
      */
-    public void onRequestCompleteEvent(WebServerFilter filter,
-            Connection connection, AdapterResponse response);
+    public void onRequestCompleteEvent(HttpServerFilter filter,
+            Connection connection, Response response);
 
     /**
-     * Method will be called, when {@link AdapterRequest} processing is suspended.
+     * Method will be called, when {@link Request} processing is suspended.
      *
-     * @param filter {@link WebServerFilter}, the event belongs to.
+     * @param filter {@link HttpServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
-     * @param request {@link AdapterRequest}.
+     * @param request {@link Request}.
      */
-    public void onRequestSuspendEvent(WebServerFilter filter,
-            Connection connection, AdapterRequest request);
+    public void onRequestSuspendEvent(HttpServerFilter filter,
+            Connection connection, Request request);
 
     /**
-     * Method will be called, when {@link AdapterRequest} processing is resumed.
+     * Method will be called, when {@link Request} processing is resumed.
      *
-     * @param filter {@link WebServerFilter}, the event belongs to.
+     * @param filter {@link HttpServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
-     * @param request {@link AdapterRequest}.
+     * @param request {@link Request}.
      */
-    public void onRequestResumeEvent(WebServerFilter filter,
-            Connection connection, AdapterRequest request);
+    public void onRequestResumeEvent(HttpServerFilter filter,
+            Connection connection, Request request);
 
     /**
-     * Method will be called, when {@link AdapterRequest} processing is timeout
+     * Method will be called, when {@link Request} processing is timeout
      * after suspend.
      *
-     * @param filter {@link WebServerFilter}, the event belongs to.
+     * @param filter {@link HttpServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
-     * @param request {@link AdapterRequest}.
+     * @param request {@link Request}.
      */
-    public void onRequestTimeoutEvent(WebServerFilter filter,
-            Connection connection, AdapterRequest request);
+    public void onRequestTimeoutEvent(HttpServerFilter filter,
+            Connection connection, Request request);
 
     /**
-     * Method will be called, when {@link AdapterRequest} processing is cancelled
+     * Method will be called, when {@link Request} processing is cancelled
      * after suspend.
      *
-     * @param filter {@link WebServerFilter}, the event belongs to.
+     * @param filter {@link HttpServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
-     * @param request {@link AdapterRequest}.
+     * @param request {@link Request}.
      */
-    public void onRequestCancelEvent(WebServerFilter filter,
-            Connection connection, AdapterRequest request);
+    public void onRequestCancelEvent(HttpServerFilter filter,
+            Connection connection, Request request);
 }

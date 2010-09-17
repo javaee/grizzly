@@ -78,8 +78,8 @@ import org.junit.runners.Parameterized.Parameters;
 import static org.junit.Assert.*;
 
 /**
- * Units test that exercise the {@link com.sun.grizzly.http.server.AdapterResponse#suspend() }, {@link com.sun.grizzly.http.server.AdapterResponse#resume() }
- * and {@link com.sun.grizzly.http.server.AdapterResponse#cancel() } API.
+ * Units test that exercise the {@link com.sun.grizzly.http.server.Response#suspend() }, {@link com.sun.grizzly.http.server.Response#resume() }
+ * and {@link com.sun.grizzly.http.server.Response#cancel() } API.
  *
  * @author Jeanfrancois Arcand
  * @author gustav trede
@@ -93,7 +93,7 @@ public class SuspendTest {
     private final String testString = "blabla test.";
     private final byte[] testData = testString.getBytes();
     private final boolean isSslEnabled;
-    private GrizzlyWebServer gws;
+    private HttpServer gws;
 
     public SuspendTest(boolean isSslEnabled) {
         this.isSslEnabled = isSslEnabled;
@@ -123,10 +123,10 @@ public class SuspendTest {
     }
 
     private void configureWebServer() throws Exception {
-        gws = new GrizzlyWebServer();
-        final NetworlListener listener =
-                new NetworlListener("grizzly",
-                                    NetworlListener.DEFAULT_NETWORK_HOST,
+        gws = new HttpServer();
+        final NetworkListener listener =
+                new NetworkListener("grizzly",
+                                    NetworkListener.DEFAULT_NETWORK_HOST,
                                     PORT);
         if (isSslEnabled) {
             listener.setSecure(true);
@@ -168,7 +168,7 @@ public class SuspendTest {
         startWebServer(new TestStaticResourcesAdapter() {
 
             @Override
-            public void service(final AdapterRequest req, final AdapterResponse res) {
+            public void service(final Request req, final Response res) {
                 try {
                     res.suspend();
                     write(res, testData);
@@ -187,7 +187,7 @@ public class SuspendTest {
         startWebServer(new TestStaticResourcesAdapter() {
 
             @Override
-            public void service(final AdapterRequest req, final AdapterResponse res) {
+            public void service(final Request req, final Response res) {
                 try {
                     res.suspend();
                     write(res, testData);
@@ -207,7 +207,7 @@ public class SuspendTest {
         startWebServer(new TestStaticResourcesAdapter() {
 
             @Override
-            public void service(final AdapterRequest req, final AdapterResponse res) {
+            public void service(final Request req, final Response res) {
                 try {
                     res.suspend();
                     writeToSuspendedClient(res);
@@ -225,7 +225,7 @@ public class SuspendTest {
         startWebServer(new TestStaticResourcesAdapter() {
 
             @Override
-            public void service(final AdapterRequest req, final AdapterResponse res) {
+            public void service(final Request req, final Response res) {
                 res.suspend();
                 scheduledThreadPool.schedule(new Runnable() {
 
@@ -245,7 +245,7 @@ public class SuspendTest {
         startWebServer(new TestStaticResourcesAdapter() {
 
             @Override
-            public void dologic(final AdapterRequest req, final AdapterResponse res) throws Throwable {
+            public void dologic(final Request req, final Response res) throws Throwable {
                 res.suspend(60, TimeUnit.SECONDS, new TestCompletionHandler() {
 
                     @Override
@@ -270,7 +270,7 @@ public class SuspendTest {
         startWebServer(new TestStaticResourcesAdapter() {
 
             @Override
-            public void dologic(final AdapterRequest req, final AdapterResponse res) throws Throwable {
+            public void dologic(final Request req, final Response res) throws Throwable {
                 res.suspend(60, TimeUnit.SECONDS, new TestCompletionHandler() {
 
                     @Override
@@ -294,7 +294,7 @@ public class SuspendTest {
         startWebServer(new TestStaticResourcesAdapter() {
 
             @Override
-            public void dologic(final AdapterRequest req, final AdapterResponse res) throws Throwable {
+            public void dologic(final Request req, final Response res) throws Throwable {
                 res.suspend(60, TimeUnit.SECONDS, new TestCompletionHandler() {
 
                     private AtomicBoolean first = new AtomicBoolean(true);
@@ -323,7 +323,7 @@ public class SuspendTest {
         startWebServer(new TestStaticResourcesAdapter() {
 
             @Override
-            public void dologic(final AdapterRequest req, final AdapterResponse res) throws Throwable {
+            public void dologic(final Request req, final Response res) throws Throwable {
                 res.suspend(5, TimeUnit.SECONDS, new TestCompletionHandler() {
 
                     @Override
@@ -345,7 +345,7 @@ public class SuspendTest {
         startWebServer(new TestStaticResourcesAdapter() {
 
             @Override
-            public void dologic(final AdapterRequest req, final AdapterResponse res) throws Throwable {
+            public void dologic(final Request req, final Response res) throws Throwable {
                 res.suspend(60, TimeUnit.SECONDS, new TestCompletionHandler() {
 
                     @Override
@@ -383,7 +383,7 @@ public class SuspendTest {
         startWebServer(new TestStaticResourcesAdapter() {
 
             @Override
-            public void dologic(final AdapterRequest req, final AdapterResponse res) throws Throwable {
+            public void dologic(final Request req, final Response res) throws Throwable {
                 res.suspend(60, TimeUnit.SECONDS, new TestCompletionHandler() {
 
                     @Override
@@ -408,7 +408,7 @@ public class SuspendTest {
         startWebServer(new Adapter() {
 
             @Override
-            public void service(final AdapterRequest req, final AdapterResponse res) {
+            public void service(final Request req, final Response res) {
                 try {
                     res.suspend(60, TimeUnit.SECONDS, new TestCompletionHandler() {
 
@@ -442,7 +442,7 @@ public class SuspendTest {
         startWebServer(new Adapter() {
 
             @Override
-            public void service(final AdapterRequest req, final AdapterResponse res) {
+            public void service(final Request req, final Response res) {
                 try {
                     final long t1 = System.currentTimeMillis();
                     res.suspend(10, TimeUnit.SECONDS, new TestCompletionHandler() {
@@ -470,7 +470,7 @@ public class SuspendTest {
         startWebServer(new Adapter() {
 
             @Override
-            public void service(final AdapterRequest req, final AdapterResponse res) {
+            public void service(final Request req, final Response res) {
                 try {
                     final long t1 = System.currentTimeMillis();
                     res.suspend(10, TimeUnit.SECONDS, new TestCompletionHandler() {
@@ -514,7 +514,7 @@ public class SuspendTest {
         runTest();
     }
 
-    private void write(AdapterResponse response, byte[] data) throws IOException {
+    private void write(Response response, byte[] data) throws IOException {
         ByteChunk bc = new ByteChunk();
         bc.setBytes(data, 0, data.length);
 
@@ -559,7 +559,7 @@ public class SuspendTest {
         return connectFuture.get(10, TimeUnit.SECONDS);
     }
 
-    protected void resumeLater(final AdapterResponse res) {
+    protected void resumeLater(final Response res) {
         scheduledThreadPool.schedule(new Runnable() {
 
             @Override
@@ -578,7 +578,7 @@ public class SuspendTest {
         }, 2, TimeUnit.SECONDS);
     }
 
-    protected void cancelLater(final AdapterResponse res) {
+    protected void cancelLater(final Response res) {
         scheduledThreadPool.schedule(new Runnable() {
 
             @Override
@@ -600,7 +600,7 @@ public class SuspendTest {
     private class TestStaticResourcesAdapter extends Adapter {
 
         @Override
-        public void service(AdapterRequest req, AdapterResponse res) {
+        public void service(Request req, Response res) {
             try {
                 if (!res.isSuspended()) {
                     dologic(req, res);
@@ -612,10 +612,10 @@ public class SuspendTest {
             }
         }
 
-        public void dologic(final AdapterRequest req, final AdapterResponse res) throws Throwable {
+        public void dologic(final Request req, final Response res) throws Throwable {
         }
 
-        protected void writeToSuspendedClient(AdapterResponse resp) {
+        protected void writeToSuspendedClient(Response resp) {
             if (resp.isSuspended()) {
                 try {
                     write(resp, testData);

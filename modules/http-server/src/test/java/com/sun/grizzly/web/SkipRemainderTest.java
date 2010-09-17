@@ -75,7 +75,7 @@ import static org.junit.Assert.*;
 
 
 /**
- * Test how GrizzlyWebServer skips HTTP packet remainder, if Adapter didn't read
+ * Test how HttpServer skips HTTP packet remainder, if Adapter didn't read
  * the complete message.
  * 
  * @author Alexey Stashok
@@ -84,7 +84,7 @@ import static org.junit.Assert.*;
 public class SkipRemainderTest {
     public static final int PORT = 18892;
 
-    private GrizzlyWebServer gws;
+    private HttpServer gws;
 
     @Before
     public void before() throws Exception {
@@ -112,7 +112,7 @@ public class SkipRemainderTest {
         
         startWebServer(new Adapter() {
             @Override
-            public void service(AdapterRequest req, AdapterResponse res)
+            public void service(Request req, Response res)
                     throws Exception {
                 InputStream is = req.getInputStream(true);
                 try {
@@ -206,10 +206,10 @@ public class SkipRemainderTest {
     }
 
     private void configureWebServer() throws Exception {
-        gws = new GrizzlyWebServer();
-        final NetworlListener listener =
-                new NetworlListener("grizzly",
-                                    NetworlListener.DEFAULT_NETWORK_HOST,
+        gws = new HttpServer();
+        final NetworkListener listener =
+                new NetworkListener("grizzly",
+                                    NetworkListener.DEFAULT_NETWORK_HOST,
                                     PORT);
         gws.addListener(listener);
     }

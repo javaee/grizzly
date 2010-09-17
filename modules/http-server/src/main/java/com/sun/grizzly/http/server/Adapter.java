@@ -54,7 +54,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Base class to use when AdapterRequest/Response/InputStream/OutputStream
+ * Base class to use when Request/Response/InputStream/OutputStream
  * are needed to implement a customized HTTP container/extension to the
  * HTTP module.
  *
@@ -108,15 +108,15 @@ public abstract class Adapter {
 
     /**
      * Handles static resources if this adapter is configured to do so, otherwise
-     * invokes {@link #service(AdapterRequest, AdapterResponse)}.
+     * invokes {@link #service(Request, Response)}.
      *
-     * @param request the {@link AdapterRequest}
-     * @param response the {@link AdapterResponse}
+     * @param request the {@link Request}
+     * @param response the {@link Response}
      *
      * @throws Exception if an error occurs serving a static resource or
-     *  from the invocation of {@link #service(AdapterRequest, AdapterResponse)}
+     *  from the invocation of {@link #service(Request, Response)}
      */
-    public final void doService(AdapterRequest request, AdapterResponse response) throws Exception {
+    public final void doService(Request request, Response response) throws Exception {
 
         if (request.requiresAcknowledgement()) {
             if (!sendAcknowledgment(request, response)) {
@@ -155,15 +155,15 @@ public abstract class Adapter {
     /**
      * This method should contain the logic for any HTTP extension to the
      * Grizzly HTTP web server.
-     * @param request The {@link AdapterRequest}
-     * @param response The {@link AdapterResponse}
+     * @param request The {@link Request}
+     * @param response The {@link Response}
      */
-    public abstract void service(AdapterRequest request, AdapterResponse response) throws Exception;
+    public abstract void service(Request request, Response response) throws Exception;
 
 
     /**
      * Called when the {@link Adapter}'s
-     * container is started by invoking {@link GrizzlyWebServer#start}.
+     * container is started by invoking {@link HttpServer#start}.
      *
      * By default, it does nothing.
      */
@@ -172,7 +172,7 @@ public abstract class Adapter {
 
 
     /**
-     * Invoked when the {@link GrizzlyWebServer} and may be overridden by custom
+     * Invoked when the {@link HttpServer} and may be overridden by custom
      * implementations to perform implementation specific resource reclaimation
      * tasks.
      *
@@ -241,14 +241,14 @@ public abstract class Adapter {
 
     /**
      * Customize the error page.
-     * @param server the {@link GrizzlyWebServer} associated with this adapter.
-     * @param req The {@link AdapterRequest} object
-     * @param res The {@link AdapterResponse} object
+     * @param server the {@link HttpServer} associated with this adapter.
+     * @param req The {@link Request} object
+     * @param res The {@link Response} object
      * @throws Exception
      */
-    protected void customizedErrorPage(GrizzlyWebServer server,
-                                       AdapterRequest req,
-                                       AdapterResponse res)
+    protected void customizedErrorPage(HttpServer server,
+                                       Request req,
+                                       Response res)
             throws Exception {
 
         /**
@@ -275,16 +275,16 @@ public abstract class Adapter {
      * with a response line with the status 100 followed by the final response
      * to this request.
      *
-     * @param request the {@link AdapterRequest}.
-     * @param response the {@link AdapterResponse}.
+     * @param request the {@link Request}.
+     * @param response the {@link Response}.
      *
      * @return <code>true</code> if request processing should continue after
      *  acknowledgement of the expectation, otherwise return <code>false</code>.
      *
      * @throws IOException if an error occurs sending the acknowledgement.
      */
-    protected boolean sendAcknowledgment(final AdapterRequest request,
-            final AdapterResponse response)
+    protected boolean sendAcknowledgment(final Request request,
+            final Response response)
             throws IOException {
 
         if ("100-Continue".equals(request.getHeader("Expect"))) {

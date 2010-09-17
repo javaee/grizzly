@@ -112,27 +112,27 @@ import java.util.concurrent.TimeUnit;
  * @version $Revision: 1.2 $ $Date: 2007/03/14 02:15:42 $
  */
 
-public class AdapterRequest {
+public class Request {
 
 
-    private static final ThreadCache.CachedTypeIndex<AdapterRequest> CACHE_IDX =
-            ThreadCache.obtainIndex(AdapterRequest.class, 2);
+    private static final ThreadCache.CachedTypeIndex<Request> CACHE_IDX =
+            ThreadCache.obtainIndex(Request.class, 2);
 
-    public static AdapterRequest create() {
-        final AdapterRequest adapterRequest =
+    public static Request create() {
+        final Request request =
                 ThreadCache.takeFromCache(CACHE_IDX);
-        if (adapterRequest != null) {
-            return adapterRequest;
+        if (request != null) {
+            return request;
         }
 
-        return new AdapterRequest();
+        return new Request();
     }
 
 
     // ----------------------------------------------------------- Constructors
 
 
-    protected AdapterRequest() {
+    protected Request() {
          // START OF SJSAS 6231069
         formats = (SimpleDateFormat[]) staticDateFormats.get();
         formats[0].setTimeZone(TimeZone.getTimeZone("GMT"));
@@ -155,7 +155,7 @@ public class AdapterRequest {
     private static final char[] SESSION_ID = match.toCharArray();
 
 
-    private AdapterSession session;
+    private Session session;
 
 
     // -------------------------------------------------------------------- //
@@ -165,8 +165,8 @@ public class AdapterRequest {
      * Not Good. We need a better mechanism.
      * TODO: Move Session Management out of here
      */
-    private static Map<String, AdapterSession> sessions = new
-            HashMap<String, AdapterSession>();
+    private static Map<String, Session> sessions = new
+            HashMap<String, Session>();
 
 
     /**
@@ -200,8 +200,8 @@ public class AdapterRequest {
             @Override
             public void run(){
                 long currentTime = System.currentTimeMillis();
-                Iterator<Map.Entry<String, AdapterSession>> iterator = sessions.entrySet().iterator();
-                Map.Entry<String, AdapterSession> entry;
+                Iterator<Map.Entry<String, Session>> iterator = sessions.entrySet().iterator();
+                Map.Entry<String, Session> entry;
                 while (iterator.hasNext()){
                     entry = iterator.next();
 
@@ -231,17 +231,17 @@ public class AdapterRequest {
 
     protected FilterChainContext ctx;
 
-    protected WebServerFilter webServerFilter;
+    protected HttpServerFilter httpServerFilter;
 
-    public void initialize(AdapterResponse response,
+    public void initialize(Response response,
                            HttpRequestPacket request,
                            HttpContent initialRequestContent,
                            FilterChainContext ctx,
-                           WebServerFilter webServerFilter) {
+                           HttpServerFilter httpServerFilter) {
         this.response = response;
         this.request = request;
         this.ctx = ctx;
-        this.webServerFilter = webServerFilter;
+        this.httpServerFilter = httpServerFilter;
         this.initialRequestContent = initialRequestContent;
         inputBuffer.initialize(request, ctx);
     }
@@ -385,7 +385,7 @@ public class AdapterRequest {
 
 
     /**
-     * AdapterSession parsed flag.
+     * Session parsed flag.
      */
     protected boolean sessionParsed = false;
 
@@ -520,12 +520,12 @@ public class AdapterRequest {
     /**
      * The response with which this request is associated.
      */
-    protected AdapterResponse response = null;
+    protected Response response = null;
 
     /**
      * Return the Response with which this Request is associated.
      */
-    public AdapterResponse getResponse() {
+    public Response getResponse() {
         return response;
     }
 
@@ -564,7 +564,7 @@ public class AdapterRequest {
         response = null;
         request = null;
         ctx = null;
-        webServerFilter = null;
+        httpServerFilter = null;
 
         attributes.clear();
         cookies = null;
@@ -1153,7 +1153,7 @@ public class AdapterRequest {
             return session.isValid();
         }
 
-        AdapterSession localSession = sessions.put(requestedSessionId,session);
+        Session localSession = sessions.put(requestedSessionId,session);
         if ((localSession != null) && localSession.isValid())
             return (true);
         else
@@ -2064,14 +2064,14 @@ public class AdapterRequest {
         return jrouteId;
     }
 
-    // ------------------------------------------------------ AdapterSession support --/
+    // ------------------------------------------------------ Session support --/
 
 
     /**
      * Return the session associated with this Request, creating one
      * if necessary.
      */
-    public AdapterSession getSession() {
+    public Session getSession() {
         return doGetSession(true);
     }
 
@@ -2082,12 +2082,12 @@ public class AdapterRequest {
      *
      * @param create Create a new session if one does not exist
      */
-    public AdapterSession getSession(boolean create) {
+    public Session getSession(boolean create) {
         return  doGetSession(create);
     }
 
 
-    protected AdapterSession doGetSession(boolean create) {
+    protected Session doGetSession(boolean create) {
         // Return the current session if it exists and is valid
         if ((session != null) && !session.isValid()) {
             session = null;
@@ -2110,12 +2110,12 @@ public class AdapterRequest {
             return (null);
 
         if (requestedSessionId != null) {
-            session = new AdapterSession(requestedSessionId);
+            session = new Session(requestedSessionId);
 
         } else {
             Random r = new Random();
             requestedSessionId = String.valueOf(Math.abs(r.nextLong()));
-            session = new AdapterSession(requestedSessionId);
+            session = new Session(requestedSessionId);
         }
         sessions.put(requestedSessionId,session);
 

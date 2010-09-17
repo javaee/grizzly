@@ -58,7 +58,7 @@ import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpTrailer;
 import com.sun.grizzly.http.Protocol;
 import com.sun.grizzly.http.server.*;
-import com.sun.grizzly.http.server.AdapterRequest;
+import com.sun.grizzly.http.server.Request;
 import com.sun.grizzly.http.util.HttpStatus;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
@@ -92,7 +92,7 @@ public class HttpInputStreamsTest extends TestCase {
     public void testBinaryWithGet() throws Throwable {
 
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(AdapterRequest request)
+            @Override public boolean doRead(Request request)
                     throws IOException {
 
                 // test issues a GET, so the InputStream should be inert
@@ -116,7 +116,7 @@ public class HttpInputStreamsTest extends TestCase {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(AdapterRequest request)
+            @Override public boolean doRead(Request request)
                     throws IOException {
                 InputStream in = request.getInputStream(true);
                 try {
@@ -138,7 +138,7 @@ public class HttpInputStreamsTest extends TestCase {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(AdapterRequest request)
+            @Override public boolean doRead(Request request)
             throws IOException {
                 StringBuilder sb = new StringBuilder(expected.length());
                 InputStream in = request.getInputStream(true);
@@ -177,7 +177,7 @@ public class HttpInputStreamsTest extends TestCase {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(AdapterRequest request)
+            @Override public boolean doRead(Request request)
                     throws IOException {
                 StringBuilder sb = new StringBuilder(5);
                 InputStream in = request.getInputStream(true);
@@ -213,7 +213,7 @@ public class HttpInputStreamsTest extends TestCase {
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
             @Override 
-            public boolean doRead(AdapterRequest request)
+            public boolean doRead(Request request)
                     throws IOException {
                 StringBuilder sb = new StringBuilder(5);
                 InputStream in = request.getInputStream(true);
@@ -263,7 +263,7 @@ public class HttpInputStreamsTest extends TestCase {
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
             @Override
-            public boolean doRead(AdapterRequest request)
+            public boolean doRead(Request request)
                     throws IOException {
                 StringBuilder sb = new StringBuilder(16);
                 InputStream in = request.getInputStream(true);
@@ -295,7 +295,7 @@ public class HttpInputStreamsTest extends TestCase {
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
             @Override
-            public boolean doRead(AdapterRequest request)
+            public boolean doRead(Request request)
                     throws IOException {
                 InputStream in = request.getInputStream(true);
                 long skipped = in.skip(100);
@@ -318,7 +318,7 @@ public class HttpInputStreamsTest extends TestCase {
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
             @Override
-            public boolean doRead(AdapterRequest request)
+            public boolean doRead(Request request)
                     throws IOException {
                 InputStream in = request.getInputStream(true);
                 byte[] b = new byte[expected.length()];
@@ -340,7 +340,7 @@ public class HttpInputStreamsTest extends TestCase {
         final String content = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
             @Override
-            public boolean doRead(AdapterRequest request)
+            public boolean doRead(Request request)
                     throws IOException {
                 InputStream in = request.getInputStream(true);
                 byte[] b = new byte[14];
@@ -362,7 +362,7 @@ public class HttpInputStreamsTest extends TestCase {
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
             @Override
-            public boolean doRead(AdapterRequest request)
+            public boolean doRead(Request request)
                     throws IOException {
                 InputStream in = request.getInputStream(true);
                 byte[] b = new byte[expected.length() - 2];
@@ -394,7 +394,7 @@ public class HttpInputStreamsTest extends TestCase {
 
 
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(AdapterRequest request)
+            @Override public boolean doRead(Request request)
                     throws IOException {
                 InputStream in = request.getInputStream(true);
                 StringBuilder sb = new StringBuilder();
@@ -427,7 +427,7 @@ public class HttpInputStreamsTest extends TestCase {
 
 
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(AdapterRequest request)
+            @Override public boolean doRead(Request request)
                     throws IOException {
                 InputStream in = request.getInputStream(true);
                 StringBuilder sb = new StringBuilder();
@@ -454,7 +454,7 @@ public class HttpInputStreamsTest extends TestCase {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(AdapterRequest request)
+            @Override public boolean doRead(Request request)
                     throws IOException {
                 StringBuilder sb = new StringBuilder(26);
                 Reader in = request.getReader(true);
@@ -481,7 +481,7 @@ public class HttpInputStreamsTest extends TestCase {
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
             @Override
-            public boolean doRead(AdapterRequest request)
+            public boolean doRead(Request request)
                     throws IOException {
                 Reader in = request.getReader(true);
                 char[] b = new char[expected.length()];
@@ -505,7 +505,7 @@ public class HttpInputStreamsTest extends TestCase {
         final String content = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
             @Override
-            public boolean doRead(AdapterRequest request)
+            public boolean doRead(Request request)
                     throws IOException {
                 Reader in = request.getReader(true);
                 char[] b = new char[14];
@@ -528,7 +528,7 @@ public class HttpInputStreamsTest extends TestCase {
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
             @Override
-            public boolean doRead(AdapterRequest request)
+            public boolean doRead(Request request)
                     throws IOException {
                 Reader in = request.getReader(true);
                 char[] b = new char[expected.length() - 2];
@@ -562,7 +562,7 @@ public class HttpInputStreamsTest extends TestCase {
 
         ReadStrategy reader = new ReadStrategy() {
             @Override
-            public boolean doRead(AdapterRequest request)
+            public boolean doRead(Request request)
                     throws IOException {
                 Reader in = request.getReader(true);
                 StringBuilder sb = new StringBuilder();
@@ -596,7 +596,7 @@ public class HttpInputStreamsTest extends TestCase {
 
         ReadStrategy reader = new ReadStrategy() {
             @Override
-            public boolean doRead(AdapterRequest request)
+            public boolean doRead(Request request)
                     throws IOException {
                 Reader in = request.getReader(true);
                 StringBuilder sb = new StringBuilder();
@@ -629,7 +629,7 @@ public class HttpInputStreamsTest extends TestCase {
 
         ReadStrategy reader = new ReadStrategy() {
             @Override
-            public boolean doRead(AdapterRequest request)
+            public boolean doRead(Request request)
                     throws IOException {
                 Reader in = request.getReader(true);
                 StringBuilder sb = new StringBuilder();
@@ -653,7 +653,7 @@ public class HttpInputStreamsTest extends TestCase {
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
             @Override
-            public boolean doRead(AdapterRequest request)
+            public boolean doRead(Request request)
                     throws IOException {
                 CharBuffer cbuf = CharBuffer.allocate(52);
                 Reader in = request.getReader(true);
@@ -677,7 +677,7 @@ public class HttpInputStreamsTest extends TestCase {
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
             @Override
-            public boolean doRead(AdapterRequest request)
+            public boolean doRead(Request request)
                     throws IOException {
                 Reader in = request.getReader(true);
                 CharBuffer cbuf = CharBuffer.allocate(expected.length() / 2);
@@ -711,7 +711,7 @@ public class HttpInputStreamsTest extends TestCase {
 
         ReadStrategy reader = new ReadStrategy() {
             @Override
-            public boolean doRead(AdapterRequest request)
+            public boolean doRead(Request request)
                     throws IOException {
                 Reader in = request.getReader(true);
                 CharBuffer cbuf = CharBuffer.allocate(1024 / 2);
@@ -735,7 +735,7 @@ public class HttpInputStreamsTest extends TestCase {
     public void testMultiByteCharacter01() throws Throwable {
         final String expected = "\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771";
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(AdapterRequest request)
+            @Override public boolean doRead(Request request)
                     throws IOException {
                 StringBuilder sb = new StringBuilder(26);
                 Reader in = request.getReader(true);
@@ -762,7 +762,7 @@ public class HttpInputStreamsTest extends TestCase {
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
             @Override
-            public boolean doRead(AdapterRequest request)
+            public boolean doRead(Request request)
                     throws IOException {
                 StringBuilder sb = new StringBuilder(26);
                 Reader in = request.getReader(true);
@@ -785,7 +785,7 @@ public class HttpInputStreamsTest extends TestCase {
 
     /*  TODO REVISIT:  This test relies on the underlying behavior
            of the NIOReader implementation, however, once the
-           test was changed to use AdapterRequest to read, the
+           test was changed to use Request to read, the
            Reader is now wrapped by a BufferedReader which changes
            the dynamics of the test.
 
@@ -801,7 +801,7 @@ public class HttpInputStreamsTest extends TestCase {
         }
 
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(AdapterRequest request)
+            @Override public boolean doRead(Request request)
             throws IOException {
                 try {
                     Reader in = request.getReader();
@@ -839,7 +839,7 @@ public class HttpInputStreamsTest extends TestCase {
         ReadStrategy reader = new ReadStrategy() {
 
             @Override
-            public boolean doRead(AdapterRequest request)
+            public boolean doRead(Request request)
                     throws IOException {
                 StringBuilder sb = new StringBuilder(16);
                 Reader in = request.getReader(true);
@@ -874,7 +874,7 @@ public class HttpInputStreamsTest extends TestCase {
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
             @Override
-            public boolean doRead(AdapterRequest request)
+            public boolean doRead(Request request)
                     throws IOException {
                 Reader in = request.getReader(true);
                 long skipped = in.skip(100);
@@ -904,7 +904,7 @@ public class HttpInputStreamsTest extends TestCase {
 
         ReadStrategy reader = new ReadStrategy() {
             @Override
-            public boolean doRead(AdapterRequest request)
+            public boolean doRead(Request request)
                     throws IOException {
                 int skipLen = 9000;
                 Reader in = request.getReader(true);
@@ -971,7 +971,7 @@ public class HttpInputStreamsTest extends TestCase {
                         int chunkSize)
     throws Throwable {
 
-        GrizzlyWebServer server = GrizzlyWebServer.createSimpleServer("/tmp", PORT);
+        HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
         ServerConfiguration sconfig = server.getServerConfiguration();
         sconfig.addGrizzlyAdapter(new SimpleResponseAdapter(strategy, testResult), "/*");
 
@@ -1011,7 +1011,7 @@ public class HttpInputStreamsTest extends TestCase {
 
     private interface ReadStrategy {
 
-        boolean doRead(AdapterRequest request) throws IOException;
+        boolean doRead(Request request) throws IOException;
 
     }
 
@@ -1034,7 +1034,7 @@ public class HttpInputStreamsTest extends TestCase {
 
 
         @Override
-        public void service(AdapterRequest req, AdapterResponse res) throws Exception {
+        public void service(Request req, Response res) throws Exception {
             Throwable t = null;
 
             res.setStatus(HttpStatus.OK_200);

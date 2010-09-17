@@ -107,24 +107,24 @@ import java.util.logging.Logger;
  * @version $Revision: 1.2 $ $Date: 2006/11/02 20:01:44 $
  */
 
-public class AdapterResponse {
+public class Response {
 
-    private static final Logger LOGGER = Grizzly.logger(AdapterResponse.class);
+    private static final Logger LOGGER = Grizzly.logger(Response.class);
 
-    private static final ThreadCache.CachedTypeIndex<AdapterResponse> CACHE_IDX =
-            ThreadCache.obtainIndex(AdapterResponse.class, 2);
+    private static final ThreadCache.CachedTypeIndex<Response> CACHE_IDX =
+            ThreadCache.obtainIndex(Response.class, 2);
 
-    public static AdapterResponse create() {
-        final AdapterResponse adapterResponse =
+    public static Response create() {
+        final Response response =
                 ThreadCache.takeFromCache(CACHE_IDX);
-        if (adapterResponse != null) {
-            return adapterResponse;
+        if (response != null) {
+            return response;
         }
 
-        return new AdapterResponse();
+        return new Response();
     }
 
-    static DelayQueue<AdapterResponse> createDelayQueue(DelayedExecutor delayedExecutor) {
+    static DelayQueue<Response> createDelayQueue(DelayedExecutor delayedExecutor) {
         return delayedExecutor.createDelayQueue(new DelayQueueWorker(),
                 new DelayQueueResolver());
     }
@@ -132,7 +132,7 @@ public class AdapterResponse {
     // ----------------------------------------------------------- Constructors
 
 
-    protected AdapterResponse() {
+    protected Response() {
 
         urlEncoder.addSafeCharacter('/');
 
@@ -158,7 +158,7 @@ public class AdapterResponse {
      * Descriptive information about this Response implementation.
      */
     protected static final String info =
-        "com.sun.grizzly.tcp.http11.AdapterResponse/1.0";
+        "com.sun.grizzly.tcp.http11.Response/1.0";
 
 
     /**
@@ -172,7 +172,7 @@ public class AdapterResponse {
     /**
      * The request with which this response is associated.
      */
-    protected AdapterRequest request = null;
+    protected Request request = null;
 
 
     /**
@@ -255,7 +255,7 @@ public class AdapterResponse {
     protected MessageBytes redirectURLCC = MessageBytes.newInstance();
 
 
-    protected DelayedExecutor.DelayQueue<AdapterResponse> delayQueue;
+    protected DelayedExecutor.DelayQueue<Response> delayQueue;
     protected boolean isSuspended;
     private final SuspendedRunnable suspendedRunnable = new SuspendedRunnable();
     private final Object suspendSync = new Object();
@@ -264,10 +264,10 @@ public class AdapterResponse {
     
     // --------------------------------------------------------- Public Methods
 
-    public void initialize(AdapterRequest request,
+    public void initialize(Request request,
                            HttpResponsePacket response,
                            FilterChainContext ctx,
-                           DelayedExecutor.DelayQueue<AdapterResponse> delayQueue,
+                           DelayedExecutor.DelayQueue<Response> delayQueue,
                            SuspendStatus suspendStatus) {
         this.request = request;
         this.response = response;
@@ -281,7 +281,7 @@ public class AdapterResponse {
     /**
      * Return the Request with which this Response is associated.
      */
-    public AdapterRequest getRequest() {
+    public Request getRequest() {
         return request;
     }
 
@@ -367,7 +367,7 @@ public class AdapterResponse {
         if (location.startsWith("#"))
             return (false);
 
-        final AdapterSession session = request.getSession(false);
+        final Session session = request.getSession(false);
         if (session == null)
             return (false);
 
@@ -379,7 +379,7 @@ public class AdapterResponse {
 
     }
 
-    private boolean doIsEncodeable(AdapterRequest request, AdapterSession session,
+    private boolean doIsEncodeable(Request request, Session session,
                                    String location){
         // Is this a valid absolute URL?
         URL url;
@@ -646,7 +646,7 @@ public class AdapterResponse {
 
     /**
      * @return the {@link OutputBuffer} associated with this
-     *  <code>AdapterResponse</code>.
+     *  <code>Response</code>.
      */
     public OutputBuffer getOutputBuffer() {
         return outputBuffer;
@@ -1443,9 +1443,9 @@ public class AdapterResponse {
 
 
     /**
-     * Return <tt>true<//tt> if that {@link AdapterResponse#suspend()} has been
+     * Return <tt>true<//tt> if that {@link Response#suspend()} has been
      * invoked and set to <tt>true</tt>
-     * @return <tt>true<//tt> if that {@link AdapterResponse#suspend()} has been
+     * @return <tt>true<//tt> if that {@link Response#suspend()} has been
      * invoked and set to <tt>true</tt>
      */
     public boolean isSuspended() {
@@ -1457,7 +1457,7 @@ public class AdapterResponse {
     }
 
     /**
-     * Suspend the {@link AdapterResponse}. Suspending a {@link AdapterResponse} will
+     * Suspend the {@link Response}. Suspending a {@link Response} will
      * tell the underlying container to avoid recycling objects associated with
      * the current instance, and also to avoid commiting response.
      */
@@ -1466,15 +1466,15 @@ public class AdapterResponse {
     }
 
     /**
-     * Suspend the {@link AdapterResponse}. Suspending a {@link AdapterResponse} will
+     * Suspend the {@link Response}. Suspending a {@link Response} will
      * tell the underlying container to avoid recycling objects associated with
      * the current instance, and also to avoid commiting response.
      *
      * @param timeout The maximum amount of time, in milliseconds,
-     * a {@link AdapterResponse} can be suspended. When the timeout expires (because
-     * nothing has been written or because the {@link AdapterResponse#resume()}
-     * or {@link AdapterResponse#cancel()}), the {@link AdapterResponse} will be automatically
-     * resumed and commited. Usage of any methods of a {@link AdapterResponse} that
+     * a {@link Response} can be suspended. When the timeout expires (because
+     * nothing has been written or because the {@link Response#resume()}
+     * or {@link Response#cancel()}), the {@link Response} will be automatically
+     * resumed and commited. Usage of any methods of a {@link Response} that
      * times out will throw an {@link IllegalStateException}.
      *
      */
@@ -1483,23 +1483,23 @@ public class AdapterResponse {
     }
 
     /**
-     * Suspend the {@link AdapterResponse}. Suspending a {@link AdapterResponse} will
+     * Suspend the {@link Response}. Suspending a {@link Response} will
      * tell the underlying container to avoid recycling objects associated with
      * the current instance, and also to avoid committing response. When the
-     * {@link AdapterResponse#resume()} is invoked, the container will
+     * {@link Response#resume()} is invoked, the container will
      * make sure {@link CompletionHandler#completed(Object)}
      * is invoked with the original <tt>attachment</tt>. When the
-     * {@link AdapterResponse#cancel()} is invoked, the container will
+     * {@link Response#cancel()} is invoked, the container will
      * make sure {@link com.sun.grizzly.CompletionHandler#cancelled()}
      * is invoked with the original <tt>attachment</tt>. If the timeout expires, the
      * {@link com.sun.grizzly.CompletionHandler#cancelled()} is invoked with the original <tt>attachment</tt> and
-     * the {@link AdapterResponse} committed.
+     * the {@link Response} committed.
      *
      * @param timeout The maximum amount of time, in milliseconds,
-     * a {@link AdapterResponse} can be suspended. When the timeout expires (because
-     * nothing has been written or because the {@link AdapterResponse#resume()}
-     * or {@link AdapterResponse#cancel()}), the {@link AdapterResponse} will be automatically
-     * resumed and committed. Usage of any methods of a {@link AdapterResponse} that
+     * a {@link Response} can be suspended. When the timeout expires (because
+     * nothing has been written or because the {@link Response#resume()}
+     * or {@link Response#cancel()}), the {@link Response} will be automatically
+     * resumed and committed. Usage of any methods of a {@link Response} that
      * times out will throw an {@link IllegalStateException}.
      * @param competionHandler a {@link com.sun.grizzly.CompletionHandler}
      */
@@ -1516,8 +1516,8 @@ public class AdapterResponse {
 
             final Connection connection = ctx.getConnection();
 
-            WebServerProbeNotifier.notifyRequestSuspend(
-                    request.webServerFilter, connection, request);
+            HttpServerProbeNotifier.notifyRequestSuspend(
+                    request.httpServerFilter, connection, request);
             
             connection.addCloseListener(suspendedRunnable);
             
@@ -1528,9 +1528,9 @@ public class AdapterResponse {
     }
 
     /**
-     * Complete the {@link AdapterResponse} and finish/commit it. If a
+     * Complete the {@link Response} and finish/commit it. If a
      * {@link CompletionHandler} has been defined, its {@link CompletionHandler#completed(Object)}
-     * will first be invoked, then the {@link AdapterResponse#finish()}.
+     * will first be invoked, then the {@link Response#finish()}.
      * Those operations commit the response.
      */
     @SuppressWarnings({"unchecked"})
@@ -1555,7 +1555,7 @@ public class AdapterResponse {
 
             isSuspended = false;
 
-            WebServerProbeNotifier.notifyRequestResume(request.webServerFilter,
+            HttpServerProbeNotifier.notifyRequestResume(request.httpServerFilter,
                     connection, request);
 
             ctx.resume();
@@ -1563,9 +1563,9 @@ public class AdapterResponse {
     }
 
     /**
-     * Cancel the {@link AdapterResponse} and finish/commit it. If a
+     * Cancel the {@link Response} and finish/commit it. If a
      * {@link CompletionHandler} has been defined, its {@link CompletionHandler#cancelled()}
-     * will first be invoked, then the {@link AdapterResponse#finish()}.
+     * will first be invoked, then the {@link Response#finish()}.
      * Those operations commit the response.
      */
     public void cancel() {
@@ -1590,15 +1590,15 @@ public class AdapterResponse {
 
             suspendedRunnable.reset();
 
-            WebServerProbeNotifier.notifyRequestCancel(
-                    request.webServerFilter, connection, request);
+            HttpServerProbeNotifier.notifyRequestCancel(
+                    request.httpServerFilter, connection, request);
 
             ctx.resume();
         }
     }
     
     /**
-     * Make sure the {@link AdapterResponse} object has been set.
+     * Make sure the {@link Response} object has been set.
      */
     final void checkResponse(){
         if (response == null){
@@ -1617,8 +1617,8 @@ public class AdapterResponse {
         @Override
         public void run() {
             synchronized (suspendSync) {
-                WebServerProbeNotifier.notifyRequestTimeout(
-                        request.webServerFilter, ctx.getConnection(), request);
+                HttpServerProbeNotifier.notifyRequestTimeout(
+                        request.httpServerFilter, ctx.getConnection(), request);
 
                 cancel();
             }
@@ -1637,20 +1637,20 @@ public class AdapterResponse {
     }
 
     private static class DelayQueueWorker implements
-            DelayedExecutor.Worker<AdapterResponse> {
+            DelayedExecutor.Worker<Response> {
 
         @Override
-        public void doWork(AdapterResponse element) {
+        public void doWork(Response element) {
             element.suspendedRunnable.run();
         }
         
     }
 
     private static class DelayQueueResolver implements
-            DelayedExecutor.Resolver<AdapterResponse> {
+            DelayedExecutor.Resolver<Response> {
 
         @Override
-        public boolean removeTimeout(AdapterResponse element) {
+        public boolean removeTimeout(Response element) {
             if (element.suspendedRunnable.timeoutTimeMillis != DelayedExecutor.UNSET_TIMEOUT) {
                 element.suspendedRunnable.timeoutTimeMillis = DelayedExecutor.UNSET_TIMEOUT;
                 return true;
@@ -1660,12 +1660,12 @@ public class AdapterResponse {
         }
 
         @Override
-        public Long getTimeoutMillis(AdapterResponse element) {
+        public Long getTimeoutMillis(Response element) {
             return element.suspendedRunnable.timeoutTimeMillis;
         }
 
         @Override
-        public void setTimeoutMillis(AdapterResponse element, long timeoutMillis) {
+        public void setTimeoutMillis(Response element, long timeoutMillis) {
             element.suspendedRunnable.timeoutTimeMillis = timeoutMillis;
         }
 

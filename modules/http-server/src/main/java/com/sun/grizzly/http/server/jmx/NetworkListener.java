@@ -43,9 +43,8 @@ package com.sun.grizzly.http.server.jmx;
 import com.sun.grizzly.Transport;
 import com.sun.grizzly.http.HttpCodecFilter;
 import com.sun.grizzly.http.KeepAlive;
-import com.sun.grizzly.http.server.NetworlListener;
 import com.sun.grizzly.http.server.filecache.FileCache;
-import com.sun.grizzly.http.server.WebServerFilter;
+import com.sun.grizzly.http.server.HttpServerFilter;
 import com.sun.grizzly.monitoring.jmx.GrizzlyJmxManager;
 import com.sun.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.gmbal.Description;
@@ -54,15 +53,15 @@ import org.glassfish.gmbal.ManagedAttribute;
 import org.glassfish.gmbal.ManagedObject;
 
 /**
- * JMX management object for {@link com.sun.grizzly.http.server.NetworlListener}.
+ * JMX management object for {@link com.sun.grizzly.http.server.NetworkListener}.
  *
  * @since 2.0
  */
 @ManagedObject
-@Description("The NetworlListener is an abstraction around the Transport (exposed as a child of this entity).")
+@Description("The NetworkListener is an abstraction around the Transport (exposed as a child of this entity).")
 public class NetworkListener extends JmxObject {
 
-    private final NetworlListener listener;
+    private final com.sun.grizzly.http.server.NetworkListener listener;
 
     private FileCache currentFileCache;
     private Transport currentTransport;
@@ -72,7 +71,7 @@ public class NetworkListener extends JmxObject {
     private JmxObject transportJmx;
     private JmxObject keepAliveJmx;
 
-    private WebServerFilter currentWebServerFilter;
+    private HttpServerFilter currentHttpServerFilter;
     private JmxObject webServerFilterJmx;
     
     private HttpCodecFilter currentHttpCodecFilter;
@@ -84,7 +83,7 @@ public class NetworkListener extends JmxObject {
     // ------------------------------------------------------------ Constructors
 
 
-    public NetworkListener(NetworlListener listener) {
+    public NetworkListener(com.sun.grizzly.http.server.NetworkListener listener) {
 
         this.listener = listener;
 
@@ -99,7 +98,7 @@ public class NetworkListener extends JmxObject {
      */
     @Override
     public String getJmxName() {
-        return "NetworlListener";
+        return "NetworkListener";
     }
 
     /**
@@ -124,7 +123,7 @@ public class NetworkListener extends JmxObject {
 
 
     /**
-     * @see com.sun.grizzly.http.server.NetworlListener#getName()
+     * @see com.sun.grizzly.http.server.NetworkListener#getName()
      */
     @ManagedAttribute(id="name")
     @Description("The logical name of the listener.")
@@ -134,7 +133,7 @@ public class NetworkListener extends JmxObject {
 
 
     /**
-     * @see com.sun.grizzly.http.server.NetworlListener#getHost()
+     * @see com.sun.grizzly.http.server.NetworkListener#getHost()
      */
     @ManagedAttribute(id="host")
     @Description("The network host to which this listener is bound.")
@@ -144,7 +143,7 @@ public class NetworkListener extends JmxObject {
 
 
     /**
-     * @see com.sun.grizzly.http.server.NetworlListener#getPort()
+     * @see com.sun.grizzly.http.server.NetworkListener#getPort()
      */
     @ManagedAttribute(id="port")
     @Description("The network port to which this listener is bound.")
@@ -164,7 +163,7 @@ public class NetworkListener extends JmxObject {
 
 
     /**
-     * @see com.sun.grizzly.http.server.NetworlListener#isSecure()
+     * @see com.sun.grizzly.http.server.NetworkListener#isSecure()
      */
     @ManagedAttribute(id="secure")
     @Description("Indicates whether or not this listener is secured via SSL.")
@@ -174,7 +173,7 @@ public class NetworkListener extends JmxObject {
 
 
     /**
-     * @see com.sun.grizzly.http.server.NetworlListener#getMaxHttpHeaderSize()
+     * @see com.sun.grizzly.http.server.NetworkListener#getMaxHttpHeaderSize()
      */
     @ManagedAttribute(id="max-http-header-size")
     @Description("The maximum size, in bytes, an HTTP request may be.")
@@ -184,7 +183,7 @@ public class NetworkListener extends JmxObject {
 
 
     /**
-     * @see com.sun.grizzly.http.server.NetworlListener#getName()
+     * @see com.sun.grizzly.http.server.NetworkListener#getName()
      */
     @ManagedAttribute(id="max-pending-bytes")
     @Description("The maximum size, in bytes, a connection may have waiting to be sent to the client.")
@@ -194,7 +193,7 @@ public class NetworkListener extends JmxObject {
 
 
     /**
-     * @see com.sun.grizzly.http.server.NetworlListener#isChunkingEnabled()
+     * @see com.sun.grizzly.http.server.NetworkListener#isChunkingEnabled()
      */
     @ManagedAttribute(id="chunking-enabled")
     @Description("Flag indicating whether or not the http response body will be sent using the chunked transfer encoding.")
@@ -204,7 +203,7 @@ public class NetworkListener extends JmxObject {
 
 
     /**
-     * @see com.sun.grizzly.http.server.NetworlListener#isStarted()
+     * @see com.sun.grizzly.http.server.NetworkListener#isStarted()
      */
     @ManagedAttribute(id="started")
     @Description("Indicates whether or not this listener is started.")
@@ -214,7 +213,7 @@ public class NetworkListener extends JmxObject {
 
 
     /**
-     * @see com.sun.grizzly.http.server.NetworlListener#isPaused()
+     * @see com.sun.grizzly.http.server.NetworkListener#isPaused()
      */
     @Description("Indicates whether or not a started listener is actively processing requests.")
     @ManagedAttribute(id="paused")
@@ -279,19 +278,19 @@ public class NetworkListener extends JmxObject {
             }
         }
 
-        final WebServerFilter filter = listener.getWebServerFilter();
-        if (currentWebServerFilter != filter) {
-            if (currentWebServerFilter != null) {
+        final HttpServerFilter filter = listener.getHttpServerFilter();
+        if (currentHttpServerFilter != filter) {
+            if (currentHttpServerFilter != null) {
                 mom.unregister(webServerFilterJmx);
 
-                currentWebServerFilter = null;
+                currentHttpServerFilter = null;
                 webServerFilterJmx = null;
             }
 
             if (filter != null) {
                 final JmxObject jmx = filter.getMonitoringConfig().createManagementObject();
                 mom.register(this, jmx, jmx.getJmxName());
-                currentWebServerFilter = filter;
+                currentHttpServerFilter = filter;
                 webServerFilterJmx = jmx;
             }
         }

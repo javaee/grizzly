@@ -52,7 +52,7 @@ import com.sun.grizzly.http.HttpClientFilter;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.server.*;
-import com.sun.grizzly.http.server.AdapterResponse;
+import com.sun.grizzly.http.server.Response;
 import com.sun.grizzly.http.server.io.NIOReader;
 import com.sun.grizzly.http.server.io.NIOWriter;
 import com.sun.grizzly.http.server.io.ReadHandler;
@@ -90,9 +90,9 @@ import java.util.logging.Logger;
  *    </li>
  *    <li>
  *       NoneBlockingEchoAdapter: This {@link com.sun.grizzly.http.server.Adapter} is installed to the
- *                                {@link com.sun.grizzly.http.server.GrizzlyWebServer} instance and associated
+ *                                {@link com.sun.grizzly.http.server.HttpServer} instance and associated
  *                                with the path <code>/echo</code>.  The adapter uses the {@link com.sun.grizzly.http.server.io.NIOReader}
- *                                returned by {@link com.sun.grizzly.http.server.AdapterRequest#getReader(boolean)} in non-blocking
+ *                                returned by {@link com.sun.grizzly.http.server.Request#getReader(boolean)} in non-blocking
  *                                mode.  As data is received asynchronously, the {@link ReadHandler} callbacks are
  *                                invoked at this time data is then written to the response.
  *    </li>
@@ -108,7 +108,7 @@ public class NonBlockingAdapterSample {
     public static void main(String[] args) {
 
         // create a basic server that listens on port 8080.
-        final GrizzlyWebServer server = GrizzlyWebServer.createSimpleServer();
+        final HttpServer server = HttpServer.createSimpleServer();
 
         final ServerConfiguration config = server.getServerConfiguration();
 
@@ -313,8 +313,8 @@ public class NonBlockingAdapterSample {
 
 
         @Override
-        public void service(final AdapterRequest request,
-                            final AdapterResponse response) throws Exception {
+        public void service(final Request request,
+                            final Response response) throws Exception {
 
             final char[] buf = new char[128];
             final NIOReader in = request.getReader(false); // false argument puts the stream in non-blocking mode

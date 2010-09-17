@@ -41,9 +41,9 @@
 package com.sun.grizzly.http.server.jmx;
 
 import com.sun.grizzly.Connection;
-import com.sun.grizzly.http.server.AdapterRequest;
-import com.sun.grizzly.http.server.AdapterResponse;
-import com.sun.grizzly.http.server.WebServerProbe;
+import com.sun.grizzly.http.server.Request;
+import com.sun.grizzly.http.server.Response;
+import com.sun.grizzly.http.server.HttpServerProbe;
 import com.sun.grizzly.monitoring.jmx.GrizzlyJmxManager;
 import com.sun.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.gmbal.Description;
@@ -55,15 +55,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * JMX management object for the {@link com.sun.grizzly.http.server.WebServerFilter}.
+ * JMX management object for the {@link com.sun.grizzly.http.server.HttpServerFilter}.
  *
  * @since 2.0
  */
 @ManagedObject
-@Description("The WebServerFilter is the entity responsible for providing and processing higher level abstractions based on HTTP protocol.")
-public class WebServerFilter extends JmxObject {
+@Description("The HttpServerFilter is the entity responsible for providing and processing higher level abstractions based on HTTP protocol.")
+public class HttpServerFilter extends JmxObject {
 
-    private final com.sun.grizzly.http.server.WebServerFilter webServerFilter;
+    private final com.sun.grizzly.http.server.HttpServerFilter httpServerFilter;
 
     private final AtomicLong receivedCount = new AtomicLong();
     private final AtomicLong completedCount = new AtomicLong();
@@ -71,13 +71,13 @@ public class WebServerFilter extends JmxObject {
     private final AtomicLong timedOutCount = new AtomicLong();
     private final AtomicLong cancelledCount = new AtomicLong();
 
-    private final WebServerProbe probe = new JmxWebServerProbe();
+    private final HttpServerProbe probe = new JmxWebServerProbe();
 
     // ------------------------------------------------------------ Constructors
 
 
-    public WebServerFilter(com.sun.grizzly.http.server.WebServerFilter webServerFilter) {
-        this.webServerFilter = webServerFilter;
+    public HttpServerFilter(com.sun.grizzly.http.server.HttpServerFilter httpServerFilter) {
+        this.httpServerFilter = httpServerFilter;
     }
 
 
@@ -86,17 +86,17 @@ public class WebServerFilter extends JmxObject {
 
     @Override
     public String getJmxName() {
-        return "WebServerFilter";
+        return "HttpServerFilter";
     }
 
     @Override
     protected void onRegister(GrizzlyJmxManager mom, GmbalMBean bean) {
-        webServerFilter.getMonitoringConfig().addProbes(probe);
+        httpServerFilter.getMonitoringConfig().addProbes(probe);
     }
 
     @Override
     protected void onUnregister(GrizzlyJmxManager mom) {
-        webServerFilter.getMonitoringConfig().removeProbes(probe);
+        httpServerFilter.getMonitoringConfig().removeProbes(probe);
     }
 
 
@@ -104,7 +104,7 @@ public class WebServerFilter extends JmxObject {
 
 
     /**
-     * @return the number of requests this {@link com.sun.grizzly.http.server.WebServerFilter}
+     * @return the number of requests this {@link com.sun.grizzly.http.server.HttpServerFilter}
      *  has received.
      */
     @ManagedAttribute(id="requests-received-count")
@@ -115,7 +115,7 @@ public class WebServerFilter extends JmxObject {
 
 
     /**
-     * @return the number of requests this {@link com.sun.grizzly.http.server.WebServerFilter}
+     * @return the number of requests this {@link com.sun.grizzly.http.server.HttpServerFilter}
      *  has completed servicing.
      */
     @ManagedAttribute(id="requests-completed-count")
@@ -159,40 +159,40 @@ public class WebServerFilter extends JmxObject {
     // ---------------------------------------------------------- Nested Classes
 
 
-    private final class JmxWebServerProbe implements WebServerProbe {
+    private final class JmxWebServerProbe implements HttpServerProbe {
 
 
-        // ----------------------------------------- Methods from WebServerProbe
+        // ----------------------------------------- Methods from HttpServerProbe
 
 
         @Override
-        public void onRequestReceiveEvent(com.sun.grizzly.http.server.WebServerFilter filter, Connection connection, AdapterRequest request) {
+        public void onRequestReceiveEvent(com.sun.grizzly.http.server.HttpServerFilter filter, Connection connection, Request request) {
             receivedCount.incrementAndGet();
         }
 
         @Override
-        public void onRequestCompleteEvent(com.sun.grizzly.http.server.WebServerFilter filter, Connection connection, AdapterResponse response) {
+        public void onRequestCompleteEvent(com.sun.grizzly.http.server.HttpServerFilter filter, Connection connection, Response response) {
             completedCount.incrementAndGet();
         }
 
         @Override
-        public void onRequestSuspendEvent(com.sun.grizzly.http.server.WebServerFilter filter, Connection connection, AdapterRequest request) {
+        public void onRequestSuspendEvent(com.sun.grizzly.http.server.HttpServerFilter filter, Connection connection, Request request) {
             suspendCount.incrementAndGet();
         }
 
         @Override
-        public void onRequestResumeEvent(com.sun.grizzly.http.server.WebServerFilter filter, Connection connection, AdapterRequest request) {
+        public void onRequestResumeEvent(com.sun.grizzly.http.server.HttpServerFilter filter, Connection connection, Request request) {
             suspendCount.decrementAndGet();
         }
 
         @Override
-        public void onRequestTimeoutEvent(com.sun.grizzly.http.server.WebServerFilter filter, Connection connection, AdapterRequest request) {
+        public void onRequestTimeoutEvent(com.sun.grizzly.http.server.HttpServerFilter filter, Connection connection, Request request) {
             timedOutCount.incrementAndGet();
             suspendCount.decrementAndGet();
         }
 
         @Override
-        public void onRequestCancelEvent(com.sun.grizzly.http.server.WebServerFilter filter, Connection connection, AdapterRequest request) {
+        public void onRequestCancelEvent(com.sun.grizzly.http.server.HttpServerFilter filter, Connection connection, Request request) {
             cancelledCount.incrementAndGet();
             suspendCount.decrementAndGet();
         }

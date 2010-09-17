@@ -80,12 +80,12 @@ public class KeepAliveTest extends TestCase {
     public void testHttp11KeepAlive() throws Exception {
         final String msg = "Hello world #";
         
-        GrizzlyWebServer server = createServer(new Adapter() {
+        HttpServer server = createServer(new Adapter() {
             private final AtomicInteger ai = new AtomicInteger();
             
             @Override
-            public void service(AdapterRequest request,
-                    AdapterResponse response) throws Exception {
+            public void service(Request request,
+                    Response response) throws Exception {
                 response.setContentType("text/plain");
                 response.getWriter().write(msg + ai.getAndIncrement());
             }
@@ -132,12 +132,12 @@ public class KeepAliveTest extends TestCase {
     public void testHttp11KeepAliveHeaderClose() throws Exception {
         final String msg = "Hello world #";
 
-        GrizzlyWebServer server = createServer(new Adapter() {
+        HttpServer server = createServer(new Adapter() {
             private final AtomicInteger ai = new AtomicInteger();
 
             @Override
-            public void service(AdapterRequest request,
-                    AdapterResponse response) throws Exception {
+            public void service(Request request,
+                    Response response) throws Exception {
                 response.setContentType("text/plain");
                 response.getWriter().write(msg + ai.getAndIncrement());
             }
@@ -197,12 +197,12 @@ public class KeepAliveTest extends TestCase {
 
         final int maxKeepAliveRequests = 5;
 
-        GrizzlyWebServer server = createServer(new Adapter() {
+        HttpServer server = createServer(new Adapter() {
             private final AtomicInteger ai = new AtomicInteger();
 
             @Override
-            public void service(AdapterRequest request,
-                    AdapterResponse response) throws Exception {
+            public void service(Request request,
+                    Response response) throws Exception {
                 response.setContentType("text/plain");
                 response.getWriter().write(msg + ai.getAndIncrement());
             }
@@ -341,13 +341,13 @@ public class KeepAliveTest extends TestCase {
 
     }
 
-    private GrizzlyWebServer createServer(final Adapter adapter,
+    private HttpServer createServer(final Adapter adapter,
                                           final String... mappings) {
 
-        GrizzlyWebServer server = new GrizzlyWebServer();
-        NetworlListener listener =
-                new NetworlListener("grizzly",
-                                    NetworlListener.DEFAULT_NETWORK_HOST,
+        HttpServer server = new HttpServer();
+        NetworkListener listener =
+                new NetworkListener("grizzly",
+                                    NetworkListener.DEFAULT_NETWORK_HOST,
                                     PORT);
         server.addListener(listener);
         if (adapter != null) {

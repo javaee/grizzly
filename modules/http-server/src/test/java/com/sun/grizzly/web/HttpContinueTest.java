@@ -61,10 +61,10 @@ public class HttpContinueTest extends TestCase {
     public void test100Continue() throws Exception {
 
         final SafeFutureImpl<String> future = new SafeFutureImpl<String>();
-        GrizzlyWebServer server = createServer(new Adapter() {
+        HttpServer server = createServer(new Adapter() {
 
             @Override
-            public void service(AdapterRequest request, AdapterResponse response) throws Exception {
+            public void service(Request request, Response response) throws Exception {
                 future.result(request.getParameter("a"));
             }
 
@@ -126,7 +126,7 @@ public class HttpContinueTest extends TestCase {
 
     public void testExpectationIgnored() throws Exception {
 
-        GrizzlyWebServer server = createServer(null);
+        HttpServer server = createServer(null);
 
         Socket s = null;
         try {
@@ -169,7 +169,7 @@ public class HttpContinueTest extends TestCase {
 
     public void testFailedExpectation() throws Exception {
 
-        GrizzlyWebServer server = createServer(null);
+        HttpServer server = createServer(null);
 
         Socket s = null;
         try {
@@ -210,13 +210,13 @@ public class HttpContinueTest extends TestCase {
     // --------------------------------------------------------- Private Methods
 
 
-    private GrizzlyWebServer createServer(final Adapter adapter,
+    private HttpServer createServer(final Adapter adapter,
                                           final String... mappings) {
 
-        GrizzlyWebServer server = new GrizzlyWebServer();
-        NetworlListener listener =
-                new NetworlListener("grizzly",
-                                    NetworlListener.DEFAULT_NETWORK_HOST,
+        HttpServer server = new HttpServer();
+        NetworkListener listener =
+                new NetworkListener("grizzly",
+                                    NetworkListener.DEFAULT_NETWORK_HOST,
                                     PORT);
         server.addListener(listener);
         if (adapter != null) {

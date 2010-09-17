@@ -40,8 +40,8 @@
 
 package com.sun.grizzly.web;
 
-import com.sun.grizzly.http.server.GrizzlyWebServer;
-import com.sun.grizzly.http.server.NetworlListener;
+import com.sun.grizzly.http.server.HttpServer;
+import com.sun.grizzly.http.server.NetworkListener;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -52,10 +52,10 @@ public class GrizzlyWebServerJmxBasicTest {
 
     @Test
     public void transport() throws Exception {
-        GrizzlyWebServer gws = new GrizzlyWebServer();
-        GrizzlyWebServer gws1 = new GrizzlyWebServer();
-        NetworlListener listener1 = new NetworlListener("listener1", "localhost", 8080);
-        NetworlListener listener2 = new NetworlListener("listener2", "localhost", 8081);
+        HttpServer gws = new HttpServer();
+        HttpServer gws1 = new HttpServer();
+        NetworkListener listener1 = new NetworkListener("listener1", "localhost", 8080);
+        NetworkListener listener2 = new NetworkListener("listener2", "localhost", 8081);
         gws.addListener(listener1);
         gws1.addListener(listener2);
 

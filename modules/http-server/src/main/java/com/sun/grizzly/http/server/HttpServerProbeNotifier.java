@@ -44,114 +44,114 @@ import com.sun.grizzly.Connection;
 
 /**
  * Utility class, which has notification methods for different
- * {@link WebServerProbe} events.
+ * {@link HttpServerProbe} events.
  *
  * @author Alexey Stashok
  */
-final class WebServerProbeNotifier {
+final class HttpServerProbeNotifier {
     /**
-     * Notify registered {@link WebServerProbe}s about the "request received" event.
+     * Notify registered {@link HttpServerProbe}s about the "request received" event.
      *
-     * @param filter {@link WebServerFilter}, the event belongs to.
+     * @param filter {@link HttpServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
-     * @param request received {@link AdapterRequest}.
+     * @param request received {@link Request}.
      */
-    static void notifyRequestReceive(final WebServerFilter filter,
-            final Connection connection, final AdapterRequest request) {
+    static void notifyRequestReceive(final HttpServerFilter filter,
+            final Connection connection, final Request request) {
 
-        final WebServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
+        final HttpServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
-            for (WebServerProbe probe : probes) {
+            for (HttpServerProbe probe : probes) {
                 probe.onRequestReceiveEvent(filter, connection, request);
             }
         }
     }
 
     /**
-     * Notify registered {@link WebServerProbe}s about the "request completed" event.
+     * Notify registered {@link HttpServerProbe}s about the "request completed" event.
      *
-     * @param filter {@link WebServerFilter}, the event belongs to.
+     * @param filter {@link HttpServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
-     * @param response {@link AdapterResponse}.
+     * @param response {@link Response}.
      */
-    static void notifyRequestComplete(final WebServerFilter filter,
-            final Connection connection, final AdapterResponse response) {
+    static void notifyRequestComplete(final HttpServerFilter filter,
+            final Connection connection, final Response response) {
 
-        final WebServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
+        final HttpServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
-            for (WebServerProbe probe : probes) {
+            for (HttpServerProbe probe : probes) {
                 probe.onRequestCompleteEvent(filter, connection, response);
             }
         }
     }
 
     /**
-     * Notify registered {@link WebServerProbe}s about the "request suspended" event.
+     * Notify registered {@link HttpServerProbe}s about the "request suspended" event.
      *
-     * @param filter {@link WebServerFilter}, the event belongs to.
+     * @param filter {@link HttpServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
-     * @param request {@link AdapterRequest}.
+     * @param request {@link Request}.
      */
-    static void notifyRequestSuspend(final WebServerFilter filter,
-            final Connection connection, final AdapterRequest request) {
+    static void notifyRequestSuspend(final HttpServerFilter filter,
+            final Connection connection, final Request request) {
 
-        final WebServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
+        final HttpServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
-            for (WebServerProbe probe : probes) {
+            for (HttpServerProbe probe : probes) {
                 probe.onRequestSuspendEvent(filter, connection, request);
             }
         }
     }
 
     /**
-     * Notify registered {@link WebServerProbe}s about the "request resumed" event.
+     * Notify registered {@link HttpServerProbe}s about the "request resumed" event.
      *
-     * @param filter {@link WebServerFilter}, the event belongs to.
+     * @param filter {@link HttpServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
-     * @param request {@link AdapterRequest}.
+     * @param request {@link Request}.
      */
-    static void notifyRequestResume(final WebServerFilter filter,
-            final Connection connection, final AdapterRequest request) {
+    static void notifyRequestResume(final HttpServerFilter filter,
+            final Connection connection, final Request request) {
 
-        final WebServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
+        final HttpServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
-            for (WebServerProbe probe : probes) {
+            for (HttpServerProbe probe : probes) {
                 probe.onRequestResumeEvent(filter, connection, request);
             }
         }
     }
 
     /**
-     * Notify registered {@link WebServerProbe}s about the "request timeout after suspend" event.
+     * Notify registered {@link HttpServerProbe}s about the "request timeout after suspend" event.
      *
-     * @param filter {@link WebServerFilter}, the event belongs to.
+     * @param filter {@link HttpServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
-     * @param request  {@link AdapterRequest}.
+     * @param request  {@link Request}.
      */
-    static void notifyRequestTimeout(final WebServerFilter filter,
-            final Connection connection, final AdapterRequest request) {
+    static void notifyRequestTimeout(final HttpServerFilter filter,
+            final Connection connection, final Request request) {
 
-        final WebServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
+        final HttpServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
-            for (WebServerProbe probe : probes) {
+            for (HttpServerProbe probe : probes) {
                 probe.onRequestTimeoutEvent(filter, connection, request);
             }
         }
     }
 
     /**
-     * Notify registered {@link WebServerProbe}s about the "request canceled after suspend" event.
+     * Notify registered {@link HttpServerProbe}s about the "request canceled after suspend" event.
      *
-     * @param filter {@link WebServerFilter}, the event belongs to.
+     * @param filter {@link HttpServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
-     * @param request  {@link AdapterRequest}.
+     * @param request  {@link Request}.
      */
-    static void notifyRequestCancel(final WebServerFilter filter,
-            final Connection connection, final AdapterRequest request) {
+    static void notifyRequestCancel(final HttpServerFilter filter,
+            final Connection connection, final Request request) {
 
-        final WebServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
+        final HttpServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
-            for (WebServerProbe probe : probes) {
+            for (HttpServerProbe probe : probes) {
                 probe.onRequestCancelEvent(filter, connection, request);
             }
         }

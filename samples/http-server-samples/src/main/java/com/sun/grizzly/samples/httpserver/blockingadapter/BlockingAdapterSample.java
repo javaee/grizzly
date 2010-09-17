@@ -85,10 +85,10 @@ import java.util.logging.Logger;
  *    </li>
  *    <li>
  *       BlockingEchoAdapter: This {@link com.sun.grizzly.http.server.Adapter} is installed to the
- *                            {@link GrizzlyWebServer} instance and associated
+ *                            {@link com.sun.grizzly.http.server.HttpServer} instance and associated
  *                            with the path <code>/echo</code>.  This {@link com.sun.grizzly.http.server.Adapter}
  *                            is fairly simple.  The adapter uses the {@link com.sun.grizzly.http.server.io.NIOReader}
- *                            returned by {@link com.sun.grizzly.http.server.AdapterRequest#getReader(boolean)} in blocking
+ *                            returned by {@link com.sun.grizzly.http.server.Request#getReader(boolean)} in blocking
  *                            mode.  As data is received, the same data is then immediately
  *                            written to the response.
  *    </li>
@@ -104,7 +104,7 @@ public class BlockingAdapterSample {
     public static void main(String[] args) {
 
         // create a basic server that listens on port 8080.
-        final GrizzlyWebServer server = GrizzlyWebServer.createSimpleServer();
+        final HttpServer server = HttpServer.createSimpleServer();
 
         final ServerConfiguration config = server.getServerConfiguration();
 
@@ -304,7 +304,7 @@ public class BlockingAdapterSample {
 
 
         @Override
-        public void service(AdapterRequest request, AdapterResponse response) throws Exception {
+        public void service(Request request, Response response) throws Exception {
 
             final char[] buf = new char[128];
             Reader in = null;

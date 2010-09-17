@@ -59,7 +59,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @since 2.0
  */
 @ManagedObject
-@Description("Static file caching implementation.  There will be one FileCache instance per NetworlListener.")
+@Description("Static file caching implementation.  There will be one FileCache instance per NetworkListener.")
 public class FileCache extends JmxObject {
 
     /**

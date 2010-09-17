@@ -79,10 +79,10 @@ public class NIOOutputSinksTest extends TestCase {
 
     public void testBinaryOutputSink() throws Exception {
 
-        final GrizzlyWebServer server = new GrizzlyWebServer();
-        final NetworlListener listener =
-                new NetworlListener("Grizzly",
-                                    NetworlListener.DEFAULT_NETWORK_HOST,
+        final HttpServer server = new HttpServer();
+        final NetworkListener listener =
+                new NetworkListener("Grizzly",
+                                    NetworkListener.DEFAULT_NETWORK_HOST,
                                     PORT);
         final AsyncQueueWriter asyncQueueWriter =
                 listener.getTransport().getAsyncQueueIO().getWriter();
@@ -144,7 +144,7 @@ public class NIOOutputSinksTest extends TestCase {
         final Adapter ga = new Adapter() {
 
             @Override
-            public void service(final AdapterRequest request, final AdapterResponse response) throws Exception {
+            public void service(final Request request, final Response response) throws Exception {
                 
                 clientTransport.pause();
                 response.setContentType("text/plain");
@@ -240,10 +240,10 @@ public class NIOOutputSinksTest extends TestCase {
     
     public void testCharacterOutputSink() throws Exception {
 
-        final GrizzlyWebServer server = new GrizzlyWebServer();
-        final NetworlListener listener =
-                new NetworlListener("Grizzly",
-                                    NetworlListener.DEFAULT_NETWORK_HOST,
+        final HttpServer server = new HttpServer();
+        final NetworkListener listener =
+                new NetworkListener("Grizzly",
+                                    NetworkListener.DEFAULT_NETWORK_HOST,
                                     PORT);
         final AsyncQueueWriter asyncQueueWriter =
                 listener.getTransport().getAsyncQueueIO().getWriter();
@@ -305,7 +305,7 @@ public class NIOOutputSinksTest extends TestCase {
         final Adapter ga = new Adapter() {
 
             @Override
-            public void service(final AdapterRequest request, final AdapterResponse response) throws Exception {
+            public void service(final Request request, final Response response) throws Exception {
                 
                 clientTransport.pause();
                 response.setContentType("text/plain");
@@ -401,10 +401,10 @@ public class NIOOutputSinksTest extends TestCase {
 
     public void testWriteExceptionPropagation() throws Exception {
 
-        final GrizzlyWebServer server = new GrizzlyWebServer();
-        final NetworlListener listener =
-                new NetworlListener("Grizzly",
-                                    NetworlListener.DEFAULT_NETWORK_HOST,
+        final HttpServer server = new HttpServer();
+        final NetworkListener listener =
+                new NetworkListener("Grizzly",
+                                    NetworkListener.DEFAULT_NETWORK_HOST,
                                     PORT);
         final AsyncQueueWriter asyncQueueWriter =
                 listener.getTransport().getAsyncQueueIO().getWriter();
@@ -446,7 +446,7 @@ public class NIOOutputSinksTest extends TestCase {
         final Adapter ga = new Adapter() {
 
             @Override
-            public void service(final AdapterRequest request, final AdapterResponse response) throws Exception {
+            public void service(final Request request, final Response response) throws Exception {
 
                 //clientTransport.pause();
                 response.setContentType("text/plain");

@@ -59,7 +59,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Configuration options for a particular {@link GrizzlyWebServer} instance.
+ * Configuration options for a particular {@link HttpServer} instance.
  */
 public class ServerConfiguration {
 
@@ -79,7 +79,7 @@ public class ServerConfiguration {
 
     private static final String[] ROOT_MAPPING = {"/"};
 
-    private final WebServerMonitoringConfig monitoringConfig = new WebServerMonitoringConfig();
+    private final HttpServerMonitoringConfig monitoringConfig = new HttpServerMonitoringConfig();
 
     private String name;
 
@@ -87,14 +87,14 @@ public class ServerConfiguration {
 
     private String httpServerVersion = "2.0";
 
-    private final GrizzlyWebServer instance;
+    private final HttpServer instance;
 
     private boolean jmxEnabled;
     
     // ------------------------------------------------------------ Constructors
 
 
-    ServerConfiguration(GrizzlyWebServer instance) {
+    ServerConfiguration(HttpServer instance) {
         this.instance = instance;
     }
 
@@ -152,7 +152,7 @@ public class ServerConfiguration {
             return new Adapter(docRoot) {
                 @SuppressWarnings({"unchecked"})
                 @Override
-                public void service(AdapterRequest request, AdapterResponse response) {
+                public void service(Request request, Response response) {
                     try {
                         ByteBuffer b = HtmlHelper.getErrorPage("Not Found",
                                                                "Resource identified by path '" + request.getRequestURI() + "', does not exist.",
@@ -208,17 +208,17 @@ public class ServerConfiguration {
      * 
      * @return the web server monitoring config.
      */
-    public WebServerMonitoringConfig getMonitoringConfig() {
+    public HttpServerMonitoringConfig getMonitoringConfig() {
         return monitoringConfig;
     }
 
 
     /**
-     * @return the logical name of this {@link GrizzlyWebServer} instance.
+     * @return the logical name of this {@link HttpServer} instance.
      *  If no name is explicitly specified, the default value will
-     *  be <code>GrizzlyWebServer</code>.  If there is more than once
-     *  {@link GrizzlyWebServer} per virtual machine, the server name will
-     *  be <code>GrizzlyWebServer-[(instance count - 1)].
+     *  be <code>HttpServer</code>.  If there is more than once
+     *  {@link HttpServer} per virtual machine, the server name will
+     *  be <code>HttpServer-[(instance count - 1)].
      */
     public String getName() {
         if (name == null) {
@@ -226,14 +226,14 @@ public class ServerConfiguration {
                 return null;
             } else {
                 final int count = INSTANCE_COUNT.incrementAndGet();
-                name = ((count == 0) ? "GrizzlyWebServer" : "GrizzlyWebServer-" + count);
+                name = ((count == 0) ? "HttpServer" : "HttpServer-" + count);
             }
         }
         return name;
     }
 
     /**
-     * Sets the logical name of this {@link GrizzlyWebServer} instance.
+     * Sets the logical name of this {@link HttpServer} instance.
      * The logical name cannot be changed after the server has been started.
      *
      * @param name server name
@@ -247,7 +247,7 @@ public class ServerConfiguration {
 
     /**
      * @return <code>true</code> if <code>JMX</code> has been enabled for this
-     *  {@link GrizzlyWebServer}.  If <code>true</code> the {@link GrizzlyWebServer}
+     *  {@link HttpServer}.  If <code>true</code> the {@link HttpServer}
      *  management object will be registered at the root of the JMX tree
      *  with the name of <code>[instance-name]</code> where instance name is
      *  the value returned by {@link #getName}.
@@ -258,7 +258,7 @@ public class ServerConfiguration {
 
 
     /**
-     * Enables <code>JMX</code> for this {@link GrizzlyWebServer}.  This value
+     * Enables <code>JMX</code> for this {@link HttpServer}.  This value
      * can be changed at runtime.
      *
      * @param jmxEnabled <code>true</code> to enable <code>JMX</code> otherwise
@@ -290,8 +290,8 @@ public class ServerConfiguration {
 
     /**
      * Add a {@link JmxEventListener} which will be notified when the
-     * {@link GrizzlyWebServer} is started and JMX was enabled prior to starting
-     * or if the {@link GrizzlyWebServer} was started with JMX disabled, but
+     * {@link HttpServer} is started and JMX was enabled prior to starting
+     * or if the {@link HttpServer} was started with JMX disabled, but
      * JMX was enabled at a later point in time.
      *
      * @param listener the {@link JmxEventListener} to add.

@@ -77,7 +77,7 @@ package com.sun.grizzly.http.server.jmx;/*
 
 
 /**
- * Notify implementations when JMX is enabled on a {@link GrizzlyWebServer}
+ * Notify implementations when JMX is enabled on a {@link HttpServer}
  * instance.
  *
  * @since 2.0

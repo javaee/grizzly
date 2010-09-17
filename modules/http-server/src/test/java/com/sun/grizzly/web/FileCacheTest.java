@@ -89,7 +89,7 @@ import static org.junit.Assert.*;
 public class FileCacheTest {
     public static final int PORT = 18891;
 
-    private GrizzlyWebServer gws;
+    private HttpServer gws;
     private final boolean isSslEnabled;
 
     public FileCacheTest(boolean isSslEnabled) {
@@ -125,7 +125,7 @@ public class FileCacheTest {
         startWebServer(new Adapter() {
 
             @Override
-            public void service(final AdapterRequest req, final AdapterResponse res) {
+            public void service(final Request req, final Response res) {
                 try {
                     String error = null;
                     try {
@@ -186,7 +186,7 @@ public class FileCacheTest {
         startWebServer(new Adapter() {
 
             @Override
-            public void service(final AdapterRequest req, final AdapterResponse res) {
+            public void service(final Request req, final Response res) {
                 try {
                     String error = null;
                     try {
@@ -249,7 +249,7 @@ public class FileCacheTest {
         final String fileName = "./pom.xml";
         startWebServer(new Adapter(".") {
             @Override
-            public void service(AdapterRequest request, AdapterResponse response)
+            public void service(Request request, Response response)
                     throws Exception {
             }
         });
@@ -291,10 +291,10 @@ public class FileCacheTest {
     }
     
     private void configureWebServer() throws Exception {
-        gws = new GrizzlyWebServer();
-        final NetworlListener listener =
-                new NetworlListener("grizzly",
-                                    NetworlListener.DEFAULT_NETWORK_HOST,
+        gws = new HttpServer();
+        final NetworkListener listener =
+                new NetworkListener("grizzly",
+                                    NetworkListener.DEFAULT_NETWORK_HOST,
                                     PORT);
         if (isSslEnabled) {
             listener.setSecure(true);

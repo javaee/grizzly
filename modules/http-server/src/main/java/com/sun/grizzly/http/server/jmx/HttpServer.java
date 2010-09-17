@@ -40,7 +40,8 @@
 
 package com.sun.grizzly.http.server.jmx;
 
-import com.sun.grizzly.http.server.NetworlListener;
+import com.sun.grizzly.http.server.*;
+import com.sun.grizzly.http.server.NetworkListener;
 import com.sun.grizzly.monitoring.jmx.GrizzlyJmxManager;
 import com.sun.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.gmbal.Description;
@@ -52,20 +53,20 @@ import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * JMX management object for {@link com.sun.grizzly.http.server.GrizzlyWebServer}.
+ * JMX management object for {@link com.sun.grizzly.http.server.HttpServer}.
  *
  * @since 2.0
  */
 @ManagedObject
-@Description("The GrizzlyWebServer.")
-public class GrizzlyWebServer extends JmxObject {
+@Description("The HttpServer.")
+public class HttpServer extends JmxObject {
 
 
-    private final com.sun.grizzly.http.server.GrizzlyWebServer gws;
+    private final com.sun.grizzly.http.server.HttpServer gws;
 
     private GrizzlyJmxManager mom;
-    private final ConcurrentHashMap<String, NetworlListener> currentListeners =
-            new ConcurrentHashMap<String, NetworlListener>();
+    private final ConcurrentHashMap<String, NetworkListener> currentListeners =
+            new ConcurrentHashMap<String, NetworkListener>();
     private final ConcurrentHashMap<String,JmxObject> listenersJmx =
             new ConcurrentHashMap<String,JmxObject>();
     
@@ -74,7 +75,7 @@ public class GrizzlyWebServer extends JmxObject {
     // ------------------------------------------------------------ Constructors
 
 
-    public GrizzlyWebServer(com.sun.grizzly.http.server.GrizzlyWebServer gws) {
+    public HttpServer(com.sun.grizzly.http.server.HttpServer gws) {
         this.gws = gws;
     }
 
@@ -87,7 +88,7 @@ public class GrizzlyWebServer extends JmxObject {
      */
     @Override
     public String getJmxName() {
-        return "GrizzlyWebServer";
+        return "HttpServer";
     }
 
     /**
@@ -112,7 +113,7 @@ public class GrizzlyWebServer extends JmxObject {
 
 
     /**
-     * @see com.sun.grizzly.http.server.GrizzlyWebServer#isStarted()
+     * @see com.sun.grizzly.http.server.HttpServer#isStarted()
      */
     @ManagedAttribute(id="started")
     @Description("Indicates whether or not this server instance has been started.")
@@ -133,9 +134,9 @@ public class GrizzlyWebServer extends JmxObject {
 
     protected void rebuildSubTree() {
 
-        for (Iterator<NetworlListener> i = gws.getListeners(); i.hasNext(); ) {
-            final NetworlListener l = i.next();
-            final NetworlListener currentListener = currentListeners.get(l.getName());
+        for (Iterator<com.sun.grizzly.http.server.NetworkListener> i = gws.getListeners(); i.hasNext(); ) {
+            final NetworkListener l = i.next();
+            final NetworkListener currentListener = currentListeners.get(l.getName());
             if (currentListener != l) {
                 if (currentListener != null) {
                     final JmxObject listenerJmx = listenersJmx.get(l.getName());
@@ -146,7 +147,7 @@ public class GrizzlyWebServer extends JmxObject {
                 }
 
                 final JmxObject mmJmx = l.createManagementObject();
-                mom.register(this, mmJmx, "NetworlListener[" + l.getName() + ']');
+                mom.register(this, mmJmx, "NetworkListener[" + l.getName() + ']');
                 currentListeners.put(l.getName(), l);
                 listenersJmx.put(l.getName(), mmJmx);
             }
