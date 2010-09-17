@@ -48,7 +48,7 @@ import static org.junit.Assert.*;
 /**
  * Basic JMX initialization tests.
  */
-public class GrizzlyWebContainerJmxBasicTest {
+public class GrizzlyWebServerJmxBasicTest {
 
     @Test
     public void transport() throws Exception {
