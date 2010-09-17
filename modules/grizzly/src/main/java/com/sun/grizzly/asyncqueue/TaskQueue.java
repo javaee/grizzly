@@ -45,6 +45,7 @@ import com.sun.grizzly.utils.LinkedTransferQueue;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.LinkedList;
 import java.util.Queue;
@@ -56,6 +57,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Alexey Stashok
  */
 public abstract class TaskQueue<E> {
+
+    private static final AtomicReferenceFieldUpdater<QueueMonitor,Boolean> MONITOR =
+            AtomicReferenceFieldUpdater.newUpdater(QueueMonitor.class, Boolean.class, "invalid");
 
     /**
      * The queue of tasks, which will be processed asynchronously
@@ -153,9 +157,14 @@ public abstract class TaskQueue<E> {
         if (!monitorQueue.isEmpty()) {
             for (final Iterator<QueueMonitor> i = monitorQueue.iterator(); i.hasNext(); ) {
                 final QueueMonitor m = i.next();
-                if (m.shouldNotify()) {
+                if (!MONITOR.get(m)) {
+                    if (m.shouldNotify()) {
+                        if (MONITOR.compareAndSet(m, Boolean.FALSE, Boolean.TRUE)) {
+                            m.onNotify();
+                        }
+                    }
+                } else {
                     i.remove();
-                    m.onNotify();
                 }
             }
         }
@@ -275,20 +284,29 @@ public abstract class TaskQueue<E> {
      * Notification mechanism which will be invoked when
      * {@link TaskQueue#releaseSpace(int, boolean)} is called.
      */
-    public interface QueueMonitor {
+    public static abstract class QueueMonitor {
+
+        volatile Boolean invalid = Boolean.FALSE;
+
+        // ------------------------------------------------------ Public Methods
 
         /**
          * Action(s) to perform when the current queue space meets the conditions
          * mandated by {@link #shouldNotify()}.
          */
-        void onNotify();
+        public abstract void onNotify();
 
         /**
+         * This method will be invoked to determine if {@link #onNotify()} should
+         * be called.  It's recommended that implementations of this method be
+         * as light-weight as possible as this method may be invoked multiple
+         * times.
+         *
          * @return <code>true</code> if {@link #onNotify()} should be invoked on
          *  this <code>QueueMonitor</code> at the point in time <code>shouldNotify</code>
          *  was called, otherwise returns <code>false</code>
          */
-        boolean shouldNotify();
+        public abstract boolean shouldNotify();
 
 
     } // END QueueMonitor

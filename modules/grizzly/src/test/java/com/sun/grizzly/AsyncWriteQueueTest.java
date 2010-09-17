@@ -383,7 +383,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
     // ---------------------------------------------------------- Nested Classes
 
 
-    private static class WriteQueueFreeSpaceMonitor implements TaskQueue.QueueMonitor {
+    private static class WriteQueueFreeSpaceMonitor extends TaskQueue.QueueMonitor {
 
         private final TaskQueue writeQueue;
         private final int freeSpaceAvailable;
