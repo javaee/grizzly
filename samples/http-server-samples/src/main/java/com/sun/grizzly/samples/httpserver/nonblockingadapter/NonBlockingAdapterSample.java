@@ -113,7 +113,7 @@ public class NonBlockingAdapterSample {
         final ServerConfiguration config = server.getServerConfiguration();
 
         // Map the path, /echo, to the NonBlockingEchoAdapter
-        config.addGrizzlyAdapter(new NonBlockingEchoAdapter(), "/echo");
+        config.addAdapter(new NonBlockingEchoAdapter(), "/echo");
 
         try {
             server.start();

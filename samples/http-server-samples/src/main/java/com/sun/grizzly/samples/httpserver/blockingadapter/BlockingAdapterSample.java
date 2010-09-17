@@ -109,7 +109,7 @@ public class BlockingAdapterSample {
         final ServerConfiguration config = server.getServerConfiguration();
 
         // Map the path, /echo, to the BlockingEchoAdapter
-        config.addGrizzlyAdapter(new BlockingEchoAdapter(), "/echo");
+        config.addAdapter(new BlockingEchoAdapter(), "/echo");
 
         try {
             server.start();
