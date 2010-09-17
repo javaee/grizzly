@@ -51,13 +51,10 @@ import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.http.HttpClientFilter;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpRequestPacket;
-import com.sun.grizzly.http.server.GrizzlyAdapter;
-import com.sun.grizzly.http.server.GrizzlyRequest;
-import com.sun.grizzly.http.server.GrizzlyResponse;
-import com.sun.grizzly.http.server.GrizzlyWebServer;
-import com.sun.grizzly.http.server.ServerConfiguration;
-import com.sun.grizzly.http.server.io.GrizzlyReader;
-import com.sun.grizzly.http.server.io.GrizzlyWriter;
+import com.sun.grizzly.http.server.*;
+import com.sun.grizzly.http.server.AdapterResponse;
+import com.sun.grizzly.http.server.io.NIOReader;
+import com.sun.grizzly.http.server.io.NIOWriter;
 import com.sun.grizzly.http.server.io.ReadHandler;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
@@ -74,7 +71,7 @@ import java.util.logging.Logger;
 
 /**
  * <p>
- * This example demonstrates the use of a {@link com.sun.grizzly.http.server.GrizzlyAdapter} to echo
+ * This example demonstrates the use of a {@link com.sun.grizzly.http.server.Adapter} to echo
  * <code>HTTP</code> <code>POST</code> data sent by the client, back to the client using
  * non-blocking streams introduced in Grizzly 2.0.
  * </p>
@@ -92,10 +89,10 @@ import java.util.logging.Logger;
  *
  *    </li>
  *    <li>
- *       NoneBlockingEchoAdapter: This {@link com.sun.grizzly.http.server.GrizzlyAdapter} is installed to the
+ *       NoneBlockingEchoAdapter: This {@link com.sun.grizzly.http.server.Adapter} is installed to the
  *                                {@link com.sun.grizzly.http.server.GrizzlyWebServer} instance and associated
- *                                with the path <code>/echo</code>.  The adapter uses the {@link com.sun.grizzly.http.server.io.GrizzlyReader}
- *                                returned by {@link com.sun.grizzly.http.server.GrizzlyRequest#getReader(boolean)} in non-blocking
+ *                                with the path <code>/echo</code>.  The adapter uses the {@link com.sun.grizzly.http.server.io.NIOReader}
+ *                                returned by {@link com.sun.grizzly.http.server.AdapterRequest#getReader(boolean)} in non-blocking
  *                                mode.  As data is received asynchronously, the {@link ReadHandler} callbacks are
  *                                invoked at this time data is then written to the response.
  *    </li>
@@ -309,19 +306,19 @@ public class NonBlockingAdapterSample {
      * This adapter using non-blocking streams to read POST data and echo it
      * back to the client.
      */
-    private static class NonBlockingEchoAdapter extends GrizzlyAdapter {
+    private static class NonBlockingEchoAdapter extends Adapter {
 
 
-        // --------------------------------------------- Methods from GrizzlyAdapter
+        // --------------------------------------------- Methods from Adapter
 
 
         @Override
-        public void service(final GrizzlyRequest request,
-                            final GrizzlyResponse response) throws Exception {
+        public void service(final AdapterRequest request,
+                            final AdapterResponse response) throws Exception {
 
             final char[] buf = new char[128];
-            final GrizzlyReader in = request.getReader(false); // false argument puts the stream in non-blocking mode
-            final GrizzlyWriter out = response.getWriter();
+            final NIOReader in = request.getReader(false); // false argument puts the stream in non-blocking mode
+            final NIOWriter out = response.getWriter();
 
             do {
                 // continue reading ready data until no more can be read without
@@ -371,9 +368,9 @@ public class NonBlockingAdapterSample {
         }
 
         private void doWrite(ReadHandler handler,
-                             GrizzlyReader in,
+                             NIOReader in,
                              char[] buf,
-                             GrizzlyWriter out,
+                             NIOWriter out,
                              boolean flush) {
             try {
                 if (in.readyData() <= 0) {

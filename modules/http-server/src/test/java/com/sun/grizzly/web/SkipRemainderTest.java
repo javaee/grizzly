@@ -52,11 +52,8 @@ import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.http.HttpClientFilter;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpRequestPacket;
-import com.sun.grizzly.http.server.GrizzlyListener;
-import com.sun.grizzly.http.server.GrizzlyRequest;
-import com.sun.grizzly.http.server.GrizzlyResponse;
-import com.sun.grizzly.http.server.GrizzlyWebServer;
-import com.sun.grizzly.http.server.GrizzlyAdapter;
+import com.sun.grizzly.http.server.*;
+import com.sun.grizzly.http.server.Adapter;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.ByteBufferWrapper;
@@ -113,9 +110,9 @@ public class SkipRemainderTest {
             SafeFutureImpl.create(), SafeFutureImpl.create()
         };
         
-        startWebServer(new GrizzlyAdapter() {
+        startWebServer(new Adapter() {
             @Override
-            public void service(GrizzlyRequest req, GrizzlyResponse res)
+            public void service(AdapterRequest req, AdapterResponse res)
                     throws Exception {
                 InputStream is = req.getInputStream(true);
                 try {
@@ -210,14 +207,14 @@ public class SkipRemainderTest {
 
     private void configureWebServer() throws Exception {
         gws = new GrizzlyWebServer();
-        final GrizzlyListener listener =
-                new GrizzlyListener("grizzly",
-                                    GrizzlyListener.DEFAULT_NETWORK_HOST,
+        final NetworlListener listener =
+                new NetworlListener("grizzly",
+                                    NetworlListener.DEFAULT_NETWORK_HOST,
                                     PORT);
         gws.addListener(listener);
     }
 
-    private void startWebServer(GrizzlyAdapter adapter) throws Exception {
+    private void startWebServer(Adapter adapter) throws Exception {
         gws.getServerConfiguration().addGrizzlyAdapter(adapter);
         gws.start();
     }

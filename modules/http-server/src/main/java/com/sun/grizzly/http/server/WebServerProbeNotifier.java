@@ -54,10 +54,10 @@ final class WebServerProbeNotifier {
      *
      * @param filter {@link WebServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
-     * @param request received {@link GrizzlyRequest}.
+     * @param request received {@link AdapterRequest}.
      */
     static void notifyRequestReceive(final WebServerFilter filter,
-            final Connection connection, final GrizzlyRequest request) {
+            final Connection connection, final AdapterRequest request) {
 
         final WebServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
@@ -72,10 +72,10 @@ final class WebServerProbeNotifier {
      *
      * @param filter {@link WebServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
-     * @param response {@link GrizzlyResponse}.
+     * @param response {@link AdapterResponse}.
      */
     static void notifyRequestComplete(final WebServerFilter filter,
-            final Connection connection, final GrizzlyResponse response) {
+            final Connection connection, final AdapterResponse response) {
 
         final WebServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
@@ -90,10 +90,10 @@ final class WebServerProbeNotifier {
      *
      * @param filter {@link WebServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
-     * @param request {@link GrizzlyRequest}.
+     * @param request {@link AdapterRequest}.
      */
     static void notifyRequestSuspend(final WebServerFilter filter,
-            final Connection connection, final GrizzlyRequest request) {
+            final Connection connection, final AdapterRequest request) {
 
         final WebServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
@@ -108,10 +108,10 @@ final class WebServerProbeNotifier {
      *
      * @param filter {@link WebServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
-     * @param request {@link GrizzlyRequest}.
+     * @param request {@link AdapterRequest}.
      */
     static void notifyRequestResume(final WebServerFilter filter,
-            final Connection connection, final GrizzlyRequest request) {
+            final Connection connection, final AdapterRequest request) {
 
         final WebServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
@@ -126,10 +126,10 @@ final class WebServerProbeNotifier {
      *
      * @param filter {@link WebServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
-     * @param request  {@link GrizzlyRequest}.
+     * @param request  {@link AdapterRequest}.
      */
     static void notifyRequestTimeout(final WebServerFilter filter,
-            final Connection connection, final GrizzlyRequest request) {
+            final Connection connection, final AdapterRequest request) {
 
         final WebServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
@@ -144,10 +144,10 @@ final class WebServerProbeNotifier {
      *
      * @param filter {@link WebServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
-     * @param request  {@link GrizzlyRequest}.
+     * @param request  {@link AdapterRequest}.
      */
     static void notifyRequestCancel(final WebServerFilter filter,
-            final Connection connection, final GrizzlyRequest request) {
+            final Connection connection, final AdapterRequest request) {
 
         final WebServerProbe[] probes = filter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {

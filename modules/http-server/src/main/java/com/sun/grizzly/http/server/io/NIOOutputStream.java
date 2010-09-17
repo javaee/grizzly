@@ -41,154 +41,95 @@
 package com.sun.grizzly.http.server.io;
 
 import com.sun.grizzly.Buffer;
+
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.OutputStream;
 
 /**
- * Stream implementation to read binary request content.
+ * Stream implementation for writing binary content to an HTTP user-agent.
  *
  * @since 2.0
  */
-public class GrizzlyInputStream extends InputStream implements NIOInputSource {
+public class NIOOutputStream extends OutputStream implements BinaryNIOOutputSink {
 
-    private final InputBuffer inputBuffer;
+
+    private final OutputBuffer outputBuffer;
 
 
     // ------------------------------------------------------------ Constructors
 
 
-    /**
-     * Constructs a new <code>GrizzlyInputStream</code> using the specified
-     * {@link #inputBuffer}
-     * @param inputBuffer the <code>InputBuffer</code> from which binary content
-     *  will be supplied
-     */
-    public GrizzlyInputStream(InputBuffer inputBuffer) {
-
-        this.inputBuffer = inputBuffer;
-
+    public NIOOutputStream(OutputBuffer outputBuffer) {
+        this.outputBuffer = outputBuffer;
     }
 
 
-    // ------------------------------------------------ Methods from InputStream
-
+    // ----------------------------------------------- Methods from OutputStream
 
     /**
      * {@inheritDoc}
      */
-    @Override public int read() throws IOException {
-        return inputBuffer.readByte();
-    }
-
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override public int read(byte[] b) throws IOException {
-        return inputBuffer.read(b, 0, b.length);
+    @Override public void write(int b) throws IOException {
+        outputBuffer.writeByte(b);
     }
 
     /**
      * {@inheritDoc}
      */
-    @Override public int read(byte[] b, int off, int len) throws IOException {
-        return inputBuffer.read(b, off, len);
+    @Override public void write(byte[] b) throws IOException {
+        outputBuffer.write(b);
     }
 
     /**
      * {@inheritDoc}
      */
-    @Override public long skip(long n) throws IOException {
-        return inputBuffer.skip(n, true);
+    @Override public void write(byte[] b, int off, int len) throws IOException {
+        outputBuffer.write(b, off, len);
     }
 
     /**
      * {@inheritDoc}
      */
-    @Override public int available() throws IOException {
-        return inputBuffer.available();
+    @Override public void flush() throws IOException {
+        outputBuffer.flush();
     }
 
     /**
      * {@inheritDoc}
      */
     @Override public void close() throws IOException {
-        inputBuffer.close();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override public void mark(int readlimit) {
-        inputBuffer.mark(readlimit);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override public void reset() throws IOException {
-        inputBuffer.reset();
-    }
-
-    /**
-     * This {@link InputStream} implementation supports marking.
-     *
-     * @return <code>true</code>
-     */
-    @Override public boolean markSupported() {
-        return inputBuffer.markSupported();
+        outputBuffer.close();
     }
 
 
-    // --------------------------------------------- Methods from NIOInputSource
+    // ---------------------------------------------- Methods from NIOOutputSink
 
 
     /**
      * {@inheritDoc}
      */
-    @Override
-    public boolean notifyAvailable(ReadHandler handler) {
-        return inputBuffer.notifyAvailable(handler);
+    @Override public boolean canWrite(final int length) {
+        return outputBuffer.canWrite(length);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public boolean notifyAvailable(ReadHandler handler, int size) {
-        return inputBuffer.notifyAvailable(handler, size);
+    public boolean notifyCanWrite(final WriteHandler handler, final int length) {
+        return outputBuffer.notifyCanWrite(handler, length);
     }
+
+
+    // ---------------------------------------- Methods from BinaryNIOOutputSink
+
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public boolean isFinished() {
-        return inputBuffer.isFinished();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int readyData() {
-        return inputBuffer.available();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean isReady() {
-        return (inputBuffer.available() > 0);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Buffer getBuffer() {
-        return inputBuffer.getBuffer();
+    public void write(final Buffer buffer) throws IOException {
+        outputBuffer.writeBuffer(buffer);
     }
     
 }

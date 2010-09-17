@@ -54,13 +54,10 @@ import com.sun.grizzly.http.HttpClientFilter;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.Protocol;
-import com.sun.grizzly.http.server.GrizzlyAdapter;
-import com.sun.grizzly.http.server.GrizzlyListener;
-import com.sun.grizzly.http.server.GrizzlyRequest;
-import com.sun.grizzly.http.server.GrizzlyResponse;
-import com.sun.grizzly.http.server.GrizzlyWebServer;
-import com.sun.grizzly.http.server.io.GrizzlyOutputStream;
-import com.sun.grizzly.http.server.io.GrizzlyWriter;
+import com.sun.grizzly.http.server.*;
+import com.sun.grizzly.http.server.Adapter;
+import com.sun.grizzly.http.server.io.NIOOutputStream;
+import com.sun.grizzly.http.server.io.NIOWriter;
 import com.sun.grizzly.http.server.io.WriteHandler;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
@@ -83,9 +80,9 @@ public class NIOOutputSinksTest extends TestCase {
     public void testBinaryOutputSink() throws Exception {
 
         final GrizzlyWebServer server = new GrizzlyWebServer();
-        final GrizzlyListener listener =
-                new GrizzlyListener("Grizzly",
-                                    GrizzlyListener.DEFAULT_NETWORK_HOST,
+        final NetworlListener listener =
+                new NetworlListener("Grizzly",
+                                    NetworlListener.DEFAULT_NETWORK_HOST,
                                     PORT);
         final AsyncQueueWriter asyncQueueWriter =
                 listener.getTransport().getAsyncQueueIO().getWriter();
@@ -144,14 +141,14 @@ public class NIOOutputSinksTest extends TestCase {
         clientTransport.setProcessor(filterChainBuilder.build());
         final AtomicInteger writeCounter = new AtomicInteger();
         final AtomicBoolean callbackInvoked = new AtomicBoolean(false);
-        final GrizzlyAdapter ga = new GrizzlyAdapter() {
+        final Adapter ga = new Adapter() {
 
             @Override
-            public void service(final GrizzlyRequest request, final GrizzlyResponse response) throws Exception {
+            public void service(final AdapterRequest request, final AdapterResponse response) throws Exception {
                 
                 clientTransport.pause();
                 response.setContentType("text/plain");
-                final GrizzlyOutputStream out = response.getOutputStream();
+                final NIOOutputStream out = response.getOutputStream();
 
                 while (out.canWrite(LENGTH)) {
                     byte[] b = new byte[LENGTH];
@@ -244,9 +241,9 @@ public class NIOOutputSinksTest extends TestCase {
     public void testCharacterOutputSink() throws Exception {
 
         final GrizzlyWebServer server = new GrizzlyWebServer();
-        final GrizzlyListener listener =
-                new GrizzlyListener("Grizzly",
-                                    GrizzlyListener.DEFAULT_NETWORK_HOST,
+        final NetworlListener listener =
+                new NetworlListener("Grizzly",
+                                    NetworlListener.DEFAULT_NETWORK_HOST,
                                     PORT);
         final AsyncQueueWriter asyncQueueWriter =
                 listener.getTransport().getAsyncQueueIO().getWriter();
@@ -305,14 +302,14 @@ public class NIOOutputSinksTest extends TestCase {
         clientTransport.setProcessor(filterChainBuilder.build());
         final AtomicInteger writeCounter = new AtomicInteger();
         final AtomicBoolean callbackInvoked = new AtomicBoolean(false);
-        final GrizzlyAdapter ga = new GrizzlyAdapter() {
+        final Adapter ga = new Adapter() {
 
             @Override
-            public void service(final GrizzlyRequest request, final GrizzlyResponse response) throws Exception {
+            public void service(final AdapterRequest request, final AdapterResponse response) throws Exception {
                 
                 clientTransport.pause();
                 response.setContentType("text/plain");
-                final GrizzlyWriter out = response.getWriter();
+                final NIOWriter out = response.getWriter();
 
                 while (out.canWrite(LENGTH)) {
                     char[] c = new char[LENGTH];
@@ -405,9 +402,9 @@ public class NIOOutputSinksTest extends TestCase {
     public void testWriteExceptionPropagation() throws Exception {
 
         final GrizzlyWebServer server = new GrizzlyWebServer();
-        final GrizzlyListener listener =
-                new GrizzlyListener("Grizzly",
-                                    GrizzlyListener.DEFAULT_NETWORK_HOST,
+        final NetworlListener listener =
+                new NetworlListener("Grizzly",
+                                    NetworlListener.DEFAULT_NETWORK_HOST,
                                     PORT);
         final AsyncQueueWriter asyncQueueWriter =
                 listener.getTransport().getAsyncQueueIO().getWriter();
@@ -446,14 +443,14 @@ public class NIOOutputSinksTest extends TestCase {
 
         final TCPNIOTransport clientTransport = TransportFactory.getInstance().createTCPTransport();
         clientTransport.setProcessor(filterChainBuilder.build());
-        final GrizzlyAdapter ga = new GrizzlyAdapter() {
+        final Adapter ga = new Adapter() {
 
             @Override
-            public void service(final GrizzlyRequest request, final GrizzlyResponse response) throws Exception {
+            public void service(final AdapterRequest request, final AdapterResponse response) throws Exception {
 
                 //clientTransport.pause();
                 response.setContentType("text/plain");
-                final GrizzlyWriter out = response.getWriter();
+                final NIOWriter out = response.getWriter();
 
                 char[] c = new char[LENGTH];
                 Arrays.fill(c, 'a');

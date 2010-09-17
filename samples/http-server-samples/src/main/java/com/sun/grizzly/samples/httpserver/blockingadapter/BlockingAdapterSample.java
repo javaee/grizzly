@@ -51,11 +51,8 @@ import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.http.HttpClientFilter;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpRequestPacket;
-import com.sun.grizzly.http.server.GrizzlyAdapter;
-import com.sun.grizzly.http.server.GrizzlyRequest;
-import com.sun.grizzly.http.server.GrizzlyResponse;
-import com.sun.grizzly.http.server.GrizzlyWebServer;
-import com.sun.grizzly.http.server.ServerConfiguration;
+import com.sun.grizzly.http.server.*;
+import com.sun.grizzly.http.server.Adapter;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.MemoryManager;
@@ -73,7 +70,7 @@ import java.util.logging.Logger;
 
 /**
  * <p>
- * This example demonstrates the use of a {@link GrizzlyAdapter} to echo
+ * This example demonstrates the use of a {@link com.sun.grizzly.http.server.Adapter} to echo
  * <code>HTTP</code> <code>POST</code> data sent by the client, back to the client.
  * </p>
  *
@@ -87,11 +84,11 @@ import java.util.logging.Logger;
  *               read, and ultimately display, the response from the server.
  *    </li>
  *    <li>
- *       BlockingEchoAdapter: This {@link GrizzlyAdapter} is installed to the
+ *       BlockingEchoAdapter: This {@link com.sun.grizzly.http.server.Adapter} is installed to the
  *                            {@link GrizzlyWebServer} instance and associated
- *                            with the path <code>/echo</code>.  This {@link GrizzlyAdapter}
- *                            is fairly simple.  The adapter uses the {@link com.sun.grizzly.http.server.io.GrizzlyReader}
- *                            returned by {@link GrizzlyRequest#getReader(boolean)} in blocking
+ *                            with the path <code>/echo</code>.  This {@link com.sun.grizzly.http.server.Adapter}
+ *                            is fairly simple.  The adapter uses the {@link com.sun.grizzly.http.server.io.NIOReader}
+ *                            returned by {@link com.sun.grizzly.http.server.AdapterRequest#getReader(boolean)} in blocking
  *                            mode.  As data is received, the same data is then immediately
  *                            written to the response.
  *    </li>
@@ -300,14 +297,14 @@ public class BlockingAdapterSample {
      * This adapter using blocking streams to read POST data and echo it back to the
      * client.
      */
-    private static class BlockingEchoAdapter extends GrizzlyAdapter {
+    private static class BlockingEchoAdapter extends Adapter {
 
 
-        // --------------------------------------------- Methods from GrizzlyAdapter
+        // --------------------------------------------- Methods from Adapter
 
 
         @Override
-        public void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
+        public void service(AdapterRequest request, AdapterResponse response) throws Exception {
 
             final char[] buf = new char[128];
             Reader in = null;

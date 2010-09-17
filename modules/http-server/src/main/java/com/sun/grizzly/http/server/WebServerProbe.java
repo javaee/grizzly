@@ -51,64 +51,64 @@ import com.sun.grizzly.Connection;
  */
 public interface WebServerProbe {
     /**
-     * Method will be called, when new {@link GrizzlyRequest} will come.
+     * Method will be called, when new {@link AdapterRequest} will come.
      *
      * @param filter {@link WebServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
-     * @param request received {@link GrizzlyRequest}.
+     * @param request received {@link AdapterRequest}.
      */
     public void onRequestReceiveEvent(WebServerFilter filter,
-            Connection connection, GrizzlyRequest request);
+            Connection connection, AdapterRequest request);
 
     /**
-     * Method will be called, when {@link GrizzlyRequest} processing will be completed.
+     * Method will be called, when {@link AdapterRequest} processing will be completed.
      *
      * @param filter {@link WebServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
-     * @param response sent {@link GrizzlyResponse}.
+     * @param response sent {@link AdapterResponse}.
      */
     public void onRequestCompleteEvent(WebServerFilter filter,
-            Connection connection, GrizzlyResponse response);
+            Connection connection, AdapterResponse response);
 
     /**
-     * Method will be called, when {@link GrizzlyRequest} processing is suspended.
+     * Method will be called, when {@link AdapterRequest} processing is suspended.
      *
      * @param filter {@link WebServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
-     * @param request {@link GrizzlyRequest}.
+     * @param request {@link AdapterRequest}.
      */
     public void onRequestSuspendEvent(WebServerFilter filter,
-            Connection connection, GrizzlyRequest request);
+            Connection connection, AdapterRequest request);
 
     /**
-     * Method will be called, when {@link GrizzlyRequest} processing is resumed.
+     * Method will be called, when {@link AdapterRequest} processing is resumed.
      *
      * @param filter {@link WebServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
-     * @param request {@link GrizzlyRequest}.
+     * @param request {@link AdapterRequest}.
      */
     public void onRequestResumeEvent(WebServerFilter filter,
-            Connection connection, GrizzlyRequest request);
+            Connection connection, AdapterRequest request);
 
     /**
-     * Method will be called, when {@link GrizzlyRequest} processing is timeout
+     * Method will be called, when {@link AdapterRequest} processing is timeout
      * after suspend.
      *
      * @param filter {@link WebServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
-     * @param request {@link GrizzlyRequest}.
+     * @param request {@link AdapterRequest}.
      */
     public void onRequestTimeoutEvent(WebServerFilter filter,
-            Connection connection, GrizzlyRequest request);
+            Connection connection, AdapterRequest request);
 
     /**
-     * Method will be called, when {@link GrizzlyRequest} processing is cancelled
+     * Method will be called, when {@link AdapterRequest} processing is cancelled
      * after suspend.
      *
      * @param filter {@link WebServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
-     * @param request {@link GrizzlyRequest}.
+     * @param request {@link AdapterRequest}.
      */
     public void onRequestCancelEvent(WebServerFilter filter,
-            Connection connection, GrizzlyRequest request);
+            Connection connection, AdapterRequest request);
 }

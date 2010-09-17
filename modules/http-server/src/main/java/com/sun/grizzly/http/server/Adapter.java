@@ -54,20 +54,20 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Base class to use when GrizzlyRequest/Response/InputStream/OutputStream
+ * Base class to use when AdapterRequest/Response/InputStream/OutputStream
  * are needed to implement a customized HTTP container/extension to the
  * HTTP module.
  *
- * The {@link com.sun.grizzly.http.server.GrizzlyAdapter} provides developers
+ * The {@link Adapter} provides developers
  * with a simple and consistent mechanism for extending the functionality of the
  * HTTP WebServer and for bridging existing http based technology like
  * JRuby-on-Rail, Servlet, Bayeux Protocol or any HTTP based protocol.
  *
  * @author Jeanfrancois Arcand
  */
-public abstract class GrizzlyAdapter {
+public abstract class Adapter {
     
-    private final static Logger logger = Grizzly.logger(GrizzlyAdapter.class);
+    private final static Logger logger = Grizzly.logger(Adapter.class);
     
     protected final StaticResourcesHandler staticResourcesHandler =
             new StaticResourcesHandler();
@@ -85,10 +85,10 @@ public abstract class GrizzlyAdapter {
     private boolean decodeURL = true;
     
     /**
-     * Create <tt>GrizzlyAdapter</tt>, which, by default, won't handle requests
+     * Create <tt>Adapter</tt>, which, by default, won't handle requests
      * to the static resources.
      */
-    public GrizzlyAdapter() {
+    public Adapter() {
         this(null);
     }
 
@@ -96,27 +96,27 @@ public abstract class GrizzlyAdapter {
     /**
      * Create a new instance which will look for static pages located
      * under the <tt>docRoot</tt>. If the <tt>docRoot</tt> is <tt>null</tt> -
-     * static pages won't be served by this <tt>GrizzlyAdapter</tt>
+     * static pages won't be served by this <tt>Adapter</tt>
      * 
      * @param docRoot the folder where the static resource are located.
      * If the <tt>docRoot</tt> is <tt>null</tt> - static pages won't be served
-     * by this <tt>GrizzlyAdapter</tt>
+     * by this <tt>Adapter</tt>
      */
-    public GrizzlyAdapter(String docRoot) {
+    public Adapter(String docRoot) {
         staticResourcesHandler.setDocRoot(docRoot);
     }
 
     /**
      * Handles static resources if this adapter is configured to do so, otherwise
-     * invokes {@link #service(GrizzlyRequest, GrizzlyResponse)}.
+     * invokes {@link #service(AdapterRequest, AdapterResponse)}.
      *
-     * @param request the {@link GrizzlyRequest}
-     * @param response the {@link GrizzlyResponse}
+     * @param request the {@link AdapterRequest}
+     * @param response the {@link AdapterResponse}
      *
      * @throws Exception if an error occurs serving a static resource or
-     *  from the invocation of {@link #service(GrizzlyRequest, GrizzlyResponse)}
+     *  from the invocation of {@link #service(AdapterRequest, AdapterResponse)}
      */
-    public final void doService(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
+    public final void doService(AdapterRequest request, AdapterResponse response) throws Exception {
 
         if (request.requiresAcknowledgement()) {
             if (!sendAcknowledgment(request, response)) {
@@ -155,14 +155,14 @@ public abstract class GrizzlyAdapter {
     /**
      * This method should contain the logic for any HTTP extension to the
      * Grizzly HTTP web server.
-     * @param request The {@link GrizzlyRequest}
-     * @param response The {@link GrizzlyResponse}
+     * @param request The {@link AdapterRequest}
+     * @param response The {@link AdapterResponse}
      */
-    public abstract void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception;
+    public abstract void service(AdapterRequest request, AdapterResponse response) throws Exception;
 
 
     /**
-     * Called when the {@link com.sun.grizzly.http.server.GrizzlyAdapter}'s
+     * Called when the {@link Adapter}'s
      * container is started by invoking {@link GrizzlyWebServer#start}.
      *
      * By default, it does nothing.
@@ -208,10 +208,10 @@ public abstract class GrizzlyAdapter {
 
     /**
      * Return the directory from where files will be serviced, or <tt>null</tt>,
-     * if static resources won't be served by this <tt>GrizzlyAdapter</tt>.
+     * if static resources won't be served by this <tt>Adapter</tt>.
      * 
      * @return the directory from where file will be serviced, or <tt>null</tt>,
-     * if static resources won't be served by this <tt>GrizzlyAdapter</tt>.
+     * if static resources won't be served by this <tt>Adapter</tt>.
      */
     public File getDocRoot() {
         return staticResourcesHandler.getDocRoot();
@@ -219,10 +219,10 @@ public abstract class GrizzlyAdapter {
 
     /**
      * Set the directory from where files will be serviced, if passed value is
-     * <tt>null</tt> - static resources won't be served by this <tt>GrizzlyAdapter</tt>.
+     * <tt>null</tt> - static resources won't be served by this <tt>Adapter</tt>.
      *
      * @param docRoot the directory from where files will be serviced, if passed value is
-     * <tt>null</tt> - static resources won't be served by this <tt>GrizzlyAdapter</tt>.
+     * <tt>null</tt> - static resources won't be served by this <tt>Adapter</tt>.
      */
     public void setDocRoot(String docRoot) {
         staticResourcesHandler.setDocRoot(docRoot);
@@ -230,10 +230,10 @@ public abstract class GrizzlyAdapter {
 
     /**
      * Set the directory from where files will be serviced, if passed value is
-     * <tt>null</tt> - static resources won't be served by this <tt>GrizzlyAdapter</tt>.
+     * <tt>null</tt> - static resources won't be served by this <tt>Adapter</tt>.
      *
      * @param docRoot the directory from where files will be serviced, if passed value is
-     * <tt>null</tt> - static resources won't be served by this <tt>GrizzlyAdapter</tt>.
+     * <tt>null</tt> - static resources won't be served by this <tt>Adapter</tt>.
      */
     public void setDocRoot(File docRoot) {
         staticResourcesHandler.setDocRoot(docRoot);
@@ -242,13 +242,13 @@ public abstract class GrizzlyAdapter {
     /**
      * Customize the error page.
      * @param server the {@link GrizzlyWebServer} associated with this adapter.
-     * @param req The {@link GrizzlyRequest} object
-     * @param res The {@link GrizzlyResponse} object
+     * @param req The {@link AdapterRequest} object
+     * @param res The {@link AdapterResponse} object
      * @throws Exception
      */
     protected void customizedErrorPage(GrizzlyWebServer server,
-                                       GrizzlyRequest req,
-                                       GrizzlyResponse res)
+                                       AdapterRequest req,
+                                       AdapterResponse res)
             throws Exception {
 
         /**
@@ -275,16 +275,16 @@ public abstract class GrizzlyAdapter {
      * with a response line with the status 100 followed by the final response
      * to this request.
      *
-     * @param request the {@link GrizzlyRequest}.
-     * @param response the {@link GrizzlyResponse}.
+     * @param request the {@link AdapterRequest}.
+     * @param response the {@link AdapterResponse}.
      *
      * @return <code>true</code> if request processing should continue after
      *  acknowledgement of the expectation, otherwise return <code>false</code>.
      *
      * @throws IOException if an error occurs sending the acknowledgement.
      */
-    protected boolean sendAcknowledgment(final GrizzlyRequest request,
-            final GrizzlyResponse response)
+    protected boolean sendAcknowledgment(final AdapterRequest request,
+            final AdapterResponse response)
             throws IOException {
 
         if ("100-Continue".equals(request.getHeader("Expect"))) {

@@ -43,6 +43,7 @@ package com.sun.grizzly.http.server.jmx;
 import com.sun.grizzly.Transport;
 import com.sun.grizzly.http.HttpCodecFilter;
 import com.sun.grizzly.http.KeepAlive;
+import com.sun.grizzly.http.server.NetworlListener;
 import com.sun.grizzly.http.server.filecache.FileCache;
 import com.sun.grizzly.http.server.WebServerFilter;
 import com.sun.grizzly.monitoring.jmx.GrizzlyJmxManager;
@@ -53,15 +54,15 @@ import org.glassfish.gmbal.ManagedAttribute;
 import org.glassfish.gmbal.ManagedObject;
 
 /**
- * JMX management object for {@link com.sun.grizzly.http.server.GrizzlyListener}.
+ * JMX management object for {@link com.sun.grizzly.http.server.NetworlListener}.
  *
  * @since 2.0
  */
 @ManagedObject
-@Description("The GrizzlyListener is an abstraction around the Transport (exposed as a child of this entity).")
-public class GrizzlyListener extends JmxObject {
+@Description("The NetworlListener is an abstraction around the Transport (exposed as a child of this entity).")
+public class NetworkListener extends JmxObject {
 
-    private final com.sun.grizzly.http.server.GrizzlyListener listener;
+    private final NetworlListener listener;
 
     private FileCache currentFileCache;
     private Transport currentTransport;
@@ -83,7 +84,7 @@ public class GrizzlyListener extends JmxObject {
     // ------------------------------------------------------------ Constructors
 
 
-    public GrizzlyListener(com.sun.grizzly.http.server.GrizzlyListener listener) {
+    public NetworkListener(NetworlListener listener) {
 
         this.listener = listener;
 
@@ -98,7 +99,7 @@ public class GrizzlyListener extends JmxObject {
      */
     @Override
     public String getJmxName() {
-        return "GrizzlyListener";
+        return "NetworlListener";
     }
 
     /**
@@ -123,7 +124,7 @@ public class GrizzlyListener extends JmxObject {
 
 
     /**
-     * @see com.sun.grizzly.http.server.GrizzlyListener#getName()
+     * @see com.sun.grizzly.http.server.NetworlListener#getName()
      */
     @ManagedAttribute(id="name")
     @Description("The logical name of the listener.")
@@ -133,7 +134,7 @@ public class GrizzlyListener extends JmxObject {
 
 
     /**
-     * @see com.sun.grizzly.http.server.GrizzlyListener#getHost()
+     * @see com.sun.grizzly.http.server.NetworlListener#getHost()
      */
     @ManagedAttribute(id="host")
     @Description("The network host to which this listener is bound.")
@@ -143,7 +144,7 @@ public class GrizzlyListener extends JmxObject {
 
 
     /**
-     * @see com.sun.grizzly.http.server.GrizzlyListener#getPort()
+     * @see com.sun.grizzly.http.server.NetworlListener#getPort()
      */
     @ManagedAttribute(id="port")
     @Description("The network port to which this listener is bound.")
@@ -163,7 +164,7 @@ public class GrizzlyListener extends JmxObject {
 
 
     /**
-     * @see com.sun.grizzly.http.server.GrizzlyListener#isSecure()
+     * @see com.sun.grizzly.http.server.NetworlListener#isSecure()
      */
     @ManagedAttribute(id="secure")
     @Description("Indicates whether or not this listener is secured via SSL.")
@@ -173,7 +174,7 @@ public class GrizzlyListener extends JmxObject {
 
 
     /**
-     * @see com.sun.grizzly.http.server.GrizzlyListener#getMaxHttpHeaderSize()
+     * @see com.sun.grizzly.http.server.NetworlListener#getMaxHttpHeaderSize()
      */
     @ManagedAttribute(id="max-http-header-size")
     @Description("The maximum size, in bytes, an HTTP request may be.")
@@ -183,7 +184,7 @@ public class GrizzlyListener extends JmxObject {
 
 
     /**
-     * @see com.sun.grizzly.http.server.GrizzlyListener#getName()
+     * @see com.sun.grizzly.http.server.NetworlListener#getName()
      */
     @ManagedAttribute(id="max-pending-bytes")
     @Description("The maximum size, in bytes, a connection may have waiting to be sent to the client.")
@@ -193,7 +194,7 @@ public class GrizzlyListener extends JmxObject {
 
 
     /**
-     * @see com.sun.grizzly.http.server.GrizzlyListener#isChunkingEnabled()
+     * @see com.sun.grizzly.http.server.NetworlListener#isChunkingEnabled()
      */
     @ManagedAttribute(id="chunking-enabled")
     @Description("Flag indicating whether or not the http response body will be sent using the chunked transfer encoding.")
@@ -203,7 +204,7 @@ public class GrizzlyListener extends JmxObject {
 
 
     /**
-     * @see com.sun.grizzly.http.server.GrizzlyListener#isStarted()
+     * @see com.sun.grizzly.http.server.NetworlListener#isStarted()
      */
     @ManagedAttribute(id="started")
     @Description("Indicates whether or not this listener is started.")
@@ -213,7 +214,7 @@ public class GrizzlyListener extends JmxObject {
 
 
     /**
-     * @see com.sun.grizzly.http.server.GrizzlyListener#isPaused()
+     * @see com.sun.grizzly.http.server.NetworlListener#isPaused()
      */
     @Description("Indicates whether or not a started listener is actively processing requests.")
     @ManagedAttribute(id="paused")

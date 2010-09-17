@@ -52,12 +52,9 @@ import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpResponsePacket;
-import com.sun.grizzly.http.server.GrizzlyListener;
-import com.sun.grizzly.http.server.GrizzlyRequest;
-import com.sun.grizzly.http.server.GrizzlyResponse;
-import com.sun.grizzly.http.server.GrizzlyWebServer;
-import com.sun.grizzly.http.server.GrizzlyAdapter;
-import com.sun.grizzly.http.server.io.GrizzlyWriter;
+import com.sun.grizzly.http.server.*;
+import com.sun.grizzly.http.server.Adapter;
+import com.sun.grizzly.http.server.io.NIOWriter;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.ByteBufferWrapper;
@@ -125,10 +122,10 @@ public class FileCacheTest {
     public void testSimpleFile() throws Exception {
         final String fileName = "./pom.xml";
 
-        startWebServer(new GrizzlyAdapter() {
+        startWebServer(new Adapter() {
 
             @Override
-            public void service(final GrizzlyRequest req, final GrizzlyResponse res) {
+            public void service(final AdapterRequest req, final AdapterResponse res) {
                 try {
                     String error = null;
                     try {
@@ -137,7 +134,7 @@ public class FileCacheTest {
                         error = exception.getMessage();
                     }
 
-                    final GrizzlyWriter writer = res.getWriter();
+                    final NIOWriter writer = res.getWriter();
                     writer.write(error == null ?
                         "Hello not cached data" :
                         "Error happened: " + error);
@@ -186,10 +183,10 @@ public class FileCacheTest {
     @Test
     public void testGZip() throws Exception {
         final String fileName = "./pom.xml";
-        startWebServer(new GrizzlyAdapter() {
+        startWebServer(new Adapter() {
 
             @Override
-            public void service(final GrizzlyRequest req, final GrizzlyResponse res) {
+            public void service(final AdapterRequest req, final AdapterResponse res) {
                 try {
                     String error = null;
                     try {
@@ -198,7 +195,7 @@ public class FileCacheTest {
                         error = exception.getMessage();
                     }
 
-                    final GrizzlyWriter writer = res.getWriter();
+                    final NIOWriter writer = res.getWriter();
                     writer.write(error == null ?
                         "Hello not cached data" :
                         "Error happened: " + error);
@@ -250,9 +247,9 @@ public class FileCacheTest {
     @Test
     public void testIfModified() throws Exception {
         final String fileName = "./pom.xml";
-        startWebServer(new GrizzlyAdapter(".") {
+        startWebServer(new Adapter(".") {
             @Override
-            public void service(GrizzlyRequest request, GrizzlyResponse response)
+            public void service(AdapterRequest request, AdapterResponse response)
                     throws Exception {
             }
         });
@@ -295,9 +292,9 @@ public class FileCacheTest {
     
     private void configureWebServer() throws Exception {
         gws = new GrizzlyWebServer();
-        final GrizzlyListener listener =
-                new GrizzlyListener("grizzly",
-                                    GrizzlyListener.DEFAULT_NETWORK_HOST,
+        final NetworlListener listener =
+                new NetworlListener("grizzly",
+                                    NetworlListener.DEFAULT_NETWORK_HOST,
                                     PORT);
         if (isSslEnabled) {
             listener.setSecure(true);
@@ -308,7 +305,7 @@ public class FileCacheTest {
         gws.addListener(listener);
     }
 
-    private void startWebServer(GrizzlyAdapter adapter) throws Exception {
+    private void startWebServer(Adapter adapter) throws Exception {
         gws.getServerConfiguration().addGrizzlyAdapter(adapter);
         gws.start();
     }

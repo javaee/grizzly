@@ -57,10 +57,10 @@ import java.util.logging.Logger;
 
 /**
  * Static resources handler, which handles static resources requests made to a
- * {@link GrizzlyAdapter}.
+ * {@link Adapter}.
  *
- * This class doesn't not decode the {@link GrizzlyRequest} uri and just do
- * basic security check. If you need more protection, use the {@link GrizzlyAdapter}.
+ * This class doesn't not decode the {@link AdapterRequest} uri and just do
+ * basic security check. If you need more protection, use the {@link Adapter}.
  *
  * @author Jeanfrancois Arcand
  * @author Alexey Stashok
@@ -87,14 +87,14 @@ public class StaticResourcesHandler {
     }
 
     /**
-     * Based on the {@link GrizzlyRequest} URI, try to map the file from the
+     * Based on the {@link AdapterRequest} URI, try to map the file from the
      * {@link StaticResourcesHandler#getDocRoot()}, and send it synchronously
      * using send file.
-     * @param req the {@link GrizzlyRequest}
-     * @param res the {@link GrizzlyResponse}
+     * @param req the {@link AdapterRequest}
+     * @param res the {@link AdapterResponse}
      * @throws Exception
      */
-    public boolean handle(GrizzlyRequest req, final GrizzlyResponse res) throws Exception {
+    public boolean handle(AdapterRequest req, final AdapterResponse res) throws Exception {
         String uri = req.getRequestURI();
         if (uri.indexOf("..") >= 0 || !uri.startsWith(resourcesContextPath)) {
             return false;
@@ -112,13 +112,13 @@ public class StaticResourcesHandler {
      * Lookup a resource based on the request URI, and send it using send file.
      *
      * @param uri The request URI
-     * @param req the {@link GrizzlyRequest}
-     * @param res the {@link GrizzlyResponse}
+     * @param req the {@link AdapterRequest}
+     * @param res the {@link AdapterResponse}
      * @throws Exception
      */
     protected boolean handle(final String uri,
-            final GrizzlyRequest req,
-            final GrizzlyResponse res) throws Exception {
+            final AdapterRequest req,
+            final AdapterResponse res) throws Exception {
         
         FileInputStream fis = null;
         try {
@@ -239,7 +239,7 @@ public class StaticResourcesHandler {
         this.resourcesContextPath = resourcesContextPath;
     }
 
-    public final boolean addToFileCache(GrizzlyRequest req, File resource) {
+    public final boolean addToFileCache(AdapterRequest req, File resource) {
         final FilterChainContext fcContext = req.getContext();
         final FileCacheFilter fileCacheFilter = lookupFileCache(fcContext);
         if (fileCacheFilter != null) {

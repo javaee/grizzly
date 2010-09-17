@@ -49,7 +49,6 @@ import com.sun.grizzly.http.util.HttpStatus;
 import com.sun.grizzly.http.util.RequestURIRef;
 import com.sun.grizzly.http.server.util.Mapper;
 import com.sun.grizzly.http.server.util.MappingData;
-import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.monitoring.jmx.JmxObject;
 
 import java.util.Map.Entry;
@@ -58,32 +57,32 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * The GrizzlyAdapterChain class allows the invocation of multiple {@link GrizzlyAdapter}s
+ * The AdapterChain class allows the invocation of multiple {@link Adapter}s
  * every time a new HTTP request is ready to be handled. Requests are mapped
- * to their associated {@link GrizzlyAdapter} at runtime using the mapping
- * information configured when invoking the {@link com.sun.grizzly.http.server.GrizzlyAdapterChain#addGrizzlyAdapter
- * (com.sun.grizzly.http.server.GrizzlyAdapter, java.lang.String[])}
+ * to their associated {@link Adapter} at runtime using the mapping
+ * information configured when invoking the {@link AdapterChain#addGrizzlyAdapter
+ * (com.sun.grizzly.http.server.Adapter, java.lang.String[])}
  *
  *
  * Note: This class is <strong>NOT</strong> thread-safe, so make sure synchronization
- *  is performed when dynamically adding and removing {@link GrizzlyAdapter}
+ *  is performed when dynamically adding and removing {@link Adapter}
  *
  * @author Jeanfrancois Arcand
  */
-public class GrizzlyAdapterChain extends GrizzlyAdapter implements JmxEventListener {
-    private static final Logger logger = Grizzly.logger(GrizzlyAdapterChain.class);
+public class AdapterChain extends Adapter implements JmxEventListener {
+    private static final Logger logger = Grizzly.logger(AdapterChain.class);
 
     protected final static int MAPPING_DATA = 12;
     protected final static int MAPPED_ADAPTER = 13;
     /**
-     * The list of {@link GrizzlyAdapter} instance.
+     * The list of {@link Adapter} instance.
      */
-    private ConcurrentHashMap<GrizzlyAdapter, String[]> adapters =
-            new ConcurrentHashMap<GrizzlyAdapter, String[]>();
-    private ConcurrentHashMap<GrizzlyAdapter, JmxObject> monitors =
-            new ConcurrentHashMap<GrizzlyAdapter, JmxObject>();
+    private ConcurrentHashMap<Adapter, String[]> adapters =
+            new ConcurrentHashMap<Adapter, String[]>();
+    private ConcurrentHashMap<Adapter, JmxObject> monitors =
+            new ConcurrentHashMap<Adapter, JmxObject>();
     /**
-     * Internal {@link Mapper} used to Map request to their associated {@link GrizzlyAdapter}
+     * Internal {@link Mapper} used to Map request to their associated {@link Adapter}
      */
     private Mapper mapper;
     /**
@@ -96,8 +95,8 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter implements JmxEventListe
     private boolean oldMappingAlgorithm = false;
 
     /**
-     * Flag indicating this GrizzlyAdapter has been started.  Any subsequent
-     * GrizzlyAdapter instances added to this chain after is has been started
+     * Flag indicating this Adapter has been started.  Any subsequent
+     * Adapter instances added to this chain after is has been started
      * will have their start() method invoked.
      */
     private boolean started;
@@ -108,7 +107,7 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter implements JmxEventListe
     // ------------------------------------------------------------ Constructors
 
 
-    public GrizzlyAdapterChain(final GrizzlyWebServer gws) {
+    public AdapterChain(final GrizzlyWebServer gws) {
         this.gws = gws;
         mapper = new Mapper(TransportFactory.getInstance().getDefaultMemoryManager());
         mapper.setDefaultHostName(LOCAL_HOST);
@@ -121,8 +120,8 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter implements JmxEventListe
 
     @Override
     public void jmxEnabled() {
-        for (Entry<GrizzlyAdapter,String[]> entry : adapters.entrySet()) {
-            final GrizzlyAdapter adapter = entry.getKey();
+        for (Entry<Adapter,String[]> entry : adapters.entrySet()) {
+            final Adapter adapter = entry.getKey();
             if (adapter instanceof Monitorable) {
                 registerJmxForAdapter(adapter);
             }
@@ -131,8 +130,8 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter implements JmxEventListe
 
     @Override
     public void jmxDisabled() {
-        for (Entry<GrizzlyAdapter,String[]> entry : adapters.entrySet()) {
-            final GrizzlyAdapter adapter = entry.getKey();
+        for (Entry<Adapter,String[]> entry : adapters.entrySet()) {
+            final Adapter adapter = entry.getKey();
             if (adapter instanceof Monitorable) {
                 deregisterJmxForAdapter(adapter);
             }
@@ -145,25 +144,25 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter implements JmxEventListe
 
     @Override
     public void start() {
-        for (Entry<GrizzlyAdapter, String[]> entry : adapters.entrySet()) {
-            final GrizzlyAdapter adapter = entry.getKey();
+        for (Entry<Adapter, String[]> entry : adapters.entrySet()) {
+            final Adapter adapter = entry.getKey();
             adapter.start();
         }
         started = true;
     }
 
     /**
-     * Map the {@link GrizzlyRequest} to the proper {@link GrizzlyAdapter}
-     * @param request The {@link GrizzlyRequest}
-     * @param response The {@link GrizzlyResponse}
+     * Map the {@link AdapterRequest} to the proper {@link Adapter}
+     * @param request The {@link AdapterRequest}
+     * @param response The {@link AdapterResponse}
      */
     @Override
-    public void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
+    public void service(AdapterRequest request, AdapterResponse response) throws Exception {
         // For backward compatibility.
         if (oldMappingAlgorithm) {
             int i = 0;
             int size = adapters.size();
-            for (Entry<GrizzlyAdapter, String[]> entry : adapters.entrySet()) {
+            for (Entry<Adapter, String[]> entry : adapters.entrySet()) {
                 entry.getKey().doService(request, response);
                 if (response.getStatus() == 404 && i != size - 1) {
                     // Reset the
@@ -201,12 +200,12 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter implements JmxEventListe
                                     mappingData);
 
 
-                GrizzlyAdapter adapter;
-                if (mappingData.context != null && mappingData.context instanceof GrizzlyAdapter) {
+                Adapter adapter;
+                if (mappingData.context != null && mappingData.context instanceof Adapter) {
                     if (mappingData.wrapper != null) {
-                        adapter = (GrizzlyAdapter) mappingData.wrapper;
+                        adapter = (Adapter) mappingData.wrapper;
                     } else {
-                        adapter = (GrizzlyAdapter) mappingData.context;
+                        adapter = (Adapter) mappingData.context;
                     }
                     // We already decoded the URL.
                     adapter.setDecodeUrl(false);
@@ -233,15 +232,15 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter implements JmxEventListe
 
 
     /**
-     * Add a {@link GrizzlyAdapter} and its associated array of mapping. The mapping
-     * data will be used to map incoming request to its associated {@link GrizzlyAdapter}.
-     * @param adapter {@link GrizzlyAdapter} instance
+     * Add a {@link Adapter} and its associated array of mapping. The mapping
+     * data will be used to map incoming request to its associated {@link Adapter}.
+     * @param adapter {@link Adapter} instance
      * @param mappings an array of mapping.
      */
-    public void addGrizzlyAdapter(GrizzlyAdapter adapter, String[] mappings) {
+    public void addGrizzlyAdapter(Adapter adapter, String[] mappings) {
         if (oldMappingAlgorithm) {
-            throw new IllegalStateException("Cannot mix addGrizzlyAdapter(GrizzlyAdapter) "
-                    + "and addGrizzlyAdapter(GrizzlyAdapter,String[]");
+            throw new IllegalStateException("Cannot mix addGrizzlyAdapter(Adapter) "
+                    + "and addGrizzlyAdapter(Adapter,String[]");
         }
 
         if (mappings.length == 0) {
@@ -264,14 +263,14 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter implements JmxEventListe
 
     }
 
-    private void registerJmxForAdapter(final GrizzlyAdapter adapter) {
+    private void registerJmxForAdapter(final Adapter adapter) {
         final Monitorable monitorable = (Monitorable) adapter;
         final JmxObject jmx = monitorable.createManagementObject();
         monitors.putIfAbsent(adapter, jmx);
         gws.jmxManager.register(gws.managementObject, jmx, jmx.getJmxName());
     }
 
-    private void deregisterJmxForAdapter(final GrizzlyAdapter adapter) {
+    private void deregisterJmxForAdapter(final Adapter adapter) {
 
         JmxObject jmx = monitors.get(adapter);
         if (jmx != null) {
@@ -302,18 +301,18 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter implements JmxEventListe
 
     @Override
     public void destroy() {
-        for (Entry<GrizzlyAdapter, String[]> adapter : adapters.entrySet()) {
-            final GrizzlyAdapter a = adapter.getKey();
+        for (Entry<Adapter, String[]> adapter : adapters.entrySet()) {
+            final Adapter a = adapter.getKey();
             a.destroy();
         }
         started = false;
     }
 
     /**
-     * Remove a {@link GrizzlyAdapter}
+     * Remove a {@link Adapter}
      * @return <tt>true</tt> if removed
      */
-    public boolean removeAdapter(GrizzlyAdapter adapter) {
+    public boolean removeAdapter(Adapter adapter) {
         if (adapter == null) {
             throw new IllegalStateException();
         }

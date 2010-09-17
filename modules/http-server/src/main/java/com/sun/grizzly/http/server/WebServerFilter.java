@@ -72,8 +72,8 @@ public class WebServerFilter extends BaseFilter
         implements JmxMonitoringAware<WebServerProbe> {
 
 
-    private final Attribute<GrizzlyRequest> httpRequestInProcessAttr;
-    private final DelayedExecutor.DelayQueue<GrizzlyResponse> suspendedResponseQueue;
+    private final Attribute<AdapterRequest> httpRequestInProcessAttr;
+    private final DelayedExecutor.DelayQueue<AdapterResponse> suspendedResponseQueue;
 
     private final GrizzlyWebServer gws;
 
@@ -97,9 +97,9 @@ public class WebServerFilter extends BaseFilter
     public WebServerFilter(final GrizzlyWebServer webServer) {
         gws = webServer;
         DelayedExecutor delayedExecutor = webServer.getDelayedExecutor();
-        suspendedResponseQueue = GrizzlyResponse.createDelayQueue(delayedExecutor);
+        suspendedResponseQueue = AdapterResponse.createDelayQueue(delayedExecutor);
         httpRequestInProcessAttr = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.
-                createAttribute("WebServerFilter.GrizzlyRequest");
+                createAttribute("WebServerFilter.AdapterRequest");
 
     }
 
@@ -119,50 +119,50 @@ public class WebServerFilter extends BaseFilter
 
             final HttpContent httpContent = (HttpContent) message;
 
-            GrizzlyRequest grizzlyRequest = httpRequestInProcessAttr.get(connection);
+            AdapterRequest adapterRequest = httpRequestInProcessAttr.get(connection);
 
-            if (grizzlyRequest == null) {
+            if (adapterRequest == null) {
                 // It's a new HTTP request
                 HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
                 HttpResponsePacket response = request.getResponse();
-                grizzlyRequest = GrizzlyRequest.create();
-                httpRequestInProcessAttr.set(connection, grizzlyRequest);
-                final GrizzlyResponse grizzlyResponse = GrizzlyResponse.create();
+                adapterRequest = AdapterRequest.create();
+                httpRequestInProcessAttr.set(connection, adapterRequest);
+                final AdapterResponse adapterResponse = AdapterResponse.create();
 
-                grizzlyRequest.initialize(grizzlyResponse, request, httpContent, ctx, this);
+                adapterRequest.initialize(adapterResponse, request, httpContent, ctx, this);
                 final SuspendStatus suspendStatus = new SuspendStatus();
 
-                grizzlyResponse.initialize(grizzlyRequest, response, ctx,
+                adapterResponse.initialize(adapterRequest, response, ctx,
                         suspendedResponseQueue, suspendStatus);
 
                 WebServerProbeNotifier.notifyRequestReceive(this, connection,
-                        grizzlyRequest);
+                        adapterRequest);
 
                 try {
-                    ctx.setMessage(grizzlyResponse);
+                    ctx.setMessage(adapterResponse);
 
-                    final GrizzlyAdapter adapter = gws.getAdapter();
+                    final Adapter adapter = gws.getAdapter();
                     if (adapter != null) {
-                        adapter.doService(grizzlyRequest, grizzlyResponse);
+                        adapter.doService(adapterRequest, adapterResponse);
                     }
                 } catch (Throwable t) {
-                    grizzlyRequest.getRequest().getProcessingState().setError(true);
+                    adapterRequest.getRequest().getProcessingState().setError(true);
                     
                     if (!response.isCommitted()) {
                         ByteBuffer b = HtmlHelper.getExceptionErrorPage("Internal Server Error", "Grizzly/2.0", t);
-                        grizzlyResponse.reset();
-                        grizzlyResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
-                        grizzlyResponse.setContentType("text/html");
-                        grizzlyResponse.setCharacterEncoding("UTF-8");
+                        adapterResponse.reset();
+                        adapterResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
+                        adapterResponse.setContentType("text/html");
+                        adapterResponse.setCharacterEncoding("UTF-8");
                         MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
                         Buffer buf = MemoryUtils.wrap(mm, b);
-                        grizzlyResponse.getOutputBuffer().writeBuffer(buf);
+                        adapterResponse.getOutputBuffer().writeBuffer(buf);
                     }
                 } finally {
                     if (!suspendStatus.get()) {
-                        afterService(connection, grizzlyRequest, grizzlyResponse);
+                        afterService(connection, adapterRequest, adapterResponse);
                     } else {
-                        if (grizzlyRequest.asyncInput()) {
+                        if (adapterRequest.asyncInput()) {
                             return ctx.getSuspendingStopAction();
                         } else {
                             return ctx.getSuspendAction();
@@ -171,12 +171,12 @@ public class WebServerFilter extends BaseFilter
                 }
             } else {
                 // We're working with suspended HTTP request
-                if (grizzlyRequest.asyncInput()) {
-                    if (!grizzlyRequest.getInputBuffer().isFinished()) {
+                if (adapterRequest.asyncInput()) {
+                    if (!adapterRequest.getInputBuffer().isFinished()) {
 
                         final Buffer content = httpContent.getContent();
 
-                        if (!content.hasRemaining() || !grizzlyRequest.getInputBuffer().append(content)) {
+                        if (!content.hasRemaining() || !adapterRequest.getInputBuffer().append(content)) {
                             if (!httpContent.isLast()) {
                                 // need more data?
                                 return ctx.getStopAction();
@@ -184,7 +184,7 @@ public class WebServerFilter extends BaseFilter
 
                         }
                         if (httpContent.isLast()) {
-                            grizzlyRequest.getInputBuffer().finished();
+                            adapterRequest.getInputBuffer().finished();
                             // we have enough data? - terminate filter chain execution
                             final NextAction action = ctx.getSuspendAction();
                             ctx.recycle();
@@ -194,9 +194,9 @@ public class WebServerFilter extends BaseFilter
                 }
             }
         } else { // this code will be run, when we resume after suspend
-            final GrizzlyResponse grizzlyResponse = (GrizzlyResponse) message;
-            final GrizzlyRequest grizzlyRequest = grizzlyResponse.getRequest();
-            afterService(connection, grizzlyRequest, grizzlyResponse);
+            final AdapterResponse adapterResponse = (AdapterResponse) message;
+            final AdapterRequest adapterRequest = adapterResponse.getRequest();
+            afterService(connection, adapterRequest, adapterResponse);
         }
 
         return ctx.getStopAction();
@@ -214,11 +214,11 @@ public class WebServerFilter extends BaseFilter
     public void exceptionOccurred(FilterChainContext ctx, Throwable error) {
         final Connection c = ctx.getConnection();
 
-        final GrizzlyRequest grizzlyRequest =
+        final AdapterRequest adapterRequest =
                 httpRequestInProcessAttr.get(c);
 
-        if (grizzlyRequest != null) {
-            ReadHandler handler = grizzlyRequest.getInputBuffer().getReadHandler();
+        if (adapterRequest != null) {
+            ReadHandler handler = adapterRequest.getInputBuffer().getReadHandler();
             if (handler != null) {
                 handler.onError(error);
             }
@@ -250,19 +250,19 @@ public class WebServerFilter extends BaseFilter
 
 
     private void afterService(final Connection connection,
-                              final GrizzlyRequest grizzlyRequest,
-                              final GrizzlyResponse grizzlyResponse)
+                              final AdapterRequest adapterRequest,
+                              final AdapterResponse adapterResponse)
     throws IOException {
 
         httpRequestInProcessAttr.remove(connection);
 
-        grizzlyResponse.finish();
+        adapterResponse.finish();
 
         WebServerProbeNotifier.notifyRequestComplete(this,
                                                      connection,
-                                                     grizzlyResponse);
-        grizzlyRequest.recycle();
-        grizzlyResponse.recycle();
+                adapterResponse);
+        adapterRequest.recycle();
+        adapterResponse.recycle();
 
     }
 

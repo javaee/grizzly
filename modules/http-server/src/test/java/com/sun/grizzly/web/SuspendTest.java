@@ -51,11 +51,8 @@ import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.http.HttpClientFilter;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpRequestPacket;
-import com.sun.grizzly.http.server.GrizzlyListener;
-import com.sun.grizzly.http.server.GrizzlyRequest;
-import com.sun.grizzly.http.server.GrizzlyResponse;
-import com.sun.grizzly.http.server.GrizzlyAdapter;
-import com.sun.grizzly.http.server.GrizzlyWebServer;
+import com.sun.grizzly.http.server.*;
+import com.sun.grizzly.http.server.Adapter;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.nio.transport.TCPNIOConnectorHandler;
@@ -81,8 +78,8 @@ import org.junit.runners.Parameterized.Parameters;
 import static org.junit.Assert.*;
 
 /**
- * Units test that exercise the {@link GrizzlyResponse#suspend() }, {@link GrizzlyResponse#resume() }
- * and {@link GrizzlyResponse#cancel() } API.
+ * Units test that exercise the {@link com.sun.grizzly.http.server.AdapterResponse#suspend() }, {@link com.sun.grizzly.http.server.AdapterResponse#resume() }
+ * and {@link com.sun.grizzly.http.server.AdapterResponse#cancel() } API.
  *
  * @author Jeanfrancois Arcand
  * @author gustav trede
@@ -127,9 +124,9 @@ public class SuspendTest {
 
     private void configureWebServer() throws Exception {
         gws = new GrizzlyWebServer();
-        final GrizzlyListener listener =
-                new GrizzlyListener("grizzly",
-                                    GrizzlyListener.DEFAULT_NETWORK_HOST,
+        final NetworlListener listener =
+                new NetworlListener("grizzly",
+                                    NetworlListener.DEFAULT_NETWORK_HOST,
                                     PORT);
         if (isSslEnabled) {
             listener.setSecure(true);
@@ -161,7 +158,7 @@ public class SuspendTest {
                 !isServer, false, false);
     }
 
-    private void startWebServer(GrizzlyAdapter adapter) throws Exception {
+    private void startWebServer(Adapter adapter) throws Exception {
         gws.getServerConfiguration().addGrizzlyAdapter(adapter);
         gws.start();
     }
@@ -171,7 +168,7 @@ public class SuspendTest {
         startWebServer(new TestStaticResourcesAdapter() {
 
             @Override
-            public void service(final GrizzlyRequest req, final GrizzlyResponse res) {
+            public void service(final AdapterRequest req, final AdapterResponse res) {
                 try {
                     res.suspend();
                     write(res, testData);
@@ -190,7 +187,7 @@ public class SuspendTest {
         startWebServer(new TestStaticResourcesAdapter() {
 
             @Override
-            public void service(final GrizzlyRequest req, final GrizzlyResponse res) {
+            public void service(final AdapterRequest req, final AdapterResponse res) {
                 try {
                     res.suspend();
                     write(res, testData);
@@ -210,7 +207,7 @@ public class SuspendTest {
         startWebServer(new TestStaticResourcesAdapter() {
 
             @Override
-            public void service(final GrizzlyRequest req, final GrizzlyResponse res) {
+            public void service(final AdapterRequest req, final AdapterResponse res) {
                 try {
                     res.suspend();
                     writeToSuspendedClient(res);
@@ -228,7 +225,7 @@ public class SuspendTest {
         startWebServer(new TestStaticResourcesAdapter() {
 
             @Override
-            public void service(final GrizzlyRequest req, final GrizzlyResponse res) {
+            public void service(final AdapterRequest req, final AdapterResponse res) {
                 res.suspend();
                 scheduledThreadPool.schedule(new Runnable() {
 
@@ -248,7 +245,7 @@ public class SuspendTest {
         startWebServer(new TestStaticResourcesAdapter() {
 
             @Override
-            public void dologic(final GrizzlyRequest req, final GrizzlyResponse res) throws Throwable {
+            public void dologic(final AdapterRequest req, final AdapterResponse res) throws Throwable {
                 res.suspend(60, TimeUnit.SECONDS, new TestCompletionHandler() {
 
                     @Override
@@ -273,7 +270,7 @@ public class SuspendTest {
         startWebServer(new TestStaticResourcesAdapter() {
 
             @Override
-            public void dologic(final GrizzlyRequest req, final GrizzlyResponse res) throws Throwable {
+            public void dologic(final AdapterRequest req, final AdapterResponse res) throws Throwable {
                 res.suspend(60, TimeUnit.SECONDS, new TestCompletionHandler() {
 
                     @Override
@@ -297,7 +294,7 @@ public class SuspendTest {
         startWebServer(new TestStaticResourcesAdapter() {
 
             @Override
-            public void dologic(final GrizzlyRequest req, final GrizzlyResponse res) throws Throwable {
+            public void dologic(final AdapterRequest req, final AdapterResponse res) throws Throwable {
                 res.suspend(60, TimeUnit.SECONDS, new TestCompletionHandler() {
 
                     private AtomicBoolean first = new AtomicBoolean(true);
@@ -326,7 +323,7 @@ public class SuspendTest {
         startWebServer(new TestStaticResourcesAdapter() {
 
             @Override
-            public void dologic(final GrizzlyRequest req, final GrizzlyResponse res) throws Throwable {
+            public void dologic(final AdapterRequest req, final AdapterResponse res) throws Throwable {
                 res.suspend(5, TimeUnit.SECONDS, new TestCompletionHandler() {
 
                     @Override
@@ -348,7 +345,7 @@ public class SuspendTest {
         startWebServer(new TestStaticResourcesAdapter() {
 
             @Override
-            public void dologic(final GrizzlyRequest req, final GrizzlyResponse res) throws Throwable {
+            public void dologic(final AdapterRequest req, final AdapterResponse res) throws Throwable {
                 res.suspend(60, TimeUnit.SECONDS, new TestCompletionHandler() {
 
                     @Override
@@ -386,7 +383,7 @@ public class SuspendTest {
         startWebServer(new TestStaticResourcesAdapter() {
 
             @Override
-            public void dologic(final GrizzlyRequest req, final GrizzlyResponse res) throws Throwable {
+            public void dologic(final AdapterRequest req, final AdapterResponse res) throws Throwable {
                 res.suspend(60, TimeUnit.SECONDS, new TestCompletionHandler() {
 
                     @Override
@@ -408,10 +405,10 @@ public class SuspendTest {
 
     @Test
     public void testSuspendResumedCompletionHandlerGrizzlyAdapter() throws Exception {
-        startWebServer(new GrizzlyAdapter() {
+        startWebServer(new Adapter() {
 
             @Override
-            public void service(final GrizzlyRequest req, final GrizzlyResponse res) {
+            public void service(final AdapterRequest req, final AdapterResponse res) {
                 try {
                     res.suspend(60, TimeUnit.SECONDS, new TestCompletionHandler() {
 
@@ -442,10 +439,10 @@ public class SuspendTest {
 
     @Test
     public void testSuspendTimeoutCompletionHandlerGrizzlyAdapter() throws Exception {
-        startWebServer(new GrizzlyAdapter() {
+        startWebServer(new Adapter() {
 
             @Override
-            public void service(final GrizzlyRequest req, final GrizzlyResponse res) {
+            public void service(final AdapterRequest req, final AdapterResponse res) {
                 try {
                     final long t1 = System.currentTimeMillis();
                     res.suspend(10, TimeUnit.SECONDS, new TestCompletionHandler() {
@@ -470,10 +467,10 @@ public class SuspendTest {
 
     @Test
     public void testFastSuspendResumeGrizzlyAdapter() throws Exception {
-        startWebServer(new GrizzlyAdapter() {
+        startWebServer(new Adapter() {
 
             @Override
-            public void service(final GrizzlyRequest req, final GrizzlyResponse res) {
+            public void service(final AdapterRequest req, final AdapterResponse res) {
                 try {
                     final long t1 = System.currentTimeMillis();
                     res.suspend(10, TimeUnit.SECONDS, new TestCompletionHandler() {
@@ -517,7 +514,7 @@ public class SuspendTest {
         runTest();
     }
 
-    private void write(GrizzlyResponse response, byte[] data) throws IOException {
+    private void write(AdapterResponse response, byte[] data) throws IOException {
         ByteChunk bc = new ByteChunk();
         bc.setBytes(data, 0, data.length);
 
@@ -562,7 +559,7 @@ public class SuspendTest {
         return connectFuture.get(10, TimeUnit.SECONDS);
     }
 
-    protected void resumeLater(final GrizzlyResponse res) {
+    protected void resumeLater(final AdapterResponse res) {
         scheduledThreadPool.schedule(new Runnable() {
 
             @Override
@@ -581,7 +578,7 @@ public class SuspendTest {
         }, 2, TimeUnit.SECONDS);
     }
 
-    protected void cancelLater(final GrizzlyResponse res) {
+    protected void cancelLater(final AdapterResponse res) {
         scheduledThreadPool.schedule(new Runnable() {
 
             @Override
@@ -600,10 +597,10 @@ public class SuspendTest {
         }, 2, TimeUnit.SECONDS);
     }
 
-    private class TestStaticResourcesAdapter extends GrizzlyAdapter {
+    private class TestStaticResourcesAdapter extends Adapter {
 
         @Override
-        public void service(GrizzlyRequest req, GrizzlyResponse res) {
+        public void service(AdapterRequest req, AdapterResponse res) {
             try {
                 if (!res.isSuspended()) {
                     dologic(req, res);
@@ -615,10 +612,10 @@ public class SuspendTest {
             }
         }
 
-        public void dologic(final GrizzlyRequest req, final GrizzlyResponse res) throws Throwable {
+        public void dologic(final AdapterRequest req, final AdapterResponse res) throws Throwable {
         }
 
-        protected void writeToSuspendedClient(GrizzlyResponse resp) {
+        protected void writeToSuspendedClient(AdapterResponse resp) {
             if (resp.isSuspended()) {
                 try {
                     write(resp, testData);

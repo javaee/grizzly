@@ -55,14 +55,11 @@ import com.sun.grizzly.http.HttpHeader;
 import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.Protocol;
-import com.sun.grizzly.http.server.GrizzlyAdapter;
-import com.sun.grizzly.http.server.GrizzlyListener;
-import com.sun.grizzly.http.server.GrizzlyRequest;
-import com.sun.grizzly.http.server.GrizzlyResponse;
-import com.sun.grizzly.http.server.GrizzlyWebServer;
+import com.sun.grizzly.http.server.*;
+import com.sun.grizzly.http.server.Adapter;
+import com.sun.grizzly.http.server.io.NIOInputStream;
+import com.sun.grizzly.http.server.io.NIOReader;
 import com.sun.grizzly.http.server.io.ReadHandler;
-import com.sun.grizzly.http.server.io.GrizzlyInputStream;
-import com.sun.grizzly.http.server.io.GrizzlyReader;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.ByteBuffersBuffer;
@@ -97,7 +94,7 @@ public class NIOInputSourcesTest extends TestCase {
     public void testBasicAsyncRead() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final GrizzlyAdapter adapter = new EchoAdapter(testResult, 0);
+        final Adapter adapter = new EchoAdapter(testResult, 0);
         final String expected = buildString(5000);
         final HttpPacket request = createRequest("POST", expected, null);
         doTest(adapter, request, expected, testResult, null, 10);
@@ -112,7 +109,7 @@ public class NIOInputSourcesTest extends TestCase {
     public void testBasicAsyncReadSpecifiedSize() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final GrizzlyAdapter adapter = new EchoAdapter(testResult, 1000);
+        final Adapter adapter = new EchoAdapter(testResult, 1000);
         final String expected = buildString(5000);
         final HttpPacket request = createRequest("POST", expected, null);
         doTest(adapter, request, expected, testResult, null, 10);
@@ -123,7 +120,7 @@ public class NIOInputSourcesTest extends TestCase {
     public void testBasicAsyncReadSlowClient() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final GrizzlyAdapter adapter = new EchoAdapter(testResult, 0);
+        final Adapter adapter = new EchoAdapter(testResult, 0);
         final String expected = buildString(5000);
         final HttpPacket request = createRequest("POST", expected, null);
         final WriteStrategy strategy = new WriteStrategy() {
@@ -168,7 +165,7 @@ public class NIOInputSourcesTest extends TestCase {
     public void testBasicAsyncReadSpecifiedSizeSlowClient() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final GrizzlyAdapter adapter = new EchoAdapter(testResult, 2000);
+        final Adapter adapter = new EchoAdapter(testResult, 2000);
         final String expected = buildString(5000);
         final HttpPacket request = createRequest("POST", expected, null);
         final WriteStrategy strategy = new WriteStrategy() {
@@ -217,7 +214,7 @@ public class NIOInputSourcesTest extends TestCase {
     public void testBasicAsyncReadChar() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final GrizzlyAdapter adapter = new CharacterEchoAdapter(testResult, 0, null);
+        final Adapter adapter = new CharacterEchoAdapter(testResult, 0, null);
         final String expected = buildString(5000);
         final HttpPacket request = createRequest("POST", expected, null);
         doTest(adapter, request, expected, testResult, null, 30);
@@ -232,7 +229,7 @@ public class NIOInputSourcesTest extends TestCase {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
         final String encoding = "UTF-16";
-        final GrizzlyAdapter adapter = new CharacterEchoAdapter(testResult, 0, encoding);
+        final Adapter adapter = new CharacterEchoAdapter(testResult, 0, encoding);
         final String expected = buildString(5000);
         final HttpPacket request = createRequest("POST", expected, encoding);
         ClientFilter filter = new ClientFilter(testResult, request, null, encoding);
@@ -248,7 +245,7 @@ public class NIOInputSourcesTest extends TestCase {
     public void testBasicAsyncReadCharSpecifiedSize() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final GrizzlyAdapter adapter = new CharacterEchoAdapter(testResult, 1000, null);
+        final Adapter adapter = new CharacterEchoAdapter(testResult, 1000, null);
         final String expected = buildString(5000);
         final HttpPacket request = createRequest("POST", expected, null);
         doTest(adapter, request, expected, testResult, null, 10);
@@ -259,7 +256,7 @@ public class NIOInputSourcesTest extends TestCase {
     public void testBasicAsyncReadCharSlowClient() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final GrizzlyAdapter adapter = new EchoAdapter(testResult, 0);
+        final Adapter adapter = new EchoAdapter(testResult, 0);
         final String expected = buildString(5000);
         final HttpPacket request = createRequest("POST", expected, null);
         final WriteStrategy strategy = new WriteStrategy() {
@@ -304,7 +301,7 @@ public class NIOInputSourcesTest extends TestCase {
     public void testBasicAsyncReadCharSpecifiedSizeSlowClient() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final GrizzlyAdapter adapter = new EchoAdapter(testResult, 2000);
+        final Adapter adapter = new EchoAdapter(testResult, 2000);
         final String expected = buildString(5000);
         final HttpPacket request = createRequest("POST", expected, null);
         final WriteStrategy strategy = new WriteStrategy() {
@@ -350,12 +347,12 @@ public class NIOInputSourcesTest extends TestCase {
     // --------------------------------------------------------- Private Methods
 
 
-    private GrizzlyWebServer createWebServer(final GrizzlyAdapter adapter) {
+    private GrizzlyWebServer createWebServer(final Adapter adapter) {
 
         final GrizzlyWebServer server = new GrizzlyWebServer();
-        final GrizzlyListener listener =
-                new GrizzlyListener("grizzly",
-                        GrizzlyListener.DEFAULT_NETWORK_HOST,
+        final NetworlListener listener =
+                new NetworlListener("grizzly",
+                        NetworlListener.DEFAULT_NETWORK_HOST,
                         PORT);
         listener.getKeepAlive().setIdleTimeoutInSeconds(-1);
         server.addListener(listener);
@@ -365,7 +362,7 @@ public class NIOInputSourcesTest extends TestCase {
 
     }
 
-    private void doTest(final GrizzlyAdapter adapter,
+    private void doTest(final Adapter adapter,
                         final HttpPacket request,
                         final String expectedResult,
                         final FutureImpl<String> testResult,
@@ -383,7 +380,7 @@ public class NIOInputSourcesTest extends TestCase {
 
 
 
-    private void doTest(final GrizzlyAdapter adapter,
+    private void doTest(final Adapter adapter,
                         final String expectedResult,
                         final FutureImpl<String> testResult,
                         final ClientFilter filter,
@@ -491,7 +488,7 @@ public class NIOInputSourcesTest extends TestCase {
     } // END WriteStrategy
 
 
-    private static class EchoAdapter extends GrizzlyAdapter {
+    private static class EchoAdapter extends Adapter {
 
         private final FutureImpl<String> testResult;
         private final int readSize;
@@ -508,15 +505,15 @@ public class NIOInputSourcesTest extends TestCase {
         }
 
 
-        // ----------------------------------------- Methods from GrizzlyAdapter
+        // ----------------------------------------- Methods from Adapter
 
         @Override
-        public void service(final GrizzlyRequest req,
-                            final GrizzlyResponse res)
+        public void service(final AdapterRequest req,
+                            final AdapterResponse res)
                 throws Exception {
 
             try {
-                final GrizzlyInputStream reader = req.getInputStream(false);
+                final NIOInputStream reader = req.getInputStream(false);
                 int available = reader.readyData();
                 if (available > 0) {
                     byte[] b = new byte[available];
@@ -568,7 +565,7 @@ public class NIOInputSourcesTest extends TestCase {
 
         }
 
-        private static void buffer(GrizzlyInputStream reader, StringBuffer sb) throws IOException {
+        private static void buffer(NIOInputStream reader, StringBuffer sb) throws IOException {
             byte[] b = new byte[reader.readyData()];
             int read;
             try {
@@ -586,7 +583,7 @@ public class NIOInputSourcesTest extends TestCase {
     } // END EchoAdapter
 
 
-    private static class CharacterEchoAdapter extends GrizzlyAdapter {
+    private static class CharacterEchoAdapter extends Adapter {
 
         private final FutureImpl<String> testResult;
         private final int readSize;
@@ -607,18 +604,18 @@ public class NIOInputSourcesTest extends TestCase {
         }
 
 
-        // ----------------------------------------- Methods from GrizzlyAdapter
+        // ----------------------------------------- Methods from Adapter
 
         @Override
-        public void service(final GrizzlyRequest req,
-                            final GrizzlyResponse res)
+        public void service(final AdapterRequest req,
+                            final AdapterResponse res)
                 throws Exception {
 
             try {
                 if (encoding != null) {
                     res.setContentType("text/plain;charset=" + encoding);
                 }
-                final GrizzlyReader reader = req.getReader(false);
+                final NIOReader reader = req.getReader(false);
                 int available = reader.readyData();
                 if (available > 0) {
                     char[] b = new char[available];
@@ -670,7 +667,7 @@ public class NIOInputSourcesTest extends TestCase {
 
         }
 
-        private static void buffer(GrizzlyReader reader, StringBuilder sb)
+        private static void buffer(NIOReader reader, StringBuilder sb)
         throws IOException {
             char[] c = new char[reader.readyData()];
             int read;

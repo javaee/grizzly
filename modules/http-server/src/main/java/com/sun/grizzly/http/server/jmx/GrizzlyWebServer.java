@@ -40,8 +40,8 @@
 
 package com.sun.grizzly.http.server.jmx;
 
+import com.sun.grizzly.http.server.NetworlListener;
 import com.sun.grizzly.monitoring.jmx.GrizzlyJmxManager;
-import com.sun.grizzly.http.server.GrizzlyListener;
 import com.sun.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.gmbal.Description;
 import org.glassfish.gmbal.GmbalMBean;
@@ -64,8 +64,8 @@ public class GrizzlyWebServer extends JmxObject {
     private final com.sun.grizzly.http.server.GrizzlyWebServer gws;
 
     private GrizzlyJmxManager mom;
-    private final ConcurrentHashMap<String,GrizzlyListener> currentListeners =
-            new ConcurrentHashMap<String,GrizzlyListener>();
+    private final ConcurrentHashMap<String, NetworlListener> currentListeners =
+            new ConcurrentHashMap<String, NetworlListener>();
     private final ConcurrentHashMap<String,JmxObject> listenersJmx =
             new ConcurrentHashMap<String,JmxObject>();
     
@@ -133,9 +133,9 @@ public class GrizzlyWebServer extends JmxObject {
 
     protected void rebuildSubTree() {
 
-        for (Iterator<GrizzlyListener> i = gws.getListeners(); i.hasNext(); ) {
-            final GrizzlyListener l = i.next();
-            final GrizzlyListener currentListener = currentListeners.get(l.getName());
+        for (Iterator<NetworlListener> i = gws.getListeners(); i.hasNext(); ) {
+            final NetworlListener l = i.next();
+            final NetworlListener currentListener = currentListeners.get(l.getName());
             if (currentListener != l) {
                 if (currentListener != null) {
                     final JmxObject listenerJmx = listenersJmx.get(l.getName());
@@ -146,7 +146,7 @@ public class GrizzlyWebServer extends JmxObject {
                 }
 
                 final JmxObject mmJmx = l.createManagementObject();
-                mom.register(this, mmJmx, "GrizzlyListener[" + l.getName() + ']');
+                mom.register(this, mmJmx, "NetworlListener[" + l.getName() + ']');
                 currentListeners.put(l.getName(), l);
                 listenersJmx.put(l.getName(), mmJmx);
             }

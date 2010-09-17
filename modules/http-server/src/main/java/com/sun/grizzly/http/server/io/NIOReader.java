@@ -52,7 +52,7 @@ import java.nio.CharBuffer;
  *
  * @since 2.0
  */
-public class GrizzlyReader extends Reader implements NIOInputSource {
+public class NIOReader extends Reader implements NIOInputSource {
 
     private final InputBuffer inputBuffer;
 
@@ -61,12 +61,12 @@ public class GrizzlyReader extends Reader implements NIOInputSource {
 
 
     /**
-     * Constructs a new <code>GrizzlyReader</code> using the specified
+     * Constructs a new <code>NIOReader</code> using the specified
      * {@link #inputBuffer}
      * @param inputBuffer the <code>InputBuffer</code> from which character
      *  content will be supplied
      */
-    public GrizzlyReader(InputBuffer inputBuffer) {
+    public NIOReader(InputBuffer inputBuffer) {
 
         this.inputBuffer = inputBuffer;
 

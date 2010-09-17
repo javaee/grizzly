@@ -63,9 +63,9 @@ import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpRequestPacket;
-import com.sun.grizzly.http.server.io.GrizzlyInputStream;
+import com.sun.grizzly.http.server.io.NIOInputStream;
 import com.sun.grizzly.http.server.io.InputBuffer;
-import com.sun.grizzly.http.server.io.GrizzlyReader;
+import com.sun.grizzly.http.server.io.NIOReader;
 import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.ByteChunk;
 import com.sun.grizzly.http.util.CharChunk;
@@ -112,27 +112,27 @@ import java.util.concurrent.TimeUnit;
  * @version $Revision: 1.2 $ $Date: 2007/03/14 02:15:42 $
  */
 
-public class GrizzlyRequest {
+public class AdapterRequest {
 
 
-    private static final ThreadCache.CachedTypeIndex<GrizzlyRequest> CACHE_IDX =
-            ThreadCache.obtainIndex(GrizzlyRequest.class, 2);
+    private static final ThreadCache.CachedTypeIndex<AdapterRequest> CACHE_IDX =
+            ThreadCache.obtainIndex(AdapterRequest.class, 2);
 
-    public static GrizzlyRequest create() {
-        final GrizzlyRequest grizzlyRequest =
+    public static AdapterRequest create() {
+        final AdapterRequest adapterRequest =
                 ThreadCache.takeFromCache(CACHE_IDX);
-        if (grizzlyRequest != null) {
-            return grizzlyRequest;
+        if (adapterRequest != null) {
+            return adapterRequest;
         }
 
-        return new GrizzlyRequest();
+        return new AdapterRequest();
     }
 
 
     // ----------------------------------------------------------- Constructors
 
 
-    protected GrizzlyRequest() {
+    protected AdapterRequest() {
          // START OF SJSAS 6231069
         formats = (SimpleDateFormat[]) staticDateFormats.get();
         formats[0].setTimeZone(TimeZone.getTimeZone("GMT"));
@@ -155,7 +155,7 @@ public class GrizzlyRequest {
     private static final char[] SESSION_ID = match.toCharArray();
 
 
-    private GrizzlySession session;
+    private AdapterSession session;
 
 
     // -------------------------------------------------------------------- //
@@ -165,8 +165,8 @@ public class GrizzlyRequest {
      * Not Good. We need a better mechanism.
      * TODO: Move Session Management out of here
      */
-    private static Map<String,GrizzlySession> sessions = new
-            HashMap<String, GrizzlySession>();
+    private static Map<String, AdapterSession> sessions = new
+            HashMap<String, AdapterSession>();
 
 
     /**
@@ -200,8 +200,8 @@ public class GrizzlyRequest {
             @Override
             public void run(){
                 long currentTime = System.currentTimeMillis();
-                Iterator<Map.Entry<String,GrizzlySession>> iterator = sessions.entrySet().iterator();
-                Map.Entry<String,GrizzlySession> entry;
+                Iterator<Map.Entry<String, AdapterSession>> iterator = sessions.entrySet().iterator();
+                Map.Entry<String, AdapterSession> entry;
                 while (iterator.hasNext()){
                     entry = iterator.next();
 
@@ -233,7 +233,7 @@ public class GrizzlyRequest {
 
     protected WebServerFilter webServerFilter;
 
-    public void initialize(GrizzlyResponse response,
+    public void initialize(AdapterResponse response,
                            HttpRequestPacket request,
                            HttpContent initialRequestContent,
                            FilterChainContext ctx,
@@ -353,17 +353,17 @@ public class GrizzlyRequest {
 
 
     /**
-     * GrizzlyInputStream.
+     * NIOInputStream.
      */
-    protected GrizzlyInputStream inputStream;
-        //new GrizzlyInputStream(inputBuffer);
+    protected NIOInputStream inputStream;
+        //new NIOInputStream(inputBuffer);
 
 
     /**
      * Reader.
      */
-    protected GrizzlyReader reader;
-            //new BufferedReader(new GrizzlyReader(inputBuffer));
+    protected NIOReader reader;
+            //new BufferedReader(new NIOReader(inputBuffer));
 
 
     /**
@@ -385,7 +385,7 @@ public class GrizzlyRequest {
 
 
     /**
-     * GrizzlySession parsed flag.
+     * AdapterSession parsed flag.
      */
     protected boolean sessionParsed = false;
 
@@ -520,12 +520,12 @@ public class GrizzlyRequest {
     /**
      * The response with which this request is associated.
      */
-    protected GrizzlyResponse response = null;
+    protected AdapterResponse response = null;
 
     /**
      * Return the Response with which this Request is associated.
      */
-    public GrizzlyResponse getResponse() {
+    public AdapterResponse getResponse() {
         return response;
     }
 
@@ -605,7 +605,7 @@ public class GrizzlyRequest {
      */
     private InputStream getStream() {
         if (inputStream == null) {
-            inputStream = new GrizzlyInputStream(inputBuffer);
+            inputStream = new NIOInputStream(inputBuffer);
         }
         return inputStream;
     }
@@ -615,15 +615,15 @@ public class GrizzlyRequest {
 
 
     /**
-     * Create and return a GrizzlyInputStream to read the content
+     * Create and return a NIOInputStream to read the content
      * associated with this Request.
      *
      * @exception java.io.IOException if an input/output error occurs
      */
-    public GrizzlyInputStream createInputStream()
+    public NIOInputStream createInputStream()
         throws IOException {
         if (inputStream == null) {
-            inputStream = new GrizzlyInputStream(inputBuffer);
+            inputStream = new NIOInputStream(inputBuffer);
         }
         return inputStream;
     }
@@ -796,14 +796,14 @@ public class GrizzlyRequest {
      * implementation returns a servlet input stream created by
      * <code>createInputStream()</code>.
      *
-     * @param blocking if <code>true</code>, the <code>GrizzlyInputStream</code>
+     * @param blocking if <code>true</code>, the <code>NIOInputStream</code>
      *  will only be usable in blocking mode.
      *
      * @exception IllegalStateException if {@link #getReader(boolean)} has
      *  already been called for this request
      * @exception java.io.IOException if an input/output error occurs
      */
-    public GrizzlyInputStream getInputStream(boolean blocking) throws IOException {
+    public NIOInputStream getInputStream(boolean blocking) throws IOException {
 
         if (usingReader)
             throw new IllegalStateException
@@ -812,7 +812,7 @@ public class GrizzlyRequest {
         usingInputStream = true;
         if (inputStream == null) {
             inputBuffer.setAsyncEnabled(!blocking);
-            inputStream = new GrizzlyInputStream(inputBuffer);
+            inputStream = new NIOInputStream(inputBuffer);
         }
         return inputStream;
 
@@ -968,14 +968,14 @@ public class GrizzlyRequest {
      * default implementation wraps a <code>BufferedReader</code> around the
      * servlet input stream returned by <code>createInputStream()</code>.
      *
-     * @param blocking if <code>true</code>, the <code>GrizzlyInputStream</code>
+     * @param blocking if <code>true</code>, the <code>NIOInputStream</code>
      *  will only be usable in blocking mode.
      * 
      * @exception IllegalStateException if {@link #getInputStream(boolean)}
      *  has already been called for this request
      * @exception java.io.IOException if an input/output error occurs
      */
-    public GrizzlyReader getReader(boolean blocking) throws IOException {
+    public NIOReader getReader(boolean blocking) throws IOException {
 
         if (usingInputStream)
             throw new IllegalStateException
@@ -986,7 +986,7 @@ public class GrizzlyRequest {
         if (reader == null) {
             inputBuffer.processingChars();
             inputBuffer.setAsyncEnabled(!blocking);
-            reader = new GrizzlyReader(inputBuffer);
+            reader = new NIOReader(inputBuffer);
         }
         return reader;
 
@@ -1153,7 +1153,7 @@ public class GrizzlyRequest {
             return session.isValid();
         }
 
-        GrizzlySession localSession = sessions.put(requestedSessionId,session);
+        AdapterSession localSession = sessions.put(requestedSessionId,session);
         if ((localSession != null) && localSession.isValid())
             return (true);
         else
@@ -2064,14 +2064,14 @@ public class GrizzlyRequest {
         return jrouteId;
     }
 
-    // ------------------------------------------------------ GrizzlySession support --/
+    // ------------------------------------------------------ AdapterSession support --/
 
 
     /**
      * Return the session associated with this Request, creating one
      * if necessary.
      */
-    public GrizzlySession getSession() {
+    public AdapterSession getSession() {
         return doGetSession(true);
     }
 
@@ -2082,12 +2082,12 @@ public class GrizzlyRequest {
      *
      * @param create Create a new session if one does not exist
      */
-    public GrizzlySession getSession(boolean create) {
+    public AdapterSession getSession(boolean create) {
         return  doGetSession(create);
     }
 
 
-    protected GrizzlySession doGetSession(boolean create) {
+    protected AdapterSession doGetSession(boolean create) {
         // Return the current session if it exists and is valid
         if ((session != null) && !session.isValid()) {
             session = null;
@@ -2110,12 +2110,12 @@ public class GrizzlyRequest {
             return (null);
 
         if (requestedSessionId != null) {
-            session = new GrizzlySession(requestedSessionId);
+            session = new AdapterSession(requestedSessionId);
 
         } else {
             Random r = new Random();
             requestedSessionId = String.valueOf(Math.abs(r.nextLong()));
-            session = new GrizzlySession(requestedSessionId);
+            session = new AdapterSession(requestedSessionId);
         }
         sessions.put(requestedSessionId,session);
 

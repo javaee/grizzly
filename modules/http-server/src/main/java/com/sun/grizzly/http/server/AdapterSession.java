@@ -47,7 +47,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * @author Jeanfrancois Arcand
  */
-public class GrizzlySession {
+public class AdapterSession {
 
     /**
      * Cache attribute (thread safe)
@@ -80,7 +80,7 @@ public class GrizzlySession {
 
 
 
-    public GrizzlySession() {
+    public AdapterSession() {
         this(null);
     }
 
@@ -89,7 +89,7 @@ public class GrizzlySession {
      * Create a new session using a session identifier
      * @param requestedSessionId session identifier
      */
-    public GrizzlySession(String requestedSessionId) {
+    public AdapterSession(String requestedSessionId) {
         this.requestedSessionId = requestedSessionId;
     }
 

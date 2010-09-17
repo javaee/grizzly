@@ -41,8 +41,8 @@
 package com.sun.grizzly.http.server.jmx;
 
 import com.sun.grizzly.Connection;
-import com.sun.grizzly.http.server.GrizzlyRequest;
-import com.sun.grizzly.http.server.GrizzlyResponse;
+import com.sun.grizzly.http.server.AdapterRequest;
+import com.sun.grizzly.http.server.AdapterResponse;
 import com.sun.grizzly.http.server.WebServerProbe;
 import com.sun.grizzly.monitoring.jmx.GrizzlyJmxManager;
 import com.sun.grizzly.monitoring.jmx.JmxObject;
@@ -166,33 +166,33 @@ public class WebServerFilter extends JmxObject {
 
 
         @Override
-        public void onRequestReceiveEvent(com.sun.grizzly.http.server.WebServerFilter filter, Connection connection, GrizzlyRequest request) {
+        public void onRequestReceiveEvent(com.sun.grizzly.http.server.WebServerFilter filter, Connection connection, AdapterRequest request) {
             receivedCount.incrementAndGet();
         }
 
         @Override
-        public void onRequestCompleteEvent(com.sun.grizzly.http.server.WebServerFilter filter, Connection connection, GrizzlyResponse response) {
+        public void onRequestCompleteEvent(com.sun.grizzly.http.server.WebServerFilter filter, Connection connection, AdapterResponse response) {
             completedCount.incrementAndGet();
         }
 
         @Override
-        public void onRequestSuspendEvent(com.sun.grizzly.http.server.WebServerFilter filter, Connection connection, GrizzlyRequest request) {
+        public void onRequestSuspendEvent(com.sun.grizzly.http.server.WebServerFilter filter, Connection connection, AdapterRequest request) {
             suspendCount.incrementAndGet();
         }
 
         @Override
-        public void onRequestResumeEvent(com.sun.grizzly.http.server.WebServerFilter filter, Connection connection, GrizzlyRequest request) {
+        public void onRequestResumeEvent(com.sun.grizzly.http.server.WebServerFilter filter, Connection connection, AdapterRequest request) {
             suspendCount.decrementAndGet();
         }
 
         @Override
-        public void onRequestTimeoutEvent(com.sun.grizzly.http.server.WebServerFilter filter, Connection connection, GrizzlyRequest request) {
+        public void onRequestTimeoutEvent(com.sun.grizzly.http.server.WebServerFilter filter, Connection connection, AdapterRequest request) {
             timedOutCount.incrementAndGet();
             suspendCount.decrementAndGet();
         }
 
         @Override
-        public void onRequestCancelEvent(com.sun.grizzly.http.server.WebServerFilter filter, Connection connection, GrizzlyRequest request) {
+        public void onRequestCancelEvent(com.sun.grizzly.http.server.WebServerFilter filter, Connection connection, AdapterRequest request) {
             cancelledCount.incrementAndGet();
             suspendCount.decrementAndGet();
         }

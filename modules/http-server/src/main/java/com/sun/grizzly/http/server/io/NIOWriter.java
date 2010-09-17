@@ -48,14 +48,14 @@ import java.io.Writer;
  *
  * @since 2.0
  */
-public class GrizzlyWriter extends Writer implements NIOOutputSink {
+public class NIOWriter extends Writer implements NIOOutputSink {
 
     private final OutputBuffer outputBuffer;
 
     // ------------------------------------------------------------ Constructors
 
 
-    public GrizzlyWriter(OutputBuffer outputBuffer) {
+    public NIOWriter(OutputBuffer outputBuffer) {
 
         this.outputBuffer = outputBuffer;
 

@@ -54,11 +54,8 @@ import com.sun.grizzly.http.HttpClientFilter;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.Protocol;
-import com.sun.grizzly.http.server.GrizzlyAdapter;
-import com.sun.grizzly.http.server.GrizzlyListener;
-import com.sun.grizzly.http.server.GrizzlyRequest;
-import com.sun.grizzly.http.server.GrizzlyResponse;
-import com.sun.grizzly.http.server.GrizzlyWebServer;
+import com.sun.grizzly.http.server.*;
+import com.sun.grizzly.http.server.Adapter;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.nio.transport.TCPNIOConnectorHandler;
@@ -83,12 +80,12 @@ public class KeepAliveTest extends TestCase {
     public void testHttp11KeepAlive() throws Exception {
         final String msg = "Hello world #";
         
-        GrizzlyWebServer server = createServer(new GrizzlyAdapter() {
+        GrizzlyWebServer server = createServer(new Adapter() {
             private final AtomicInteger ai = new AtomicInteger();
             
             @Override
-            public void service(GrizzlyRequest request,
-                    GrizzlyResponse response) throws Exception {
+            public void service(AdapterRequest request,
+                    AdapterResponse response) throws Exception {
                 response.setContentType("text/plain");
                 response.getWriter().write(msg + ai.getAndIncrement());
             }
@@ -135,12 +132,12 @@ public class KeepAliveTest extends TestCase {
     public void testHttp11KeepAliveHeaderClose() throws Exception {
         final String msg = "Hello world #";
 
-        GrizzlyWebServer server = createServer(new GrizzlyAdapter() {
+        GrizzlyWebServer server = createServer(new Adapter() {
             private final AtomicInteger ai = new AtomicInteger();
 
             @Override
-            public void service(GrizzlyRequest request,
-                    GrizzlyResponse response) throws Exception {
+            public void service(AdapterRequest request,
+                    AdapterResponse response) throws Exception {
                 response.setContentType("text/plain");
                 response.getWriter().write(msg + ai.getAndIncrement());
             }
@@ -200,12 +197,12 @@ public class KeepAliveTest extends TestCase {
 
         final int maxKeepAliveRequests = 5;
 
-        GrizzlyWebServer server = createServer(new GrizzlyAdapter() {
+        GrizzlyWebServer server = createServer(new Adapter() {
             private final AtomicInteger ai = new AtomicInteger();
 
             @Override
-            public void service(GrizzlyRequest request,
-                    GrizzlyResponse response) throws Exception {
+            public void service(AdapterRequest request,
+                    AdapterResponse response) throws Exception {
                 response.setContentType("text/plain");
                 response.getWriter().write(msg + ai.getAndIncrement());
             }
@@ -344,13 +341,13 @@ public class KeepAliveTest extends TestCase {
 
     }
 
-    private GrizzlyWebServer createServer(final GrizzlyAdapter adapter,
+    private GrizzlyWebServer createServer(final Adapter adapter,
                                           final String... mappings) {
 
         GrizzlyWebServer server = new GrizzlyWebServer();
-        GrizzlyListener listener =
-                new GrizzlyListener("grizzly",
-                                    GrizzlyListener.DEFAULT_NETWORK_HOST,
+        NetworlListener listener =
+                new NetworlListener("grizzly",
+                                    NetworlListener.DEFAULT_NETWORK_HOST,
                                     PORT);
         server.addListener(listener);
         if (adapter != null) {

@@ -42,7 +42,7 @@ package com.sun.grizzly.http.server;
 
 
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.http.server.io.GrizzlyOutputStream;
+import com.sun.grizzly.http.server.io.NIOOutputStream;
 import com.sun.grizzly.http.server.jmx.JmxEventListener;
 import com.sun.grizzly.http.server.util.HtmlHelper;
 import com.sun.grizzly.http.util.HttpStatus;
@@ -73,7 +73,7 @@ public class ServerConfiguration {
 
     // Non-exposed
 
-    private Map<GrizzlyAdapter, String[]> adapters = new LinkedHashMap<GrizzlyAdapter, String[]>();
+    private Map<Adapter, String[]> adapters = new LinkedHashMap<Adapter, String[]>();
 
     private Set<JmxEventListener> jmxEventListeners = new CopyOnWriteArraySet<JmxEventListener>();
 
@@ -112,54 +112,54 @@ public class ServerConfiguration {
 
 
     /**
-     * Adds the specified {@link com.sun.grizzly.http.server.GrizzlyAdapter}
+     * Adds the specified {@link Adapter}
      * with its associated mapping(s). Requests will be dispatched to a
-     * {@link com.sun.grizzly.http.server.GrizzlyAdapter} based on these mapping
+     * {@link Adapter} based on these mapping
      * values.
      *
-     * @param grizzlyAdapter a {@link com.sun.grizzly.http.server.GrizzlyAdapter}
+     * @param adapter a {@link Adapter}
      * @param mapping        context path mapping information.
      */
-    public void addGrizzlyAdapter(GrizzlyAdapter grizzlyAdapter,
+    public void addGrizzlyAdapter(Adapter adapter,
                                   String... mapping) {
         if (mapping == null) {
             mapping = ROOT_MAPPING;
         }
 
-        adapters.put(grizzlyAdapter, mapping);
+        adapters.put(adapter, mapping);
     }
 
     /**
      *
-     * Removes the specified {@link com.sun.grizzly.http.server.GrizzlyAdapter}.
+     * Removes the specified {@link Adapter}.
      *
      * @return <tt>true</tt>, if the operation was successful, otherwise
      *  <tt>false</tt>
      */
-    public boolean removeGrizzlyAdapter(GrizzlyAdapter grizzlyAdapter) {
-        return (adapters.remove(grizzlyAdapter) != null);
+    public boolean removeGrizzlyAdapter(Adapter adapter) {
+        return (adapters.remove(adapter) != null);
     }
 
 
     /**
-     * @return the {@link GrizzlyAdapter} to be used by this server instance.
-     *  This may be a single {@link GrizzlyAdapter} or a composite of multiple
-     *  {@link GrizzlyAdapter} instances wrapped by a {@link GrizzlyAdapterChain}.
+     * @return the {@link Adapter} to be used by this server instance.
+     *  This may be a single {@link Adapter} or a composite of multiple
+     *  {@link Adapter} instances wrapped by a {@link AdapterChain}.
      */
-    protected GrizzlyAdapter buildAdapter() {
+    protected Adapter buildAdapter() {
 
         if (adapters.isEmpty()) {
-            return new GrizzlyAdapter(docRoot) {
+            return new Adapter(docRoot) {
                 @SuppressWarnings({"unchecked"})
                 @Override
-                public void service(GrizzlyRequest request, GrizzlyResponse response) {
+                public void service(AdapterRequest request, AdapterResponse response) {
                     try {
                         ByteBuffer b = HtmlHelper.getErrorPage("Not Found",
                                                                "Resource identified by path '" + request.getRequestURI() + "', does not exist.",
                                                                getHttpServerName() + '/' + getHttpServerVersion());
                         MemoryManager mm = request.getContext().getConnection().getTransport().getMemoryManager();
                         Buffer buf = MemoryUtils.wrap(mm, b);
-                        GrizzlyOutputStream out = response.getOutputStream();
+                        NIOOutputStream out = response.getOutputStream();
                         response.setStatus(HttpStatus.NOT_FOUND_404);
                         response.setContentType("text/html");
                         response.setCharacterEncoding("UTF-8");
@@ -177,7 +177,7 @@ public class ServerConfiguration {
         final int adaptersNum = adapters.size();
 
         if (adaptersNum == 1) {
-            GrizzlyAdapter adapter = adapters.keySet().iterator().next();
+            Adapter adapter = adapters.keySet().iterator().next();
             if (adapter.getDocRoot() == null) {
                 adapter.setDocRoot(docRoot);
             }
@@ -185,12 +185,12 @@ public class ServerConfiguration {
             return adapter;
         }
 
-        GrizzlyAdapterChain adapterChain = new GrizzlyAdapterChain(instance);
+        AdapterChain adapterChain = new AdapterChain(instance);
         addJmxEventListener(adapterChain);
         adapterChain.setDocRoot(docRoot);
 
-        for (Map.Entry<GrizzlyAdapter, String[]> adapterRecord : adapters.entrySet()) {
-            final GrizzlyAdapter adapter = adapterRecord.getKey();
+        for (Map.Entry<Adapter, String[]> adapterRecord : adapters.entrySet()) {
+            final Adapter adapter = adapterRecord.getKey();
             final String[] mappings = adapterRecord.getValue();
 
             if (adapter.getDocRoot() == null) {

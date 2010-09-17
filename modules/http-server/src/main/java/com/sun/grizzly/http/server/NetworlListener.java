@@ -47,6 +47,7 @@ import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.http.HttpCodecFilter;
 import com.sun.grizzly.http.KeepAlive;
 import com.sun.grizzly.http.server.filecache.FileCache;
+import com.sun.grizzly.http.server.jmx.NetworkListener;
 import com.sun.grizzly.monitoring.jmx.JmxObject;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.ssl.SSLEngineConfigurator;
@@ -55,9 +56,9 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class GrizzlyListener {
+public class NetworlListener {
 
-    private static final Logger LOGGER = Grizzly.logger(GrizzlyListener.class);
+    private static final Logger LOGGER = Grizzly.logger(NetworlListener.class);
 
     /**
      * The default network host to which the {@link GrizzlyWebServer} will
@@ -91,7 +92,7 @@ public class GrizzlyListener {
 
     /**
      * The logical <code>name</code> of this particular
-     * <code>GrizzlyListener</code> instance.
+     * <code>NetworlListener</code> instance.
      */
     private final String name;
 
@@ -109,7 +110,7 @@ public class GrizzlyListener {
 
 
     /**
-     * The {@link TCPNIOTransport} used by this <code>GrizzlyListener</code>
+     * The {@link TCPNIOTransport} used by this <code>NetworlListener</code>
      */
     private TCPNIOTransport transport =
             TransportFactory.getInstance().createTCPTransport();
@@ -150,7 +151,7 @@ public class GrizzlyListener {
 
 
     /**
-     * {@link FileCache} to be used by this <code>GrizzlyListener</code>.
+     * {@link FileCache} to be used by this <code>NetworlListener</code>.
      */
     private final FileCache fileCache = new FileCache();
 
@@ -184,14 +185,14 @@ public class GrizzlyListener {
 
     /**
      * <p>
-     * Constructs a new <code>GrizzlyListener</code> using the specified
+     * Constructs a new <code>NetworlListener</code> using the specified
      * <code>name</code>.  The listener's host and port will default to
      * {@link #DEFAULT_NETWORK_HOST} and {@link #DEFAULT_NETWORK_PORT}.
      * </p>
      *
      * @param name the logical name of the listener.
      */
-    public GrizzlyListener(final String name) {
+    public NetworlListener(final String name) {
 
         validateArg("name", name);
         this.name = name;
@@ -201,7 +202,7 @@ public class GrizzlyListener {
 
     /**
      * <p>
-     * Constructs a new <code>GrizzlyListener</code> using the specified
+     * Constructs a new <code>NetworlListener</code> using the specified
      * <code>name</code> and <code>host</code>.  The listener's port will
      * default to {@link #DEFAULT_NETWORK_PORT}.
      * </p>
@@ -209,7 +210,7 @@ public class GrizzlyListener {
      * @param name the logical name of the listener.
      * @param host the network host to which this listener will bind.
      */
-    public GrizzlyListener(final String name, final String host) {
+    public NetworlListener(final String name, final String host) {
 
         validateArg("name", name);
         validateArg("host", host);
@@ -221,7 +222,7 @@ public class GrizzlyListener {
 
     /**
      * <p>
-     * Constructs a new <code>GrizzlyListener</code> using the specified
+     * Constructs a new <code>NetworlListener</code> using the specified
      * <code>name</code>, <code>host</code>, and <code>port</code>.
      * </p>
      *
@@ -229,7 +230,7 @@ public class GrizzlyListener {
      * @param host the network host to which this listener will bind.
      * @param port the network port to which this listener will bind..
      */
-    public GrizzlyListener(final String name,
+    public NetworlListener(final String name,
                            final String host,
                            final int port) {
 
@@ -677,7 +678,7 @@ public class GrizzlyListener {
      */
     @Override
     public String toString() {
-        return "GrizzlyListener{" +
+        return "NetworlListener{" +
                 "name='" + name + '\'' +
                 ", host='" + host + '\'' +
                 ", port=" + port +
@@ -688,7 +689,7 @@ public class GrizzlyListener {
 
 
     public JmxObject createManagementObject() {
-        return new com.sun.grizzly.http.server.jmx.GrizzlyListener(this);
+        return new NetworkListener(this);
     }
 
 

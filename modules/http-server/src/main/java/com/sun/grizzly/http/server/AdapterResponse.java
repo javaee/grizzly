@@ -64,8 +64,8 @@ import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.http.HttpResponsePacket;
-import com.sun.grizzly.http.server.io.GrizzlyOutputStream;
-import com.sun.grizzly.http.server.io.GrizzlyWriter;
+import com.sun.grizzly.http.server.io.NIOOutputStream;
+import com.sun.grizzly.http.server.io.NIOWriter;
 import com.sun.grizzly.http.server.io.OutputBuffer;
 import com.sun.grizzly.http.util.CharChunk;
 import com.sun.grizzly.http.Cookie;
@@ -107,24 +107,24 @@ import java.util.logging.Logger;
  * @version $Revision: 1.2 $ $Date: 2006/11/02 20:01:44 $
  */
 
-public class GrizzlyResponse {
+public class AdapterResponse {
 
-    private static final Logger LOGGER = Grizzly.logger(GrizzlyResponse.class);
+    private static final Logger LOGGER = Grizzly.logger(AdapterResponse.class);
 
-    private static final ThreadCache.CachedTypeIndex<GrizzlyResponse> CACHE_IDX =
-            ThreadCache.obtainIndex(GrizzlyResponse.class, 2);
+    private static final ThreadCache.CachedTypeIndex<AdapterResponse> CACHE_IDX =
+            ThreadCache.obtainIndex(AdapterResponse.class, 2);
 
-    public static GrizzlyResponse create() {
-        final GrizzlyResponse grizzlyResponse =
+    public static AdapterResponse create() {
+        final AdapterResponse adapterResponse =
                 ThreadCache.takeFromCache(CACHE_IDX);
-        if (grizzlyResponse != null) {
-            return grizzlyResponse;
+        if (adapterResponse != null) {
+            return adapterResponse;
         }
 
-        return new GrizzlyResponse();
+        return new AdapterResponse();
     }
 
-    static DelayQueue<GrizzlyResponse> createDelayQueue(DelayedExecutor delayedExecutor) {
+    static DelayQueue<AdapterResponse> createDelayQueue(DelayedExecutor delayedExecutor) {
         return delayedExecutor.createDelayQueue(new DelayQueueWorker(),
                 new DelayQueueResolver());
     }
@@ -132,7 +132,7 @@ public class GrizzlyResponse {
     // ----------------------------------------------------------- Constructors
 
 
-    protected GrizzlyResponse() {
+    protected AdapterResponse() {
 
         urlEncoder.addSafeCharacter('/');
 
@@ -158,7 +158,7 @@ public class GrizzlyResponse {
      * Descriptive information about this Response implementation.
      */
     protected static final String info =
-        "com.sun.grizzly.tcp.http11.GrizzlyResponse/1.0";
+        "com.sun.grizzly.tcp.http11.AdapterResponse/1.0";
 
 
     /**
@@ -172,7 +172,7 @@ public class GrizzlyResponse {
     /**
      * The request with which this response is associated.
      */
-    protected GrizzlyRequest request = null;
+    protected AdapterRequest request = null;
 
 
     /**
@@ -199,17 +199,17 @@ public class GrizzlyResponse {
      * The associated output stream.
      */
     // START OF SJSAS 6231069
-    /*protected GrizzlyOutputStream outputStream =
-        new GrizzlyOutputStream(outputBuffer);*/
-    protected GrizzlyOutputStream outputStream;
+    /*protected NIOOutputStream outputStream =
+        new NIOOutputStream(outputBuffer);*/
+    protected NIOOutputStream outputStream;
     // END OF SJSAS 6231069
 
     /**
      * The associated writer.
      */
     // START OF SJSAS 6231069
-    // protected GrizzlyWriter writer = new GrizzlyWriter(outputBuffer);
-    protected GrizzlyWriter writer;
+    // protected NIOWriter writer = new NIOWriter(outputBuffer);
+    protected NIOWriter writer;
     // END OF SJSAS 6231069
 
 
@@ -255,7 +255,7 @@ public class GrizzlyResponse {
     protected MessageBytes redirectURLCC = MessageBytes.newInstance();
 
 
-    protected DelayedExecutor.DelayQueue<GrizzlyResponse> delayQueue;
+    protected DelayedExecutor.DelayQueue<AdapterResponse> delayQueue;
     protected boolean isSuspended;
     private final SuspendedRunnable suspendedRunnable = new SuspendedRunnable();
     private final Object suspendSync = new Object();
@@ -264,10 +264,10 @@ public class GrizzlyResponse {
     
     // --------------------------------------------------------- Public Methods
 
-    public void initialize(GrizzlyRequest request,
+    public void initialize(AdapterRequest request,
                            HttpResponsePacket response,
                            FilterChainContext ctx,
-                           DelayedExecutor.DelayQueue<GrizzlyResponse> delayQueue,
+                           DelayedExecutor.DelayQueue<AdapterResponse> delayQueue,
                            SuspendStatus suspendStatus) {
         this.request = request;
         this.response = response;
@@ -281,7 +281,7 @@ public class GrizzlyResponse {
     /**
      * Return the Request with which this Response is associated.
      */
-    public GrizzlyRequest getRequest() {
+    public AdapterRequest getRequest() {
         return request;
     }
 
@@ -367,7 +367,7 @@ public class GrizzlyResponse {
         if (location.startsWith("#"))
             return (false);
 
-        final GrizzlySession session = request.getSession(false);
+        final AdapterSession session = request.getSession(false);
         if (session == null)
             return (false);
 
@@ -379,7 +379,7 @@ public class GrizzlyResponse {
 
     }
 
-    private boolean doIsEncodeable(GrizzlyRequest request, GrizzlySession session,
+    private boolean doIsEncodeable(AdapterRequest request, AdapterSession session,
                                    String location){
         // Is this a valid absolute URL?
         URL url;
@@ -482,11 +482,11 @@ public class GrizzlyResponse {
      *
      * @exception java.io.IOException if an input/output error occurs
      */
-    public GrizzlyOutputStream createOutputStream()
+    public NIOOutputStream createOutputStream()
         throws IOException {
         // Probably useless
         if (outputStream == null) {
-            outputStream = new GrizzlyOutputStream(outputBuffer);
+            outputStream = new NIOOutputStream(outputBuffer);
         }
         return outputStream;
     }
@@ -563,7 +563,7 @@ public class GrizzlyResponse {
      *  already been called for this response
      * @exception java.io.IOException if an input/output error occurs
      */
-    public GrizzlyOutputStream getOutputStream()
+    public NIOOutputStream getOutputStream()
         throws IOException {
 
         if (usingWriter)
@@ -572,7 +572,7 @@ public class GrizzlyResponse {
 
         usingOutputStream = true;
         if (outputStream == null) {
-            outputStream = new GrizzlyOutputStream(outputBuffer);
+            outputStream = new NIOOutputStream(outputBuffer);
         }
         return outputStream;
 
@@ -595,7 +595,7 @@ public class GrizzlyResponse {
      *  already been called for this response
      * @exception java.io.IOException if an input/output error occurs
      */
-    public GrizzlyWriter getWriter()
+    public NIOWriter getWriter()
         throws IOException {
 
         if (usingOutputStream)
@@ -619,7 +619,7 @@ public class GrizzlyResponse {
         usingWriter = true;
         if (writer == null) {
             outputBuffer.processingChars();
-            writer = new GrizzlyWriter(outputBuffer);
+            writer = new NIOWriter(outputBuffer);
         }
         return writer;
 
@@ -646,7 +646,7 @@ public class GrizzlyResponse {
 
     /**
      * @return the {@link OutputBuffer} associated with this
-     *  <code>GrizzlyResponse</code>.
+     *  <code>AdapterResponse</code>.
      */
     public OutputBuffer getOutputBuffer() {
         return outputBuffer;
@@ -1443,9 +1443,9 @@ public class GrizzlyResponse {
 
 
     /**
-     * Return <tt>true<//tt> if that {@link com.sun.grizzly.http.server.GrizzlyResponse#suspend()} has been
+     * Return <tt>true<//tt> if that {@link AdapterResponse#suspend()} has been
      * invoked and set to <tt>true</tt>
-     * @return <tt>true<//tt> if that {@link com.sun.grizzly.http.server.GrizzlyResponse#suspend()} has been
+     * @return <tt>true<//tt> if that {@link AdapterResponse#suspend()} has been
      * invoked and set to <tt>true</tt>
      */
     public boolean isSuspended() {
@@ -1457,7 +1457,7 @@ public class GrizzlyResponse {
     }
 
     /**
-     * Suspend the {@link GrizzlyResponse}. Suspending a {@link GrizzlyResponse} will
+     * Suspend the {@link AdapterResponse}. Suspending a {@link AdapterResponse} will
      * tell the underlying container to avoid recycling objects associated with
      * the current instance, and also to avoid commiting response.
      */
@@ -1466,15 +1466,15 @@ public class GrizzlyResponse {
     }
 
     /**
-     * Suspend the {@link com.sun.grizzly.http.server.GrizzlyResponse}. Suspending a {@link com.sun.grizzly.http.server.GrizzlyResponse} will
+     * Suspend the {@link AdapterResponse}. Suspending a {@link AdapterResponse} will
      * tell the underlying container to avoid recycling objects associated with
      * the current instance, and also to avoid commiting response.
      *
      * @param timeout The maximum amount of time, in milliseconds,
-     * a {@link com.sun.grizzly.http.server.GrizzlyResponse} can be suspended. When the timeout expires (because
-     * nothing has been written or because the {@link GrizzlyResponse#resume()}
-     * or {@link com.sun.grizzly.http.server.GrizzlyResponse#cancel()}), the {@link com.sun.grizzly.http.server.GrizzlyResponse} will be automatically
-     * resumed and commited. Usage of any methods of a {@link com.sun.grizzly.http.server.GrizzlyResponse} that
+     * a {@link AdapterResponse} can be suspended. When the timeout expires (because
+     * nothing has been written or because the {@link AdapterResponse#resume()}
+     * or {@link AdapterResponse#cancel()}), the {@link AdapterResponse} will be automatically
+     * resumed and commited. Usage of any methods of a {@link AdapterResponse} that
      * times out will throw an {@link IllegalStateException}.
      *
      */
@@ -1483,23 +1483,23 @@ public class GrizzlyResponse {
     }
 
     /**
-     * Suspend the {@link com.sun.grizzly.http.server.GrizzlyResponse}. Suspending a {@link com.sun.grizzly.http.server.GrizzlyResponse} will
+     * Suspend the {@link AdapterResponse}. Suspending a {@link AdapterResponse} will
      * tell the underlying container to avoid recycling objects associated with
      * the current instance, and also to avoid committing response. When the
-     * {@link com.sun.grizzly.http.server.GrizzlyResponse#resume()} is invoked, the container will
+     * {@link AdapterResponse#resume()} is invoked, the container will
      * make sure {@link CompletionHandler#completed(Object)}
      * is invoked with the original <tt>attachment</tt>. When the
-     * {@link com.sun.grizzly.http.server.GrizzlyResponse#cancel()} is invoked, the container will
+     * {@link AdapterResponse#cancel()} is invoked, the container will
      * make sure {@link com.sun.grizzly.CompletionHandler#cancelled()}
      * is invoked with the original <tt>attachment</tt>. If the timeout expires, the
      * {@link com.sun.grizzly.CompletionHandler#cancelled()} is invoked with the original <tt>attachment</tt> and
-     * the {@link GrizzlyResponse} committed.
+     * the {@link AdapterResponse} committed.
      *
      * @param timeout The maximum amount of time, in milliseconds,
-     * a {@link com.sun.grizzly.http.server.GrizzlyResponse} can be suspended. When the timeout expires (because
-     * nothing has been written or because the {@link com.sun.grizzly.http.server.GrizzlyResponse#resume()}
-     * or {@link com.sun.grizzly.http.server.GrizzlyResponse#cancel()}), the {@link com.sun.grizzly.http.server.GrizzlyResponse} will be automatically
-     * resumed and committed. Usage of any methods of a {@link GrizzlyResponse} that
+     * a {@link AdapterResponse} can be suspended. When the timeout expires (because
+     * nothing has been written or because the {@link AdapterResponse#resume()}
+     * or {@link AdapterResponse#cancel()}), the {@link AdapterResponse} will be automatically
+     * resumed and committed. Usage of any methods of a {@link AdapterResponse} that
      * times out will throw an {@link IllegalStateException}.
      * @param competionHandler a {@link com.sun.grizzly.CompletionHandler}
      */
@@ -1528,9 +1528,9 @@ public class GrizzlyResponse {
     }
 
     /**
-     * Complete the {@link com.sun.grizzly.http.server.GrizzlyResponse} and finish/commit it. If a
+     * Complete the {@link AdapterResponse} and finish/commit it. If a
      * {@link CompletionHandler} has been defined, its {@link CompletionHandler#completed(Object)}
-     * will first be invoked, then the {@link com.sun.grizzly.http.server.GrizzlyResponse#finish()}.
+     * will first be invoked, then the {@link AdapterResponse#finish()}.
      * Those operations commit the response.
      */
     @SuppressWarnings({"unchecked"})
@@ -1563,9 +1563,9 @@ public class GrizzlyResponse {
     }
 
     /**
-     * Cancel the {@link com.sun.grizzly.http.server.GrizzlyResponse} and finish/commit it. If a
+     * Cancel the {@link AdapterResponse} and finish/commit it. If a
      * {@link CompletionHandler} has been defined, its {@link CompletionHandler#cancelled()}
-     * will first be invoked, then the {@link com.sun.grizzly.http.server.GrizzlyResponse#finish()}.
+     * will first be invoked, then the {@link AdapterResponse#finish()}.
      * Those operations commit the response.
      */
     public void cancel() {
@@ -1598,7 +1598,7 @@ public class GrizzlyResponse {
     }
     
     /**
-     * Make sure the {@link GrizzlyResponse} object has been set.
+     * Make sure the {@link AdapterResponse} object has been set.
      */
     final void checkResponse(){
         if (response == null){
@@ -1637,20 +1637,20 @@ public class GrizzlyResponse {
     }
 
     private static class DelayQueueWorker implements
-            DelayedExecutor.Worker<GrizzlyResponse> {
+            DelayedExecutor.Worker<AdapterResponse> {
 
         @Override
-        public void doWork(GrizzlyResponse element) {
+        public void doWork(AdapterResponse element) {
             element.suspendedRunnable.run();
         }
         
     }
 
     private static class DelayQueueResolver implements
-            DelayedExecutor.Resolver<GrizzlyResponse> {
+            DelayedExecutor.Resolver<AdapterResponse> {
 
         @Override
-        public boolean removeTimeout(GrizzlyResponse element) {
+        public boolean removeTimeout(AdapterResponse element) {
             if (element.suspendedRunnable.timeoutTimeMillis != DelayedExecutor.UNSET_TIMEOUT) {
                 element.suspendedRunnable.timeoutTimeMillis = DelayedExecutor.UNSET_TIMEOUT;
                 return true;
@@ -1660,12 +1660,12 @@ public class GrizzlyResponse {
         }
 
         @Override
-        public Long getTimeoutMillis(GrizzlyResponse element) {
+        public Long getTimeoutMillis(AdapterResponse element) {
             return element.suspendedRunnable.timeoutTimeMillis;
         }
 
         @Override
-        public void setTimeoutMillis(GrizzlyResponse element, long timeoutMillis) {
+        public void setTimeoutMillis(AdapterResponse element, long timeoutMillis) {
             element.suspendedRunnable.timeoutTimeMillis = timeoutMillis;
         }
 

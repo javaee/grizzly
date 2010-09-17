@@ -53,11 +53,8 @@ import com.sun.grizzly.http.HttpClientFilter;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.Protocol;
-import com.sun.grizzly.http.server.GrizzlyRequest;
-import com.sun.grizzly.http.server.GrizzlyResponse;
-import com.sun.grizzly.http.server.ServerConfiguration;
-import com.sun.grizzly.http.server.GrizzlyAdapter;
-import com.sun.grizzly.http.server.GrizzlyWebServer;
+import com.sun.grizzly.http.server.*;
+import com.sun.grizzly.http.server.AdapterRequest;
 import com.sun.grizzly.http.util.HttpStatus;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
@@ -99,7 +96,7 @@ public class HttpResponseStreamsTest extends TestCase {
         }
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(GrizzlyResponse response)
+            @Override public void doWrite(AdapterResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 for (int i = 0, len = content.length; i < len; i++) {
@@ -128,7 +125,7 @@ public class HttpResponseStreamsTest extends TestCase {
         }
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(GrizzlyResponse response)
+            @Override public void doWrite(AdapterResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 for (int i = 0, len = content.length; i < len; i++) {
@@ -147,7 +144,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(8192); // boundary
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(GrizzlyResponse response)
+            @Override public void doWrite(AdapterResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 writer.write(sb.toString());
@@ -157,7 +154,7 @@ public class HttpResponseStreamsTest extends TestCase {
         doTest(s, sb.toString());
 
         s = new WriteStrategy() {
-            @Override public void doWrite(GrizzlyResponse response)
+            @Override public void doWrite(AdapterResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 writer.write(sb.toString().toCharArray());
@@ -174,7 +171,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(8194); // boundary + 2
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(GrizzlyResponse response)
+            @Override public void doWrite(AdapterResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 writer.write(sb.toString());
@@ -184,7 +181,7 @@ public class HttpResponseStreamsTest extends TestCase {
         doTest(s, sb.toString());
 
         s = new WriteStrategy() {
-            @Override public void doWrite(GrizzlyResponse response)
+            @Override public void doWrite(AdapterResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 writer.write(sb.toString().toCharArray());
@@ -201,7 +198,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(8192); // boundary
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(GrizzlyResponse response)
+            @Override public void doWrite(AdapterResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 for (int i = 0, len = sb.length(); i < len; i++) {
@@ -220,7 +217,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(8194); // boundary + 2
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(GrizzlyResponse response)
+            @Override public void doWrite(AdapterResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 for (int i = 0, len = sb.length(); i < len; i++) {
@@ -240,7 +237,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(GrizzlyResponse response)
+            @Override public void doWrite(AdapterResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 writer.write(sb.toString());
@@ -258,7 +255,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(GrizzlyResponse response)
+            @Override public void doWrite(AdapterResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 writer.write(sb.toString().toCharArray());
@@ -276,7 +273,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(GrizzlyResponse response)
+            @Override public void doWrite(AdapterResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 writer.write(sb.toString().toCharArray());
@@ -294,7 +291,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(GrizzlyResponse response)
+            @Override public void doWrite(AdapterResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 // write in 3k chunks
@@ -320,7 +317,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(GrizzlyResponse response)
+            @Override public void doWrite(AdapterResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 // write in 3k chunks
@@ -347,7 +344,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(GrizzlyResponse response)
+            @Override public void doWrite(AdapterResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 // write in 9k chunks
@@ -373,7 +370,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(GrizzlyResponse response)
+            @Override public void doWrite(AdapterResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 // write in 9k chunks
@@ -412,7 +409,7 @@ public class HttpResponseStreamsTest extends TestCase {
         }
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(GrizzlyResponse response)
+            @Override public void doWrite(AdapterResponse response)
                   throws IOException {
                 OutputStream out = response.getOutputStream();
                 for (int i = 0, len = content.length; i < len; i++) {
@@ -431,7 +428,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(8192); // boundary
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(GrizzlyResponse response)
+            @Override public void doWrite(AdapterResponse response)
                   throws IOException {
                 OutputStream out = response.getOutputStream();
                 for (int i = 0, len = sb.length(); i < len; i++) {
@@ -450,7 +447,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(8192); // boundary + 2
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(GrizzlyResponse response)
+            @Override public void doWrite(AdapterResponse response)
                   throws IOException {
                 OutputStream out = response.getOutputStream();
                 for (int i = 0, len = sb.length(); i < len; i++) {
@@ -470,7 +467,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(GrizzlyResponse response)
+            @Override public void doWrite(AdapterResponse response)
                   throws IOException {
                 OutputStream out = response.getOutputStream();
                 out.write(sb.toString().getBytes());
@@ -488,7 +485,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(GrizzlyResponse response)
+            @Override public void doWrite(AdapterResponse response)
                   throws IOException {
                 OutputStream out = response.getOutputStream();
                 out.write(sb.toString().getBytes());
@@ -506,7 +503,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(GrizzlyResponse response)
+            @Override public void doWrite(AdapterResponse response)
                   throws IOException {
                 OutputStream out = response.getOutputStream();
                 // write in 3k chunks
@@ -532,7 +529,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(GrizzlyResponse response)
+            @Override public void doWrite(AdapterResponse response)
                   throws IOException {
                 OutputStream out = response.getOutputStream();
                 // write in 9k chunks
@@ -613,12 +610,12 @@ public class HttpResponseStreamsTest extends TestCase {
 
     private interface WriteStrategy {
 
-        void doWrite(GrizzlyResponse response) throws IOException;
+        void doWrite(AdapterResponse response) throws IOException;
 
     }
 
 
-    private static final class TestAdapter extends GrizzlyAdapter {
+    private static final class TestAdapter extends Adapter {
 
         private final WriteStrategy strategy;
 
@@ -630,7 +627,7 @@ public class HttpResponseStreamsTest extends TestCase {
         }
 
         @Override
-        public void service(GrizzlyRequest req, GrizzlyResponse res) throws Exception {
+        public void service(AdapterRequest req, AdapterResponse res) throws Exception {
 
             res.setStatus(HttpStatus.OK_200);
             strategy.doWrite(res);

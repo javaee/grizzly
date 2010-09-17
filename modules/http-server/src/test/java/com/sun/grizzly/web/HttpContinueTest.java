@@ -40,11 +40,8 @@
 
 package com.sun.grizzly.web;
 
-import com.sun.grizzly.http.server.GrizzlyAdapter;
-import com.sun.grizzly.http.server.GrizzlyListener;
-import com.sun.grizzly.http.server.GrizzlyRequest;
-import com.sun.grizzly.http.server.GrizzlyResponse;
-import com.sun.grizzly.http.server.GrizzlyWebServer;
+import com.sun.grizzly.http.server.*;
+import com.sun.grizzly.http.server.Adapter;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import junit.framework.TestCase;
 
@@ -64,10 +61,10 @@ public class HttpContinueTest extends TestCase {
     public void test100Continue() throws Exception {
 
         final SafeFutureImpl<String> future = new SafeFutureImpl<String>();
-        GrizzlyWebServer server = createServer(new GrizzlyAdapter() {
+        GrizzlyWebServer server = createServer(new Adapter() {
 
             @Override
-            public void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
+            public void service(AdapterRequest request, AdapterResponse response) throws Exception {
                 future.result(request.getParameter("a"));
             }
 
@@ -213,13 +210,13 @@ public class HttpContinueTest extends TestCase {
     // --------------------------------------------------------- Private Methods
 
 
-    private GrizzlyWebServer createServer(final GrizzlyAdapter adapter,
+    private GrizzlyWebServer createServer(final Adapter adapter,
                                           final String... mappings) {
 
         GrizzlyWebServer server = new GrizzlyWebServer();
-        GrizzlyListener listener =
-                new GrizzlyListener("grizzly",
-                                    GrizzlyListener.DEFAULT_NETWORK_HOST,
+        NetworlListener listener =
+                new NetworlListener("grizzly",
+                                    NetworlListener.DEFAULT_NETWORK_HOST,
                                     PORT);
         server.addListener(listener);
         if (adapter != null) {
