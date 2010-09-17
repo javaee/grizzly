@@ -55,7 +55,7 @@ import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.Protocol;
 import com.sun.grizzly.http.server.*;
-import com.sun.grizzly.http.server.Adapter;
+import com.sun.grizzly.http.server.HttpService;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.nio.transport.TCPNIOConnectorHandler;
@@ -80,7 +80,7 @@ public class KeepAliveTest extends TestCase {
     public void testHttp11KeepAlive() throws Exception {
         final String msg = "Hello world #";
         
-        HttpServer server = createServer(new Adapter() {
+        HttpServer server = createServer(new HttpService() {
             private final AtomicInteger ai = new AtomicInteger();
             
             @Override
@@ -132,7 +132,7 @@ public class KeepAliveTest extends TestCase {
     public void testHttp11KeepAliveHeaderClose() throws Exception {
         final String msg = "Hello world #";
 
-        HttpServer server = createServer(new Adapter() {
+        HttpServer server = createServer(new HttpService() {
             private final AtomicInteger ai = new AtomicInteger();
 
             @Override
@@ -197,7 +197,7 @@ public class KeepAliveTest extends TestCase {
 
         final int maxKeepAliveRequests = 5;
 
-        HttpServer server = createServer(new Adapter() {
+        HttpServer server = createServer(new HttpService() {
             private final AtomicInteger ai = new AtomicInteger();
 
             @Override
@@ -341,7 +341,7 @@ public class KeepAliveTest extends TestCase {
 
     }
 
-    private HttpServer createServer(final Adapter adapter,
+    private HttpServer createServer(final HttpService httpService,
                                           final String... mappings) {
 
         HttpServer server = new HttpServer();
@@ -350,8 +350,8 @@ public class KeepAliveTest extends TestCase {
                                     NetworkListener.DEFAULT_NETWORK_HOST,
                                     PORT);
         server.addListener(listener);
-        if (adapter != null) {
-            server.getServerConfiguration().addAdapter(adapter, mappings);
+        if (httpService != null) {
+            server.getServerConfiguration().addHttpService(httpService, mappings);
         }
         return server;
 

@@ -53,7 +53,7 @@ import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.http.server.*;
-import com.sun.grizzly.http.server.Adapter;
+import com.sun.grizzly.http.server.HttpService;
 import com.sun.grizzly.http.server.io.NIOWriter;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
@@ -122,7 +122,7 @@ public class FileCacheTest {
     public void testSimpleFile() throws Exception {
         final String fileName = "./pom.xml";
 
-        startWebServer(new Adapter() {
+        startWebServer(new HttpService() {
 
             @Override
             public void service(final Request req, final Response res) {
@@ -183,7 +183,7 @@ public class FileCacheTest {
     @Test
     public void testGZip() throws Exception {
         final String fileName = "./pom.xml";
-        startWebServer(new Adapter() {
+        startWebServer(new HttpService() {
 
             @Override
             public void service(final Request req, final Response res) {
@@ -247,7 +247,7 @@ public class FileCacheTest {
     @Test
     public void testIfModified() throws Exception {
         final String fileName = "./pom.xml";
-        startWebServer(new Adapter(".") {
+        startWebServer(new HttpService(".") {
             @Override
             public void service(Request request, Response response)
                     throws Exception {
@@ -305,8 +305,8 @@ public class FileCacheTest {
         gws.addListener(listener);
     }
 
-    private void startWebServer(Adapter adapter) throws Exception {
-        gws.getServerConfiguration().addAdapter(adapter);
+    private void startWebServer(HttpService httpService) throws Exception {
+        gws.getServerConfiguration().addHttpService(httpService);
         gws.start();
     }
 

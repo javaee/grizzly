@@ -58,16 +58,16 @@ import java.util.logging.Logger;
  * are needed to implement a customized HTTP container/extension to the
  * HTTP module.
  *
- * The {@link Adapter} provides developers
+ * The {@link HttpService} provides developers
  * with a simple and consistent mechanism for extending the functionality of the
  * HTTP WebServer and for bridging existing http based technology like
  * JRuby-on-Rail, Servlet, Bayeux Protocol or any HTTP based protocol.
  *
  * @author Jeanfrancois Arcand
  */
-public abstract class Adapter {
+public abstract class HttpService {
     
-    private final static Logger logger = Grizzly.logger(Adapter.class);
+    private final static Logger logger = Grizzly.logger(HttpService.class);
     
     protected final StaticResourcesHandler staticResourcesHandler =
             new StaticResourcesHandler();
@@ -85,10 +85,10 @@ public abstract class Adapter {
     private boolean decodeURL = true;
     
     /**
-     * Create <tt>Adapter</tt>, which, by default, won't handle requests
+     * Create <tt>HttpService</tt>, which, by default, won't handle requests
      * to the static resources.
      */
-    public Adapter() {
+    public HttpService() {
         this(null);
     }
 
@@ -96,13 +96,13 @@ public abstract class Adapter {
     /**
      * Create a new instance which will look for static pages located
      * under the <tt>docRoot</tt>. If the <tt>docRoot</tt> is <tt>null</tt> -
-     * static pages won't be served by this <tt>Adapter</tt>
+     * static pages won't be served by this <tt>HttpService</tt>
      * 
      * @param docRoot the folder where the static resource are located.
      * If the <tt>docRoot</tt> is <tt>null</tt> - static pages won't be served
-     * by this <tt>Adapter</tt>
+     * by this <tt>HttpService</tt>
      */
-    public Adapter(String docRoot) {
+    public HttpService(String docRoot) {
         staticResourcesHandler.setDocRoot(docRoot);
     }
 
@@ -162,7 +162,7 @@ public abstract class Adapter {
 
 
     /**
-     * Called when the {@link Adapter}'s
+     * Called when the {@link HttpService}'s
      * container is started by invoking {@link HttpServer#start}.
      *
      * By default, it does nothing.
@@ -208,10 +208,10 @@ public abstract class Adapter {
 
     /**
      * Return the directory from where files will be serviced, or <tt>null</tt>,
-     * if static resources won't be served by this <tt>Adapter</tt>.
+     * if static resources won't be served by this <tt>HttpService</tt>.
      * 
      * @return the directory from where file will be serviced, or <tt>null</tt>,
-     * if static resources won't be served by this <tt>Adapter</tt>.
+     * if static resources won't be served by this <tt>HttpService</tt>.
      */
     public File getDocRoot() {
         return staticResourcesHandler.getDocRoot();
@@ -219,10 +219,10 @@ public abstract class Adapter {
 
     /**
      * Set the directory from where files will be serviced, if passed value is
-     * <tt>null</tt> - static resources won't be served by this <tt>Adapter</tt>.
+     * <tt>null</tt> - static resources won't be served by this <tt>HttpService</tt>.
      *
      * @param docRoot the directory from where files will be serviced, if passed value is
-     * <tt>null</tt> - static resources won't be served by this <tt>Adapter</tt>.
+     * <tt>null</tt> - static resources won't be served by this <tt>HttpService</tt>.
      */
     public void setDocRoot(String docRoot) {
         staticResourcesHandler.setDocRoot(docRoot);
@@ -230,10 +230,10 @@ public abstract class Adapter {
 
     /**
      * Set the directory from where files will be serviced, if passed value is
-     * <tt>null</tt> - static resources won't be served by this <tt>Adapter</tt>.
+     * <tt>null</tt> - static resources won't be served by this <tt>HttpService</tt>.
      *
      * @param docRoot the directory from where files will be serviced, if passed value is
-     * <tt>null</tt> - static resources won't be served by this <tt>Adapter</tt>.
+     * <tt>null</tt> - static resources won't be served by this <tt>HttpService</tt>.
      */
     public void setDocRoot(File docRoot) {
         staticResourcesHandler.setDocRoot(docRoot);

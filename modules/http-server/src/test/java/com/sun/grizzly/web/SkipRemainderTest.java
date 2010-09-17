@@ -53,7 +53,7 @@ import com.sun.grizzly.http.HttpClientFilter;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.server.*;
-import com.sun.grizzly.http.server.Adapter;
+import com.sun.grizzly.http.server.HttpService;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.ByteBufferWrapper;
@@ -75,7 +75,7 @@ import static org.junit.Assert.*;
 
 
 /**
- * Test how HttpServer skips HTTP packet remainder, if Adapter didn't read
+ * Test how HttpServer skips HTTP packet remainder, if HttpService didn't read
  * the complete message.
  * 
  * @author Alexey Stashok
@@ -110,7 +110,7 @@ public class SkipRemainderTest {
             SafeFutureImpl.create(), SafeFutureImpl.create()
         };
         
-        startWebServer(new Adapter() {
+        startWebServer(new HttpService() {
             @Override
             public void service(Request req, Response res)
                     throws Exception {
@@ -214,8 +214,8 @@ public class SkipRemainderTest {
         gws.addListener(listener);
     }
 
-    private void startWebServer(Adapter adapter) throws Exception {
-        gws.getServerConfiguration().addAdapter(adapter);
+    private void startWebServer(HttpService httpService) throws Exception {
+        gws.getServerConfiguration().addHttpService(httpService);
         gws.start();
     }
 

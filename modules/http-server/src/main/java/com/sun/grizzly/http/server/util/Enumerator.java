@@ -69,7 +69,7 @@ import java.util.NoSuchElementException;
 
 
 /**
- * Adapter class that wraps an <code>Enumeration</code> around a Java2
+ * HttpService class that wraps an <code>Enumeration</code> around a Java2
  * collection classes object <code>Iterator</code> so that existing APIs
  * returning Enumerations can easily run on top of the new collections.
  * Constructors are provided to easliy create such wrappers.

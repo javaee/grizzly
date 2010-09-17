@@ -73,7 +73,7 @@ public class ServerConfiguration {
 
     // Non-exposed
 
-    private Map<Adapter, String[]> adapters = new LinkedHashMap<Adapter, String[]>();
+    private Map<HttpService, String[]> services = new LinkedHashMap<HttpService, String[]>();
 
     private Set<JmxEventListener> jmxEventListeners = new CopyOnWriteArraySet<JmxEventListener>();
 
@@ -112,44 +112,44 @@ public class ServerConfiguration {
 
 
     /**
-     * Adds the specified {@link Adapter}
+     * Adds the specified {@link HttpService}
      * with its associated mapping(s). Requests will be dispatched to a
-     * {@link Adapter} based on these mapping
+     * {@link HttpService} based on these mapping
      * values.
      *
-     * @param adapter a {@link Adapter}
+     * @param httpService a {@link HttpService}
      * @param mapping        context path mapping information.
      */
-    public void addAdapter(Adapter adapter,
+    public void addHttpService(HttpService httpService,
                                   String... mapping) {
         if (mapping == null) {
             mapping = ROOT_MAPPING;
         }
 
-        adapters.put(adapter, mapping);
+        services.put(httpService, mapping);
     }
 
     /**
      *
-     * Removes the specified {@link Adapter}.
+     * Removes the specified {@link HttpService}.
      *
      * @return <tt>true</tt>, if the operation was successful, otherwise
      *  <tt>false</tt>
      */
-    public boolean removeAdapter(Adapter adapter) {
-        return (adapters.remove(adapter) != null);
+    public boolean removeHttpService(HttpService httpService) {
+        return (services.remove(httpService) != null);
     }
 
 
     /**
-     * @return the {@link Adapter} to be used by this server instance.
-     *  This may be a single {@link Adapter} or a composite of multiple
-     *  {@link Adapter} instances wrapped by a {@link AdapterChain}.
+     * @return the {@link HttpService} to be used by this server instance.
+     *  This may be a single {@link HttpService} or a composite of multiple
+     *  {@link HttpService} instances wrapped by a {@link HttpServiceChain}.
      */
-    protected Adapter buildAdapter() {
+    protected HttpService buildService() {
 
-        if (adapters.isEmpty()) {
-            return new Adapter(docRoot) {
+        if (services.isEmpty()) {
+            return new HttpService(docRoot) {
                 @SuppressWarnings({"unchecked"})
                 @Override
                 public void service(Request request, Response response) {
@@ -174,33 +174,33 @@ public class ServerConfiguration {
             };
         }
 
-        final int adaptersNum = adapters.size();
+        final int servicesNum = services.size();
 
-        if (adaptersNum == 1) {
-            Adapter adapter = adapters.keySet().iterator().next();
-            if (adapter.getDocRoot() == null) {
-                adapter.setDocRoot(docRoot);
+        if (servicesNum == 1) {
+            HttpService httpService = services.keySet().iterator().next();
+            if (httpService.getDocRoot() == null) {
+                httpService.setDocRoot(docRoot);
             }
             
-            return adapter;
+            return httpService;
         }
 
-        AdapterChain adapterChain = new AdapterChain(instance);
-        addJmxEventListener(adapterChain);
-        adapterChain.setDocRoot(docRoot);
+        HttpServiceChain serviceChain = new HttpServiceChain(instance);
+        addJmxEventListener(serviceChain);
+        serviceChain.setDocRoot(docRoot);
 
-        for (Map.Entry<Adapter, String[]> adapterRecord : adapters.entrySet()) {
-            final Adapter adapter = adapterRecord.getKey();
+        for (Map.Entry<HttpService, String[]> adapterRecord : services.entrySet()) {
+            final HttpService httpService = adapterRecord.getKey();
             final String[] mappings = adapterRecord.getValue();
 
-            if (adapter.getDocRoot() == null) {
-                adapter.setDocRoot(docRoot);
+            if (httpService.getDocRoot() == null) {
+                httpService.setDocRoot(docRoot);
             }
             
-            adapterChain.addAdapter(adapter, mappings);
+            serviceChain.addService(httpService, mappings);
         }
 
-        return adapterChain;
+        return serviceChain;
     }
 
     /**

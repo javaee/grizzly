@@ -55,7 +55,7 @@ import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.Protocol;
 import com.sun.grizzly.http.server.*;
-import com.sun.grizzly.http.server.Adapter;
+import com.sun.grizzly.http.server.HttpService;
 import com.sun.grizzly.http.server.io.NIOOutputStream;
 import com.sun.grizzly.http.server.io.NIOWriter;
 import com.sun.grizzly.http.server.io.WriteHandler;
@@ -141,7 +141,7 @@ public class NIOOutputSinksTest extends TestCase {
         clientTransport.setProcessor(filterChainBuilder.build());
         final AtomicInteger writeCounter = new AtomicInteger();
         final AtomicBoolean callbackInvoked = new AtomicBoolean(false);
-        final Adapter ga = new Adapter() {
+        final HttpService ga = new HttpService() {
 
             @Override
             public void service(final Request request, final Response response) throws Exception {
@@ -206,7 +206,7 @@ public class NIOOutputSinksTest extends TestCase {
         };
 
 
-        server.getServerConfiguration().addAdapter(ga, "/path");
+        server.getServerConfiguration().addHttpService(ga, "/path");
 
         try {
             server.start();
@@ -302,7 +302,7 @@ public class NIOOutputSinksTest extends TestCase {
         clientTransport.setProcessor(filterChainBuilder.build());
         final AtomicInteger writeCounter = new AtomicInteger();
         final AtomicBoolean callbackInvoked = new AtomicBoolean(false);
-        final Adapter ga = new Adapter() {
+        final HttpService ga = new HttpService() {
 
             @Override
             public void service(final Request request, final Response response) throws Exception {
@@ -367,7 +367,7 @@ public class NIOOutputSinksTest extends TestCase {
         };
 
 
-        server.getServerConfiguration().addAdapter(ga, "/path");
+        server.getServerConfiguration().addHttpService(ga, "/path");
 
         try {
             server.start();
@@ -443,7 +443,7 @@ public class NIOOutputSinksTest extends TestCase {
 
         final TCPNIOTransport clientTransport = TransportFactory.getInstance().createTCPTransport();
         clientTransport.setProcessor(filterChainBuilder.build());
-        final Adapter ga = new Adapter() {
+        final HttpService ga = new HttpService() {
 
             @Override
             public void service(final Request request, final Response response) throws Exception {
@@ -473,7 +473,7 @@ public class NIOOutputSinksTest extends TestCase {
         };
 
 
-        server.getServerConfiguration().addAdapter(ga, "/path");
+        server.getServerConfiguration().addHttpService(ga, "/path");
 
         try {
             server.start();

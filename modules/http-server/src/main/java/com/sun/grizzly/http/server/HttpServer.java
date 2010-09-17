@@ -100,9 +100,9 @@ public class HttpServer {
     private boolean started;
 
     /**
-     * Adapter, which processes HTTP requests
+     * HttpService, which processes HTTP requests
      */
-    private volatile Adapter adapter;
+    private volatile HttpService httpService;
 
     /**
      * Mapping of {@link NetworkListener}s, by name, used by this server
@@ -121,7 +121,7 @@ public class HttpServer {
 
     protected volatile JmxObject managementObject;
 
-    private volatile JmxObject adapterManagementObject;
+    private volatile JmxObject serviceManagementObject;
 
 
     // ---------------------------------------------------------- Public Methods
@@ -277,7 +277,7 @@ public class HttpServer {
             enableJMX();
         }
 
-        setupAdapter();
+        setupService();
 
         if (serverConfig.isJmxEnabled()) {
             for (Iterator<JmxEventListener> i = serverConfig.getJmxEventListeners(); i.hasNext(); ) {
@@ -292,43 +292,43 @@ public class HttpServer {
 
     }
 
-    private void setupAdapter() {
+    private void setupService() {
 
-        adapter = serverConfig.buildAdapter();
-        if (adapter != null) {
-            if (!(adapter instanceof AdapterChain)
-                    && adapter instanceof Monitorable) {
-                final Monitorable monitor = (Monitorable) adapter;
+        httpService = serverConfig.buildService();
+        if (httpService != null) {
+            if (!(httpService instanceof HttpServiceChain)
+                    && httpService instanceof Monitorable) {
+                final Monitorable monitor = (Monitorable) httpService;
                 final JmxObject jmx = monitor.createManagementObject();
                 jmxManager.register(managementObject, jmx, jmx.getJmxName());
-                adapterManagementObject = jmx;
+                serviceManagementObject = jmx;
             }
-            adapter.start();
+            httpService.start();
         }
 
     }
 
 
-    private void tearDownAdapter() {
+    private void tearDownService() {
 
-        if (adapterManagementObject != null) {
-            jmxManager.unregister(adapterManagementObject);
-            adapterManagementObject = null;
+        if (serviceManagementObject != null) {
+            jmxManager.unregister(serviceManagementObject);
+            serviceManagementObject = null;
         }
-        if (adapter != null) {
-            adapter.destroy();
-            adapter = null;
+        if (httpService != null) {
+            httpService.destroy();
+            httpService = null;
         }
 
     }
 
 
     /**
-     * @return the {@link Adapter} used by this <code>HttpServer</code>
+     * @return the {@link HttpService} used by this <code>HttpServer</code>
      *  instance.
      */
-    public Adapter getAdapter() {
-        return adapter;
+    public HttpService getHttpService() {
+        return httpService;
     }
 
 
@@ -382,7 +382,7 @@ public class HttpServer {
                 }
             }
 
-            tearDownAdapter();
+            tearDownService();
 
             final String[] names = listeners.keySet().toArray(new String[listeners.size()]);
             for (final String name : names) {

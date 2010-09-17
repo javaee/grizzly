@@ -41,7 +41,7 @@
 package com.sun.grizzly.web;
 
 import com.sun.grizzly.http.server.*;
-import com.sun.grizzly.http.server.Adapter;
+import com.sun.grizzly.http.server.HttpService;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import junit.framework.TestCase;
 
@@ -61,7 +61,7 @@ public class HttpContinueTest extends TestCase {
     public void test100Continue() throws Exception {
 
         final SafeFutureImpl<String> future = new SafeFutureImpl<String>();
-        HttpServer server = createServer(new Adapter() {
+        HttpServer server = createServer(new HttpService() {
 
             @Override
             public void service(Request request, Response response) throws Exception {
@@ -210,7 +210,7 @@ public class HttpContinueTest extends TestCase {
     // --------------------------------------------------------- Private Methods
 
 
-    private HttpServer createServer(final Adapter adapter,
+    private HttpServer createServer(final HttpService httpService,
                                           final String... mappings) {
 
         HttpServer server = new HttpServer();
@@ -219,8 +219,8 @@ public class HttpContinueTest extends TestCase {
                                     NetworkListener.DEFAULT_NETWORK_HOST,
                                     PORT);
         server.addListener(listener);
-        if (adapter != null) {
-            server.getServerConfiguration().addAdapter(adapter, mappings);
+        if (httpService != null) {
+            server.getServerConfiguration().addHttpService(httpService, mappings);
         }
         return server;
 

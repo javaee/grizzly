@@ -57,32 +57,32 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * The AdapterChain class allows the invocation of multiple {@link Adapter}s
+ * The HttpServiceChain class allows the invocation of multiple {@link HttpService}s
  * every time a new HTTP request is ready to be handled. Requests are mapped
- * to their associated {@link Adapter} at runtime using the mapping
- * information configured when invoking the {@link AdapterChain#addAdapter
- * (com.sun.grizzly.http.server.Adapter, java.lang.String[])}
+ * to their associated {@link HttpService} at runtime using the mapping
+ * information configured when invoking the {@link HttpServiceChain#addService
+ * (com.sun.grizzly.http.server.HttpService, java.lang.String[])}
  *
  *
  * Note: This class is <strong>NOT</strong> thread-safe, so make sure synchronization
- *  is performed when dynamically adding and removing {@link Adapter}
+ *  is performed when dynamically adding and removing {@link HttpService}
  *
  * @author Jeanfrancois Arcand
  */
-public class AdapterChain extends Adapter implements JmxEventListener {
-    private static final Logger logger = Grizzly.logger(AdapterChain.class);
+public class HttpServiceChain extends HttpService implements JmxEventListener {
+    private static final Logger logger = Grizzly.logger(HttpServiceChain.class);
 
     protected final static int MAPPING_DATA = 12;
     protected final static int MAPPED_ADAPTER = 13;
     /**
-     * The list of {@link Adapter} instance.
+     * The list of {@link HttpService} instance.
      */
-    private ConcurrentHashMap<Adapter, String[]> adapters =
-            new ConcurrentHashMap<Adapter, String[]>();
-    private ConcurrentHashMap<Adapter, JmxObject> monitors =
-            new ConcurrentHashMap<Adapter, JmxObject>();
+    private ConcurrentHashMap<HttpService, String[]> services =
+            new ConcurrentHashMap<HttpService, String[]>();
+    private ConcurrentHashMap<HttpService, JmxObject> monitors =
+            new ConcurrentHashMap<HttpService, JmxObject>();
     /**
-     * Internal {@link Mapper} used to Map request to their associated {@link Adapter}
+     * Internal {@link Mapper} used to Map request to their associated {@link HttpService}
      */
     private Mapper mapper;
     /**
@@ -95,8 +95,8 @@ public class AdapterChain extends Adapter implements JmxEventListener {
     private boolean oldMappingAlgorithm = false;
 
     /**
-     * Flag indicating this Adapter has been started.  Any subsequent
-     * Adapter instances added to this chain after is has been started
+     * Flag indicating this HttpService has been started.  Any subsequent
+     * HttpService instances added to this chain after is has been started
      * will have their start() method invoked.
      */
     private boolean started;
@@ -107,7 +107,7 @@ public class AdapterChain extends Adapter implements JmxEventListener {
     // ------------------------------------------------------------ Constructors
 
 
-    public AdapterChain(final HttpServer gws) {
+    public HttpServiceChain(final HttpServer gws) {
         this.gws = gws;
         mapper = new Mapper(TransportFactory.getInstance().getDefaultMemoryManager());
         mapper.setDefaultHostName(LOCAL_HOST);
@@ -120,20 +120,20 @@ public class AdapterChain extends Adapter implements JmxEventListener {
 
     @Override
     public void jmxEnabled() {
-        for (Entry<Adapter,String[]> entry : adapters.entrySet()) {
-            final Adapter adapter = entry.getKey();
-            if (adapter instanceof Monitorable) {
-                registerJmxForAdapter(adapter);
+        for (Entry<HttpService,String[]> entry : services.entrySet()) {
+            final HttpService httpService = entry.getKey();
+            if (httpService instanceof Monitorable) {
+                registerJmxForService(httpService);
             }
         }
     }
 
     @Override
     public void jmxDisabled() {
-        for (Entry<Adapter,String[]> entry : adapters.entrySet()) {
-            final Adapter adapter = entry.getKey();
-            if (adapter instanceof Monitorable) {
-                deregisterJmxForAdapter(adapter);
+        for (Entry<HttpService,String[]> entry : services.entrySet()) {
+            final HttpService httpService = entry.getKey();
+            if (httpService instanceof Monitorable) {
+                deregisterJmxForService(httpService);
             }
         }
     }
@@ -144,15 +144,15 @@ public class AdapterChain extends Adapter implements JmxEventListener {
 
     @Override
     public void start() {
-        for (Entry<Adapter, String[]> entry : adapters.entrySet()) {
-            final Adapter adapter = entry.getKey();
-            adapter.start();
+        for (Entry<HttpService, String[]> entry : services.entrySet()) {
+            final HttpService httpService = entry.getKey();
+            httpService.start();
         }
         started = true;
     }
 
     /**
-     * Map the {@link Request} to the proper {@link Adapter}
+     * Map the {@link Request} to the proper {@link HttpService}
      * @param request The {@link Request}
      * @param response The {@link Response}
      */
@@ -161,8 +161,8 @@ public class AdapterChain extends Adapter implements JmxEventListener {
         // For backward compatibility.
         if (oldMappingAlgorithm) {
             int i = 0;
-            int size = adapters.size();
-            for (Entry<Adapter, String[]> entry : adapters.entrySet()) {
+            int size = services.size();
+            for (Entry<HttpService, String[]> entry : services.entrySet()) {
                 entry.getKey().doService(request, response);
                 if (response.getStatus() == 404 && i != size - 1) {
                     // Reset the
@@ -200,16 +200,16 @@ public class AdapterChain extends Adapter implements JmxEventListener {
                                     mappingData);
 
 
-                Adapter adapter;
-                if (mappingData.context != null && mappingData.context instanceof Adapter) {
+                HttpService httpService;
+                if (mappingData.context != null && mappingData.context instanceof HttpService) {
                     if (mappingData.wrapper != null) {
-                        adapter = (Adapter) mappingData.wrapper;
+                        httpService = (HttpService) mappingData.wrapper;
                     } else {
-                        adapter = (Adapter) mappingData.context;
+                        httpService = (HttpService) mappingData.context;
                     }
                     // We already decoded the URL.
-                    adapter.setDecodeUrl(false);
-                    adapter.doService(request, response);
+                    httpService.setDecodeUrl(false);
+                    httpService.doService(request, response);
                 } else {
                     response.setStatus(HttpStatus.NOT_FOUND_404);
                     customizedErrorPage(gws, request, response);
@@ -232,47 +232,47 @@ public class AdapterChain extends Adapter implements JmxEventListener {
 
 
     /**
-     * Add a {@link Adapter} and its associated array of mapping. The mapping
-     * data will be used to map incoming request to its associated {@link Adapter}.
-     * @param adapter {@link Adapter} instance
+     * Add a {@link HttpService} and its associated array of mapping. The mapping
+     * data will be used to map incoming request to its associated {@link HttpService}.
+     * @param httpService {@link HttpService} instance
      * @param mappings an array of mapping.
      */
-    public void addAdapter(Adapter adapter, String[] mappings) {
+    public void addService(HttpService httpService, String[] mappings) {
         if (oldMappingAlgorithm) {
-            throw new IllegalStateException("Cannot mix addAdapter(Adapter) "
-                    + "and addAdapter(Adapter,String[]");
+            throw new IllegalStateException("Cannot mix addService(HttpService) "
+                    + "and addService(HttpService,String[]");
         }
 
         if (mappings.length == 0) {
-            addAdapter(adapter, new String[]{""});
+            addService(httpService, new String[]{""});
         } else {
             if (started) {
-                adapter.start();
-                if (adapter instanceof Monitorable) {
-                    registerJmxForAdapter(adapter);
+                httpService.start();
+                if (httpService instanceof Monitorable) {
+                    registerJmxForService(httpService);
                 }
             }
-            adapters.put(adapter, mappings);
+            services.put(httpService, mappings);
             for (String mapping : mappings) {
                 String ctx = getContextPath(mapping);
-                mapper.addContext(LOCAL_HOST, ctx, adapter,
+                mapper.addContext(LOCAL_HOST, ctx, httpService,
                         new String[]{"index.html", "index.htm"}, null);
-                mapper.addWrapper(LOCAL_HOST, ctx, mapping.substring(ctx.length()), adapter);
+                mapper.addWrapper(LOCAL_HOST, ctx, mapping.substring(ctx.length()), httpService);
             }
         }
 
     }
 
-    private void registerJmxForAdapter(final Adapter adapter) {
-        final Monitorable monitorable = (Monitorable) adapter;
+    private void registerJmxForService(final HttpService httpService) {
+        final Monitorable monitorable = (Monitorable) httpService;
         final JmxObject jmx = monitorable.createManagementObject();
-        monitors.putIfAbsent(adapter, jmx);
+        monitors.putIfAbsent(httpService, jmx);
         gws.jmxManager.register(gws.managementObject, jmx, jmx.getJmxName());
     }
 
-    private void deregisterJmxForAdapter(final Adapter adapter) {
+    private void deregisterJmxForService(final HttpService httpService) {
 
-        JmxObject jmx = monitors.get(adapter);
+        JmxObject jmx = monitors.get(httpService);
         if (jmx != null) {
             gws.jmxManager.unregister(jmx);
         }
@@ -301,29 +301,29 @@ public class AdapterChain extends Adapter implements JmxEventListener {
 
     @Override
     public void destroy() {
-        for (Entry<Adapter, String[]> adapter : adapters.entrySet()) {
-            final Adapter a = adapter.getKey();
+        for (Entry<HttpService, String[]> adapter : services.entrySet()) {
+            final HttpService a = adapter.getKey();
             a.destroy();
         }
         started = false;
     }
 
     /**
-     * Remove a {@link Adapter}
+     * Remove a {@link HttpService}
      * @return <tt>true</tt> if removed
      */
-    public boolean removeAdapter(Adapter adapter) {
-        if (adapter == null) {
+    public boolean removeHttpService(HttpService httpService) {
+        if (httpService == null) {
             throw new IllegalStateException();
         }
-        String[] mappings = adapters.remove(adapter);
+        String[] mappings = services.remove(httpService);
         if (mappings != null) {
             for (String mapping : mappings) {
                 String ctx = getContextPath(mapping);
                 mapper.removeContext(LOCAL_HOST, ctx);
             }
-            deregisterJmxForAdapter(adapter);
-            adapter.destroy();
+            deregisterJmxForService(httpService);
+            httpService.destroy();
 
         }
 
@@ -332,7 +332,7 @@ public class AdapterChain extends Adapter implements JmxEventListener {
 
 
     /**
-     * Maps the decodedURI to the corresponding Adapter, considering that URI
+     * Maps the decodedURI to the corresponding HttpService, considering that URI
      * may have a semicolon with extra data followed, which shouldn't be a part
      * of mapping process.
      *

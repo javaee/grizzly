@@ -141,9 +141,9 @@ public class HttpServerFilter extends BaseFilter
                 try {
                     ctx.setMessage(adapterResponse);
 
-                    final Adapter adapter = gws.getAdapter();
-                    if (adapter != null) {
-                        adapter.doService(adapterRequest, adapterResponse);
+                    final HttpService httpService = gws.getHttpService();
+                    if (httpService != null) {
+                        httpService.doService(adapterRequest, adapterResponse);
                     }
                 } catch (Throwable t) {
                     adapterRequest.getRequest().getProcessingState().setError(true);
