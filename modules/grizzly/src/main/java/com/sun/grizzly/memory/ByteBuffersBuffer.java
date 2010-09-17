@@ -365,11 +365,18 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
 
     @Override
     public Buffer split(int splitPosition) {
+        checkDispose();
+
         final int oldPosition = position;
         final int oldLimit = limit;
 
         final long splitLocation = locateBufferPosition(splitPosition);
         final int splitBufferIdx = getBufferIndex(splitLocation);
+
+        if (splitBufferIdx == -1) {
+            return BufferUtils.EMPTY_BUFFER;
+        }
+
         final int splitBufferPos = getBufferPosition(splitLocation);
 
         final ByteBuffersBuffer slice2Buffer = ByteBuffersBuffer.create(memoryManager);

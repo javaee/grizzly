@@ -306,6 +306,8 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             } catch (IOException ioe) {
                 LOGGER.log(Level.FINE, "Exception during reporting the failure", ioe);
             }
+            
+            return ProcessorResult.createCompleteLeave();
         } catch (Exception e) {
             try {
                 LOGGER.log(Level.WARNING, "Exception during FilterChain execution", e);
@@ -314,6 +316,8 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             } catch (IOException ioe) {
                 LOGGER.log(Level.FINE, "Exception during reporting the failure", ioe);
             }
+            
+            return ProcessorResult.createCompleteLeave();
         }
 
         return ProcessorResult.createComplete();

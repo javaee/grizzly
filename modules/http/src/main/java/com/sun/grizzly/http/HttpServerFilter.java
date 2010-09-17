@@ -230,17 +230,18 @@ public class HttpServerFilter extends HttpCodecFilter {
     public NextAction handleEvent(FilterChainContext ctx, Object event)
     throws IOException {
 
-        if (event == RESPONSE_COMPLETE_EVENT) {
+        final Connection c = ctx.getConnection();
+        
+        if (event == RESPONSE_COMPLETE_EVENT && c.isOpen()) {
 
-            final Connection c = ctx.getConnection();
             final KeepAliveContext keepAliveContext =
                     keepAliveContextAttr.get(c);
             keepAliveQueue.add(keepAliveContext,
                                keepAlive.getIdleTimeoutInSeconds(),
                                TimeUnit.SECONDS);
             final HttpRequestPacket httpRequest = keepAliveContext.request;
-            final boolean keepAlive = isKeepAlive(httpRequest, keepAliveContext);
-            if (!keepAlive) {
+            final boolean isStayAlive = isKeepAlive(httpRequest, keepAliveContext);
+            if (!isStayAlive) {
                 ctx.flush(FLUSH_AND_CLOSE_HANDLER);
             } else {
                 if (httpRequest.isExpectContent()) {
