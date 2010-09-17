@@ -59,6 +59,6 @@
         <module>framework-samples</module>
         <module>http-samples</module>
         <module>websockets/chat</module>
-        <module>webcontainer-samples</module>
+        <module>http-server-samples</module>
     </modules>
 </project>

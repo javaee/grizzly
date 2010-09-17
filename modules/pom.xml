@@ -59,10 +59,7 @@
         <module>grizzly</module>
         <module>rcm</module>
         <module>http</module>
+        <module>http-server</module>
         <module>websockets</module>
-        <module>webcontainer</module> 
-<!--        <module>http-servlet</module>
-        <module>bundles</module>
-        <module>config</module> -->
     </modules>
 </project>

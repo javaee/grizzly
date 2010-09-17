@@ -37,7 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package com.sun.grizzly.samples.webcontainer.blockingadapter;
+package com.sun.grizzly.samples.httpserver.blockingadapter;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
