@@ -570,7 +570,7 @@ public class HttpResponseStreamsTest extends TestCase {
 
         HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
         ServerConfiguration sconfig = server.getServerConfiguration();
-        sconfig.addGrizzlyAdapter(new TestAdapter(strategy), new String[] { "/*" });
+        sconfig.addAdapter(new TestAdapter(strategy), new String[] { "/*" });
 
         final FutureImpl<String> parseResult = SafeFutureImpl.create();
         TCPNIOTransport ctransport = TransportFactory.getInstance().createTCPTransport();

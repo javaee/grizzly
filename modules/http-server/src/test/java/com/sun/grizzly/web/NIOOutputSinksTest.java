@@ -206,7 +206,7 @@ public class NIOOutputSinksTest extends TestCase {
         };
 
 
-        server.getServerConfiguration().addGrizzlyAdapter(ga, "/path");
+        server.getServerConfiguration().addAdapter(ga, "/path");
 
         try {
             server.start();
@@ -367,7 +367,7 @@ public class NIOOutputSinksTest extends TestCase {
         };
 
 
-        server.getServerConfiguration().addGrizzlyAdapter(ga, "/path");
+        server.getServerConfiguration().addAdapter(ga, "/path");
 
         try {
             server.start();
@@ -473,7 +473,7 @@ public class NIOOutputSinksTest extends TestCase {
         };
 
 
-        server.getServerConfiguration().addGrizzlyAdapter(ga, "/path");
+        server.getServerConfiguration().addAdapter(ga, "/path");
 
         try {
             server.start();

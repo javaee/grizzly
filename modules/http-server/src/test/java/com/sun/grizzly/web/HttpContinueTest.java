@@ -220,7 +220,7 @@ public class HttpContinueTest extends TestCase {
                                     PORT);
         server.addListener(listener);
         if (adapter != null) {
-            server.getServerConfiguration().addGrizzlyAdapter(adapter, mappings);
+            server.getServerConfiguration().addAdapter(adapter, mappings);
         }
         return server;
 

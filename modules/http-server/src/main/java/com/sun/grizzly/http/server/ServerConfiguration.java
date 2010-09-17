@@ -120,7 +120,7 @@ public class ServerConfiguration {
      * @param adapter a {@link Adapter}
      * @param mapping        context path mapping information.
      */
-    public void addGrizzlyAdapter(Adapter adapter,
+    public void addAdapter(Adapter adapter,
                                   String... mapping) {
         if (mapping == null) {
             mapping = ROOT_MAPPING;
@@ -136,7 +136,7 @@ public class ServerConfiguration {
      * @return <tt>true</tt>, if the operation was successful, otherwise
      *  <tt>false</tt>
      */
-    public boolean removeGrizzlyAdapter(Adapter adapter) {
+    public boolean removeAdapter(Adapter adapter) {
         return (adapters.remove(adapter) != null);
     }
 
@@ -197,7 +197,7 @@ public class ServerConfiguration {
                 adapter.setDocRoot(docRoot);
             }
             
-            adapterChain.addGrizzlyAdapter(adapter, mappings);
+            adapterChain.addAdapter(adapter, mappings);
         }
 
         return adapterChain;

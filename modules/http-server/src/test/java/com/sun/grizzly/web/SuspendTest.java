@@ -159,7 +159,7 @@ public class SuspendTest {
     }
 
     private void startWebServer(Adapter adapter) throws Exception {
-        gws.getServerConfiguration().addGrizzlyAdapter(adapter);
+        gws.getServerConfiguration().addAdapter(adapter);
         gws.start();
     }
 

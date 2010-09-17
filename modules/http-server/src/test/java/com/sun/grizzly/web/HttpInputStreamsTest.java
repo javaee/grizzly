@@ -973,7 +973,7 @@ public class HttpInputStreamsTest extends TestCase {
 
         HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
         ServerConfiguration sconfig = server.getServerConfiguration();
-        sconfig.addGrizzlyAdapter(new SimpleResponseAdapter(strategy, testResult), "/*");
+        sconfig.addAdapter(new SimpleResponseAdapter(strategy, testResult), "/*");
 
         TCPNIOTransport ctransport = TransportFactory.getInstance().createTCPTransport();
         try {

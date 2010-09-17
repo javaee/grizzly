@@ -60,7 +60,7 @@ import java.util.logging.Logger;
  * The AdapterChain class allows the invocation of multiple {@link Adapter}s
  * every time a new HTTP request is ready to be handled. Requests are mapped
  * to their associated {@link Adapter} at runtime using the mapping
- * information configured when invoking the {@link AdapterChain#addGrizzlyAdapter
+ * information configured when invoking the {@link AdapterChain#addAdapter
  * (com.sun.grizzly.http.server.Adapter, java.lang.String[])}
  *
  *
@@ -237,14 +237,14 @@ public class AdapterChain extends Adapter implements JmxEventListener {
      * @param adapter {@link Adapter} instance
      * @param mappings an array of mapping.
      */
-    public void addGrizzlyAdapter(Adapter adapter, String[] mappings) {
+    public void addAdapter(Adapter adapter, String[] mappings) {
         if (oldMappingAlgorithm) {
-            throw new IllegalStateException("Cannot mix addGrizzlyAdapter(Adapter) "
-                    + "and addGrizzlyAdapter(Adapter,String[]");
+            throw new IllegalStateException("Cannot mix addAdapter(Adapter) "
+                    + "and addAdapter(Adapter,String[]");
         }
 
         if (mappings.length == 0) {
-            addGrizzlyAdapter(adapter, new String[]{""});
+            addAdapter(adapter, new String[]{""});
         } else {
             if (started) {
                 adapter.start();
