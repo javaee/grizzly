@@ -1462,7 +1462,7 @@ public class GrizzlyResponse {
      * the current instance, and also to avoid commiting response.
      */
     public void suspend() {
-        suspend(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+        suspend(DelayedExecutor.UNSET_TIMEOUT, TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -1612,7 +1612,7 @@ public class GrizzlyResponse {
 
         public CompletionHandler completionHandler;
         public boolean isResuming;
-        public long timeoutTimeMillis;
+        public volatile long timeoutTimeMillis;
 
         @Override
         public void run() {
