@@ -56,8 +56,9 @@ import com.sun.grizzly.threadpool.GrizzlyExecutorService;
 
 /**
  * Sample shows how easy custom {@link Strategy} could be applied for a
- * {@link Transport}. In this example we use {@link LeaderFollowerStrategy} for
- * processing all I/O events occuring on {@link Connection}.
+ * {@link com.sun.grizzly.Transport}. In this example we use
+ * {@link LeaderFollowerStrategy} for processing all I/O events occurring on
+ * {@link com.sun.grizzly.Connection}.
  *
  * To test this echo server you can use {@link EchoClient}.
  *

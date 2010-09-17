@@ -133,7 +133,7 @@ public class TunnelFilter extends BaseFilter {
     /**
      * Redirect data from {@link Connection} to its peer.
      *
-     * @param connection source {@link Connection}
+     * @param context {@link FilterChainContext}
      * @param peerConnection peer {@link Connection}
      * @throws IOException
      */

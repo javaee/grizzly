@@ -51,7 +51,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Customize {@link WebSocket} implementation, which contains chat application
+ * Customize {@link com.sun.grizzly.websockets.WebSocket} implementation, which contains chat application
  * specific properties and logic.
  * 
  * @author Alexey Stashok

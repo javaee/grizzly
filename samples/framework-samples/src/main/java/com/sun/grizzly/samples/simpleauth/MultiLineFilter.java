@@ -51,7 +51,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * The {@link Filter} is responsible for a
+ * The {@link com.sun.grizzly.filterchain.Filter} is responsible for a
  * {@link String} <-> {@link MultiLinePacket} transformations.
  *
  * When reading - filter is gathering single {@link String} lines into a MultiLinePacket,
@@ -82,9 +82,9 @@ public class MultiLineFilter extends BaseFilter {
      * 
      * Filter check if it's {@link MultiLinePacket} terminating line, if yes -
      * we assume {@link MultiLinePacket} completed and pass control to a next
-     * {@link Filter} in a chain. If it's not a terminating line - we add
-     * another string line to a {@link MultiLinePacket} and stop the request
-     * processing until more strings will get available.
+     * {@link com.sun.grizzly.filterchain.Filter} in a chain. If it's not a
+     * terminating line - we add another string line to a {@link MultiLinePacket}
+     * and stop the request processing until more strings will get available.
      *
      * @param ctx Request processing context
      *

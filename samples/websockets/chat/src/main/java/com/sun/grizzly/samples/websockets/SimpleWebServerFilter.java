@@ -87,12 +87,12 @@ public class SimpleWebServerFilter extends BaseFilter {
     }
 
     /**
-     * The method is called once we have received a {@link HttpChunk}.
+     * The method is called once we have received a {@link HttpContent}.
      *
-     * Filter gets {@link HttpChunk}, which represents a part or complete HTTP
+     * Filter gets {@link HttpContent}, which represents a part or complete HTTP
      * request. If it's just a chunk of a complete HTTP request - filter checks
      * whether it's the last chunk, if not - swallows content and returns.
-     * If incoming {@link HttpChunk} represents complete HTTP request or it is
+     * If incoming {@link HttpContent} represents complete HTTP request or it is
      * the last HTTP request - it initiates file download and sends the file
      * asynchronously to the client.
      *

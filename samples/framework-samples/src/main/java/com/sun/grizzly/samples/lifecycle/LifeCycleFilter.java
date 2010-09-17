@@ -53,9 +53,9 @@ import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 
 /**
- * Sample {@link Filter}, which tracks the connections lifecycle
- * The new connections could be either accepted if we have server, or connected,
- * if we establish client connection.
+ * Sample {@link com.sun.grizzly.filterchain.Filter}, which tracks the connections
+ * lifecycle.  The new connections could be either accepted if we have server,
+ * or connected, if we establish client connection.
  *
  * @author Alexey Stashok
  */
@@ -73,7 +73,7 @@ public class LifeCycleFilter extends BaseFilter {
 
     /**
      * Method is called, when new {@link Connection} was
-     * accepted by a {@link Transport}
+     * accepted by a {@link com.sun.grizzly.Transport}
      *
      * @param ctx the filter chain context
      * @return the next action to be executed by chain
@@ -128,10 +128,10 @@ public class LifeCycleFilter extends BaseFilter {
 
     /**
      * Returns the total number of connections ever
-     * created by the {@link Transport}
+     * created by the {@link com.sun.grizzly.Transport}
      *
      * @return the total number of connections ever
-     * created by the {@link Transport}
+     * created by the {@link com.sun.grizzly.Transport}
      */
     public int getTotalConnections() {
         return totalConnectionNumber.get();
