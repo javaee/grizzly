@@ -107,7 +107,7 @@ public abstract class HttpService {
     }
 
     /**
-     * Handles static resources if this adapter is configured to do so, otherwise
+     * Handles static resources if this service is configured to do so, otherwise
      * invokes {@link #service(Request, Response)}.
      *
      * @param request the {@link Request}
@@ -241,7 +241,7 @@ public abstract class HttpService {
 
     /**
      * Customize the error page.
-     * @param server the {@link HttpServer} associated with this adapter.
+     * @param server the {@link HttpServer} associated with this service.
      * @param req The {@link Request} object
      * @param res The {@link Response} object
      * @throws Exception

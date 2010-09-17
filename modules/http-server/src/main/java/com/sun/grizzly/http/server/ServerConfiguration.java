@@ -189,9 +189,9 @@ public class ServerConfiguration {
         addJmxEventListener(serviceChain);
         serviceChain.setDocRoot(docRoot);
 
-        for (Map.Entry<HttpService, String[]> adapterRecord : services.entrySet()) {
-            final HttpService httpService = adapterRecord.getKey();
-            final String[] mappings = adapterRecord.getValue();
+        for (Map.Entry<HttpService, String[]> serviceRecord : services.entrySet()) {
+            final HttpService httpService = serviceRecord.getKey();
+            final String[] mappings = serviceRecord.getValue();
 
             if (httpService.getDocRoot() == null) {
                 httpService.setDocRoot(docRoot);

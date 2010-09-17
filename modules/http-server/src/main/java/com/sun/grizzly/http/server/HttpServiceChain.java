@@ -73,7 +73,7 @@ public class HttpServiceChain extends HttpService implements JmxEventListener {
     private static final Logger logger = Grizzly.logger(HttpServiceChain.class);
 
     protected final static int MAPPING_DATA = 12;
-    protected final static int MAPPED_ADAPTER = 13;
+    protected final static int MAPPED_SERVICE = 13;
     /**
      * The list of {@link HttpService} instance.
      */
@@ -301,8 +301,8 @@ public class HttpServiceChain extends HttpService implements JmxEventListener {
 
     @Override
     public void destroy() {
-        for (Entry<HttpService, String[]> adapter : services.entrySet()) {
-            final HttpService a = adapter.getKey();
+        for (Entry<HttpService, String[]> service : services.entrySet()) {
+            final HttpService a = service.getKey();
             a.destroy();
         }
         started = false;
