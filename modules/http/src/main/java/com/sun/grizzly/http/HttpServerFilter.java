@@ -517,15 +517,16 @@ public class HttpServerFilter extends HttpCodecFilter {
             // Mark as close the connection after the request, and add the
             // connection: close header
             state.keepAlive = false;
-        }
-        
-        if (entityBody && !isHttp11 && response.getContentLength() == -1) {
+        } else if (entityBody && !isHttp11 && response.getContentLength() == -1) {
             // HTTP 1.0 response with no content-length having been set.
             // Close the connection to signal the response as being complete.
             state.keepAlive = false;
         } else if (entityBody && !response.isChunked() && response.getContentLength() == -1) {
             // HTTP 1.1 response with chunking disabled and no content-length having been set.
             // Close the connection to signal the response as being complete.
+            state.keepAlive = false;
+        } else if (!checkKeepAliveRequestsCount(request.getConnection())) {
+            // We processed max allowed HTTP requests over the keep alive connection
             state.keepAlive = false;
         }
 
@@ -740,8 +741,6 @@ public class HttpServerFilter extends HttpCodecFilter {
         boolean isKeepAlive = !ps.isError() && ps.isKeepAlive();
 
         if (isKeepAlive && keepAliveContext != null) {
-            isKeepAlive = (isKeepAlive & (++keepAliveContext.requestsProcessed <= keepAlive.getMaxRequestsCount()));
-
             if (keepAliveContext.requestsProcessed == 1) {
                 if (isKeepAlive) { // New keep-alive connection
                     KeepAlive.notifyProbesConnectionAccepted(keepAlive,
@@ -755,6 +754,17 @@ public class HttpServerFilter extends HttpCodecFilter {
         return isKeepAlive;
     }
 
+    private boolean checkKeepAliveRequestsCount(final Connection connection) {
+        final KeepAliveContext keepAliveContext;
+
+        if (processKeepAlive && (keepAliveContext =
+                keepAliveContextAttr.get(connection)) != null) {
+
+            return ++keepAliveContext.requestsProcessed <= keepAlive.getMaxRequestsCount();
+        }
+
+        return true;
+    }
 
     // ---------------------------------------------------------- Nested Classes
 
