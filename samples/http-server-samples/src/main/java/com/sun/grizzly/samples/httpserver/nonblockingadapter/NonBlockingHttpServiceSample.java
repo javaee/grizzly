@@ -37,7 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package com.sun.grizzly.samples.httpserver.blockingadapter;
+package com.sun.grizzly.samples.httpserver.nonblockingadapter;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
@@ -52,7 +52,10 @@ import com.sun.grizzly.http.HttpClientFilter;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.server.*;
-import com.sun.grizzly.http.server.Adapter;
+import com.sun.grizzly.http.server.Response;
+import com.sun.grizzly.http.server.io.NIOReader;
+import com.sun.grizzly.http.server.io.NIOWriter;
+import com.sun.grizzly.http.server.io.ReadHandler;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.MemoryManager;
@@ -60,8 +63,6 @@ import com.sun.grizzly.memory.MemoryUtils;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 
 import java.io.IOException;
-import java.io.Reader;
-import java.io.Writer;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -70,35 +71,38 @@ import java.util.logging.Logger;
 
 /**
  * <p>
- * This example demonstrates the use of a {@link com.sun.grizzly.http.server.Adapter} to echo
- * <code>HTTP</code> <code>POST</code> data sent by the client, back to the client.
+ * This example demonstrates the use of a {@link com.sun.grizzly.http.server.HttpService} to echo
+ * <code>HTTP</code> <code>POST</code> data sent by the client, back to the client using
+ * non-blocking streams introduced in Grizzly 2.0.
  * </p>
  *
  * <p>
- * The is composed of two main parts (as nested classes of <code>BlockingAdapterSample</code>)
+ * The is composed of two main parts (as nested classes of <code>BlockingHttpServiceSample</code>)
  * <ul>
  *    <li>
- *       Client: This is a simple <code>HTTP</code> based on the Grizzly {@link HttpClientFilter}.
+ *       Client: This is a simple <code>HTTP</code> based on the Grizzly {@link com.sun.grizzly.http.HttpClientFilter}.
  *               The client uses a custom {@link com.sun.grizzly.filterchain.Filter} on top
- *               of the {@link HttpClientFilter} to send the <code>POST</code> and
- *               read, and ultimately display, the response from the server.
+ *               of the {@link com.sun.grizzly.http.HttpClientFilter} to send the <code>POST</code> and
+ *               read, and ultimately display, the response from the server.  To
+ *               better demonstrate the callbacks defined by {@link ReadHandler},
+ *               the client will send each data chunk two seconds apart.
+ *
  *    </li>
  *    <li>
- *       BlockingEchoAdapter: This {@link com.sun.grizzly.http.server.Adapter} is installed to the
- *                            {@link com.sun.grizzly.http.server.HttpServer} instance and associated
- *                            with the path <code>/echo</code>.  This {@link com.sun.grizzly.http.server.Adapter}
- *                            is fairly simple.  The adapter uses the {@link com.sun.grizzly.http.server.io.NIOReader}
- *                            returned by {@link com.sun.grizzly.http.server.Request#getReader(boolean)} in blocking
- *                            mode.  As data is received, the same data is then immediately
- *                            written to the response.
+ *       NoneBlockingEchoService: This {@link com.sun.grizzly.http.server.HttpService} is installed to the
+ *                                {@link com.sun.grizzly.http.server.HttpServer} instance and associated
+ *                                with the path <code>/echo</code>.  The service uses the {@link com.sun.grizzly.http.server.io.NIOReader}
+ *                                returned by {@link com.sun.grizzly.http.server.Request#getReader(boolean)} in non-blocking
+ *                                mode.  As data is received asynchronously, the {@link ReadHandler} callbacks are
+ *                                invoked at this time data is then written to the response.
  *    </li>
  * </ul>
  * </p>
  *
  */
-public class BlockingAdapterSample {
+public class NonBlockingHttpServiceSample {
 
-    private static final Logger LOGGER = Grizzly.logger(BlockingAdapterSample.class);
+    private static final Logger LOGGER = Grizzly.logger(NonBlockingHttpServiceSample.class);
 
 
     public static void main(String[] args) {
@@ -108,8 +112,8 @@ public class BlockingAdapterSample {
 
         final ServerConfiguration config = server.getServerConfiguration();
 
-        // Map the path, /echo, to the BlockingEchoAdapter
-        config.addAdapter(new BlockingEchoAdapter(), "/echo");
+        // Map the path, /echo, to the NonBlockingEchoService
+        config.addHttpService(new NonBlockingEchoService(), "/echo");
 
         try {
             server.start();
@@ -223,9 +227,7 @@ public class BlockingAdapterSample {
             public NextAction handleConnect(FilterChainContext ctx) throws IOException {
                 System.out.println("\nClient connected!\n");
 
-                HttpRequestPacket.Builder builder = createRequest();
-                HttpRequestPacket request = builder.build();
-                request.addHeader("Host", HOST + ':' + PORT);
+                HttpRequestPacket request = createRequest();
                 System.out.println("Writing request:\n");
                 System.out.println(request.toString());
                 ctx.write(request); // write the request
@@ -241,6 +243,11 @@ public class BlockingAdapterSample {
                     HttpContent content = contentBuilder.build();
                     System.out.println(b.toStringContent());
                     ctx.write(content);
+                    try {
+                        Thread.sleep(2000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace(); 
+                    }
                 }
 
                 // since the request created by createRequest() is chunked,
@@ -277,14 +284,16 @@ public class BlockingAdapterSample {
             // ------------------------------------------------- Private Methods
 
 
-            private HttpRequestPacket.Builder createRequest() {
+            private HttpRequestPacket createRequest() {
 
                 HttpRequestPacket.Builder builder = HttpRequestPacket.builder();
                 builder.method("POST");
                 builder.protocol("HTTP/1.1");
                 builder.uri("/echo");
                 builder.chunked(true);
-                return builder;
+                HttpRequestPacket packet = builder.build();
+                packet.addHeader("Host", HOST + ':' + PORT);
+                return packet;
 
             }
 
@@ -294,47 +303,100 @@ public class BlockingAdapterSample {
 
 
     /**
-     * This adapter using blocking streams to read POST data and echo it back to the
-     * client.
+     * This service using non-blocking streams to read POST data and echo it
+     * back to the client.
      */
-    private static class BlockingEchoAdapter extends Adapter {
+    private static class NonBlockingEchoService extends HttpService {
 
 
-        // --------------------------------------------- Methods from Adapter
+        // -------------------------------------------- Methods from HttpService
 
 
         @Override
-        public void service(Request request, Response response) throws Exception {
+        public void service(final Request request,
+                            final Response response) throws Exception {
 
             final char[] buf = new char[128];
-            Reader in = null;
-            Writer out = null;
-            try {
-                in = request.getReader(true); // true argument puts the stream in blocking mode
-                out = response.getWriter();
+            final NIOReader in = request.getReader(false); // false argument puts the stream in non-blocking mode
+            final NIOWriter out = response.getWriter();
 
-                int read;
-                while ((read = in.read(buf)) != -1) {
-                    out.write(buf, 0, read); // echo the contents of 'buf' to the client
-                }
-                out.flush();
-            } finally {
-                if (in != null) {
-                    try {
-                        in.close();
-                    } catch (IOException ignore) {
+            do {
+                // continue reading ready data until no more can be read without
+                // blocking
+                while (in.isReady()) {
+                    final int ready = in.readyData();
+                    int read = in.read(buf, 0, ready);
+                    if (read == -1) {
+                        break;
                     }
+                    System.out.println("INITIAL READ: " + new String(buf, 0, ready));
+                    out.write(buf, 0, ready);
                 }
-                if (out != null) {
-                    try {
-                        out.close();
-                    } catch (IOException ignore) {
+
+                // try to install a ReadHandler.  If this fails,
+                // continue at the top of the loop and read available data,
+                // otherwise break the look and allow the handler to wait for
+                // data to become available.
+                boolean installed = in.notifyAvailable(new ReadHandler() {
+
+                    @Override
+                    public void onDataAvailable() {
+                        System.out.println("[onDataAvailable] length: " + in.readyData());
+                        doWrite(this, in, buf, out, false);
                     }
+
+                    @Override
+                    public void onError(Throwable t) {
+                        System.out.println("[onError]" + t);
+                    }
+
+                    @Override
+                    public void onAllDataRead() {
+                        System.out.println("[onAllDataRead] length: " + in.readyData());
+                        doWrite(this, in, buf, out, true);
+                        response.resume();
+                    }
+                });
+
+                if (installed) {
+                    break;
                 }
-            }
+            } while (!in.isFinished());
+
+            response.suspend();
 
         }
 
-    } // END BlockingEchoAdapter
+        private void doWrite(ReadHandler handler,
+                             NIOReader in,
+                             char[] buf,
+                             NIOWriter out,
+                             boolean flush) {
+            try {
+                if (in.readyData() <= 0) {
+                    if (flush) {
+                        out.flush();
+                    }
+                    return;
+                }
+                for (;;) {
+                    int len = in.read(buf);
+                    System.out.println("READ: " + new String(buf, 0, len));
+                    out.write(buf, 0, len);
+                    if (flush) {
+                        out.flush();
+                    }
+                    if (!in.isReady()) {
+                        // no more data is available, isntall the handler again.
+                        in.notifyAvailable(handler);
+                        break;
+                    }
+                }
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+            }
+        }
+
+    } // END NonBlockingEchoService
     
 }
