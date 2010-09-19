@@ -351,7 +351,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
      * Associates the request that triggered this response.
      * @param request the request that triggered this response
      */
-    void setRequest(HttpRequestPacket request) {
+    public void setRequest(HttpRequestPacket request) {
         this.request = request;
     }
 

@@ -60,6 +60,7 @@ import java.util.logging.Logger;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.TransportProbe;
 import com.sun.grizzly.filterchain.TransportFilter;
+import com.sun.grizzly.http.ContentEncoding;
 import com.sun.grizzly.memory.MemoryProbe;
 import com.sun.grizzly.monitoring.MonitoringConfig;
 import com.sun.grizzly.ssl.SSLEngineConfigurator;
@@ -73,6 +74,7 @@ import com.sun.grizzly.websockets.WebSocketFilter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -524,6 +526,11 @@ public class HttpServer {
                                          maxHeaderSize,
                                          listener.getKeepAlive(),
                                          delayedExecutor);
+            final Set<ContentEncoding> contentEncodings = listener.getContentEncodings();
+            for (ContentEncoding contentEncoding : contentEncodings) {
+                httpServerFilter.addContentEncoding(contentEncoding);
+            }
+            
             httpServerFilter.getMonitoringConfig().addProbes(
                     serverConfig.getMonitoringConfig().getHttpConfig().getProbes());
             builder.add(httpServerFilter);

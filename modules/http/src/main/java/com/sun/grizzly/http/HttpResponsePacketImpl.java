@@ -87,7 +87,7 @@ class HttpResponsePacketImpl extends HttpResponsePacket implements HttpPacketPar
 
     @Override
     public ProcessingState getProcessingState() {
-        return (getRequest().getProcessingState());
+        return getRequest().getProcessingState();
     }
 
     @Override

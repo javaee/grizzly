@@ -145,26 +145,9 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
 
         contentEncodings.add(
-                    new GZipContentEncoding(GZipContentEncoding.DEFAULT_IN_BUFFER_SIZE,
-                    GZipContentEncoding.DEFAULT_OUT_BUFFER_SIZE,
-                    new EncodingFilter() {
-                        @Override
-                        public boolean applyEncoding(HttpHeader httpPacket) {
-                            if (!httpPacket.isRequest()) {
-                                final HttpResponsePacket response = (HttpResponsePacket) httpPacket;
-                                final HttpRequestPacket request;
-                                final BufferChunk acceptEncoding;
-                                if (response.isChunked() && (request = response.getRequest()) != null &&
-                                        (acceptEncoding = request.getHeaders().getValue("Accept-Encoding")) != null &&
-                                        acceptEncoding.indexOf("gzip", 0) >= 0) {
-                                    return true;
-                                }
-                            }
-
-                            return false;
-                        }
-                    })
-                );
+                new GZipContentEncoding(
+                GZipContentEncoding.DEFAULT_IN_BUFFER_SIZE,
+                GZipContentEncoding.DEFAULT_OUT_BUFFER_SIZE));
     }
     
     // ----------------------------------------------------------- Configuration

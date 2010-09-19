@@ -44,6 +44,7 @@ import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.filterchain.Filter;
 import com.sun.grizzly.filterchain.FilterChain;
+import com.sun.grizzly.http.ContentEncoding;
 import com.sun.grizzly.http.HttpCodecFilter;
 import com.sun.grizzly.http.KeepAlive;
 import com.sun.grizzly.http.server.filecache.FileCache;
@@ -52,6 +53,8 @@ import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.ssl.SSLEngineConfigurator;
 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -154,7 +157,11 @@ public class NetworkListener {
      */
     private final FileCache fileCache = new FileCache();
 
-
+    /**
+     * The set of the supported {@link ContentEncoding}s.
+     */
+    private final Set<ContentEncoding> contentEncodings =
+            new HashSet<ContentEncoding>();
     /**
      * Maximum size, in bytes, of all data waiting to be written.
      */
@@ -515,6 +522,12 @@ public class NetworkListener {
         return fileCache;
     }
 
+    /**
+     * @return the set of the supported {@link ContentEncoding}s.
+     */
+    public Set<ContentEncoding> getContentEncodings() {
+        return contentEncodings;
+    }
 
     /**
      * @return the maximum size, in bytes, of all data waiting to be written

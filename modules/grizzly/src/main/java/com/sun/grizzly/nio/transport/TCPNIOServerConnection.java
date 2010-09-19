@@ -51,8 +51,11 @@ import java.util.concurrent.Future;
 import java.util.logging.Level;
 import com.sun.grizzly.EmptyCompletionHandler;
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.Context;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.GrizzlyFuture;
+import com.sun.grizzly.PostProcessor;
+import com.sun.grizzly.ProcessorResult.Status;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.nio.RegisterChannelResult;
@@ -66,7 +69,7 @@ import java.util.logging.Logger;
  */
 public final class TCPNIOServerConnection extends TCPNIOConnection {
 
-    private static Logger logger = Grizzly.logger(TCPNIOServerConnection.class);
+    private static final Logger LOGGER = Grizzly.logger(TCPNIOServerConnection.class);
     private FutureImpl<Connection> acceptListener;
     private final RegisterAcceptedChannelCompletionHandler defaultCompletionHandler;
     private final Object acceptSync = new Object();
@@ -185,9 +188,7 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
         }
 
         tcpNIOTransport.getNioChannelDistributor().registerChannelAsync(
-                acceptedChannel,
-                connection.isStandalone() ? 0 : SelectionKey.OP_READ,
-                connection, handler);
+                acceptedChannel, 0, connection, handler);
     }
 
     @Override
@@ -199,7 +200,7 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
         try {
             ((TCPNIOTransport) transport).unbind(this);
         } catch (IOException e) {
-            logger.log(Level.FINE,
+            LOGGER.log(Level.FINE,
                     "Exception occurred, when unbind connection: " + this, e);
         }
 
@@ -282,10 +283,33 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
                     listener.result(connection);
                 }
 
-                transport.fireIOEvent(IOEvent.ACCEPTED, connection, null);
+                // if not standalone - enable OP_READ after IOEvent.ACCEPTED will be processed
+                transport.fireIOEvent(IOEvent.ACCEPTED, connection,
+                        !isStandalone() ? enableInterestPostProcessor : null);
             } catch (Exception e) {
-                logger.log(Level.FINE, "Exception happened, when "
+                LOGGER.log(Level.FINE, "Exception happened, when "
                         + "trying to accept the connection", e);
+            }
+        }
+    }
+
+
+
+    // COMPLETE, COMPLETE_LEAVE, REREGISTER, RERUN, ERROR, TERMINATE
+    private final static boolean[] isRegisterMap = {true, false, true, false, false, false};
+
+    // PostProcessor, which supposed to enable OP_READ interest, once Processor will be notified
+    // about Connection ACCEPT
+    protected final static PostProcessor enableInterestPostProcessor =
+            new EnableReadPostProcessor();
+
+
+    private static class EnableReadPostProcessor implements PostProcessor {
+        @Override
+        public void process(Context context, Status status) throws IOException {
+            if (isRegisterMap[status.ordinal()]) {
+                final NIOConnection nioConnection = (NIOConnection) context.getConnection();
+                nioConnection.enableIOEvent(IOEvent.READ);
             }
         }
     }

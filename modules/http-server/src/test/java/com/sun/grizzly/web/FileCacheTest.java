@@ -40,6 +40,9 @@
 
 package com.sun.grizzly.web;
 
+import com.sun.grizzly.http.HttpHeader;
+import com.sun.grizzly.http.util.BufferChunk;
+import com.sun.grizzly.http.EncodingFilter;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.SocketConnectorHandler;
 import com.sun.grizzly.filterchain.BaseFilter;
@@ -47,6 +50,7 @@ import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.filterchain.TransportFilter;
+import com.sun.grizzly.http.GZipContentEncoding;
 import com.sun.grizzly.http.HttpClientFilter;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpPacket;
@@ -301,6 +305,26 @@ public class FileCacheTest {
             listener.setSSLEngineConfig(createSSLConfig(true));
         }
         listener.getFileCache().setEnabled(true);
+        listener.getContentEncodings().add(new GZipContentEncoding(
+                GZipContentEncoding.DEFAULT_IN_BUFFER_SIZE,
+                GZipContentEncoding.DEFAULT_OUT_BUFFER_SIZE,
+                new EncodingFilter() {
+                        @Override
+                        public boolean applyEncoding(HttpHeader httpPacket) {
+                            if (!httpPacket.isRequest()) {
+                                final HttpResponsePacket response = (HttpResponsePacket) httpPacket;
+                                final HttpRequestPacket request;
+                                final BufferChunk acceptEncoding;
+                                if (response.isChunked() && (request = response.getRequest()) != null &&
+                                        (acceptEncoding = request.getHeaders().getValue("Accept-Encoding")) != null &&
+                                        acceptEncoding.indexOf("gzip", 0) >= 0) {
+                                    return true;
+                                }
+                            }
+
+                            return false;
+                        }
+                    }));
 
         gws.addListener(listener);
     }
