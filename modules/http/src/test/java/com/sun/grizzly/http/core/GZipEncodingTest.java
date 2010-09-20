@@ -359,8 +359,8 @@ public class GZipEncodingTest extends TestCase {
         @Override
         public NextAction handleConnect(FilterChainContext ctx)
               throws IOException {
-            if (logger.isLoggable(Level.FINE)) {
-                logger.log(Level.FINE, "Connected... Sending the request: {0}",
+            if (logger.isLoggable(Level.INFO)) {
+                logger.log(Level.INFO, "Connected... Sending the request: {0}",
                         request);
             }
 
@@ -376,7 +376,7 @@ public class GZipEncodingTest extends TestCase {
 
             final HttpContent httpContent = (HttpContent) ctx.getMessage();
 
-            logger.log(Level.FINE, "Got HTTP response chunk");
+            logger.log(Level.INFO, "Got HTTP response chunk; last: " + httpContent.isLast());
 
 
             if (httpContent.isLast()) {
