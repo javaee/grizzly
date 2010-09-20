@@ -38,7 +38,7 @@
  * holder.
  */
 
-package com.sun.grizzly.samples.http.download;
+package org.glassfish.grizzly.samples.http.download;
 
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.TransportFactory;

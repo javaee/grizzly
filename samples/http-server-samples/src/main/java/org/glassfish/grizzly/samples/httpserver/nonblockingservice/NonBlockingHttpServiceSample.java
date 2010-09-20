@@ -37,7 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package com.sun.grizzly.samples.httpserver.nonblockingadapter;
+package org.glassfish.grizzly.samples.httpserver.nonblockingadapter;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;

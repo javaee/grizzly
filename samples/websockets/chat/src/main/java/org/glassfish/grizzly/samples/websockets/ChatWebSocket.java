@@ -38,7 +38,7 @@
  * holder.
  */
 
-package com.sun.grizzly.samples.websockets;
+package org.glassfish.grizzly.samples.websockets;
 
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
