@@ -167,11 +167,12 @@ public class HttpCodecFilter extends JmxObject {
         }
 
         @Override
-        public void onHeaderParseEvent(Connection connection, HttpHeader header) {
+        public void onHeaderParseEvent(Connection connection, HttpHeader header,
+                int size) {
         }
 
         @Override
-        public void onHeaderSerializeEvent(Connection connection, HttpHeader header) {
+        public void onHeaderSerializeEvent(Connection connection, HttpHeader header, Buffer buffer) {
         }
 
         @Override

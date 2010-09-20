@@ -127,7 +127,7 @@ public abstract class HttpCodecFilter extends BaseFilter
      * or <tt>false</tt> otherwise.
      */
     abstract boolean decodeInitialLine(HttpPacketParsing httpPacket,
-            ParsingState parsingState, Buffer input);
+            HeaderParsingState parsingState, Buffer input);
 
     /**
      * Method is responsible for serializing initial line of HTTP message (different
@@ -341,6 +341,8 @@ public abstract class HttpCodecFilter extends BaseFilter
                     // filterchain processing
                     return ctx.getStopAction(input);
                 } else {
+                    final int headerSizeInBytes = input.position();
+                    
                     // if headers get parsed - set the flag
                     httpPacket.setHeaderParsed(true);
                     // recycle header parsing state
@@ -355,13 +357,12 @@ public abstract class HttpCodecFilter extends BaseFilter
                     }
 
                     input = input.hasRemaining() ? input.slice() : BufferUtils.EMPTY_BUFFER;
-//                    input = input.slice();
 
                     setTransferEncodingOnParsing((HttpHeader) httpPacket);
                     setContentEncodingsOnParsing((HttpHeader) httpPacket);
 
                     HttpProbeNotifier.notifyHeaderParse(this, connection,
-                            (HttpHeader) httpPacket);
+                            (HttpHeader) httpPacket, headerSizeInBytes);
                 }
             }
 
@@ -526,7 +527,7 @@ public abstract class HttpCodecFilter extends BaseFilter
     
     protected boolean decodeHttpPacket(HttpPacketParsing httpPacket, Buffer input) {
 
-        final ParsingState parsingState = httpPacket.getHeaderParsingState();
+        final HeaderParsingState parsingState = httpPacket.getHeaderParsingState();
 
         switch (parsingState.state) {
             case 0: { // parsing initial line
@@ -588,8 +589,11 @@ public abstract class HttpCodecFilter extends BaseFilter
                                         Constants.CRLF_BYTES);
                     encodedBuffer.trim();
                     encodedBuffer.allowBufferDispose(true);
-                    response.acknowledged(); 
 
+                    HttpProbeNotifier.notifyHeaderSerialize(this, connection,
+                            httpHeader, encodedBuffer);
+
+                    response.acknowledged(); 
                     return encodedBuffer; // DO NOT MARK COMMITTED
                 }
             }
@@ -613,7 +617,8 @@ public abstract class HttpCodecFilter extends BaseFilter
             
             httpHeader.setCommitted(true);
 
-            HttpProbeNotifier.notifyHeaderSerialize(this, connection, httpHeader);
+            HttpProbeNotifier.notifyHeaderSerialize(this, connection, httpHeader,
+                    encodedBuffer);
         }
 
         
@@ -734,7 +739,7 @@ public abstract class HttpCodecFilter extends BaseFilter
     }
     
     protected static boolean parseHeaders(HttpHeader httpHeader,
-            MimeHeaders mimeHeaders, ParsingState parsingState, Buffer input) {
+            MimeHeaders mimeHeaders, HeaderParsingState parsingState, Buffer input) {
         
         do {
             if (parsingState.subState == 0) {
@@ -760,7 +765,7 @@ public abstract class HttpCodecFilter extends BaseFilter
     }
 
     protected static boolean parseHeader(HttpHeader httpHeader,
-            MimeHeaders mimeHeaders, ParsingState parsingState, Buffer input) {
+            MimeHeaders mimeHeaders, HeaderParsingState parsingState, Buffer input) {
         
         int subState = parsingState.subState;
 
@@ -817,7 +822,7 @@ public abstract class HttpCodecFilter extends BaseFilter
     }
 
     protected static boolean parseHeaderName(HttpHeader httpHeader,
-            MimeHeaders mimeHeaders, ParsingState parsingState, Buffer input) {
+            MimeHeaders mimeHeaders, HeaderParsingState parsingState, Buffer input) {
         final int limit = Math.min(input.limit(), parsingState.packetLimit);
         int start = parsingState.start;
         int offset = parsingState.offset;
@@ -847,7 +852,7 @@ public abstract class HttpCodecFilter extends BaseFilter
     }
 
     protected static int parseHeaderValue(HttpHeader httpHeader,
-            ParsingState parsingState, Buffer input) {
+            HeaderParsingState parsingState, Buffer input) {
         
         final int limit = Math.min(input.limit(), parsingState.packetLimit);
         
@@ -900,7 +905,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         return -1;
     }
 
-    private static void checkKnownHeaderNames(ParsingState parsingState,
+    private static void checkKnownHeaderNames(HeaderParsingState parsingState,
             byte b, int idx) {
         if (parsingState.isContentLengthHeader) {
             parsingState.isContentLengthHeader =
@@ -930,7 +935,7 @@ public abstract class HttpCodecFilter extends BaseFilter
     }
 
     private static void finalizeKnownHeaderNames(HttpHeader httpHeader,
-            ParsingState parsingState, int size) {
+            HeaderParsingState parsingState, int size) {
         
         if (parsingState.isContentLengthHeader) {
             parsingState.isContentLengthHeader =
@@ -951,7 +956,7 @@ public abstract class HttpCodecFilter extends BaseFilter
     }
 
     private static void checkKnownHeaderValues(HttpHeader httpHeader,
-            ParsingState parsingState, byte b) {
+            HeaderParsingState parsingState, byte b) {
         if (parsingState.isContentLengthHeader) {
             if (Ascii.isDigit(b)) {
                 parsingState.parsingNumericValue =
@@ -974,7 +979,7 @@ public abstract class HttpCodecFilter extends BaseFilter
     }
 
     private static void finalizeKnownHeaderValues(HttpHeader httpHeader,
-            ParsingState parsingState, Buffer input) {
+            HeaderParsingState parsingState, Buffer input) {
 
         parsingState.isTransferEncodingHeader = false;
 
@@ -985,7 +990,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         }
     }
 
-    protected static int checkEOL(ParsingState parsingState, Buffer input) {
+    protected static int checkEOL(HeaderParsingState parsingState, Buffer input) {
         final int offset = parsingState.offset;
         final int avail = input.limit() - offset;
 
@@ -1018,7 +1023,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         return -1;
     }
 
-    protected static boolean findEOL(ParsingState state, Buffer input) {
+    protected static boolean findEOL(HeaderParsingState state, Buffer input) {
         int offset = state.offset;
         final int limit = Math.min(input.limit(), state.packetLimit);
 
@@ -1397,7 +1402,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         isSecure = false;
     }
 
-    protected static final class ParsingState {
+    protected static final class HeaderParsingState {
         public int packetLimit;
 
         public int state;
@@ -1417,7 +1422,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         public boolean isUpgradeHeader;
         public boolean isExpect100Header;
 
-        public void initialize(int initialOffset, int maxHeaderSize) {
+        public void initialize(final int initialOffset, final int maxHeaderSize) {
             offset = initialOffset;
             packetLimit = offset + maxHeaderSize;
         }

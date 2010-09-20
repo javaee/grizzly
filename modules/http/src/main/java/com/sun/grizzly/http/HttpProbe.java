@@ -77,8 +77,10 @@ public interface HttpProbe {
      *
      * @param connection {@link Connection}, the event belongs to.
      * @param header parsed {@link HttpHeader}.
+     * @param size the size of the parsed header buffer.
      */
-    public void onHeaderParseEvent(Connection connection, HttpHeader header);
+    public void onHeaderParseEvent(Connection connection, HttpHeader header,
+            int size);
 
     /**
      * Method will be called, when HTTP message header gets serialized
@@ -86,8 +88,10 @@ public interface HttpProbe {
      *
      * @param connection {@link Connection}, the event belongs to.
      * @param header serialized {@link HttpHeader}.
+     * @param buffer the serialized header {@link Buffer}.
      */
-    public void onHeaderSerializeEvent(Connection connection, HttpHeader header);
+    public void onHeaderSerializeEvent(Connection connection, HttpHeader header,
+            Buffer buffer);
 
     /**
      * Method will be called, when HTTP message content chunk gets parsed

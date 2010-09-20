@@ -160,7 +160,7 @@ public class HttpClientFilter extends HttpCodecFilter {
 
     @Override
     final boolean decodeInitialLine(HttpPacketParsing httpPacket,
-            ParsingState parsingState, Buffer input) {
+            HeaderParsingState parsingState, Buffer input) {
 
         final HttpResponsePacket httpResponse = (HttpResponsePacket) httpPacket;
         

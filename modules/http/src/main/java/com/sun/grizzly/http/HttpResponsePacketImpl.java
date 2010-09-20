@@ -63,11 +63,11 @@ class HttpResponsePacketImpl extends HttpResponsePacket implements HttpPacketPar
 
     private boolean isHeaderParsed;
     
-    private final HttpCodecFilter.ParsingState headerParsingState;
+    private final HttpCodecFilter.HeaderParsingState headerParsingState;
     private final HttpCodecFilter.ContentParsingState contentParsingState;
 
     private HttpResponsePacketImpl() {
-        this.headerParsingState = new HttpCodecFilter.ParsingState();
+        this.headerParsingState = new HttpCodecFilter.HeaderParsingState();
         this.contentParsingState = new HttpCodecFilter.ContentParsingState();
     }
 
@@ -76,7 +76,7 @@ class HttpResponsePacketImpl extends HttpResponsePacket implements HttpPacketPar
     }
     
     @Override
-    public HttpCodecFilter.ParsingState getHeaderParsingState() {
+    public HttpCodecFilter.HeaderParsingState getHeaderParsingState() {
         return headerParsingState;
     }
 

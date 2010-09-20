@@ -293,7 +293,7 @@ public class HttpServerFilter extends HttpCodecFilter {
 
     @Override
     final boolean decodeInitialLine(HttpPacketParsing httpPacket,
-            ParsingState parsingState, Buffer input) {
+            HeaderParsingState parsingState, Buffer input) {
 
         final HttpRequestPacketImpl httpRequest = (HttpRequestPacketImpl) httpPacket;
 
@@ -392,7 +392,7 @@ public class HttpServerFilter extends HttpCodecFilter {
     }
 
     private static boolean parseRequestURI(HttpRequestPacketImpl httpRequest,
-            ParsingState state, Buffer input) {
+            HeaderParsingState state, Buffer input) {
         
         final int limit = Math.min(input.limit(), state.packetLimit);
 

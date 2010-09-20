@@ -64,12 +64,12 @@ class HttpRequestPacketImpl extends HttpRequestPacket implements HttpPacketParsi
 
     private boolean isHeaderParsed;
     
-    private final HttpCodecFilter.ParsingState headerParsingState;
+    private final HttpCodecFilter.HeaderParsingState headerParsingState;
     private final HttpCodecFilter.ContentParsingState contentParsingState;
     private final ProcessingState processingState;
 
     private HttpRequestPacketImpl() {
-        this.headerParsingState = new HttpCodecFilter.ParsingState();
+        this.headerParsingState = new HttpCodecFilter.HeaderParsingState();
         this.contentParsingState = new HttpCodecFilter.ContentParsingState();
         this.processingState = new ProcessingState();
         isExpectContent = true;
@@ -87,7 +87,7 @@ class HttpRequestPacketImpl extends HttpRequestPacket implements HttpPacketParsi
     }
 
     @Override
-    public HttpCodecFilter.ParsingState getHeaderParsingState() {
+    public HttpCodecFilter.HeaderParsingState getHeaderParsingState() {
         return headerParsingState;
     }
 

@@ -43,7 +43,7 @@ package com.sun.grizzly.http;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.http.HttpCodecFilter.ContentParsingState;
-import com.sun.grizzly.http.HttpCodecFilter.ParsingState;
+import com.sun.grizzly.http.HttpCodecFilter.HeaderParsingState;
 import com.sun.grizzly.http.util.Ascii;
 import com.sun.grizzly.http.util.HexUtils;
 import com.sun.grizzly.http.util.MimeHeaders;
@@ -194,7 +194,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
     }
 
     private void initTrailerParsing(HttpPacketParsing httpPacket) {
-        final ParsingState headerParsingState =
+        final HeaderParsingState headerParsingState =
                 httpPacket.getHeaderParsingState();
         final ContentParsingState contentParsingState =
                 httpPacket.getContentParsingState();
@@ -208,7 +208,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
 
     private static boolean parseLastChunkTrailer(HttpPacketParsing httpPacket,
             Buffer input) {
-        final ParsingState headerParsingState =
+        final HeaderParsingState headerParsingState =
                 httpPacket.getHeaderParsingState();
         final ContentParsingState contentParsingState =
                 httpPacket.getContentParsingState();
@@ -219,7 +219,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
 
     private static boolean parseHttpChunkLength(HttpPacketParsing httpPacket,
             Buffer input) {
-        final ParsingState parsingState = httpPacket.getHeaderParsingState();
+        final HeaderParsingState parsingState = httpPacket.getHeaderParsingState();
 
         while (true) {
             switch (parsingState.state) {
@@ -269,7 +269,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
     }
 
     private static Buffer parseTrailerCRLF(HttpPacketParsing httpPacket, Buffer input) {
-        final ParsingState parsingState = httpPacket.getHeaderParsingState();
+        final HeaderParsingState parsingState = httpPacket.getHeaderParsingState();
 
         if (parsingState.state == 2) {
             while (input.hasRemaining()) {

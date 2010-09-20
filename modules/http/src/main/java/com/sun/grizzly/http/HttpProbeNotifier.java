@@ -95,15 +95,16 @@ final class HttpProbeNotifier {
      * @param httpFilter the <tt>HttpCodecFilter</tt> event occurred on.
      * @param connection the <tt>Connection</tt> event occurred on.
      * @param header HTTP {@link HttpHeader}s been parsed.
+     * @param size the size of the parsed header buffer.
      */
     static void notifyHeaderParse(final HttpCodecFilter httpFilter,
             final Connection connection,
-            final HttpHeader header) {
+            final HttpHeader header, final int size) {
 
         final HttpProbe[] probes = httpFilter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (HttpProbe probe : probes) {
-                probe.onHeaderParseEvent(connection, header);
+                probe.onHeaderParseEvent(connection, header, size);
             }
         }
     }
@@ -114,15 +115,16 @@ final class HttpProbeNotifier {
      * @param httpFilter the <tt>HttpCodecFilter</tt> event occurred on.
      * @param connection the <tt>Connection</tt> event occurred on.
      * @param header HTTP {@link HttpHeader}s been serialized.
+     * @param buffer the serialized header {@link Buffer}.
      */
     static void notifyHeaderSerialize(final HttpCodecFilter httpFilter,
-            final Connection connection,
-            final HttpHeader header) {
+            final Connection connection, final HttpHeader header,
+            final Buffer buffer) {
 
         final HttpProbe[] probes = httpFilter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (HttpProbe probe : probes) {
-                probe.onHeaderSerializeEvent(connection, header);
+                probe.onHeaderSerializeEvent(connection, header, buffer);
             }
         }
     }
