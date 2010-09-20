@@ -55,7 +55,6 @@ import com.sun.grizzly.Transformer;
  * @author Alexey Stashok
  */
 public class SSLCodec implements Codec<Buffer, Buffer> {
-    private final SSLContext sslContext;
 
     private final SSLEngineConfigurator serverSSLEngineConfig;
     private final SSLEngineConfigurator clientSSLEngineConfig;
@@ -68,7 +67,6 @@ public class SSLCodec implements Codec<Buffer, Buffer> {
     }
 
     public SSLCodec(SSLContext sslContext) {
-        this.sslContext = sslContext;
 
         decoder = new SSLDecoderTransformer();
         encoder = new SSLEncoderTransformer();

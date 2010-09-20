@@ -119,10 +119,7 @@ public class StringEncoder extends AbstractTransformer<String, Buffer> {
         output.flip();
         output.allowBufferDispose(true);
 
-        final TransformationResult<String, Buffer> result =
-                TransformationResult.createCompletedResult(
-                output, null);
-        return result;
+        return TransformationResult.createCompletedResult(output, null);
     }
 
     @Override

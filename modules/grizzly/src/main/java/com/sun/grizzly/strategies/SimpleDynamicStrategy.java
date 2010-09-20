@@ -72,7 +72,7 @@ public final class SimpleDynamicStrategy implements Strategy {
     private final SameThreadStrategy sameThreadStrategy;
     private final WorkerThreadStrategy workerThreadStrategy;
 
-    private int workerThreadThreshold = 1;
+    private static final int WORKER_THREAD_THRESHOLD = 1;
 
     public SimpleDynamicStrategy(final ExecutorService workerThreadPool) {
         this(new CurrentThreadExecutor(),
@@ -92,7 +92,7 @@ public final class SimpleDynamicStrategy implements Strategy {
         final NIOConnection nioConnection = (NIOConnection) connection;
         final int lastSelectedKeysCount = nioConnection.getSelectorRunner().getLastSelectedKeysCount();
 
-        if (lastSelectedKeysCount <= workerThreadThreshold) {
+        if (lastSelectedKeysCount <= WORKER_THREAD_THRESHOLD) {
             return sameThreadStrategy.executeIoEvent(connection, ioEvent);
         } else {
             return workerThreadStrategy.executeIoEvent(connection, ioEvent);
@@ -126,7 +126,7 @@ public final class SimpleDynamicStrategy implements Strategy {
 //            return;
 //        }
 //
-//        if (lastSelectedKeysCount >= workerThreadThreshold) {
+//        if (lastSelectedKeysCount >= WORKER_THREAD_THRESHOLD) {
 //            workerThreadStrategy.executeProcessor(strategyContext,
 //                    processorRunnable);
 //        } else if (lastSelectedKeysCount >= leaderFollowerThreshold) {
@@ -180,19 +180,19 @@ public final class SimpleDynamicStrategy implements Strategy {
 //     * from a {@link Selector}, to make it apply {@link WorkerThreadStrategy}.
 //     */
 //    public int getWorkerThreadThreshold() {
-//        return workerThreadThreshold;
+//        return WORKER_THREAD_THRESHOLD;
 //    }
 //
 //    /**
 //     * Set the number of {@link SelectionKey}s, which should be selected
 //     * from a {@link Selector}, to make it apply {@link WorkerThreadStrategy}.
 //     *
-//     * @param workerThreadThreshold the number of {@link SelectionKey}s,
+//     * @param WORKER_THREAD_THRESHOLD the number of {@link SelectionKey}s,
 //     * which should be selected from a {@link Selector}, to make it apply
 //     * {@link WorkerThreadStrategy}.
 //     */
-//    public void setWorkerThreadThreshold(int workerThreadThreshold) {
-//        this.workerThreadThreshold = workerThreadThreshold;
+//    public void setWorkerThreadThreshold(int WORKER_THREAD_THRESHOLD) {
+//        this.WORKER_THREAD_THRESHOLD = WORKER_THREAD_THRESHOLD;
 //        checkThresholds();
 //    }
 //
@@ -201,7 +201,7 @@ public final class SimpleDynamicStrategy implements Strategy {
 //     */
 //    private void checkThresholds() {
 //        if (leaderFollowerThreshold >= 0 &&
-//                workerThreadThreshold >= leaderFollowerThreshold) return;
+//                WORKER_THREAD_THRESHOLD >= leaderFollowerThreshold) return;
 //
 //        throw new IllegalStateException("Thresholds settings are incorrect");
 //    }

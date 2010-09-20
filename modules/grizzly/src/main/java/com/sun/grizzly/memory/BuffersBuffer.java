@@ -399,12 +399,11 @@ public final class BuffersBuffer implements CompositeBuffer {
 
         final int posBufferPos = getBufferPosition(posLocation);
         final int limitBufferLimit = getBufferPosition(limitLocation);
-        
-        final int leftTrim = posBufferIndex;
+
         final int rightTrim = buffersSize - limitBufferIndex - 1;
 
-        if (leftTrim > 0) {
-            for (int i = 0; i < leftTrim; i++) {
+        if (posBufferIndex > 0) {
+            for (int i = 0; i < posBufferIndex; i++) {
                 final Buffer buffer = buffers[i];
                 final int bufferSize = buffer.remaining();
                 setPosLim(position - bufferSize, limit - bufferSize);
@@ -430,11 +429,11 @@ public final class BuffersBuffer implements CompositeBuffer {
             }
         }
 
-        buffersSize -= (leftTrim + rightTrim);
+        buffersSize -= (posBufferIndex + rightTrim);
 
-        if (leftTrim > 0) {
-            System.arraycopy(buffers, leftTrim, buffers, 0, buffersSize);
-            Arrays.fill(buffers, buffersSize, buffersSize + leftTrim, null);
+        if (posBufferIndex > 0) {
+            System.arraycopy(buffers, posBufferIndex, buffers, 0, buffersSize);
+            Arrays.fill(buffers, buffersSize, buffersSize + posBufferIndex, null);
         }
 
         if (posBufferPos > 0) {
@@ -870,8 +869,7 @@ public final class BuffersBuffer implements CompositeBuffer {
         final byte v1 = get();
         final byte v2 = get();
 
-        final short shortValue = (short) (((v1 & 0xFF) << 8) | (v2 & 0xFF));
-        return shortValue;
+        return (short) (((v1 & 0xFF) << 8) | (v2 & 0xFF));
     }
 
     @Override
@@ -930,8 +928,7 @@ public final class BuffersBuffer implements CompositeBuffer {
         final short v1 = getShort();
         final short v2 = getShort();
 
-        final int intValue = ((v1 & 0xFFFF) << 16) | (v2 & 0xFFFF);
-        return intValue;
+        return ((v1 & 0xFFFF) << 16) | (v2 & 0xFFFF);
     }
 
     @Override
@@ -1004,8 +1001,7 @@ public final class BuffersBuffer implements CompositeBuffer {
         final int v1 = getInt();
         final int v2 = getInt();
 
-        final long longValue = ((v1 & 0xFFFFFFFFL) << 32) | (v2 & 0xFFFFFFFFL);
-        return longValue;
+        return ((v1 & 0xFFFFFFFFL) << 32) | (v2 & 0xFFFFFFFFL);
     }
 
     @Override

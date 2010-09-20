@@ -80,15 +80,8 @@ public class SSLSupportImpl implements SSLSupport {
     private final SSLEngine engine;
     private volatile SSLSession session;
 
-    private final SSLEngineConfigurator engineConfigurator;
-//    private final SSLHandshaker handshaker;
-    private final Connection connection;
-
-    public SSLSupportImpl(Connection connection,
-            SSLEngineConfigurator engineConfigurator) {
+    public SSLSupportImpl(Connection connection) {
         
-        this.engineConfigurator = engineConfigurator;
-        this.connection = connection;
         engine = SSLUtils.getSSLEngine(connection);
         session = engine.getSession();
     }

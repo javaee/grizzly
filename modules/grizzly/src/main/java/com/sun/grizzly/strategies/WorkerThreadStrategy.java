@@ -73,8 +73,6 @@ public final class WorkerThreadStrategy extends AbstractStrategy {
      * CLOSED
      */
     private final Executor[] executors;
-    private final Executor sameThreadProcessorExecutor;
-    private final Executor workerThreadProcessorExecutor;
 
     public WorkerThreadStrategy(final ExecutorService workerThreadPool) {
         this(new CurrentThreadExecutor(),
@@ -84,9 +82,6 @@ public final class WorkerThreadStrategy extends AbstractStrategy {
     protected WorkerThreadStrategy(Executor sameThreadProcessorExecutor,
             Executor workerThreadProcessorExecutor) {
         
-        this.sameThreadProcessorExecutor = sameThreadProcessorExecutor;
-        this.workerThreadProcessorExecutor = workerThreadProcessorExecutor;
-
         executors = new Executor[] {null, sameThreadProcessorExecutor,
             sameThreadProcessorExecutor, sameThreadProcessorExecutor,
             workerThreadProcessorExecutor, workerThreadProcessorExecutor,

@@ -48,7 +48,6 @@ import com.sun.grizzly.PostProcessor;
 import com.sun.grizzly.Strategy;
 import com.sun.grizzly.nio.NIOConnection;
 import com.sun.grizzly.nio.SelectorRunner;
-import com.sun.grizzly.utils.CurrentThreadExecutor;
 import com.sun.grizzly.utils.WorkerThreadExecutor;
 import java.util.concurrent.ExecutorService;
 
@@ -70,18 +69,12 @@ public final class LeaderFollowerStrategy extends AbstractStrategy {
      */
     private final Executor[] executors;
     
-    private final Executor sameThreadProcessorExecutor;
-    private final Executor workerThreadProcessorExecutor;
-
     public LeaderFollowerStrategy(final ExecutorService workerThreadPool) {
-        this(new CurrentThreadExecutor(),
+        this(
                 new WorkerThreadExecutor(workerThreadPool));
     }
 
-    protected LeaderFollowerStrategy(Executor sameThreadProcessorExecutor,
-            Executor workerThreadProcessorExecutor) {
-        this.sameThreadProcessorExecutor = sameThreadProcessorExecutor;
-        this.workerThreadProcessorExecutor = workerThreadProcessorExecutor;
+    protected LeaderFollowerStrategy(Executor workerThreadProcessorExecutor) {
 
         executors = new Executor[] {null, null, null, null,
             workerThreadProcessorExecutor, workerThreadProcessorExecutor,

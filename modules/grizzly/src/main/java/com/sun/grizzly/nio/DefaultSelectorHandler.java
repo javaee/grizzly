@@ -80,7 +80,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
      * The threshold for detecting selector.select spin on linux,
      * used for enabling workaround to prevent server from hanging.
      */
-    private final int spinRateTreshold = 2000;
+    private static final int SPIN_RATE_THRESHOLD = 2000;
 
     private long lastSpinTimestamp;
     private int emptySpinCounter;
@@ -125,7 +125,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
                 resetSpinCounter();
             } else {
                 long sr = getSpinRate();
-                if (sr > spinRateTreshold) {
+                if (sr > SPIN_RATE_THRESHOLD) {
                     workaroundSelectorSpin(selectorRunner);
                 }
             }

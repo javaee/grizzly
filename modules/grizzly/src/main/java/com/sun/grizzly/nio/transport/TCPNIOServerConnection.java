@@ -159,8 +159,7 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
     private SocketChannel doAccept() throws IOException {
         final ServerSocketChannel serverChannel =
                 (ServerSocketChannel) getChannel();
-        final SocketChannel acceptedChannel = serverChannel.accept();
-        return acceptedChannel;
+        return serverChannel.accept();
     }
 
     private void configureAcceptedChannel(SocketChannel acceptedChannel) throws IOException {

@@ -56,8 +56,6 @@ import java.io.IOException;
  * @author Alexey Stashok
  */
 public class GZipFilter extends BaseFilter {
-    private final int inBufferSize;
-    private final int outBufferSize;
 
     private final GZipDecoder decoder;
     private final GZipEncoder encoder;
@@ -75,8 +73,6 @@ public class GZipFilter extends BaseFilter {
      * @param outBufferSize output buffer size
      */
     public GZipFilter(int inBufferSize, int outBufferSize) {
-        this.inBufferSize = inBufferSize;
-        this.outBufferSize = outBufferSize;
         this.decoder = new GZipDecoder(inBufferSize);
         this.encoder = new GZipEncoder(outBufferSize);
     }

@@ -55,11 +55,7 @@ import com.sun.grizzly.utils.CurrentThreadExecutor;
  * @author Alexey Stashok
  */
 public final class SameThreadStrategy extends AbstractStrategy {
-    private final Executor sameThreadProcessorExecutor;
 
-    public SameThreadStrategy() {
-        sameThreadProcessorExecutor = new CurrentThreadExecutor();
-    }
 
     @Override
     public boolean executeIoEvent(Connection connection,

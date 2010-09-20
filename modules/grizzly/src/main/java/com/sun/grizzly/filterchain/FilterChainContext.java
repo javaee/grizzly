@@ -289,8 +289,7 @@ public final class FilterChainContext implements AttributeStorage {
      * @return message object, associated with the current processing.
      */
     public <T> T getMessage() {
-        @SuppressWarnings("unchecked") T result = (T) message;
-        return result;
+        return (T) message;
     }
 
     /**

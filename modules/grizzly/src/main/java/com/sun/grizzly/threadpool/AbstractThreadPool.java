@@ -77,8 +77,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
     static {
         int processorsBasedThreadCount =
                 Runtime.getRuntime().availableProcessors();
-        int defaultThreadsCount = processorsBasedThreadCount > 5 ? processorsBasedThreadCount : 5;
-        DEFAULT_MIN_THREAD_COUNT = defaultThreadsCount;
+        DEFAULT_MIN_THREAD_COUNT = processorsBasedThreadCount > 5 ? processorsBasedThreadCount : 5;
         DEFAULT_MAX_THREAD_COUNT = Integer.MAX_VALUE;
     }
     
