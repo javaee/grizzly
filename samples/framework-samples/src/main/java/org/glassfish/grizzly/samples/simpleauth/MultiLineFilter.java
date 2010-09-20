@@ -40,18 +40,18 @@
 
 package org.glassfish.grizzly.samples.simpleauth;
 
-import com.sun.grizzly.Connection;
-import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.attributes.Attribute;
-import com.sun.grizzly.filterchain.BaseFilter;
-import com.sun.grizzly.filterchain.FilterChainContext;
-import com.sun.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.attributes.Attribute;
+import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * The {@link com.sun.grizzly.filterchain.Filter} is responsible for a
+ * The {@link org.glassfish.grizzly.filterchain.Filter} is responsible for a
  * {@link String} <-> {@link MultiLinePacket} transformations.
  *
  * When reading - filter is gathering single {@link String} lines into a MultiLinePacket,
@@ -82,7 +82,7 @@ public class MultiLineFilter extends BaseFilter {
      * 
      * Filter check if it's {@link MultiLinePacket} terminating line, if yes -
      * we assume {@link MultiLinePacket} completed and pass control to a next
-     * {@link com.sun.grizzly.filterchain.Filter} in a chain. If it's not a
+     * {@link org.glassfish.grizzly.filterchain.Filter} in a chain. If it's not a
      * terminating line - we add another string line to a {@link MultiLinePacket}
      * and stop the request processing until more strings will get available.
      *

@@ -40,11 +40,11 @@
 
 package org.glassfish.grizzly.samples.echo;
 
-import com.sun.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.BaseFilter;
 import java.io.IOException;
-import com.sun.grizzly.filterchain.FilterChain;
-import com.sun.grizzly.filterchain.FilterChainContext;
-import com.sun.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
 
 /**
  * Implementation of {@link FilterChain} filter, which replies with the request

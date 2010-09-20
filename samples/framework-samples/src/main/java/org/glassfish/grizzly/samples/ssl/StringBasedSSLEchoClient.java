@@ -40,23 +40,23 @@
 
 package org.glassfish.grizzly.samples.ssl;
 
-import com.sun.grizzly.Connection;
-import com.sun.grizzly.EmptyCompletionHandler;
-import com.sun.grizzly.filterchain.FilterChainContext;
-import com.sun.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.net.URL;
-import com.sun.grizzly.TransportFactory;
-import com.sun.grizzly.filterchain.BaseFilter;
-import com.sun.grizzly.filterchain.Filter;
-import com.sun.grizzly.filterchain.FilterChain;
-import com.sun.grizzly.filterchain.FilterChainBuilder;
-import com.sun.grizzly.filterchain.TransportFilter;
-import com.sun.grizzly.nio.transport.TCPNIOTransport;
-import com.sun.grizzly.ssl.SSLContextConfigurator;
-import com.sun.grizzly.ssl.SSLEngineConfigurator;
-import com.sun.grizzly.ssl.SSLFilter;
-import com.sun.grizzly.utils.StringFilter;
+import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.Filter;
+import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.ssl.SSLContextConfigurator;
+import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
+import org.glassfish.grizzly.ssl.SSLFilter;
+import org.glassfish.grizzly.utils.StringFilter;
 import javax.net.ssl.SSLEngine;
 
 /**

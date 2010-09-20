@@ -38,9 +38,9 @@
  * holder.
  */
 
-package com.sun.grizzly.websockets;
+package org.glassfish.grizzly.websockets;
 
-import com.sun.grizzly.websockets.frame.Frame;
+import org.glassfish.grizzly.websockets.frame.Frame;
 import java.io.IOException;
 
 /**

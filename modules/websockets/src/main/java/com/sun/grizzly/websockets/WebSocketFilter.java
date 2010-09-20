@@ -38,28 +38,28 @@
  * holder.
  */
 
-package com.sun.grizzly.websockets;
+package org.glassfish.grizzly.websockets;
 
-import com.sun.grizzly.Buffer;
-import com.sun.grizzly.Connection;
-import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.filterchain.BaseFilter;
-import com.sun.grizzly.filterchain.FilterChainContext;
-import com.sun.grizzly.filterchain.NextAction;
-import com.sun.grizzly.http.Constants;
-import com.sun.grizzly.http.HttpClientFilter;
-import com.sun.grizzly.http.HttpContent;
-import com.sun.grizzly.http.HttpHeader;
-import com.sun.grizzly.http.HttpPacket;
-import com.sun.grizzly.http.HttpRequestPacket;
-import com.sun.grizzly.http.HttpResponsePacket;
-import com.sun.grizzly.http.HttpServerFilter;
-import com.sun.grizzly.http.Protocol;
-import com.sun.grizzly.http.util.HttpStatus;
-import com.sun.grizzly.memory.MemoryManager;
-import com.sun.grizzly.memory.MemoryUtils;
-import com.sun.grizzly.websockets.frame.ParseResult;
-import com.sun.grizzly.websockets.frame.Frame;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.http.Constants;
+import org.glassfish.grizzly.http.HttpClientFilter;
+import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.http.HttpHeader;
+import org.glassfish.grizzly.http.HttpPacket;
+import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.http.HttpResponsePacket;
+import org.glassfish.grizzly.http.HttpServerFilter;
+import org.glassfish.grizzly.http.Protocol;
+import org.glassfish.grizzly.http.util.HttpStatus;
+import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.memory.MemoryUtils;
+import org.glassfish.grizzly.websockets.frame.ParseResult;
+import org.glassfish.grizzly.websockets.frame.Frame;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.URI;
@@ -68,8 +68,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * WebSocket {@link com.sun.grizzly.filterchain.Filter} implementation, which supposed to be placed into a
- * {@link com.sun.grizzly.filterchain.FilterChain} right after HTTP Filter: {@link HttpServerFilter}, {@link HttpClientFilter};
+ * WebSocket {@link org.glassfish.grizzly.filterchain.Filter} implementation, which supposed to be placed into a
+ * {@link org.glassfish.grizzly.filterchain.FilterChain} right after HTTP Filter: {@link HttpServerFilter}, {@link HttpClientFilter};
  * depending whether it's server or client side.
  * The <tt>WebSocketFilter</tt> handles websocket connection, handshake phases and, when
  * receives a websocket frame - redirects it to appropriate handler ({@link WebSocketApplication}, {@link WebSocketClientHandler}) for processing.
@@ -91,10 +91,10 @@ public class WebSocketFilter extends BaseFilter {
      * Method handles Grizzly {@link Connection} connect phase. Check if the {@link Connection}
      * is a client-side {@link WebSocket}, if yes - creates websocket handshake packet
      * and send it to a server. Otherwise, if it's not websocket connection - pass processing
-     * to the next {@link com.sun.grizzly.filterchain.Filter} in a chain.
+     * to the next {@link org.glassfish.grizzly.filterchain.Filter} in a chain.
      * 
      * @param ctx {@link FilterChainContext}
-     * @return {@link NextAction} instruction for {@link com.sun.grizzly.filterchain.FilterChain},
+     * @return {@link NextAction} instruction for {@link org.glassfish.grizzly.filterchain.FilterChain},
      *  how it should continue the execution
      * @throws {@link java.io.IOException}
      */
@@ -126,11 +126,11 @@ public class WebSocketFilter extends BaseFilter {
     /**
      * Method handles Grizzly {@link Connection} close phase. Check if the {@link Connection}
      * is a {@link WebSocket}, if yes - tries to close the websocket gracefully (sending close frame)
-     * and calls {@link WebSocketHandler#onClose(com.sun.grizzly.websockets.WebSocket)}.
+     * and calls {@link WebSocketHandler#onClose(org.glassfish.grizzly.websockets.WebSocket)}.
      * If the Grizzly {@link Connection} is not websocket - passes processing to the next filter in the chain.
      *
      * @param ctx {@link FilterChainContext}
-     * @return {@link NextAction} instruction for {@link com.sun.grizzly.filterchain.FilterChain},
+     * @return {@link NextAction} instruction for {@link org.glassfish.grizzly.filterchain.FilterChain},
      *  how it should continue the execution
      * @throws {@link java.io.IOException}
      */
@@ -172,7 +172,7 @@ public class WebSocketFilter extends BaseFilter {
      * for server- and client- side connections.
      *
      * @param ctx {@link FilterChainContext}
-     * @return {@link NextAction} instruction for {@link com.sun.grizzly.filterchain.FilterChain},
+     * @return {@link NextAction} instruction for {@link org.glassfish.grizzly.filterchain.FilterChain},
      *  how it should continue the execution
      * @throws {@link java.io.IOException}
      */
@@ -269,7 +269,7 @@ public class WebSocketFilter extends BaseFilter {
      * we assume that message is websocket {@link Frame} and serialize it into a {@link Buffer}.
      *
      * @param ctx {@link FilterChainContext}
-     * @return {@link NextAction} instruction for {@link com.sun.grizzly.filterchain.FilterChain},
+     * @return {@link NextAction} instruction for {@link org.glassfish.grizzly.filterchain.FilterChain},
      *  how it should continue the execution
      * @throws {@link java.io.IOException}
      */
@@ -299,7 +299,7 @@ public class WebSocketFilter extends BaseFilter {
      * @param ctx {@link FilterChainContext}
      * @param content HTTP message
      * 
-     * @return {@link NextAction} instruction for {@link com.sun.grizzly.filterchain.FilterChain},
+     * @return {@link NextAction} instruction for {@link org.glassfish.grizzly.filterchain.FilterChain},
      *  how it should continue the execution
      * @throws {@link java.io.IOException}
      */

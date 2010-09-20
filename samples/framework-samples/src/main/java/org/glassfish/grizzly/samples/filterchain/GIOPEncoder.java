@@ -40,12 +40,12 @@
 
 package org.glassfish.grizzly.samples.filterchain;
 
-import com.sun.grizzly.AbstractTransformer;
-import com.sun.grizzly.Buffer;
-import com.sun.grizzly.TransformationException;
-import com.sun.grizzly.TransformationResult;
-import com.sun.grizzly.Transformer;
-import com.sun.grizzly.attributes.AttributeStorage;
+import org.glassfish.grizzly.AbstractTransformer;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.TransformationException;
+import org.glassfish.grizzly.TransformationResult;
+import org.glassfish.grizzly.Transformer;
+import org.glassfish.grizzly.attributes.AttributeStorage;
 
 /**
  * {@link Transformer}, which serializes {@link GIOPMessage} into a {@link Buffer}.

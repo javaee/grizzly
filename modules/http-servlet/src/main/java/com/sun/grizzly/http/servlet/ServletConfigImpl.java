@@ -38,7 +38,7 @@
  * holder.
  */
 
-package com.sun.grizzly.http.servlet;
+package org.glassfish.grizzly.http.servlet;
 
 import java.util.Enumeration;
 import javax.servlet.ServletConfig;

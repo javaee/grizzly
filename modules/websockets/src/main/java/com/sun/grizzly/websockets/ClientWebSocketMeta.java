@@ -38,9 +38,9 @@
  * holder.
  */
 
-package com.sun.grizzly.websockets;
+package org.glassfish.grizzly.websockets;
 
-import com.sun.grizzly.Grizzly;
+import org.glassfish.grizzly.Grizzly;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Random;

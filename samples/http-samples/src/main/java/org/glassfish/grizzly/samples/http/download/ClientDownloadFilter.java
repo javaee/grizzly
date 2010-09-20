@@ -40,15 +40,15 @@
 
 package org.glassfish.grizzly.samples.http.download;
 
-import com.sun.grizzly.Buffer;
-import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.filterchain.BaseFilter;
-import com.sun.grizzly.filterchain.FilterChainContext;
-import com.sun.grizzly.filterchain.NextAction;
-import com.sun.grizzly.http.HttpContent;
-import com.sun.grizzly.http.HttpRequestPacket;
-import com.sun.grizzly.http.Protocol;
-import com.sun.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.http.Protocol;
+import org.glassfish.grizzly.impl.FutureImpl;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;

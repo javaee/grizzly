@@ -38,7 +38,7 @@
  * holder.
  */
 
-package com.sun.grizzly.websockets;
+package org.glassfish.grizzly.websockets;
 
 /**
  * {@link Exception}, which describes the error, occurred during the {@link WebSocket}

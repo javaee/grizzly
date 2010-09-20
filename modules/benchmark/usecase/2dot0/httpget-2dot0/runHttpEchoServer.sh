@@ -39,4 +39,4 @@
 # holder.
 #
 
-java -cp ../lib/webcontainer.jar:../lib/http.jar:../lib/framework.jar:./build/classes com.sun.grizzly.benchmark.HttpGetServer $@
+java -cp ../lib/webcontainer.jar:../lib/http.jar:../lib/framework.jar:./build/classes org.glassfish.grizzly.benchmark.HttpGetServer $@

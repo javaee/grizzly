@@ -38,12 +38,12 @@
  * holder.
  */
 
-package com.sun.grizzly.websockets;
+package org.glassfish.grizzly.websockets;
 
-import com.sun.grizzly.CompletionHandler;
-import com.sun.grizzly.Connection;
-import com.sun.grizzly.GrizzlyFuture;
-import com.sun.grizzly.websockets.frame.Frame;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.GrizzlyFuture;
+import org.glassfish.grizzly.websockets.frame.Frame;
 import java.io.IOException;
 import java.net.URI;
 import java.util.concurrent.TimeUnit;

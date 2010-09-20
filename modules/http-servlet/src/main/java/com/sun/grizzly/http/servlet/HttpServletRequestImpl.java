@@ -56,7 +56,7 @@
  * limitations under the License.
  */
 
-package com.sun.grizzly.http.servlet;
+package org.glassfish.grizzly.http.servlet;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -74,12 +74,12 @@ import javax.servlet.ServletRequestAttributeEvent;
 import javax.servlet.ServletRequestAttributeListener;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
-import com.sun.grizzly.tcp.http11.Constants;
-import com.sun.grizzly.tcp.http11.GrizzlyRequest;
-import com.sun.grizzly.tcp.http11.GrizzlySession;
-import com.sun.grizzly.util.LoggerUtils;
-import com.sun.grizzly.util.http.Cookie;
-import com.sun.grizzly.util.res.StringManager;
+import org.glassfish.grizzly.tcp.http11.Constants;
+import org.glassfish.grizzly.tcp.http11.GrizzlyRequest;
+import org.glassfish.grizzly.tcp.http11.GrizzlySession;
+import org.glassfish.grizzly.util.LoggerUtils;
+import org.glassfish.grizzly.util.http.Cookie;
+import org.glassfish.grizzly.util.res.StringManager;
 
 /**
  * Facade class that wraps a {@link GrizzlyRequest} request object.  

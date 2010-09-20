@@ -56,7 +56,7 @@
  * limitations under the License.
  */
 
-package com.sun.grizzly.http.servlet;
+package org.glassfish.grizzly.http.servlet;
 
 import java.io.IOException;
 
@@ -70,7 +70,7 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletRequestEvent;
 import javax.servlet.ServletRequestListener;
 import javax.servlet.ServletResponse;
-import com.sun.grizzly.util.LoggerUtils;
+import org.glassfish.grizzly.util.LoggerUtils;
 
 /**
  * Implementation of <code>javax.servlet.FilterChain</code> used to manage

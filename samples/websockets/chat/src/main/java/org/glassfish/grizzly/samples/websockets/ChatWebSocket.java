@@ -40,18 +40,18 @@
 
 package org.glassfish.grizzly.samples.websockets;
 
-import com.sun.grizzly.Connection;
-import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.websockets.WebSocketBase;
-import com.sun.grizzly.websockets.WebSocketHandler;
-import com.sun.grizzly.websockets.WebSocketMeta;
-import com.sun.grizzly.websockets.frame.Frame;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.websockets.WebSocketBase;
+import org.glassfish.grizzly.websockets.WebSocketHandler;
+import org.glassfish.grizzly.websockets.WebSocketMeta;
+import org.glassfish.grizzly.websockets.frame.Frame;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Customize {@link com.sun.grizzly.websockets.WebSocket} implementation, which contains chat application
+ * Customize {@link org.glassfish.grizzly.websockets.WebSocket} implementation, which contains chat application
  * specific properties and logic.
  * 
  * @author Alexey Stashok

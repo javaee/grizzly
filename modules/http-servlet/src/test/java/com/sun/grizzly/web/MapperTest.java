@@ -38,9 +38,9 @@
  * holder.
  */
 
-package com.sun.grizzly.http;
+package org.glassfish.grizzly.http;
 
-import com.sun.grizzly.http.servlet.ServletAdapter;
+import org.glassfish.grizzly.http.servlet.ServletAdapter;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -53,7 +53,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.net.URL;
 import java.util.logging.Logger;
-import com.sun.grizzly.http.embed.GrizzlyWebServer;
+import org.glassfish.grizzly.http.embed.GrizzlyWebServer;
 
 /**
  * Test {@link GrizzlyAdapterChain} use of the {@link Mapper}

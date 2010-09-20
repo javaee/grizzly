@@ -39,28 +39,28 @@
  */
 package org.glassfish.grizzly.samples.httpserver.blockingadapter;
 
-import com.sun.grizzly.Buffer;
-import com.sun.grizzly.Connection;
-import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.TransportFactory;
-import com.sun.grizzly.filterchain.BaseFilter;
-import com.sun.grizzly.filterchain.FilterChainBuilder;
-import com.sun.grizzly.filterchain.FilterChainContext;
-import com.sun.grizzly.filterchain.NextAction;
-import com.sun.grizzly.filterchain.TransportFilter;
-import com.sun.grizzly.http.HttpClientFilter;
-import com.sun.grizzly.http.HttpContent;
-import com.sun.grizzly.http.HttpRequestPacket;
-import com.sun.grizzly.http.server.HttpServer;
-import com.sun.grizzly.http.server.HttpService;
-import com.sun.grizzly.http.server.Request;
-import com.sun.grizzly.http.server.Response;
-import com.sun.grizzly.http.server.ServerConfiguration;
-import com.sun.grizzly.impl.FutureImpl;
-import com.sun.grizzly.impl.SafeFutureImpl;
-import com.sun.grizzly.memory.MemoryManager;
-import com.sun.grizzly.memory.MemoryUtils;
-import com.sun.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.http.HttpClientFilter;
+import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.http.server.HttpServer;
+import org.glassfish.grizzly.http.server.HttpService;
+import org.glassfish.grizzly.http.server.Request;
+import org.glassfish.grizzly.http.server.Response;
+import org.glassfish.grizzly.http.server.ServerConfiguration;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.impl.SafeFutureImpl;
+import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.memory.MemoryUtils;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -73,7 +73,7 @@ import java.util.logging.Logger;
 
 /**
  * <p>
- * This example demonstrates the use of a {@link com.sun.grizzly.http.server.HttpService} to echo
+ * This example demonstrates the use of a {@link org.glassfish.grizzly.http.server.HttpService} to echo
  * <code>HTTP</code> <code>POST</code> data sent by the client, back to the client.
  * </p>
  *
@@ -82,16 +82,16 @@ import java.util.logging.Logger;
  * <ul>
  *    <li>
  *       Client: This is a simple <code>HTTP</code> based on the Grizzly {@link HttpClientFilter}.
- *               The client uses a custom {@link com.sun.grizzly.filterchain.Filter} on top
+ *               The client uses a custom {@link org.glassfish.grizzly.filterchain.Filter} on top
  *               of the {@link HttpClientFilter} to send the <code>POST</code> and
  *               read, and ultimately display, the response from the server.
  *    </li>
  *    <li>
- *       BlockingEchoService: This {@link com.sun.grizzly.http.server.HttpService} is installed to the
- *                            {@link com.sun.grizzly.http.server.HttpServer} instance and associated
- *                            with the path <code>/echo</code>.  This {@link com.sun.grizzly.http.server.HttpService}
- *                            is fairly simple.  The service uses the {@link com.sun.grizzly.http.server.io.NIOReader}
- *                            returned by {@link com.sun.grizzly.http.server.Request#getReader(boolean)} in blocking
+ *       BlockingEchoService: This {@link org.glassfish.grizzly.http.server.HttpService} is installed to the
+ *                            {@link org.glassfish.grizzly.http.server.HttpServer} instance and associated
+ *                            with the path <code>/echo</code>.  This {@link org.glassfish.grizzly.http.server.HttpService}
+ *                            is fairly simple.  The service uses the {@link org.glassfish.grizzly.http.server.io.NIOReader}
+ *                            returned by {@link org.glassfish.grizzly.http.server.Request#getReader(boolean)} in blocking
  *                            mode.  As data is received, the same data is then immediately
  *                            written to the response.
  *    </li>

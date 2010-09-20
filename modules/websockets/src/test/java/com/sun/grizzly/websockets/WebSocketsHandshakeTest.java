@@ -38,19 +38,19 @@
  * holder.
  */
 
-package com.sun.grizzly.websockets;
+package org.glassfish.grizzly.websockets;
 
-import com.sun.grizzly.TransportFactory;
-import com.sun.grizzly.filterchain.FilterChain;
-import com.sun.grizzly.filterchain.FilterChainBuilder;
-import com.sun.grizzly.filterchain.TransportFilter;
-import com.sun.grizzly.http.HttpClientFilter;
-import com.sun.grizzly.http.HttpServerFilter;
-import com.sun.grizzly.impl.FutureImpl;
-import com.sun.grizzly.impl.SafeFutureImpl;
-import com.sun.grizzly.nio.transport.TCPNIOTransport;
-import com.sun.grizzly.utils.ChunkingFilter;
-import com.sun.grizzly.websockets.frame.Frame;
+import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.http.HttpClientFilter;
+import org.glassfish.grizzly.http.HttpServerFilter;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.impl.SafeFutureImpl;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.utils.ChunkingFilter;
+import org.glassfish.grizzly.websockets.frame.Frame;
 import java.net.ConnectException;
 import java.net.URI;
 import java.util.concurrent.Future;

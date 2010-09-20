@@ -40,7 +40,7 @@
 
 package filter;
 
-import com.sun.grizzly.http.servlet.ServletAdapter;
+import org.glassfish.grizzly.http.servlet.ServletAdapter;
 import com.sun.jersey.api.core.ClasspathResourceConfig;
 import com.sun.jersey.spi.container.servlet.ServletContainer;
 import java.io.File;
@@ -50,12 +50,12 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.servlet.Filter;
 import javax.ws.rs.core.UriBuilder;
-import com.sun.grizzly.Transport;
-import com.sun.grizzly.TransportFactory;
-import com.sun.grizzly.filterchain.TransportFilter;
-import com.sun.grizzly.nio.transport.TCPNIOTransport;
-import com.sun.grizzly.http.WebFilter;
-import com.sun.grizzly.tcp.Adapter;
+import org.glassfish.grizzly.Transport;
+import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.http.WebFilter;
+import org.glassfish.grizzly.tcp.Adapter;
 
 public class Main {
 
@@ -64,7 +64,7 @@ public class Main {
     protected static Transport startServer() throws IOException {
         final Map<String, String> initParams = new HashMap<String, String>();
 
-        initParams.put("com.sun.jersey.config.property.packages",
+        initParams.put("com.glassfish.jersey.config.property.packages",
                 "filter");
 
         System.out.println("Starting grizzly...");

@@ -44,8 +44,8 @@ import com.sun.jersey.core.header.MediaTypes;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.WebResource;
 import junit.framework.TestCase;
-import com.sun.grizzly.Transport;
-import com.sun.grizzly.TransportFactory;
+import org.glassfish.grizzly.Transport;
+import org.glassfish.grizzly.TransportFactory;
 
 
 public class JerseyrNoServletTest extends TestCase {

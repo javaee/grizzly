@@ -43,13 +43,13 @@
 
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <parent>
-        <groupId>com.sun.grizzly</groupId>
+        <groupId>org.glassfish.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
         <version>2.0.0-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.sun.grizzly.samples</groupId>
+    <groupId>org.glassfish.grizzly.samples</groupId>
     <artifactId>grizzly-http-samples</artifactId>
     <packaging>bundle</packaging>
     <version>${grizzly-version}</version>
@@ -76,9 +76,9 @@
                 <configuration>
                     <instructions>
                         <Import-Package>*</Import-Package>
-                        <Export-Package>com.sun.grizzly.*</Export-Package>
-                        <Embed-Dependency>com.sun.grizzly;scope=runtime</Embed-Dependency>
-                        <Main-Class>com.sun.grizzly.standalone.framework.Main</Main-Class>
+                        <Export-Package>org.glassfish.grizzly.*</Export-Package>
+                        <Embed-Dependency>org.glassfish.grizzly;scope=runtime</Embed-Dependency>
+                        <Main-Class>org.glassfish.grizzly.standalone.framework.Main</Main-Class>
                     </instructions>
                 </configuration>
             </plugin>
@@ -86,7 +86,7 @@
     </build>
     <dependencies>
         <dependency>
-            <groupId>com.sun.grizzly</groupId>
+            <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-http</artifactId>
             <version>${grizzly-version}</version>
         </dependency>

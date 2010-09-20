@@ -42,14 +42,14 @@ package org.glassfish.grizzly.samples.ssl;
 
 import java.io.IOException;
 import java.net.URL;
-import com.sun.grizzly.TransportFactory;
-import com.sun.grizzly.filterchain.FilterChainBuilder;
-import com.sun.grizzly.filterchain.TransportFilter;
-import com.sun.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.samples.echo.EchoFilter;
-import com.sun.grizzly.ssl.SSLContextConfigurator;
-import com.sun.grizzly.ssl.SSLEngineConfigurator;
-import com.sun.grizzly.ssl.SSLFilter;
+import org.glassfish.grizzly.ssl.SSLContextConfigurator;
+import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
+import org.glassfish.grizzly.ssl.SSLFilter;
 
 /**
  * Class initializes and starts the SSL echo server, based on Grizzly 2.0

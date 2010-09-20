@@ -47,15 +47,15 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import com.sun.grizzly.Connection;
-import com.sun.grizzly.StandaloneProcessor;
-import com.sun.grizzly.TransportFactory;
-import com.sun.grizzly.nio.transport.TCPNIOConnection;
-import com.sun.grizzly.nio.transport.TCPNIOTransport;
-import com.sun.grizzly.ssl.SSLContextConfigurator;
-import com.sun.grizzly.ssl.SSLEngineConfigurator;
-import com.sun.grizzly.ssl.SSLStreamReader;
-import com.sun.grizzly.ssl.SSLStreamWriter;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.StandaloneProcessor;
+import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.ssl.SSLContextConfigurator;
+import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
+import org.glassfish.grizzly.ssl.SSLStreamReader;
+import org.glassfish.grizzly.ssl.SSLStreamWriter;
 
 /**
  * The simple standalone SSL client, which sends a message to the echo server

@@ -40,14 +40,14 @@
 
 package org.glassfish.grizzly.samples.websockets;
 
-import com.sun.grizzly.TransportFactory;
-import com.sun.grizzly.filterchain.FilterChainBuilder;
-import com.sun.grizzly.filterchain.TransportFilter;
-import com.sun.grizzly.http.HttpServerFilter;
-import com.sun.grizzly.nio.transport.TCPNIOTransport;
-import com.sun.grizzly.websockets.WebSocketApplication;
-import com.sun.grizzly.websockets.WebSocketEngine;
-import com.sun.grizzly.websockets.WebSocketFilter;
+import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.http.HttpServerFilter;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.websockets.WebSocketApplication;
+import org.glassfish.grizzly.websockets.WebSocketEngine;
+import org.glassfish.grizzly.websockets.WebSocketFilter;
 
 /**
  * Standalone Java web-socket chat server implementation.

@@ -40,16 +40,16 @@
 
 package org.glassfish.grizzly.samples.http.download;
 
-import com.sun.grizzly.Connection;
-import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.TransportFactory;
-import com.sun.grizzly.filterchain.FilterChainBuilder;
-import com.sun.grizzly.filterchain.TransportFilter;
-import com.sun.grizzly.http.HttpClientFilter;
-import com.sun.grizzly.impl.FutureImpl;
-import com.sun.grizzly.impl.SafeFutureImpl;
-import com.sun.grizzly.nio.transport.TCPNIOTransport;
-import com.sun.grizzly.utils.IdleTimeoutFilter;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.http.HttpClientFilter;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.impl.SafeFutureImpl;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.utils.IdleTimeoutFilter;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;

@@ -38,7 +38,7 @@
  * holder.
  */
 
-package com.sun.grizzly.http.servlet;
+package org.glassfish.grizzly.http.servlet;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -50,18 +50,18 @@ import java.util.logging.Level;
 import javax.servlet.Filter;
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
-import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.tcp.Constants;
-import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.tcp.Response;
-import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
-import com.sun.grizzly.tcp.http11.GrizzlyRequest;
-import com.sun.grizzly.tcp.http11.GrizzlyResponse;
-import com.sun.grizzly.util.ClassLoaderUtil;
-import com.sun.grizzly.util.IntrospectionUtils;
-import com.sun.grizzly.util.buf.MessageBytes;
-import com.sun.grizzly.util.http.Cookie;
-import com.sun.grizzly.util.http.HttpRequestURIDecoder;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.tcp.Constants;
+import org.glassfish.grizzly.tcp.Request;
+import org.glassfish.grizzly.tcp.Response;
+import org.glassfish.grizzly.tcp.http11.GrizzlyAdapter;
+import org.glassfish.grizzly.tcp.http11.GrizzlyRequest;
+import org.glassfish.grizzly.tcp.http11.GrizzlyResponse;
+import org.glassfish.grizzly.util.ClassLoaderUtil;
+import org.glassfish.grizzly.util.IntrospectionUtils;
+import org.glassfish.grizzly.util.buf.MessageBytes;
+import org.glassfish.grizzly.util.http.Cookie;
+import org.glassfish.grizzly.util.http.HttpRequestURIDecoder;
 
 /**
  * Adapter class that can initiate a {@link javax.servlet.FilterChain} and execute its
@@ -313,7 +313,7 @@ public class ServletAdapter extends GrizzlyAdapter {
             }
         
             if (servletInstance == null){
-                String servletClassName = System.getProperty("com.sun.grizzly.servletClass");
+                String servletClassName = System.getProperty("com.glassfish.grizzly.servletClass");
                 if (servletClassName != null) {
                     servletInstance = (Servlet)ClassLoaderUtil.load(servletClassName);
                 }

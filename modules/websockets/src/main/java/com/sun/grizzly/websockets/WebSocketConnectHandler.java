@@ -38,10 +38,10 @@
  * holder.
  */
 
-package com.sun.grizzly.websockets;
+package org.glassfish.grizzly.websockets;
 
-import com.sun.grizzly.CompletionHandler;
-import com.sun.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.impl.FutureImpl;
 
 /**
  * {@link WebSocket} connect {@link CompletionHandler}.

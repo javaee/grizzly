@@ -40,11 +40,11 @@
 
 package org.glassfish.grizzly.samples.reverse;
 
-import com.sun.grizzly.Connection;
-import com.sun.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.filterchain.BaseFilter;
 import java.io.IOException;
-import com.sun.grizzly.filterchain.FilterChainContext;
-import com.sun.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 

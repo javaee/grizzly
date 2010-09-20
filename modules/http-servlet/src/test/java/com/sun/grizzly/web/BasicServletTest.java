@@ -38,12 +38,12 @@
  * holder.
  */
 
-package com.sun.grizzly.http;
+package org.glassfish.grizzly.http;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import com.sun.grizzly.http.servlet.ServletAdapter;
+import org.glassfish.grizzly.http.servlet.ServletAdapter;
 import junit.framework.TestCase;
 
 import javax.servlet.ServletException;
@@ -53,7 +53,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.logging.Logger;
-import com.sun.grizzly.http.embed.GrizzlyWebServer;
+import org.glassfish.grizzly.http.embed.GrizzlyWebServer;
 
 /**
  * Basic Servlet Test.

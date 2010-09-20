@@ -38,7 +38,7 @@
  * holder.
  */
 
-package com.sun.grizzly.websockets;
+package org.glassfish.grizzly.websockets;
 
 import junit.framework.TestCase;
 

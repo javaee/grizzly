@@ -44,13 +44,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <parent>
-        <groupId>com.sun.grizzly</groupId>
+        <groupId>org.glassfish.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
         <version>2.0.0-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.sun.grizzly</groupId>
+    <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-config</artifactId>
     <packaging>hk2-jar</packaging>
     <version>${grizzly-version}</version>
@@ -166,13 +166,13 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.sun.grizzly</groupId>
+            <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-http</artifactId>
             <version>${grizzly-version}</version>
         </dependency>
 <!--
         <dependency>
-            <groupId>com.sun.grizzly</groupId>
+            <groupId>com.glassfish.grizzly</groupId>
             <artifactId>grizzly-comet</artifactId>
             <version>${grizzly-version}</version>
         </dependency>
@@ -214,7 +214,7 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.sun.grizzly</groupId>
+            <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-http-servlet</artifactId>
             <version>${grizzly-version}</version>
             <scope>test</scope>

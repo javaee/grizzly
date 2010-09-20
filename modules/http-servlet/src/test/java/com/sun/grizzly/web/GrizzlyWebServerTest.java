@@ -38,10 +38,10 @@
  * holder.
  */
 
-package com.sun.grizzly.http;
+package org.glassfish.grizzly.http;
 
 import java.util.logging.Level;
-import com.sun.grizzly.http.servlet.ServletAdapter;
+import org.glassfish.grizzly.http.servlet.ServletAdapter;
 import junit.framework.TestCase;
 
 import javax.net.ssl.HostnameVerifier;
@@ -59,13 +59,13 @@ import java.net.*;
 import java.security.GeneralSecurityException;
 import java.util.HashMap;
 import java.util.logging.Logger;
-import com.sun.grizzly.nio.transport.TCPNIOTransport;
-import com.sun.grizzly.ssl.SSLContextConfigurator;
-import com.sun.grizzly.ssl.SSLEngineConfigurator;
-import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
-import com.sun.grizzly.tcp.http11.GrizzlyRequest;
-import com.sun.grizzly.tcp.http11.GrizzlyResponse;
-import com.sun.grizzly.http.embed.GrizzlyWebServer;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.ssl.SSLContextConfigurator;
+import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
+import org.glassfish.grizzly.tcp.http11.GrizzlyAdapter;
+import org.glassfish.grizzly.tcp.http11.GrizzlyRequest;
+import org.glassfish.grizzly.tcp.http11.GrizzlyResponse;
+import org.glassfish.grizzly.http.embed.GrizzlyWebServer;
 
 /**
  * {@link GrizzlyWebServer} tests.

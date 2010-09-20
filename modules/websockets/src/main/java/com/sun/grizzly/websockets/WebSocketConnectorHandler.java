@@ -38,15 +38,15 @@
  * holder.
  */
 
-package com.sun.grizzly.websockets;
+package org.glassfish.grizzly.websockets;
 
-import com.sun.grizzly.Connection;
-import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.Processor;
-import com.sun.grizzly.impl.FutureImpl;
-import com.sun.grizzly.impl.SafeFutureImpl;
-import com.sun.grizzly.nio.transport.TCPNIOConnectorHandler;
-import com.sun.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.Processor;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.impl.SafeFutureImpl;
+import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -68,7 +68,7 @@ public class WebSocketConnectorHandler {
 
     /**
      * Construct a <tt>WebSocketConnectorHandler</tt> basing on the specific TCP
-     * {@link com.sun.grizzly.Transport} object.
+     * {@link org.glassfish.grizzly.Transport} object.
      *
      * @param transport {@link TCPNIOTransport}
      */
@@ -77,7 +77,7 @@ public class WebSocketConnectorHandler {
     }
 
     /**
-     * Construct a <tt>WebSocketConnectorHandler</tt> basing on the specific TCP {@link com.sun.grizzly.Transport}
+     * Construct a <tt>WebSocketConnectorHandler</tt> basing on the specific TCP {@link org.glassfish.grizzly.Transport}
      * object.  The underlying Grizzly {@link Connection} will use a {@link Processor}, different from one
      * used by transport {@link TCPNIOTransport}.
      *

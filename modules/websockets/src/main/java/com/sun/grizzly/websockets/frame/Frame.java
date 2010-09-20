@@ -38,14 +38,14 @@
  * holder.
  */
 
-package com.sun.grizzly.websockets.frame;
+package org.glassfish.grizzly.websockets.frame;
 
-import com.sun.grizzly.Buffer;
-import com.sun.grizzly.memory.MemoryUtils;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.memory.MemoryUtils;
 import java.nio.charset.Charset;
 
 /**
- * General abstraction, which represents {@link com.sun.grizzly.websockets.WebSocket} frame.
+ * General abstraction, which represents {@link org.glassfish.grizzly.websockets.WebSocket} frame.
  * Contains a set of static createXXX methods in order to create specific frame.
  *
  * @author Alexey Stashok
@@ -56,7 +56,7 @@ public abstract class Frame {
 
     /**
      * Create the stream-based frame, which will contain UTF-8 string.
-     * So far it's the only frame type officially supported for transferring data over {@link com.sun.grizzly.websockets.WebSocket}s.
+     * So far it's the only frame type officially supported for transferring data over {@link org.glassfish.grizzly.websockets.WebSocket}s.
      * @param text the text.
      *
      * @return the {@link Frame}.
@@ -66,7 +66,7 @@ public abstract class Frame {
     }
 
     /**
-     * Create the close frame, after sending which the {@link com.sun.grizzly.websockets.WebSocket} communication will be closed.
+     * Create the close frame, after sending which the {@link org.glassfish.grizzly.websockets.WebSocket} communication will be closed.
      *
      * @return the close frame.
      */

@@ -56,7 +56,7 @@
  * limitations under the License.
  */
 
-package com.sun.grizzly.http.servlet;
+package org.glassfish.grizzly.http.servlet;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -68,9 +68,9 @@ import java.util.Locale;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
-import com.sun.grizzly.tcp.http11.Constants;
-import com.sun.grizzly.tcp.http11.GrizzlyResponse;
-import com.sun.grizzly.util.res.StringManager;
+import org.glassfish.grizzly.tcp.http11.Constants;
+import org.glassfish.grizzly.tcp.http11.GrizzlyResponse;
+import org.glassfish.grizzly.util.res.StringManager;
 
 
 

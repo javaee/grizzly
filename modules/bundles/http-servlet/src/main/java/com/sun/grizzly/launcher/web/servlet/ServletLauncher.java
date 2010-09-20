@@ -38,19 +38,19 @@
  * holder.
  */
 
-package com.sun.grizzly.launcher.web.servlet;
+package org.glassfish.grizzly.launcher.web.servlet;
 
 import javax.servlet.Servlet;
-import com.sun.grizzly.http.WebFilter;
-import com.sun.grizzly.http.WebFilterConfig;
-import com.sun.grizzly.arp.AsyncWebFilter;
-import com.sun.grizzly.arp.AsyncWebFilterConfig;
-import com.sun.grizzly.arp.DefaultAsyncHandler;
-import com.sun.grizzly.tcp.Adapter;
-import com.sun.grizzly.http.servlet.ServletAdapter;
-import com.sun.grizzly.util.ClassLoaderUtil;
-import com.sun.grizzly.standalone.StandaloneMainUtil;
-import com.sun.grizzly.standalone.StaticHandler;
+import org.glassfish.grizzly.http.WebFilter;
+import org.glassfish.grizzly.http.WebFilterConfig;
+import org.glassfish.grizzly.arp.AsyncWebFilter;
+import org.glassfish.grizzly.arp.AsyncWebFilterConfig;
+import org.glassfish.grizzly.arp.DefaultAsyncHandler;
+import org.glassfish.grizzly.tcp.Adapter;
+import org.glassfish.grizzly.http.servlet.ServletAdapter;
+import org.glassfish.grizzly.util.ClassLoaderUtil;
+import org.glassfish.grizzly.standalone.StandaloneMainUtil;
+import org.glassfish.grizzly.standalone.StaticHandler;
 
 /**
  * Basic startup class used when Grizzly standalone is used
@@ -60,7 +60,7 @@ import com.sun.grizzly.standalone.StaticHandler;
 public class ServletLauncher extends StandaloneMainUtil {
     private String servletClassName;
 
-    private static final String ENABLE_ASYNC = "com.sun.grizzly.enableARP";
+    private static final String ENABLE_ASYNC = "com.glassfish.grizzly.enableARP";
     static int port = 8080;
     static String folder = ".";
 

@@ -47,8 +47,8 @@
     <protocols>
         <protocol name="pu-protocol">
             <port-unification>
-                <protocol-finder name="http-finder" classname="com.sun.grizzly.http.portunif.HttpProtocolFinder" protocol="http"/>
-                <protocol-finder name="X-protocol-finder" classname="com.sun.grizzly.config.XProtocolFinder" protocol="X-protocol"/>
+                <protocol-finder name="http-finder" classname="org.glassfish.grizzly.http.portunif.HttpProtocolFinder" protocol="http"/>
+                <protocol-finder name="X-protocol-finder" classname="org.glassfish.grizzly.config.XProtocolFinder" protocol="X-protocol"/>
             </port-unification>
         </protocol>
 
@@ -59,7 +59,7 @@
         <protocol name="X-protocol">
             <protocol-chain-instance-handler>
                 <protocol-chain>
-                    <protocol-filter name="x-filter" classname="com.sun.grizzly.config.XProtocolFilter"/>
+                    <protocol-filter name="x-filter" classname="org.glassfish.grizzly.config.XProtocolFilter"/>
                 </protocol-chain>
             </protocol-chain-instance-handler>
         </protocol>

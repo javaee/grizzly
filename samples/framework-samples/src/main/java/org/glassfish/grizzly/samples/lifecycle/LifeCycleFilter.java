@@ -45,15 +45,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import com.sun.grizzly.Connection;
-import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.attributes.Attribute;
-import com.sun.grizzly.filterchain.BaseFilter;
-import com.sun.grizzly.filterchain.FilterChainContext;
-import com.sun.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.attributes.Attribute;
+import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
 
 /**
- * Sample {@link com.sun.grizzly.filterchain.Filter}, which tracks the connections
+ * Sample {@link org.glassfish.grizzly.filterchain.Filter}, which tracks the connections
  * lifecycle.  The new connections could be either accepted if we have server,
  * or connected, if we establish client connection.
  *
@@ -73,7 +73,7 @@ public class LifeCycleFilter extends BaseFilter {
 
     /**
      * Method is called, when new {@link Connection} was
-     * accepted by a {@link com.sun.grizzly.Transport}
+     * accepted by a {@link org.glassfish.grizzly.Transport}
      *
      * @param ctx the filter chain context
      * @return the next action to be executed by chain
@@ -128,10 +128,10 @@ public class LifeCycleFilter extends BaseFilter {
 
     /**
      * Returns the total number of connections ever
-     * created by the {@link com.sun.grizzly.Transport}
+     * created by the {@link org.glassfish.grizzly.Transport}
      *
      * @return the total number of connections ever
-     * created by the {@link com.sun.grizzly.Transport}
+     * created by the {@link org.glassfish.grizzly.Transport}
      */
     public int getTotalConnections() {
         return totalConnectionNumber.get();

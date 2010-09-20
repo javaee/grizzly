@@ -38,12 +38,12 @@
  * holder.
  */
 
-package com.sun.grizzly.websockets.frame;
+package org.glassfish.grizzly.websockets.frame;
 
-import com.sun.grizzly.Buffer;
-import com.sun.grizzly.TransportFactory;
-import com.sun.grizzly.memory.BufferUtils;
-import com.sun.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.memory.BufferUtils;
+import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
  * Fixed-length {@link Frame}, which contains length prefix before the actual payload.

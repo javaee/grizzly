@@ -42,13 +42,13 @@ package org.glassfish.grizzly.samples.filterchain;
 
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import com.sun.grizzly.Connection;
-import com.sun.grizzly.ReadResult;
-import com.sun.grizzly.TransportFactory;
-import com.sun.grizzly.WriteResult;
-import com.sun.grizzly.filterchain.FilterChainBuilder;
-import com.sun.grizzly.filterchain.TransportFilter;
-import com.sun.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.ReadResult;
+import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 
 /**
  * Simple GIOP client

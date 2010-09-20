@@ -42,10 +42,10 @@ package org.glassfish.grizzly.samples.echo;
 
 import java.io.IOException;
 import java.util.logging.Logger;
-import com.sun.grizzly.TransportFactory;
-import com.sun.grizzly.filterchain.FilterChainBuilder;
-import com.sun.grizzly.filterchain.TransportFilter;
-import com.sun.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 
 /**
  * Class initializes and starts the echo server, based on Grizzly 2.0

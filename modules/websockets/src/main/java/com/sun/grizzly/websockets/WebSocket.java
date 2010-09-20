@@ -38,12 +38,12 @@
  * holder.
  */
 
-package com.sun.grizzly.websockets;
+package org.glassfish.grizzly.websockets;
 
-import com.sun.grizzly.CompletionHandler;
-import com.sun.grizzly.Connection;
-import com.sun.grizzly.GrizzlyFuture;
-import com.sun.grizzly.websockets.frame.Frame;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.GrizzlyFuture;
+import org.glassfish.grizzly.websockets.frame.Frame;
 import java.io.IOException;
 import java.net.URI;
 
@@ -82,7 +82,7 @@ public interface WebSocket {
      * Close the <tt>WebSocket</tt>.
      * The close operation will do the following steps:
      * 1) try to send a <tt>close frame</tt>
-     * 2) call {@link WebSocketHandler#onClose(com.sun.grizzly.websockets.WebSocket)} method
+     * 2) call {@link WebSocketHandler#onClose(org.glassfish.grizzly.websockets.WebSocket)} method
      * 3) close the underlying {@link Connection}
      *
      * @throws IOException

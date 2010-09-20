@@ -39,4 +39,4 @@
 # holder.
 #
 
-java -cp ../lib/framework.jar:./build/classes com.sun.grizzly.benchmark.TCPEchoServer $@
+java -cp ../lib/framework.jar:./build/classes org.glassfish.grizzly.benchmark.TCPEchoServer $@

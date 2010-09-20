@@ -41,23 +41,23 @@
 package org.glassfish.grizzly.samples.strategy;
 
 import java.io.IOException;
-import com.sun.grizzly.Strategy;
-import com.sun.grizzly.TransportFactory;
-import com.sun.grizzly.filterchain.FilterChainBuilder;
-import com.sun.grizzly.filterchain.TransportFilter;
-import com.sun.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.Strategy;
+import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.samples.echo.EchoFilter;
-import com.sun.grizzly.strategies.LeaderFollowerStrategy;
-import com.sun.grizzly.strategies.SameThreadStrategy;
-import com.sun.grizzly.strategies.SimpleDynamicStrategy;
-import com.sun.grizzly.strategies.WorkerThreadStrategy;
-import com.sun.grizzly.threadpool.GrizzlyExecutorService;
+import org.glassfish.grizzly.strategies.LeaderFollowerStrategy;
+import org.glassfish.grizzly.strategies.SameThreadStrategy;
+import org.glassfish.grizzly.strategies.SimpleDynamicStrategy;
+import org.glassfish.grizzly.strategies.WorkerThreadStrategy;
+import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 
 /**
  * Sample shows how easy custom {@link Strategy} could be applied for a
- * {@link com.sun.grizzly.Transport}. In this example we use
+ * {@link org.glassfish.grizzly.Transport}. In this example we use
  * {@link LeaderFollowerStrategy} for processing all I/O events occurring on
- * {@link com.sun.grizzly.Connection}.
+ * {@link org.glassfish.grizzly.Connection}.
  *
  * To test this echo server you can use {@link org.glassfish.grizzly.samples.echo.EchoClient}.
  *

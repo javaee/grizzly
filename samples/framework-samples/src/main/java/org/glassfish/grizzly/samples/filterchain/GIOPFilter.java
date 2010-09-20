@@ -40,8 +40,8 @@
 
 package org.glassfish.grizzly.samples.filterchain;
 
-import com.sun.grizzly.Buffer;
-import com.sun.grizzly.filterchain.AbstractCodecFilter;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.filterchain.AbstractCodecFilter;
 import java.util.logging.Filter;
 
 /**

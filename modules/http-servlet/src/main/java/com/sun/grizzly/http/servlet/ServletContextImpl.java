@@ -56,7 +56,7 @@
  * limitations under the License.
  */
 
-package com.sun.grizzly.http.servlet;
+package org.glassfish.grizzly.http.servlet;
 
 import java.io.File;
 import java.io.IOException;
@@ -80,8 +80,8 @@ import javax.servlet.ServletContextAttributeEvent;
 import javax.servlet.ServletContextAttributeListener;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
-import com.sun.grizzly.util.http.Enumerator;
-import com.sun.grizzly.util.http.MimeType;
+import org.glassfish.grizzly.util.http.Enumerator;
+import org.glassfish.grizzly.util.http.MimeType;
 
 /**
  * Simple {@link ServletContext} implementation.

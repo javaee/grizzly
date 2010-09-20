@@ -40,17 +40,17 @@
 
 package org.glassfish.grizzly.samples.websockets;
 
-import com.sun.grizzly.Connection;
-import com.sun.grizzly.websockets.ClientWebSocketMeta;
-import com.sun.grizzly.websockets.WebSocketClientHandler;
-import com.sun.grizzly.websockets.frame.Frame;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.websockets.ClientWebSocketMeta;
+import org.glassfish.grizzly.websockets.WebSocketClientHandler;
+import org.glassfish.grizzly.websockets.frame.Frame;
 import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * Chat web-socket client handler.
- * This {@link ChatClientHandler} customizes default {@link com.sun.grizzly.websockets.WebSocket}
+ * This {@link ChatClientHandler} customizes default {@link org.glassfish.grizzly.websockets.WebSocket}
  * with {@link ChatWebSocket}, which includes some chat specific properties and
  * logic.
  * 
@@ -72,11 +72,11 @@ public class ChatClientHandler extends WebSocketClientHandler<ChatWebSocket> {
     }
 
     /**
-     * Creates a customized {@link com.sun.grizzly.websockets.WebSocket} implementation.
+     * Creates a customized {@link org.glassfish.grizzly.websockets.WebSocket} implementation.
      *
      * @param connection underlying Grizzly {@link Connection}.
      * @param meta client-side {@link ClientWebSocketMeta}.
-     * @return customized {@link com.sun.grizzly.websockets.WebSocket} implementation - {@link ChatWebSocket}
+     * @return customized {@link org.glassfish.grizzly.websockets.WebSocket} implementation - {@link ChatWebSocket}
      */
     @Override
     protected ChatWebSocket createWebSocket(Connection connection,

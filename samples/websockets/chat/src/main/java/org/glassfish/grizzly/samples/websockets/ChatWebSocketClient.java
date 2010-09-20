@@ -40,15 +40,15 @@
 
 package org.glassfish.grizzly.samples.websockets;
 
-import com.sun.grizzly.TransportFactory;
-import com.sun.grizzly.filterchain.FilterChainBuilder;
-import com.sun.grizzly.filterchain.TransportFilter;
-import com.sun.grizzly.http.HttpClientFilter;
-import com.sun.grizzly.nio.transport.TCPNIOTransport;
-import com.sun.grizzly.websockets.WebSocket;
-import com.sun.grizzly.websockets.WebSocketConnectorHandler;
-import com.sun.grizzly.websockets.WebSocketFilter;
-import com.sun.grizzly.websockets.frame.Frame;
+import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.http.HttpClientFilter;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.websockets.WebSocket;
+import org.glassfish.grizzly.websockets.WebSocketConnectorHandler;
+import org.glassfish.grizzly.websockets.WebSocketFilter;
+import org.glassfish.grizzly.websockets.frame.Frame;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URI;

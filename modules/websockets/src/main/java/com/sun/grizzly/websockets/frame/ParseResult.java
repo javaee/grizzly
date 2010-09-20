@@ -38,11 +38,11 @@
  * holder.
  */
 
-package com.sun.grizzly.websockets.frame;
+package org.glassfish.grizzly.websockets.frame;
 
-import com.sun.grizzly.Buffer;
-import com.sun.grizzly.Cacheable;
-import com.sun.grizzly.ThreadCache;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Cacheable;
+import org.glassfish.grizzly.ThreadCache;
 
 /**
  * {@link Frame} parse result.
