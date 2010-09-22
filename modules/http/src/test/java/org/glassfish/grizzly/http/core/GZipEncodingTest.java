@@ -290,7 +290,7 @@ public class GZipEncodingTest extends TestCase {
 
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
         transport.setProcessor(filterChain);
-        transport.setReuseAddress(false);
+
         TCPNIOTransport ctransport = TransportFactory.getInstance().createTCPTransport();
         try {
             transport.bind(PORT);
