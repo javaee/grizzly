@@ -40,31 +40,61 @@
     holder.
 
 -->
-
 <chapter version="5.0" xmlns="http://docbook.org/ns/docbook"
-         xmlns:xlink="http://www.w3.org/1999/xlink"
-         xmlns:xi="http://www.w3.org/2001/XInclude"
-         xmlns:svg="http://www.w3.org/2000/svg"
-         xmlns:m="http://www.w3.org/1998/Math/MathML"
-         xmlns:html="http://www.w3.org/1999/xhtml"
-         xmlns:db="http://docbook.org/ns/docbook">
+        xmlns:xlink="http://www.w3.org/1999/xlink"
+        xmlns:xi="http://www.w3.org/2001/XInclude"
+        xmlns:svg="http://www.w3.org/2000/svg"
+        xmlns:m="http://www.w3.org/1998/Math/MathML"
+        xmlns:html="http://www.w3.org/1999/xhtml"
+        xmlns:db="http://docbook.org/ns/docbook">
+
   <title>Overview of the Grizzly Framework</title>
 
   <section>
     <title>Goals of the Grizzly Framework</title>
 
-    <para></para>
+    <para>Writing scalable server applications in the Java™ programming
+    language has always been difficult. Before the advent of the Java New I/O
+    API (NIO), thread management issues made it impossible for a server to
+    scale to thousands of users. The Grizzly NIO framework has been designed
+    to help developers to take advantage of the Java™ NIO API. </para>
+
+    <para>Our hope is to help developers to build scalable and robust servers
+    using NIO and we are also offering extended framework components such
+    as:</para>
+
+    <itemizedlist>
+      <listitem>
+        <para>HTTP Prototcol framework for creating custom HTTP
+        applications</para>
+      </listitem>
+
+      <listitem>
+        <para>HTP Server framework which offers high level abstractions to the
+        HTTP protocol (not unlike Servlets)</para>
+      </listitem>
+    </itemizedlist>
   </section>
 
   <section>
     <title>System Requirements</title>
 
-    <para></para>
+    <para>The system requirements for Grizzly 2.0 are quite simple. Basically,
+    Grizzly is able to run on any platform that <link
+    xlink:href="http://www.oracle.com/technetwork/java/index.html">JDK
+    1.6</link> is available on.</para>
   </section>
 
   <section>
     <title>Where to Get Help</title>
 
-    <para></para>
+    <para>There are several ways to obtain help with Grizzly. The first
+    resource is the <link
+    xlink:href="https://grizzly.dev.java.net/servlets/ProjectMailingListList">project
+    mailing lists</link>. The Grizzly team is very responsive to any mails
+    sent to these lists. The second resource is the <link
+    xlink:href="https://grizzly.dev.java.net/issues/">project issue
+    tracker</link>. If you find a bug with Grizzly, or have recommendations on
+    how to improve Grizzly, this is the place to do it.</para>
   </section>
 </chapter>

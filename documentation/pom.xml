@@ -102,6 +102,7 @@
                 </executions>
                 <configuration>
                     <highlightSource>1</highlightSource>
+                    <xincludeSupported>true</xincludeSupported>
                 </configuration>
             </plugin>
         </plugins>
