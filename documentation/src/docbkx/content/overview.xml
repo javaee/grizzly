@@ -48,68 +48,22 @@
          xmlns:m="http://www.w3.org/1998/Math/MathML"
          xmlns:html="http://www.w3.org/1999/xhtml"
          xmlns:db="http://docbook.org/ns/docbook">
-  <title>The Core Framework</title>
+  <title>Overview of the Grizzly Framework</title>
 
   <section>
-    <para />
-  </section>
-
-  <section>
-    <title>Memory Management</title>
+    <title>Goals of the Grizzly Framework</title>
 
     <para></para>
   </section>
 
   <section>
-    <title>I/O Strategies</title>
+    <title>System Requirements</title>
 
     <para></para>
   </section>
 
   <section>
-    <title>Transports and Connections</title>
-
-    <para></para>
-  </section>
-
-  <section>
-    <title>FilterChain and Filters</title>
-
-    <para></para>
-  </section>
-
-  <section>
-    <title>Configuration</title>
-
-    <para></para>
-  </section>
-
-  <section>
-    <title>Best Practices</title>
-
-    <para></para>
-  </section>
-
-  <section>
-    <title>Quick Start</title>
-
-    <para></para>
-
-    <section>
-      <title>Server</title>
-
-      <para></para>
-    </section>
-
-    <section>
-      <title>Client</title>
-
-      <para></para>
-    </section>
-  </section>
-
-  <section>
-    <title>Samples</title>
+    <title>Where to Get Help</title>
 
     <para></para>
   </section>
