@@ -295,8 +295,8 @@
                     <aggregate>true</aggregate>
                     <debug>true</debug>
                     <links>
-                        <link>http://java.sun.com/javaee/5/docs/api</link>
-                        <link>http://java.sun.com/j2se/1.5.0/docs/api</link>
+                        <link>http://java.sun.com/javaee/6/docs/api</link>
+                        <link>http://java.sun.com/j2se/1.6.0/docs/api</link>
                     </links>
                 </configuration>
             </plugin>
