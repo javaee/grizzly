@@ -60,10 +60,8 @@ public class TempServer {
 
     private static Adapter setUpWSEngine() {
         final EchoServlet servlet = new EchoServlet();
-        final SimpleWebSocketApplication app = new SimpleWebSocketApplication();
-        WebSocketEngine.getEngine().register("/echo", app);
+        WebSocketEngine.getEngine().register(new EchoWebSocketApplication());
 //        final ServletAdapter adapter = new ServletAdapter(servlet);
-        Adapter adapter = new StaticResourcesAdapter("src/test/resources");
-        return adapter;
+        return new StaticResourcesAdapter("src/test/resources");
     }
 }

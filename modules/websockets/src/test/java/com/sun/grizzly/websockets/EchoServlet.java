@@ -40,6 +40,8 @@
 
 package com.sun.grizzly.websockets;
 
+import com.sun.grizzly.tcp.Request;
+
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -50,9 +52,15 @@ import java.util.logging.Logger;
 public class EchoServlet extends HttpServlet {
     private static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     public static final String RESPONSE_TEXT = "Nothing to see";
+    private WebSocketApplication app;
 
     public EchoServlet() {
-        WebSocketEngine.getEngine().register("/echo", new WebSocketApplication() {
+        app = new WebSocketApplication() {
+            @Override
+            public boolean isApplicationRequest(Request request) {
+                return request.requestURI().equals("/echo");
+            }
+
             public void onMessage(WebSocket socket, DataFrame data) {
                 echo(socket, data);
             }
@@ -62,7 +70,14 @@ public class EchoServlet extends HttpServlet {
 
             public void onClose(WebSocket socket) {
             }
-        });
+        };
+        WebSocketEngine.getEngine().register(app);
+    }
+
+    @Override
+    public void destroy() {
+        WebSocketEngine.getEngine().unregister(app);
+        super.destroy();
     }
 
     public void echo(WebSocket socket, DataFrame data) {

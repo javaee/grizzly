@@ -50,11 +50,6 @@ import org.testng.annotations.Test;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.net.Socket;
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
-import java.nio.channels.spi.SelectorProvider;
 
 @Test
 public class NetworkHandlersTest {
@@ -79,22 +74,16 @@ public class NetworkHandlersTest {
         request.setResponse(response);
         response.setRequest(request);
         ServerNetworkHandler handler = new ServerNetworkHandler(request, request.getResponse());
-        handler.setWebSocket(new BaseWebSocket(handler));
+        handler.setWebSocket(new BaseWebSocket());
         handler.readFrame();
     }
 
-    public void client() throws IOException {
-        ClientNetworkHandler handler = new ClientNetworkHandler(new DummySocketChannel(buildStream()));
-        handler.setWebSocket(new ClientWebSocket(handler));
-        handler.readFrame();
-    }
-    
     private ByteArrayInputStream buildStream() throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        baos.write(generateString(50000));
-        baos.write(generateString(6262));
-        baos.write(generateString(1000));
-        return new ByteArrayInputStream(baos.toByteArray());
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        stream.write(generateString(50000));
+        stream.write(generateString(6262));
+        stream.write(generateString(1000));
+        return new ByteArrayInputStream(stream.toByteArray());
     }
 
     private byte[] generateString(int size) {
@@ -114,74 +103,5 @@ public class NetworkHandlersTest {
         }
 
         return new DataFrame(sb.toString()).frame();
-    }
-
-    private static class DummySocketChannel extends SocketChannel {
-        private final ByteArrayInputStream stream;
-
-        public DummySocketChannel(ByteArrayInputStream byteArrayInputStream) {
-            super(SelectorProvider.provider());
-            stream = byteArrayInputStream;
-        }
-
-        @Override
-        public Socket socket() {
-            return null;
-        }
-
-        @Override
-        public boolean isConnected() {
-            return true;
-        }
-
-        @Override
-        public boolean isConnectionPending() {
-            return false;
-        }
-
-        @Override
-        public boolean connect(SocketAddress remote) throws IOException {
-            return false;
-        }
-
-        @Override
-        public boolean finishConnect() throws IOException {
-            return true;
-        }
-
-        @Override
-        public int read(ByteBuffer dst) throws IOException {
-            int read = -1;
-            if(stream.available() > 0) {
-                byte[] bytes = new byte[dst.capacity()];
-                read = stream.read(bytes);
-                dst.put(bytes, 0, read);
-                dst.flip();
-            }
-            return read;
-        }
-
-        @Override
-        public long read(ByteBuffer[] dsts, int offset, int length) throws IOException {
-            return 0;
-        }
-
-        @Override
-        public int write(ByteBuffer src) throws IOException {
-            return 0;
-        }
-
-        @Override
-        public long write(ByteBuffer[] srcs, int offset, int length) throws IOException {
-            return 0;
-        }
-
-        @Override
-        protected void implCloseSelectableChannel() throws IOException {
-        }
-
-        @Override
-        protected void implConfigureBlocking(boolean block) throws IOException {
-        }
     }
 }

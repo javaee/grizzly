@@ -46,7 +46,7 @@ import java.nio.ByteBuffer;
 public interface NetworkHandler {
     void send(DataFrame frame) throws IOException;
 
-    void setWebSocket(BaseWebSocket webSocket);
+    void setWebSocket(WebSocket webSocket);
 
     byte get() throws IOException;
 

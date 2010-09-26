@@ -40,29 +40,22 @@
 
 package com.sun.grizzly.websockets;
 
+import com.sun.grizzly.tcp.Request;
+
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicInteger;
 
-public class TrackingWebSocketClientApplication extends ClientWebSocketApplication {
-    private final AtomicInteger nameCount = new AtomicInteger(0);
-    private final int count;
-
-    public TrackingWebSocketClientApplication(String url, final int count) throws IOException {
-        super(url);
-        this.count = count;
+class EchoWebSocketApplication extends WebSocketApplication {
+    @Override
+    public boolean isApplicationRequest(Request request) {
+        return request.requestURI().equals("/echo");
     }
 
-    @Override
-    protected boolean add(WebSocket socket) {
-        final boolean added = super.add(socket);
-        if (added) {
-            ((TrackingWebSocket) socket).setName(nameCount.incrementAndGet());
+    public void onMessage(WebSocket socket, DataFrame data) throws IOException {
+        super.onMessage(socket, data);
+        try {
+            socket.send(data.getTextPayload());
+        } catch (IOException e) {
+            throw new RuntimeException(e.getMessage(), e);
         }
-        return added;
-    }
-
-    @Override
-    public WebSocket createSocket(NetworkHandler handler, WebSocketListener... listeners) {
-        return new TrackingWebSocket(handler, count, listeners);
     }
 }

@@ -46,6 +46,7 @@ import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.servlet.ServletAdapter;
 import com.sun.grizzly.ssl.SSLSelectorThread;
 import com.sun.grizzly.tcp.Adapter;
+import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.net.jsse.JSSEImplementation;
@@ -86,11 +87,6 @@ public class WebSocketsTest {
     private static final int MESSAGE_COUNT = 10;
     private static SSLConfig sslConfig;
     public static final int PORT = 1725;
-    private final ClientWebSocketApplication wsClient;
-
-    public WebSocketsTest() throws IOException {
-        wsClient = new ClientWebSocketApplication("ws://localhost:" + PORT + "/echo");
-    }
 
     public void securityKeys() {
         validate("&2^3 4  1l6h85  F  3Z  31");
@@ -107,8 +103,7 @@ public class WebSocketsTest {
     @Test
     public void simpleConversationWithApplication() throws Exception {
         final EchoServlet servlet = new EchoServlet();
-        final SimpleWebSocketApplication app = new SimpleWebSocketApplication();
-        WebSocketEngine.getEngine().register("/echo", app);
+        WebSocketEngine.getEngine().register(new EchoWebSocketApplication());
         run(servlet);
     }
 
@@ -120,7 +115,7 @@ public class WebSocketsTest {
 
         WebSocket client = null;
         try {
-            client = wsClient.connect(new WebSocketListener() {
+            client = new ClientWebSocket(String.format("ws://localhost:%s/echo", PORT), new WebSocketListener() {
                 public void onMessage(WebSocket socket, DataFrame data) {
                     sent.remove(data.getTextPayload());
                     received.countDown();
@@ -157,12 +152,13 @@ public class WebSocketsTest {
 
     public void timeouts() throws Exception {
         SelectorThread thread = null;
+        WebSocket client = null;
         try {
-            WebSocketEngine.getEngine().register("/echo", new SimpleWebSocketApplication());
+            WebSocketEngine.getEngine().register(new EchoWebSocketApplication());
             thread = createSelectorThread(PORT, new StaticResourcesAdapter());
             final Map<String, Object> messages = new ConcurrentHashMap<String, Object>();
             final CountDownLatch received = new CountDownLatch(MESSAGE_COUNT);
-            WebSocket client = wsClient.connect(new WebSocketListener() {
+            client = new ClientWebSocket(String.format("ws://localhost:%s/echo", PORT), new WebSocketListener() {
                 public void onMessage(WebSocket socket, DataFrame data) {
                     messages.remove(data.getTextPayload());
                     received.countDown();
@@ -185,10 +181,12 @@ public class WebSocketsTest {
                     String.format("Waited %ss for everything to come back", WebSocketEngine.DEFAULT_TIMEOUT));
             Assert.assertTrue(messages.isEmpty(), "All messages should have been echoed back: " + messages);
         } finally {
+            if (client != null) {
+                client.close();
+            }
             if (thread != null) {
                 thread.stopEndpoint();
             }
-            wsClient.stop();
         }
     }
 
@@ -203,7 +201,7 @@ public class WebSocketsTest {
         SelectorThread thread = null;
         SSLSocket socket = null;
         try {
-            WebSocketEngine.getEngine().register("/echo", new SimpleWebSocketApplication());
+            WebSocketEngine.getEngine().register(new EchoWebSocketApplication());
             thread = createSSLSelectorThread(PORT, new StaticResourcesAdapter());
             SSLSocketFactory sslsocketfactory = getSSLSocketFactory();
 
@@ -285,9 +283,14 @@ public class WebSocketsTest {
     @Test
     public void testVer75ServerHandShake() throws Exception {
         final SelectorThread thread = createSelectorThread(PORT, new StaticResourcesAdapter());
-        WebSocketEngine.getEngine().register("/echo", new WebSocketApplication() {
+        WebSocketEngine.getEngine().register(new WebSocketApplication() {
             public void onMessage(WebSocket socket, DataFrame data) {
                 Assert.fail("A GET should never get here.");
+            }
+
+            @Override
+            public boolean isApplicationRequest(Request request) {
+                return true;
             }
 
             public void onConnect(WebSocket socket) {
@@ -347,21 +350,23 @@ public class WebSocketsTest {
     }
 
     public void testGetOnWebSocketApplication() throws IOException, InstantiationException, InterruptedException {
-        final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet() {
-            {
-                WebSocketEngine.getEngine().register("/echo", new WebSocketApplication() {
-                    public void onMessage(WebSocket socket, DataFrame data) {
-                        Assert.fail("A GET should never get here.");
-                    }
-
-                    public void onConnect(WebSocket socket) {
-                    }
-
-                    public void onClose(WebSocket socket) {
-                    }
-                });
+        WebSocketEngine.getEngine().register(new WebSocketApplication() {
+            public void onMessage(WebSocket socket, DataFrame data) {
+                Assert.fail("A GET should never get here.");
             }
-        }));
+
+            @Override
+            public boolean isApplicationRequest(Request request) {
+                return true;
+            }
+
+            public void onConnect(WebSocket socket) {
+            }
+
+            public void onClose(WebSocket socket) {
+            }
+        });
+        final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
         URL url = new URL("http://localhost:" + PORT + "/echo");
         final URLConnection urlConnection = url.openConnection();
         final InputStream is = urlConnection.getInputStream();

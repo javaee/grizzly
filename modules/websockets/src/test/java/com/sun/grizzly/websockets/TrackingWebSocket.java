@@ -48,12 +48,17 @@ import java.util.concurrent.TimeUnit;
 
 public class TrackingWebSocket extends ClientWebSocket {
     private final Map<String, Object> sent = new ConcurrentHashMap<String, Object>();
-    private final CountDownLatch conn = new CountDownLatch(1);
     private final CountDownLatch received;
     private String name;
 
-    public TrackingWebSocket(NetworkHandler handler, final int count, WebSocketListener... listeners) {
-        super(handler, listeners);
+    public TrackingWebSocket(String address, final int count, WebSocketListener... listeners) throws IOException {
+        super(address, listeners);
+        received = new CountDownLatch(count);
+    }
+
+    public TrackingWebSocket(String address, String name, final int count, WebSocketListener... listeners) throws IOException {
+        super(address, listeners);
+        this.name = name;
         received = new CountDownLatch(count);
     }
 
@@ -74,7 +79,6 @@ public class TrackingWebSocket extends ClientWebSocket {
     @Override
     public void onConnect() throws IOException {
         super.onConnect();
-        conn.countDown();
     }
 
     public boolean waitOnMessages() throws InterruptedException {
@@ -83,10 +87,6 @@ public class TrackingWebSocket extends ClientWebSocket {
 
     public String getName() {
         return name;
-    }
-
-    public void setName(int name) {
-        this.name = String.valueOf(name);
     }
 
     public CountDownLatch getReceived() {

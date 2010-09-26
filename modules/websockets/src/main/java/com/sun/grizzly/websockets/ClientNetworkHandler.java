@@ -42,74 +42,73 @@ package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.net.URL;
-import java.io.EOFException;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import java.io.EOFException;
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.SocketChannel;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.nio.channels.Selector;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 
 public class ClientNetworkHandler implements NetworkHandler {
-    private SocketChannel channel;
+    private Socket socket;
     private URL url;
-    private ClientWebSocketApplication app;
-    private WebSocket webSocket;
-    private ClientHandShake clientHS;
+    private ClientWebSocket webSocket;
+    private Selector selector;
     private final ByteChunk chunk = new ByteChunk();
 
     private boolean isHeaderParsed = false;
+    private OutputStream outputStream;
+    private InputStream inputStream;
 
-    ClientNetworkHandler(SocketChannel channel) {
-        this.channel = channel;
+    public ClientNetworkHandler(ClientWebSocket webSocket) {
+        url = webSocket.getAddress();
+        this.webSocket = webSocket;
+
+        try {
+            connect();
+            handshake();
+        } catch (IOException e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
+        queueRead();
     }
 
-    public ClientNetworkHandler(URL url, ClientWebSocketApplication application) throws IOException {
-        this.url = url;
-        app = application;
-        channel = SocketChannel.open();
-        channel.configureBlocking(false);
-        channel.connect(new InetSocketAddress(url.getHost(), url.getPort()));
-        channel.socket().setSoTimeout(30000);
+    private void queueRead() {
+        webSocket.execute(new Runnable() {
+            public void run() {
+                try {
+                    unframe();
+                } catch (IOException e) {
+                    throw new RuntimeException(e.getMessage(), e);
+                }
+            }
+        });
     }
 
-    SocketChannel getChannel() {
-        return channel;
-    }
-
-    public void setChannel(SocketChannel channel) {
-        this.channel = channel;
+    protected void connect() throws IOException {
+        if ("ws".equals(url.getProtocol())) {
+            socket = new Socket(url.getHost(), url.getPort());
+        } else if ("wss".equals(url.getProtocol())) {
+            socket = getSSLSocketFactory().createSocket(url.getHost(), url.getPort());
+        } else {
+            throw new IOException("Unknown schema: " + url.getProtocol());
+        }
+        inputStream = socket.getInputStream();
+        outputStream = socket.getOutputStream();
     }
 
     public void send(DataFrame frame) throws IOException {
         write(frame.frame());
     }
 
-    public SelectionKey getKey() {
-        return channel.keyFor(app.getSelector());
-    }
-
-    public void process(SelectionKey key) throws IOException {
-        if (key.isValid()) {
-            if (key.isConnectable()) {
-                disableOp(SelectionKey.OP_CONNECT);
-                doConnect(true);
-                enableOp(SelectionKey.OP_READ);
-            } else if (key.isReadable()) {
-                unframe();
-                if (webSocket.isConnected()) {
-                    enableOp(SelectionKey.OP_READ);
-                }
-            }
-        }
-
-    }
-
-    protected void doConnect(final boolean finishNioConnect) throws IOException {
-        if (finishNioConnect) {
-            channel.finishConnect();
-        }
-        
+    protected void handshake() throws IOException {
         final boolean isSecure = "wss".equals(url.getProtocol());
 
         final StringBuilder origin = new StringBuilder();
@@ -123,47 +122,57 @@ public class ClientNetworkHandler implements NetworkHandler {
         if ("".equals(path)) {
             path = "/";
         }
-        clientHS = new ClientHandShake(isSecure, origin.toString(), url.getHost(),
+
+        ClientHandShake clientHS = new ClientHandShake(isSecure, origin.toString(), url.getHost(),
                 String.valueOf(url.getPort()), path);
         write(clientHS.getBytes());
+
+        byte[] serverKey = findServerKey();
+
+        if (serverKey == null) {
+            return;
+        }  // not enough data
+
+        try {
+            clientHS.validateServerResponse(serverKey);
+        } catch (HandshakeException e) {
+            throw new IOException(e.getMessage());
+        }
+        webSocket.onConnect();
+
     }
 
     protected void write(byte[] bytes) throws IOException {
-        final ByteBuffer buffer = ByteBuffer.wrap(bytes);
-        channel.write(buffer);
+        outputStream.write(bytes);
+        outputStream.flush();
     }
 
     private void unframe() throws IOException {
         int lastRead;
         while ((lastRead = read()) > 0) {
-            if (webSocket.isConnected()) {
-                readFrame();
-            } else {
-                byte[] serverKey = findServerKey();
-
-                if (serverKey == null) return;  // not enough data
-
-                try {
-                    clientHS.validateServerResponse(serverKey);
-                } catch (HandshakeException e) {
-                    throw new IOException(e.getMessage());
-                }
-                webSocket.onConnect();
-            }
+            readFrame();
         }
 
         if (lastRead == -1) {
             throw new EOFException();
         }
+        if (webSocket.isConnected()) {
+            queueRead();
+        }
     }
 
     private byte[] findServerKey() throws IOException {
         if (!isHeaderParsed) {
+            read();
             while (true) {
                 byte[] line = readLine();
-                if (line == null) return null;
+                if (line == null) {
+                    return null;
+                }
 
-                if (line.length == 0) break;
+                if (line.length == 0) {
+                    break;
+                }
             }
         }
 
@@ -172,8 +181,10 @@ public class ClientNetworkHandler implements NetworkHandler {
     }
 
     private byte[] readLine() throws IOException {
-        if (chunk.getLength() <= 0) return null;
-        
+        if (chunk.getLength() <= 0) {
+            read();
+        }
+
         int idx = chunk.indexOf('\n', 0);
         if (idx != -1) {
             int eolBytes = 1;
@@ -198,7 +209,9 @@ public class ClientNetworkHandler implements NetworkHandler {
     }
 
     private byte[] readN(int n) throws IOException {
-        if (chunk.getLength() < n) return null;
+        if (chunk.getLength() < n) {
+            return null;
+        }
 
         final byte[] result = new byte[n];
         chunk.substract(result, 0, n);
@@ -206,39 +219,16 @@ public class ClientNetworkHandler implements NetworkHandler {
         return result;
     }
 
-    private void enableOp(final int op) {
-        final SelectionKey key = getKey();
-        final int ops = key.interestOps();
-        final int newOp = ops | op;
-        if (newOp != ops) {
-            key.interestOps(newOp);
-        }
-    }
-
-    private void disableOp(final int op) {
-        final SelectionKey key = getKey();
-        final int ops = key.interestOps();
-        final int newOp = ops & ~op;
-        if (newOp != ops) {
-            key.interestOps(newOp);
-        }
-    }
-
     public void shutdown() throws IOException {
-        getKey().cancel();
-        channel.close();
-        app.remove(webSocket);
+        socket.close();
     }
 
-    public WebSocket getWebSocket() {
+    public ClientWebSocket getWebSocket() {
         return webSocket;
     }
 
-    public void setWebSocket(BaseWebSocket webSocket) {
-        this.webSocket = webSocket;
-        if (app != null) {
-            app.register(this);
-        }
+    public void setWebSocket(WebSocket webSocket) {
+        this.webSocket = (ClientWebSocket) webSocket;
     }
 
     protected void readFrame() throws IOException {
@@ -256,19 +246,18 @@ public class ClientNetworkHandler implements NetworkHandler {
      * If necessary read more bytes from the channel.
      *
      * @return any number > -1 means bytes were read
-     *
      * @throws IOException
      */
     private int read() throws IOException {
         int count = chunk.getLength();
         if (count < 1) {
-            ByteBuffer bytes = ByteBuffer.allocate(WebSocketEngine.INITIAL_BUFFER_SIZE);
-            while ((count = channel.read(bytes)) == WebSocketEngine.INITIAL_BUFFER_SIZE) {
-                chunk.append(bytes.array(), 0, count);
+            byte[] bytes = new byte[WebSocketEngine.INITIAL_BUFFER_SIZE];
+            while ((count = inputStream.read(bytes)) == WebSocketEngine.INITIAL_BUFFER_SIZE) {
+                chunk.append(bytes, 0, count);
             }
 
             if (count > 0) {
-                chunk.append(bytes.array(), 0, count);
+                chunk.append(bytes, 0, count);
             }
         }
 
@@ -300,4 +289,35 @@ public class ClientNetworkHandler implements NetworkHandler {
             return chunk.startsWith(bytes);
         }
     }
+
+    public SSLSocketFactory getSSLSocketFactory() throws IOException {
+        try {
+            //---------------------------------
+            // Create a trust manager that does not validate certificate chains
+            TrustManager[] trustAllCerts = new TrustManager[]{
+                    new X509TrustManager() {
+                        public X509Certificate[] getAcceptedIssuers() {
+                            return null;
+                        }
+
+                        public void checkClientTrusted(
+                                X509Certificate[] certs, String authType) {
+                        }
+
+                        public void checkServerTrusted(
+                                X509Certificate[] certs, String authType) {
+                        }
+                    }
+            };
+            // Install the all-trusting trust manager
+            SSLContext sc = SSLContext.getInstance("SSL");
+            sc.init(null, trustAllCerts, new SecureRandom());
+            //---------------------------------
+            return sc.getSocketFactory();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IOException(e.getMessage());
+        }
+    }
+
 }

@@ -50,12 +50,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class CountDownWebSocket extends ClientWebSocket {
     private final AtomicInteger countDown = new AtomicInteger(0);
-    private final CountDownWebSocketClientApplication app;
 
-    public CountDownWebSocket(CountDownWebSocketClientApplication application, NetworkHandler handler,
-            WebSocketListener... listeners) {
-        super(handler, listeners);
-        app = application;
+    public CountDownWebSocket(String url, WebSocketListener... listeners) throws IOException {
+        super(url, listeners);
     }
 
     @Override
@@ -80,7 +77,7 @@ public class CountDownWebSocket extends ClientWebSocket {
             }
         });
 
-        app.execute(command);
+        execute(command);
         try {
             return command.get(30, TimeUnit.SECONDS);
         } catch (InterruptedException e) {

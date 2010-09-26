@@ -42,10 +42,7 @@ package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
-import com.sun.grizzly.util.net.URL;
 import org.testng.Assert;
-import org.testng.annotations.AfterTest;
-import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
@@ -59,42 +56,44 @@ public class FloodTest {
 
     public void flood() throws IOException, InterruptedException, InstantiationException {
         SelectorThread thread = WebSocketsTest.createSelectorThread(WebSocketsTest.PORT, new StaticResourcesAdapter());
-        WebSocketEngine.getEngine().register("/echo", new SimpleWebSocketApplication());
-        ClientWebSocketApplication app = new ClientWebSocketApplication("http://localhost:1725/echo") {
-            @Override
-            public WebSocket createSocket(NetworkHandler handler, WebSocketListener... listeners) throws IOException {
-                return super.createSocket(new FloodingNetworkHandler(this), listeners);
-            }
-        };
-
+        final EchoWebSocketApplication app = new EchoWebSocketApplication();
+        WebSocketEngine.getEngine().register(app);
         final FloodListener listener = new FloodListener();
-        final WebSocket webSocket = app.connect(listener);
+        ClientWebSocket webSocket = null;
+
         try {
+            webSocket = new FloodingWebSocket(listener);
             Assert.assertTrue(listener.waitOnMessage(), "Flood shouldn't affect message parsing");
             listener.reset();
             webSocket.send("just another dummy message");
             Assert.assertTrue(listener.waitOnMessage(), "Subsequent messages should come back, too.");
         } finally {
-            webSocket.close();
-            app.stop();
+            if (webSocket != null) {
+                webSocket.close();
+            }
             thread.stopEndpoint();
+            WebSocketEngine.getEngine().unregister(app);
         }
     }
 
     private class FloodingNetworkHandler extends ClientNetworkHandler {
-        public FloodingNetworkHandler(ClientWebSocketApplication app) throws IOException {
-            super(new URL(app.getAddress()), app);
+        private final ClientWebSocket socket;
+
+        public FloodingNetworkHandler(ClientWebSocket socket) {
+            super(socket);
+            this.socket = socket;
         }
 
         @Override
-        protected void doConnect(boolean finishNioConnect) throws IOException {
-            super.doConnect(finishNioConnect);
-            getWebSocket().send(MESSAGE);
+        protected void handshake() throws IOException {
+            super.handshake();
+            send(new DataFrame(MESSAGE));
         }
     }
 
     private static class FloodListener implements WebSocketListener {
         private CountDownLatch latch = new CountDownLatch(1);
+
         public void onClose(WebSocket socket) throws IOException {
         }
 
@@ -111,6 +110,17 @@ public class FloodTest {
 
         public void reset() {
             latch = new CountDownLatch(1);
+        }
+    }
+
+    private class FloodingWebSocket extends ClientWebSocket {
+        public FloodingWebSocket(FloodListener listener) throws IOException {
+            super("ws://localhost:1725/echo", listener);
+        }
+
+        @Override
+        public ClientNetworkHandler createNetworkHandler() {
+            return new FloodingNetworkHandler(this);
         }
     }
 }

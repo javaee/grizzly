@@ -40,16 +40,14 @@
 
 package com.sun.grizzly.websockets;
 
+import com.sun.grizzly.tcp.Request;
+
 import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class WebSocketApplication implements WebSocketListener {
-    private final ConcurrentHashMap<WebSocket, Boolean> sockets =
-            new ConcurrentHashMap<WebSocket, Boolean>();
-
-    private final ConcurrentHashMap<WebSocketListener, Boolean> listeners =
-            new ConcurrentHashMap<WebSocketListener, Boolean>();
+public abstract class WebSocketApplication implements WebSocketListener {
+    private final ConcurrentHashMap<WebSocket, Boolean> sockets = new ConcurrentHashMap<WebSocket, Boolean>();
 
     /**
      * Returns a set of {@link WebSocket}s, registered with the application.
@@ -69,8 +67,8 @@ public class WebSocketApplication implements WebSocketListener {
         return sockets.remove(socket) != null;
     }
 
-    public WebSocket createSocket(NetworkHandler handler, WebSocketListener... listeners) throws IOException {
-        return new BaseServerWebSocket(handler, listeners);
+    public WebSocket createSocket(WebSocketListener... listeners) throws IOException {
+        return new BaseServerWebSocket(listeners);
     }
 
     public void onClose(WebSocket socket) throws IOException {
@@ -84,4 +82,24 @@ public class WebSocketApplication implements WebSocketListener {
 
     public void onMessage(WebSocket socket, DataFrame data) throws IOException {
     }
+
+    /**
+     * Checks protocol specific information and queries #isApplicationRequest(Request) to see if the Request should
+     * be upgraded.
+     *
+     * @return true if the request should be upgraded to a WebSocket connection
+     */
+    public final boolean upgrade(Request request) {
+        final String s = request.getHeader("Upgrade");
+        return "WebSocket".equalsIgnoreCase(s) && isApplicationRequest(request);
+    }
+
+    /**
+     * Checks application specific criteria to determine if this application can process the Request as a WebSocket
+     * connection.
+     *
+     * @param request
+     * @return true if this application can service this Request
+     */
+    public abstract boolean isApplicationRequest(Request request);
 }

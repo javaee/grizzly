@@ -160,6 +160,10 @@ public class ServerNetworkHandler implements NetworkHandler {
         write(frame.frame());
     }
 
+    public void setWebSocket(WebSocket webSocket) {
+        socket = webSocket;
+    }
+
     public HttpServletRequest getRequest() throws IOException {
         GrizzlyRequest r = new GrizzlyRequest();
         r.setRequest(request);

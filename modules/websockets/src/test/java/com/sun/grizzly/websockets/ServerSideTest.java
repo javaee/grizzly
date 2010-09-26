@@ -65,10 +65,8 @@ public class ServerSideTest {
 
     public void synchronous() throws IOException, InstantiationException, ExecutionException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
-        ClientWebSocketApplication app = new TrackingWebSocketClientApplication(String.format("ws://localhost:%s/echo", PORT), 5 * ITERATIONS);
-        TrackingWebSocket socket = null;
+        TrackingWebSocket socket = new TrackingWebSocket(String.format("ws://localhost:%s/echo", PORT), 5 * ITERATIONS);
         try {
-            socket = (TrackingWebSocket) app.connect();
             int count = 0;
             final Date start = new Date();
             while (count++ < ITERATIONS) {
@@ -90,18 +88,15 @@ public class ServerSideTest {
                 socket.close();
             }
             thread.stopEndpoint();
-            app.stop();
         }
     }
 
     @SuppressWarnings({"StringContatenationInLoop"})
     public void asynchronous() throws IOException, InstantiationException, InterruptedException, ExecutionException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
-        ClientWebSocketApplication app = new CountDownWebSocketClientApplication(String.format("ws://localhost:%s/echo", PORT));
+        CountDownWebSocket socket = new CountDownWebSocket(String.format("ws://localhost:%s/echo", PORT));
 
-        CountDownWebSocket socket = null;
         try {
-            socket = (CountDownWebSocket) app.connect();
             int count = 0;
             final Date start = new Date();
             while (count++ < ITERATIONS) {
@@ -122,29 +117,26 @@ public class ServerSideTest {
                 socket.close();
             }
             thread.stopEndpoint();
-            app.stop();
         }
     }
 
     @Test
     public void multipleClients() throws IOException, InstantiationException, ExecutionException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
-        TrackingWebSocketClientApplication app = new TrackingWebSocketClientApplication(
-                String.format("ws://localhost:%s/echo", PORT), 5 * ITERATIONS);
 
         List<TrackingWebSocket> clients = new ArrayList<TrackingWebSocket>();
         try {
+            final String address = String.format("ws://localhost:%s/echo", PORT);
             for (int x = 0; x < 5; x++) {
-                final TrackingWebSocket webSocket = (TrackingWebSocket) app.connect();
-                clients.add(webSocket);
-                webSocket.setName(x);
+                clients.add(new TrackingWebSocket(address, x + "", 5 * ITERATIONS));
             }
             String[] messages = {
                     "test message",
                     "let's try again",
                     "3rd time's the charm!",
                     "ok.  just one more",
-                    "now, we're done"};
+                    "now, we're done"
+            };
             for (int count = 0; count < ITERATIONS; count++) {
                 for (String message : messages) {
                     for (TrackingWebSocket socket : clients) {
@@ -157,7 +149,6 @@ public class ServerSideTest {
             }
         } finally {
             thread.stopEndpoint();
-            app.stop();
         }
     }
 
@@ -166,21 +157,14 @@ public class ServerSideTest {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
         final int count = 5;
         final CountDownLatch received = new CountDownLatch(count);
-        ClientWebSocketApplication app = new ClientWebSocketApplication(String.format("ws://localhost:%s/echo", PORT)) {
+        ClientWebSocket socket = new ClientWebSocket(String.format("ws://localhost:%s/echo", PORT)) {
             @Override
-            public WebSocket createSocket(NetworkHandler handler, WebSocketListener... listeners) {
-                return new ClientWebSocket(handler, listeners) {
-                    @Override
-                    public void onMessage(DataFrame frame) {
-                        received.countDown();
-                    }
-                };
+            public void onMessage(DataFrame frame) {
+                received.countDown();
             }
         };
 
-        WebSocket socket = null;
         try {
-            socket = app.connect();
             StringBuilder sb = new StringBuilder();
             while (sb.length() < 10000) {
                 sb.append("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus quis lectus odio, et" +
@@ -205,7 +189,6 @@ public class ServerSideTest {
                 socket.close();
             }
             thread.stopEndpoint();
-            app.stop();
         }
 
     }

@@ -40,8 +40,55 @@
 
 package com.sun.grizzly.websockets;
 
+import com.sun.grizzly.util.net.URL;
+
+import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Logger;
+
 public class ClientWebSocket extends BaseWebSocket {
-    public ClientWebSocket(NetworkHandler handler, WebSocketListener... listeners) {
-        super(handler, listeners);
+    private static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
+
+    private final AtomicBoolean connecting = new AtomicBoolean(true);
+    private final AtomicBoolean running = new AtomicBoolean(true);
+
+    private final URL address;
+    private final ExecutorService executorService = Executors.newFixedThreadPool(2);
+
+    public ClientWebSocket(final String url, final WebSocketListener... listeners) throws IOException {
+        this(url, WebSocketEngine.DEFAULT_TIMEOUT, listeners);
+    }
+
+    public ClientWebSocket(final String url, final long timeout, final WebSocketListener... listeners)
+            throws IOException {
+        super(listeners);
+        address = new URL(url);
+        final Future<?> future = executorService.submit(new Runnable() {
+            public void run() {
+                networkHandler = createNetworkHandler();
+            }
+        });
+        try {
+            future.get(timeout, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IOException(e.getMessage());
+        }
+    }
+
+    public URL getAddress() {
+        return address;
+    }
+
+    public void execute(Runnable runnable) {
+        executorService.submit(runnable);
+    }
+
+    protected ClientNetworkHandler createNetworkHandler() {
+        return new ClientNetworkHandler(this);
     }
 }

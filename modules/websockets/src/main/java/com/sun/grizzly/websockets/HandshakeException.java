@@ -46,7 +46,7 @@ package com.sun.grizzly.websockets;
  * 
  * @author Alexey Stashok
  */
-public class HandshakeException extends Exception {
+public class HandshakeException extends RuntimeException {
     private final int code;
 
     /**

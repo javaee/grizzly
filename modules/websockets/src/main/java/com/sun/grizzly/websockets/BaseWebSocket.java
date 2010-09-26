@@ -42,27 +42,31 @@ package com.sun.grizzly.websockets;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 @SuppressWarnings({"StringContatenationInLoop"})
 public class BaseWebSocket implements WebSocket {
-    private final NetworkHandler networkHandler;
+    NetworkHandler networkHandler;
     protected static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     private final List<WebSocketListener> listeners = new ArrayList<WebSocketListener>();
     private final AtomicBoolean connected = new AtomicBoolean(false);
 
-    public BaseWebSocket(NetworkHandler handler, WebSocketListener... listeners) {
-        networkHandler = handler;
+    public BaseWebSocket(WebSocketListener... listeners) {
         for (WebSocketListener listener : listeners) {
             add(listener);
         }
-        handler.setWebSocket(this);
     }
 
     public NetworkHandler getNetworkHandler() {
         return networkHandler;
+    }
+
+    public void setNetworkHandler(NetworkHandler handler) {
+        networkHandler = handler;
+        handler.setWebSocket(this);
     }
 
     public List<WebSocketListener> getListeners() {
@@ -82,6 +86,7 @@ public class BaseWebSocket implements WebSocket {
             try {
                 send(new DataFrame(FrameType.CLOSING));
             } catch (IOException ignored) {
+                ignored.printStackTrace();
             } finally {
                 onClose();
             }
@@ -89,10 +94,12 @@ public class BaseWebSocket implements WebSocket {
     }
 
     public void onClose() throws IOException {
-        for (WebSocketListener listener : listeners) {
+        final Iterator<WebSocketListener> it = listeners.iterator();
+        while(it.hasNext()) {
+            final WebSocketListener listener = it.next();
+            it.remove();
             listener.onClose(this);
         }
-        listeners.clear();
     }
 
     public final boolean remove(WebSocketListener listener) {

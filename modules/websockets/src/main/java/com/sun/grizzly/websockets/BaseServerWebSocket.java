@@ -45,8 +45,8 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 public class BaseServerWebSocket extends BaseWebSocket {
-    public BaseServerWebSocket(NetworkHandler handler, WebSocketListener... listeners) {
-        super(handler, listeners);
+    public BaseServerWebSocket(WebSocketListener... listeners) {
+        super(listeners);
     }
 
     public HttpServletRequest getRequest() throws IOException {

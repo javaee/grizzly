@@ -49,7 +49,7 @@ public class WebSocketAsyncFilter implements AsyncFilter {
     private static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
 
     public AsyncFilter.Result doFilter(AsyncExecutor asyncExecutor) {
-        if (WebSocketEngine.getEngine().handle(asyncExecutor)) {
+        if (WebSocketEngine.getEngine().upgrade(asyncExecutor)) {
             return AsyncFilter.Result.INTERRUPT;
         }
 

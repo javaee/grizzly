@@ -40,11 +40,6 @@
 
 package com.sun.grizzly.websockets;
 
-import com.sun.grizzly.util.net.URL;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
@@ -52,22 +47,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public class WebSocketConnectTask extends FutureTask<WebSocket> {
-    private static final int DEFAULT_TIMEOUT = 30;
 
-    public WebSocketConnectTask(final ClientWebSocketApplication app, final String address,
-            final WebSocketListener[] listeners) {
+    public WebSocketConnectTask(final NioClientWebSocket websocket) {
         super(new Callable<WebSocket>() {
             public WebSocket call() throws Exception {
-                final URL url = new URL(address);
-
-                final List<WebSocketListener> listenerList = new ArrayList<WebSocketListener>(Arrays.asList(listeners));
-                listenerList.add(app);
-                final BaseWebSocket socket = (BaseWebSocket) app
-                        .createSocket(new ClientNetworkHandler(url, app), listenerList.toArray(new WebSocketListener[listenerList.size()]));
-                while (!socket.isConnected()) {
+                while (!websocket.isConnected()) {
                     Thread.sleep(100);
                 }
-                return socket;
+                return websocket;
             }
         });
     }
@@ -75,7 +62,7 @@ public class WebSocketConnectTask extends FutureTask<WebSocket> {
     @Override
     public WebSocket get() throws InterruptedException, ExecutionException {
         try {
-            return get(DEFAULT_TIMEOUT, TimeUnit.SECONDS);
+            return get(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS);
         } catch (TimeoutException e) {
             throw new InterruptedException(e.getMessage());
         }
