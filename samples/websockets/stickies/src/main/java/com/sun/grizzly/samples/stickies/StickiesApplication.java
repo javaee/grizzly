@@ -47,6 +47,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.websockets.DataFrame;
 import com.sun.grizzly.websockets.WebSocket;
 import com.sun.grizzly.websockets.WebSocketApplication;
@@ -56,6 +57,11 @@ public class StickiesApplication extends WebSocketApplication {
     static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     public static final AtomicInteger ids = new AtomicInteger(0);
     private Map<String, Note> notes = new HashMap<String, Note>();
+
+    @Override
+    public boolean isApplicationRequest(Request request) {
+        return request.requestURI().equals("/stickies");
+    }
 
     public void onMessage(WebSocket socket, DataFrame frame) throws IOException {
         final String data = frame.getTextPayload();

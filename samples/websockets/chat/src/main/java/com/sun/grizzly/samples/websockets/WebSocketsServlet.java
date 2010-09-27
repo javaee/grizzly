@@ -50,9 +50,8 @@ import java.util.logging.Logger;
 public class WebSocketsServlet extends HttpServlet {
     static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     private final ChatApplication app = new ChatApplication();
-
     @Override
     public void init(ServletConfig config) throws ServletException {
-        WebSocketEngine.getEngine().register(config.getServletContext().getContextPath() + "/chat", app);
+        WebSocketEngine.getEngine().register(new ChatApplication());
     }
 }

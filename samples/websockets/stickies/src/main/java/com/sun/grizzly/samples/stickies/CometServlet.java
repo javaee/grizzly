@@ -73,7 +73,7 @@ public class CometServlet extends HttpServlet {
         context = CometEngine.getEngine().register(contextPath);
         context.setBlockingNotification(true);
         context.setExpirationDelay(5 * 30 * 1000);
-        WebSocketEngine.getEngine().register("/stickies", new StickiesApplication());
+        WebSocketEngine.getEngine().register(new StickiesApplication());
     }
 
     @Override

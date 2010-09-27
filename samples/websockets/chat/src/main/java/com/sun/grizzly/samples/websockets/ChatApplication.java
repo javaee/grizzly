@@ -40,6 +40,7 @@
 
 package com.sun.grizzly.samples.websockets;
 
+import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.websockets.DataFrame;
 import com.sun.grizzly.websockets.NetworkHandler;
 import com.sun.grizzly.websockets.WebSocket;
@@ -47,12 +48,16 @@ import com.sun.grizzly.websockets.WebSocketApplication;
 import com.sun.grizzly.websockets.WebSocketListener;
 
 import java.io.IOException;
-import java.util.logging.Level;
 
 public class ChatApplication extends WebSocketApplication {
     @Override
-    public WebSocket createSocket(NetworkHandler handler, WebSocketListener... listeners) throws IOException {
-        return new ChatWebSocket(handler, listeners);
+    public boolean isApplicationRequest(Request request) {
+        return request.requestURI().equals("/chat");
+    }
+
+    @Override
+    public WebSocket createSocket(WebSocketListener... listeners) throws IOException {
+        return new ChatWebSocket();
     }
 
     public void onMessage(WebSocket socket, DataFrame frame) throws IOException {

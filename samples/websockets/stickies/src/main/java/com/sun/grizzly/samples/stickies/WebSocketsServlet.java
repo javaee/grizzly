@@ -49,7 +49,6 @@ import com.sun.grizzly.websockets.WebSocketEngine;
 public class WebSocketsServlet extends HttpServlet {
     @Override
     public void init(ServletConfig config) throws ServletException {
-        WebSocketEngine.getEngine().register(config.getServletContext().getContextPath() + "/stickies",
-            new StickiesApplication());
+        WebSocketEngine.getEngine().register(new StickiesApplication());
     }
 }

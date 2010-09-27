@@ -78,7 +78,7 @@ public class Main {
         st.setTcpNoDelay(true);
         st.listen();
 
-        WebSocketEngine.getEngine().register("/stickies", new StickiesApplication());
+        WebSocketEngine.getEngine().register(new StickiesApplication());
 
         return st;
     }
