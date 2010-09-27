@@ -37,7 +37,6 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.IOEvent;
@@ -108,7 +107,8 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
     }
 
     /**
-     * Accept a {@link Connection}. Could be used only in standalone mode. See {@link Connection#configureStandalone(boolean)}.
+     * Accept a {@link Connection}. Could be used only in standalone mode.
+     * See {@link Connection#configureStandalone(boolean)}.
      *
      * @return {@link Future}
      * @throws java.io.IOException
@@ -162,7 +162,8 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
         return serverChannel.accept();
     }
 
-    private void configureAcceptedChannel(SocketChannel acceptedChannel) throws IOException {
+    private void configureAcceptedChannel(SocketChannel acceptedChannel)
+            throws IOException {
         final TCPNIOTransport tcpNIOTransport = (TCPNIOTransport) transport;
         tcpNIOTransport.configureChannel(acceptedChannel);
     }
@@ -274,8 +275,7 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
                 final SelectionKey acceptedConnectionKey =
                         result.getSelectionKey();
                 final TCPNIOConnection connection =
-                        (TCPNIOConnection) selectionKeyHandler.
-                        getConnectionForKey(acceptedConnectionKey);
+                        (TCPNIOConnection) selectionKeyHandler.getConnectionForKey(acceptedConnectionKey);
 
                 connection.resetAddresses();
                 if (listener != null) {
@@ -291,19 +291,15 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
             }
         }
     }
-
-
-
-    // COMPLETE, COMPLETE_LEAVE, REREGISTER, RERUN, ERROR, TERMINATE
-    private final static boolean[] isRegisterMap = {true, false, true, false, false, false};
-
+    // COMPLETE, COMPLETE_LEAVE, REREGISTER, RERUN, ERROR, TERMINATE, NOT_RUN
+    private final static boolean[] isRegisterMap = {true, false, true, false, false, false, true};
     // PostProcessor, which supposed to enable OP_READ interest, once Processor will be notified
     // about Connection ACCEPT
     protected final static PostProcessor enableInterestPostProcessor =
             new EnableReadPostProcessor();
 
-
     private static class EnableReadPostProcessor implements PostProcessor {
+
         @Override
         public void process(Context context, Status status) throws IOException {
             if (isRegisterMap[status.ordinal()]) {

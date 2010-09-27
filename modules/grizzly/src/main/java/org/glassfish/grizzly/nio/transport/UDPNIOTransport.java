@@ -37,7 +37,6 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.IOEvent;
@@ -100,12 +99,10 @@ import java.util.concurrent.TimeUnit;
  */
 public final class UDPNIOTransport extends AbstractNIOTransport
         implements SocketBinder, AsyncQueueEnabledTransport,
-        FilterChainEnabledTransport, TemporarySelectorsEnabledTransport  {
-    
+        FilterChainEnabledTransport, TemporarySelectorsEnabledTransport {
+
     private static final Logger LOGGER = Grizzly.logger(UDPNIOTransport.class);
-
     private static final String DEFAULT_TRANSPORT_NAME = "UDPNIOTransport";
-
     /**
      * The server socket time out
      */
@@ -119,7 +116,6 @@ public final class UDPNIOTransport extends AbstractNIOTransport
      */
     protected int connectionTimeout =
             UDPNIOConnectorHandler.DEFAULT_CONNECTION_TIMEOUT;
-
     /**
      * The Server connections.
      */
@@ -134,7 +130,6 @@ public final class UDPNIOTransport extends AbstractNIOTransport
     protected TemporarySelectorIO temporarySelectorIO;
     private final Filter transportFilter;
     protected final RegisterChannelCompletionHandler registerChannelCompletionHandler;
-
     /**
      * Default {@link TCPNIOConnectorHandler}
      */
@@ -453,16 +448,16 @@ public final class UDPNIOTransport extends AbstractNIOTransport
                     TemporarySelectorPool.DEFAULT_SELECTORS_COUNT;
             if (threadPool instanceof AbstractThreadPool) {
                 selectorPoolSize = Math.min(
-                       ((AbstractThreadPool) threadPool).getConfig().getMaxPoolSize(),
-                       selectorPoolSize);
+                        ((AbstractThreadPool) threadPool).getConfig().getMaxPoolSize(),
+                        selectorPoolSize);
             }
             temporarySelectorIO.setSelectorPool(
                     new TemporarySelectorPool(selectorPoolSize));
 
             startSelectorRunners();
-            
+
             registerServerConnections();
-            
+
             state.setState(State.START);
 
             notifyProbesStart(this);
@@ -477,8 +472,8 @@ public final class UDPNIOTransport extends AbstractNIOTransport
                 serverConnection.register();
             } catch (Exception e) {
                 LOGGER.log(Level.WARNING,
-                        "Exception occurred when starting server connection: " +
-                        serverConnection, e);
+                        "Exception occurred when starting server connection: "
+                        + serverConnection, e);
             }
         }
     }
@@ -489,7 +484,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
 
         try {
             unbindAll();
-            
+
             state.setState(State.STOP);
             stopSelectorRunners();
 
@@ -549,7 +544,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
             }
         }
     }
-    
+
     @Override
     public Filter getTransportFilter() {
         return transportFilter;
@@ -597,17 +592,9 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         try {
             final Processor conProcessor = connection.obtainProcessor(ioEvent);
 
-            if (ioEvent == IOEvent.CONNECTED) {
-                ((UDPNIOConnection) connection).onConnect();
-            }
-
-            if (conProcessor != null) {
-                if (ProcessorExecutor.execute(
-                        connection, ioEvent, conProcessor, postProcessor)) {
-                    return IOEventReg.REGISTER;
-                } else {
-                    return IOEventReg.DEREGISTER;
-                }
+            if (ProcessorExecutor.execute(
+                    connection, ioEvent, conProcessor, postProcessor)) {
+                return IOEventReg.REGISTER;
             } else {
                 return IOEventReg.DEREGISTER;
             }
@@ -665,13 +652,13 @@ public final class UDPNIOTransport extends AbstractNIOTransport
             return getAsyncQueueIO().getWriter();
         }
     }
-    
+
     private int readConnected(final UDPNIOConnection connection, Buffer buffer,
             final ReadResult currentResult) throws IOException {
         final SocketAddress peerAddress = connection.getPeerAddress();
 
         final int read;
-        
+
         if (buffer.isComposite()) {
             final ByteBuffer[] byteBuffers = buffer.toByteBufferArray();
             read = (int) ((DatagramChannel) connection.getChannel()).read(byteBuffers);
@@ -693,7 +680,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
 
         return read;
     }
-    
+
     private int readNonConnected(final UDPNIOConnection connection, Buffer buffer,
             final ReadResult currentResult) throws IOException {
         final SocketAddress peerAddress;
@@ -799,7 +786,6 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         return written;
     }
 
-
     UDPNIOConnection obtainNIOConnection(DatagramChannel channel) {
         UDPNIOConnection connection = new UDPNIOConnection(this, channel);
         configureNIOConnection(connection);
@@ -832,7 +818,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
 
     private void resetByteBuffers(final ByteBuffer[] byteBuffers, int processed) {
         int index = 0;
-        while(processed > 0) {
+        while (processed > 0) {
             final ByteBuffer byteBuffer = byteBuffers[index++];
             byteBuffer.position(0);
             processed -= byteBuffer.remaining();
@@ -857,8 +843,8 @@ public final class UDPNIOTransport extends AbstractNIOTransport
                     connection.setSelectorRunner(selectorRunner);
                 }
             } catch (Exception e) {
-                LOGGER.log(Level.FINE, "Exception happened, when " +
-                        "trying to register the channel", e);
+                LOGGER.log(Level.FINE, "Exception happened, when "
+                        + "trying to register the channel", e);
             }
         }
     }
@@ -867,6 +853,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
      * Transport default {@link UDPNIOConnectorHandler}.
      */
     protected class TransportConnectorHandler extends UDPNIOConnectorHandler {
+
         public TransportConnectorHandler() {
             super(UDPNIOTransport.this);
         }

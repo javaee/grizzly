@@ -159,7 +159,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
     private int maxReadAttempts = 3;
     
     private Filter defaultTransportFilter;
-    protected final RegisterChannelCompletionHandler selectorRegistrationHandler;
+    final RegisterChannelCompletionHandler selectorRegistrationHandler;
 
     /**
      * Default {@link TCPNIOConnectorHandler}
@@ -715,22 +715,19 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             if (ioEvent == IOEvent.SERVER_ACCEPT) {
                 ((TCPNIOServerConnection) connection).onAccept();
                 return IOEventReg.REGISTER;
-            } else if (ioEvent == IOEvent.CONNECTED) {
+            } else if (ioEvent == IOEvent.CLIENT_CONNECTED) {
                 ((TCPNIOConnection) connection).onConnect();
+                return IOEventReg.REGISTER;
             }
             
             final Processor conProcessor = connection.obtainProcessor(ioEvent);
 
-            if (conProcessor != null) {
                 if (ProcessorExecutor.execute(connection, ioEvent,
                         conProcessor, postProcessor)) {
                     return IOEventReg.REGISTER;
                 } else {
                     return IOEventReg.DEREGISTER;
                 }
-            } else {
-                return IOEventReg.DEREGISTER;
-            }
         } catch (IOException e) {
             LOGGER.log(Level.FINE, "IOException occurred on fireIOEvent(). "
                     + "Connection={0} event={1}", new Object[] {connection, ioEvent});
@@ -983,20 +980,20 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         }
     }
 
-    protected class RegisterChannelCompletionHandler
+    class RegisterChannelCompletionHandler
             extends EmptyCompletionHandler<RegisterChannelResult> {
 
         @Override
-        public void completed(RegisterChannelResult result) {
+        public void completed(final RegisterChannelResult result) {
             try {
-                SelectionKey selectionKey = result.getSelectionKey();
+                final SelectionKey selectionKey = result.getSelectionKey();
 
-                TCPNIOConnection connection =
+                final TCPNIOConnection connection =
                         (TCPNIOConnection) getSelectionKeyHandler().
                         getConnectionForKey(selectionKey);
 
                 if (connection != null) {
-                    SelectorRunner selectorRunner = result.getSelectorRunner();
+                    final SelectorRunner selectorRunner = result.getSelectorRunner();
                     connection.setSelectionKey(selectionKey);
                     connection.setSelectorRunner(selectorRunner);
                 }
@@ -1010,7 +1007,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
     /**
      * Transport default {@link TCPNIOConnectorHandler}.
      */
-    protected class TransportConnectorHandler extends TCPNIOConnectorHandler {
+     class TransportConnectorHandler extends TCPNIOConnectorHandler {
         public TransportConnectorHandler() {
             super(TCPNIOTransport.this);
         }

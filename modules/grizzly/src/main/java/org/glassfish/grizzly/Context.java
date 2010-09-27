@@ -37,9 +37,9 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly;
 
+import java.io.IOException;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
@@ -51,11 +51,12 @@ import java.util.logging.Logger;
  * @author Alexey Stashok
  */
 public class Context implements AttributeStorage, Cacheable {
-    private static final Logger LOGGER = Grizzly.logger(Context.class);
 
+    private static final Logger LOGGER = Grizzly.logger(Context.class);
+    private static final Processor NULL_PROCESSOR = new NullProcessor();
     private static final ThreadCache.CachedTypeIndex<Context> CACHE_IDX =
             ThreadCache.obtainIndex(Context.class, 4);
-    
+
     public static Context create(Connection connection) {
         Context context = ThreadCache.takeFromCache(CACHE_IDX);
         if (context == null) {
@@ -66,34 +67,36 @@ public class Context implements AttributeStorage, Cacheable {
         return context;
     }
 
-    public static Context create(Connection connection, Processor processor,
-            IOEvent ioEvent) {
-        final Context context = processor.obtainContext(connection);
+    public static Context create(final Connection connection,
+            final Processor processor, final IOEvent ioEvent) {
+        final Context context;
+
+        if (processor != null) {
+            context = processor.obtainContext(connection);
+        } else {
+            context = NULL_PROCESSOR.obtainContext(connection);
+        }
+
         context.setIoEvent(ioEvent);
 
         return context;
     }
-    
     /**
      * Processing Connection
      */
     private Connection connection;
-    
     /**
      * Processing IOEvent
      */
     private IOEvent ioEvent = IOEvent.NONE;
-
     /**
      * Processor, responsible for I/O event processing
      */
     private Processor processor;
-
     /**
      * Attributes, associated with the processing Context
      */
     private final AttributeHolder attributes;
-
     /**
      * PostProcessor is called, when Context is ready to be recycled,
      * though the task might be still processed.
@@ -168,8 +171,8 @@ public class Context implements AttributeStorage, Cacheable {
 
     public void setPostProcessor(PostProcessor postProcessor) {
         this.postProcessor = postProcessor;
-    }    
-    
+    }
+
     /**
      * Get attributes ({@link AttributeHolder}), associated with the processing
      * {@link Context}. {@link AttributeHolder} is cleared after each I/O event
@@ -191,7 +194,7 @@ public class Context implements AttributeStorage, Cacheable {
      */
     public void reset() {
         attributes.recycle();
-        
+
         processor = null;
         postProcessor = null;
         connection = null;
@@ -205,5 +208,43 @@ public class Context implements AttributeStorage, Cacheable {
     public void recycle() {
         reset();
         ThreadCache.putToCache(CACHE_IDX, this);
+    }
+
+    private final static class NullProcessor implements Processor {
+
+        @Override
+        public Context obtainContext(Connection connection) {
+            final Context context = Context.create(connection);
+            context.setProcessor(this);
+
+            return context;
+        }
+
+        @Override
+        public ProcessorResult process(Context context) throws IOException {
+            return ProcessorResult.createNotRun();
+        }
+
+        @Override
+        public GrizzlyFuture read(Connection connection,
+                CompletionHandler completionHandler) throws IOException {
+            throw new UnsupportedOperationException("Not supported.");
+        }
+
+        @Override
+        public GrizzlyFuture write(Connection connection, Object dstAddress,
+                Object message, CompletionHandler completionHandler)
+                throws IOException {
+            throw new UnsupportedOperationException("Not supported.");
+        }
+
+        @Override
+        public boolean isInterested(IOEvent ioEvent) {
+            return true;
+        }
+
+        @Override
+        public void setInterested(IOEvent ioEvent, boolean isInterested) {
+        }
     }
 }

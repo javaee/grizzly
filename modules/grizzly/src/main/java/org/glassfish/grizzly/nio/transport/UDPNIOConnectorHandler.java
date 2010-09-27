@@ -37,7 +37,6 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.IOEvent;
@@ -51,12 +50,22 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.AbstractSocketConnectorHandler;
 import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Context;
+import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.impl.ReadyFutureImpl;
+import org.glassfish.grizzly.PostProcessor;
+import org.glassfish.grizzly.ProcessorResult.Status;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.impl.SafeFutureImpl;
+import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
+import org.glassfish.grizzly.nio.SelectionKeyHandler;
 
 /**
  * UDP NIO transport client side ConnectorHandler implementation
@@ -64,9 +73,10 @@ import org.glassfish.grizzly.nio.RegisterChannelResult;
  * @author Alexey Stashok
  */
 public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
-    
+
+    private static final Logger LOGGER = Grizzly.logger(UDPNIOConnectorHandler.class);
+
     protected static final int DEFAULT_CONNECTION_TIMEOUT = 30000;
-    
     protected boolean isReuseAddress;
     protected int connectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
 
@@ -90,7 +100,7 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
     public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
             SocketAddress localAddress,
             CompletionHandler<Connection> completionHandler) throws IOException {
-        
+
         if (!transport.isBlocking()) {
             return connectAsync(remoteAddress, localAddress, completionHandler);
         } else {
@@ -108,53 +118,48 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         return future;
     }
 
-    protected GrizzlyFuture<Connection> connectAsync(SocketAddress remoteAddress,
-            SocketAddress localAddress,
-            CompletionHandler<Connection> completionHandler) throws IOException {
-        DatagramChannel datagramChannel = DatagramChannel.open();
-        DatagramSocket socket = datagramChannel.socket();
+    protected GrizzlyFuture<Connection> connectAsync(
+            final SocketAddress remoteAddress,
+            final SocketAddress localAddress,
+            final CompletionHandler<Connection> completionHandler)
+            throws IOException {
+
+        final DatagramChannel datagramChannel = DatagramChannel.open();
+        final DatagramSocket socket = datagramChannel.socket();
         socket.setReuseAddress(isReuseAddress);
-        
+
         if (localAddress != null) {
             socket.bind(localAddress);
         }
 
         datagramChannel.configureBlocking(false);
 
-        UDPNIOTransport nioTransport = (UDPNIOTransport) transport;
-        
-        UDPNIOConnection newConnection = nioTransport.obtainNIOConnection(datagramChannel);
-
-        preConfigure(newConnection);
-        
         if (remoteAddress != null) {
             datagramChannel.connect(remoteAddress);
         }
-        
+
+        final UDPNIOTransport nioTransport = (UDPNIOTransport) transport;
+
+        final UDPNIOConnection newConnection = nioTransport.obtainNIOConnection(datagramChannel);
+
+        preConfigure(newConnection);
+
         newConnection.setProcessor(getProcessor());
         newConnection.setProcessorSelector(getProcessorSelector());
 
-        // if connected immediately - register channel on selector with OP_READ
+        final FutureImpl<Connection> connectFuture = SafeFutureImpl.create();
+
+        // if connected immediately - register channel on selector with NO_INTEREST
         // interest
-        Future<RegisterChannelResult> registerChannelFuture =
+        final GrizzlyFuture<RegisterChannelResult> registerChannelFuture =
                 nioTransport.getNioChannelDistributor().
                 registerChannelAsync(datagramChannel,
-                newConnection.isStandalone() ? 0 : SelectionKey.OP_READ,
-                newConnection, null);
+                0, newConnection,
+                new ConnectHandler(connectFuture, completionHandler));
 
-        // Wait until the SelectableChannel will be registered on the Selector
-        RegisterChannelResult result = waitNIOFuture(registerChannelFuture);
+        registerChannelFuture.markForRecycle(false);
 
-        // make sure completion handler is called
-        nioTransport.registerChannelCompletionHandler.completed(result);
-        
-        transport.fireIOEvent(IOEvent.CONNECTED, newConnection, null);
-        
-        if (completionHandler != null) {
-            completionHandler.completed(newConnection);
-        }
-        
-        return ReadyFutureImpl.<Connection>create(newConnection);
+        return connectFuture;
     }
 
     public boolean isReuseAddress() {
@@ -185,12 +190,102 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             if (internalException instanceof IOException) {
                 throw (IOException) internalException;
             } else {
-                throw new IOException("Unexpected exception connection exception. " +
-                        internalException.getClass().getName() + ": " +
-                        internalException.getMessage());
+                throw new IOException("Unexpected exception connection exception. "
+                        + internalException.getClass().getName() + ": "
+                        + internalException.getMessage());
             }
         } catch (CancellationException e) {
             throw new IOException("Connection was cancelled!");
+        }
+    }
+
+    private static void fireConnectEvent(UDPNIOConnection connection,
+            FutureImpl<Connection> connectFuture,
+            CompletionHandler<Connection> completionHandler) throws IOException {
+
+        try {
+            final UDPNIOTransport udpTransport =
+                    (UDPNIOTransport) connection.getTransport();
+
+            udpTransport.fireIOEvent(IOEvent.CONNECTED, connection,
+                    new EnableReadPostProcessor(connectFuture, completionHandler));
+
+        } catch (Exception e) {
+            if (completionHandler != null) {
+                completionHandler.failed(e);
+            }
+
+            connectFuture.failure(e);
+
+            throw new IOException("Connect exception", e);
+        }
+    }
+
+    private final class ConnectHandler extends EmptyCompletionHandler<RegisterChannelResult> {
+
+        private final FutureImpl<Connection> connectFuture;
+        private final CompletionHandler<Connection> completionHandler;
+
+        private ConnectHandler(FutureImpl<Connection> connectFuture,
+                CompletionHandler<Connection> completionHandler) {
+            this.connectFuture = connectFuture;
+            this.completionHandler = completionHandler;
+        }
+
+        @Override
+        public void completed(RegisterChannelResult result) {
+            final UDPNIOTransport transport =
+                    (UDPNIOTransport) UDPNIOConnectorHandler.this.transport;
+
+            transport.registerChannelCompletionHandler.completed(result);
+
+            final SelectionKey selectionKey = result.getSelectionKey();
+            final SelectionKeyHandler selectionKeyHandler = transport.getSelectionKeyHandler();
+
+            final UDPNIOConnection connection =
+                    (UDPNIOConnection) selectionKeyHandler.getConnectionForKey(selectionKey);
+
+            try {
+                connection.onConnect();
+
+                fireConnectEvent(connection, connectFuture, completionHandler);
+            } catch (Exception e) {
+                LOGGER.log(Level.FINE, "Exception happened, when "
+                        + "trying to connect the channel", e);
+            }
+        }
+    }
+    // COMPLETE, COMPLETE_LEAVE, REREGISTER, RERUN, ERROR, TERMINATE, NOT_RUN
+    private final static boolean[] isRegisterMap = {true, false, true, false, false, false, true};
+
+    // PostProcessor, which supposed to enable OP_READ interest, once Processor will be notified
+    // about Connection CONNECT
+    private static class EnableReadPostProcessor implements PostProcessor {
+
+        private final FutureImpl<Connection> connectFuture;
+        private final CompletionHandler<Connection> completionHandler;
+
+        private EnableReadPostProcessor(FutureImpl connectFuture,
+                CompletionHandler<Connection> completionHandler) {
+            this.connectFuture = connectFuture;
+            this.completionHandler = completionHandler;
+        }
+
+        @Override
+        public void process(Context context, Status status) throws IOException {
+            if (isRegisterMap[status.ordinal()]) {
+                final NIOConnection connection = (NIOConnection) context.getConnection();
+
+                if (completionHandler != null) {
+                    completionHandler.completed(connection);
+                }
+
+                connectFuture.result(connection);
+
+                if (!connection.isStandalone()) {
+                    connection.enableIOEvent(IOEvent.READ);
+                }
+            }
         }
     }
 }

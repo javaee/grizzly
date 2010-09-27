@@ -37,7 +37,6 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly;
 
 /**
@@ -46,12 +45,14 @@ package org.glassfish.grizzly;
  * @author Alexey Stashok
  */
 public class ProcessorResult {
+
+    private static final ProcessorResult NOT_RUN_RESULT = new ProcessorResult(Status.NOT_RUN, null, false);
     private static final ProcessorResult COMPLETE_RESULT = new ProcessorResult(Status.COMPLETE, null, false);
     private static final ProcessorResult COMPLETE_LEAVE_RESULT = new ProcessorResult(Status.COMPLETE_LEAVE, null, false);
     private static final ProcessorResult REREGISTER_RESULT = new ProcessorResult(Status.REREGISTER, null, false);
     private static final ProcessorResult ERROR_RESULT = new ProcessorResult(Status.ERROR);
     private static final ProcessorResult TERMINATE_RESULT = new ProcessorResult(Status.TERMINATE, null, false);
-
+    
     private static final ThreadCache.CachedTypeIndex<ProcessorResult> CACHE_IDX =
             ThreadCache.obtainIndex(ProcessorResult.class, 1);
 
@@ -65,19 +66,17 @@ public class ProcessorResult {
     }
 
     /**
-     * Enum represents the status/code of {@link ProcessorResult}.
+     * Enumeration represents the status/code of {@link ProcessorResult}.
      */
     public enum Status {
-        COMPLETE, COMPLETE_LEAVE, REREGISTER, RERUN, ERROR, TERMINATE
+        COMPLETE, COMPLETE_LEAVE, REREGISTER, RERUN, ERROR, TERMINATE, NOT_RUN
     }
-
+    
     private final boolean canRecycle;
-
     /**
      * Result status
      */
     private Status status;
-
     /**
      * Result description
      */
@@ -111,6 +110,10 @@ public class ProcessorResult {
         return TERMINATE_RESULT;
     }
 
+    public static ProcessorResult createNotRun() {
+        return NOT_RUN_RESULT;
+    }
+
     private ProcessorResult() {
         this(null, null);
     }
@@ -128,7 +131,7 @@ public class ProcessorResult {
         this.context = context;
         this.canRecycle = canRecycle;
     }
-    
+
     /**
      * Get the result status.
      *
@@ -142,8 +145,6 @@ public class ProcessorResult {
         this.status = status;
         return this;
     }
-
-
 
     /**
      * Get the {@link ProcessorResult} context.

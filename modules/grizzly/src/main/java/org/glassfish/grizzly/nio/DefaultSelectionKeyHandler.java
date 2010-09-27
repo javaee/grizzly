@@ -37,7 +37,6 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.nio;
 
 import org.glassfish.grizzly.Grizzly;
@@ -53,18 +52,16 @@ import java.util.logging.Logger;
  * @author oleksiys
  */
 public final class DefaultSelectionKeyHandler implements SelectionKeyHandler {
-    
-    private static Logger logger = Grizzly.logger(DefaultSelectionKeyHandler.class);
 
-    private static final int[] ioEvent2SelectionKeyInterest = {0,
-        SelectionKey.OP_ACCEPT, 0, SelectionKey.OP_CONNECT, SelectionKey.OP_READ,
-        SelectionKey.OP_WRITE, 0};
-    
+    private static final Logger LOGGER = Grizzly.logger(DefaultSelectionKeyHandler.class);
+    private static final int[] ioEvent2SelectionKeyInterest = {
+        0, SelectionKey.OP_ACCEPT, 0, SelectionKey.OP_CONNECT, 0,
+        SelectionKey.OP_READ, SelectionKey.OP_WRITE, 0};
     private final static IOEvent[][] ioEventMap;
 
     static {
         ioEventMap = new IOEvent[32][];
-        for(int i=0; i<ioEventMap.length; i++) {
+        for (int i = 0; i < ioEventMap.length; i++) {
             int idx = 0;
             IOEvent[] tmpArray = new IOEvent[4];
             if ((i & SelectionKey.OP_READ) != 0) {
@@ -76,7 +73,7 @@ public final class DefaultSelectionKeyHandler implements SelectionKeyHandler {
             }
 
             if ((i & SelectionKey.OP_CONNECT) != 0) {
-                tmpArray[idx++] = IOEvent.CONNECTED;
+                tmpArray[idx++] = IOEvent.CLIENT_CONNECTED;
             }
 
             if ((i & SelectionKey.OP_ACCEPT) != 0) {
@@ -89,11 +86,11 @@ public final class DefaultSelectionKeyHandler implements SelectionKeyHandler {
 
     @Override
     public void onKeyRegistered(SelectionKey key) {
-        if (logger.isLoggable(Level.FINE)) {
-            logger.log(Level.FINE, "KEY IS REGISTERED: " + key);
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "KEY IS REGISTERED: {0}", key);
         }
     }
-    
+
     @Override
     public void cancel(SelectionKey key) throws IOException {
         key.cancel();
@@ -118,7 +115,7 @@ public final class DefaultSelectionKeyHandler implements SelectionKeyHandler {
         } else if ((selectionKeyInterest & SelectionKey.OP_ACCEPT) != 0) {
             return IOEvent.SERVER_ACCEPT;
         } else if ((selectionKeyInterest & SelectionKey.OP_CONNECT) != 0) {
-            return IOEvent.CONNECTED;
+            return IOEvent.CLIENT_CONNECTED;
         }
 
         return IOEvent.NONE;

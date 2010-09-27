@@ -37,7 +37,6 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.Buffer;
@@ -64,16 +63,18 @@ import java.util.concurrent.TimeUnit;
  * @author Alexey Stashok
  */
 public class UDPNIOConnection extends AbstractNIOConnection {
-    private static Logger logger = Grizzly.logger(UDPNIOConnection.class);
+
+    private static final Logger LOGGER = Grizzly.logger(UDPNIOConnection.class);
+    private SocketAddress localSocketAddress;
+    private SocketAddress peerSocketAddress;
 
     public UDPNIOConnection(UDPNIOTransport transport,
             DatagramChannel channel) {
         super(transport);
-        
+
         this.channel = channel;
 
-        setReadBufferSize(transport.getReadBufferSize());
-        setWriteBufferSize(transport.getWriteBufferSize());
+        resetProperties();
     }
 
     public boolean isConnected() {
@@ -110,8 +111,8 @@ public class UDPNIOConnection extends AbstractNIOConnection {
         try {
             transport.fireIOEvent(IOEvent.CLOSED, this, null);
         } catch (IOException e) {
-            logger.log(Level.FINE, "Unexpected IOExcption occurred, " +
-                    "when firing CLOSE event");
+            LOGGER.log(Level.FINE, "Unexpected IOExcption occurred, "
+                    + "when firing CLOSE event");
         }
     }
 
@@ -123,13 +124,9 @@ public class UDPNIOConnection extends AbstractNIOConnection {
      */
     @Override
     public SocketAddress getPeerAddress() {
-        if (channel != null) {
-            return ((DatagramChannel) channel).socket().getRemoteSocketAddress();
-        }
-
-        return null;
+        return peerSocketAddress;
     }
-    
+
     /**
      * Returns the local address of this <tt>Connection</tt>,
      * or <tt>null</tt> if it is unconnected.
@@ -138,11 +135,19 @@ public class UDPNIOConnection extends AbstractNIOConnection {
      */
     @Override
     public SocketAddress getLocalAddress() {
-        if (channel != null) {
-            return ((DatagramChannel) channel).socket().getLocalSocketAddress();
-        }
+        return localSocketAddress;
+    }
 
-        return null;
+    protected final void resetProperties() {
+        if (channel != null) {
+            setReadBufferSize(transport.getReadBufferSize());
+            setWriteBufferSize(transport.getWriteBufferSize());
+
+            localSocketAddress =
+                    ((DatagramChannel) channel).socket().getLocalSocketAddress();
+            peerSocketAddress =
+                    ((DatagramChannel) channel).socket().getRemoteSocketAddress();
+        }
     }
 
     @Override
@@ -160,7 +165,7 @@ public class UDPNIOConnection extends AbstractNIOConnection {
                 super.setReadBufferSize(socketReadBufferSize);
             }
         } catch (IOException e) {
-            logger.log(Level.WARNING, "Error setting read buffer size", e);
+            LOGGER.log(Level.WARNING, "Error setting read buffer size", e);
         }
     }
 
@@ -179,7 +184,7 @@ public class UDPNIOConnection extends AbstractNIOConnection {
                 super.setWriteBufferSize(socketWriteBufferSize);
             }
         } catch (IOException e) {
-            logger.log(Level.WARNING, "Error setting write buffer size", e);
+            LOGGER.log(Level.WARNING, "Error setting write buffer size", e);
         }
     }
 
@@ -190,7 +195,7 @@ public class UDPNIOConnection extends AbstractNIOConnection {
     protected final void onConnect() throws IOException {
         notifyProbesConnect(this);
     }
-    
+
     /**
      * Method will be called, when some data was read on the connection
      */
@@ -213,4 +218,3 @@ public class UDPNIOConnection extends AbstractNIOConnection {
         this.monitoringConfig.addProbes(monitoringProbes);
     }
 }
-    

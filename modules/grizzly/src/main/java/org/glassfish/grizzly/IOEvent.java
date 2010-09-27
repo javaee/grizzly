@@ -37,52 +37,62 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly;
 
 /**
- * Enumeration represents the I/O events, occured on a {@link Connection}.
+ * Enumeration represents the I/O events, occurred on a {@link Connection}.
  *
  * @see Connection
  * 
  * @author Alexey Stashok
  */
 public enum IOEvent {
+
     /**
      * no event
      */
     NONE,
 
     /**
-     * Event occures on a server {@link Connection}, when it becomes ready
+     * Event occurs on a server {@link Connection}, when it becomes ready
      * to accept new client {@link Connection}.
      *
-     * Note, this event occures on server code for server {@link Connection}.
+     * Note, this event occurs on server code for server {@link Connection}.
      */
     SERVER_ACCEPT,
 
     /**
-     * Event occures on a client {@link Connection}, just after it was accepted
+     * Event occurs on a client {@link Connection}, just after it was accepted
      * by the server.
      *
-     * Note, this event occures on server code for client {@link Connection}.
+     * Note, this event occurs on server code for client {@link Connection}.
      */
     ACCEPTED,
 
     /**
-     * Event occures on a {@link Connection}, once it was connected to server.
+     * Event occurs on a {@link Connection}, once it was connected to server.
+     * 
+     * (this is service IOEvent, which is not getting propagated to a {@link Processor}
+     */
+    CLIENT_CONNECTED,
+
+    /**
+     * Event occurs on a {@link Connection}, once it was connected to server.
      */
     CONNECTED,
+
     /**
-     * Event occures on a {@link Connection}, once it gets available for read.
+     * Event occurs on a {@link Connection}, once it gets available for read.
      */
     READ,
+
     /**
-     * Event occures on a {@link Connection}, once it  gets available for write.
+     * Event occurs on a {@link Connection}, once it  gets available for write.
      */
     WRITE,
+    
     /**
-     * Event occures on a {@link Connection}, once it gets closed.
+     * Event occurs on a {@link Connection}, once it gets closed.
      */
     CLOSED
 }
