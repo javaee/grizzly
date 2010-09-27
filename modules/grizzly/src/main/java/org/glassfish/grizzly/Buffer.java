@@ -270,8 +270,8 @@ public interface Buffer extends Comparable<Buffer> {
     public boolean isReadOnly();
 
     /**
-     * Creates a new byte buffer whose content is a shared subsequence of
-     * this buffer's content.
+     * Creates a new <code>Buffer</code> whose content is a shared subsequence
+     * of this buffer's content.
      *
      * <p> The content of the new buffer will start at this buffer's current
      * position.  Changes to this buffer's content will be visible in the new
@@ -284,12 +284,12 @@ public interface Buffer extends Comparable<Buffer> {
      * buffer is direct, and it will be read-only if, and only if, this buffer
      * is read-only.  </p>
      *
-     * @return  The new byte buffer
+     * @return  The new <code>Buffer</code>
      */
     public Buffer slice();
 
     /**
-     * Creates a new byte buffer whose content is a shared subsequence of
+     * Creates a new <code>Buffer</code> whose content is a shared subsequence of
      * this buffer's content.
      *
      * <p> The content of the new buffer will start at passed position and end
@@ -304,12 +304,12 @@ public interface Buffer extends Comparable<Buffer> {
      * buffer is direct, and it will be read-only if, and only if, this buffer
      * is read-only.  </p>
      *
-     * @return  The new byte buffer
+     * @return  The new <code>Buffer</code>
      */
     public Buffer slice(int position, int limit);
 
     /**
-     * Creates a new byte buffer that shares this buffer's content.
+     * Creates a new <code>Buffer</code> that shares this buffer's content.
      *
      * <p> The content of the new buffer will be that of this buffer.  Changes
      * to this buffer's content will be visible in the new buffer, and vice
@@ -321,12 +321,12 @@ public interface Buffer extends Comparable<Buffer> {
      * and only if, this buffer is direct, and it will be read-only if, and
      * only if, this buffer is read-only.  </p>
      *
-     * @return  The new byte buffer
+     * @return  The new <code>Buffer</code>
      */
     public Buffer duplicate();
 
     /**
-     * Creates a new, read-only byte buffer that shares this buffer's
+     * Creates a new, read-only <code>Buffer</code> that shares this buffer's
      * content.
      *
      * <p> The content of the new buffer will be that of this buffer.  Changes
@@ -341,7 +341,7 @@ public interface Buffer extends Comparable<Buffer> {
      * <p> If this buffer is itself read-only then this method behaves in
      * exactly the same way as the {@link #duplicate duplicate} method.  </p>
      *
-     * @return  The new, read-only byte buffer
+     * @return  The new, read-only <code>Buffer</code>
      */
     public Buffer asReadOnlyBuffer();
 
@@ -698,8 +698,8 @@ public interface Buffer extends Comparable<Buffer> {
      * Retrieves this buffer's byte order.
      *
      * <p> The byte order is used when reading or writing multibyte values, and
-     * when creating buffers that are views of this byte buffer.  The order of
-     * a newly-created byte buffer is always {@link ByteOrder#BIG_ENDIAN
+     * when creating buffers that are views of this <code>Buffer</code>.  The order of
+     * a newly-created <code>Buffer</code> is always {@link ByteOrder#BIG_ENDIAN
      * BIG_ENDIAN}.  </p>
      *
      * @return  This buffer's byte order
