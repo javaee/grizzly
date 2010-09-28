@@ -44,6 +44,7 @@ import com.sun.grizzly.Context;
 import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.config.dom.HttpRedirect;
 import com.sun.grizzly.http.portunif.HttpRedirector;
+import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.WorkerThread;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -75,7 +76,7 @@ public class HttpRedirectFilter implements ProtocolFilter,
         if (secure != null) { // if secure is set - we use it
             redirectToSecure = secure;
         } else {  // if secure is not set - use secure settings opposite to the current request
-            redirectToSecure = (sslEngine == null);
+            redirectToSecure = sslEngine == null;
         }
 
         if (sslEngine != null) {
@@ -101,9 +102,7 @@ public class HttpRedirectFilter implements ProtocolFilter,
         
         int totalBytesRead = 0;
         while(true) {
-            final com.sun.grizzly.util.Utils.Result result =
-                    com.sun.grizzly.util.Utils.readWithTemporarySelector(
-                     channel, bb, 20);
+            final Utils.Result result = Utils.readWithTemporarySelector(channel, bb, 20);
 
             bb.clear();
 
@@ -134,7 +133,7 @@ public class HttpRedirectFilter implements ProtocolFilter,
         if (configuration instanceof HttpRedirect) {
             final HttpRedirect httpRedirectConfig = (HttpRedirect) configuration;
             int port = Integer.parseInt(httpRedirectConfig.getPort());
-            redirectPort = ((port != -1) ? port : null);
+            redirectPort = port != -1 ? port : null;
             secure = Boolean.parseBoolean(httpRedirectConfig.getSecure());
         } else {
             // Retained for backwards compatibility with legacy redirect declarations.

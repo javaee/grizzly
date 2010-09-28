@@ -52,15 +52,19 @@ valid() {
 		 grep -vi .jar | \
 		 grep -vi .jks | \
 		 grep -vi .jpg | \
-		 grep -vi .js | \
+		 grep -vi .manifest | \
 		 grep -vi .mm | \
 		 grep -vi .ods | \
 		 grep -vi .png | \
 		 grep -vi .project | \
+		 grep -vi behaviour.js | \
+		 grep -vi dojo | \
 		 grep -vi copyright.sh | \
 		 grep -vi copyrightcheck.out | \
 		 grep -vi license.txt | \
 		 grep -vi manifest.mf | \
+		 grep -vi moo.fx | \
+		 grep -vi prototype.js | \
 		 grep -vi readme.txt | \
 		 grep -vwi readme | \
 		 grep -vi Grizzly-Migration-Guide | \
@@ -68,13 +72,13 @@ valid() {
 }
 
 run() {
-	$JAVA -jar copyright.jar  $* | while read LINE
+	$JAVA -jar copyright.jar $* | while read LINE
 	do
 		valid $LINE
 	done
 }
 
-JAVA=/files/hudson/tools/java1.6/bin/java
+JAVA=/export/home/hudson/tools/java1.6/bin/java
 if [ ! -f $JAVA ]
 then
 	JAVA=java

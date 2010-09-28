@@ -177,11 +177,13 @@
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-comet</artifactId>
             <version>${project.version}</version>
+				<scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-websockets</artifactId>
             <version>${project.version}</version>
+				<scope>provided</scope>
         </dependency>
     </dependencies>
 </project>

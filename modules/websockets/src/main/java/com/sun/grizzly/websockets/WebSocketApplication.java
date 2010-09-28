@@ -46,7 +46,7 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-public abstract class WebSocketApplication implements WebSocketListener {
+public abstract class WebSocketApplication extends WebSocketAdapter {
     private final ConcurrentHashMap<WebSocket, Boolean> sockets = new ConcurrentHashMap<WebSocket, Boolean>();
 
     /**
@@ -71,16 +71,15 @@ public abstract class WebSocketApplication implements WebSocketListener {
         return new BaseServerWebSocket(listeners);
     }
 
+    @Override
     public void onClose(WebSocket socket) throws IOException {
         remove(socket);
         socket.close();
     }
 
+    @Override
     public void onConnect(WebSocket socket) {
         add(socket);
-    }
-
-    public void onMessage(WebSocket socket, DataFrame data) throws IOException {
     }
 
     /**

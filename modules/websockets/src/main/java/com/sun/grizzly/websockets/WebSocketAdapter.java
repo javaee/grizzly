@@ -40,38 +40,15 @@
 
 package com.sun.grizzly.websockets;
 
-import com.sun.grizzly.http.SelectorThread;
-import com.sun.grizzly.tcp.StaticResourcesAdapter;
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
 import java.io.IOException;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
-@Test
-public class ServletBasedTest {
-    /**
-     * This tests the up front registration of applications from places such as Servlet.init().  This is likely
-     * the common case
-     */
-    public void declarative() throws IOException, InstantiationException, InterruptedException {
-        final CountDownLatch latch = new CountDownLatch(1);
-        final EchoWebSocketApplication app = new EchoWebSocketApplication();
-        WebSocketEngine.getEngine().register(app);
-        final SelectorThread
-                        thread = WebSocketsTest.createSelectorThread(WebSocketsTest.PORT, new StaticResourcesAdapter());
-        try {
-            ClientWebSocket socket = new ClientWebSocket(String.format("ws://localhost:%s/echo", WebSocketsTest.PORT), new WebSocketAdapter() {
-                public void onMessage(WebSocket socket, DataFrame frame) throws IOException {
-                    latch.countDown();
-                }
-            });
-            socket.send("echo me back");
-            Assert.assertTrue(latch.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS));
-        } finally {
-            WebSocketEngine.getEngine().unregister(app);
-            thread.stopEndpoint();
-        }
+public abstract class WebSocketAdapter implements WebSocketListener {
+    public void onClose(WebSocket socket) throws IOException {
+    }
+
+    public void onConnect(WebSocket socket) throws IOException {
+    }
+
+    public void onMessage(WebSocket socket, DataFrame frame) throws IOException {
     }
 }

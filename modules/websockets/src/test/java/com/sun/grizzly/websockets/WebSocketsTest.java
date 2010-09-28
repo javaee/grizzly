@@ -102,9 +102,7 @@ public class WebSocketsTest {
 
     @Test
     public void simpleConversationWithApplication() throws Exception {
-        final EchoServlet servlet = new EchoServlet();
-        WebSocketEngine.getEngine().register(new EchoWebSocketApplication());
-        run(servlet);
+        run(new EchoServlet());
     }
 
     private void run(final Servlet servlet) throws Exception {
@@ -115,18 +113,16 @@ public class WebSocketsTest {
 
         WebSocket client = null;
         try {
-            client = new ClientWebSocket(String.format("ws://localhost:%s/echo", PORT), new WebSocketListener() {
+            client = new ClientWebSocket(String.format("ws://localhost:%s/echo", PORT), new WebSocketAdapter() {
+                @Override
                 public void onMessage(WebSocket socket, DataFrame data) {
                     sent.remove(data.getTextPayload());
                     received.countDown();
                 }
 
+                @Override
                 public void onConnect(WebSocket socket) {
                     connected.countDown();
-                }
-
-                public void onClose(WebSocket socket) {
-                    Utils.dumpOut("closed");
                 }
             });
 
@@ -153,22 +149,17 @@ public class WebSocketsTest {
     public void timeouts() throws Exception {
         SelectorThread thread = null;
         WebSocket client = null;
+        final EchoWebSocketApplication app = new EchoWebSocketApplication();
         try {
-            WebSocketEngine.getEngine().register(new EchoWebSocketApplication());
+            WebSocketEngine.getEngine().register(app);
             thread = createSelectorThread(PORT, new StaticResourcesAdapter());
             final Map<String, Object> messages = new ConcurrentHashMap<String, Object>();
             final CountDownLatch received = new CountDownLatch(MESSAGE_COUNT);
-            client = new ClientWebSocket(String.format("ws://localhost:%s/echo", PORT), new WebSocketListener() {
+            client = new ClientWebSocket(String.format("ws://localhost:%s/echo", PORT), new WebSocketAdapter() {
+                @Override
                 public void onMessage(WebSocket socket, DataFrame data) {
                     messages.remove(data.getTextPayload());
                     received.countDown();
-                }
-
-                public void onConnect(WebSocket socket) {
-                }
-
-                public void onClose(WebSocket socket) {
-                    Utils.dumpOut("closed");
                 }
             });
 
@@ -181,6 +172,7 @@ public class WebSocketsTest {
                     String.format("Waited %ss for everything to come back", WebSocketEngine.DEFAULT_TIMEOUT));
             Assert.assertTrue(messages.isEmpty(), "All messages should have been echoed back: " + messages);
         } finally {
+            WebSocketEngine.getEngine().unregister(app);
             if (client != null) {
                 client.close();
             }
@@ -200,8 +192,9 @@ public class WebSocketsTest {
         ));
         SelectorThread thread = null;
         SSLSocket socket = null;
+        final EchoWebSocketApplication app = new EchoWebSocketApplication();
         try {
-            WebSocketEngine.getEngine().register(new EchoWebSocketApplication());
+            WebSocketEngine.getEngine().register(app);
             thread = createSSLSelectorThread(PORT, new StaticResourcesAdapter());
             SSLSocketFactory sslsocketfactory = getSSLSocketFactory();
 
@@ -214,6 +207,7 @@ public class WebSocketsTest {
             if (socket != null) {
                 socket.close();
             }
+            WebSocketEngine.getEngine().unregister(app);
         }
     }
 
@@ -283,7 +277,7 @@ public class WebSocketsTest {
     @Test
     public void testVer75ServerHandShake() throws Exception {
         final SelectorThread thread = createSelectorThread(PORT, new StaticResourcesAdapter());
-        WebSocketEngine.getEngine().register(new WebSocketApplication() {
+        final WebSocketApplication app = new WebSocketApplication() {
             public void onMessage(WebSocket socket, DataFrame data) {
                 Assert.fail("A GET should never get here.");
             }
@@ -298,7 +292,8 @@ public class WebSocketsTest {
 
             public void onClose(WebSocket socket) {
             }
-        });
+        };
+        WebSocketEngine.getEngine().register(app);
         final ArrayList<String> headers = new ArrayList<String>(Arrays.asList(
                 "HTTP/1.1 101 Web Socket Protocol Handshake",
                 "Upgrade: WebSocket",
@@ -312,6 +307,7 @@ public class WebSocketsTest {
         } finally {
             socket.close();
             thread.stopEndpoint();
+            WebSocketEngine.getEngine().unregister(app);
         }
     }
 
@@ -350,7 +346,7 @@ public class WebSocketsTest {
     }
 
     public void testGetOnWebSocketApplication() throws IOException, InstantiationException, InterruptedException {
-        WebSocketEngine.getEngine().register(new WebSocketApplication() {
+        final WebSocketApplication app = new WebSocketApplication() {
             public void onMessage(WebSocket socket, DataFrame data) {
                 Assert.fail("A GET should never get here.");
             }
@@ -365,7 +361,8 @@ public class WebSocketsTest {
 
             public void onClose(WebSocket socket) {
             }
-        });
+        };
+        WebSocketEngine.getEngine().register(app);
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
         URL url = new URL("http://localhost:" + PORT + "/echo");
         final URLConnection urlConnection = url.openConnection();
@@ -378,6 +375,7 @@ public class WebSocketsTest {
         } finally {
             is.close();
             thread.stopEndpoint();
+            WebSocketEngine.getEngine().unregister(app);
         }
     }
 

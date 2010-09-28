@@ -51,7 +51,9 @@ import com.sun.grizzly.util.Utils;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -69,6 +71,8 @@ public class WebSocketEngine {
     private static final WebSocketEngine engine = new WebSocketEngine();
     static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     private final List<WebSocketApplication> applications = new ArrayList<WebSocketApplication>();
+    private final Map<WebSocketApplication, StackTraceElement[]> map = new HashMap<WebSocketApplication, StackTraceElement[]>();
+    public static final boolean constrainApplications = Boolean.getBoolean("grizzly.websockets.constrainApplications");
     private final WebSocketCloseHandler closeHandler = new WebSocketCloseHandler();
 
     static {
@@ -93,7 +97,14 @@ public class WebSocketEngine {
             if(application.upgrade(request)) {
                 if(app == null) {
                     app = application;
-                } else {
+                } else if(constrainApplications) {
+                    for (Map.Entry<WebSocketApplication, StackTraceElement[]> entry : map.entrySet()) {
+                        System.out.println("WebSocketEngine.getApplication: entry.getKey() = " + entry.getKey());
+                        final StackTraceElement[] traceElements = entry.getValue();
+                        for (StackTraceElement element : traceElements) {
+                            System.out.println(element);
+                        }
+                    }
                     throw new HandshakeException("Multiple applications are registered for this request");
                 }
             }
@@ -148,28 +159,25 @@ public class WebSocketEngine {
 
     public void register(WebSocketApplication app) {
         applications.add(app);
+        map.put(app, Thread.currentThread().getStackTrace());
     }
 
     public void unregister(WebSocketApplication app) {
         applications.remove(app);
+        map.remove(app);
     }
 
-    private static class KeyWebSocketListener implements WebSocketListener {
+    private static class KeyWebSocketListener extends WebSocketAdapter {
         private final SelectionKey key;
 
         public KeyWebSocketListener(SelectionKey key) {
             this.key = key;
         }
 
+        @Override
         public void onClose(WebSocket socket) throws IOException {
             key.cancel();
             key.channel().close();
-        }
-
-        public void onConnect(WebSocket socket) {
-        }
-
-        public void onMessage(WebSocket socket, DataFrame frame) throws IOException {
         }
     }
 }

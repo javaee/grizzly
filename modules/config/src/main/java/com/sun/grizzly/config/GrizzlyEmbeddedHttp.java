@@ -113,7 +113,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     private UDecoder udecoder;
 
     private volatile ProtocolChainInstanceHandler rootProtocolChainHandler;
-    
+
     /**
      * Constructor
      */
@@ -183,32 +183,32 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         final ProtocolChainInstanceHandler instanceHandler = pcih != null ? pcih
                 : new DefaultProtocolChainInstanceHandler() {
 
-            private final Queue<ProtocolChain> chains =
-                    DataStructures.getCLQinstance(ProtocolChain.class);
+                    private final Queue<ProtocolChain> chains =
+                            DataStructures.getCLQinstance(ProtocolChain.class);
 
-            /**
-             * Always return instance of ProtocolChain.
-             */
-            @Override
-            public ProtocolChain poll() {
-                ProtocolChain protocolChain = chains.poll();
-                if (protocolChain == null) {
-                    protocolChain = new HttpProtocolChain();
-                    ((HttpProtocolChain) protocolChain).enableRCM(rcmSupport);
-                    configureFilters(protocolChain);
-                }
-                return protocolChain;
-            }
+                    /**
+                     * Always return instance of ProtocolChain.
+                     */
+                    @Override
+                    public ProtocolChain poll() {
+                        ProtocolChain protocolChain = chains.poll();
+                        if (protocolChain == null) {
+                            protocolChain = new HttpProtocolChain();
+                            ((HttpProtocolChain) protocolChain).enableRCM(rcmSupport);
+                            configureFilters(protocolChain);
+                        }
+                        return protocolChain;
+                    }
 
-            /**
-             * Pool an instance of ProtocolChain.
-             */
-            @Override
-            public boolean offer(ProtocolChain instance) {
-                return chains.offer(instance);
-            }
-        };
-        
+                    /**
+                     * Pool an instance of ProtocolChain.
+                     */
+                    @Override
+                    public boolean offer(ProtocolChain instance) {
+                        return chains.offer(instance);
+                    }
+                };
+
         controller.setProtocolChainInstanceHandler(instanceHandler);
     }
 
@@ -243,7 +243,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
 
     public void configure(NetworkListener networkListener, Habitat habitat) {
         final Protocol httpProtocol = networkListener.findHttpProtocol();
-        
+
         final Transport transport = networkListener.findTransport();
         final ThreadPool pool = networkListener.findThreadPool();
 
@@ -269,11 +269,10 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         final boolean mayEnableAsync = !"admin-listener".equalsIgnoreCase(networkListener.getName());
 
         rootProtocolChainHandler = configureProtocol(networkListener, protocol, habitat, mayEnableAsync);
-        
-        configureThreadPool(networkListener, pool,
-                (httpProtocol != null ?
-                    httpProtocol.getHttp().getRequestTimeoutSeconds() :
-                    "-1"));
+
+        configureThreadPool(networkListener, pool, httpProtocol != null ?
+                httpProtocol.getHttp().getRequestTimeoutSeconds() :
+                "-1");
     }
 
     protected void configureTransport(Transport transport) {
@@ -329,8 +328,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                             puFilterClassname + " default filter will be used instead", e);
                 }
             }
-            List<com.sun.grizzly.config.dom.ProtocolFinder> findersConfig = pu.getProtocolFinder();
-            for (com.sun.grizzly.config.dom.ProtocolFinder finderConfig : findersConfig) {
+            for (com.sun.grizzly.config.dom.ProtocolFinder finderConfig : pu.getProtocolFinder()) {
                 String finderClassname = finderConfig.getClassname();
                 try {
                     ProtocolFinder protocolFinder = (ProtocolFinder) newInstance(finderClassname);
@@ -402,8 +400,6 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     }
 
 
-
-
     protected void configurePortUnification() {
         configurePortUnification(finders, handlers, preprocessors);
     }
@@ -462,7 +458,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     /**
      * @param protocolChainConfig <code>ProtocolChain</code> configuration data
      * @return a new {@link ProtocolChain} based on the provided
-     *  <code>protocolChainConfig</code> data
+     *         <code>protocolChainConfig</code> data
      */
     private ProtocolChain createProtocolChain(com.sun.grizzly.config.dom.ProtocolChain protocolChainConfig) {
         if (protocolChainConfig == null) {
@@ -502,7 +498,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         };
 
     }
-    
+
 
     /**
      * Configure the Grizzly FileCache mechanism
@@ -523,8 +519,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         // http settings
         try {
             setAdapter((Adapter) Class.forName(http.getAdapter()).newInstance());
-            if(adapter instanceof GrizzlyAdapter) {
-                ((GrizzlyAdapter)adapter).setAllowEncodedSlash(GrizzlyConfig.toBoolean(http.getEncodedSlashEnabled()));
+            if (adapter instanceof GrizzlyAdapter) {
+                ((GrizzlyAdapter) adapter).setAllowEncodedSlash(GrizzlyConfig.toBoolean(http.getEncodedSlashEnabled()));
             }
         } catch (Exception e) {
             throw new GrizzlyConfigException(e.getMessage(), e);
@@ -596,7 +592,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     /**
      * Configures an HTTP grizzlyListener with the given request-processing config.
      */
-    private void configureThreadPool(NetworkListener networkListener, ThreadPool threadPool, final String transactionTimeoutSec) {
+    private void configureThreadPool(NetworkListener networkListener, ThreadPool threadPool,
+            final String transactionTimeoutSec) {
         if (threadPool == null) {
             return;
         }

@@ -58,10 +58,10 @@ public class FloodTest {
         SelectorThread thread = WebSocketsTest.createSelectorThread(WebSocketsTest.PORT, new StaticResourcesAdapter());
         final EchoWebSocketApplication app = new EchoWebSocketApplication();
         WebSocketEngine.getEngine().register(app);
-        final FloodListener listener = new FloodListener();
-        ClientWebSocket webSocket = null;
 
+        ClientWebSocket webSocket = null;
         try {
+            final FloodListener listener = new FloodListener();
             webSocket = new FloodingWebSocket(listener);
             Assert.assertTrue(listener.waitOnMessage(), "Flood shouldn't affect message parsing");
             listener.reset();
@@ -91,14 +91,8 @@ public class FloodTest {
         }
     }
 
-    private static class FloodListener implements WebSocketListener {
+    private static class FloodListener extends WebSocketAdapter {
         private CountDownLatch latch = new CountDownLatch(1);
-
-        public void onClose(WebSocket socket) throws IOException {
-        }
-
-        public void onConnect(WebSocket socket) throws IOException {
-        }
 
         public void onMessage(WebSocket socket, DataFrame frame) throws IOException {
             latch.countDown();
