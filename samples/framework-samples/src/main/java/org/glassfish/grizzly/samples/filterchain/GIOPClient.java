@@ -40,14 +40,18 @@
 
 package org.glassfish.grizzly.samples.filterchain;
 
+import java.io.IOException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.TransportFactory;
-import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 
 /**
@@ -57,9 +61,10 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
  */
 public class GIOPClient {
 
-    // @TODO comment the test out until Smart filter will be adjusted to new API
     public static void main(String[] args) throws Exception {
         Connection connection = null;
+
+        final FutureImpl<GIOPMessage> resultMessageFuture = SafeFutureImpl.create();
 
         // Create a FilterChain using FilterChainBuilder
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
@@ -67,6 +72,7 @@ public class GIOPClient {
         // for reading and writing data to the connection
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new GIOPFilter());
+        filterChainBuilder.add(new CustomClientFilter(resultMessageFuture));
 
         // Create TCP NIO transport
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
@@ -83,18 +89,14 @@ public class GIOPClient {
             connection = future.get(10, TimeUnit.SECONDS);
 
             // Initialize sample GIOP message
-            byte[] testMessage = new String("GIOP test").getBytes();
+            byte[] testMessage = "GIOP test".getBytes();
             GIOPMessage sentMessage = new GIOPMessage((byte) 1, (byte) 2,
                     (byte) 0x0F, (byte) 0, testMessage);
 
-            Future<WriteResult> writeFuture = connection.write(sentMessage);
+            connection.write(sentMessage);
 
-            writeFuture.get(10, TimeUnit.SECONDS);
+            final GIOPMessage rcvMessage = resultMessageFuture.get(10, TimeUnit.SECONDS);
 
-            Future<ReadResult> readFuture = connection.read();
-            ReadResult readResult = readFuture.get(10, TimeUnit.SECONDS);
-            GIOPMessage rcvMessage = (GIOPMessage) readResult.getMessage();
-            
             // Check if echo returned message equal to original one
             if (sentMessage.equals(rcvMessage)) {
                 System.out.println("DONE!");
@@ -109,6 +111,22 @@ public class GIOPClient {
 
             transport.stop();
             TransportFactory.getInstance().close();
+        }
+    }
+
+    public static final class CustomClientFilter extends BaseFilter {
+        private final FutureImpl<GIOPMessage> resultFuture;
+
+        public CustomClientFilter(FutureImpl<GIOPMessage> resultFuture) {
+            this.resultFuture = resultFuture;
+}
+
+        @Override
+        public NextAction handleRead(FilterChainContext ctx) throws IOException {
+            final GIOPMessage message = ctx.getMessage();
+            resultFuture.result(message);
+
+            return ctx.getStopAction();
         }
     }
 }
