@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.web;
 
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.SocketConnectorHandler;
@@ -58,7 +59,6 @@ import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.memory.MemoryUtils;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.utils.LinkedTransferQueue;
 import java.io.IOException;
@@ -169,8 +169,8 @@ public class SkipRemainderTest {
 
         connection.write(request1);
 
-        final Buffer chunk1 = MemoryUtils.wrap(mm, content, 0, contentSizeHalf);
-        final Buffer chunk2 = MemoryUtils.wrap(mm, content, contentSizeHalf, contentSizeHalf);
+        final Buffer chunk1 = Buffers.wrap(mm, content, 0, contentSizeHalf);
+        final Buffer chunk2 = Buffers.wrap(mm, content, contentSizeHalf, contentSizeHalf);
 
         final HttpContent httpContent11 = HttpContent.builder(request1)
                 .content(chunk1)

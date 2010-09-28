@@ -63,7 +63,6 @@ import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.memory.MemoryUtils;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import junit.framework.TestCase;
@@ -76,6 +75,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * Test cases to validate the behaviors of {@link org.glassfish.grizzly.http.server.io.NIOInputStream} and
@@ -935,7 +935,7 @@ public class HttpInputStreamsTest extends TestCase {
     @SuppressWarnings({"unchecked"})
     private HttpPacket createRequest(final String method, final String content) {
         final Buffer contentBuffer = content != null ?
-            MemoryUtils.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), content) :
+            Buffers.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), content) :
             null;
         
         HttpRequestPacket.Builder b = HttpRequestPacket.builder();
@@ -1152,7 +1152,7 @@ public class HttpInputStreamsTest extends TestCase {
             ctx.write(request);
             byte[] bytes = requestData.getBytes(encoding);
             MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
-            Buffer b = MemoryUtils.wrap(mm, bytes);
+            Buffer b = Buffers.wrap(mm, bytes);
             HttpContent.Builder builder = ((HttpHeader) request).httpContentBuilder();
             builder.content(b);
             ctx.write(builder.build());
