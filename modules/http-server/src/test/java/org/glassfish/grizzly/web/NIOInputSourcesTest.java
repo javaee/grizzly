@@ -62,7 +62,7 @@ import org.glassfish.grizzly.http.server.io.NIOReader;
 import org.glassfish.grizzly.http.server.io.ReadHandler;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.memory.ByteBuffersBuffer;
+import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.memory.MemoryUtils;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -76,6 +76,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * Test case to exercise <code>AsyncStreamReader</code>.
@@ -458,12 +459,12 @@ public class NIOInputSourcesTest extends TestCase {
             if (encoding != null) {
                 try {
                     byte[] bytes = content.getBytes(encoding);
-                    contentBuffer = MemoryUtils.wrap(mm, bytes);
+                    contentBuffer = Buffers.wrap(mm, bytes);
                 } catch (UnsupportedEncodingException e) {
                     throw new RuntimeException(e);
                 }
             } else {
-                contentBuffer = MemoryUtils.wrap(mm, content);
+                contentBuffer = Buffers.wrap(mm, content);
             }
 
             cb.content(contentBuffer);
@@ -689,7 +690,7 @@ public class NIOInputSourcesTest extends TestCase {
     private static class ClientFilter extends BaseFilter {
         private final static Logger logger = Grizzly.logger(ClientFilter.class);
 
-        private ByteBuffersBuffer buf = ByteBuffersBuffer.create();
+        private CompositeBuffer buf = CompositeBuffer.newBuffer();
 
         private FutureImpl<String> testFuture;
 

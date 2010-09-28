@@ -40,12 +40,11 @@
 
 package org.glassfish.grizzly;
 
-import org.glassfish.grizzly.memory.BufferUtils;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.BuffersBuffer;
 import org.glassfish.grizzly.memory.ByteBuffersBuffer;
 import org.glassfish.grizzly.memory.DefaultMemoryManager;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.memory.MemoryUtils;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import java.util.Arrays;
 
@@ -425,7 +424,7 @@ public class CompositeBufferTest extends GrizzlyTestCase {
 
         for (CompositeBufferType type : CompositeBufferType.values()) {
 
-            Buffer buffer1 = MemoryUtils.wrap(manager, "1234");
+            Buffer buffer1 = Buffers.wrap(manager, "1234");
             buffer1.position(3);
 
             Buffer buffer2 = manager.allocate(0);
@@ -433,7 +432,7 @@ public class CompositeBufferTest extends GrizzlyTestCase {
             CompositeBuffer compositeBuffer = createCompositeBuffer(type, buffer1);
             assertEquals('4', compositeBuffer.get(0));
 
-            Buffer resultBuffer = BufferUtils.appendBuffers(manager, buffer2, compositeBuffer);
+            Buffer resultBuffer = Buffers.appendBuffers(manager, buffer2, compositeBuffer);
 
             assertEquals(resultBuffer.toStringContent(), "4");
         }
@@ -450,7 +449,7 @@ public class CompositeBufferTest extends GrizzlyTestCase {
     private void doTestBuffers(CompositeBufferType type) {
         MemoryManager manager = new DefaultMemoryManager();
 
-        Buffer sampleBuffer = MemoryUtils.wrap(manager, new byte[]{-1, 0, 1, 1, 2, 3, 4});
+        Buffer sampleBuffer = Buffers.wrap(manager, new byte[]{-1, 0, 1, 1, 2, 3, 4});
 
         Buffer b1 = manager.allocate(3);
         Buffer b2 = manager.allocate(4);

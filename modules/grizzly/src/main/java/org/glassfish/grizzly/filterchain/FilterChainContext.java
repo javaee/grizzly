@@ -53,7 +53,7 @@ import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.memory.BufferUtils;
+import org.glassfish.grizzly.memory.Buffers;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -453,7 +453,7 @@ public final class FilterChainContext implements AttributeStorage {
      */
     public NextAction getStopAction(Object unknownObject) {
         if (unknownObject instanceof Buffer) {
-            return getStopAction(unknownObject, BufferUtils.BUFFER_APPENDER);
+            return getStopAction(unknownObject, Buffers.BUFFER_APPENDER);
         }
 
         return getStopAction((Appendable) unknownObject);

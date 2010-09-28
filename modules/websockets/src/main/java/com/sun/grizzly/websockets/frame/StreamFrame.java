@@ -42,7 +42,7 @@ package org.glassfish.grizzly.websockets.frame;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.TransportFactory;
-import org.glassfish.grizzly.memory.BufferUtils;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
@@ -85,12 +85,12 @@ class StreamFrame extends Frame {
         final Buffer startBuffer = mm.allocate(1);
         startBuffer.put(0, (byte) (type & 0xFF));
         
-        Buffer resultBuffer = BufferUtils.appendBuffers(mm, startBuffer, buffer);
+        Buffer resultBuffer = Buffers.appendBuffers(mm, startBuffer, buffer);
 
         final Buffer endBuffer = mm.allocate(1);
         endBuffer.put(0, (byte) 0xFF);
 
-        resultBuffer = BufferUtils.appendBuffers(mm, resultBuffer, endBuffer);
+        resultBuffer = Buffers.appendBuffers(mm, resultBuffer, endBuffer);
         return resultBuffer;
     }
 
@@ -131,9 +131,9 @@ class StreamFrame extends Frame {
                     }
 
                     if (buffer.position() - startPos > 1) { // If last buffer had some content, not just 0xFF
-                        BufferUtils.setPositionLimit(buffer,
+                        Buffers.setPositionLimit(buffer,
                                 startPos, buffer.position() - 1);
-                        this.buffer = BufferUtils.appendBuffers(mm,
+                        this.buffer = Buffers.appendBuffers(mm,
                                 this.buffer, buffer);
                     }
 
@@ -142,7 +142,7 @@ class StreamFrame extends Frame {
                 } else {
                     if (startPos != buffer.position()) {
                         buffer.position(startPos);
-                        this.buffer = BufferUtils.appendBuffers(mm,
+                        this.buffer = Buffers.appendBuffers(mm,
                                 this.buffer, buffer);
                     }
 

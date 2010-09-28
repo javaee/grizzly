@@ -54,12 +54,12 @@ import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.memory.MemoryUtils;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.ssl.SSLFilter;
 import javax.net.ssl.SSLEngine;
+import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * The simple {@link FilterChain} based SSL client, which sends a message to
@@ -150,7 +150,7 @@ public class FilterChainSSLEchoClient {
                 @Override
                 public void completed(SSLEngine result) {
                     try {
-                        connection.write(MemoryUtils.wrap(mm, MESSAGE));
+                        connection.write(Buffers.wrap(mm, MESSAGE));
                     } catch (IOException e) {
                         try {
                             connection.close();

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,21 +40,25 @@
 
 package org.glassfish.grizzly.memory;
 
-import org.glassfish.grizzly.Appender;
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.TransportFactory;
 import java.io.UnsupportedEncodingException;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import org.glassfish.grizzly.Appender;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.TransportFactory;
 
 /**
+ * Class has useful methods to simplify the work with {@link Buffer}s.
+ *
+ * @see Buffer
  *
  * @author Alexey Stashok
  */
-public class BufferUtils {
+
+public class Buffers {
     public static final Appender BUFFER_APPENDER = new Appender<Buffer>() {
         @Override
         public Buffer append(Buffer element1, Buffer element2) {
@@ -64,7 +68,7 @@ public class BufferUtils {
             }
 
             final CompositeBuffer compositeBuffer =
-                    BuffersBuffer.create(null,
+                    CompositeBuffer.newBuffer(null,
                     element1);
             compositeBuffer.append(element2);
             return compositeBuffer;
@@ -73,13 +77,115 @@ public class BufferUtils {
     };
     public static final ByteBuffer EMPTY_BYTE_BUFFER = ByteBuffer.allocate(0);
     public static final ByteBuffer[] EMPTY_BYTE_BUFFER_ARRAY = new ByteBuffer[0];
-    
+
     public static final Buffer EMPTY_BUFFER;
 
     static {
         EMPTY_BUFFER = TransportFactory.getInstance().getDefaultMemoryManager().allocate(0).asReadOnlyBuffer();
         EMPTY_BUFFER.allowBufferDispose(false);
     }
+
+    /**
+     * Returns {@link Buffer}, which wraps the {@link String}.
+     *
+     * @param memoryManager {@link MemoryManager}, which should be
+     *                       used for wrapping.
+     * @param s {@link String}
+     *
+     * @return {@link Buffer} wrapper on top of passed {@link String}.
+     */
+    public static <E extends Buffer> E wrap(MemoryManager<E> memoryManager,
+            String s) {
+        return wrap(memoryManager, s, Charset.defaultCharset());
+    }
+
+    /**
+     * Returns {@link Buffer}, which wraps the {@link String} with the specific
+     * {@link Charset}.
+     *
+     * @param memoryManager {@link MemoryManager}, which should be
+     *                       used for wrapping.
+     * @param s {@link String}
+     * @param charset {@link Charset}, which will be used, when converting
+     * {@link String} to byte array.
+     *
+     * @return {@link Buffer} wrapper on top of passed {@link String}.
+     */
+    public static <E extends Buffer> E wrap(MemoryManager<E> memoryManager,
+            String s, Charset charset) {
+        try {
+            byte[] byteRepresentation = s.getBytes(charset.name());
+            return wrap(memoryManager, byteRepresentation);
+        } catch (UnsupportedEncodingException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /**
+     * Returns {@link Buffer}, which wraps the byte array.
+     *
+     * @param memoryManager {@link MemoryManager}, which should be
+     *                       used for wrapping.
+     * @param array byte array to wrap.
+     *
+     * @return {@link Buffer} wrapper on top of passed byte array.
+     */
+    public static <E extends Buffer> E wrap(MemoryManager<E> memoryManager,
+            byte[] array) {
+        return wrap(memoryManager, array, 0, array.length);
+    }
+
+    /**
+     * Returns {@link Buffer}, which wraps the part of byte array with
+     * specific offset and length.
+     *
+     * @param memoryManager {@link MemoryManager}, which should be
+     *                       used for wrapping.
+     * @param array byte array to wrap
+     * @param offset byte buffer offset
+     * @param length byte buffer length
+     *
+     * @return {@link Buffer} wrapper on top of passed byte array.
+     */
+    public static <E extends Buffer> E wrap(MemoryManager<E> memoryManager,
+            byte[] array, int offset, int length) {
+        if (memoryManager == null) {
+            memoryManager = TransportFactory.getInstance().getDefaultMemoryManager();
+        }
+
+        if (memoryManager instanceof WrapperAware) {
+            return ((WrapperAware<E>) memoryManager).wrap(array, offset, length);
+        }
+
+        E buffer = memoryManager.allocate(length);
+        buffer.put(array, offset, length);
+        buffer.flip();
+        return buffer;
+    }
+
+    /**
+     * Returns {@link Buffer}, which wraps the {@link ByteBuffer}.
+     *
+     * @param memoryManager {@link MemoryManager}, which should be
+     *                       used for wrapping.
+     * @param byteBuffer {@link ByteBuffer} to wrap
+     *
+     * @return {@link Buffer} wrapper on top of passed {@link ByteBuffer}.
+     */
+    public static <E extends Buffer> E wrap(MemoryManager<E> memoryManager,
+            ByteBuffer byteBuffer) {
+        if (memoryManager instanceof WrapperAware) {
+            return ((WrapperAware<E>) memoryManager).wrap(byteBuffer);
+        } else if (byteBuffer.hasArray()) {
+            return wrap(memoryManager, byteBuffer.array(),
+                    byteBuffer.arrayOffset() + byteBuffer.position(),
+                    byteBuffer.remaining());
+        }
+
+        throw new IllegalStateException("Can not wrap ByteBuffer");
+    }
+
+
 
     /**
      * Slice {@link ByteBuffer} of required size from big chunk.
@@ -99,7 +205,7 @@ public class BufferUtils {
         return view;
     }
 
-    
+
     /**
      * Get the {@link ByteBuffer}'s slice basing on its passed position and limit.
      * Position and limit values of the passed {@link ByteBuffer} won't be changed.
@@ -128,7 +234,7 @@ public class BufferUtils {
 
     public static String toStringContent(ByteBuffer byteBuffer, Charset charset,
             int position, int limit) {
-        
+
         if (charset == null) {
             charset = Charset.defaultCharset();
         }
@@ -165,10 +271,10 @@ public class BufferUtils {
 //            return new String(tmpBuffer, charset);
         }
     }
-    
+
     public static void setPositionLimit(Buffer buffer, int position, int limit) {
         final int currentLimit = buffer.limit();
-        
+
         if (position <= currentLimit) {
             buffer.position(position);
             buffer.limit(limit);
@@ -192,11 +298,11 @@ public class BufferUtils {
 
     public static void put(final ByteBuffer srcBuffer, final int srcOffset,
             final int length, final ByteBuffer dstBuffer) {
-        
+
         if (dstBuffer.remaining() < length) {
             throw new BufferOverflowException();
         }
-        
+
         if (srcBuffer.hasArray() && dstBuffer.hasArray()) {
 
             System.arraycopy(srcBuffer.array(),
@@ -251,7 +357,7 @@ public class BufferUtils {
 
     public static void get(ByteBuffer srcBuffer,
             byte[] dstBytes, int dstOffset, int length) {
-        
+
         if (srcBuffer.hasArray()) {
             if (length > srcBuffer.remaining()) {
                 throw new BufferUnderflowException();
@@ -265,7 +371,7 @@ public class BufferUtils {
             srcBuffer.get(dstBytes, dstOffset, length);
         }
     }
-    
+
     public static void put(byte[] srcBytes, int srcOffset, int length,
             ByteBuffer dstBuffer) {
         if (dstBuffer.hasArray()) {
@@ -298,7 +404,7 @@ public class BufferUtils {
             return buffer2;
         } else {
             CompositeBuffer compositeBuffer =
-                    BuffersBuffer.create(memoryManager);
+                    CompositeBuffer.newBuffer(memoryManager);
 
             compositeBuffer.append(buffer1);
             compositeBuffer.append(buffer2);
@@ -309,7 +415,7 @@ public class BufferUtils {
 
     /**
      * Fill the {@link Buffer} with the specific byte value. {@link Buffer}'s
-     * postion won't be changed.
+     * position won't be changed.
      *
      * @param buffer {@link Buffer}
      * @param b value
@@ -319,9 +425,9 @@ public class BufferUtils {
     }
 
     /**
-     * Fill the {@link Buffer}'s part [postion, limit) with the specific byte value starting from the
-     * {@link Buffer}'s postion won't be changed.
-     * 
+     * Fill the {@link Buffer}'s part [position, limit) with the specific byte value starting from the
+     * {@link Buffer}'s position won't be changed.
+     *
      * @param buffer {@link Buffer}
      * @param position {@link Buffer} position to start with (inclusive)
      * @param limit {@link Buffer} limit, where filling ends (exclusive)
@@ -342,7 +448,7 @@ public class BufferUtils {
 
     /**
      * Fill the {@link ByteBuffer} with the specific byte value. {@link ByteBuffer}'s
-     * postion won't be changed.
+     * position won't be changed.
      *
      * @param byteBuffer {@link ByteBuffer}
      * @param b value
@@ -352,8 +458,8 @@ public class BufferUtils {
     }
 
     /**
-     * Fill the {@link ByteBuffer}'s part [postion, limit) with the specific byte value starting from the
-     * {@link ByteBuffer}'s postion won't be changed.
+     * Fill the {@link ByteBuffer}'s part [position, limit) with the specific byte value starting from the
+     * {@link ByteBuffer}'s position won't be changed.
      *
      * @param byteBuffer {@link ByteBuffer}
      * @param position {@link ByteBuffer} position to start with (inclusive)

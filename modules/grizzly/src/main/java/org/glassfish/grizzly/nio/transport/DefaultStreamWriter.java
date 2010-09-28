@@ -49,7 +49,7 @@ import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.memory.BufferUtils;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.streams.AbstractStreamWriter;
 import org.glassfish.grizzly.streams.BufferedOutput;
 
@@ -88,7 +88,7 @@ public final class DefaultStreamWriter extends AbstractStreamWriter {
             final FutureImpl<Integer> future = SafeFutureImpl.create();
             
             if (buffer == null) {
-                buffer = BufferUtils.EMPTY_BUFFER;
+                buffer = Buffers.EMPTY_BUFFER;
             }
 
             connection.write(buffer,

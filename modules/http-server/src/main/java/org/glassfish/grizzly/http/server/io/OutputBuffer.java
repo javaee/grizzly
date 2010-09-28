@@ -52,10 +52,8 @@ import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.http.server.Constants;
 import org.glassfish.grizzly.http.util.Utils;
-import org.glassfish.grizzly.memory.BuffersBuffer;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.memory.MemoryUtils;
 import org.glassfish.grizzly.nio.AbstractNIOConnection;
 
 import java.io.IOException;
@@ -66,6 +64,7 @@ import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 import java.util.concurrent.atomic.AtomicReference;
+import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * Abstraction exposing both byte and character methods to write content
@@ -415,7 +414,7 @@ public class OutputBuffer {
      */
     @SuppressWarnings({"unchecked"})
     public void writeByteBuffer(ByteBuffer byteBuffer) throws IOException {
-        Buffer w = MemoryUtils.wrap(memoryManager, byteBuffer);
+        Buffer w = Buffers.wrap(memoryManager, byteBuffer);
         w.allowBufferDispose(false);
         writeBuffer(w);
     }
@@ -603,7 +602,7 @@ public class OutputBuffer {
     }
 
     private CompositeBuffer createCompositeBuffer() {
-        final CompositeBuffer buffer = BuffersBuffer.create(memoryManager);
+        final CompositeBuffer buffer = CompositeBuffer.newBuffer(memoryManager);
         buffer.allowBufferDispose(true);
         buffer.allowInternalBuffersDispose(true);
 

@@ -64,7 +64,6 @@ import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.memory.MemoryUtils;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import junit.framework.TestCase;
@@ -77,6 +76,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.memory.Buffers;
 
 
 /**
@@ -223,7 +223,7 @@ public class HttpSemanticsTest extends TestCase {
                 HttpResponsePacket response = request.getResponse();
                 HttpStatus.OK_200.setValues(response);
                 MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
-                HttpContent content = response.httpContentBuilder().content(MemoryUtils.wrap(mm, "Content")).build();
+                HttpContent content = response.httpContentBuilder().content(Buffers.wrap(mm, "Content")).build();
                 content.setLast(true);        
                 ctx.write(content);
                 ctx.flush(new FlushAndCloseHandler());
@@ -258,7 +258,7 @@ public class HttpSemanticsTest extends TestCase {
                 HttpResponsePacket response = request.getResponse();
                 HttpStatus.OK_200.setValues(response);
                 MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
-                HttpContent content = response.httpContentBuilder().content(MemoryUtils.wrap(mm, "Content")).build();
+                HttpContent content = response.httpContentBuilder().content(Buffers.wrap(mm, "Content")).build();
                 content.setLast(true);
                 ctx.write(content);
                 ctx.flush(new FlushAndCloseHandler());

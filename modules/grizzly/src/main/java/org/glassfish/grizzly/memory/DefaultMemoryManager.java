@@ -291,7 +291,7 @@ public final class DefaultMemoryManager extends ByteBufferManager {
         }
 
         public ByteBuffer allocate(int size) {
-            final ByteBuffer allocated = BufferUtils.slice(pool, size);
+            final ByteBuffer allocated = Buffers.slice(pool, size);
             return addHistory(allocated);
         }
 
@@ -302,7 +302,7 @@ public final class DefaultMemoryManager extends ByteBufferManager {
                 lastAllocatedIndex--;
 
                 pool.position(pool.position() - oldByteBuffer.capacity());
-                final ByteBuffer newByteBuffer = BufferUtils.slice(pool, newSize);
+                final ByteBuffer newByteBuffer = Buffers.slice(pool, newSize);
                 newByteBuffer.position(oldByteBuffer.position());
 
                 return addHistory(newByteBuffer);

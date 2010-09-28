@@ -50,7 +50,6 @@ import org.glassfish.grizzly.TransformationResult.Status;
 import org.glassfish.grizzly.Transformer;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeStorage;
-import org.glassfish.grizzly.memory.BuffersBuffer;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.utils.conditions.Condition;
@@ -160,7 +159,7 @@ public final class TransformerInput extends BufferedInput {
                                 inputBufferAttr.set(attributeStorage,
                                         (CompositeBuffer) bufferToTransform);
                             } else {
-                                savedBuffer = BuffersBuffer.create(memoryManager);
+                                savedBuffer = CompositeBuffer.newBuffer(memoryManager);
                                 savedBuffer.append(bufferToTransform);
                                 inputBufferAttr.set(attributeStorage, savedBuffer);
                             }

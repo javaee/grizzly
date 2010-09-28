@@ -53,7 +53,7 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.AbstractCodecFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext.Operation;
-import org.glassfish.grizzly.memory.BufferUtils;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
@@ -345,7 +345,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                     buffer.allowBufferDispose(true);
 
                     try {
-                        sslEngine.wrap(BufferUtils.EMPTY_BYTE_BUFFER,
+                        sslEngine.wrap(Buffers.EMPTY_BYTE_BUFFER,
                                        buffer.toByteBuffer());
 
                         buffer.trim();

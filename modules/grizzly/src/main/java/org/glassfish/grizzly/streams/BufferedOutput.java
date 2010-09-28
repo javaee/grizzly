@@ -46,7 +46,6 @@ import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.memory.BuffersBuffer;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -95,7 +94,7 @@ public abstract class BufferedOutput implements Output {
     @Override
     public void write(Buffer bufferToWrite) throws IOException {
         if (multiBufferWindow == null) {
-            multiBufferWindow = BuffersBuffer.create();
+            multiBufferWindow = CompositeBuffer.newBuffer();
         }
 
         final boolean isInternalBufferEmpty = buffer == null ||

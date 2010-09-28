@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.samples.websockets;
 
+import java.util.logging.Level;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.BaseFilter;
@@ -49,13 +50,13 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
-import org.glassfish.grizzly.memory.MemoryUtils;
 import java.io.CharConversionException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * Simple Web server implementation, which locates requested resources in a
@@ -127,7 +128,7 @@ public class SimpleWebServerFilter extends BaseFilter {
         // Locate corresponding file
         final File file = new File(rootFolderFile, localURL);
 
-        logger.info("Request file: " + file.getAbsolutePath());
+        logger.log(Level.INFO, "Request file: {0}", file.getAbsolutePath());
 
         if (!file.isFile()) {
             // If file doesn't exist - response 404
@@ -153,7 +154,7 @@ public class SimpleWebServerFilter extends BaseFilter {
                 .chunked(false)
                 .build();
 
-            Buffer buffer = MemoryUtils.wrap(null, array);
+            Buffer buffer = Buffers.wrap(null, array);
             final HttpContent content = HttpContent.builder(response)
                     .content(buffer)
                     .last(true)
@@ -182,7 +183,7 @@ public class SimpleWebServerFilter extends BaseFilter {
         // Build 404 HttpContent on base of HttpResponsePacket message header
         final HttpContent content =
                 responseHeader.httpContentBuilder()
-                .content(MemoryUtils.wrap(null,
+                .content(Buffers.wrap(null,
                 "Can not find file, corresponding to URI: " + request.getRequestURIRef().getDecodedURI()))
                 .last(true)
                 .build();

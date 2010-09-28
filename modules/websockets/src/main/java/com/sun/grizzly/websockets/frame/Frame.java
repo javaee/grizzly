@@ -41,8 +41,8 @@
 package org.glassfish.grizzly.websockets.frame;
 
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.memory.MemoryUtils;
 import java.nio.charset.Charset;
+import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * General abstraction, which represents {@link org.glassfish.grizzly.websockets.WebSocket} frame.
@@ -96,7 +96,7 @@ public abstract class Frame {
      * @return the frame.
      */
     public static Frame createFrame(int type, String text, Charset charset) {
-        return createFrame(type, MemoryUtils.wrap(null, text, charset));
+        return createFrame(type, Buffers.wrap(null, text, charset));
     }
 
     /**

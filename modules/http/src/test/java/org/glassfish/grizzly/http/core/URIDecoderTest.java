@@ -45,10 +45,10 @@ import org.glassfish.grizzly.http.util.BufferChunk;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.memory.MemoryUtils;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import junit.framework.TestCase;
+import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * Parse URL decoder
@@ -78,7 +78,7 @@ public class URIDecoderTest extends TestCase {
         MemoryManager mm = TransportFactory.getInstance().getDefaultMemoryManager();
         String encodedURI = URLEncoder.encode(inputURI, UTF8_CHARSET.name());
 
-        Buffer b = MemoryUtils.wrap(mm, encodedURI);
+        Buffer b = Buffers.wrap(mm, encodedURI);
 
         BufferChunk bufferChunk = BufferChunk.newInstance();
         bufferChunk.setBuffer(b);

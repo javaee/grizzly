@@ -50,7 +50,6 @@ import org.glassfish.grizzly.http.util.BufferChunk;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.memory.MemoryUtils;
 import org.glassfish.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
@@ -69,6 +68,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * This class implements a file caching mechanism used to cache static resources.
@@ -357,7 +357,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
         if (flushBody) {
             response.setContentLength(entry.contentLength);
             final ByteBuffer sliced = entry.bb.slice();
-            final Buffer buffer = MemoryUtils.wrap(memoryManager, sliced);
+            final Buffer buffer = Buffers.wrap(memoryManager, sliced);
 
             return HttpContent.builder(response)
                     .content(buffer)

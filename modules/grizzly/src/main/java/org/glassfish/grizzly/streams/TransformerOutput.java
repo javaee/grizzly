@@ -51,7 +51,6 @@ import org.glassfish.grizzly.Transformer;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
-import org.glassfish.grizzly.memory.BuffersBuffer;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 import java.io.IOException;
@@ -111,7 +110,7 @@ public class TransformerOutput extends BufferedOutput {
                 } else if (status == Status.INCOMPLETED) {
                     buffer.compact();
                     if (!buffer.isComposite()) {
-                        buffer = BuffersBuffer.create(
+                        buffer = CompositeBuffer.newBuffer(
                                 memoryManager, buffer);
                     }
                     outputBufferAttr.set(attributeStorage, (CompositeBuffer) buffer);

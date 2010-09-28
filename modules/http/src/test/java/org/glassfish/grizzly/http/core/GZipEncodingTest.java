@@ -66,7 +66,6 @@ import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.memory.MemoryUtils;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import java.io.ByteArrayOutputStream;
@@ -81,6 +80,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.GZIPOutputStream;
 import junit.framework.TestCase;
+import org.glassfish.grizzly.memory.Buffers;
 
 /**
  *
@@ -121,7 +121,7 @@ public class GZipEncodingTest extends TestCase {
         result.addHeader("content-encoding", "gzip");
 
         final MemoryManager mm = TransportFactory.getInstance().getDefaultMemoryManager();
-        result.setContent(MemoryUtils.wrap(mm, "Echo: <nothing>"));
+        result.setContent(Buffers.wrap(mm, "Echo: <nothing>"));
         doTest(request, result, gzipServerContentEncoding, null);
     }
 
@@ -149,14 +149,14 @@ public class GZipEncodingTest extends TestCase {
         
         HttpContent reqHttpContent = HttpContent.builder(request)
                 .last(true)
-                .content(MemoryUtils.wrap(mm, gzippedContent))
+                .content(Buffers.wrap(mm, gzippedContent))
                 .build();
 
         ExpectedResult result = new ExpectedResult();
         result.setProtocol("HTTP/1.1");
         result.setStatusCode(200);
         result.addHeader("!content-encoding", "gzip");
-        result.setContent(MemoryUtils.wrap(mm, "Echo: " + reqString));
+        result.setContent(Buffers.wrap(mm, "Echo: " + reqString));
 
         doTest(reqHttpContent, result, null, null);
     }
@@ -199,14 +199,14 @@ public class GZipEncodingTest extends TestCase {
 
         HttpContent reqHttpContent = HttpContent.builder(request)
                 .last(true)
-                .content(MemoryUtils.wrap(mm, gzippedContent))
+                .content(Buffers.wrap(mm, gzippedContent))
                 .build();
 
         ExpectedResult result = new ExpectedResult();
         result.setProtocol("HTTP/1.1");
         result.setStatusCode(200);
         result.addHeader("content-encoding", "gzip");
-        result.setContent(MemoryUtils.wrap(mm, "Echo: " + reqString));
+        result.setContent(Buffers.wrap(mm, "Echo: " + reqString));
 
         doTest(reqHttpContent, result, gzipServerContentEncoding, null);
     }
@@ -248,14 +248,14 @@ public class GZipEncodingTest extends TestCase {
 
         HttpContent reqHttpContent = HttpContent.builder(request)
                 .last(true)
-                .content(MemoryUtils.wrap(mm, gzippedContent))
+                .content(Buffers.wrap(mm, gzippedContent))
                 .build();
 
         ExpectedResult result = new ExpectedResult();
         result.setProtocol("HTTP/1.1");
         result.setStatusCode(200);
         result.addHeader("content-encoding", "gzip");
-        result.setContent(MemoryUtils.wrap(mm, "Echo: " + reqString));
+        result.setContent(Buffers.wrap(mm, "Echo: " + reqString));
 
         doTest(reqHttpContent, result, gzipServerContentEncoding, null);
     }
@@ -377,7 +377,7 @@ public class GZipEncodingTest extends TestCase {
 
             final HttpContent httpContent = (HttpContent) ctx.getMessage();
 
-            logger.log(Level.FINE, "Got HTTP response chunk; last: " + httpContent.isLast());
+            logger.log(Level.FINE, "Got HTTP response chunk; last: {0}", httpContent.isLast());
 
 
             if (httpContent.isLast()) {
@@ -455,7 +455,7 @@ public class GZipEncodingTest extends TestCase {
 
                 final HttpContent responseContent = HttpContent.builder(response)
                         .last(true)
-                        .content(MemoryUtils.wrap(mm, sb.toString()))
+                        .content(Buffers.wrap(mm, sb.toString()))
                         .build();
 
                 ctx.write(responseContent);

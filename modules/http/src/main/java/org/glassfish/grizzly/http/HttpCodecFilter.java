@@ -52,7 +52,7 @@ import org.glassfish.grizzly.http.util.BufferChunk;
 import org.glassfish.grizzly.http.util.CacheableBufferChunk;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.http.util.MimeHeaders;
-import org.glassfish.grizzly.memory.BufferUtils;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
@@ -356,7 +356,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                         return ctx.getStopAction();
                     }
 
-                    input = input.hasRemaining() ? input.slice() : BufferUtils.EMPTY_BUFFER;
+                    input = input.hasRemaining() ? input.slice() : Buffers.EMPTY_BUFFER;
 
                     setTransferEncodingOnParsing((HttpHeader) httpPacket);
                     setContentEncodingsOnParsing((HttpHeader) httpPacket);
@@ -634,7 +634,7 @@ public abstract class HttpCodecFilter extends BaseFilter
             final Buffer content = serializeWithTransferEncoding(connection,
                                                    encodedHttpContent,
                                                    contentEncoder);
-            encodedBuffer = BufferUtils.appendBuffers(memoryManager,
+            encodedBuffer = Buffers.appendBuffers(memoryManager,
                     encodedBuffer, content);
 
             if (encodedBuffer.isComposite()) {
@@ -1216,7 +1216,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                 // If yes - append the remainder and the new buffer
                 final Buffer newChunk = httpContent.getContent();
                 httpContent.setContent(
-                        BufferUtils.appendBuffers(memoryManager, oldRemainder, newChunk));
+                        Buffers.appendBuffers(memoryManager, oldRemainder, newChunk));
             }
 
             // Decode

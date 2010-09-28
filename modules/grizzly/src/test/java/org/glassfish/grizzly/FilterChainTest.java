@@ -50,9 +50,7 @@ import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.memory.BuffersBuffer;
 import org.glassfish.grizzly.memory.CompositeBuffer;
-import org.glassfish.grizzly.memory.MemoryUtils;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -63,6 +61,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import junit.framework.TestCase;
+import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * Test general {@link FilterChain} functionality.
@@ -83,7 +82,7 @@ public class FilterChainTest extends TestCase {
 
                 @Override
                 public CompositeBuffer evaluate() {
-                    return BuffersBuffer.create();
+                    return CompositeBuffer.newBuffer();
                 }
             });
 
@@ -162,7 +161,7 @@ public class FilterChainTest extends TestCase {
         final TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
         final MemoryManager mm = transport.getMemoryManager();
 
-        final Buffer msg = MemoryUtils.wrap(mm, "Echo this message");
+        final Buffer msg = Buffers.wrap(mm, "Echo this message");
         final int msgSize = msg.remaining();
 
         final AtomicInteger serverEchoCounter = new AtomicInteger();

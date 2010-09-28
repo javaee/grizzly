@@ -57,7 +57,6 @@ import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.memory.MemoryUtils;
 import org.glassfish.grizzly.nio.AbstractNIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.streams.StreamWriter;
@@ -75,6 +74,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import junit.framework.TestCase;
+import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * Testing HTTP request parsing
@@ -166,7 +166,7 @@ public class HttpRequestParseTest extends TestCase {
     private HttpPacket doTestDecoder(String request, int limit) {
 
         MemoryManager mm = TransportFactory.getInstance().getDefaultMemoryManager();
-        Buffer input = MemoryUtils.wrap(mm, request);
+        Buffer input = Buffers.wrap(mm, request);
         
         HttpServerFilter filter = new HttpServerFilter(true, limit, null, null);
         FilterChainContext ctx = FilterChainContext.create(new StandaloneConnection());

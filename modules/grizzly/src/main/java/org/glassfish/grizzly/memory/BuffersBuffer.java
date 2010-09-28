@@ -54,7 +54,7 @@ import java.util.Arrays;
  *
  * @author Alexey Stashok
  */
-public final class BuffersBuffer implements CompositeBuffer {
+public final class BuffersBuffer extends CompositeBuffer {
     private static final ThreadCache.CachedTypeIndex<BuffersBuffer> CACHE_IDX =
             ThreadCache.obtainIndex(BuffersBuffer.class, 2);
 
@@ -334,7 +334,7 @@ public final class BuffersBuffer implements CompositeBuffer {
         final int splitBufferIdx = getBufferIndex(splitLocation);
 
         if (splitBufferIdx == -1) {
-            return BufferUtils.EMPTY_BUFFER;
+            return Buffers.EMPTY_BUFFER;
         }
 
         final int splitBufferPos = getBufferPosition(splitLocation);
@@ -562,7 +562,7 @@ public final class BuffersBuffer implements CompositeBuffer {
         checkDispose();
 
         if (buffersSize == 0) {
-            return BufferUtils.EMPTY_BUFFER;
+            return Buffers.EMPTY_BUFFER;
         } else if (buffersSize == 1) {
             return buffers[0].slice(position, limit);
         }
@@ -610,7 +610,7 @@ public final class BuffersBuffer implements CompositeBuffer {
 
         if (buffersSize == 1) {
             final Buffer buffer = buffers[0];
-            BufferUtils.setPositionLimit(buffer, buffer.position() + position,
+            Buffers.setPositionLimit(buffer, buffer.position() + position,
                     buffer.position() + limit);
             buffer.compact();
         } else {
@@ -800,7 +800,7 @@ public final class BuffersBuffer implements CompositeBuffer {
         checkDispose();
         checkReadOnly();
 
-        BufferUtils.put(src, position, length, this);
+        Buffers.put(src, position, length, this);
 
         return this;
     }
@@ -1225,7 +1225,7 @@ public final class BuffersBuffer implements CompositeBuffer {
             throw new IndexOutOfBoundsException();
 
         if (buffersSize == 0) {
-            return BufferUtils.EMPTY_BYTE_BUFFER;
+            return Buffers.EMPTY_BYTE_BUFFER;
         } else if (buffersSize == 1) {
             final Buffer buffer = buffers[0];
             final int bufferPos = buffer.position();
@@ -1283,7 +1283,7 @@ public final class BuffersBuffer implements CompositeBuffer {
             throw new IndexOutOfBoundsException();
 
         if (buffersSize == 0) {
-            return BufferUtils.EMPTY_BYTE_BUFFER_ARRAY;
+            return Buffers.EMPTY_BYTE_BUFFER_ARRAY;
         } else if (buffersSize == 1) {
             final Buffer b = buffers[0];
             final int startPos = b.position();

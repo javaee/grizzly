@@ -54,7 +54,6 @@ import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.memory.MemoryUtils;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
@@ -70,6 +69,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
+import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * Set of SSL tests
@@ -303,7 +303,8 @@ public class SSLTest extends GrizzlyTestCase {
                         String receivedString = new String(receivedMessage);
                         assertEquals(sentString, receivedString);
                     } catch (Exception e) {
-                        logger.log(Level.WARNING, "Error occurred when testing connection#" + i + " packet#" + j);
+                        logger.log(Level.WARNING, "Error occurred when testing connection#{0} packet#{1}",
+                                new Object[]{i, j});
                         throw e;
                     }
                 }
@@ -390,11 +391,12 @@ public class SSLTest extends GrizzlyTestCase {
                 try {
                     for (int j = 0; j < packetsNumber; j++) {
                         packetNum = j;
-                        Buffer buffer = MemoryUtils.wrap(mm, messagePattern + j);
+                        Buffer buffer = Buffers.wrap(mm, messagePattern + j);
                         connection.write(buffer);
                     }
                 } catch (Exception e) {
-                    logger.log(Level.WARNING, "Error occurred when testing connection#" + i + " packet#" + packetNum);
+                    logger.log(Level.WARNING, "Error occurred when testing connection#{0} packet#{1}",
+                            new Object[]{i, packetNum});
                     throw e;
                 }
 

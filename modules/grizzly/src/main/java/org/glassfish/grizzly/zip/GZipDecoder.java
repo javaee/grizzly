@@ -45,7 +45,7 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.TransformationException;
 import org.glassfish.grizzly.TransformationResult;
 import org.glassfish.grizzly.attributes.AttributeStorage;
-import org.glassfish.grizzly.memory.BufferUtils;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 import java.nio.ByteBuffer;
 import java.util.zip.CRC32;
@@ -194,7 +194,7 @@ public class GZipDecoder extends AbstractTransformer<Buffer, Buffer> {
                     inCrc32.update(decodedArray, decodedArrayOffs, lastInflated);
                     decodedBuffer.position(lastInflated);
                     decodedBuffer.trim();
-                    resultBuffer = BufferUtils.appendBuffers(memoryManager,
+                    resultBuffer = Buffers.appendBuffers(memoryManager,
                             resultBuffer, decodedBuffer);
                 } else {
                     decodedBuffer.dispose();

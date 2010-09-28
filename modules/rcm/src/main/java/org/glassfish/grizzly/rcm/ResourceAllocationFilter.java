@@ -53,7 +53,7 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.memory.BufferUtils;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
@@ -357,7 +357,7 @@ public class ResourceAllocationFilter extends BaseFilter {
 
             return state;
         } finally {
-            BufferUtils.setPositionLimit(inputMessage, pos, lim);
+            Buffers.setPositionLimit(inputMessage, pos, lim);
         }
     }
 }

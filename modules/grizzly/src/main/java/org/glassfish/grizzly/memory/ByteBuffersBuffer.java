@@ -54,7 +54,7 @@ import java.util.Arrays;
  *
  * @author Alexey Stashok
  */
-public final class ByteBuffersBuffer implements CompositeBuffer {
+public final class ByteBuffersBuffer extends CompositeBuffer {
     private static final ThreadCache.CachedTypeIndex<ByteBuffersBuffer> CACHE_IDX =
             ThreadCache.obtainIndex(ByteBuffersBuffer.class, 2);
 
@@ -374,7 +374,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         final int splitBufferIdx = getBufferIndex(splitLocation);
 
         if (splitBufferIdx == -1) {
-            return BufferUtils.EMPTY_BUFFER;
+            return Buffers.EMPTY_BUFFER;
         }
 
         final int splitBufferPos = getBufferPosition(splitLocation);
@@ -390,9 +390,9 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
             newSize = splitBufferIdx;
         } else if (splitBufferPos < splitBuffer.limit()) {
 
-            BufferUtils.setPositionLimit(splitBuffer, 0, splitBufferPos);
+            Buffers.setPositionLimit(splitBuffer, 0, splitBufferPos);
             ByteBuffer slice1 = splitBuffer.slice();
-            BufferUtils.setPositionLimit(splitBuffer, splitBufferPos, splitBuffer.capacity());
+            Buffers.setPositionLimit(splitBuffer, splitBufferPos, splitBuffer.capacity());
             ByteBuffer slice2 = splitBuffer.slice();
 
             buffers[splitBufferIdx] = slice1;
@@ -606,13 +606,13 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         checkDispose();
 
         if (buffersSize == 0) {
-            return BufferUtils.EMPTY_BUFFER;
+            return Buffers.EMPTY_BUFFER;
         } else if (buffersSize == 1) {
             final ByteBuffer bb = buffers[0];
             final int pos = bb.position();
             
-            return MemoryUtils.wrap(memoryManager,
-                    BufferUtils.slice(bb, pos + position, pos + limit));
+            return Buffers.wrap(memoryManager,
+                    Buffers.slice(bb, pos + position, pos + limit));
         }
 
         final long posLocation = locateBufferPosition(position);
@@ -625,14 +625,14 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         final int limitBufferPosition = getBufferPosition(limitLocation);
 
         if (posBufferIndex == limitBufferIndex) {
-            return MemoryUtils.wrap(memoryManager,
-                    BufferUtils.slice(buffers[posBufferIndex],
+            return Buffers.wrap(memoryManager,
+                    Buffers.slice(buffers[posBufferIndex],
                     posBufferPosition, limitBufferPosition));
         } else {
             final ByteBuffer[] newList = new ByteBuffer[limitBufferIndex - posBufferIndex + 1];
 
             final ByteBuffer posBuffer = buffers[posBufferIndex];
-            newList[0] = BufferUtils.slice(posBuffer, posBufferPosition, posBuffer.limit());
+            newList[0] = Buffers.slice(posBuffer, posBufferPosition, posBuffer.limit());
 
             int index = 1;
             for (int i = posBufferIndex + 1; i < limitBufferIndex; i++) {
@@ -640,7 +640,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
             }
 
             final ByteBuffer limitBuffer = buffers[limitBufferIndex];
-            newList[index] = BufferUtils.slice(limitBuffer, limitBuffer.position(),
+            newList[index] = Buffers.slice(limitBuffer, limitBuffer.position(),
                     limitBufferPosition);
 
             return new ByteBuffersBuffer(memoryManager, newList, isReadOnly);
@@ -659,7 +659,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
 
         if (buffersSize == 1) {
             final ByteBuffer buffer = buffers[0];
-            BufferUtils.setPositionLimit(buffer, buffer.position() + position,
+            Buffers.setPositionLimit(buffer, buffer.position() + position,
                     buffer.position() + limit);
             buffer.compact();
         } else {
@@ -781,7 +781,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
             int oldPos = buffer.position();
             buffer.position(bufferPosition);
             int bytesToCopy = Math.min(buffer.remaining(), length);
-            BufferUtils.get(buffer, dst, offset, bytesToCopy);
+            Buffers.get(buffer, dst, offset, bytesToCopy);
             buffer.position(oldPos);
             bufferPosition += (bytesToCopy - 1);
             
@@ -820,7 +820,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
             int oldPos = buffer.position();
             buffer.position(bufferPosition);
             int bytesToCopy = Math.min(buffer.remaining(), length);
-            BufferUtils.put(src, offset, bytesToCopy, buffer);
+            Buffers.put(src, offset, bytesToCopy, buffer);
             buffer.position(oldPos);
             bufferPosition += (bytesToCopy - 1);
 
@@ -850,7 +850,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         checkDispose();
         checkReadOnly();
 
-        BufferUtils.put(src, position, length, this);
+        Buffers.put(src, position, length, this);
         
         return this;
     }
@@ -1248,7 +1248,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         final ByteBuffer limBuffer = buffers[getBufferIndex(limLocation)];
 
         if (posBuffer == limBuffer) {
-            return BufferUtils.toStringContent(posBuffer, charset,
+            return Buffers.toStringContent(posBuffer, charset,
                     getBufferPosition(posLocation),
                     getBufferPosition(limLocation));
         } else {
@@ -1275,14 +1275,14 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
             throw new IndexOutOfBoundsException();
         
         if (buffersSize == 0) {
-            return BufferUtils.EMPTY_BYTE_BUFFER;
+            return Buffers.EMPTY_BYTE_BUFFER;
         } else if (buffersSize == 1) {
             final ByteBuffer buffer = buffers[0];
             if (position == 0 && limit == capacity) {
                 return buffer.duplicate();
             } else {
                 final int bufPos = buffer.position();
-                return BufferUtils.slice(buffer, bufPos + position, bufPos + limit);
+                return Buffers.slice(buffer, bufPos + position, bufPos + limit);
             }
         }
 
@@ -1297,7 +1297,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         
         if (pos1 == pos2) {
             final ByteBuffer buffer = buffers[pos1];
-            return BufferUtils.slice(buffer, bufPosition, bufLimit);
+            return Buffers.slice(buffer, bufPosition, bufLimit);
         }
 
         final ByteBuffer resultByteBuffer = MemoryUtils.allocateByteBuffer(
@@ -1322,9 +1322,9 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
             final ByteBuffer srcByteBuffer, final int srcPos, final int srcLim) {
         final int oldPos = srcByteBuffer.position();
         final int oldLim = srcByteBuffer.limit();
-        BufferUtils.setPositionLimit(srcByteBuffer, srcPos, srcLim);
+        Buffers.setPositionLimit(srcByteBuffer, srcPos, srcLim);
         dstByteBuffer.put(srcByteBuffer);
-        BufferUtils.setPositionLimit(srcByteBuffer, oldPos, oldLim);
+        Buffers.setPositionLimit(srcByteBuffer, oldPos, oldLim);
     }
 
     @Override
@@ -1338,7 +1338,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
             throw new IndexOutOfBoundsException();
 
         if (buffersSize == 0) {
-            return BufferUtils.EMPTY_BYTE_BUFFER_ARRAY;
+            return Buffers.EMPTY_BYTE_BUFFER_ARRAY;
         } else if (buffersSize == 1) {
             return new ByteBuffer[] {toByteBuffer(position, limit)};
         }
@@ -1354,18 +1354,18 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
 
         if (pos1 == pos2) {
             final ByteBuffer buffer = buffers[pos1];
-            return new ByteBuffer[] {BufferUtils.slice(buffer, bufPosition, bufLimit)};
+            return new ByteBuffer[] {Buffers.slice(buffer, bufPosition, bufLimit)};
         }
 
         final ByteBuffer[] resultBuffers = new ByteBuffer[pos2 - pos1 + 1];
 
         final ByteBuffer startBuffer = buffers[pos1];
-        resultBuffers[0] = BufferUtils.slice(startBuffer, bufPosition, startBuffer.limit());
+        resultBuffers[0] = Buffers.slice(startBuffer, bufPosition, startBuffer.limit());
 
         System.arraycopy(buffers, pos1 + 1, resultBuffers, 1, pos2 - pos1 - 1);
 
         final ByteBuffer endBuffer = buffers[pos2];
-        resultBuffers[resultBuffers.length - 1] = BufferUtils.slice(endBuffer, endBuffer.position(), bufLimit);
+        resultBuffers[resultBuffers.length - 1] = Buffers.slice(endBuffer, endBuffer.position(), bufLimit);
 
         return resultBuffers;
     }

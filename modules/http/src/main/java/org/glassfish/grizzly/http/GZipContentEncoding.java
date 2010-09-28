@@ -43,7 +43,7 @@ package org.glassfish.grizzly.http;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.TransformationResult;
-import org.glassfish.grizzly.memory.BufferUtils;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.zip.GZipDecoder;
 import org.glassfish.grizzly.zip.GZipEncoder;
 
@@ -186,7 +186,7 @@ public class GZipContentEncoding implements ContentEncoding {
                 case INCOMPLETED: {
                     Buffer encodedBuffer = result.getMessage();
                     final Buffer finishBuffer = encoder.finish(httpHeader);
-                    encodedBuffer = BufferUtils.appendBuffers(
+                    encodedBuffer = Buffers.appendBuffers(
                             connection.getTransport().getMemoryManager(),
                             encodedBuffer, finishBuffer);
 

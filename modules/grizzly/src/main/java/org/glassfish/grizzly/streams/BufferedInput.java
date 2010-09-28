@@ -46,7 +46,6 @@ import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.memory.ByteBuffersBuffer;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.utils.conditions.Condition;
 import java.io.EOFException;
@@ -72,7 +71,7 @@ public abstract class BufferedInput implements Input {
     protected FutureImpl<Integer> future;
 
     public BufferedInput() {
-        compositeBuffer = ByteBuffersBuffer.create();
+        compositeBuffer = CompositeBuffer.newBuffer();
     }
 
     protected abstract void onOpenInputSource() throws IOException;

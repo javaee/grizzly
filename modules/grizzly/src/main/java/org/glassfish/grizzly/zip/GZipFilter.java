@@ -46,7 +46,7 @@ import org.glassfish.grizzly.TransformationResult;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.memory.BufferUtils;
+import org.glassfish.grizzly.memory.Buffers;
 import java.io.IOException;
 
 /**
@@ -167,7 +167,7 @@ public class GZipFilter extends BaseFilter {
                     final Buffer readyBuffer = result.getMessage();
                     final Buffer finishBuffer = encoder.finish(connection);
 
-                    final Buffer resultBuffer = BufferUtils.appendBuffers(
+                    final Buffer resultBuffer = Buffers.appendBuffers(
                             connection.getTransport().getMemoryManager(),
                             readyBuffer, finishBuffer);
 

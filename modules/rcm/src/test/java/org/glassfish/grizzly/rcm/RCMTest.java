@@ -37,7 +37,6 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.rcm;
 
 import org.glassfish.grizzly.Buffer;
@@ -60,8 +59,8 @@ import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.memory.MemoryUtils;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 
 /**
@@ -70,24 +69,21 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
  * @author Jeanfrancois Arcand
  */
 public class RCMTest extends TestCase {
-    
-    private TCPNIOTransport transport;
 
+    private TCPNIOTransport transport;
     static int port = 18891;
-    
     static String folder = ".";
-    
+
     public RCMTest() {
     }
-    
-    
+
     /*
      * @see TestCase#setUp()
      */
     @Override
     protected void setUp() throws Exception {
         super.setUp();
-        
+
         final ResourceAllocationFilter parser = new ResourceAllocationFilter();
 
         // Create a FilterChain using FilterChainBuilder
@@ -110,34 +106,29 @@ public class RCMTest extends TestCase {
             @Override
             public NextAction handleRead(FilterChainContext ctx)
                     throws IOException {
-                try {
-                    final Buffer requestBuffer = (Buffer) ctx.getMessage();
-                    final Connection connection = ctx.getConnection();
+                final Buffer requestBuffer = (Buffer) ctx.getMessage();
+                final Connection connection = ctx.getConnection();
 
-                    final MemoryManager memoryManager =
-                            ctx.getConnection().getTransport().getMemoryManager();
+                final MemoryManager memoryManager =
+                        ctx.getConnection().getTransport().getMemoryManager();
 
-                    requestBuffer.limit(requestBuffer.position());
+                requestBuffer.limit(requestBuffer.position());
 
-                    reponseBuffer.clear();
-                    reponseBuffer.put("HTTP/1.1 200 OK\r\n");
-                    appendHeaderValue("Content-Type", "text/html");
-                    appendHeaderValue("Content-Length", 0 + "");
-                    appendHeaderValue("Date", new Date().toString());
-                    appendHeaderValue("RCMTest", "passed");
-                    appendHeaderValue("Connection", "Close");
-                    reponseBuffer.put("\r\n\r\n");
-                    reponseBuffer.flip();
-                    ByteBuffer rBuf = encoder.encode(reponseBuffer);
+                reponseBuffer.clear();
+                reponseBuffer.put("HTTP/1.1 200 OK\r\n");
+                appendHeaderValue("Content-Type", "text/html");
+                appendHeaderValue("Content-Length", 0 + "");
+                appendHeaderValue("Date", new Date().toString());
+                appendHeaderValue("RCMTest", "passed");
+                appendHeaderValue("Connection", "Close");
+                reponseBuffer.put("\r\n\r\n");
+                reponseBuffer.flip();
+                ByteBuffer rBuf = encoder.encode(reponseBuffer);
 
-                    final Buffer writeBuffer = MemoryUtils.wrap(memoryManager, rBuf);
-                    ctx.write(writeBuffer, null);
-                } catch (IOException t) {
-                    t.printStackTrace();
-                    throw t;
-                }
+                final Buffer writeBuffer = Buffers.wrap(memoryManager, rBuf);
+                ctx.write(writeBuffer, null);
 
-                ctx.getConnection().close();
+                connection.close();
 
                 return ctx.getStopAction();
             }
@@ -155,12 +146,11 @@ public class RCMTest extends TestCase {
 
         transport = TransportFactory.getInstance().createTCPTransport();
         transport.setProcessor(filterChainBuilder.build());
-        
+
         transport.bind(port);
         transport.start();
     }
-    
-    
+
     /*
      * @see TestCase#tearDown()
      */
@@ -170,8 +160,8 @@ public class RCMTest extends TestCase {
         TransportFactory.getInstance().close();
     }
 
-    public void testRCM(){
-        try{
+    public void testRCM() {
+        try {
             Socket s = new Socket("127.0.0.1", port);
             OutputStream os = s.getOutputStream();
             s.setSoTimeout(10000);
@@ -185,15 +175,15 @@ public class RCMTest extends TestCase {
 
             int index;
             while ((line = bis.readLine()) != null) {
-                if (line.startsWith("RCMTest")){
+                if (line.startsWith("RCMTest")) {
                     assertTrue(true);
                     return;
                 }
             }
-        } catch (Throwable ex){
+        } catch (Throwable ex) {
             System.out.println("Unable to connect to: " + port);
             ex.printStackTrace();
         }
         fail("Wrong header response");
-    }    
+    }
 }

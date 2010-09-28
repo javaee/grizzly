@@ -55,6 +55,7 @@ import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.memory.MemoryUtils;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * Write the primitive Java type to the current ByteBuffer.  If it doesn't
@@ -264,7 +265,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
      */
     @Override
     public void writeByteArray(byte[] data, int offset, int length) throws IOException {
-        final Buffer buffer = MemoryUtils.wrap(connection.getTransport().getMemoryManager(),
+        final Buffer buffer = Buffers.wrap(connection.getTransport().getMemoryManager(),
                 data, offset, length);
         output.write(buffer);
     }

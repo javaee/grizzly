@@ -64,7 +64,7 @@ import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.impl.UnsafeFutureImpl;
-import org.glassfish.grizzly.memory.BufferUtils;
+import org.glassfish.grizzly.memory.Buffers;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
@@ -724,7 +724,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                 final Object remainder) {
             if (remainder instanceof Buffer) {
                 return create(type, remainder,
-                        BufferUtils.BUFFER_APPENDER);
+                        Buffers.BUFFER_APPENDER);
             } else {
                 return create(type, (Appendable) remainder);
             }

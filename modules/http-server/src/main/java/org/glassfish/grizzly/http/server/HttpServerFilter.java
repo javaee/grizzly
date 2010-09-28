@@ -55,7 +55,6 @@ import org.glassfish.grizzly.http.server.io.ReadHandler;
 import org.glassfish.grizzly.http.server.util.HtmlHelper;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.memory.MemoryUtils;
 import org.glassfish.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
@@ -64,6 +63,7 @@ import org.glassfish.grizzly.utils.DelayedExecutor;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * Filter implementation to provide high-level HTTP request/response processing.
@@ -155,7 +155,7 @@ public class HttpServerFilter extends BaseFilter
                         serviceResponse.setContentType("text/html");
                         serviceResponse.setCharacterEncoding("UTF-8");
                         MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
-                        Buffer buf = MemoryUtils.wrap(mm, b);
+                        Buffer buf = Buffers.wrap(mm, b);
                         serviceResponse.getOutputBuffer().writeBuffer(buf);
                     }
                 } finally {

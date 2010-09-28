@@ -59,7 +59,6 @@ import org.glassfish.grizzly.http.server.ServerConfiguration;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.memory.MemoryUtils;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 
 import java.io.IOException;
@@ -69,6 +68,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.memory.Buffers;
 
 
 /**
@@ -239,7 +239,7 @@ public class BlockingHttpServiceSample {
                 MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
                 for (int i = 0, len = CONTENT.length; i < len; i++) {
                     HttpContent.Builder contentBuilder = request.httpContentBuilder();
-                    Buffer b = MemoryUtils.wrap(mm, CONTENT[i]);
+                    Buffer b = Buffers.wrap(mm, CONTENT[i]);
                     contentBuilder.content(b);
                     HttpContent content = contentBuilder.build();
                     System.out.println(b.toStringContent());

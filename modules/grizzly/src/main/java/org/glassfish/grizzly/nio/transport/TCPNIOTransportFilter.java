@@ -52,7 +52,7 @@ import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.memory.BufferUtils;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
 import java.util.concurrent.ExecutionException;
 
@@ -169,7 +169,7 @@ public final class TCPNIOTransportFilter extends BaseFilter {
             }
 
             transport.getWriter(transportContext.isBlocking()).write(connection,
-                    BufferUtils.EMPTY_BUFFER, writeCompletionHandler)
+                    Buffers.EMPTY_BUFFER, writeCompletionHandler)
                     .markForRecycle(false);
 
             transportContext.setFuture(null);

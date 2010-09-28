@@ -47,19 +47,40 @@ import org.glassfish.grizzly.Buffer;
  *
  * @author Alexey Stashok
  */
-public interface CompositeBuffer extends Buffer, Appendable<Buffer> {
-    @Override
-    public CompositeBuffer prepend(Buffer buffer);
+public abstract class CompositeBuffer implements Buffer, Appendable<Buffer> {
+    /**
+     * Construct <tt>CompositeBuffer</tt>.
+     */
+    public static CompositeBuffer newBuffer() {
+        return BuffersBuffer.create();
+    }
+
+    public static CompositeBuffer newBuffer(MemoryManager memoryManager) {
+        return BuffersBuffer.create(memoryManager);
+    }
+
+    public static CompositeBuffer newBuffer(MemoryManager memoryManager,
+            Buffer... buffers) {
+        return BuffersBuffer.create(memoryManager, buffers);
+    }
+
+    public static CompositeBuffer newBuffer(MemoryManager memoryManager,
+            Buffer[] buffers, boolean isReadOnly) {
+        return BuffersBuffer.create(memoryManager, buffers, isReadOnly);
+    }
 
     @Override
-    public Object[] underlying();
+    public abstract CompositeBuffer prepend(Buffer buffer);
+
+    @Override
+    public abstract Object[] underlying();
 
     /**
      * Removes underlying {@link Buffer}s, without disposing
      */
-    public void removeAll();
+    public abstract void removeAll();
 
-    public void allowInternalBuffersDispose(boolean allow);
+    public abstract void allowInternalBuffersDispose(boolean allow);
 
-    public boolean allowInternalBuffersDispose();
+    public abstract boolean allowInternalBuffersDispose();
 }

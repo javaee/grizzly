@@ -47,7 +47,6 @@ import org.glassfish.grizzly.http.server.jmx.JmxEventListener;
 import org.glassfish.grizzly.http.server.util.HtmlHelper;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.memory.MemoryUtils;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -57,6 +56,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * Configuration options for a particular {@link HttpServer} instance.
@@ -158,7 +158,7 @@ public class ServerConfiguration {
                                                                "Resource identified by path '" + request.getRequestURI() + "', does not exist.",
                                                                getHttpServerName() + '/' + getHttpServerVersion());
                         MemoryManager mm = request.getContext().getConnection().getTransport().getMemoryManager();
-                        Buffer buf = MemoryUtils.wrap(mm, b);
+                        Buffer buf = Buffers.wrap(mm, b);
                         NIOOutputStream out = response.getOutputStream();
                         response.setStatus(HttpStatus.NOT_FOUND_404);
                         response.setContentType("text/html");

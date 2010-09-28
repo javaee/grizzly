@@ -65,12 +65,12 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.util.BufferChunk;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.memory.MemoryUtils;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * Mapper, which implements the servlet API mapping rules (which are derived
@@ -740,7 +740,7 @@ public class Mapper {
         throws Exception {
 
         if (host.isNull()) {
-            host.setBuffer(MemoryUtils.wrap(mm, defaultHostName));
+            host.setBuffer(Buffers.wrap(mm, defaultHostName));
         }
         //host.toChars();
         //uri.toChars();
@@ -830,7 +830,7 @@ public class Mapper {
                 }
                 context = hosts[hostPos].defaultContexts[0];
                 mappingData.context = context.object;
-                mappingData.contextPath.setBuffer(MemoryUtils.wrap(mm, context.name));
+                mappingData.contextPath.setBuffer(Buffers.wrap(mm, context.name));
                 found = true;
                 mappingData.isDefaultContext = true;
                 // END GlassFish 1024
@@ -882,7 +882,7 @@ public class Mapper {
                 }
                 if (context != null) {
                     mappingData.context = context.object;
-                    mappingData.contextPath.setBuffer(MemoryUtils.wrap(mm, context.name));
+                    mappingData.contextPath.setBuffer(Buffers.wrap(mm, context.name));
                 }
             }
         }
@@ -1043,8 +1043,8 @@ public class Mapper {
                                 mappingData.wrapperPath.setBuffer
                                     (path.getBuffer(), path.getStart(),
                                      path.size());
-                                mappingData.requestPath.setBuffer(MemoryUtils.wrap(mm, pathStr));
-                                mappingData.wrapperPath.setBuffer(MemoryUtils.wrap(mm, pathStr));
+                                mappingData.requestPath.setBuffer(Buffers.wrap(mm, pathStr));
+                                mappingData.wrapperPath.setBuffer(Buffers.wrap(mm, pathStr));
                             }
                         }
                     }
@@ -1086,8 +1086,8 @@ public class Mapper {
                     mappingData.redirectPath.setBuffer
                         (path.getBuffer(), path.getStart(), path.size());
                 } else {
-                    mappingData.requestPath.setBuffer(MemoryUtils.wrap(mm, pathStr));
-                    mappingData.wrapperPath.setBuffer(MemoryUtils.wrap(mm, pathStr));
+                    mappingData.requestPath.setBuffer(Buffers.wrap(mm, pathStr));
+                    mappingData.wrapperPath.setBuffer(Buffers.wrap(mm, pathStr));
                 }
             }
         }
@@ -1106,8 +1106,8 @@ public class Mapper {
                                          MappingData mappingData) {
         int pos = find(wrappers, path);
         if ((pos != -1) && (path.equals(wrappers[pos].name))) {
-            mappingData.requestPath.setBuffer(MemoryUtils.wrap(mm, wrappers[pos].name));
-            mappingData.wrapperPath.setBuffer(MemoryUtils.wrap(mm, wrappers[pos].name));
+            mappingData.requestPath.setBuffer(Buffers.wrap(mm, wrappers[pos].name));
+            mappingData.wrapperPath.setBuffer(Buffers.wrap(mm, wrappers[pos].name));
             mappingData.wrapper = wrappers[pos].object;
         }
     }
@@ -1150,7 +1150,7 @@ public class Mapper {
             }
             path.setEnd(pathEnd);
             if (found) {
-                mappingData.wrapperPath.setBuffer(MemoryUtils.wrap(mm, wrappers[pos].name));
+                mappingData.wrapperPath.setBuffer(Buffers.wrap(mm, wrappers[pos].name));
                 if (path.size() > length) {
                     mappingData.pathInfo.setBuffer
                         (path.getBuffer(),
@@ -1275,7 +1275,7 @@ public class Mapper {
     @SuppressWarnings({"unchecked"})
     private int findIgnoreCase(MapElement[] map, String name) {
         BufferChunk chunk = BufferChunk.newInstance();
-        chunk.setBuffer(MemoryUtils.wrap(mm, name));
+        chunk.setBuffer(Buffers.wrap(mm, name));
         return findIgnoreCase(map, chunk);
     }
 
@@ -1480,7 +1480,7 @@ public class Mapper {
                                            MapElement[] newMap,
                                            MapElement newElement) {
         BufferChunk chunk = BufferChunk.newInstance();
-        chunk.setBuffer(MemoryUtils.wrap(mm, newElement.name));
+        chunk.setBuffer(Buffers.wrap(mm, newElement.name));
         int pos = findIgnoreCase(oldMap, chunk);
         if ((pos != -1) && (newElement.name.equalsIgnoreCase(oldMap[pos].name))) {
             return oldMap[pos];
@@ -1520,7 +1520,7 @@ public class Mapper {
                                         MapElement[] newMap,
                                         String name) {
         BufferChunk chunk = BufferChunk.newInstance();
-        chunk.setBuffer(MemoryUtils.wrap(mm, name));
+        chunk.setBuffer(Buffers.wrap(mm, name));
         int pos = findIgnoreCase(oldMap, chunk);
         if ((pos != -1) && (name.equalsIgnoreCase(oldMap[pos].name))) {
             System.arraycopy(oldMap, 0, newMap, 0, pos);

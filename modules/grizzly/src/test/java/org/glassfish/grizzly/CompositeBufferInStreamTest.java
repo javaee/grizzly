@@ -43,7 +43,6 @@ package org.glassfish.grizzly;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.CompositeBuffer;
-import org.glassfish.grizzly.memory.MemoryUtils;
 import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.streams.StreamReader;
@@ -53,6 +52,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * Test how {@link CompositeBuffer} works with Streams.
@@ -62,15 +62,15 @@ import java.util.logging.Logger;
 public class CompositeBufferInStreamTest extends GrizzlyTestCase {
 
     public static final int PORT = 7783;
-    private static Logger logger = Grizzly.logger(CompositeBufferInStreamTest.class);
+    private static final Logger LOGGER = Grizzly.logger(CompositeBufferInStreamTest.class);
 
     public void testCompositeBuffer() throws Exception {
         Connection connection = null;
         final TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
 
-        final Buffer portion1 = MemoryUtils.wrap(transport.getMemoryManager(), "Hello");
-        final Buffer portion2 = MemoryUtils.wrap(transport.getMemoryManager(), " ");
-        final Buffer portion3 = MemoryUtils.wrap(transport.getMemoryManager(), "world!");
+        final Buffer portion1 = Buffers.wrap(transport.getMemoryManager(), "Hello");
+        final Buffer portion2 = Buffers.wrap(transport.getMemoryManager(), " ");
+        final Buffer portion3 = Buffers.wrap(transport.getMemoryManager(), "world!");
 
         final FutureImpl lock1 = SafeFutureImpl.create();
         final FutureImpl lock2 = SafeFutureImpl.create();
@@ -182,7 +182,7 @@ public class CompositeBufferInStreamTest extends GrizzlyTestCase {
                             // Read until whole buffer will be filled out
                         } catch (Throwable e) {
                             portions[i].getSecond().failure(e);
-                            logger.log(Level.WARNING,
+                            LOGGER.log(Level.WARNING,
                                     "Error working with accepted connection on step: " + i, e);
                         } finally {
                             connection.close();
@@ -190,7 +190,7 @@ public class CompositeBufferInStreamTest extends GrizzlyTestCase {
 
                     } catch (Exception e) {
                         if (!transport.isStopped()) {
-                            logger.log(Level.WARNING,
+                            LOGGER.log(Level.WARNING,
                                     "Error accepting connection", e);
                             assertTrue("Error accepting connection", false);
                         }

@@ -170,12 +170,7 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
      */
     public static final class Builder extends HttpContent.Builder<Builder> {
         protected Builder(HttpHeader httpHeader) {
-            super(httpHeader);
-        }
-
-        @Override
-        protected HttpContent create(HttpHeader httpHeader) {
-            return HttpTrailer.create(httpHeader);
+            packet = HttpTrailer.create(httpHeader);
         }
 
         /**

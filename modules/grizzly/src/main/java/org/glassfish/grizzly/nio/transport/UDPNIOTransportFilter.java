@@ -51,7 +51,7 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.memory.BufferUtils;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -182,7 +182,7 @@ public final class UDPNIOTransportFilter extends BaseFilter {
             }
 
             transport.getWriter(transportContext.isBlocking()).write(connection,
-                    BufferUtils.EMPTY_BUFFER, writeCompletionHandler)
+                    Buffers.EMPTY_BUFFER, writeCompletionHandler)
                     .markForRecycle(false);
 
             transportContext.setFuture(null);

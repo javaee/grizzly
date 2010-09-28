@@ -47,7 +47,7 @@ import org.glassfish.grizzly.http.HttpCodecFilter.HeaderParsingState;
 import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.HexUtils;
 import org.glassfish.grizzly.http.util.MimeHeaders;
-import org.glassfish.grizzly.memory.BufferUtils;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
@@ -170,7 +170,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
             contentParsingState.chunkRemainder -= input.remaining();
         } else { // if not
             input.tryDispose();
-            input = BufferUtils.EMPTY_BUFFER;
+            input = Buffers.EMPTY_BUFFER;
         }
 
         if (isLastChunk) {
@@ -305,7 +305,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
         final boolean hasContent = chunkSize > 0;
 
         if (hasContent) {
-            httpChunkBuffer = BufferUtils.appendBuffers(memoryManager,
+            httpChunkBuffer = Buffers.appendBuffers(memoryManager,
                     httpChunkBuffer, content);
         }
 
@@ -336,7 +336,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
         httpChunkTrailer.trim();
         httpChunkTrailer.allowBufferDispose(true);
 
-        return BufferUtils.appendBuffers(memoryManager, httpChunkBuffer,
+        return Buffers.appendBuffers(memoryManager, httpChunkBuffer,
                 httpChunkTrailer);
     }
 }

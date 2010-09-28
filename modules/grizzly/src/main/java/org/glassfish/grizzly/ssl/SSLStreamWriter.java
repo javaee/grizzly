@@ -44,7 +44,7 @@ import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.memory.BufferUtils;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.TransformerStreamWriter;
 import org.glassfish.grizzly.streams.StreamWriter;
@@ -193,7 +193,7 @@ public class SSLStreamWriter extends TransformerStreamWriter {
                             logger.finest("NEED_WRAP Engine: " + sslEngine);
                         }
 
-                        streamWriter.writeBuffer(BufferUtils.EMPTY_BUFFER);
+                        streamWriter.writeBuffer(Buffers.EMPTY_BUFFER);
                         streamWriter.flush();
                         handshakeStatus = sslEngine.getHandshakeStatus();
 

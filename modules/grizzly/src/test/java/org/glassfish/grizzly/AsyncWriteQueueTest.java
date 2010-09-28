@@ -57,7 +57,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.memory.MemoryUtils;
 import org.glassfish.grizzly.nio.AbstractNIOConnection;
 import org.glassfish.grizzly.nio.PendingWriteQueueLimitExceededException;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -69,6 +68,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * AsyncWriteQueue tests.
@@ -141,7 +141,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
                     public Object call() throws Exception {
                         byte[] originalMessage = new byte[packetSize];
                         Arrays.fill(originalMessage, b);
-                        Buffer buffer = MemoryUtils.wrap(mm, originalMessage);
+                        Buffer buffer = Buffers.wrap(mm, originalMessage);
                         try {
                             asyncQueueWriter.write(con, buffer, completionHandler);
                         } catch (IOException e) {
@@ -251,7 +251,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
                 final byte b = (byte) i;
                 byte[] originalMessage = new byte[packetSize];
                 Arrays.fill(originalMessage, b);
-                Buffer buffer = MemoryUtils.wrap(mm, originalMessage);
+                Buffer buffer = Buffers.wrap(mm, originalMessage);
                 try {
                     if (asyncQueueWriter.canWrite(con, buffer.remaining())) {
                         asyncQueueWriter.write(con, buffer);
@@ -339,7 +339,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
             do {
                 byte[] originalMessage = new byte[packetSize];
                 Arrays.fill(originalMessage, (byte) 1);
-                Buffer buffer = MemoryUtils.wrap(mm, originalMessage);
+                Buffer buffer = Buffers.wrap(mm, originalMessage);
                 try {
                     if (asyncQueueWriter.canWrite(con, 256000)) {
                         asyncQueueWriter.write(con, buffer);

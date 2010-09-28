@@ -46,7 +46,6 @@ import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.memory.BuffersBuffer;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.utils.EchoFilter;
@@ -61,6 +60,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import junit.framework.TestCase;
+import org.glassfish.grizzly.memory.CompositeBuffer;
 
 /**
  * Test {@link FilterChain} blocking read.
@@ -250,7 +250,7 @@ public class FilterChainReadTest extends TestCase {
             for (int i = 0; i < messageNum; i++) {
                 String clientMessage = "";
 
-                BuffersBuffer bb = BuffersBuffer.create(transport.getMemoryManager());
+                CompositeBuffer bb = CompositeBuffer.newBuffer(transport.getMemoryManager());
                 
                 for (int j = 0; j < clientMsgs.length; j++) {
                     String msg = clientMsgs[j] + "-" + i;

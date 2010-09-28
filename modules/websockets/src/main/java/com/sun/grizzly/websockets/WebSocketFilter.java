@@ -57,7 +57,6 @@ import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.memory.MemoryUtils;
 import org.glassfish.grizzly.websockets.frame.ParseResult;
 import org.glassfish.grizzly.websockets.frame.Frame;
 import java.io.IOException;
@@ -66,6 +65,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * WebSocket {@link org.glassfish.grizzly.filterchain.Filter} implementation, which supposed to be placed into a
@@ -509,7 +509,7 @@ public class WebSocketFilter extends BaseFilter {
         final MemoryManager mm = connection.getTransport().getMemoryManager();
 
         return HttpContent.builder(httpRequest)
-                .content(MemoryUtils.wrap(mm, meta.getKey3()))
+                .content(Buffers.wrap(mm, meta.getKey3()))
                 .build();
     }
 
@@ -534,7 +534,7 @@ public class WebSocketFilter extends BaseFilter {
             response.setHeader("Sec-WebSocket-Protocol", protocol);
         }
 
-        final Buffer serverKeyBuffer = MemoryUtils.wrap(mm, meta.getKey());
+        final Buffer serverKeyBuffer = Buffers.wrap(mm, meta.getKey());
 
         return HttpContent.builder(response)
                 .content(serverKeyBuffer)

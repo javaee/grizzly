@@ -43,7 +43,6 @@ package org.glassfish.grizzly;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.memory.BuffersBuffer;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.memory.DefaultMemoryManager;
 import org.glassfish.grizzly.memory.MemoryProbe;
@@ -52,6 +51,7 @@ import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.memory.CompositeBuffer;
 
 /**
  *
@@ -306,7 +306,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
 
                 final int initialSize = mm.getReadyThreadBufferSize();
 
-                BuffersBuffer compositeBuffer = BuffersBuffer.create(mm);
+                CompositeBuffer compositeBuffer = CompositeBuffer.newBuffer(mm);
 
                 for (int i = 0; i < 11; i++) {
                     Buffer b = mm.allocate(1228);
@@ -347,7 +347,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
 
                 final int initialSize = mm.getReadyThreadBufferSize();
 
-                BuffersBuffer compositeBuffer = BuffersBuffer.create(mm);
+                CompositeBuffer compositeBuffer = CompositeBuffer.newBuffer(mm);
 
                 for (int i = 0; i < 3; i++) {
                     Buffer b = mm.allocate(100);

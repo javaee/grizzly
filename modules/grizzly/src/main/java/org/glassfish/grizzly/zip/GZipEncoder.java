@@ -47,7 +47,7 @@ import org.glassfish.grizzly.TransformationException;
 import org.glassfish.grizzly.TransformationResult;
 import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.attributes.AttributeStorage;
-import org.glassfish.grizzly.memory.BufferUtils;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -145,7 +145,7 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
             return TransformationResult.createIncompletedResult(null);
         }
 
-        encodedBuffer = BufferUtils.appendBuffers(memoryManager,
+        encodedBuffer = Buffers.appendBuffers(memoryManager,
                 headerToWrite, encodedBuffer);
 
         return TransformationResult.createCompletedResult(encodedBuffer, null);
@@ -170,7 +170,7 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
                 deflater.finish();
 
                 while (!deflater.finished()) {
-                    resultBuffer = BufferUtils.appendBuffers(memoryManager,
+                    resultBuffer = Buffers.appendBuffers(memoryManager,
                             resultBuffer,
                             deflate(deflater, memoryManager));
                 }
@@ -182,7 +182,7 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
                 putUInt(trailer, deflater.getTotalIn());
                 trailer.flip();
 
-                resultBuffer = BufferUtils.appendBuffers(memoryManager,
+                resultBuffer = Buffers.appendBuffers(memoryManager,
                         resultBuffer, trailer);
             }
 
@@ -241,7 +241,7 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
                     while (!deflater.needsInput()) {
                         final Buffer deflated = deflate(deflater, memoryManager);
                         if (deflated != null) {
-                            resultBuffer = BufferUtils.appendBuffers(
+                            resultBuffer = Buffers.appendBuffers(
                                     memoryManager, resultBuffer, deflated);
                         }
                     }

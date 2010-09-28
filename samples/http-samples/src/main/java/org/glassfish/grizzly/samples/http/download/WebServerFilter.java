@@ -52,7 +52,6 @@ import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.memory.MemoryUtils;
 import java.io.CharConversionException;
 import java.io.File;
 import java.io.FileInputStream;
@@ -61,6 +60,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * Simple Web server implementation, which locates requested resources in a
@@ -197,7 +197,7 @@ public class WebServerFilter extends BaseFilter {
         // Build 404 HttpContent on base of HttpResponsePacket message header
         final HttpContent content =
                 responseHeader.httpContentBuilder().
-                content(MemoryUtils.wrap(null,
+                content(Buffers.wrap(null,
                 "Can not find file, corresponding to URI: " + request.getRequestURIRef().getDecodedURI())).
                 build();
         return content;

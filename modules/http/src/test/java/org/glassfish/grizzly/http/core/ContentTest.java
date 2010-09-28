@@ -58,7 +58,6 @@ import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.memory.MemoryUtils;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.utils.ChunkingFilter;
@@ -69,6 +68,7 @@ import java.util.Arrays;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import junit.framework.TestCase;
+import org.glassfish.grizzly.memory.Buffers;
 
 /**
  *
@@ -82,7 +82,7 @@ public class ContentTest extends TestCase {
     public void testExplicitContentLength() throws Exception {
         HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("POST").protocol(Protocol.HTTP_1_1).uri("/default").contentLength(10).build();
         httpRequest.addHeader("Host", "localhost:" + PORT);
-        HttpContent content = httpRequest.httpContentBuilder().content(MemoryUtils.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "1234567890")).build();
+        HttpContent content = httpRequest.httpContentBuilder().content(Buffers.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "1234567890")).build();
 
         doHttpRequestTest(content);
     }
@@ -91,7 +91,7 @@ public class ContentTest extends TestCase {
     public void testHeaderContentLength() throws Exception {
         HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("POST").protocol(Protocol.HTTP_1_1).uri("/default").header("Content-Length", "10").build();
         httpRequest.addHeader("Host", "localhost:" + PORT);
-        HttpContent content = httpRequest.httpContentBuilder().content(MemoryUtils.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "1234567890")).build();
+        HttpContent content = httpRequest.httpContentBuilder().content(Buffers.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "1234567890")).build();
 
         doHttpRequestTest(content);
     }
@@ -100,7 +100,7 @@ public class ContentTest extends TestCase {
     public void testSimpleChunked() throws Exception {
         HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("POST").protocol(Protocol.HTTP_1_1).uri("/default").chunked(true).build();
         httpRequest.addHeader("Host", "localhost:" + PORT);
-        HttpContent content = httpRequest.httpTrailerBuilder().content(MemoryUtils.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "1234567890")).build();
+        HttpContent content = httpRequest.httpTrailerBuilder().content(Buffers.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "1234567890")).build();
 
         doHttpRequestTest(content);
     }
@@ -109,9 +109,9 @@ public class ContentTest extends TestCase {
     public void testSeveralChunked() throws Exception {
         HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("POST").protocol(Protocol.HTTP_1_1).uri("/default").chunked(true).build();
         httpRequest.addHeader("Host", "localhost:" + PORT);
-        HttpContent content1 = httpRequest.httpContentBuilder().content(MemoryUtils.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "1234567890")).build();
-        HttpContent content2 = httpRequest.httpContentBuilder().content(MemoryUtils.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "0987654321")).build();
-        HttpContent content3 = httpRequest.httpTrailerBuilder().content(MemoryUtils.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "final")).build();
+        HttpContent content1 = httpRequest.httpContentBuilder().content(Buffers.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "1234567890")).build();
+        HttpContent content2 = httpRequest.httpContentBuilder().content(Buffers.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "0987654321")).build();
+        HttpContent content3 = httpRequest.httpTrailerBuilder().content(Buffers.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "final")).build();
 
         doHttpRequestTest(content1, content2, content3);
     }

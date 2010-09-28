@@ -42,7 +42,7 @@ package org.glassfish.grizzly.http;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.memory.BufferUtils;
+import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * Object represents HTTP message content: complete or part.
@@ -89,7 +89,7 @@ public class HttpContent implements HttpPacket, org.glassfish.grizzly.Appendable
 
     protected boolean isLast;
     
-    protected Buffer content = BufferUtils.EMPTY_BUFFER;
+    protected Buffer content = Buffers.EMPTY_BUFFER;
 
     protected HttpHeader httpHeader;
 
@@ -154,7 +154,7 @@ public class HttpContent implements HttpPacket, org.glassfish.grizzly.Appendable
 
         final Buffer content2 = element.getContent();
         if (content2 != null && content2.hasRemaining()) {
-            content = BufferUtils.appendBuffers(null, content, content2);
+            content = Buffers.appendBuffers(null, content, content2);
         }
 
         if (element.isLast()) {
@@ -170,7 +170,7 @@ public class HttpContent implements HttpPacket, org.glassfish.grizzly.Appendable
      */
     protected void reset() {
         isLast = false;
-        content = BufferUtils.EMPTY_BUFFER;
+        content = Buffers.EMPTY_BUFFER;
         httpHeader = null;
     }
 
@@ -190,12 +190,11 @@ public class HttpContent implements HttpPacket, org.glassfish.grizzly.Appendable
 
         protected HttpContent packet;
 
-        protected Builder(HttpHeader httpHeader) {
-            packet = create(httpHeader);
+        protected Builder() {
         }
 
-        protected HttpContent create(HttpHeader httpHeader) {
-            return HttpContent.create(httpHeader);
+        protected Builder(HttpHeader httpHeader) {
+            packet = HttpContent.create(httpHeader);
         }
 
         /**

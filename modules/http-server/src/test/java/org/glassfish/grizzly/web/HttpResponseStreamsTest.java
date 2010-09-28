@@ -58,7 +58,6 @@ import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.memory.ByteBuffersBuffer;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import junit.framework.TestCase;
@@ -70,6 +69,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.memory.CompositeBuffer;
 
 public class HttpResponseStreamsTest extends TestCase {
 
@@ -639,7 +639,7 @@ public class HttpResponseStreamsTest extends TestCase {
     private static class ClientFilter extends BaseFilter {
         private final static Logger logger = Grizzly.logger(ClientFilter.class);
 
-        private ByteBuffersBuffer buf = ByteBuffersBuffer.create();
+        private CompositeBuffer buf = CompositeBuffer.newBuffer();
 
         private FutureImpl<String> completeFuture;
 

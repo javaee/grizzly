@@ -224,9 +224,9 @@ public class ByteBufferWrapper implements Buffer {
         final int oldPosition = position();
         final int oldLimit = limit();
 
-        BufferUtils.setPositionLimit(visible, 0, splitPosition);
+        Buffers.setPositionLimit(visible, 0, splitPosition);
         ByteBuffer slice1 = visible.slice();
-        BufferUtils.setPositionLimit(visible, splitPosition, visible.capacity());
+        Buffers.setPositionLimit(visible, splitPosition, visible.capacity());
         ByteBuffer slice2 = visible.slice();
 
         if (oldPosition < splitPosition) {
@@ -259,12 +259,12 @@ public class ByteBufferWrapper implements Buffer {
         final int oldLimit = limit();
 
         try {
-            BufferUtils.setPositionLimit(visible, position, limit);
+            Buffers.setPositionLimit(visible, position, limit);
 
             final ByteBuffer slice = visible.slice();
             return memoryManager.wrap(slice);
         } finally {
-            BufferUtils.setPositionLimit(visible, oldPosition, oldLimit);
+            Buffers.setPositionLimit(visible, oldPosition, oldLimit);
         }
     }
 
@@ -310,7 +310,7 @@ public class ByteBufferWrapper implements Buffer {
 
     @Override
     public ByteBufferWrapper get(byte[] dst, int offset, int length) {
-        BufferUtils.get(visible, dst, offset, length);
+        Buffers.get(visible, dst, offset, length);
         return this;
     }
 
@@ -324,14 +324,14 @@ public class ByteBufferWrapper implements Buffer {
     @Override
     public ByteBufferWrapper put(Buffer src, int position, int length) {
         if (!src.isComposite()) {
-            BufferUtils.put(src.toByteBuffer(), position, length, visible);
+            Buffers.put(src.toByteBuffer(), position, length, visible);
         } else {
             final ByteBuffer[] bbs =
                     src.toByteBufferArray(position, position + length);
             
             for(ByteBuffer bb : bbs) {
                 final int pos = bb.position();
-                BufferUtils.put(bb, pos, bb.remaining(), visible);
+                Buffers.put(bb, pos, bb.remaining(), visible);
                 bb.position(pos);
             }
         }
@@ -347,7 +347,7 @@ public class ByteBufferWrapper implements Buffer {
 
     @Override
     public ByteBufferWrapper put(byte[] src, int offset, int length) {
-        BufferUtils.put(src, offset, length, visible);
+        Buffers.put(src, offset, length, visible);
         return this;
     }
 
@@ -573,7 +573,7 @@ public class ByteBufferWrapper implements Buffer {
     @Override
     public String toStringContent(Charset charset, int position, int limit) {
         checkDispose();
-        return BufferUtils.toStringContent(visible, charset, position, limit);
+        return Buffers.toStringContent(visible, charset, position, limit);
     }
 
     @Override
@@ -590,11 +590,11 @@ public class ByteBufferWrapper implements Buffer {
             return toByteBuffer();
         }
 
-        BufferUtils.setPositionLimit(visible, position, limit);
+        Buffers.setPositionLimit(visible, position, limit);
 
         final ByteBuffer resultBuffer = visible.slice();
 
-        BufferUtils.setPositionLimit(visible, currentPosition, currentLimit);
+        Buffers.setPositionLimit(visible, currentPosition, currentLimit);
 
         return resultBuffer;
     }

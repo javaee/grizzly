@@ -42,7 +42,7 @@ package org.glassfish.grizzly.websockets.frame;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.TransportFactory;
-import org.glassfish.grizzly.memory.BufferUtils;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
@@ -94,7 +94,7 @@ class FixedLengthFrame extends Frame {
         encodeLength(length, startBuffer);
         startBuffer.trim();
 
-        return BufferUtils.appendBuffers(mm, startBuffer, buffer);
+        return Buffers.appendBuffers(mm, startBuffer, buffer);
     }
 
     /**
@@ -143,7 +143,7 @@ class FixedLengthFrame extends Frame {
                 }
 
                 contentLengthRemaining -= buffer.remaining();
-                this.buffer = BufferUtils.appendBuffers(mm, this.buffer, buffer);
+                this.buffer = Buffers.appendBuffers(mm, this.buffer, buffer);
 
                 buffer = remainder;
                 if (contentLengthRemaining > 0) {

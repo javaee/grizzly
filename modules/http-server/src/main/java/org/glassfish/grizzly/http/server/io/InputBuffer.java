@@ -48,7 +48,6 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.http.util.Utils;
-import org.glassfish.grizzly.memory.BuffersBuffer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -57,6 +56,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
+import org.glassfish.grizzly.memory.CompositeBuffer;
 
 /**
  * Abstraction exposing both byte and character methods to read content
@@ -93,7 +93,7 @@ public class InputBuffer {
      * Composite {@link Buffer} consisting of the bytes from the HTTP
      * message chunks.
      */
-    private BuffersBuffer compositeBuffer;
+    private CompositeBuffer compositeBuffer;
 
     /**
      * The {@link Connection} associated with this {@link org.glassfish.grizzly.http.HttpRequestPacket}.
@@ -198,7 +198,7 @@ public class InputBuffer {
         this.request = request;
         this.ctx = ctx;
         connection = ctx.getConnection();
-        compositeBuffer = BuffersBuffer.create(connection.getTransport().getMemoryManager());
+        compositeBuffer = CompositeBuffer.newBuffer(connection.getTransport().getMemoryManager());
         Object message = ctx.getMessage();
         if (message instanceof HttpContent) {
             HttpContent content = (HttpContent) ctx.getMessage();

@@ -47,7 +47,7 @@ import org.glassfish.grizzly.TransformationException;
 import org.glassfish.grizzly.TransformationResult;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.filterchain.AbstractCodecFilter;
-import org.glassfish.grizzly.memory.BufferUtils;
+import org.glassfish.grizzly.memory.Buffers;
 import java.util.logging.Logger;
 
 
@@ -136,12 +136,12 @@ public class ChunkingFilter extends AbstractCodecFilter<Buffer, Buffer> {
             final int oldInputPos = input.position();
             final int oldInputLimit = input.limit();
 
-            BufferUtils.setPositionLimit(input, oldInputPos, oldInputPos + chunkSize);
+            Buffers.setPositionLimit(input, oldInputPos, oldInputPos + chunkSize);
             
             final Buffer output = obtainMemoryManager(storage).allocate(chunkSize);
             output.put(input).flip();
 
-            BufferUtils.setPositionLimit(input, oldInputPos + chunkSize, oldInputLimit);
+            Buffers.setPositionLimit(input, oldInputPos + chunkSize, oldInputLimit);
 
             return TransformationResult.createCompletedResult(
                     output, input);

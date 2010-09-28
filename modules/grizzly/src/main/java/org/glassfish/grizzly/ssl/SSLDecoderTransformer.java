@@ -52,7 +52,7 @@ import org.glassfish.grizzly.TransformationException;
 import org.glassfish.grizzly.TransformationResult;
 import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.attributes.AttributeStorage;
-import org.glassfish.grizzly.memory.BufferUtils;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 import javax.net.ssl.SSLException;
 
@@ -154,7 +154,7 @@ public final class SSLDecoderTransformer extends AbstractTransformer<Buffer, Buf
                 targetBuffer.dispose();
 
                 return TransformationResult.createCompletedResult(
-                        BufferUtils.EMPTY_BUFFER, originalMessage);
+                        Buffers.EMPTY_BUFFER, originalMessage);
             } else {
                 targetBuffer.dispose();
 
