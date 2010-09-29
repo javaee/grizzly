@@ -134,7 +134,7 @@ public class SelectorThread extends Thread implements MBeanRegistration{
     protected boolean tcpNoDelay=false;
     
     
-    protected int linger=100;
+    protected int linger=-1;
     
     
     protected int socketTimeout=-1;
