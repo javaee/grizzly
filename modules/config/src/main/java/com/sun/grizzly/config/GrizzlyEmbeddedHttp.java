@@ -266,9 +266,9 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         }
 
         final Protocol protocol = networkListener.findProtocol();
-        final boolean mayEnableAsync = !"admin-listener".equalsIgnoreCase(networkListener.getName());
+        //final boolean mayEnableAsync = !"admin-listener".equalsIgnoreCase(networkListener.getName());
 
-        rootProtocolChainHandler = configureProtocol(networkListener, protocol, habitat, mayEnableAsync);
+        rootProtocolChainHandler = configureProtocol(networkListener, protocol, habitat, true);
 
         configureThreadPool(networkListener, pool, httpProtocol != null ?
                 httpProtocol.getHttp().getRequestTimeoutSeconds() :
