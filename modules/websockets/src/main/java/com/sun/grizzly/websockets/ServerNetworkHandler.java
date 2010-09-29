@@ -149,8 +149,8 @@ public class ServerNetworkHandler implements NetworkHandler {
         }
     }
 
-    private void write(byte[] bytes) throws IOException {
-        ByteChunk buffer = new ByteChunk(bytes.length);
+    private synchronized void write(byte[] bytes) throws IOException {
+        ByteChunk buffer = new ByteChunk();
         buffer.setBytes(bytes, 0, bytes.length);
         outputBuffer.doWrite(buffer, response);
         outputBuffer.flush();
