@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.samples.websockets;
 
+import java.util.logging.Level;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.websockets.ServerWebSocketMeta;
@@ -111,7 +112,7 @@ public class ChatApplication extends WebSocketApplication<ChatWebSocket> {
      * @param text the text message
      */
     private void broadcast(String user, String text) {
-        logger.info("Broadcasting: " + text + " from: " + user);
+        logger.log(Level.INFO, "Broadcasting: {0} from: {1}", new Object[]{text, user});
         for (ChatWebSocket websocket : getWebSockets()) {
             if (websocket.getUser() != null) {  // it may happen some websocket is on the list, but not logged in to the chat
                 websocket.sendJson(user, text);

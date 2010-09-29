@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.websockets;
 
 import java.net.URI;
+import org.glassfish.grizzly.http.HttpHeader;
 
 /**
  * {@link WebSocket} meta information.
@@ -56,6 +57,8 @@ public abstract class WebSocketMeta {
     private final String origin;
     private final String protocol;
 
+    private volatile HttpHeader handshakeHeader;
+    
     /**
      * Construct a <tt>WebSocketMeta</tt> using {@link URI}.
      * Origin header will be set to "http://localhost"
@@ -134,6 +137,24 @@ public abstract class WebSocketMeta {
      */
     public boolean isSecure() {
         return isSecure;
+    }
+
+    /**
+     * Returns websocket handshake header, represented as {@link HttpHeader}.
+     * 
+     * @return websocket handshake header, represented as {@link HttpHeader}.
+     */
+    public HttpHeader getHandshakeHeader() {
+        return handshakeHeader;
+    }
+
+    /**
+     * Set the websocket handshake header, represented as {@link HttpHeader}.
+     *
+     * @param httpHeader websocket handshake header, represented as {@link HttpHeader}.
+     */
+    protected void setHandshakeHeader(HttpHeader httpHeader) {
+        this.handshakeHeader = httpHeader;
     }
 
     /**

@@ -506,6 +506,8 @@ public class WebSocketFilter extends BaseFilter {
 
         final HttpRequestPacket httpRequest = builder.build();
 
+        meta.setHandshakeHeader(httpRequest);
+
         final MemoryManager mm = connection.getTransport().getMemoryManager();
 
         return HttpContent.builder(httpRequest)
@@ -518,25 +520,27 @@ public class WebSocketFilter extends BaseFilter {
 
         final MemoryManager mm = connection.getTransport().getMemoryManager();
 
-        final HttpResponsePacket response = request.getResponse();
+        final HttpResponsePacket httpResponse = request.getResponse();
 
-        HttpStatus.WEB_SOCKET_PROTOCOL_HANDSHAKE_101.setValues(response);
+        HttpStatus.WEB_SOCKET_PROTOCOL_HANDSHAKE_101.setValues(httpResponse);
 
-        response.setProtocol(Protocol.HTTP_1_1);
-        response.setUpgrade("WebSocket");
-        response.setHeader("Connection", "Upgrade");
+        httpResponse.setProtocol(Protocol.HTTP_1_1);
+        httpResponse.setUpgrade("WebSocket");
+        httpResponse.setHeader("Connection", "Upgrade");
 
-        response.setHeader("Sec-WebSocket-Origin", meta.getOrigin());
-        response.setHeader("Sec-WebSocket-Location", meta.getLocation());
+        httpResponse.setHeader("Sec-WebSocket-Origin", meta.getOrigin());
+        httpResponse.setHeader("Sec-WebSocket-Location", meta.getLocation());
 
         final String protocol = meta.getProtocol();
         if (protocol != null) {
-            response.setHeader("Sec-WebSocket-Protocol", protocol);
+            httpResponse.setHeader("Sec-WebSocket-Protocol", protocol);
         }
 
+        meta.setHandshakeHeader(httpResponse);
+        
         final Buffer serverKeyBuffer = Buffers.wrap(mm, meta.getKey());
 
-        return HttpContent.builder(response)
+        return HttpContent.builder(httpResponse)
                 .content(serverKeyBuffer)
                 .build();
     }

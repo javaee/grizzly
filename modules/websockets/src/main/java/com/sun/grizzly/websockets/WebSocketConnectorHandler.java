@@ -53,6 +53,9 @@ import java.net.URI;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.http.HttpClientFilter;
 
 /**
  * Client-side {@link WebSocket} connector handler, which is used to initiate
@@ -69,6 +72,7 @@ public class WebSocketConnectorHandler {
     /**
      * Construct a <tt>WebSocketConnectorHandler</tt> basing on the specific TCP
      * {@link org.glassfish.grizzly.Transport} object.
+     * The underlying Grizzly {@link Connection} will use a default websockets {@link FilterChain}.
      *
      * @param transport {@link TCPNIOTransport}
      */
@@ -78,17 +82,15 @@ public class WebSocketConnectorHandler {
 
     /**
      * Construct a <tt>WebSocketConnectorHandler</tt> basing on the specific TCP {@link org.glassfish.grizzly.Transport}
-     * object.  The underlying Grizzly {@link Connection} will use a {@link Processor}, different from one
-     * used by transport {@link TCPNIOTransport}.
+     * object.  The underlying Grizzly {@link Connection} will use the provided {@link Processor}.
      *
      * @param transport {@link TCPNIOTransport}
      * @param processor custom NIO events {@link Processor}
      */
     public WebSocketConnectorHandler(TCPNIOTransport transport,
             Processor processor) {
-        
         this.transport = transport;
-        this.processor = processor;
+        this.processor = processor != null ? processor : createFilterChain();
     }
 
     /**
@@ -124,7 +126,7 @@ public class WebSocketConnectorHandler {
             throws IOException, HandshakeException {
 
         if (logger.isLoggable(Level.FINE)) {
-            logger.log(Level.FINE, "connect websocket meta=" + meta);
+            logger.log(Level.FINE, "connect websocket meta={0}", meta);
         }
 
         final FutureImpl<WebSocket> future = SafeFutureImpl.create();
@@ -155,5 +157,14 @@ public class WebSocketConnectorHandler {
         connectorHandler.connect(new InetSocketAddress(host, port), connectHandler);
 
         return future;
+    }
+
+    private static Processor createFilterChain() {
+        FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+        clientFilterChainBuilder.add(new TransportFilter());
+        clientFilterChainBuilder.add(new HttpClientFilter());
+        clientFilterChainBuilder.add(new WebSocketFilter());
+
+        return clientFilterChainBuilder.build();
     }
 }

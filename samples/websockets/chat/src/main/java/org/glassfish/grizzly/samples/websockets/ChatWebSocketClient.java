@@ -41,13 +41,9 @@
 package org.glassfish.grizzly.samples.websockets;
 
 import org.glassfish.grizzly.TransportFactory;
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
-import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.http.HttpClientFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.websockets.WebSocket;
 import org.glassfish.grizzly.websockets.WebSocketConnectorHandler;
-import org.glassfish.grizzly.websockets.WebSocketFilter;
 import org.glassfish.grizzly.websockets.frame.Frame;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -62,18 +58,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class ChatWebSocketClient {
     public static void main(String[] args) throws Exception {
-        // Initiate the client filterchain to work with websockets
-        final FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.stateless();
-        // Transport filter
-        serverFilterChainBuilder.add(new TransportFilter());
-        // HTTP client filter
-        serverFilterChainBuilder.add(new HttpClientFilter());
-        // WebSocket filter
-        serverFilterChainBuilder.add(new WebSocketFilter());
-
         // initialize transport
         final TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
-        transport.setProcessor(serverFilterChainBuilder.build());
 
         ChatWebSocket websocket = null;
         
