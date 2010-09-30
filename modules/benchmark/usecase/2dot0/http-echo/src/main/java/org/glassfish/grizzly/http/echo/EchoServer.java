@@ -39,42 +39,69 @@
  */
 package org.glassfish.grizzly.http.echo;
 
-import org.glassfish.grizzly.http.server.HttpServer;
-import org.glassfish.grizzly.http.server.HttpService;
-import org.glassfish.grizzly.http.server.Request;
-import org.glassfish.grizzly.http.server.Response;
+import org.glassfish.grizzly.Strategy;
+import org.glassfish.grizzly.Transport;
+import org.glassfish.grizzly.http.server.*;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
 import org.glassfish.grizzly.http.server.io.NIOReader;
 import org.glassfish.grizzly.http.server.io.NIOWriter;
 import org.glassfish.grizzly.http.server.io.ReadHandler;
+import org.glassfish.grizzly.memory.MemoryProbe;
+import org.glassfish.grizzly.nio.NIOTransport;
+import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
+import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.Reader;
+import java.io.Writer;
+import java.lang.reflect.Constructor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicLong;
 
 final class EchoServer {
-
+    private static final String LISTENER_NAME = "NetworkListenerBM";
+    private static final String PATH = "/echo";
+    private static final String POOL_NAME = "GrizzlyPoolBM";
     private final HttpServer httpServer;
-    private boolean chunked;
-    private boolean binary;
+    private final Settings settings;
 
     // -------------------------------------------------------- Constructors
 
 
-    public EchoServer(boolean blocking,
-                      boolean chunked,
-                      boolean binary) {
-        httpServer = HttpServer.createSimpleServer();
-        httpServer.getServerConfiguration().
-                addHttpService(((blocking)
-                        ? new BlockingEchoService()
-                        : new NonBlockingEchoService()),
-                               "/echo");
-        this.chunked = chunked;
-        this.binary = binary;
-
+    public EchoServer(Settings settings) {
+        this.settings = settings;
+        httpServer = new HttpServer();
+        final NetworkListener listener = new NetworkListener(LISTENER_NAME,
+                                                             settings.getHost(),
+                                                             settings.getPort());
+        httpServer.addListener(listener);
+        configureServer(settings);
     }
 
 
     // ------------------------------------------------------ Public Methods
+
+    @SuppressWarnings({"ResultOfMethodCallIgnored"})
+    public static void main(String[] args) {
+        final Settings settings = Settings.parse(args);
+        final EchoServer server = new EchoServer(settings);
+        try {
+            server.run();
+            System.out.println("Press any key to stop the server...");
+            System.in.read();
+        } catch (IOException ioe) {
+            System.err.println(ioe);
+            System.exit(1);
+        } finally {
+            try {
+                server.stop();
+            } catch (IOException ioe) {
+                System.err.println(ioe);
+            }
+        }
+    }
 
     public void run() throws IOException {
         httpServer.start();
@@ -85,7 +112,59 @@ final class EchoServer {
     }
 
 
-    // ------------------------------------------------------ Nested Classes
+    // --------------------------------------------------------- Private Methods
+
+
+    @SuppressWarnings({"unchecked"})
+    private void configureServer(final Settings settings) {
+        final ServerConfiguration config = httpServer.getServerConfiguration();
+        config.addHttpService(((settings.isBlocking())
+                                      ? new BlockingEchoService()
+                                      : new NonBlockingEchoService()),
+                                PATH);
+        final Transport transport = httpServer.getListener(LISTENER_NAME).getTransport();
+        if (settings.isMonitoringMemory()) {
+            MemoryProbe probe = new MemoryStatsProbe();
+            transport.getMemoryManager().getMonitoringConfig().addProbes(probe);
+        }
+
+        int poolSize = (settings.getWorkerThreads());
+
+        final ThreadPoolConfig tpc = ThreadPoolConfig.DEFAULT.clone().
+                setPoolName(POOL_NAME).
+                setCorePoolSize(poolSize).setMaxPoolSize(poolSize);
+
+        transport.setThreadPool(GrizzlyExecutorService.createInstance(tpc));
+        ((NIOTransport) transport).setSelectorRunnersCount(settings.getSelectorThreads());
+
+        Strategy strategy = loadStrategy(settings.getStrategyClass(), transport);
+
+        transport.setStrategy(strategy);
+
+    }
+
+
+    private static Strategy loadStrategy(Class<? extends Strategy> strategy, Transport transport) {
+        try {
+            return strategy.newInstance();
+        } catch (Exception e) {
+            try {
+                Constructor[] cs = strategy.getConstructors();
+                for (Constructor c : cs) {
+                    if (c.getParameterTypes().length == 1 && c.getParameterTypes()[0].isAssignableFrom(ExecutorService.class)) {
+                        return (Strategy) c.newInstance(transport.getThreadPool());
+                    }
+                }
+
+                throw new IllegalStateException("Can not initialize strategy: " + strategy);
+            } catch (Exception ee) {
+                throw new IllegalStateException("Can not initialize strategy: " + strategy + ". Error: " + ee.getClass() + ": " + ee.getMessage());
+            }
+        }
+    }
+
+
+    // ----------------------------------------------------------- Inner Classes
 
 
     private final class BlockingEchoService extends HttpService {
@@ -97,10 +176,10 @@ final class EchoServer {
         public void service(Request request, Response response)
         throws Exception {
 
-            if (!chunked) {
+            if (!settings.isChunked()) {
                 response.setContentLength(request.getContentLength());
             }
-            if (binary) {
+            if (settings.isBinary()) {
                 InputStream in = request.getInputStream(true);
                 OutputStream out = response.getOutputStream();
                 byte[] buf = new byte[1024];
@@ -153,10 +232,10 @@ final class EchoServer {
         public void service(final Request request, final Response response)
         throws Exception {
 
-            if (!chunked) {
+            if (!settings.isChunked()) {
                 response.setContentLength(request.getContentLength());
             }
-            if (binary) {
+            if (settings.isBinary()) {
                 final NIOInputStream in = request.getInputStream(false);
                 final OutputStream out = response.getOutputStream();
                 final byte[] buf = new byte[1024];
@@ -306,5 +385,39 @@ final class EchoServer {
         }
 
     } // END NonBlockingEchoService
+
+
+    // ---------------------------------------------------------- Nested Classes
+
+
+    public static class MemoryStatsProbe implements MemoryProbe {
+
+        private final AtomicLong allocatedNew = new AtomicLong();
+        private final AtomicLong allocatedFromPool = new AtomicLong();
+        private final AtomicLong releasedToPool = new AtomicLong();
+
+
+        public void onBufferAllocateEvent(int i) {
+            allocatedNew.addAndGet(i);
+        }
+
+        public void onBufferAllocateFromPoolEvent(int i) {
+            allocatedFromPool.addAndGet(i);
+        }
+
+        public void onBufferReleaseToPoolEvent(int i) {
+            releasedToPool.addAndGet(i);
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append("allocated-memory=").append(allocatedNew.get());
+            sb.append(" allocated-from-pool=").append(allocatedFromPool.get());
+            sb.append(" released-to-pool=").append(releasedToPool.get());
+
+            return sb.toString();
+        }
+    }
 
 } // END EchoServer
