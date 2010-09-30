@@ -39,36 +39,73 @@
  */
 package org.glassfish.grizzly.http.echo;
 
+import com.sun.grizzly.Controller;
+import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.embed.GrizzlyWebServer;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
+import com.sun.grizzly.util.GrizzlyExecutorService;
+import com.sun.grizzly.util.ThreadPoolConfig;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
+import java.util.concurrent.ExecutorService;
 
 final class EchoServer {
 
-    private boolean binary;
     private GrizzlyWebServer httpServer;
+    private final Settings settings;
 
     // -------------------------------------------------------- Constructors
 
 
-    public EchoServer(boolean binary) {
-        httpServer = GrizzlyWebServer.newConfiguredInstance(".");
+    public EchoServer(final Settings settings) {
+        this.settings = settings;
+        httpServer = new GrizzlyWebServer(settings.getPort());
         httpServer.addGrizzlyAdapter(new BlockingEchoAdapter(), new String[] { "/echo" });
-        this.binary = binary;
+        final int poolSize = (settings.getWorkerThreads() + settings.getSelectorThreads());
+        final SelectorThread selector = httpServer.getSelectorThread();
+        final Controller controller = new Controller();
+        controller.setReadThreadsCount(settings.getSelectorThreads() - 1);
+        controller.setHandleReadWriteConcurrently(true);
+        controller.useLeaderFollowerStrategy(settings.isUseLeaderFollower());
+        selector.setController(controller);
+        httpServer.setCoreThreads(poolSize);
+        httpServer.setMaxThreads(poolSize);
+
     }
 
 
     // ------------------------------------------------------ Public Methods
 
+
+    @SuppressWarnings({"ResultOfMethodCallIgnored"})
+    public static void main(String[] args) {
+        final Settings settings = Settings.parse(args);
+        EchoServer server = new EchoServer(settings);
+        try {
+            server.run();
+            System.out.println("Press any key to stop the server...");
+            System.in.read();
+        } catch (IOException ioe) {
+            System.err.println(ioe);
+            System.exit(1);
+        } finally {
+            try {
+                server.stop();
+            } catch (IOException ioe) {
+                System.err.println(ioe);
+            }
+        }
+    }
+
     public void run() throws IOException {
         httpServer.start();
+        System.out.println("Echo Server listener on port: " + settings.getPort());
     }
 
     public void stop() throws IOException {
@@ -95,7 +132,7 @@ final class EchoServer {
         @Override
         public void service(GrizzlyRequest request, GrizzlyResponse response) {
             try {
-                if (binary) {
+                if (settings.isBinary()) {
                     InputStream in = request.getInputStream();
                     OutputStream out = response.getOutputStream();
                     byte[] buf = new byte[1024];
