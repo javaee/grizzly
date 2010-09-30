@@ -37,7 +37,6 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package com.sun.grizzly.util;
 
 import java.util.Queue;
@@ -54,69 +53,68 @@ public class DataStructures {
 
     private final static Class<?> LTQclass, CLQclass;
 
-    static{
-        Class<?> LTQ = LinkedBlockingQueue.class ,
-                 CLQ = LinkedBlockingQueue.class;
+    static {
+        Class<?> LTQ = LinkedBlockingQueue.class,
+                CLQ = LinkedBlockingQueue.class;
         int jver = 0;
-        try{
+        try {
             jver = Integer.valueOf(System.getProperty("java.version").
-                    substring(0,3).replace(".", ""));
-            if (jver > 16){
+                    substring(0, 3).replace(".", ""));
+            if (jver > 16) {
                 CLQ = ConcurrentLinkedQueue.class;
                 LTQ = getAndVerify("maskedclasses.LinkedTransferQueue");
-            }else
-            if (jver == 16){
+            } else if (jver == 16) {
                 LTQ = getAndVerify("maskedclasses.LinkedTransferQueue");
                 CLQ = getAndVerify("maskedclasses.ConcurrentLinkedQueue");
             }
-        }catch(Throwable t){
+        } catch (Throwable t) {
             LoggerUtils.getLogger().log(Level.FINE,
-                 "failed loading grizzly version of datastructure classes," +
-                 " dont worry we load other classes instead.", t);
+                    "failed loading grizzly version of datastructure classes,"
+                    + " dont worry we load other classes instead.", t);
         }
-        LTQclass =  LTQ;
-        CLQclass =  CLQ;
-        LoggerUtils.getLogger().fine("JVM version "+jver+" detected," +
-               " grizzly loaded datastructure classes: "+LTQclass+" "+CLQclass);
+        LTQclass = LTQ;
+        CLQclass = CLQ;
+        LoggerUtils.getLogger().log(Level.FINE, "JVM version {0} detected,"
+                + " grizzly loaded datastructure classes: " + "{1} {2}",
+                new Object[]{jver, LTQclass, CLQclass});
     }
 
-    private final static Class<?> getAndVerify(String cname) throws Throwable{
+    private static Class<?> getAndVerify(String cname) throws Throwable {
         Class<?> cl = DataStructures.class.getClassLoader().loadClass(cname);
         return cl.newInstance().getClass();
     }
 
-    public final static BlockingQueue<?>  getLTQinstance(){
-        try{
-            return  (BlockingQueue<?>) LTQclass.newInstance();
-        }catch(Exception ea){
+    public static BlockingQueue<?> getLTQinstance() {
+        try {
+            return (BlockingQueue<?>) LTQclass.newInstance();
+        } catch (Exception ea) {
             throw new RuntimeException(ea);
         }
     }
 
     @SuppressWarnings("unchecked")
-    public final static <T>BlockingQueue<T>  getLTQinstance(Class<T> t){
-        try{
-            return  (BlockingQueue<T>) LTQclass.newInstance();
-        }catch(Exception ea){
+    public static <T> BlockingQueue<T> getLTQinstance(Class<T> t) {
+        try {
+            return (BlockingQueue<T>) LTQclass.newInstance();
+        } catch (Exception ea) {
             throw new RuntimeException(ea);
         }
     }
-    
-    public final static Queue<?> getCLQinstance(){
-        try{
+
+    public static Queue<?> getCLQinstance() {
+        try {
             return (Queue<?>) CLQclass.newInstance();
-        }catch(Exception ea){
+        } catch (Exception ea) {
             throw new RuntimeException(ea);
         }
     }
 
     @SuppressWarnings("unchecked")
-    public final static <T>Queue<T> getCLQinstance(Class<T> t){
-        try{
+    public static <T> Queue<T> getCLQinstance(Class<T> t) {
+        try {
             return (Queue<T>) CLQclass.newInstance();
-        }catch(Exception ea){
+        } catch (Exception ea) {
             throw new RuntimeException(ea);
         }
     }
-
 }

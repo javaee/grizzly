@@ -37,7 +37,6 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package com.sun.grizzly.comet;
 
 import com.sun.grizzly.util.LogMessages;
@@ -87,80 +86,58 @@ public class CometEngine {
 
     // Disable suspended connection time out for a {@link CometContext#setExpirationDelay}
     public final static int DISABLE_SUSPEND_TIMEOUT = -1;
-    
     // Disable client detection close for a {@link CometContext#setExpirationDelay}
     public final static int DISABLE_CLIENT_DISCONNECTION_DETECTION = 0;
-    
-    
     /**
      * The token used to support BEFORE_REQUEST_PROCESSING polling.
      */
     public final static int BEFORE_REQUEST_PROCESSING = 0;
-
-
     /**
      * The token used to support AFTER_SERVLET_PROCESSING polling.
      */
     public final static int AFTER_SERVLET_PROCESSING = 1;
-
-
     /**
      * The token used to support BEFORE_RESPONSE_PROCESSING polling.
      */
     public final static int AFTER_RESPONSE_PROCESSING = 2;
-
-
     /**
      * Main logger
      */
     protected final static Logger logger = SelectorThread.logger();
-
     private final static IllegalStateException ISE = new IllegalStateException("Invalid state");
-
-
     /**
      * The {@link ExecutorService} used to execute {@link CometTask}
      */
     protected ExtendedThreadPool threadPool;
-
-
     /**
      * The single instance of this class.
      */
     protected final static CometEngine cometEngine = new CometEngine();
-
-
     /**
      * The current active {@link CometContext} keyed by context path.
      */
-    protected final ConcurrentHashMap<String,CometContext> activeContexts;
-
-
+    protected final ConcurrentHashMap<String, CometContext> activeContexts;
     /**
      *  cached CometContexts
      */
     protected final Queue<CometContext> cometContextCache;
-    
-    
     /**
-      * Is Grizzly ARP enabled? By default we set it to false.
+     * Is Grizzly ARP enabled? By default we set it to false.
      */
     private static volatile boolean isCometSupported;
-
-
     /**
      * Store updatedCometContext.
      */
     protected final static ThreadLocal<CometTask> updatedContexts = new ThreadLocal<CometTask>();
-            
+
     /**
      * Creat a singleton and initialize all lists required.
      */
-    protected CometEngine() {       
+    protected CometEngine() {
         cometContextCache = DataStructures.getCLQinstance(CometContext.class);
-        activeContexts    = new ConcurrentHashMap<String,CometContext>(16,0.75f,64);
+        activeContexts = new ConcurrentHashMap<String, CometContext>(16, 0.75f, 64);
 
-        ExtendedThreadPool tpe = new FixedThreadPool(Runtime.getRuntime().availableProcessors(),"CometWorker");
+        ExtendedThreadPool tpe = new FixedThreadPool(Runtime.getRuntime().availableProcessors(), "CometWorker");
         setThreadPool(tpe);
     }
 
@@ -169,16 +146,15 @@ public class CometEngine {
      * has been set to <tt>true</tt>
      * @return
      */
-    protected boolean isCometEnabled(){
+    protected boolean isCometEnabled() {
         return isCometSupported;
     }
-    
 
     /**
      * Return a singleton of this Class.
      * @return CometEngine the singleton.
      */
-    public static CometEngine getEngine(){
+    public static CometEngine getEngine() {
         return cometEngine;
     }
 
@@ -187,35 +163,23 @@ public class CometEngine {
      * shutdownNow is called on the existing ThreadPool.
      * does not update existing notification handlers.
      */
-    public void setThreadPool(ExtendedThreadPool pool) {
-        if (pool != null){
-            int oldSize = 0;
-            if (threadPool != null){
-                oldSize = threadPool.getMaximumPoolSize();
+    public final void setThreadPool(ExtendedThreadPool pool) {
+        if (pool != null) {
+            if (threadPool != null) {
                 threadPool.shutdownNow();
             }
             threadPool = pool;
-            int delta = pool.getMaximumPoolSize() - oldSize;
-            try {
-                SelectorFactory.changeSelectorsBy(delta);
-            } catch (IOException ex) {
-                if (logger.isLoggable(Level.WARNING)) {
-                    logger.log(Level.WARNING,
-                               LogMessages.WARNING_GRIZZLY_COMET_SELECTOR_CACHE_RESIZE_ERROR(),
-                               ex);
-                }
-            }
+            SelectorFactory.setMaxSelectors(pool.getMaximumPoolSize());
         }
     }
 
     /**
-     * returns the threadpool comet is using
+     * returns the thread pool comet is using
      * @return ExtendedThreadPool
      */
     public ExtendedThreadPool getThreadPool() {
         return threadPool;
     }
-
 
     /**
      * Unregister the {@link CometHandler} to the list of the
@@ -227,14 +191,13 @@ public class CometEngine {
      * {@link CometContext#resumeCometHandler(CometHandler)}
      * do.
      */
-    public CometContext unregister(String topic){
+    public CometContext unregister(String topic) {
         CometContext cometContext = activeContexts.remove(topic);
-        if (cometContext != null){
-            cometContext.recycle();            
+        if (cometContext != null) {
+            cometContext.recycle();
         }
         return cometContext;
     }
-
 
     /**
      * Register a context path with this {@link CometEngine}. The
@@ -245,10 +208,9 @@ public class CometEngine {
      *        {@link CometContext}
      * @return CometContext a configured {@link CometContext}.
      */
-    public CometContext register(String topic){
-        return register(topic,AFTER_SERVLET_PROCESSING);
+    public CometContext register(String topic) {
+        return register(topic, AFTER_SERVLET_PROCESSING);
     }
-
 
     /**
      * Register a context path with this {@link CometEngine}. The
@@ -260,12 +222,12 @@ public class CometEngine {
      * {@link CometEngine#AFTER_SERVLET_PROCESSING} or {@link CometEngine#AFTER_RESPONSE_PROCESSING}
      * @return CometContext a configured {@link CometContext}.
      */
-    public CometContext register(String topic, int type){
+    public CometContext register(String topic, int type) {
         return register(topic, type, DefaultNotificationHandler.class);
     }
 
     /**
-     * Instanciate a new {@link CometContext}.
+     * Instantiate a new {@link CometContext}.
      * @param topic the topic the new {@link CometContext} will represent.
      * @param type when the request will be suspended, e.g. {@link CometEngine#BEFORE_REQUEST_PROCESSING},
      * {@link CometEngine#AFTER_SERVLET_PROCESSING} or {@link CometEngine#AFTER_RESPONSE_PROCESSING}
@@ -273,46 +235,44 @@ public class CometEngine {
      * existing one.
      */
     public CometContext register(String topic, int type,
-            Class<? extends NotificationHandler> notificationClass  ) {
+            Class<? extends NotificationHandler> notificationClass) {
         // Double checked locking used used to prevent the otherwise static/global 
         // locking, cause example code does heavy usage of register calls
         // for existing topics from http get calls etc.
         CometContext cometContext = activeContexts.get(topic);
-        if (cometContext == null){
-            synchronized(activeContexts){
+        if (cometContext == null) {
+            synchronized (activeContexts) {
                 cometContext = activeContexts.get(topic);
-                if (cometContext == null){
+                if (cometContext == null) {
                     cometContext = cometContextCache.poll();
-                    if (cometContext != null){
+                    if (cometContext != null) {
                         cometContext.topic = topic;
-                    }else{
+                    } else {
                         cometContext = new CometContext(topic, type);
                     }
                     NotificationHandler notificationHandler;
-                    try{
+                    try {
                         notificationHandler = notificationClass.newInstance();
                     } catch (Throwable t) {
                         if (logger.isLoggable(Level.SEVERE)) {
                             logger.log(Level.SEVERE,
-                                       LogMessages.SEVERE_GRIZZLY_COMET_ENGINE_INVALID_NOTIFICATION_HANDLER_ERROR(notificationClass.getName()),
-                                       t);
+                                    LogMessages.SEVERE_GRIZZLY_COMET_ENGINE_INVALID_NOTIFICATION_HANDLER_ERROR(notificationClass.getName()),
+                                    t);
                         }
                         notificationHandler = new DefaultNotificationHandler();
                     }
                     cometContext.setNotificationHandler(notificationHandler);
                     if (notificationHandler != null && notificationHandler instanceof DefaultNotificationHandler) {
-                        ((DefaultNotificationHandler)notificationHandler)
-                            .setThreadPool(threadPool);
+                        ((DefaultNotificationHandler) notificationHandler).setThreadPool(threadPool);
                     }
-                    activeContexts.put(topic,cometContext);
+                    activeContexts.put(topic, cometContext);
                 }
-                
+
             }
         }
         cometContext.continuationType = type;
         return cometContext;
     }
-
 
     /**
      * Handle an interrupted(or polled) request by matching the current context
@@ -322,30 +282,30 @@ public class CometEngine {
      * @param apt the current apt representing the request.
      * @return boolean true if the request can be polled.
      */
-    protected boolean handle(AsyncProcessorTask apt) throws IOException{
+    protected boolean handle(AsyncProcessorTask apt) throws IOException {
 
         // That means Grizzly ARP is invoking us via AsyncFilter.
-        if (!isCometSupported){
+        if (!isCometSupported) {
             //volatile read is in general cheaper then a write.
             isCometSupported = true;
         }
-        
+
         String topic = apt.getAsyncExecutor().getProcessorTask().getRequestURI();
-        CometContext cometContext = topic==null?null:activeContexts.get(topic);
+        CometContext cometContext = topic == null ? null : activeContexts.get(topic);
 
         /* If the cometContext is null, it means the context has never
          * been registered. The registration might happens during the
          * Servlet.service() execution so we need to keep a reference
          * to the current thread so we can later retrieve the associated
          * SelectionKey. The SelectionKey is required in order to park the request. 
-         */        
-        int continuationType = cometContext == null ?
-            AFTER_SERVLET_PROCESSING:cometContext.continuationType;
-        
+         */
+        int continuationType = cometContext == null
+                ? AFTER_SERVLET_PROCESSING : cometContext.continuationType;
+
         /* Execute the Servlet.service method. CometEngine.register() ork
          * CometContext.addCometHandler() might be invoked during the execution. 
          */
-        executeServlet(continuationType,apt);
+        executeServlet(continuationType, apt);
         /* Will return a CometContext instance if and only if the
          * Servlet.service() have invoked CometContext.addCometHandler().
          * If the returned CometContext is null, it means we need to 
@@ -356,24 +316,24 @@ public class CometEngine {
             //need to impl thread local that gets and sets null in one efficient operation
             updatedContexts.set(null);
             cometContext = cometTask.getCometContext();
-            if (cometTask.upcoming_op_isread){  //alreadySuspended
+            if (cometTask.upcoming_op_isread) {  //alreadySuspended
                 cometTask.upcoming_op_isread = false;
                 //need to set dummy key in cometTask ?
                 cometContext.addActiveHandler(cometTask);
                 return false;
-            }            
+            }
             cometTask.setAsyncProcessorTask(apt);
-            if (cometContext.getExpirationDelay() != -1){
+            if (cometContext.getExpirationDelay() != -1) {
                 cometTask.setTimeout(System.currentTimeMillis());
             }
-            SelectionKey mainKey = apt.getAsyncExecutor().getProcessorTask().getSelectionKey(); 
-            if (mainKey.isValid() && cometContext.getExpirationDelay() 
-                    != DISABLE_CLIENT_DISCONNECTION_DETECTION){
-                try{
+            SelectionKey mainKey = apt.getAsyncExecutor().getProcessorTask().getSelectionKey();
+            if (mainKey.isValid() && cometContext.getExpirationDelay()
+                    != DISABLE_CLIENT_DISCONNECTION_DETECTION) {
+                try {
                     mainKey.interestOps(SelectionKey.OP_READ);
                     mainKey.attach(cometTask);
                     cometContext.initialize(cometTask.getCometHandler());
-                }catch(Exception e){
+                } catch (Exception e) {
                     mainKey.attach(Long.MIN_VALUE);
                     return false;
                 }
@@ -384,12 +344,11 @@ public class CometEngine {
         return false;
     }
 
-
     /**
      * Return the {@link CometContext} associated with the topic.
      * @param topic the topic used to creates the {@link CometContext}
      */
-    public CometContext getCometContext(String topic){
+    public CometContext getCometContext(String topic) {
         return activeContexts.get(topic);
     }
 
@@ -399,16 +358,16 @@ public class CometEngine {
      * @param finishExecution Finish the current execution.
      */
     protected boolean interrupt(final CometTask task, final boolean finishExecution) {
-        if (task != null && task.getCometContext().handlers().remove(task.cometHandler) != null){
-            final SelectionKey key = task.getSelectionKey();            
-             // setting attachment non asynced to ensure grizzly dont keep calling us
+        if (task != null && task.getCometContext().handlers().remove(task.cometHandler) != null) {
+            final SelectionKey key = task.getSelectionKey();
+            // setting attachment non asynced to ensure grizzly dont keep calling us
             key.attach(System.currentTimeMillis());
-            if (finishExecution){
+            if (finishExecution) {
                 key.cancel();
-                
-                task.callInterrupt = true;                               
+
+                task.callInterrupt = true;
                 task.run();
-            }else{
+            } else {
                 interrupt0(task, finishExecution);
             }
             return true;
@@ -423,42 +382,43 @@ public class CometEngine {
      * @param task The {@link CometTask} encapsulating the suspended connection.
      * @param finishExecution Finish the current execution.
      */
-    protected void interrupt0(CometTask task, boolean finishExecution){
-        if (finishExecution){
-            try{
+    protected void interrupt0(CometTask task, boolean finishExecution) {
+        if (finishExecution) {
+            try {
                 task.cometHandler.onInterrupt(task.getCometContext().eventInterrupt);
-            }catch(IOException e) { }
-        }        
-        flushPostExecute(task,finishExecution);
+            } catch (IOException e) {
+            }
+        }
+        
+        flushPostExecute(task, finishExecution);
     }
-    
-    
+
     /**
      * Ensures {@link ProcessorTask} is recycled and that {@link SelectionKey} is canceled when needed.
      *
      * @param task
      * @param cancelKey
      */
-    protected void flushPostExecute(final CometTask task,boolean cancelKey) {
-        AsyncProcessorTask apt = task.getAsyncProcessorTask();        
+    protected void flushPostExecute(final CometTask task, boolean cancelKey) {
+        AsyncProcessorTask apt = task.getAsyncProcessorTask();
         ProcessorTask p = task.getAsyncProcessorTask().getAsyncExecutor().getProcessorTask();
         p.setReRegisterSelectionKey(false);
         p.setAptCancelKey(cancelKey);
-        if (apt.getStage() == AsyncTask.POST_EXECUTE){
-            try{
+        if (apt.getStage() == AsyncTask.POST_EXECUTE) {
+            try {
                 //All comet IO operations sync on handler except close
-                synchronized(task.cometHandler){
+                synchronized (task.cometHandler) {
                     apt.doTask();
                 }
-            } catch (IllegalStateException ex){
-                if (logger.isLoggable(Level.FINEST)){
-                    logger.log(Level.FINEST,"Resuming Response failed at aptflush",ex);
+            } catch (IllegalStateException ex) {
+                if (logger.isLoggable(Level.FINEST)) {
+                    logger.log(Level.FINEST, "Resuming Response failed at aptflush", ex);
                 }
             } catch (Throwable ex) {
                 if (logger.isLoggable(Level.SEVERE)) {
                     logger.log(Level.SEVERE,
-                               LogMessages.SEVERE_GRIZZLY_COMET_ENGINE_FLUSH_ERROR(),
-                               ex);
+                            LogMessages.SEVERE_GRIZZLY_COMET_ENGINE_FLUSH_ERROR(),
+                            ex);
                 }
             }
         } else {
@@ -468,16 +428,15 @@ public class CometEngine {
         }
     }
 
-    
     /**
      * Bring the cometContext path target (most probably a Servlet) to the processing
      * stage we need for Comet request processing.
      * @param continuationType the continuation type
      * @param apt the AsyncProcessorTask
      */
-    private void executeServlet(int continuationType, AsyncProcessorTask apt){
-        try{        
-            switch (continuationType){
+    private void executeServlet(int continuationType, AsyncProcessorTask apt) {
+        try {
+            switch (continuationType) {
                 case BEFORE_REQUEST_PROCESSING:
                     apt.setStage(AsyncTask.PRE_EXECUTE);
                     break;
@@ -498,14 +457,14 @@ public class CometEngine {
              * entered the {@link FileCache} or because we of
              * the {@link #AFTER_RESPONSE_PROCESSING} configuration.
              */
-            if (apt.getStage() != AsyncTask.POST_EXECUTE){
+            if (apt.getStage() != AsyncTask.POST_EXECUTE) {
                 apt.doTask();
-            }                   
-        } catch (IOException ex){
+            }
+        } catch (IOException ex) {
             if (logger.isLoggable(Level.SEVERE)) {
                 logger.log(Level.SEVERE,
-                           LogMessages.SEVERE_GRIZZLY_COMET_IO_ERROR("CometEngine.executeServlet()"),
-                           ex);
+                        LogMessages.SEVERE_GRIZZLY_COMET_IO_ERROR("CometEngine.executeServlet()"),
+                        ex);
             }
         }
     }
@@ -513,7 +472,7 @@ public class CometEngine {
     /**
      * Return the current logger.
      */
-    public static Logger logger(){
+    public static Logger logger() {
         return logger;
     }
 }

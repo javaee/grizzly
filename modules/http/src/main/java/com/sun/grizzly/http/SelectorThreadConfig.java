@@ -48,7 +48,6 @@ import com.sun.grizzly.util.OutputWriter;
 import com.sun.grizzly.util.SelectorFactory;
 import com.sun.grizzly.util.net.SSLImplementation;
 import com.sun.grizzly.util.res.StringManager;
-import java.io.IOException;
 import java.util.StringTokenizer;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
@@ -311,10 +310,7 @@ public class SelectorThreadConfig{
         if (System.getProperty(MAX_SELECTOR) != null){
             try{
                 SelectorFactory.setMaxSelectors(Integer.parseInt(System.getProperty(MAX_SELECTOR)));
-            } catch (NumberFormatException ex){
-                ;
-            } catch (IOException ex) {
-                ;
+            } catch (NumberFormatException ignored){
             }
         } 
         
