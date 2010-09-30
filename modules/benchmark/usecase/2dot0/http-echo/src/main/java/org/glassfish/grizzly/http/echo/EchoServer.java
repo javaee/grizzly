@@ -66,6 +66,7 @@ final class EchoServer {
     private static final String POOL_NAME = "GrizzlyPoolBM";
     private final HttpServer httpServer;
     private final Settings settings;
+    private MemoryProbe probe;
 
     // -------------------------------------------------------- Constructors
 
@@ -109,6 +110,9 @@ final class EchoServer {
 
     public void stop() throws IOException {
         httpServer.stop();
+        if (probe != null) {
+            probe.toString();
+        }
     }
 
 
@@ -124,7 +128,7 @@ final class EchoServer {
                                 PATH);
         final Transport transport = httpServer.getListener(LISTENER_NAME).getTransport();
         if (settings.isMonitoringMemory()) {
-            MemoryProbe probe = new MemoryStatsProbe();
+            probe = new MemoryStatsProbe();
             transport.getMemoryManager().getMonitoringConfig().addProbes(probe);
         }
 
