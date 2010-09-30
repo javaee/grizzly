@@ -118,7 +118,7 @@ public class Settings {
     }
 
     public static void help() {
-        System.out.println("Use EchoServer -host=<HOST> -port=<PORT> -blocking=<true|false> -binary=<true|false> -chunked=<true|false> -workerThreads=<WORKER_THREADS_NUMBER> -selectorThreads=<SELECTOR_THREADS_NUMBER>");
+        System.out.println("Use EchoServer -host=<HOST> -port=<PORT> -blocking=<true|false> -binary=<true|false> -chunked=<true|false> -workerThreads=<WORKER_THREADS_NUMBER> -selectorThreads=<SELECTOR_THREADS_NUMBER> -strategy=<STRATEGY>");
     }
 
     public String getHost() {
