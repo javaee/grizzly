@@ -63,7 +63,7 @@ public class ServerSideTest {
 
     public static final int ITERATIONS = 1000;
 
-    public void synchronous() throws IOException, InstantiationException, ExecutionException, InterruptedException {
+    public void steadyFlow() throws IOException, InstantiationException, ExecutionException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
         TrackingWebSocket socket = new TrackingWebSocket(String.format("ws://localhost:%s/echo", PORT), 5 * ITERATIONS);
         try {
@@ -92,7 +92,7 @@ public class ServerSideTest {
     }
 
     @SuppressWarnings({"StringContatenationInLoop"})
-    public void asynchronous() throws IOException, InstantiationException, InterruptedException, ExecutionException {
+    public void sendAndWait() throws IOException, InstantiationException, InterruptedException, ExecutionException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
         CountDownWebSocket socket = new CountDownWebSocket(String.format("ws://localhost:%s/echo", PORT));
 
