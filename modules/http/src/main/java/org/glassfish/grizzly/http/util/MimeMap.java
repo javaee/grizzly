@@ -174,7 +174,7 @@ public class MimeMap implements FileNameMap {
         DEFAULT_MAP.put("wmls", "text/vnd.wap.wmlscript");
         DEFAULT_MAP.put("wmlscriptc", "application/vnd.wap.wmlscriptc");
     }
-    private Map<String, String> map = new HashMap<String, String>();
+    private final Map<String, String> map = new HashMap<String, String>();
 
     public void addContentType(String extn, String type) {
         map.put(extn, type.toLowerCase());
