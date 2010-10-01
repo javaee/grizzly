@@ -196,16 +196,17 @@ public class Settings {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("Configuration:");
-        sb.append("\n\tHost: ").append(host);
-        sb.append("\n\tPort: ").append(port);
-        sb.append("\n\tWorker threads: ").append(workerThreads);
-        sb.append("\n\tSelector threads: ").append(selectorThreads);
-        sb.append("\n\tStrategy class: ").append(strategyClass);
-        sb.append("\n\tMonitoring memory: ").append(isMonitoringMemory);
-        sb.append("\n\tStream Write Method: ").append((blocking) ? "blocking" : "non-blocking");
-        sb.append("\n\tStream Type: ").append(((binary) ? "binary" : "character"));
-        sb.append("\n\tChunked Transfer Encoding: ").append(chunked);
+        sb.append("\nConfiguration:");
+        sb.append("\n-----------------------------------");
+        sb.append("\nHost: ").append(host);
+        sb.append("\nPort: ").append(port);
+        sb.append("\nWorker threads: ").append(workerThreads);
+        sb.append("\nSelector threads: ").append(selectorThreads);
+        sb.append("\nStrategy class: ").append(strategyClass);
+        sb.append("\nMonitoring memory: ").append(isMonitoringMemory);
+        sb.append("\nStream Write Method: ").append((blocking) ? "blocking" : "non-blocking");
+        sb.append("\nStream Type: ").append(((binary) ? "binary" : "character"));
+        sb.append("\nChunked Transfer Encoding: ").append(chunked);
 
         return sb.toString();
     }

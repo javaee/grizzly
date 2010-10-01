@@ -149,13 +149,14 @@ public class Settings {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("Configuration:");
-        sb.append("\nHost: ").append(host);
-        sb.append("\nPort: ").append(port);
-        sb.append("\nWorker threads: ").append(workerThreads);
-        sb.append("\nSelector threads: ").append(selectorThreads);
-        sb.append("\nuseLeaderFollower: ").append(useLeaderFollower);
-        sb.append("\n\tStream Type: ").append(((binary) ? "binary" : "character"));
+        sb.append("\nConfiguration:");
+        sb.append("\n-----------------------------------");
+        sb.append("\nHost: ").append(getHost());
+        sb.append("\nPort: ").append(getPort());
+        sb.append("\nWorker threads: ").append(getWorkerThreads());
+        sb.append("\nSelector threads: ").append(getSelectorThreads());
+        sb.append("\nuseLeaderFollower: ").append(isUseLeaderFollower());
+        sb.append("\nStream Type: ").append(((isBinary()) ? "binary" : "character"));
 
         return sb.toString();
     }

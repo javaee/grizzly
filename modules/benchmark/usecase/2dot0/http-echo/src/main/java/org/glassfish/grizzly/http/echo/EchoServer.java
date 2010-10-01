@@ -90,7 +90,8 @@ final class EchoServer {
         final EchoServer server = new EchoServer(settings);
         try {
             server.run();
-            System.out.println("Press any key to stop the server...");
+            System.out.println(settings.toString());
+            System.out.println("\nPress any key to stop the server...");
             System.in.read();
         } catch (IOException ioe) {
             System.err.println(ioe);
