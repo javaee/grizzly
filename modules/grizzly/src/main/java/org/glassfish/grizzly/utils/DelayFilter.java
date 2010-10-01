@@ -37,52 +37,45 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.utils;
 
-import org.glassfish.grizzly.AbstractTransformer;
-import org.glassfish.grizzly.TransformationException;
-import org.glassfish.grizzly.TransformationResult;
-import org.glassfish.grizzly.attributes.AttributeStorage;
-import org.glassfish.grizzly.filterchain.AbstractCodecFilter;
+import java.io.IOException;
+import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
 
 /**
  * Filter which pauses protocol chain processing for a certain time.
  * 
  * @author Alexey Stashok
  */
-public class DelayFilter extends AbstractCodecFilter {
-    public DelayFilter(long decoderTimeoutMillis, long encoderTimeoutMillis) {
-        super(new DelayTransformer(decoderTimeoutMillis),
-                new DelayTransformer(encoderTimeoutMillis));
+public class DelayFilter extends BaseFilter {
+
+    private final long readTimeoutMillis;
+    private final long writeTimeoutMillis;
+
+    public DelayFilter(long readTimeoutMillis, long writeTimeoutMillis) {
+        this.readTimeoutMillis = readTimeoutMillis;
+        this.writeTimeoutMillis = writeTimeoutMillis;
     }
-    
-    private static class DelayTransformer extends AbstractTransformer {
-        private final long timeoutMillis;
 
-        public DelayTransformer(long timeoutMillis) {
-            this.timeoutMillis = timeoutMillis;
+    @Override
+    public NextAction handleRead(FilterChainContext ctx) throws IOException {
+        try {
+            Thread.sleep(readTimeoutMillis);
+        } catch (Exception e) {
+        }
+        
+        return ctx.getInvokeAction();
+    }
+
+    @Override
+    public NextAction handleWrite(FilterChainContext ctx) throws IOException {
+        try {
+            Thread.sleep(writeTimeoutMillis);
+        } catch (Exception e) {
         }
 
-        @Override
-        public String getName() {
-            return "DelayTransformer-" + hashCode();
-        }
-
-        @Override
-        protected TransformationResult transformImpl(AttributeStorage storage,
-                Object input) throws TransformationException {
-            try {
-                Thread.sleep(timeoutMillis);
-            } catch (Exception e) {
-            }
-
-            return TransformationResult.createCompletedResult(input, null);
-        }
-
-        @Override
-        public boolean hasInputRemaining(AttributeStorage storage, Object input) {
-            return false;
-        }
+        return ctx.getInvokeAction();
     }
 }
