@@ -76,6 +76,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.utils.DelayFilter;
 
 /**
  * Test cases to validate the behaviors of {@link org.glassfish.grizzly.http.server.io.NIOInputStream} and
@@ -980,6 +981,7 @@ public class HttpInputStreamsTest extends TestCase {
             server.start();
             FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter());
+            clientFilterChainBuilder.add(new DelayFilter(0, 150));
             clientFilterChainBuilder.add(new ChunkingFilter(chunkSize));
             clientFilterChainBuilder.add(new HttpClientFilter());
             clientFilterChainBuilder.add(clientFilter);
@@ -1057,8 +1059,8 @@ public class HttpInputStreamsTest extends TestCase {
 
 
 
-    private class ClientFilter extends BaseFilter {
-        private final Logger logger = Grizzly.logger(ClientFilter.class);
+    private static class ClientFilter extends BaseFilter {
+        private static final Logger LOGGER = Grizzly.logger(ClientFilter.class);
 
         protected final HttpPacket request;
         protected final FutureImpl<Boolean> testResult;
@@ -1080,9 +1082,8 @@ public class HttpInputStreamsTest extends TestCase {
         @Override
         public NextAction handleConnect(FilterChainContext ctx)
               throws IOException {
-            if (logger.isLoggable(Level.FINE)) {
-                logger.log(Level.FINE,
-                           "Connected... Sending the request: " + request);
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "Connected... Sending the request: {0}", request);
             }
 
             ctx.write(request);
@@ -1097,13 +1098,12 @@ public class HttpInputStreamsTest extends TestCase {
 
             final HttpContent httpContent = (HttpContent) ctx.getMessage();
 
-            logger.log(Level.FINE, "Got HTTP response chunk");
+            LOGGER.log(Level.FINE, "Got HTTP response chunk");
 
             final Buffer buffer = httpContent.getContent();
 
-            if (logger.isLoggable(Level.FINE)) {
-                logger.log(Level.FINE,
-                           "HTTP content size: " + buffer.remaining());
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "HTTP content size: {0}", buffer.remaining());
             }
 
             if (httpContent.isLast()) {

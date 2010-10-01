@@ -160,7 +160,7 @@ public class InputBuffer {
     /**
      * {@link CharBuffer} for converting a single character at a time.
      */
-    private CharBuffer singleCharBuf;
+    private final CharBuffer singleCharBuf = CharBuffer.allocate(1);
 
     /**
      * Used to estimate how many characters can be produced from a variable
@@ -259,8 +259,8 @@ public class InputBuffer {
         String enc = request.getCharacterEncoding();
         if (enc != null) {
             encoding = enc;
-            final CharsetDecoder decoder = getDecoder();
-            averageCharsPerByte = decoder.averageCharsPerByte();
+            final CharsetDecoder localDecoder = getDecoder();
+            averageCharsPerByte = localDecoder.averageCharsPerByte();
         }
 
     }
@@ -391,15 +391,15 @@ public class InputBuffer {
         if (!processingChars) {
             throw new IllegalStateException();
         }
-        if (singleCharBuf == null) {
-            singleCharBuf = CharBuffer.allocate(1);
-        }
+
+        singleCharBuf.position(0);
         int read = read(singleCharBuf);
         if (read == -1) {
             return -1;
         }
-        final char c = singleCharBuf.get();
-        singleCharBuf.clear();
+        final char c = singleCharBuf.get(0);
+
+        singleCharBuf.position(0);
         return c;
 
     }
@@ -787,10 +787,11 @@ public class InputBuffer {
                          boolean block,
                          boolean flip) throws IOException {
 
-        if ((remainder != null && remainder.hasRemaining() || compositeBuffer.hasRemaining()) || !block) {
+        final boolean hasRemainder = remainder != null && remainder.hasRemaining();
+        if ((hasRemainder || compositeBuffer.hasRemaining()) || !block) {
             final CharsetDecoder decoderLocal = getDecoder();
             int charPos = dst.position();
-            final ByteBuffer bb = ((remainder != null) ? remainder : compositeBuffer.toByteBuffer());
+            final ByteBuffer bb = (hasRemainder ? remainder : compositeBuffer.toByteBuffer());
             int bbPos = bb.position();
             CoderResult result = decoderLocal.decode(bb, dst, false);
 
@@ -798,22 +799,18 @@ public class InputBuffer {
             int readBytes = bb.position() - bbPos;
             bb.position(bbPos);
             if (result == CoderResult.UNDERFLOW) {
-                int newPos = compositeBuffer.position() + readBytes;
-                if (newPos > compositeBuffer.limit()) {
-                    compositeBuffer.position(0);
-                } else {
-                    compositeBuffer.position(newPos);
+                if (!hasRemainder) {
+                    compositeBuffer.position(compositeBuffer.position() + readBytes);
                     compositeBuffer.shrink();
-                }
-                if (remainder != null) {
+                } else {
                     remainder = null;
                 }
             } else {
-                
-                if (remainder != null) {
+                if (hasRemainder) {
                     remainder.position(remainder.position() + readBytes);
                 } else {
                     compositeBuffer.position(compositeBuffer.position() + readBytes);
+                    compositeBuffer.shrink();
                 }
             }
             
@@ -826,45 +823,56 @@ public class InputBuffer {
             }
             return readChars;
         }
+        
         if (request.isExpectContent()) {
             int read = 0;
             CharsetDecoder decoderLocal = getDecoder();
-            dst.compact();
-            if (dst.position() == dst.capacity()) {
-                dst.clear();
-            }
 
+            boolean isNeedMoreInput = false; // true, if content in composite buffer is not enough to produce even 1 char
             boolean last = false;
+
             while (read < requestedLen && request.isExpectContent()) {
 
-                ByteBuffer bytes;
-
-                if (compositeBuffer.hasRemaining()) {
-                    bytes = compositeBuffer.toByteBuffer();
-                } else {
-                    ReadResult rr = ctx.read();
-                    HttpContent c = (HttpContent) rr.getMessage();
-                    bytes = c.getContent().toByteBuffer();
+                if (isNeedMoreInput || !compositeBuffer.hasRemaining()) {
+                    final ReadResult rr = ctx.read();
+                    final HttpContent c = (HttpContent) rr.getMessage();
+                    compositeBuffer.append(c.getContent());
                     last = c.isLast();
+
+                    rr.recycle();
+
+                    isNeedMoreInput = false;
                 }
-                CoderResult result = decoderLocal.decode(bytes, dst, false);
+
+                final ByteBuffer bytes = compositeBuffer.toByteBuffer();
+
+                final int bytesPos = bytes.position();
+                final int dstPos = dst.position();
+
+                final CoderResult result = decoderLocal.decode(bytes, dst, false);
+
+                final int producesChars = dst.position() - dstPos;
+                final int consumedBytes = bytes.position() - bytesPos;
                
-                read += dst.capacity() - dst.remaining();
-                if (result == CoderResult.UNDERFLOW) {
-                    break;
+                read += producesChars;
+                
+                if (consumedBytes > 0) {
+                    bytes.position(bytesPos);
+                    compositeBuffer.position(compositeBuffer.position() + consumedBytes);
+                    compositeBuffer.shrink();
+                } else {
+                    isNeedMoreInput = true;
                 }
-                if (last) {
-                    if (result == CoderResult.OVERFLOW) {
-                        remainder = bytes;
-                    }
-                    break;
-                }
-                if (result == CoderResult.OVERFLOW) {
-                    remainder = bytes;
+
+                if (last || result == CoderResult.OVERFLOW) {
                     break;
                 }
             }
-            dst.flip();
+
+            if (flip) {
+                dst.flip();
+            }
+            
             if (last && read == 0) {
                 read = -1;
             }
