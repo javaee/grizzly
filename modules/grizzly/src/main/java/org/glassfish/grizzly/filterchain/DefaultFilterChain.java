@@ -160,7 +160,11 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             final FilterExecutor executor = ExecutorResolver.resolve(context);
 
             do {
-                checkRemainder(context, executor, 0, context.getEndIdx());
+                if (!checkRemainder(context, executor, 0, context.getEndIdx())) {
+                    context.setFilterIdx(0);
+                    context.setMessage(null);
+                }
+                
                 executeChainPart(context, executor, context.getFilterIdx(), context.getEndIdx());
             } while (!future.isDone());
 
@@ -484,7 +488,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                 return true;
             }
         }
-
+        
         return false;
     }
 
