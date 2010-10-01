@@ -79,7 +79,7 @@ package org.glassfish.grizzly.http.util;
  */
 public class MultiMap {
 
-    protected Field[] fields;
+    Field[] fields;
     // fields in use
     protected int count;
 
