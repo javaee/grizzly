@@ -41,6 +41,7 @@ package org.glassfish.grizzly.http.echo;
 
 import com.sun.grizzly.Controller;
 import com.sun.grizzly.http.SelectorThread;
+import com.sun.grizzly.http.StatsThreadPool;
 import com.sun.grizzly.http.embed.GrizzlyWebServer;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
@@ -54,6 +55,7 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 final class EchoServer {
 
@@ -69,13 +71,14 @@ final class EchoServer {
         httpServer.addGrizzlyAdapter(new BlockingEchoAdapter(), new String[] { "/echo" });
         final int poolSize = (settings.getWorkerThreads() + settings.getSelectorThreads());
         final SelectorThread selector = httpServer.getSelectorThread();
+        StatsThreadPool pool = new StatsThreadPool(poolSize, poolSize, -1, StatsThreadPool.DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT, TimeUnit.MILLISECONDS);
+        pool.start();
+        selector.setThreadPool(pool);
         final Controller controller = new Controller();
         controller.setReadThreadsCount(settings.getSelectorThreads() - 1);
         controller.setHandleReadWriteConcurrently(true);
         controller.useLeaderFollowerStrategy(settings.isUseLeaderFollower());
         selector.setController(controller);
-        httpServer.setCoreThreads(poolSize);
-        httpServer.setMaxThreads(poolSize);
 
     }
 
