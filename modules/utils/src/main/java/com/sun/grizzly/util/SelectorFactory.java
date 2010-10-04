@@ -66,7 +66,15 @@ public final class SelectorFactory {
      */
     private final static Queue<Selector> selectors =
             DataStructures.getCLQinstance(Selector.class);
+    
+    /**
+     * The current number of Selectors in the pool.
+     */
     private final static AtomicInteger poolSize = new AtomicInteger();
+
+    /**
+     * Number of times poll execution didn't find the available selector in the pool.
+     */
     private final static AtomicInteger missesCounter = new AtomicInteger();
 
     /**
