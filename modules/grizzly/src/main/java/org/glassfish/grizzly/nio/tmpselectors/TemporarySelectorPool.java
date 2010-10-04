@@ -44,9 +44,10 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.nio.SelectorFactory;
 import java.io.IOException;
 import java.nio.channels.Selector;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -55,173 +56,119 @@ import java.util.logging.Logger;
  * @author oleksiys
  */
 public class TemporarySelectorPool {
-    private static Logger logger = Grizzly.logger(TemporarySelectorPool.class);
+    private static final Logger LOGGER = Grizzly.logger(TemporarySelectorPool.class);
     
     public static final int DEFAULT_SELECTORS_COUNT = 32;
+
+    private static final int MISS_THRESHOLD = 10000;
     
     /**
-     * The timeout before we exit.
+     * The max number of <code>Selector</code> to create.
      */
-    public long timeout = 5000;
+    private volatile int maxPoolSize;
     
-    
-    /**
-     * The number of <code>Selector</code> to create.
-     */
-    private int size;
-    
-    private boolean isClosed;
+    private final AtomicBoolean isClosed;
     
     /**
      * Cache of <code>Selector</code>
      */
-    private ArrayBlockingQueue<Selector> selectors;
-    
-    /**
-     * Read write access lock
-     */
-    private ReentrantReadWriteLock readwriteLock;
+    private final Queue<Selector> selectors;
 
+    /**
+     * The current number of Selectors in the pool.
+     */
+    private final AtomicInteger poolSize;
+
+    /**
+     * Number of times poll execution didn't find the available selector in the pool.
+     */
+    private final AtomicInteger missesCounter;
+    
     public TemporarySelectorPool() {
         this(DEFAULT_SELECTORS_COUNT);
     }
     
     public TemporarySelectorPool(int selectorsCount) {
-        readwriteLock = new ReentrantReadWriteLock();
-        this.size = selectorsCount;
+        isClosed = new AtomicBoolean();
+        this.maxPoolSize = selectorsCount;
+        selectors = new ConcurrentLinkedQueue<Selector>();
+        poolSize = new AtomicInteger();
+        missesCounter = new AtomicInteger();
     }
 
-    public int size() {
-        return size;
+    public synchronized int size() {
+        return maxPoolSize;
     }
 
-    public void setSize(int size) throws IOException {
-        readwriteLock.writeLock().lock();
-        try {
-            if (isClosed) return;
-        
-            if (selectors != null && selectors.size() != size) {
-                reallocateQueue(size);
-            }
-            
-            this.size = size;
-        } finally {
-            readwriteLock.writeLock().unlock();
+    public synchronized void setSize(int size) throws IOException {
+        if (isClosed.get()) {
+            return;
         }
+
+        missesCounter.set(0);
+        this.maxPoolSize = size;
     }
 
     public Selector poll() throws IOException {
-        if (selectors == null) {
-            initializeQueue();
+        Selector selector = selectors.poll();
+
+        if (selector != null) {
+            poolSize.decrementAndGet();
+        } else {
+            try {
+                selector = SelectorFactory.instance().create();
+            } catch (IOException e) {
+               LOGGER.log(Level.WARNING,
+                         "SelectorFactory. Can not create a selector", e);
+            }
+
+            final int missesCount = missesCounter.incrementAndGet();
+            if (missesCount % MISS_THRESHOLD == 0) {
+                LOGGER.log(Level.WARNING,
+                        "SelectorFactory. Pool encounters a lot of misses {0}. "
+                        + "Increase default {1} pool size",
+                        new Object[] {missesCount, maxPoolSize});
+            }
         }
-        
-        readwriteLock.readLock().lock();
-        try {
-            if (isClosed) return null;
-            
-            return selectors.poll(timeout, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            return null;
-        } finally {
-            readwriteLock.readLock().unlock();
-        }
+
+        return selector;
     }
 
     public void offer(Selector selector) {
-        readwriteLock.readLock().lock();
-        try {
-            if (selectors == null || isClosed || !selectors.offer(selector)) {
+        final boolean wasReturned;
+
+        if (poolSize.getAndIncrement() < maxPoolSize) {
+            selectors.offer(selector);
+            wasReturned = true;
+        } else {
+            poolSize.decrementAndGet();
+            wasReturned = false;
+        }
+
+        if (isClosed.get()) {
+            if (selectors.remove(selector)) {
                 closeSelector(selector);
             }
-        } finally {
-            readwriteLock.readLock().unlock();
+        } else if (!wasReturned) {
+            closeSelector(selector);
         }
     }
     
-    public void close() {
-        readwriteLock.writeLock().lock();
-        try {
-            if (selectors == null) return;
-            
-            for(Selector selector : selectors) {
+    public synchronized void close() {
+        if (!isClosed.getAndSet(true)) {
+            Selector selector;
+            while ((selector = selectors.poll()) != null) {
                 closeSelector(selector);
             }
-            selectors.clear();
-            
-        } finally {
-            isClosed = true;
-            selectors = null;
-            
-            readwriteLock.writeLock().unlock();
         }
     }
-
-    /**
-     * Initialize Selector queue only if it was not initialized before
-     * 
-     * @throws java.io.IOException
-     */
-    private void initializeQueue() throws IOException {
-        readwriteLock.writeLock().lock();
-        try {
-            
-            if (!isClosed && selectors == null) {
-                reallocateQueue(size);
-            }
-            
-        } finally {
-            readwriteLock.writeLock().unlock();
-        }
-    }
-    
-    private void reallocateQueue(int newSelectorsCount) throws IOException {
-        ArrayBlockingQueue<Selector> newSelectors = 
-                new ArrayBlockingQueue<Selector>(newSelectorsCount);
-        
-        int newCopiedAmount = 0;
-        
-        // If old Selectors queue is not null
-        if (selectors != null) {
-            boolean oldHasRemainder = true;
-            
-            // Copy as much as possible Selectors from the old queue to the new one
-            for(int i=0; i<newSelectorsCount; i++) {
-                Selector toCopy = selectors.poll();
-                if (toCopy == null) {
-                    oldHasRemainder = false;
-                    break;
-                }
-
-                newSelectors.add(toCopy);
-                newCopiedAmount++;
-            }
-
-            // If there are Selectors left in the old queue - close them
-            if (oldHasRemainder) {
-                for(Selector selector : selectors) {
-                    closeSelector(selector);
-                }
-            }
-            
-            selectors.clear();
-        }
-        
-        // Complete new Selector queue initialization
-        for(int i=newCopiedAmount; i<newSelectorsCount; i++) {
-            newSelectors.add(SelectorFactory.instance().create());
-        }
-        
-        selectors = newSelectors;
-        size = newSelectorsCount;
-    }
-
 
     private void closeSelector(Selector selector) {
         try {
             selector.close();
         } catch (IOException e) {
-            if (logger.isLoggable(Level.FINE)) {
-                logger.log(Level.FINE, "TemporarySelectorFactory: error " +
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "TemporarySelectorFactory: error " +
                         "occurred when trying to close the Selector", e);
             }
         }
