@@ -130,6 +130,7 @@ public final class SelectorFactory {
             selectors.offer(s);
         } else {
             poolSize.decrementAndGet();
+            closeSelector(s);
         }
     }
 
@@ -145,11 +146,16 @@ public final class SelectorFactory {
             Logger logger = LoggerUtils.getLogger();
             logger.log(Level.WARNING,
                     "Unexpected problem when releasing temporary Selector", e);
-            try {
-                s.close();
-            } catch (IOException ignored) {
-                // We are not interested
-            }
+            
+            closeSelector(s);
+        }
+    }
+
+    private static void closeSelector(Selector s) {
+        try {
+            s.close();
+        } catch (IOException ignored) {
+            // We are not interested
         }
     }
 }
