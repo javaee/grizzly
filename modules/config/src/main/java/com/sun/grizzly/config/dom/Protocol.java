@@ -142,7 +142,7 @@ public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
         }
 
         public static Protocols getParent(Protocol protocol) {
-            return (Protocols) protocol.getParent(Protocols.class);
+            return protocol.getParent(Protocols.class);
         }
     }
 }

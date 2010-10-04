@@ -59,6 +59,7 @@ import com.sun.grizzly.ssl.SSLSelectorThreadHandler;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.jvnet.hk2.component.Habitat;
+
 import java.util.logging.Level;
 import javax.net.ssl.SSLException;
 
@@ -79,14 +80,17 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
     protected ProtocolChainInstanceHandler configureProtocol(NetworkListener networkListener, Protocol protocol,
             Habitat habitat, boolean mayEnableAsync) {
         if (protocol.getHttp() != null && GrizzlyConfig.toBoolean(protocol.getSecurityEnabled())) {
-            final Ssl ssl = protocol.getSsl();
+            Ssl ssl = protocol.getSsl();
 
             try {
+                if(ssl == null) {
+                    ssl = (Ssl) Utils.createDummyProxy(protocol, Ssl.class);
+                }
                 sslConfigHolder = new SSLConfigHolder(ssl);
             } catch (SSLException e) {
                 throw new IllegalStateException(e);
             }
-            
+
             if (ssl == null || Boolean.parseBoolean(ssl.getAllowLazyInit())) {
                 logger.log(Level.INFO, "Perform lazy SSL initialization for the listener ''{0}''", networkListener.getName());
                 lazyInitializationFilter = new LazySSLInitializationFilter(protocol.getSsl());
@@ -100,10 +104,7 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
 
         return super.configureProtocol(networkListener, protocol, habitat, mayEnableAsync);
     }
-    
-    /**
-     * {@inheritDoc}
-     */
+
     @Override
     protected TCPSelectorHandler createSelectorHandler() {
         return new SSLSelectorThreadHandler(this);
@@ -129,9 +130,6 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     protected void configureFilters(final ProtocolChain protocolChain) {
         if (lazyInitializationFilter != null) {
@@ -174,9 +172,9 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
      */
     @Override
     protected ProcessorTask newProcessorTask(final boolean initialize) {
-        SSLProcessorTask t = (asyncExecution
+        SSLProcessorTask t = asyncExecution
             ? new SSLAsyncProcessorTask(initialize, getBufferResponse())
-            : new SSLProcessorTask(initialize, getBufferResponse()));
+            : new SSLProcessorTask(initialize, getBufferResponse());
         configureProcessorTask(t);
         return t;
     }

@@ -41,16 +41,21 @@
 package com.sun.grizzly.config;
 
 import com.sun.grizzly.config.dom.NetworkListener;
+import com.sun.grizzly.config.dom.Ssl;
 import com.sun.hk2.component.Holder;
 import com.sun.hk2.component.InhabitantsParser;
 import com.sun.hk2.component.InhabitantsScanner;
 import org.jvnet.hk2.component.Habitat;
+import org.jvnet.hk2.config.ConfigBean;
+import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.ConfigParser;
+import org.jvnet.hk2.config.ConfigView;
 import org.jvnet.hk2.config.DomDocument;
 
 import javax.xml.stream.XMLInputFactory;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Proxy;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Enumeration;
@@ -160,5 +165,12 @@ public class Utils {
             clazz = GrizzlyEmbeddedHttp.class.getClassLoader().loadClass(classname);
         }
         return clazz;
+    }
+
+    static ConfigBeanProxy createDummyProxy(ConfigBeanProxy parent, final Class<Ssl> type) {
+        final ConfigBean bean =
+                (ConfigBean) ((ConfigView) Proxy.getInvocationHandler(parent)).getMasterView();
+
+        return (Ssl) Proxy.newProxyInstance(type.getClassLoader(), new Class[]{type}, bean.allocate(type));
     }
 }
