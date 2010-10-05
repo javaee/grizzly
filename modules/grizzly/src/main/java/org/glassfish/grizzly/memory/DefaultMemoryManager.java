@@ -117,8 +117,8 @@ public final class DefaultMemoryManager extends ByteBufferManager {
             return super.allocateByteBuffer(size);
         }
 
-        if (isDefaultWorkerThread()) {
-            ThreadLocalPool threadLocalCache = getThreadLocalPool();
+        ThreadLocalPool threadLocalCache = getThreadLocalPool();
+        if (threadLocalCache != null) {
 
             if (!threadLocalCache.hasRemaining()) {
                 threadLocalCache = reallocatePoolBuffer();
@@ -165,8 +165,8 @@ public final class DefaultMemoryManager extends ByteBufferManager {
     public ByteBuffer reallocateByteBuffer(ByteBuffer oldByteBuffer, int newSize) {
         if (oldByteBuffer.capacity() >= newSize) return oldByteBuffer;
 
-        if (isDefaultWorkerThread()) {
-            final ThreadLocalPool memoryPool = getThreadLocalPool();
+        final ThreadLocalPool memoryPool = getThreadLocalPool();
+        if (memoryPool != null) {
             final ByteBuffer newBuffer =
                     memoryPool.reallocate(oldByteBuffer, newSize);
             
@@ -204,8 +204,8 @@ public final class DefaultMemoryManager extends ByteBufferManager {
      */
     @Override
     public void releaseByteBuffer(ByteBuffer byteBuffer) {
-        if (isDefaultWorkerThread()) {
-            ThreadLocalPool memoryPool = getThreadLocalPool();
+        ThreadLocalPool memoryPool = getThreadLocalPool();
+        if (memoryPool != null) {
 
             if (memoryPool.release((ByteBuffer) byteBuffer.clear())) {
                 ProbeNotifier.notifyBufferReleasedToPool(monitoringConfig,
@@ -226,8 +226,8 @@ public final class DefaultMemoryManager extends ByteBufferManager {
      * @return the size of local thread memory pool.
      */
     public int getReadyThreadBufferSize() {
-        if (isDefaultWorkerThread()) {
-            final ThreadLocalPool threadLocalPool = getThreadLocalPool();
+       ThreadLocalPool threadLocalPool = getThreadLocalPool();
+        if (threadLocalPool != null) {
             return threadLocalPool.remaining();
         }
 
@@ -253,16 +253,17 @@ public final class DefaultMemoryManager extends ByteBufferManager {
     /**
      * Get thread associated buffer pool.
      * 
-     * @return thread associated buffer pool.
+     * @return thread associated buffer pool.  This method may return
+     *  <code>null</code> if the current thread doesn't have a buffer pool
+     *  associated with it.
      */
     private ThreadLocalPool getThreadLocalPool() {
-        DefaultWorkerThread workerThread =
-                (DefaultWorkerThread) Thread.currentThread();
-        return workerThread.getMemoryPool();
-    }
-
-    private boolean isDefaultWorkerThread() {
-        return Thread.currentThread() instanceof DefaultWorkerThread;
+        final Thread t = Thread.currentThread();
+        if (t instanceof DefaultWorkerThread) {
+            return ((DefaultWorkerThread) t).getMemoryPool();
+        } else {
+            return null;
+        }
     }
 
     /**
@@ -403,27 +404,28 @@ public final class DefaultMemoryManager extends ByteBufferManager {
             final int sizeToReturn = visible.capacity() - visible.position();
 
 
-            if (sizeToReturn > 0 && isDefaultWorkerThread()) {
+            if (sizeToReturn > 0) {
                 final ThreadLocalPool threadLocalCache = getThreadLocalPool();
+                if (threadLocalCache != null) {
 
+                    if (threadLocalCache.isLastAllocated(visible)) {
+                        visible.flip();
 
-                if (threadLocalCache.isLastAllocated(visible)) {
-                    visible.flip();
+                        visible = visible.slice();
+                        threadLocalCache.reduceLastAllocated(visible);
 
-                    visible = visible.slice();
-                    threadLocalCache.reduceLastAllocated(visible);
+                        return;
+                    } else if (threadLocalCache.wantReset(sizeToReturn)) {
+                        visible.flip();
 
-                    return;
-                } else if (threadLocalCache.wantReset(sizeToReturn)) {
-                    visible.flip();
+                        final ByteBuffer originalByteBuffer = visible;
+                        visible = visible.slice();
+                        originalByteBuffer.position(originalByteBuffer.limit());
+                        originalByteBuffer.limit(originalByteBuffer.capacity());
 
-                    final ByteBuffer originalByteBuffer = visible;
-                    visible = visible.slice();
-                    originalByteBuffer.position(originalByteBuffer.limit());
-                    originalByteBuffer.limit(originalByteBuffer.capacity());
-
-                    threadLocalCache.tryReset(originalByteBuffer);
-                    return;
+                        threadLocalCache.tryReset(originalByteBuffer);
+                        return;
+                    }
                 }
             }
 
