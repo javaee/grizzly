@@ -92,7 +92,7 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
                 throw new IllegalStateException(e);
             }
 
-            if (ssl == null || Boolean.parseBoolean(ssl.getAllowLazyInit())) {
+            if (Boolean.parseBoolean(ssl.getAllowLazyInit())) {
                 logger.log(Level.INFO, "Perform lazy SSL initialization for the listener ''{0}''", networkListener.getName());
                 lazyInitializationFilter = new LazySSLInitializationFilter(protocol.getSsl());
             } else {
