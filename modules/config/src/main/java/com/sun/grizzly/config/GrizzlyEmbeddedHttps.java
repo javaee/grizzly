@@ -82,10 +82,11 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
         if (protocol.getHttp() != null && GrizzlyConfig.toBoolean(protocol.getSecurityEnabled())) {
             Ssl ssl = protocol.getSsl();
 
+            if (ssl == null) {
+                ssl = (Ssl) Utils.createDummyProxy(protocol, Ssl.class);
+            }
+
             try {
-                if(ssl == null) {
-                    ssl = (Ssl) Utils.createDummyProxy(protocol, Ssl.class);
-                }
                 sslConfigHolder = new SSLConfigHolder(ssl);
             } catch (SSLException e) {
                 throw new IllegalStateException(e);
