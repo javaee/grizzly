@@ -65,8 +65,8 @@ import java.nio.charset.Charset;
  *
  * @author Remy Maucherat
  */
-public class Constants {
-    protected static final Charset ASCII_CHARSET = Charset.forName("ASCII");
+public final class Constants {
+    public static final Charset ASCII_CHARSET = Charset.forName("ASCII");
 
 
     /**
@@ -340,5 +340,11 @@ public class Constants {
     /**
      * Default max keep-alive count.
      */
-    public final static int DEFAULT_MAX_KEEP_ALIVE = 256;
+    public static final int DEFAULT_MAX_KEEP_ALIVE = 256;
+    
+    public static final int MAX_AGE_IN_SECONDS = 30;
+    
+    public static final int MAX_LARGE_FILE_CACHE_SIZE = 10485760;
+
+    public static final int MAX_CACHE_ENTRIES = 1024;
 }

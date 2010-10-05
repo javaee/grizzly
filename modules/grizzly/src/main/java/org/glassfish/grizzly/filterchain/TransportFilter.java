@@ -40,9 +40,12 @@
 
 package org.glassfish.grizzly.filterchain;
 
+import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Transport;
 import java.io.IOException;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
 
 /**
  * Transport {@link Filter} implementation, which should work with any
@@ -50,15 +53,18 @@ import org.glassfish.grizzly.Connection;
  * to the {@link Transport}'s specific transport {@link Filter}. If
  * {@link Transport} doesn't have own implementation - uses common I/O event
  * processing logic.
+ *
  * <tt>TransportFilter</tt> could be set to work in 2 modes: <code>stream</code>
  * or <code>message</code>. In <code>stream</code> mode,
  * <tt>TransportFilter</tt> produces/consumes the socket channel directly.
+ *
  * In <code>message</code> mode, <tt>TransportFilter</tt> represents {@link Connection}
- * data as {@link org.glassfish.grizzly.Buffer}, using {@link FilterChainContext#getMessage()}},
+ * data as {@link Buffer}, using {@link FilterChainContext#getMessage()}},
  * {@link FilterChainContext#setMessage(Object)}.
+ * 
  * For specific {@link Transport}, one mode could be more preferable than another.
- * For example {@link org.glassfish.grizzly.nio.transport.TCPNIOTransport } works just in
- * <code>stream</code> mode.  {@link org.glassfish.grizzly.nio.transport.UDPNIOTransport }
+ * For example {@link TCPNIOTransport } works just in
+ * <code>stream</code> mode.  {@link UDPNIOTransport }
  * prefers <code>message</code> mode, but could also work
  * in <code>stream</code> mode.
  * 

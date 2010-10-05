@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,6 +42,8 @@ package org.glassfish.grizzly.config.dom;
 
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
 
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
@@ -54,29 +56,48 @@ import org.glassfish.grizzly.http.Constants;
 /**
  * Created Jan 8, 2009
  *
- * @author <a href="mailto:justin.lee@glassfish.com">Justin Lee</a>
+ * @author <a href="mailto:justin.lee@sun.com">Justin Lee</a>
  */
 @Configured
 public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
-    @Attribute(defaultValue="com.glassfish.grizzly.tcp.StaticResourcesAdapter")
+    @Attribute(defaultValue = "org.glassfish.grizzly.tcp.StaticResourcesAdapter")
     String getAdapter();
 
     void setAdapter(String adapter);
+
+    /**
+     * Enable pass through of authentication from any front-end server
+     */
+    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    String getAuthPassThroughEnabled();
+
+    void setAuthPassThroughEnabled(String bool);
 
     @Attribute(defaultValue = "true", dataType = Boolean.class)
     String getChunkingEnabled();
 
     void setChunkingEnabled(String enabled);
 
-    @Attribute(defaultValue = "false", dataType = String.class)
-    String getCompression();
+    /**
+     * Enable comet support for this http instance.  The default for this is false until enabling comet support but not
+     * using it can be verified as harmless.  Currently it is unclear what the performance impact of enabling this
+     * feature is.
+     */
+    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    String getCometSupportEnabled();
 
-    void setCompression(String compression);
+    void setCometSupportEnabled(String enable);
 
     @Attribute(defaultValue = "text/html,text/xml,text/plain")
     String getCompressableMimeType();
 
     void setCompressableMimeType(String type);
+
+    @Attribute(defaultValue = "off", dataType = String.class)
+    @Pattern(regexp = "on|off|force|\\d+")
+    String getCompression();
+
+    void setCompression(String compression);
 
     @Attribute(defaultValue = "2048", dataType = Integer.class)
     String getCompressionMinSizeBytes();
@@ -89,35 +110,23 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     void setConnectionUploadTimeoutMillis(String timeout);
 
     /**
+     * Setting the default response-type. Specified as a semi-colon delimited string consisting of content-type,
+     * encoding, language, charset
+     */
+    @Deprecated
+    @Attribute
+    String getDefaultResponseType();
+
+    @Deprecated
+    void setDefaultResponseType(String defaultResponseType);
+
+    /**
      * The id attribute of the default virtual server for this particular connection group.
      */
     @Attribute(required = true)
     String getDefaultVirtualServer();
 
-    void setDefaultVirtualServer(final String defaultVirtualServer);
-
-    @Attribute(defaultValue = "true", dataType = Boolean.class)
-    String getUploadTimeoutEnabled();
-
-    void setUploadTimeoutEnabled(String disable);
-
-    /**
-     * Enable pass through of authentication from any front-end server
-     */
-    @Attribute(defaultValue = "false", dataType = Boolean.class)
-    String getAuthPassThroughEnabled();
-
-    void setAuthPassThroughEnabled(String bool);
-
-    /**
-     * Enable comet support for this http instance.  The default for this is false until enabling comet support but not
-     * using it can be verified as harmless.  Currently it is unclear what the performance impact of enabling this
-     * feature is.
-     */
-    @Attribute(defaultValue = "false", dataType = Boolean.class)
-    String getCometSupportEnabled();
-
-    void setCometSupportEnabled(String enable);
+    void setDefaultVirtualServer(String defaultVirtualServer);
 
     @Attribute(defaultValue = "false", dataType = Boolean.class)
     String getDnsLookupEnabled();
@@ -125,17 +134,29 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     void setDnsLookupEnabled(String enable);
 
     @Attribute(defaultValue = "false", dataType = Boolean.class)
-    String getRcmSupportEnabled();
-
-    void setRcmSupportEnabled(String enable);
+    String getEncodedSlashEnabled();
+    
+    void setEncodedSlashEnabled(String enabled);
 
     /**
      * Gets the value of the fileCache property.
      */
     @Element
+    @NotNull
     FileCache getFileCache();
 
     void setFileCache(FileCache value);
+
+    /**
+     * The response type to be forced if the content served cannot be matched by any of the MIME mappings for
+     * extensions. Specified as a semi-colon delimited string consisting of content-type, encoding, language, charset
+     */
+    @Deprecated
+    @Attribute()
+    String getForcedResponseType();
+
+    @Deprecated
+    void setForcedResponseType(String forcedResponseType);
 
     /**
      * The size of the buffer used by the request processing threads for reading the request data
@@ -166,22 +187,27 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setNoCompressionUserAgents(String agents);
 
+    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    String getRcmSupportEnabled();
+
+    void setRcmSupportEnabled(String enable);
+
     /**
      * if the connector is supporting non-SSL requests and a request is received for which a matching
      * security-constraint requires SSL transport catalina will automatically redirect the request to the port number
      * specified here
      */
-    @Attribute(dataType=Integer.class)
+    @Attribute(dataType = Integer.class)
     @Max(65535)
     String getRedirectPort();
 
-    void setRedirectPort(final String redirectPort);
+    void setRedirectPort(String redirectPort);
 
     /**
      * Time after which the request times out in seconds
      */
-    @Attribute(defaultValue = "30", dataType = Integer.class)
-    @Min(0)
+    @Attribute(defaultValue = "900", dataType = Integer.class)
+    @Min(-1)
     @Max(Integer.MAX_VALUE)
     String getRequestTimeoutSeconds();
 
@@ -203,14 +229,14 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
 
     /**
      * Tells the server what to put in the host name section of any URLs it sends to the client. This affects URLs the
-     * server automatically generates; it doesnt affect the URLs for directories and files stored in the server. This
+     * server automatically generates; it doesn't affect the URLs for directories and files stored in the server. This
      * name should be the alias name if your server uses an alias. If you append a colon and port number, that port will
      * be used in URLs the server sends to the client.
      */
     @Attribute
     String getServerName();
 
-    void setServerName(final String serverName);
+    void setServerName(String serverName);
 
     /**
      * Keep Alive timeout, max time a connection can be deemed as idle and kept in the keep-alive state
@@ -226,6 +252,11 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setTraceEnabled(String enabled);
 
+    @Attribute(defaultValue = "true", dataType = Boolean.class)
+    String getUploadTimeoutEnabled();
+
+    void setUploadTimeoutEnabled(String disable);
+
     @Attribute(defaultValue = "UTF-8")
     String getUriEncoding();
 
@@ -237,7 +268,12 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     @Attribute(defaultValue = "HTTP/1.1")
     String getVersion();
 
-    void setVersion(final String version);
+    void setVersion(String version);
+
+    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    String getWebsocketsSupportEnabled();
+
+    void setWebsocketsSupportEnabled(String enabled);
 
     /**
      * The Servlet 2.4 spec defines a special X-Powered-By: Servlet/2.4 header, which containers may add to
@@ -249,5 +285,5 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     @Attribute(defaultValue = "true", dataType = Boolean.class)
     String getXpoweredBy();
 
-    void setXpoweredBy(final String xpoweredBy);
+    void setXpoweredBy(String xpoweredBy);
 }

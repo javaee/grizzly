@@ -48,7 +48,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.glassfish.grizzly.SocketBinder;
 import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.config.dom.FileCache;
 import org.glassfish.grizzly.config.dom.Http;
@@ -64,8 +63,11 @@ import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.FilterAdapter;
+import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.http.WebFilter;
 import org.glassfish.grizzly.http.WebFilterConfig;
+import org.glassfish.grizzly.http.server.HttpServer;
+import org.glassfish.grizzly.http.server.ServerConfiguration;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.rcm.ResourceAllocationFilter;
@@ -94,7 +96,7 @@ public class GrizzlyServiceListener {
     private String name;
     private int port;
     private NIOTransport nioTransport;
-    private WebFilterConfig webFilterConfig;
+    private HttpServerFilter webFilterConfig;
     private String defaultVirtualServer;
 
     /**
@@ -171,36 +173,48 @@ public class GrizzlyServiceListener {
         configureTransport(networkListener);
         final boolean mayEnableComet = !"admin-listener".equalsIgnoreCase(networkListener.getName());
         configureProtocol(networkListener, mayEnableComet);
-        configureThreadPool(networkListener/*, getThreadPoolTimeoutSeconds()*/);
+        configureThreadPool(networkListener);
     }
 
     protected void configureTransport(NetworkListener listener) {
         final Transport transport = listener.findTransport();
         try {
-            final String address = listener.getAddress();
-            port = Integer.parseInt(listener.getPort());
-            final int backLog = Integer.parseInt(transport.getMaxConnectionsCount());
             if ("tcp".equalsIgnoreCase(transport.getName())) {
-                nioTransport = TransportFactory.getInstance().createTCPTransport();
-                final TCPNIOTransport tcp = (TCPNIOTransport) nioTransport;
-                tcp.setTcpNoDelay(GrizzlyConfig.toBoolean(transport.getTcpNoDelay()));
-            } else if ("udp".equalsIgnoreCase(transport.getName())) {
-                nioTransport = TransportFactory.getInstance().createUDPTransport();
+            if(listener.findHttpProtocol() != null) {
+                createHttpServer(listener);
             } else {
-                throw new RuntimeException("Unknown transport type " + transport.getName());
+                throw new GrizzlyConfigException("Unsupported listener configuration on " + listener.getName());
             }
-            add(new TransportFilter());
-            ((SocketBinder) nioTransport).bind(address, port, backLog);
+        } else {
+            throw new GrizzlyConfigException("Unsupported transport type " + transport.getName());
+        }
         } catch (IOException e) {
-            logger.log(Level.SEVERE, e.getMessage(), e);
             throw new GrizzlyConfigException(e.getMessage(), e);
         }
-        nioTransport.setSelectorRunnersCount(Integer.parseInt(transport.getAcceptorThreads()));
-        // transport settings
-        webFilterConfig = new WebFilterConfig();
-        webFilterConfig.setClassLoader(getClass().getClassLoader());
-        webFilterConfig.setRequestBufferSize(Integer.parseInt(transport.getBufferSizeBytes()));
-        webFilterConfig.setDisplayConfiguration(GrizzlyConfig.toBoolean(transport.getDisplayConfiguration()));
+    }
+
+    private void createHttpServer(final NetworkListener listener) throws IOException {
+        final HttpServer server = new HttpServer();
+        final org.glassfish.grizzly.http.server.NetworkListener http
+            = new org.glassfish.grizzly.http.server.NetworkListener(listener.getName(), listener.getAddress(),
+            Integer.parseInt(listener.getPort()));
+        final Transport transport = listener.findTransport();
+        final int backLog = Integer.parseInt(transport.getMaxConnectionsCount());
+
+        http.
+//        nioTransport = TransportFactory.getInstance().createTCPTransport();
+//        final TCPNIOTransport tcp = (TCPNIOTransport) nioTransport;
+//        tcp.setTcpNoDelay(GrizzlyConfig.toBoolean(transport.getTcpNoDelay()));
+//
+//        nioTransport.setSelectorRunnersCount(Integer.parseInt(transport.getAcceptorThreads()));
+//        transport settings
+//        webFilterConfig = new WebFilterConfig();
+//        webFilterConfig.setClassLoader(getClass().getClassLoader());
+//        webFilterConfig.setRequestBufferSize(Integer.parseInt(transport.getBufferSizeBytes()));
+//        webFilterConfig.setDisplayConfiguration(GrizzlyConfig.toBoolean(transport.getDisplayConfiguration()));
+
+        server.addListener(http);
+        server.start();
     }
 
     private void configureProtocol(NetworkListener networkListener, boolean mayEnableComet) {

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -81,11 +81,18 @@ public interface ProtocolFinder extends ConfigBeanProxy, Injectable, PropertyBag
     @DuckTyped
     Protocol findProtocol();
 
+    @DuckTyped
+    PortUnification getParent();
+
     class Duck {
         public static Protocol findProtocol(ProtocolFinder finder) {
             String name = finder.getProtocol();
-            final NetworkConfig networkConfig = finder.getParent().getParent().getParent().getParent(NetworkConfig.class);
+            final NetworkConfig networkConfig = finder.getParent().getParent().getParent().getParent();
             return networkConfig.findProtocol(name);
+        }
+
+        public static PortUnification getParent(ProtocolFinder finder) {
+            return finder.getParent(PortUnification.class);
         }
     }
 }

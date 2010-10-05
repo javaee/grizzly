@@ -517,9 +517,9 @@ public class HttpServer {
                 }
                 builder.add(new SSLFilter(sslConfig, null));
             }
-            final int maxHeaderSize = ((listener.getMaxHttpHeaderSize() == -1)
+            final int maxHeaderSize = listener.getMaxHttpHeaderSize() == -1
                                         ? org.glassfish.grizzly.http.HttpServerFilter.DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE
-                                        : listener.getMaxHttpHeaderSize());
+                                        : listener.getMaxHttpHeaderSize();
 
             final org.glassfish.grizzly.http.HttpServerFilter httpServerFilter =
                     new org.glassfish.grizzly.http.HttpServerFilter(listener.isChunkingEnabled(),

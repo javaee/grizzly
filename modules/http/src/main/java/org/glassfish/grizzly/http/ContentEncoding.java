@@ -57,14 +57,14 @@ public interface ContentEncoding {
      *
      * @return the <tt>ContentEncoding</tt> name.
      */
-    public String getName();
+    String getName();
 
     /**
      * Get the <tt>ContentEncoding</tt> aliases.
      * 
      * @return the <tt>ContentEncoding</tt> aliases.
      */
-    public String[] getAliases();
+    String[] getAliases();
 
     /**
      * Method should implement the logic, which decides if HTTP packet with
@@ -74,7 +74,7 @@ public interface ContentEncoding {
      * @return <tt>true</tt>, if this <tt>ContentEncoding</tt> should be used to
      * encode the HTTP packet, or <tt>false</tt> otherwise.
      */
-    public boolean wantEncode(HttpHeader header);
+    boolean wantEncode(HttpHeader header);
 
     /**
      * Decode HTTP packet content represented by {@link HttpContent}.
@@ -84,7 +84,7 @@ public interface ContentEncoding {
      *
      * @return {@link ParsingResult}, which represents the result of decoding.
      */
-    public ParsingResult decode(Connection connection, HttpContent httpContent);
+    ParsingResult decode(Connection connection, HttpContent httpContent);
     
     /**
      * Encode HTTP packet content represented by {@link HttpContent}.
@@ -94,5 +94,5 @@ public interface ContentEncoding {
      *
      * @return encoded {@link HttpContent}.
      */
-    public HttpContent encode(Connection connection, HttpContent httpContent);
+    HttpContent encode(Connection connection, HttpContent httpContent);
 }

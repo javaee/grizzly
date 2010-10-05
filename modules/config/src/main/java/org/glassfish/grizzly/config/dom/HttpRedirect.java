@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,39 +38,43 @@
  * holder.
  */
 
-package org.glassfish.grizzly.config;
+package org.glassfish.grizzly.config.dom;
 
-import org.glassfish.grizzly.tcp.Adapter;
+import org.jvnet.hk2.component.Injectable;
+import org.jvnet.hk2.config.Attribute;
+import org.jvnet.hk2.config.ConfigBeanProxy;
+import org.jvnet.hk2.config.Configured;
+import org.jvnet.hk2.config.types.PropertyBag;
 
 /**
- * Class represents context-root associated information
+ * <p>
+ * A {@link Protocol} which redirects an HTTP(S) request to a different location
+ * using HTTP 302 redirection semantics.
+ * </p>
  */
-public class ContextRootInfo {
-    protected Adapter adapter;
-    protected Object container;
+@Configured
+public interface HttpRedirect extends ConfigBeanProxy, Injectable, PropertyBag {
 
-    public ContextRootInfo() {
-    }
+    /**
+     * @return the network port the request should be redirected to.  If no
+     *  value was specified, the default of <code>-1</code> will be returned
+     *  which signifies a redirection to the same port the current request
+     *  was made on
+     */
+    @Attribute(defaultValue = "-1", dataType = Integer.class)
+    String getPort();
 
-    public ContextRootInfo(final Adapter adapter, final Object container) {
-        this.adapter = adapter;
-        this.container = container;
-    }
+    @SuppressWarnings({"UnusedDeclaration"})
+    void setPort(String port);
 
-    public Adapter getAdapter() {
-        return adapter;
-    }
+    /**
+     * @return <code>true</code> will redirect the request using <code>HTTPS</code>
+     *  where as a value of <code>false</code> will use <code>HTTP</code>
+     */
+    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    String getSecure();
 
-    public void setAdapter(final Adapter adapter) {
-        this.adapter = adapter;
-    }
-
-    public Object getContainer() {
-        return container;
-    }
-
-    public void setContainer(final Object container) {
-        this.container = container;
-    }
-
+    @SuppressWarnings({"UnusedDeclaration"})
+    void setSecure(String value);
+    
 }

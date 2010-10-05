@@ -61,5 +61,6 @@
         <module>http</module>
         <module>http-server</module>
         <module>websockets</module>
+        <!--module>config</module-->
     </modules>
 </project>

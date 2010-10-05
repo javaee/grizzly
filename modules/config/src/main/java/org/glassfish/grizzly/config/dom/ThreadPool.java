@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,22 +40,19 @@
 
 package org.glassfish.grizzly.config.dom;
 
-import java.beans.PropertyVetoException;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
-
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
-import org.jvnet.hk2.config.ConfigBean;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
+import org.jvnet.hk2.config.Dom;
 import org.jvnet.hk2.config.DuckTyped;
 import org.jvnet.hk2.config.types.PropertyBag;
+
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
+import java.beans.PropertyVetoException;
+import java.util.ArrayList;
+import java.util.List;
 
 @Configured
 public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
@@ -118,13 +115,26 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setName(String value);
 
+    /**
+     * This is an id for the work-queue e.g. "thread-pool-1", "thread-pool-2" etc
+     */
+    @Attribute
+    @Deprecated
+    String getThreadPoolId();
+
+    void setThreadPoolId(String value);
+
     @DuckTyped
     List<NetworkListener> findNetworkListeners();
 
     class Duck {
 
         static public List<NetworkListener> findNetworkListeners(ThreadPool threadpool) {
-            final Collection<NetworkListener> listeners = ConfigBean.unwrap(threadpool).getHabitat().getAllByType(NetworkListener.class);
+            NetworkConfig config = threadpool.getParent().getParent(NetworkConfig.class);
+            if(!Dom.unwrap(config).getProxyType().equals(NetworkConfig.class)) {
+                config = Dom.unwrap(config).element("network-config").createProxy();
+            }
+            List<NetworkListener> listeners = config.getNetworkListeners().getNetworkListener();
             List<NetworkListener> refs = new ArrayList<NetworkListener>();
             for (NetworkListener listener : listeners) {
                 if (listener.getThreadPool().equals(threadpool.getName())) {

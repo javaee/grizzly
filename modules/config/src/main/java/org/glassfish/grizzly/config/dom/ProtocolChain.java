@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,9 +44,11 @@ import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
+import org.jvnet.hk2.config.DuckTyped;
 import org.jvnet.hk2.config.Element;
 import org.jvnet.hk2.config.types.PropertyBag;
 
+import javax.validation.constraints.Pattern;
 import java.util.List;
 
 /**
@@ -66,6 +68,7 @@ public interface ProtocolChain extends ConfigBeanProxy, Injectable, PropertyBag 
      * Protocol chain type. Could be STATEFUL or STATELESS
      */
     @Attribute(defaultValue = "STATELESS")
+    @Pattern(regexp = "STATELESS|STATEFUL")
     String getType();
 
     void setType(String value);
@@ -75,4 +78,15 @@ public interface ProtocolChain extends ConfigBeanProxy, Injectable, PropertyBag 
      */
     @Element
     List<ProtocolFilter> getProtocolFilter();
+
+    void setProtocolFilter(List<ProtocolFilter> list);
+
+    @DuckTyped
+    Protocol getParent();
+
+    class Duck {
+        public static Protocol getParent(ProtocolChain chain) {
+            return chain.getParent(Protocol.class);
+        }
+    }
 }

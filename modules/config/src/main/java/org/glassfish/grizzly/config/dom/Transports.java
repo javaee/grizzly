@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,6 +43,7 @@ package org.glassfish.grizzly.config.dom;
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
+import org.jvnet.hk2.config.DuckTyped;
 import org.jvnet.hk2.config.Element;
 import org.jvnet.hk2.config.types.PropertyBag;
 
@@ -61,4 +62,14 @@ public interface Transports extends ConfigBeanProxy, Injectable, PropertyBag {
      */
     @Element
     List<Transport> getTransport();
+
+    @DuckTyped
+    NetworkConfig getParent();
+    
+    class Duck {
+        public static NetworkConfig getParent(Transports transports) {
+            return transports.getParent(NetworkConfig.class);
+        }
+
+    }
 }

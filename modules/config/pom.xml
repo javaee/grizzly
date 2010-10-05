@@ -167,8 +167,8 @@
     <dependencies>
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
-            <artifactId>grizzly-http</artifactId>
-            <version>${grizzly-version}</version>
+            <artifactId>grizzly-http-server</artifactId>
+            <version>${project.version}</version>
         </dependency>
 <!--
         <dependency>
@@ -213,15 +213,9 @@
             <version>2.5</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.glassfish.grizzly</groupId>
-            <artifactId>grizzly-http-servlet</artifactId>
-            <version>${grizzly-version}</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
     <properties>
-        <hk2.version>1.0.0</hk2.version>
-        <hk2.plugin.version>1.0.0</hk2.plugin.version>
+        <hk2.version>1.0.47</hk2.version>
+        <hk2.plugin.version>1.0.47</hk2.plugin.version>
     </properties>
 </project>

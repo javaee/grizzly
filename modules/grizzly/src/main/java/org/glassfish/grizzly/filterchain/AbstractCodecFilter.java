@@ -71,29 +71,22 @@ public abstract class AbstractCodecFilter<K, L> extends BaseFilter
 
         switch(result.getStatus()) {
             case COMPLETED:
-            {
                 final K remainder = result.getExternalRemainder();
                 final boolean hasRemaining =
                         decoder.hasInputRemaining(connection, remainder);
                 decoder.release(connection);
-                
                 ctx.setMessage(result.getMessage());
                 if (hasRemaining) {
                     return ctx.getInvokeAction(remainder);
                 } else {
                     return ctx.getInvokeAction();
                 }
-            }
             case INCOMPLETED:
-            {
                 return ctx.getStopAction(message);
-            }
             case ERROR:
-            {
                 throw new TransformationException(getClass().getName() +
                         " transformation error: (" + result.getErrorCode() + ") " +
                         result.getErrorDescription());
-            }
         }
 
         return ctx.getInvokeAction();
@@ -108,29 +101,22 @@ public abstract class AbstractCodecFilter<K, L> extends BaseFilter
 
         switch(result.getStatus()) {
             case COMPLETED:
-            {
                 ctx.setMessage(result.getMessage());
                 final L remainder = result.getExternalRemainder();
                 final boolean hasRemaining =
                         encoder.hasInputRemaining(connection, remainder);
                 encoder.release(connection);
-                
                 if (hasRemaining) {
                     return ctx.getInvokeAction(remainder);
                 } else {
                     return ctx.getInvokeAction();
                 }
-            }
             case INCOMPLETED:
-            {
                 return ctx.getStopAction(message);
-            }
             case ERROR:
-            {
                 throw new TransformationException(getClass().getName() +
                         " transformation error: (" + result.getErrorCode() + ") " +
                         result.getErrorDescription());
-            }
         }
 
         return ctx.getInvokeAction();

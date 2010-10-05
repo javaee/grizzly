@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,21 +37,19 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.config.dom;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.Max;
-import javax.validation.Constraint;
 
+import org.glassfish.grizzly.http.server.HttpServer;
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
-import org.jvnet.hk2.config.ConfigBean;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
+import org.jvnet.hk2.config.Dom;
 import org.jvnet.hk2.config.DuckTyped;
 import org.jvnet.hk2.config.types.PropertyBag;
 
@@ -77,6 +75,11 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
 
     void setEnabled(String enabled);
 
+    @Attribute(defaultValue = "${com.sun.aas.instanceRoot}/config/glassfish-jk.properties")
+    String getJkConfigurationFile();
+
+    void setJkConfigurationFile(String file);
+
     /**
      * If true, a jk listener is enabled
      */
@@ -97,17 +100,9 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
      * Port to listen on
      */
     @Attribute(required = true, dataType = Integer.class)
-    @Min(1)
-    @Max(65535)
     String getPort();
 
     void setPort(String value);
-
-    @DuckTyped
-    Protocol findProtocol();
-
-    @DuckTyped
-    Protocol findHttpProtocol();
 
     /**
      * Reference to a protocol
@@ -117,9 +112,6 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
 
     void setProtocol(String value);
 
-    @DuckTyped
-    ThreadPool findThreadPool();
-
     /**
      * Reference to a thread-pool, defined earlier in the document.
      */
@@ -127,9 +119,6 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
     String getThreadPool();
 
     void setThreadPool(String value);
-
-    @DuckTyped
-    Transport findTransport();
 
     /**
      * Reference to a low-level transport
@@ -139,86 +128,111 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
 
     void setTransport(String value);
 
+    @DuckTyped
+    Protocol findHttpProtocol();
+
+    @DuckTyped
+    String findHttpProtocolName();
+
+    @DuckTyped
+    Protocol findProtocol();
+
+    @DuckTyped
+    ThreadPool findThreadPool();
+
+    @DuckTyped
+    Transport findTransport();
+
+    @DuckTyped
+    NetworkListeners getParent();
+
     class Duck {
-        public static Protocol findProtocol(NetworkListener listener) {
-            String name = listener.getProtocol();
-            final NetworkConfig networkConfig = listener.getParent().getParent(
-                    NetworkConfig.class);
-            return networkConfig.findProtocol(name);
-        }
-
         public static Protocol findHttpProtocol(NetworkListener listener) {
-            final NetworkConfig networkConfig = listener.getParent().getParent(
-                    NetworkConfig.class);
-            Protocol protocol = listener.findProtocol();
-
-            return findHttpProtocol(new HashSet<String>(), networkConfig, protocol);
+            return findHttpProtocol(new HashSet<String>(), findProtocol(listener));
         }
 
-        private static Protocol findHttpProtocol(Set<String> tray, NetworkConfig config, Protocol protocol) {
-            if(protocol == null) {
+        private static Protocol findHttpProtocol(Set<String> tray, Protocol protocol) {
+            if (protocol == null) {
                 return null;
             }
-            
             final String protocolName = protocol.getName();
             if (tray.contains(protocolName)) {
-                throw new IllegalStateException("Loop found in Protocol definition. Protocol name: " + protocol.getName());
+                throw new IllegalStateException(
+                    "Loop found in Protocol definition. Protocol name: " + protocol.getName());
             }
-
             if (protocol.getHttp() != null) {
                 return protocol;
             } else if (protocol.getPortUnification() != null) {
                 final List<ProtocolFinder> finders = protocol.getPortUnification().getProtocolFinder();
                 tray.add(protocolName);
-
                 try {
                     Protocol foundHttpProtocol = null;
                     for (ProtocolFinder finder : finders) {
-                        final String subProtocolName = finder.getProtocol();
-                        final Protocol subProtocol = config.findProtocol(subProtocolName);
+                        final Protocol subProtocol = finder.findProtocol();
                         if (subProtocol != null) {
-                            final Protocol httpProtocol =
-                                    findHttpProtocol(tray, config, subProtocol);
+                            final Protocol httpProtocol = findHttpProtocol(tray, subProtocol);
                             if (httpProtocol != null) {
                                 if (foundHttpProtocol == null) {
                                     foundHttpProtocol = httpProtocol;
                                 } else {
                                     throw new IllegalStateException(
-                                            "Port unification allows only one " +
-                                            "\"<http>\" definition");
+                                        "Port unification allows only one \"<http>\" definition");
                                 }
                             }
                         }
                     }
-
                     return foundHttpProtocol;
                 } finally {
                     tray.remove(protocolName);
                 }
             }
-
             return null;
         }
 
+        public static String findHttpProtocolName(NetworkListener listener) {
+            final Protocol httpProtocol = findHttpProtocol(listener);
+            if (httpProtocol != null) {
+                return httpProtocol.getName();
+            }
+            return null;
+        }
+
+        public static Protocol findProtocol(NetworkListener listener) {
+            return listener.getParent().getParent().findProtocol(listener.getProtocol());
+        }
+
         public static ThreadPool findThreadPool(NetworkListener listener) {
-            final String name = listener.getThreadPool();
-            for (final ThreadPool threadPool : ConfigBean.unwrap(listener).getHabitat().getAllByType(ThreadPool.class)) {
-                if (threadPool.getName().equals(name)) {
-                    return threadPool;
+            final NetworkListeners listeners = listener.getParent();
+            List<ThreadPool> list = listeners.getThreadPool();
+            if (list == null || list.isEmpty()) {
+                final ConfigBeanProxy parent = listener.getParent().getParent().getParent();
+                final Dom proxy = Dom.unwrap(parent).element("thread-pools");
+                final List<Dom> domList = proxy.nodeElements("thread-pool");
+                list = new ArrayList<ThreadPool>(domList.size());
+                for (Dom dom : domList) {
+                    list.add(dom.<ThreadPool>createProxy());
+                }
+            }
+            for (ThreadPool pool : list) {
+                if (listener.getThreadPool().equals(pool.getName())) {
+                    return pool;
                 }
             }
             return null;
         }
 
         public static Transport findTransport(NetworkListener listener) {
-            final String name = listener.getTransport();
-            final NetworkConfig networkConfig = listener.getParent().getParent(NetworkConfig.class);
-            for (final Transport transport : networkConfig.getTransports().getTransport()) {
-                if (transport.getName().equals(name)) {
+            List<Transport> list = listener.getParent().getParent().getTransports().getTransport();
+            for (Transport transport : list) {
+                if (listener.getTransport().equals(transport.getName())) {
                     return transport;
                 }
             }
             return null;
+        }
+
+        public static NetworkListeners getParent(NetworkListener listener) {
+            return listener.getParent(NetworkListeners.class);
         }
     }
 }

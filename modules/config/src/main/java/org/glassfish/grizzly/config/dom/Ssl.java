@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -57,7 +57,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
      * Nickname of the server certificate in the certificate database or the PKCS#11 token. In the certificate, the name
      * format is tokenname:nickname. Including the tokenname: part of the name in this attribute is optional.
      */
-    @Attribute(required = true)
+    @Attribute
     String getCertNickname();
 
     void setCertNickname(String value);
@@ -86,14 +86,24 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setCrlFile(String crlFile);
 
+    @Attribute
+    String getKeyAlgorithm();
+
+    void setKeyAlgorithm(String algorithm);
+
     /**
      * type of the keystore file
      */
-    @Attribute(defaultValue = "JKS")
+    @Attribute(dataType = String.class)
     @Pattern(regexp = "(JKS|NSS)")
     String getKeyStoreType();
 
     void setKeyStoreType(String type);
+
+    @Attribute(defaultValue="plain")
+    String getKeyStorePasswordProvider();
+
+    void setKeyStorePasswordProvider(String provider);
 
     /**
      * password of the keystore file
@@ -180,10 +190,10 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setTrustAlgorithm(String algorithm);
 
-    @Attribute(dataType = Integer.class)
-    String getTrustMaxCertLengthBytes();
+    @Attribute(dataType = Integer.class, defaultValue = "5")
+    String getTrustMaxCertLength();
 
-    void setTrustMaxCertLengthBytes(String maxLength);
+    void setTrustMaxCertLength(String maxLength);
 
     @Attribute
     String getTrustStore();
@@ -193,11 +203,16 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * type of the truststore file
      */
-    @Attribute(defaultValue = "JKS")
+    @Attribute(dataType = String.class)
     @Pattern(regexp = "(JKS|NSS)")
     String getTrustStoreType();
 
     void setTrustStoreType(String type);
+
+    @Attribute(defaultValue="plain")
+    String getTrustStorePasswordProvider();
+
+    void setTrustStorePasswordProvider(String provider);
 
     /**
      * password of the truststore file

@@ -47,15 +47,16 @@ import org.glassfish.grizzly.TransformationException;
 import org.glassfish.grizzly.TransformationResult;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.filterchain.AbstractCodecFilter;
+import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.memory.Buffers;
 import java.util.logging.Logger;
 
 
 /**
  * The Filter is responsible to break the incoming/outgoing data into chunks and
- * pass them down/up by the {@link org.glassfish.grizzly.filterchain.FilterChain}.
+ * pass them down/up by the {@link FilterChain}.
  * This Filter could be useful for testing reasons to check if all Filters in
- * the {@link org.glassfish.grizzly.filterchain.FilterChain} work properly with chunked data.
+ * the {@link FilterChain} work properly with chunked data.
  * 
  * @author Alexey Stashok
  */

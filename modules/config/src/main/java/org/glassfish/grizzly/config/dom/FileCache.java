@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -57,10 +57,10 @@ public interface FileCache extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Enables the caching of file content
      */
-    @Attribute(defaultValue = "true", dataType = Boolean.class)
+    @Attribute(defaultValue = "false", dataType = Boolean.class)
     String getEnabled();
 
-    void setEnabled(final String enabled);
+    void setEnabled(String enabled);
 
     /**
      * How old files can get before aging out of cache in seconds
@@ -68,7 +68,7 @@ public interface FileCache extends ConfigBeanProxy, Injectable, PropertyBag {
     @Attribute(defaultValue = "" + Constants.MAX_AGE_IN_SECONDS, dataType = Integer.class)
     String getMaxAgeSeconds();
 
-    void setMaxAgeSeconds(final String maxAge);
+    void setMaxAgeSeconds(String maxAge);
 
     /**
      * Maximum cache size on the disk
@@ -76,7 +76,7 @@ public interface FileCache extends ConfigBeanProxy, Injectable, PropertyBag {
     @Attribute(defaultValue = "" + Constants.MAX_LARGE_FILE_CACHE_SIZE, dataType = Integer.class)
     String getMaxCacheSizeBytes();
 
-    void setMaxCacheSizeBytes(final String maxCacheSize);
+    void setMaxCacheSizeBytes(String maxCacheSize);
 
     /**
      * Maximum number of files in the file cache.
@@ -84,5 +84,5 @@ public interface FileCache extends ConfigBeanProxy, Injectable, PropertyBag {
     @Attribute(defaultValue = "" + Constants.MAX_CACHE_ENTRIES, dataType = Integer.class)
     String getMaxFilesCount();
 
-    void setMaxFilesCount(final String maxFilesCount);
+    void setMaxFilesCount(String maxFilesCount);
 }

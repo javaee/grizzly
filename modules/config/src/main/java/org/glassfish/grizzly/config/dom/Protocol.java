@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,16 +42,14 @@ package org.glassfish.grizzly.config.dom;
 
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
-import org.jvnet.hk2.config.ConfigBean;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.DuckTyped;
 import org.jvnet.hk2.config.Element;
 import org.jvnet.hk2.config.types.PropertyBag;
 
-import java.util.List;
-import java.util.Collection;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Defines one single high-level protocol like: http, https, iiop, etc.
@@ -84,6 +82,15 @@ public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
     void setPortUnification(PortUnification value);
 
     /**
+     * Defines <code>http-redirect</code> logic.  
+     */
+    @Element
+    HttpRedirect getHttpRedirect();
+
+    @SuppressWarnings({"UnusedDeclaration"})
+    void setHttpRedirect(HttpRedirect value);
+
+    /**
      * Protocol chain instance handler logic.
      */
     @Element
@@ -92,9 +99,8 @@ public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
     void setProtocolChainInstanceHandler(ProtocolChainInstanceHandler value);
 
     /**
-     * True means the protocol is secured and ssl element will be used to
-     *  initialize security settings. False means that protocol is not
-     *  secured and ssl element, if present, will be ignored.
+     * True means the protocol is secured and ssl element will be used to initialize security settings. False means that
+     * protocol is not secured and ssl element, if present, will be ignored.
      */
     @Attribute(defaultValue = "false", dataType = Boolean.class)
     String getSecurityEnabled();
@@ -112,16 +118,25 @@ public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
     @DuckTyped
     List<NetworkListener> findNetworkListeners();
 
+    @DuckTyped
+    Protocols getParent();
+
+    @SuppressWarnings({"UnusedDeclaration"})
     class Duck {
         static public List<NetworkListener> findNetworkListeners(Protocol protocol) {
-            final Collection<NetworkListener> listeners = ConfigBean.unwrap(protocol).getHabitat().getAllByType(NetworkListener.class);
+            final List<NetworkListener> listeners = protocol.getParent().getParent()
+                    .getNetworkListeners().getNetworkListener();
             List<NetworkListener> refs = new ArrayList<NetworkListener>();
             for (NetworkListener listener : listeners) {
-                if(listener.getProtocol().equals(protocol.getName())) {
+                if (listener.getProtocol().equals(protocol.getName())) {
                     refs.add(listener);
                 }
             }
             return refs;
+        }
+
+        public static Protocols getParent(Protocol protocol) {
+            return (Protocols) protocol.getParent(Protocols.class);
         }
     }
 }

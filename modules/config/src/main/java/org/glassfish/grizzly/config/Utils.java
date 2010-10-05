@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.config;
 
+import org.glassfish.grizzly.config.dom.NetworkListener;
 import com.sun.hk2.component.Holder;
 import com.sun.hk2.component.InhabitantsParser;
 import com.sun.hk2.component.InhabitantsScanner;
@@ -57,7 +58,7 @@ import java.util.Enumeration;
 /**
  * Created Dec 18, 2008
  *
- * @author <a href="mailto:justin.lee@glassfish.com">Justin Lee</a>
+ * @author <a href="mailto:justin.lee@sun.com">Justin Lee</a>
  */
 public class Utils {
     private final static String habitatName = "default";
@@ -135,5 +136,28 @@ public class Utils {
             }
         }
         return habitat;
+    }
+    
+    public static String composeThreadPoolName(final NetworkListener networkListener) {
+        return networkListener.getThreadPool() + "-" + networkListener.getPort();
+    }
+
+    public static Object newInstance(String classname) throws Exception {
+        return loadClass(classname).newInstance();
+    }
+
+    public static Class loadClass(String classname) throws ClassNotFoundException {
+        Class clazz = null;
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        if (cl != null) {
+            try {
+                clazz = cl.loadClass(classname);
+            } catch (Exception cnfe) {
+            }
+        }
+        if (clazz == null) {
+            clazz = Utils.class.getClassLoader().loadClass(classname);
+        }
+        return clazz;
     }
 }

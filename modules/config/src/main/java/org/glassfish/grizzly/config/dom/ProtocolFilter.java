@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,6 +44,7 @@ import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
+import org.jvnet.hk2.config.DuckTyped;
 import org.jvnet.hk2.config.types.PropertyBag;
 
 /**
@@ -66,4 +67,20 @@ public interface ProtocolFilter extends ConfigBeanProxy, Injectable, PropertyBag
     String getClassname();
 
     void setClassname(String value);
+
+    @DuckTyped
+    Protocol findProtocol();
+
+    @DuckTyped
+    ProtocolChain getParent();
+
+    class Duck {
+        public static Protocol findProtocol(ProtocolFilter filter) {
+            return filter.getParent().getParent();
+        }
+
+        public static ProtocolChain getParent(ProtocolFilter filter) {
+            return filter.getParent(ProtocolChain.class);
+        }
+    }
 }

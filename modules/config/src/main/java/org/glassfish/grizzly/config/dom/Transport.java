@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,18 +40,15 @@
 
 package org.glassfish.grizzly.config.dom;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import javax.validation.constraints.Min;
-
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
-import org.jvnet.hk2.config.ConfigBean;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.DuckTyped;
 import org.jvnet.hk2.config.types.PropertyBag;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Defines one specific transport and its properties
@@ -62,7 +59,6 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
      * The number of acceptor threads listening for the transport's events
      */
     @Attribute(defaultValue = "1", dataType = Integer.class)
-    @Min(1)
     String getAcceptorThreads();
 
     void setAcceptorThreads(String value);
@@ -162,20 +158,28 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setWriteTimeoutMillis(String value);
 
-    @Attribute(defaultValue="true", dataType = Boolean.class)
+    @Attribute(defaultValue = "true", dataType = Boolean.class)
     String getTcpNoDelay();
 
     void setTcpNoDelay(String noDelay);
 
+    @Attribute(defaultValue = "-1", dataType = Integer.class)
+    String getLinger();
+
+    void setLinger(String linger);
+
     @DuckTyped
     List<NetworkListener> findNetworkListeners();
 
-    class Duck {
+    @DuckTyped
+    Transports getParent();
 
+    class Duck {
         static public List<NetworkListener> findNetworkListeners(Transport transport) {
-            final Collection<NetworkListener> listeners = ConfigBean.unwrap(transport).getHabitat().getAllByType(NetworkListener.class);
+            NetworkListeners networkListeners =
+                    transport.getParent().getParent().getNetworkListeners();
             List<NetworkListener> refs = new ArrayList<NetworkListener>();
-            for (NetworkListener listener : listeners) {
+            for (NetworkListener listener : networkListeners.getNetworkListener()) {
                 if (listener.getTransport().equals(transport.getName())) {
                     refs.add(listener);
                 }
@@ -183,6 +187,8 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
             return refs;
         }
 
+        public static Transports getParent(Transport transport) {
+            return transport.getParent(Transports.class);
+        }
     }
-
 }
