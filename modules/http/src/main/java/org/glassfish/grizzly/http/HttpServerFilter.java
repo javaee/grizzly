@@ -382,7 +382,7 @@ public class HttpServerFilter extends HttpCodecFilter {
     @Override
     Buffer encodeInitialLine(HttpPacket httpPacket, Buffer output, MemoryManager memoryManager) {
         final HttpResponsePacket httpResponse = (HttpResponsePacket) httpPacket;
-        output = put(memoryManager, output, httpResponse.getProtocolString());
+        output = put(memoryManager, output, httpResponse.getProtocol().getProtocolBytes());
         output = put(memoryManager, output, Constants.SP);
         output = put(memoryManager, output, httpResponse.getStatusBC());
         output = put(memoryManager, output, Constants.SP);

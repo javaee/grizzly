@@ -85,7 +85,7 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
     protected final BufferChunk upgrade = BufferChunk.newInstance();
 
     private TransferEncoding transferEncoding;
-    private final List<ContentEncoding> contentEncodings = new ArrayList();
+    private final List<ContentEncoding> contentEncodings = new ArrayList<ContentEncoding>();
 
     private final AttributeHolder attributes =
             new IndexedAttributeHolder(Grizzly.DEFAULT_ATTRIBUTE_BUILDER);
