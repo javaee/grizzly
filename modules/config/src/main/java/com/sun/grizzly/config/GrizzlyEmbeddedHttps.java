@@ -59,6 +59,7 @@ import com.sun.grizzly.ssl.SSLSelectorThreadHandler;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.jvnet.hk2.component.Habitat;
+import org.jvnet.hk2.config.TransactionFailure;
 
 import java.util.logging.Level;
 import javax.net.ssl.SSLException;
@@ -83,7 +84,11 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
             Ssl ssl = protocol.getSsl();
 
             if (ssl == null) {
-                ssl = (Ssl) Utils.createDummyProxy(protocol, Ssl.class);
+                try {
+                    ssl = (Ssl) Utils.createDummyProxy(protocol, Ssl.class);
+                } catch (TransactionFailure transactionFailure) {
+                    throw new GrizzlyConfigException(transactionFailure.getMessage());
+                }
             }
 
             try {

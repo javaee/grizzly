@@ -49,10 +49,14 @@ import org.jvnet.hk2.component.Habitat;
 import org.jvnet.hk2.config.ConfigBean;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.ConfigParser;
+import org.jvnet.hk2.config.ConfigSupport;
 import org.jvnet.hk2.config.ConfigView;
 import org.jvnet.hk2.config.DomDocument;
+import org.jvnet.hk2.config.SingleConfigCode;
+import org.jvnet.hk2.config.TransactionFailure;
 
 import javax.xml.stream.XMLInputFactory;
+import java.beans.PropertyVetoException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Proxy;
@@ -167,10 +171,12 @@ public class Utils {
         return clazz;
     }
 
-    static ConfigBeanProxy createDummyProxy(ConfigBeanProxy parent, final Class<Ssl> type) {
-        final ConfigBean bean =
-                (ConfigBean) ((ConfigView) Proxy.getInvocationHandler(parent)).getMasterView();
-
-        return (Ssl) Proxy.newProxyInstance(type.getClassLoader(), new Class[]{type}, bean.allocate(type));
+    static ConfigBeanProxy createDummyProxy(ConfigBeanProxy parent, final Class<? extends ConfigBeanProxy> type)
+            throws TransactionFailure {
+        return (ConfigBeanProxy) ConfigSupport.apply(new SingleConfigCode<ConfigBeanProxy>() {
+            public Object run(ConfigBeanProxy param) throws PropertyVetoException, TransactionFailure {
+                return param.createChild(type);
+            }
+        }, parent);
     }
 }
