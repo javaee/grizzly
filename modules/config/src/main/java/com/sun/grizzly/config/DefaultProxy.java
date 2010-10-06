@@ -74,7 +74,7 @@ public class DefaultProxy implements InvocationHandler {
             final Attribute annotation = method.getAnnotation(Attribute.class);
             if (annotation != null) {
                 String defValue = annotation.defaultValue().trim();
-                if (!defValue.isEmpty()) {
+                if (defValue.length() > 0) {
                     value = defValue;
                 }
             }
