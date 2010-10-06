@@ -56,13 +56,12 @@ import com.sun.grizzly.ssl.SSLAsyncProtocolFilter;
 import com.sun.grizzly.ssl.SSLDefaultProtocolFilter;
 import com.sun.grizzly.ssl.SSLProcessorTask;
 import com.sun.grizzly.ssl.SSLSelectorThreadHandler;
+import org.jvnet.hk2.component.Habitat;
+
+import javax.net.ssl.SSLException;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.jvnet.hk2.component.Habitat;
-import org.jvnet.hk2.config.TransactionFailure;
-
 import java.util.logging.Level;
-import javax.net.ssl.SSLException;
 
 /**
  * Implementation of Grizzly embedded HTTPS listener
@@ -76,7 +75,7 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
 
     private final AtomicBoolean isSslInitialized = new AtomicBoolean();
     private volatile SSLConfigHolder sslConfigHolder;
-    
+
     @Override
     protected ProtocolChainInstanceHandler configureProtocol(NetworkListener networkListener, Protocol protocol,
             Habitat habitat, boolean mayEnableAsync) {
@@ -84,13 +83,8 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
             Ssl ssl = protocol.getSsl();
 
             if (ssl == null) {
-                try {
-                    ssl = (Ssl) Utils.createDummyProxy(protocol, Ssl.class);
-                } catch (TransactionFailure transactionFailure) {
-                    throw new GrizzlyConfigException(transactionFailure.getMessage());
-                }
+                ssl = (Ssl) DefaultProxy.createDummyProxy(protocol, Ssl.class);
             }
-
             try {
                 sslConfigHolder = new SSLConfigHolder(ssl);
             } catch (SSLException e) {
@@ -98,8 +92,9 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
             }
 
             if (Boolean.parseBoolean(ssl.getAllowLazyInit())) {
-                logger.log(Level.INFO, "Perform lazy SSL initialization for the listener ''{0}''", networkListener.getName());
-                lazyInitializationFilter = new LazySSLInitializationFilter(protocol.getSsl());
+                logger.log(Level.INFO, "Perform lazy SSL initialization for the listener ''{0}''",
+                        networkListener.getName());
+                lazyInitializationFilter = new LazySSLInitializationFilter(ssl);
             } else {
                 isSslInitialized.set(true);
                 if (sslConfigHolder.configureSSL()) {
@@ -125,14 +120,14 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
     protected ProtocolFilter createHttpParserFilter() {
         if (asyncExecution) {
             return new SSLAsyncProtocolFilter(algorithmClass,
-                                              inet,
-                                              port,
-                                              sslConfigHolder.getSSLImplementation());
+                    inet,
+                    port,
+                    sslConfigHolder.getSSLImplementation());
         } else {
-            return new SSLDefaultProtocolFilter(algorithmClass, 
-                                                inet,
-                                                port,
-                                                sslConfigHolder.getSSLImplementation());
+            return new SSLDefaultProtocolFilter(algorithmClass,
+                    inet,
+                    port,
+                    sslConfigHolder.getSSLImplementation());
         }
     }
 
@@ -155,7 +150,7 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
 
         protocolChain.addFilter(createHttpParserFilter());
     }
-    
+
     /**
      * Create and configure <code>SSLReadFilter</code>
      *
@@ -179,8 +174,8 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
     @Override
     protected ProcessorTask newProcessorTask(final boolean initialize) {
         SSLProcessorTask t = asyncExecution
-            ? new SSLAsyncProcessorTask(initialize, getBufferResponse())
-            : new SSLProcessorTask(initialize, getBufferResponse());
+                ? new SSLAsyncProcessorTask(initialize, getBufferResponse())
+                : new SSLProcessorTask(initialize, getBufferResponse());
         configureProcessorTask(t);
         return t;
     }
@@ -200,9 +195,9 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
             if (!isSslInitialized.getAndSet(true)) {
                 sslConfigHolder.configureSSL();
             }
-            
+
             doConfigureFilters(chain);
-            
+
             return true;
         }
 

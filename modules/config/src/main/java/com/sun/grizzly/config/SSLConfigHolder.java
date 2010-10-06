@@ -480,9 +480,9 @@ public class SSLConfigHolder {
             }
         }
 
-        return ((enabledCiphers == null)
+        return enabledCiphers == null
                 ? null
-                : enabledCiphers.toArray(new String[enabledCiphers.size()]));
+                : enabledCiphers.toArray(new String[enabledCiphers.size()]);
     }
 
 
@@ -497,7 +497,7 @@ public class SSLConfigHolder {
     private static String getJSSECipher(final String cipher) {
 
         final CipherInfo ci = CipherInfo.getCipherInfo(cipher);
-        return ((ci != null) ? ci.getCipherName() : null);
+        return ci != null ? ci.getCipherName() : null;
 
     }
 

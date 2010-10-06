@@ -41,25 +41,16 @@
 package com.sun.grizzly.config;
 
 import com.sun.grizzly.config.dom.NetworkListener;
-import com.sun.grizzly.config.dom.Ssl;
 import com.sun.hk2.component.Holder;
 import com.sun.hk2.component.InhabitantsParser;
 import com.sun.hk2.component.InhabitantsScanner;
 import org.jvnet.hk2.component.Habitat;
-import org.jvnet.hk2.config.ConfigBean;
-import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.ConfigParser;
-import org.jvnet.hk2.config.ConfigSupport;
-import org.jvnet.hk2.config.ConfigView;
 import org.jvnet.hk2.config.DomDocument;
-import org.jvnet.hk2.config.SingleConfigCode;
-import org.jvnet.hk2.config.TransactionFailure;
 
 import javax.xml.stream.XMLInputFactory;
-import java.beans.PropertyVetoException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Proxy;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Enumeration;
@@ -101,7 +92,7 @@ public class Utils {
             XMLInputFactory xif = XMLInputFactory.class.getClassLoader() == null
                     ? XMLInputFactory.newInstance()
                     : XMLInputFactory.newInstance(XMLInputFactory.class.getName(),
-                    XMLInputFactory.class.getClassLoader());
+                            XMLInputFactory.class.getClassLoader());
             final DomDocument document = parser.parse(xif.createXMLStreamReader(inputStream));
 
             habitat.addComponent("document", document);
@@ -146,7 +137,7 @@ public class Utils {
         }
         return habitat;
     }
-    
+
     public static String composeThreadPoolName(
             final NetworkListener networkListener) {
         return networkListener.getThreadPool() + "-" + networkListener.getPort();
@@ -165,18 +156,7 @@ public class Utils {
             } catch (Exception cnfe) {
             }
         }
-        if (clazz == null) {
-            clazz = GrizzlyEmbeddedHttp.class.getClassLoader().loadClass(classname);
-        }
-        return clazz;
+        return clazz == null ? GrizzlyEmbeddedHttp.class.getClassLoader().loadClass(classname) : clazz;
     }
 
-    static ConfigBeanProxy createDummyProxy(ConfigBeanProxy parent, final Class<? extends ConfigBeanProxy> type)
-            throws TransactionFailure {
-        return (ConfigBeanProxy) ConfigSupport.apply(new SingleConfigCode<ConfigBeanProxy>() {
-            public Object run(ConfigBeanProxy param) throws PropertyVetoException, TransactionFailure {
-                return param.createChild(type);
-            }
-        }, parent);
-    }
 }

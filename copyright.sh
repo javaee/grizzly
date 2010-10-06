@@ -68,6 +68,7 @@ valid() {
 		 grep -vi readme.txt | \
 		 grep -vwi readme | \
 		 grep -vi Grizzly-Migration-Guide | \
+		 grep -vi target/ | \
 		 grep -vi zzzzzzzzzzzzzzzzzzz
 }
 
