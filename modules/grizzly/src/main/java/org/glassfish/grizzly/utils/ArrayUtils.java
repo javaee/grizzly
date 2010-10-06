@@ -48,7 +48,27 @@ import java.util.Arrays;
  * 
  * @author Alexey Stashok
  */
-public class ArrayUtils {
+public final class ArrayUtils {
+    // Reworked the java.util.Arrays's binarySearch
+    public static int binarySearch(final int[] a, final int fromIndex, final int toIndex,
+				     final int key) {
+	int low = fromIndex;
+	int high = toIndex - 1;
+
+	while (low <= high) {
+	    int mid = (low + high) >>> 1;
+	    int midVal = a[mid];
+
+	    if (midVal < key)
+		low = mid + 1;
+	    else if (midVal > key)
+		high = mid - 1;
+	    else
+		return mid; // key found
+	}
+	return low;  // key not found.
+    }
+
     /**
      * Add unique element to the array.
      * @param <T> type of the array element

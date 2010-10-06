@@ -430,7 +430,7 @@ public class CompositeBufferTest extends GrizzlyTestCase {
             Buffer buffer2 = manager.allocate(0);
 
             CompositeBuffer compositeBuffer = createCompositeBuffer(type, buffer1);
-            assertEquals('4', compositeBuffer.get(0));
+            assertEquals('4', (char) compositeBuffer.get(0));
 
             Buffer resultBuffer = Buffers.appendBuffers(manager, buffer2, compositeBuffer);
 
@@ -546,7 +546,7 @@ public class CompositeBufferTest extends GrizzlyTestCase {
                     assertEquals("Slice2  unexpected length", size - j, slice2.remaining());
                 }
             } catch (Exception e) {
-                throw new IllegalStateException("Exception happened. type=" + type + " size=" + i + " splitPos=" + j, e);
+                throw new IllegalStateException("Exception happened. type=" + type + " size=" + size + " chunkSize=" + i + " splitPos=" + j, e);
             }
         }
 
