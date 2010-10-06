@@ -190,10 +190,8 @@ public class Response {
     /**
      * The associated output buffer.
      */
-    // START OF SJSAS 6231069
-    //protected OutputBuffer outputBuffer = new OutputBuffer();
-    protected OutputBuffer outputBuffer;
-    // END OF SJSAS 6231069
+    protected OutputBuffer outputBuffer = new OutputBuffer();
+
 
     /**
      * The associated output stream.
@@ -271,7 +269,6 @@ public class Response {
                            SuspendStatus suspendStatus) {
         this.request = request;
         this.response = response;
-        outputBuffer = new OutputBuffer();
         outputBuffer.initialize(response, ctx);
         this.ctx = ctx;
         this.delayQueue = delayQueue;

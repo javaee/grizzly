@@ -186,12 +186,16 @@ public class OutputBuffer {
             currentBuffer.dispose();
             currentBuffer = null;
         }
+
+        charBuf.position(0);
         
         encoder = null;
         ctx = null;
         memoryManager = null;
         handler = null;
         asyncError.set(null);
+        monitor = null;
+        asyncWriter = null;
 
         committed = false;
         finished = false;
