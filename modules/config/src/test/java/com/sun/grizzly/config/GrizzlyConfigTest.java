@@ -132,6 +132,22 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
         }
     }
 
+    public void sslEmpty() throws URISyntaxException, IOException {
+        configure();
+        GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config-ssl-empty.xml");
+        try {
+            grizzlyConfig.setupNetwork();
+            int count = 0;
+            for (GrizzlyServiceListener listener : grizzlyConfig.getListeners()) {
+                setRootFolder(listener, count++);
+            }
+            Assert.assertEquals(getContent(new URL("https://localhost:38083").openConnection()),
+                "<html><body>You've found the server on port 38083</body></html>");
+        } finally {
+            grizzlyConfig.shutdown();
+        }
+    }
+
     public void customSecurePasswordProviders() throws URISyntaxException, IOException {
         configure();
         GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config-ssl-passprovider.xml");
