@@ -148,8 +148,16 @@ public class BufferChunk {
     public String toString() {
         return toString(null);
     }
-    
+
+    public String toString(int start, int end) {
+        return toString(null, start, end);
+    }
+
     public String toString(Charset charset) {
+        return toString(charset, start, end);
+    }
+    
+    public String toString(Charset charset, int start, int end) {
         if (isNull()) return null;
         
         if (hasString()) return stringValue;

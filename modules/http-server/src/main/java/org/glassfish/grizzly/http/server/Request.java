@@ -66,18 +66,14 @@ import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
 import org.glassfish.grizzly.http.server.io.InputBuffer;
 import org.glassfish.grizzly.http.server.io.NIOReader;
-import org.glassfish.grizzly.http.util.BufferChunk;
-import org.glassfish.grizzly.http.util.ByteChunk;
-import org.glassfish.grizzly.http.util.CharChunk;
+import org.glassfish.grizzly.http.util.*;
 import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.Cookies;
-import org.glassfish.grizzly.http.util.FastHttpDateFormat;
-import org.glassfish.grizzly.http.util.Parameters;
 import org.glassfish.grizzly.http.server.util.Enumerator;
 import org.glassfish.grizzly.http.server.util.Globals;
 import org.glassfish.grizzly.http.server.util.ParameterMap;
 import org.glassfish.grizzly.http.server.util.StringParser;
-import org.glassfish.grizzly.http.util.StringManager;
+
 import java.io.CharConversionException;
 
 import javax.security.auth.Subject;
@@ -2155,35 +2151,36 @@ public class Request {
      */
     protected void parseSessionId() {
 
-        // TODO This code needs to be reworked to not rely on CharChunk
-        String decodedURI = request.getRequestURI();
-        CharChunk uriCC = new CharChunk(decodedURI.length());
-        uriCC.setChars(decodedURI.toCharArray(), 0, decodedURI.length());
-        int semicolon = uriCC.indexOf(match, 0, match.length(), 0);
+        RequestURIRef ref = request.getRequestURIRef();
+        BufferChunk decodedURI;
+        try {
+            decodedURI = ref.getDecodedRequestURIBC();
+        } catch (CharConversionException ignored) {
+            return;
+        }
 
+        int semicolon = decodedURI.indexOf(match, 0);
         if (semicolon > 0) {
 
             // Parse session ID, and extract it from the decoded request URI
-            int start = uriCC.getStart();
-            int end = uriCC.getEnd();
+            int start = decodedURI.getStart();
+            int end = decodedURI.getEnd();
 
             int sessionIdStart = start + semicolon + match.length();
-            int semicolon2 = uriCC.indexOf(';', sessionIdStart);
+            int semicolon2 = decodedURI.indexOf(';', sessionIdStart);
             String sessionId;
             if (semicolon2 >= 0) {
-                sessionId = new String(uriCC.getBuffer(), sessionIdStart,
-                                       semicolon2 - semicolon - match.length());
+                sessionId = decodedURI.toString(sessionIdStart, semicolon2);
             } else {
-                sessionId = new String(uriCC.getBuffer(), sessionIdStart,
-                                       end - sessionIdStart);
+                sessionId = decodedURI.toString(sessionIdStart, end - sessionIdStart);
             }
             int jrouteIndex = sessionId.lastIndexOf(':');
             if (jrouteIndex > 0) {
                 setRequestedSessionId(sessionId.substring(0, jrouteIndex));
                 if (jrouteIndex < (sessionId.length()-1)) {
-		    setJrouteId(sessionId.substring(jrouteIndex+1));
+                    setJrouteId(sessionId.substring(jrouteIndex+1));
                 }
-	    } else {
+            } else {
                 setRequestedSessionId(sessionId);
             }
 
