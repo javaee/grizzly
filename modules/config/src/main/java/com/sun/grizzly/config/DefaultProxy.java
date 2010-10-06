@@ -71,11 +71,14 @@ public class DefaultProxy implements InvocationHandler {
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         Object value = null;
         if (methods.get(method.getName()) != null) {
-            String defValue = method.getAnnotation(Attribute.class).defaultValue().trim();
-            if (!defValue.isEmpty()) {
-                value = defValue;
+            final Attribute annotation = method.getAnnotation(Attribute.class);
+            if (annotation != null) {
+                String defValue = annotation.defaultValue().trim();
+                if (!defValue.isEmpty()) {
+                    value = defValue;
+                }
             }
-        } else if("getParent".equals(method.getName())) {
+        } else if ("getParent".equals(method.getName())) {
             value = getParent();
         } else {
             throw new GrizzlyConfigException(String.format("Method not implemented for a %s: %s", getClass().getName(),
@@ -84,7 +87,8 @@ public class DefaultProxy implements InvocationHandler {
         return value;
     }
 
-    public static ConfigBeanProxy createDummyProxy(ConfigBeanProxy parent, final Class<? extends ConfigBeanProxy> type) {
+    public static ConfigBeanProxy createDummyProxy(ConfigBeanProxy parent,
+            final Class<? extends ConfigBeanProxy> type) {
         return (ConfigBeanProxy) Proxy.newProxyInstance(type.getClassLoader(), new Class[]{type},
                 new DefaultProxy(parent, type));
     }
