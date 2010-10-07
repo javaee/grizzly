@@ -587,6 +587,8 @@ public class Request {
 //                reader = null;
 //            }
 //        }
+        ThreadCache.putToCache(CACHE_IDX, this);
+
     }
 
 

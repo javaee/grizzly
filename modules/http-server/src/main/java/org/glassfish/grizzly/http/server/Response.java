@@ -315,6 +315,8 @@ public class Response {
 
         cacheEnabled = false;
 
+        ThreadCache.putToCache(CACHE_IDX, this);
+
     }
 
 
