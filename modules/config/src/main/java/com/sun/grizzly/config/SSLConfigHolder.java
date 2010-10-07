@@ -68,11 +68,9 @@ import javax.net.ssl.SSLServerSocketFactory;
  * @author oleksiys
  */
 public class SSLConfigHolder {
-    public static final String APP_BUFFER_ATTR_NAME = "TMP_DECODED_BUFFER";
-
     private static final String PLAIN_PASSWORD_PROVIDER_NAME = "plain";
 
-    private final static Logger logger = GrizzlyEmbeddedHttps.logger();
+    private final static Logger LOGGER = GrizzlyEmbeddedHttps.logger();
 
     /**
      * The <code>SSLImplementation</code>
@@ -182,8 +180,8 @@ public class SSLConfigHolder {
     public SSLEngine createSSLEngine() {
         final SSLEngine sslEngine = sslContext.createSSLEngine();
 
-        if (logger.isLoggable(Level.FINE)) {
-            logger.log(Level.FINE, "newSSLEngine: " + sslEngine);
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "newSSLEngine: {0}", sslEngine);
         }
 
         if (enabledCipherSuites != null){
@@ -275,8 +273,8 @@ public class SSLConfigHolder {
 
             return true;
         } catch (Exception e) {
-            if (logger.isLoggable(Level.WARNING)) {
-                logger.log(Level.WARNING,
+            if (LOGGER.isLoggable(Level.WARNING)) {
+                LOGGER.log(Level.WARNING,
                         LogMessages.WARNING_GRIZZLY_CONFIG_SSL_GENERAL_CONFIG_ERROR(),
                         e);
             }
@@ -293,7 +291,7 @@ public class SSLConfigHolder {
             }
             name.append(listener.getName());
         }
-        logger.log(Level.FINE, msg, name.toString());
+        LOGGER.log(Level.FINE, msg, name.toString());
     }
 
     /**
@@ -373,8 +371,8 @@ public class SSLConfigHolder {
                 return provider.getPassword();
             }
         } catch (Exception e) {
-            if (logger.isLoggable(Level.WARNING)) {
-                logger.log(Level.WARNING,
+            if (LOGGER.isLoggable(Level.WARNING)) {
+                LOGGER.log(Level.WARNING,
                            LogMessages.WARNING_GRIZZLY_CONFIG_SSL_SECURE_PASSWORD_INITIALIZATION_ERROR(storePasswordProvider),
                            e);
             }
@@ -405,14 +403,14 @@ public class SSLConfigHolder {
                     if (impl != null) {
                         return impl;
                     } else {
-                        if (logger.isLoggable(Level.WARNING)) {
-                            logger.warning(LogMessages.WARNING_GRIZZLY_CONFIG_SSL_SSL_IMPLEMENTATION_LOAD_ERROR(sslImplClassName));
+                        if (LOGGER.isLoggable(Level.WARNING)) {
+                            LOGGER.warning(LogMessages.WARNING_GRIZZLY_CONFIG_SSL_SSL_IMPLEMENTATION_LOAD_ERROR(sslImplClassName));
                         }
                         return SSLImplementation.getInstance();
                     }
                 } catch (Exception e) {
-                    if (logger.isLoggable(Level.SEVERE)) {
-                        logger.log(Level.SEVERE,
+                    if (LOGGER.isLoggable(Level.SEVERE)) {
+                        LOGGER.log(Level.SEVERE,
                                    LogMessages.SEVERE_GRIZZLY_CONFIG_SSL_CLASS_LOAD_FAILED_ERROR(sslImplClassName),
                                    e);
                     }
@@ -422,8 +420,8 @@ public class SSLConfigHolder {
                 return SSLImplementation.getInstance();
             }
         } catch (Exception e) {
-            if (logger.isLoggable(Level.WARNING)) {
-                logger.log(Level.WARNING,
+            if (LOGGER.isLoggable(Level.WARNING)) {
+                LOGGER.log(Level.WARNING,
                            LogMessages.WARNING_GRIZZLY_CONFIG_SSL_GENERAL_CONFIG_ERROR(),
                            e);
             }
@@ -468,8 +466,8 @@ public class SSLConfigHolder {
                 }
                 final String jsseCipher = getJSSECipher(cipher);
                 if (jsseCipher == null) {
-                    if (logger.isLoggable(Level.WARNING)) {
-                        logger.warning(LogMessages.WARNING_GRIZZLY_CONFIG_SSL_UNKNOWN_CIPHER_ERROR(cipher));
+                    if (LOGGER.isLoggable(Level.WARNING)) {
+                        LOGGER.warning(LogMessages.WARNING_GRIZZLY_CONFIG_SSL_UNKNOWN_CIPHER_ERROR(cipher));
                     }
                 } else {
                     if (enabledCiphers == null) {
