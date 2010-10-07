@@ -486,16 +486,14 @@ public final class BuffersBuffer extends CompositeBuffer {
     public void trim() {
         flip();
 
-        final int bytesRemoved;
         if (limit == 0) {
-            bytesRemoved = removeRightBuffers(0);
+            removeRightBuffers(0);
+            capacity = 0;
         } else {
             checkIndex(limit - 1);
-
-            bytesRemoved = removeRightBuffers(lastSegmentIndex + 1);
+            capacity -= removeRightBuffers(lastSegmentIndex + 1);
         }
         
-        capacity -= bytesRemoved;
         resetLastLocation();
     }
 
@@ -513,7 +511,6 @@ public final class BuffersBuffer extends CompositeBuffer {
         }
 
         buffersSize = startIndex;
-        resetLastLocation();
 
         return removedBytes;
     }
