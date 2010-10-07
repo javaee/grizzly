@@ -62,7 +62,7 @@ public final class DefaultMemoryManager extends ByteBufferManager {
         super();
     }
 
-    private TrimAwareWrapper createTrimAwareBuffer(
+    private static TrimAwareWrapper createTrimAwareBuffer(
             ByteBufferManager memoryManager,
             ByteBuffer underlyingByteBuffer) {
 
@@ -241,9 +241,9 @@ public final class DefaultMemoryManager extends ByteBufferManager {
     }
 
     /**
-     * Create the Memory Manager JMX managment object.
+     * Create the Memory Manager JMX management object.
      *
-     * @return the Memory Manager JMX managment object.
+     * @return the Memory Manager JMX management object.
      */
     @Override
     protected JmxObject createJmxManagementObject() {
@@ -257,7 +257,7 @@ public final class DefaultMemoryManager extends ByteBufferManager {
      *  <code>null</code> if the current thread doesn't have a buffer pool
      *  associated with it.
      */
-    private ThreadLocalPool getThreadLocalPool() {
+    private static ThreadLocalPool getThreadLocalPool() {
         final Thread t = Thread.currentThread();
         if (t instanceof DefaultWorkerThread) {
             return ((DefaultWorkerThread) t).getMemoryPool();
@@ -391,7 +391,7 @@ public final class DefaultMemoryManager extends ByteBufferManager {
      * other words it's possible to return unused {@link org.glassfish.grizzly.Buffer} space to
      * pool.
      */
-    public final class TrimAwareWrapper extends ByteBufferWrapper
+    public static final class TrimAwareWrapper extends ByteBufferWrapper
             implements Cacheable {
 
         private TrimAwareWrapper(ByteBufferManager memoryManager,
