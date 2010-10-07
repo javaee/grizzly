@@ -263,6 +263,11 @@ public class LinkedListPipeline extends LinkedList<Task> implements Pipeline{
      */
     public synchronized void addTask(Task task) {
         int queueSize =  size();
+
+        if (pipelineStat != null) {
+            pipelineStat.gather(queueSize);
+        }
+
         if ( maxQueueSizeInBytes != -1 && maxQueueSizeInBytes <= queueSize){
             SelectorThread st = task.getSelectorThread();
             st.cancelKey(task.getSelectionKey());
@@ -303,9 +308,6 @@ public class LinkedListPipeline extends LinkedList<Task> implements Pipeline{
             waitingThreads--;       
         }
 
-        if (pipelineStat != null) {
-            pipelineStat.gather(size());
-        }       
         return poll();
     }
 
