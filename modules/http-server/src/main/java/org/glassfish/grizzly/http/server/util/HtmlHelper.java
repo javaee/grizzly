@@ -166,7 +166,7 @@ public class HtmlHelper{
         sb.append("<div class=\"header\">");
         sb.append(message);
         sb.append("</div>");
-        sb.append("<div class=\"body\"");
+        sb.append("<div class=\"body\">");
         sb.append("<b>").append(t.getMessage()).append("</b>");
         sb.append("<pre>");
         sb.append(tBuilder.toString());
