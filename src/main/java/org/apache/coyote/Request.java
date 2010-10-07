@@ -547,13 +547,14 @@ public final class Request {
         uriMB.recycle(); 
         decodedUriMB.recycle();
 	queryMB.recycle();
+        schemeMB.recycle();
 	methodMB.recycle();
 	protoMB.recycle();
 	//remoteAddrMB.recycle();
 	//remoteHostMB.recycle();
 
 	// XXX Do we need such defaults ?
-        schemeMB.recycle();
+        schemeMB.setString("http");
 	methodMB.setString("GET");
         /* SJSWS 6376484
         uriMB.setString("/");
