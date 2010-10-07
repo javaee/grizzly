@@ -307,6 +307,8 @@ public class Response {
         detailErrorMsg = null;
         request = null;
         response.recycle();
+        writer = null;
+        outputStream = null;
 
         response = null;
         ctx = null;
