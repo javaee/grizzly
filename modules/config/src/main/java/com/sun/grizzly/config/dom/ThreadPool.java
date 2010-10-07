@@ -56,11 +56,16 @@ import java.util.List;
 
 @Configured
 public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
+    int IDLE_THREAD_TIMEOUT = 900;
+    int MAX_QUEUE_SIZE = 4096;
+    int MAX_THREADPOOL_SIZE = 5;
+    int MIN_THREADPOOL_SIZE = 2;
+    String CLASSNAME = "com.sun.grizzly.http.StatsThreadPool";
 
     /**
      * The classname of a thread pool implementation
      */
-    @Attribute(defaultValue = "com.sun.grizzly.http.StatsThreadPool")
+    @Attribute(defaultValue = CLASSNAME)
     String getClassname();
 
     void setClassname(String value);
@@ -68,7 +73,7 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Idle threads are removed from pool, after this time (in seconds)
      */
-    @Attribute(defaultValue = "900", dataType = Integer.class)
+    @Attribute(defaultValue = "" + IDLE_THREAD_TIMEOUT, dataType = Integer.class)
     @Max(Integer.MAX_VALUE)
     String getIdleThreadTimeoutSeconds();
 
@@ -77,30 +82,30 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * The maxim number of tasks, which could be queued on the thread pool.  -1 disables any maximum checks.
      */
-    @Attribute(defaultValue = "4096", dataType = Integer.class)
+    @Attribute(defaultValue = "" + MAX_QUEUE_SIZE, dataType = Integer.class)
     @Max(Integer.MAX_VALUE)
     String getMaxQueueSize();
 
     void setMaxQueueSize(String value);
 
     /**
-     * Maximum number of threads in the threadpool servicing
-     requests in this queue. This is the upper bound on the no. of
-     threads that exist in the threadpool.
+     * Maximum number of threads in the thread pool servicing
+     * requests in this queue. This is the upper bound on the no. of
+     * threads that exist in the thread pool.
      */
-    @Attribute(defaultValue = "5", dataType = Integer.class)
-    @Min(value=2)
+    @Attribute(defaultValue = "" + MAX_THREADPOOL_SIZE, dataType = Integer.class)
+    @Min(value = 2)
     @Max(Integer.MAX_VALUE)
     String getMaxThreadPoolSize();
 
-    void setMaxThreadPoolSize(String value)  throws PropertyVetoException;
+    void setMaxThreadPoolSize(String value) throws PropertyVetoException;
 
     /**
-     * Minimum number of threads in the threadpool servicing
-     requests in this queue. These are created up front when this
-     threadpool is instantiated
+     * Minimum number of threads in the thread pool servicing
+     * requests in this queue. These are created up front when this
+     * thread pool is instantiated
      */
-    @Attribute(defaultValue = "2", dataType = Integer.class)
+    @Attribute(defaultValue = "" + MIN_THREADPOOL_SIZE, dataType = Integer.class)
     @Min(2)
     @Max(Integer.MAX_VALUE)
     String getMinThreadPoolSize();
@@ -110,7 +115,7 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * This is an id for the work-queue e.g. "thread-pool-1", "thread-pool-2" etc
      */
-    @Attribute(required = true, key=true)
+    @Attribute(required = true, key = true)
     String getName();
 
     void setName(String value);
@@ -131,7 +136,7 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
 
         static public List<NetworkListener> findNetworkListeners(ThreadPool threadpool) {
             NetworkConfig config = threadpool.getParent().getParent(NetworkConfig.class);
-            if(!Dom.unwrap(config).getProxyType().equals(NetworkConfig.class)) {
+            if (!Dom.unwrap(config).getProxyType().equals(NetworkConfig.class)) {
                 config = Dom.unwrap(config).element("network-config").createProxy();
             }
             List<NetworkListener> listeners = config.getNetworkListeners().getNetworkListener();

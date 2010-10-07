@@ -55,11 +55,38 @@ import org.jvnet.hk2.config.types.PropertyBag;
 /**
  * Created Jan 8, 2009
  *
- * @author <a href="mailto:justin.lee@sun.com">Justin Lee</a>
+ * @author <a href="mailto:justin.d.lee@oracle.com">Justin Lee</a>
  */
 @Configured
 public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
-    @Attribute(defaultValue = "com.sun.grizzly.tcp.StaticResourcesAdapter")
+    boolean AUTH_PASS_THROUGH_ENABLED = false;
+    boolean CHUNKING_ENABLED = true;
+    boolean COMET_SUPPORT_ENABLED = false;
+    boolean ENCODED_SLASH_ENABLED = false;
+    boolean DNS_LOOKUP_ENABLED = false;
+    boolean RCM_SUPPORT_ENABLED = false;
+    boolean TIMEOUT_ENABLED = true;
+    boolean TRACE_ENABLED = true;
+    boolean UPLOAD_TIMEOUT_ENABLED = true;
+    boolean WEBSOCKET_SUPPORT_ENABLED = false;
+    boolean XPOWERED_BY = true;
+    int COMPRESSION_MIN_SIZE = 2048;
+    int CONNECTION_UPLOAD_TIMEOUT = 300000;
+    int HEADER_BUFFER_LENGTH = 8192;
+    int KEEP_ALIVE_TIMEOUT = 30;
+    int MAX_CONNECTIONS = 256;
+    int MAX_POST_SIZE = 2097152;
+    int REQUEST_TIMEOUT = 900;
+    int SEND_BUFFER_LENGTH = 8192;
+    int TIMEOUT = 30;
+    String COMPRESSABLE_MIME_TYPE = "text/html,text/xml,text/plain";
+    String COMPRESSION = "off";
+    String COMPRESSION_PATTERN = "on|off|force|\\d+";
+    String DEFAULT_ADAPTER = "com.sun.grizzly.tcp.StaticResourcesAdapter";
+    String URI_ENCODING = "UTF-8";
+    String VERSION = "HTTP/1.1";
+
+    @Attribute(defaultValue = DEFAULT_ADAPTER)
     String getAdapter();
 
     void setAdapter(String adapter);
@@ -67,12 +94,12 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Enable pass through of authentication from any front-end server
      */
-    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    @Attribute(defaultValue = "" + AUTH_PASS_THROUGH_ENABLED, dataType = Boolean.class)
     String getAuthPassThroughEnabled();
 
     void setAuthPassThroughEnabled(String bool);
 
-    @Attribute(defaultValue = "true", dataType = Boolean.class)
+    @Attribute(defaultValue = "" + CHUNKING_ENABLED, dataType = Boolean.class)
     String getChunkingEnabled();
 
     void setChunkingEnabled(String enabled);
@@ -82,28 +109,28 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
      * using it can be verified as harmless.  Currently it is unclear what the performance impact of enabling this
      * feature is.
      */
-    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    @Attribute(defaultValue = "" + COMET_SUPPORT_ENABLED, dataType = Boolean.class)
     String getCometSupportEnabled();
 
     void setCometSupportEnabled(String enable);
 
-    @Attribute(defaultValue = "text/html,text/xml,text/plain")
+    @Attribute(defaultValue = COMPRESSABLE_MIME_TYPE)
     String getCompressableMimeType();
 
     void setCompressableMimeType(String type);
 
-    @Attribute(defaultValue = "off", dataType = String.class)
-    @Pattern(regexp = "on|off|force|\\d+")
+    @Attribute(defaultValue = COMPRESSION, dataType = String.class)
+    @Pattern(regexp = COMPRESSION_PATTERN)
     String getCompression();
 
     void setCompression(String compression);
 
-    @Attribute(defaultValue = "2048", dataType = Integer.class)
+    @Attribute(defaultValue = "" + COMPRESSION_MIN_SIZE, dataType = Integer.class)
     String getCompressionMinSizeBytes();
 
     void setCompressionMinSizeBytes(String size);
 
-    @Attribute(defaultValue = "300000", dataType = Integer.class)
+    @Attribute(defaultValue = "" + CONNECTION_UPLOAD_TIMEOUT, dataType = Integer.class)
     String getConnectionUploadTimeoutMillis();
 
     void setConnectionUploadTimeoutMillis(String timeout);
@@ -127,12 +154,12 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setDefaultVirtualServer(final String defaultVirtualServer);
 
-    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    @Attribute(defaultValue = "" + DNS_LOOKUP_ENABLED, dataType = Boolean.class)
     String getDnsLookupEnabled();
 
     void setDnsLookupEnabled(String enable);
 
-    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    @Attribute(defaultValue = "" + ENCODED_SLASH_ENABLED, dataType = Boolean.class)
     String getEncodedSlashEnabled();
     
     void setEncodedSlashEnabled(String enabled);
@@ -160,7 +187,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * The size of the buffer used by the request processing threads for reading the request data
      */
-    @Attribute(defaultValue = "8192", dataType = Integer.class)
+    @Attribute(defaultValue = "" + HEADER_BUFFER_LENGTH, dataType = Integer.class)
     @Max(Integer.MAX_VALUE)
     String getHeaderBufferLengthBytes();
 
@@ -169,13 +196,13 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Max number of connection in the Keep Alive mode
      */
-    @Attribute(defaultValue = "256", dataType = Integer.class)
+    @Attribute(defaultValue = "" + MAX_CONNECTIONS, dataType = Integer.class)
     @Max(Integer.MAX_VALUE)
     String getMaxConnections();
 
     void setMaxConnections(String max);
 
-    @Attribute(defaultValue = "2097152", dataType = Integer.class)
+    @Attribute(defaultValue = "" + MAX_POST_SIZE, dataType = Integer.class)
     @Max(Integer.MAX_VALUE)
     String getMaxPostSizeBytes();
 
@@ -186,7 +213,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setNoCompressionUserAgents(String agents);
 
-    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    @Attribute(defaultValue = "" + RCM_SUPPORT_ENABLED, dataType = Boolean.class)
     String getRcmSupportEnabled();
 
     void setRcmSupportEnabled(String enable);
@@ -205,7 +232,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Time after which the request times out in seconds
      */
-    @Attribute(defaultValue = "900", dataType = Integer.class)
+    @Attribute(defaultValue = "" + REQUEST_TIMEOUT, dataType = Integer.class)
     @Min(-1)
     @Max(Integer.MAX_VALUE)
     String getRequestTimeoutSeconds();
@@ -220,7 +247,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Size of the buffer for response bodies in bytes
      */
-    @Attribute(defaultValue = "8192", dataType = Integer.class)
+    @Attribute(defaultValue = "" + SEND_BUFFER_LENGTH, dataType = Integer.class)
     @Max(Integer.MAX_VALUE)
     String getSendBufferSizeBytes();
 
@@ -240,23 +267,23 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Keep Alive timeout, max time a connection can be deemed as idle and kept in the keep-alive state
      */
-    @Attribute(defaultValue = "30", dataType = Integer.class)
+    @Attribute(defaultValue = "" + TIMEOUT, dataType = Integer.class)
     @Max(Integer.MAX_VALUE)
     String getTimeoutSeconds();
 
     void setTimeoutSeconds(String timeout);
 
-    @Attribute(defaultValue = "true", dataType = Boolean.class)
+    @Attribute(defaultValue = "" + TRACE_ENABLED, dataType = Boolean.class)
     String getTraceEnabled();
 
     void setTraceEnabled(String enabled);
 
-    @Attribute(defaultValue = "true", dataType = Boolean.class)
+    @Attribute(defaultValue = "" + UPLOAD_TIMEOUT_ENABLED, dataType = Boolean.class)
     String getUploadTimeoutEnabled();
 
     void setUploadTimeoutEnabled(String disable);
 
-    @Attribute(defaultValue = "UTF-8")
+    @Attribute(defaultValue = URI_ENCODING)
     String getUriEncoding();
 
     void setUriEncoding(String encoding);
@@ -264,12 +291,12 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * The version of the HTTP protocol used by the HTTP Service
      */
-    @Attribute(defaultValue = "HTTP/1.1")
+    @Attribute(defaultValue = VERSION)
     String getVersion();
 
     void setVersion(final String version);
 
-    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    @Attribute(defaultValue = "" + WEBSOCKET_SUPPORT_ENABLED, dataType = Boolean.class)
     String getWebsocketsSupportEnabled();
 
     void setWebsocketsSupportEnabled(String enabled);
@@ -281,7 +308,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
      * aid in gathering statistical data about the use of Servlet and JSP technology. If true, these headers will be
      * added.
      */
-    @Attribute(defaultValue = "true", dataType = Boolean.class)
+    @Attribute(defaultValue = "" + XPOWERED_BY, dataType = Boolean.class)
     String getXpoweredBy();
 
     void setXpoweredBy(final String xpoweredBy);

@@ -58,7 +58,7 @@ import java.util.Enumeration;
 /**
  * Created Dec 18, 2008
  *
- * @author <a href="mailto:justin.lee@sun.com">Justin Lee</a>
+ * @author <a href="mailto:justin.d.lee@oracle.com">Justin Lee</a>
  */
 public class Utils {
     private final static String habitatName = "default";

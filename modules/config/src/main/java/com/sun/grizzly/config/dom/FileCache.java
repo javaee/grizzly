@@ -49,14 +49,19 @@ import org.jvnet.hk2.config.types.PropertyBag;
 /**
  * Created Jan 8, 2009
  *
- * @author <a href="mailto:justin.lee@sun.com">Justin Lee</a>
+ * @author <a href="mailto:justin.d.lee@oracle.com">Justin Lee</a>
  */
 @Configured
 public interface FileCache extends ConfigBeanProxy, Injectable, PropertyBag {
+    boolean ENABLED = false;
+    int MAX_AGE = 30;
+    int MAX_CACHE_SIZE = 10485760;
+    int MAX_FILES = 1024;
+
     /**
      * Enables the caching of file content
      */
-    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    @Attribute(defaultValue = "" + ENABLED, dataType = Boolean.class)
     String getEnabled();
 
     void setEnabled(final String enabled);
@@ -64,7 +69,7 @@ public interface FileCache extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * How old files can get before aging out of cache in seconds
      */
-    @Attribute(defaultValue = "30", dataType = Integer.class)
+    @Attribute(defaultValue = "" + MAX_AGE, dataType = Integer.class)
     String getMaxAgeSeconds();
 
     void setMaxAgeSeconds(final String maxAge);
@@ -72,7 +77,7 @@ public interface FileCache extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Maximum cache size on the disk
      */
-    @Attribute(defaultValue = "10485760", dataType = Integer.class)
+    @Attribute(defaultValue = "" + MAX_CACHE_SIZE, dataType = Integer.class)
     String getMaxCacheSizeBytes();
 
     void setMaxCacheSizeBytes(final String maxCacheSize);
@@ -80,7 +85,7 @@ public interface FileCache extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Maximum number of files in the file cache.
      */
-    @Attribute(defaultValue = "1024", dataType = Integer.class)
+    @Attribute(defaultValue = "" + MAX_FILES, dataType = Integer.class)
     String getMaxFilesCount();
 
     void setMaxFilesCount(final String maxFilesCount);

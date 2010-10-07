@@ -40,30 +40,33 @@
 
 package com.sun.grizzly.config.dom;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import org.jvnet.hk2.component.Injectable;
-import org.jvnet.hk2.component.Habitat;
 import org.jvnet.hk2.config.Attribute;
-import org.jvnet.hk2.config.ConfigBean;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.Dom;
 import org.jvnet.hk2.config.DuckTyped;
 import org.jvnet.hk2.config.types.PropertyBag;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 /**
  * Binds protocol to a specific endpoint to listen on
  */
 @Configured
 public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBag {
+    boolean ENABLED = true;
+    boolean JK_ENABLED = false;
+    String DEFAULT_ADDRESS = "0.0.0.0";
+    String DEFAULT_CONFIGURATION_FILE = "${com.sun.aas.instanceRoot}/config/glassfish-jk.properties";
+
     /**
      * IP address to listen on
      */
-    @Attribute(defaultValue = "0.0.0.0")
+    @Attribute(defaultValue = DEFAULT_ADDRESS)
     @NetworkAddress
     String getAddress();
 
@@ -72,12 +75,12 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
     /**
      * If false, a configured listener, is disabled
      */
-    @Attribute(defaultValue = "true", dataType = Boolean.class)
+    @Attribute(defaultValue = "" + ENABLED, dataType = Boolean.class)
     String getEnabled();
 
     void setEnabled(String enabled);
 
-    @Attribute(defaultValue = "${com.sun.aas.instanceRoot}/config/glassfish-jk.properties")
+    @Attribute(defaultValue = DEFAULT_CONFIGURATION_FILE)
     String getJkConfigurationFile();
 
     void setJkConfigurationFile(String file);
@@ -85,10 +88,11 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
     /**
      * If true, a jk listener is enabled
      */
-    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    @Attribute(defaultValue = "" + JK_ENABLED, dataType = Boolean.class)
     String getJkEnabled();
 
     void setJkEnabled(String enabled);
+
     /**
      * Network-listener name, which could be used as reference
      */
@@ -154,13 +158,14 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
         }
 
         private static Protocol findHttpProtocol(Set<String> tray, Protocol protocol) {
-            if(protocol == null) {
+            if (protocol == null) {
                 return null;
             }
-            
+
             final String protocolName = protocol.getName();
             if (tray.contains(protocolName)) {
-                throw new IllegalStateException("Loop found in Protocol definition. Protocol name: " + protocol.getName());
+                throw new IllegalStateException(
+                        "Loop found in Protocol definition. Protocol name: " + protocol.getName());
             }
 
             if (protocol.getHttp() != null) {
@@ -179,7 +184,8 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
                                 if (foundHttpProtocol == null) {
                                     foundHttpProtocol = httpProtocol;
                                 } else {
-                                    throw new IllegalStateException("Port unification allows only one \"<http>\" definition");
+                                    throw new IllegalStateException(
+                                            "Port unification allows only one \"<http>\" definition");
                                 }
                             }
                         }
@@ -202,6 +208,7 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
 
             return null;
         }
+
         public static Protocol findProtocol(NetworkListener listener) {
             return listener.getParent().getParent().findProtocol(listener.getProtocol());
         }
@@ -209,7 +216,7 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
         public static ThreadPool findThreadPool(NetworkListener listener) {
             final NetworkListeners listeners = listener.getParent();
             List<ThreadPool> list = listeners.getThreadPool();
-            if(list == null || list.isEmpty()) {
+            if (list == null || list.isEmpty()) {
                 final ConfigBeanProxy parent = listener.getParent().getParent().getParent();
                 final Dom proxy = Dom.unwrap(parent).element("thread-pools");
                 final List<Dom> domList = proxy.nodeElements("thread-pool");
@@ -219,7 +226,7 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
                 }
             }
             for (ThreadPool pool : list) {
-                if(listener.getThreadPool().equals(pool.getName())) {
+                if (listener.getThreadPool().equals(pool.getName())) {
                     return pool;
                 }
             }
@@ -229,7 +236,7 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
         public static Transport findTransport(NetworkListener listener) {
             List<Transport> list = listener.getParent().getParent().getTransports().getTransport();
             for (Transport transport : list) {
-                if(listener.getTransport().equals(transport.getName())) {
+                if (listener.getTransport().equals(transport.getName())) {
                     return transport;
                 }
             }

@@ -56,13 +56,14 @@ import java.util.List;
  */
 @Configured
 public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
+    boolean SECURITY_ENABLED = false;
+
     /**
      * Defines any HTTP settings for this Protocol
      */
     @Element
     Http getHttp();
 
-    @SuppressWarnings({"UnusedDeclaration"})
     void setHttp(Http value);
 
     /**
@@ -71,7 +72,6 @@ public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
     @Attribute(required = true, key = true)
     String getName();
 
-    @SuppressWarnings({"UnusedDeclaration"})
     void setName(String value);
 
     /**
@@ -81,16 +81,14 @@ public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
     @Element
     PortUnification getPortUnification();
 
-    @SuppressWarnings({"UnusedDeclaration"})
     void setPortUnification(PortUnification value);
 
     /**
-     * Defines <code>http-redirect</code> logic.  
+     * Defines <code>http-redirect</code> logic.
      */
     @Element
     HttpRedirect getHttpRedirect();
 
-    @SuppressWarnings({"UnusedDeclaration"})
     void setHttpRedirect(HttpRedirect value);
 
     /**
@@ -99,17 +97,15 @@ public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
     @Element
     ProtocolChainInstanceHandler getProtocolChainInstanceHandler();
 
-    @SuppressWarnings({"UnusedDeclaration"})
     void setProtocolChainInstanceHandler(ProtocolChainInstanceHandler value);
 
     /**
      * True means the protocol is secured and ssl element will be used to initialize security settings. False means that
      * protocol is not secured and ssl element, if present, will be ignored.
      */
-    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    @Attribute(defaultValue = "" + SECURITY_ENABLED, dataType = Boolean.class)
     String getSecurityEnabled();
 
-    @SuppressWarnings({"UnusedDeclaration"})
     void setSecurityEnabled(String value);
 
     /**
@@ -118,7 +114,6 @@ public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
     @Element
     Ssl getSsl();
 
-    @SuppressWarnings({"UnusedDeclaration"})
     void setSsl(Ssl value);
 
     @DuckTyped
@@ -127,7 +122,6 @@ public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
     @DuckTyped
     Protocols getParent();
 
-    @SuppressWarnings({"UnusedDeclaration"})
     class Duck {
         static public List<NetworkListener> findNetworkListeners(Protocol protocol) {
             final List<NetworkListener> listeners = protocol.getParent().getParent()

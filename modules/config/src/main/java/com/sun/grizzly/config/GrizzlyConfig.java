@@ -60,7 +60,7 @@ import java.util.logging.Logger;
 /**
  * Created Nov 24, 2008
  *
- * @author <a href="mailto:justin.lee@sun.com">Justin Lee</a>
+ * @author <a href="mailto:justin.d.lee@oracle.com">Justin Lee</a>
  */
 public class GrizzlyConfig {
     private static final Logger logger = LoggerUtils.getLogger();

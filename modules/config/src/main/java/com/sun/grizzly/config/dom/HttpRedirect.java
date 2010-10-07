@@ -54,27 +54,27 @@ import org.jvnet.hk2.config.types.PropertyBag;
  */
 @Configured
 public interface HttpRedirect extends ConfigBeanProxy, Injectable, PropertyBag {
+    int PORT = -1;
+    boolean SECURE = false;
 
     /**
      * @return the network port the request should be redirected to.  If no
-     *  value was specified, the default of <code>-1</code> will be returned
-     *  which signifies a redirection to the same port the current request
-     *  was made on
+     *         value was specified, the default of <code>-1</code> will be returned
+     *         which signifies a redirection to the same port the current request
+     *         was made on
      */
-    @Attribute(defaultValue = "-1", dataType = Integer.class)
+    @Attribute(defaultValue = "" + PORT, dataType = Integer.class)
     String getPort();
 
-    @SuppressWarnings({"UnusedDeclaration"})
     void setPort(String port);
 
     /**
      * @return <code>true</code> will redirect the request using <code>HTTPS</code>
-     *  where as a value of <code>false</code> will use <code>HTTP</code>
+     *         where as a value of <code>false</code> will use <code>HTTP</code>
      */
-    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    @Attribute(defaultValue = "" + SECURE, dataType = Boolean.class)
     String getSecure();
 
-    @SuppressWarnings({"UnusedDeclaration"})
     void setSecure(String value);
-    
+
 }

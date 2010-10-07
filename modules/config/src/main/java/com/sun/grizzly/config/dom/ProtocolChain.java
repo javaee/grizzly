@@ -56,6 +56,9 @@ import java.util.List;
  */
 @Configured
 public interface ProtocolChain extends ConfigBeanProxy, Injectable, PropertyBag {
+    String TYPE = "STATELESS";
+    String TYPE_PATTERN = "STATELESS|STATEFUL";
+
     /**
      * Protocol chain instance handler implementation class
      */
@@ -67,8 +70,8 @@ public interface ProtocolChain extends ConfigBeanProxy, Injectable, PropertyBag 
     /**
      * Protocol chain type. Could be STATEFUL or STATELESS
      */
-    @Attribute(defaultValue = "STATELESS")
-    @Pattern(regexp = "STATELESS|STATEFUL")
+    @Attribute(defaultValue = TYPE)
+    @Pattern(regexp = TYPE_PATTERN)
     String getType();
 
     void setType(String value);

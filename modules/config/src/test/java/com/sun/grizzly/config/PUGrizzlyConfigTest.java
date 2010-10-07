@@ -59,7 +59,7 @@ import org.testng.annotations.Test;
 /**
  * Created Jan 5, 2009
  *
- * @author <a href="mailto:justin.lee@sun.com">Justin Lee</a>
+ * @author <a href="mailto:justin.d.lee@oracle.com">Justin Lee</a>
  */
 @Test
 public class PUGrizzlyConfigTest {
