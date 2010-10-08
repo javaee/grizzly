@@ -452,6 +452,10 @@ public abstract class HttpCodecFilter extends BaseFilter
                     return ctx.getRerunFilterAction();
                 } else {
                     // if no remainder - just stop
+                    if (httpHeader.isRequest()) {
+                        ((HttpRequestPacket) httpHeader).getResponse().recycle();
+                        httpHeader.recycle();
+                    }
                     return ctx.getStopAction();
                 }
             }
