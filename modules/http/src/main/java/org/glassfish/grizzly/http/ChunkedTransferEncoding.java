@@ -327,6 +327,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
                 final MimeHeaders mimeHeaders = httpTrailer.getHeaders();
                 httpChunkTrailer = HttpCodecFilter.encodeMimeHeaders(memoryManager,
                         httpChunkTrailer, mimeHeaders);
+                httpContent.recycle();
             }
 
             httpChunkTrailer = HttpCodecFilter.put(memoryManager, httpChunkTrailer,
