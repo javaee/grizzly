@@ -48,6 +48,8 @@ import org.glassfish.grizzly.memory.DefaultMemoryManager;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 
+import static org.glassfish.grizzly.http.Constants.ASCII_CHARSET;
+
 /**
  * This <code>enum</code> encapsulates the HTTP response status and
  * reason phrases as defined by <code>RFC 2616</code>.
@@ -111,12 +113,9 @@ public enum HttpStatus {
         this.reasonPhrase = reasonPhrase;
         this.reasonPhraseBC = new BufferChunk();
         final DefaultMemoryManager mm = (DefaultMemoryManager) TransportFactory.getInstance().getDefaultMemoryManager();
-        try {
-            ByteBufferWrapper wrapper = mm.wrap(ByteBuffer.wrap(reasonPhrase.getBytes("US-ASCII")));
-            reasonPhraseBC.setBuffer(wrapper);
-            reasonPhraseBC.lock();
-        } catch (UnsupportedEncodingException ignored) {
-        }
+        ByteBufferWrapper wrapper = mm.wrap(ByteBuffer.wrap(reasonPhrase.getBytes(ASCII_CHARSET)));
+        reasonPhraseBC.setBuffer(wrapper);
+        reasonPhraseBC.lock();
     }
 
 
