@@ -640,7 +640,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                                                    contentEncoder);
             encodedBuffer = Buffers.appendBuffers(memoryManager,
                     encodedBuffer, content);
-
+            httpContent.recycle();
             if (encodedBuffer.isComposite()) {
                 // If during buffer appending - composite buffer was created -
                 // allow buffer disposing
