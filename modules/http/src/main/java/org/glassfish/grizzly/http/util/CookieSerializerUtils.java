@@ -81,17 +81,36 @@ public class CookieSerializerUtils {
     }
 
     // TODO RFC2965 fields also need to be passed
-    public static void serializeServerCookie(StringBuilder buf,
-            boolean versionOneStrictCompliance,
-            boolean alwaysAddExpires,
-            Cookie cookie) {
-
+    public static void serializeServerCookie(final StringBuilder buf,
+            final boolean versionOneStrictCompliance,
+            final boolean alwaysAddExpires,
+            final Cookie cookie) {
+        
+        serializeServerCookie(buf, versionOneStrictCompliance, alwaysAddExpires,
+                cookie.getName(), cookie.getValue(), cookie.getVersion(),
+                cookie.getPath(), cookie.getDomain(), cookie.getComment(),
+                cookie.getMaxAge(), cookie.isSecure(), cookie.isHttpOnly());
+    }
+    
+    // TODO RFC2965 fields also need to be passed
+    public static void serializeServerCookie(final StringBuilder buf,
+            final boolean versionOneStrictCompliance,
+            final boolean alwaysAddExpires,
+            final String name,
+            final String value,
+            int version,
+            String path,
+            final String domain,
+            final String comment,
+            final int maxAge,
+            final boolean isSecure,
+            final boolean isHttpOnly) {
         // Servlet implementation checks name
-        buf.append(cookie.getName());
+        buf.append(name);
         buf.append("=");
         // Servlet implementation does not check anything else
 
-        int version = maybeQuote2(cookie.getVersion(), buf, cookie.getValue(), true);
+        version = maybeQuote2(version, buf, value, true);
 
         // Add version 1 specific information
         if (version == 1) {
@@ -99,7 +118,6 @@ public class CookieSerializerUtils {
             buf.append("; Version=1");
 
             // Comment=comment
-            final String comment = cookie.getComment();
             if (comment != null) {
                 buf.append("; Comment=");
                 maybeQuote2(version, buf, comment, versionOneStrictCompliance);
@@ -107,7 +125,6 @@ public class CookieSerializerUtils {
         }
 
         // Add domain information, if present
-        final String domain = cookie.getDomain();
         if (domain != null) {
             buf.append("; Domain=");
             maybeQuote2(version, buf, domain, versionOneStrictCompliance);
@@ -115,7 +132,6 @@ public class CookieSerializerUtils {
 
         // Max-Age=secs ... or use old "Expires" format
         // TODO RFC2965 Discard
-        final int maxAge = cookie.getMaxAge();
         if (maxAge >= 0) {
             if (version > 0) {
                 buf.append("; Max-Age=");
@@ -139,7 +155,6 @@ public class CookieSerializerUtils {
         }
 
         // Path=path
-        String path = cookie.getPath();
         if (path != null) {
             buf.append("; Path=");
 
@@ -156,12 +171,12 @@ public class CookieSerializerUtils {
         }
 
         // Secure
-        if (cookie.isSecure()) {
+        if (isSecure) {
             buf.append("; Secure");
         }
 
         // httpOnly
-        if (cookie.isHttpOnly()) {
+        if (isHttpOnly) {
             buf.append("; HttpOnly");
         }
     }
@@ -179,13 +194,32 @@ public class CookieSerializerUtils {
             boolean versionOneStrictCompliance,
             boolean alwaysAddExpires,
             Cookie cookie) {
+        serializeServerCookie(buf, versionOneStrictCompliance, alwaysAddExpires,
+                cookie.getName(), cookie.getValue(), cookie.getVersion(),
+                cookie.getPath(), cookie.getDomain(), cookie.getComment(),
+                cookie.getMaxAge(), cookie.isSecure(), cookie.isHttpOnly());
+    }
+
+    // TODO RFC2965 fields also need to be passed
+    public static void serializeServerCookie(final Buffer buf,
+            final boolean versionOneStrictCompliance,
+            final boolean alwaysAddExpires,
+            final String name,
+            final String value,
+            int version,
+            String path,
+            final String domain,
+            final String comment,
+            final int maxAge,
+            final boolean isSecure,
+            final boolean isHttpOnly) {
 
         // Servlet implementation checks name
-        put(buf, cookie.getName());
+        put(buf, name);
         put(buf, '=');
         // Servlet implementation does not check anything else
 
-        int version = maybeQuote2(cookie.getVersion(), buf, cookie.getValue(), true);
+        version = maybeQuote2(version, buf, value, true);
 
         // Add version 1 specific information
         if (version == 1) {
@@ -193,7 +227,6 @@ public class CookieSerializerUtils {
             put(buf, "; Version=1");
 
             // Comment=comment
-            final String comment = cookie.getComment();
             if (comment != null) {
                 put(buf, "; Comment=");
                 maybeQuote2(version, buf, comment, versionOneStrictCompliance);
@@ -201,7 +234,6 @@ public class CookieSerializerUtils {
         }
 
         // Add domain information, if present
-        final String domain = cookie.getDomain();
         if (domain != null) {
             put(buf, "; Domain=");
             maybeQuote2(version, buf, domain, versionOneStrictCompliance);
@@ -209,7 +241,6 @@ public class CookieSerializerUtils {
 
         // Max-Age=secs ... or use old "Expires" format
         // TODO RFC2965 Discard
-        final int maxAge = cookie.getMaxAge();
         if (maxAge >= 0) {
             if (version > 0) {
                 put(buf, "; Max-Age=");
@@ -234,7 +265,6 @@ public class CookieSerializerUtils {
         }
 
         // Path=path
-        String path = cookie.getPath();
         if (path != null) {
             put(buf, "; Path=");
 
@@ -251,12 +281,12 @@ public class CookieSerializerUtils {
         }
 
         // Secure
-        if (cookie.isSecure()) {
+        if (isSecure) {
             put(buf, "; Secure");
         }
 
         // httpOnly
-        if (cookie.isHttpOnly()) {
+        if (isHttpOnly) {
             put(buf, "; HttpOnly");
         }
     }

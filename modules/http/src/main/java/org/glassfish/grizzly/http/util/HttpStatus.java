@@ -111,11 +111,11 @@ public enum HttpStatus {
     HttpStatus(final int status, final String reasonPhrase) {
         this.status = status;
         this.reasonPhrase = reasonPhrase;
-        this.reasonPhraseBC = new BufferChunk();
+        final BufferChunk bc = new BufferChunk();
         final DefaultMemoryManager mm = (DefaultMemoryManager) TransportFactory.getInstance().getDefaultMemoryManager();
         ByteBufferWrapper wrapper = mm.wrap(ByteBuffer.wrap(reasonPhrase.getBytes(ASCII_CHARSET)));
-        reasonPhraseBC.setBuffer(wrapper);
-        reasonPhraseBC.lock();
+        bc.setBuffer(wrapper);
+        reasonPhraseBC = bc.toImmutable();
     }
 
 

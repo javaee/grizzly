@@ -56,25 +56,31 @@ public class BufferChunk {
         return new BufferChunk();
     }
     
-    private Buffer buffer;
+    Buffer buffer;
 
-    private int start;
-    private int end;
+    int start;
+    int end;
 
-    private String cachedString;
-    private Charset cachedStringCharset;
+    String cachedString;
+    Charset cachedStringCharset;
 
-    private String stringValue;
-
-    private boolean locked;
+    final CharChunk charChunk;
+    
+    String stringValue;
 
     protected BufferChunk() {
+        this(new CharChunk());
+    }
+
+    BufferChunk(final CharChunk charChunk) {
+        this.charChunk = charChunk;
+    }
+
+    public BufferChunk toImmutable() {
+        return new Immutable(this);
     }
 
     public void set(BufferChunk value) {
-        if (locked) {
-            return;
-        }
         reset();
 
         if (value.hasBuffer()) {
@@ -97,9 +103,6 @@ public class BufferChunk {
     }
     
     public void setBuffer(Buffer buffer, int start, int end) {
-        if (locked) {
-            return;
-        }
         this.buffer = buffer;
         this.start = start;
         this.end = end;
@@ -114,9 +117,6 @@ public class BufferChunk {
     }
 
     public void setStart(int start) {
-        if (locked) {
-            return;
-        }
         this.start = start;
         resetStringCache();
         onContentChanged();
@@ -127,18 +127,12 @@ public class BufferChunk {
     }
 
     public void setEnd(int end) {
-        if (locked) {
-            return;
-        }
         this.end = end;
         resetStringCache();
         onContentChanged();
     }
 
     public void setString(String string) {
-        if (locked) {
-            return;
-        }
         stringValue = string;
         resetBuffer();
         onContentChanged();
@@ -493,54 +487,100 @@ public class BufferChunk {
         return !hasBuffer() && !hasString();
     }
 
-    protected final void resetBuffer() {
-        if (locked) {
-            return;
-        }
+    protected void resetBuffer() {
         start = -1;
         end = -1;
         buffer = null;
     }
 
-    protected final void resetString() {
-        if (locked) {
-            return;
-        }
+    protected void resetString() {
         stringValue = null;
+        charChunk.recycle();
     }
     
-    protected final void resetStringCache() {
-        if (locked) {
-            return;
-        }
+    protected void resetStringCache() {
         cachedString = null;
         cachedStringCharset = null;
     }
     
     protected void reset() {
-        if (locked) {
-            return;
-        }
         start = -1;
         end = -1;
         buffer = null;
         cachedString = null;
         cachedStringCharset = null;
         stringValue = null;
-    }
-
-    protected void lock() {
-        locked = true;
-    }
-
-    protected void unlock() {
-        locked = false;
+        charChunk.recycle();
     }
 
     public void recycle() {
-        if (locked) {
+        reset();
+    }
+
+    final static class Immutable extends BufferChunk {
+        public Immutable(BufferChunk original) {
+            super(original.charChunk);
+            this.start = original.start;
+            this.end = original.end;
+            this.buffer = original.buffer;
+            this.cachedString = original.cachedString;
+            this.cachedStringCharset = original.cachedStringCharset;
+            this.stringValue = original.stringValue;
+        }
+
+        @Override
+        public BufferChunk toImmutable() {
+            return this;
+        }
+
+        @Override
+        public void set(BufferChunk value) {
             return;
         }
-        reset();
+
+        @Override
+        public void setBuffer(Buffer buffer, int start, int end) {
+            return;
+        }
+
+        @Override
+        public void setStart(int start) {
+            return;
+        }
+
+        @Override
+        public void setEnd(int end) {
+            return;
+        }
+
+        @Override
+        public void setString(String string) {
+            return;
+        }
+
+        @Override
+        protected final void resetBuffer() {
+            return;
+        }
+
+        @Override
+        protected final void resetString() {
+            return;
+        }
+
+        @Override
+        protected final void resetStringCache() {
+            return;
+        }
+
+        @Override
+        protected void reset() {
+            return;
+        }
+
+        @Override
+        public void recycle() {
+                return;
+        }
     }
 }

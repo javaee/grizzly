@@ -69,13 +69,6 @@ public final class Constants {
 
 
     // -------------------------------------------------------------- Constants
-    /**
-     * The name of the cookie used to pass the session identifier back
-     * and forth with the client.
-     */
-    public static final String SESSION_COOKIE_NAME = "JSESSIONID";
-    
-
     public static final String DEFAULT_CHARACTER_ENCODING="ISO-8859-1";
 
 

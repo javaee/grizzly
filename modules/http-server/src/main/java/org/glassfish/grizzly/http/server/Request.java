@@ -252,7 +252,7 @@ public class Request {
      * Get the Coyote request.
      */
     public HttpRequestPacket getRequest() {
-        return (this.request);
+        return this.request;
     }
 
 
@@ -1001,18 +1001,6 @@ public class Request {
      */
     public String getRemoteAddr() {
         return request.getRemoteAddress();
-//        if (remoteAddr == null) {
-//
-//            if (socket != null) {
-//                InetAddress inet = socket.getInetAddress();
-//                remoteAddr = inet.getHostAddress();
-//            } else {
-//                request.action
-//                    (ActionCode.ACTION_REQ_HOST_ADDR_ATTRIBUTE, request);
-//                remoteAddr = request.remoteAddr().toString();
-//            }
-//        }
-//        return remoteAddr;
     }
 
 
@@ -1021,17 +1009,6 @@ public class Request {
      */
     public String getRemoteHost() {
         return request.getRemoteHost();
-//        if (remoteHost == null) {
-//            if (socket != null) {
-//                InetAddress inet = socket.getInetAddress();
-//                remoteHost = inet.getHostName();
-//            } else {
-//                request.action
-//                    (ActionCode.ACTION_REQ_HOST_ATTRIBUTE, request);
-//                remoteHost = request.remoteHost().toString();
-//            }
-//        }
-//        return remoteHost;
     }
 
     /**
@@ -1040,16 +1017,6 @@ public class Request {
      */
     public int getRemotePort(){
         return request.getRemotePort();
-//        if (remotePort == -1) {
-//            if (socket != null) {
-//                remotePort = socket.getPort();
-//            } else {
-//                request.action
-//                    (ActionCode.ACTION_REQ_REMOTEPORT_ATTRIBUTE, request);
-//                remotePort = request.getRemotePort();
-//            }
-//        }
-//        return remotePort;
     }
 
     /**
@@ -1058,17 +1025,6 @@ public class Request {
      */
     public String getLocalName(){
        return request.getLocalName();
-//       if (localName == null) {
-//            if (socket != null) {
-//                InetAddress inet = socket.getLocalAddress();
-//                localName = inet.getHostName();
-//            } else {
-//                request.action
-//                    (ActionCode.ACTION_REQ_LOCAL_NAME_ATTRIBUTE, request);
-//                localName = request.localName().toString();
-//            }
-//        }
-//        return localName;
     }
 
     /**
@@ -1077,17 +1033,6 @@ public class Request {
      */
     public String getLocalAddr(){
         return request.getLocalAddress();
-//        if (localAddr == null) {
-//            if (socket != null) {
-//                InetAddress inet = socket.getLocalAddress();
-//                localAddr = inet.getHostAddress();
-//            } else {
-//                request.action
-//                    (ActionCode.ACTION_REQ_LOCAL_ADDR_ATTRIBUTE, request);
-//                localAddr = request.localAddr().toString();
-//            }
-//        }
-//        return localAddr;
     }
 
 
@@ -1097,16 +1042,6 @@ public class Request {
      */
     public int getLocalPort(){
         return request.getLocalPort();
-//        if (localPort == -1){
-//            if (socket != null) {
-//                localPort = socket.getLocalPort();
-//            } else {
-//                request.action
-//                    (ActionCode.ACTION_REQ_LOCALPORT_ATTRIBUTE, request);
-//                localPort = request.getLocalPort();
-//            }
-//        }
-//        return localPort;
     }
 
 
@@ -1140,56 +1075,7 @@ public class Request {
     public boolean isSecure() {
         return (request.isSecure());
     }
-
-
-    /**
-     * Return <tt>true</tt> if the session identifier included in this
-     * request identifies a valid session.
-     */
-    public boolean isRequestedSessionIdValid() {
-
-        if (requestedSessionId == null)
-            return (false);
-
-        if (session != null
-                && requestedSessionId.equals(session.getIdInternal())) {
-            return session.isValid();
-        }
-
-        Session localSession = sessions.put(requestedSessionId,session);
-        if ((localSession != null) && localSession.isValid())
-            return (true);
-        else
-            return (false);
-
-    }
-
-    /**
-     * Return <tt>true</tt> if the session identifier included in this
-     * request came from a cookie.
-     */
-    public boolean isRequestedSessionIdFromCookie() {
-
-        if (requestedSessionId != null)
-            return (requestedSessionCookie);
-        else
-            return (false);
-
-    }
-
-
-    /**
-     * Return <tt>true</tt> if the session identifier included in this
-     * request came from the request URI.
-     */
-    public boolean isRequestedSessionIdFromURL() {
-
-        if (requestedSessionId != null)
-            return (requestedSessionURL);
-        else
-            return (false);
-
-    }
+    
 
     /**
      * Remove the specified request attribute if it exists.
@@ -1639,6 +1525,14 @@ public class Request {
         return request.getMethod();
     }
 
+    /**
+     * Sets the HTTP request method used in this Request.
+     * @param method the HTTP request method used in this Request.
+     */
+    public void setMethod(String method) {
+        request.setMethod(method);
+    }
+
 
     /**
      * Return the query string associated with this request.
@@ -1646,14 +1540,21 @@ public class Request {
     public String getQueryString() {
         String queryString = request.getQueryString();
 
-       if (queryString == null || queryString.equals("")) {
+        if (queryString == null || queryString.isEmpty()) {
             return (null);
         } else {
             return queryString;
         }
     }
 
-
+    /**
+     * Sets the query string associated with this request.
+     * @param queryString the query string associated with this request.
+     */
+    public void setQueryString(String queryString) {
+        request.setQueryString(queryString);
+    }
+    
     /**
      * Return the name of the remote user that has been authenticated
      * for this Request.
@@ -1661,7 +1562,7 @@ public class Request {
     public String getRemoteUser() {
 
         if (userPrincipal != null) {
-            return (userPrincipal.getName());
+            return userPrincipal.getName();
         } else {
             return (null);
         }
@@ -1673,7 +1574,7 @@ public class Request {
      * Return the session identifier included in this request, if any.
      */
     public String getRequestedSessionId() {
-        return (requestedSessionId);
+        return requestedSessionId;
     }
 
 
@@ -1684,6 +1585,13 @@ public class Request {
         return request.getRequestURI();
     }
 
+    /**
+     * Sets the request URI for this request.
+     * @param uri the request URI for this request.
+     */
+    public void setRequestURI(String uri) {
+        request.setRequestURI(uri);
+    }
 
     /**
      * Reconstructs the URL the client used to make the request.
@@ -1727,7 +1635,7 @@ public class Request {
      * Return the principal that has been authenticated for this Request.
      */
     public Principal getUserPrincipal() {
-        return (userPrincipal);
+        return userPrincipal;
     }
 
     public FilterChainContext getContext() {
@@ -2086,7 +1994,7 @@ public class Request {
      * @param create Create a new session if one does not exist
      */
     public Session getSession(boolean create) {
-        return  doGetSession(create);
+        return doGetSession(create);
     }
 
 
@@ -2096,21 +2004,24 @@ public class Request {
             session = null;
         }
 
-        if (session != null)
-            return (session);
+        if (session != null) {
+            return session;
+        }
 
         if (requestedSessionId != null) {
             session = sessions.get(requestedSessionId);
-            if ((session != null) && !session.isValid())
+            if ((session != null) && !session.isValid()) {
                 session = null;
+            }
             if (session != null) {
-                return (session);
+                return session;
             }
         }
 
         // Create a new session if requested and the response is not committed
-        if (!create)
-            return (null);
+        if (!create) {
+            return null;
+        }
 
         if (requestedSessionId != null) {
             session = new Session(requestedSessionId);
@@ -2120,25 +2031,77 @@ public class Request {
             requestedSessionId = String.valueOf(Math.abs(r.nextLong()));
             session = new Session(requestedSessionId);
         }
-        sessions.put(requestedSessionId,session);
+        sessions.put(requestedSessionId, session);
 
         // Creating a new session cookie based on the newly created session
         if (session != null) {
             Cookie cookie = new Cookie(Globals.SESSION_COOKIE_NAME,
-                                       session.getIdInternal());
+                    session.getIdInternal());
             configureSessionCookie(cookie);
             response.addCookie(cookie);
 
         }
 
         if (session != null) {
-            return (session);
+            return session;
         } else {
-            return (null);
+            return null;
         }
 
     }
 
+    /**
+     * Return <code>true</code> if the session identifier included in this
+     * request came from a cookie.
+     */
+    public boolean isRequestedSessionIdFromCookie() {
+
+        if (requestedSessionId != null) {
+            return requestedSessionCookie;
+        } else {
+            return false;
+        }
+
+    }
+
+    /**
+     * Return <code>true</code> if the session identifier included in this
+     * request came from the request URI.
+     */
+    public boolean isRequestedSessionIdFromURL() {
+
+        if (requestedSessionId != null) {
+            return requestedSessionURL;
+        } else {
+            return false;
+        }
+
+    }
+
+    /**
+     * Return <tt>true</tt> if the session identifier included in this
+     * request identifies a valid session.
+     */
+    public boolean isRequestedSessionIdValid() {
+
+        if (requestedSessionId == null) {
+            return false;
+        }
+
+        if (session != null
+                && requestedSessionId.equals(session.getIdInternal())) {
+            return session.isValid();
+        }
+
+        Session localSession = sessions.put(requestedSessionId, session);
+        if ((localSession != null) && localSession.isValid()) {
+            return true;
+        } else {
+            return false;
+        }
+
+    }
+    
     /**
      * Configures the given JSESSIONID cookie.
      *

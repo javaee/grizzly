@@ -435,7 +435,7 @@ public class Response {
      * <code>&lt;description&gt;/&lt;version&gt;</code>.
      */
     public String getInfo() {
-        return (info);
+        return info;
     }
 
 
@@ -975,7 +975,14 @@ public class Response {
         cookies.add(cookie);
     }
 
-
+    /**
+     * Removes any Set-Cookie response headers whose value contains the
+     * string "JSESSIONID=" or "JSESSIONIDSSO="
+     */
+    public void removeSessionCookies() {
+        response.getHeaders().removeHeader("Set-Cookie", Constants.SESSION_COOKIE_PATTERN);
+    }
+    
     /**
      * Add the specified date header to the specified value.
      *

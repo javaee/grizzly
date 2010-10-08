@@ -130,7 +130,7 @@ public abstract class HttpService {
         }
 
         try {
-            if (decodeURL){
+            if (decodeURL) {
                 // URI decoding
                 final HttpRequestPacket httpRequestPacket = request.getRequest();
                 try {
