@@ -40,7 +40,13 @@
 
 package org.glassfish.grizzly.http.util;
 
+import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.http.HttpResponsePacket;
+import org.glassfish.grizzly.memory.ByteBufferWrapper;
+import org.glassfish.grizzly.memory.DefaultMemoryManager;
+
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 
 /**
  * This <code>enum</code> encapsulates the HTTP response status and
@@ -104,10 +110,13 @@ public enum HttpStatus {
         this.status = status;
         this.reasonPhrase = reasonPhrase;
         this.reasonPhraseBC = new BufferChunk();
-        reasonPhraseBC.setString(reasonPhrase);
-        reasonPhraseBC.lock();
-
-
+        final DefaultMemoryManager mm = (DefaultMemoryManager) TransportFactory.getInstance().getDefaultMemoryManager();
+        try {
+            ByteBufferWrapper wrapper = mm.wrap(ByteBuffer.wrap(reasonPhrase.getBytes("US-ASCII")));
+            reasonPhraseBC.setBuffer(wrapper);
+            reasonPhraseBC.lock();
+        } catch (UnsupportedEncodingException ignored) {
+        }
     }
 
 
