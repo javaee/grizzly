@@ -256,6 +256,10 @@ final class EchoServer {
                         out.write(buf, 0, read);
                     }
 
+                    if (in.isFinished()) {
+                        break;
+                    }
+
                     // try to install a ReadHandler.  If this fails,
                     // continue at the top of the loop and read available data,
                     // otherwise break the look and allow the handler to wait for
@@ -282,8 +286,9 @@ final class EchoServer {
                         break;
                     }
                 } while (!in.isFinished());
-
-                response.suspend();
+                if (!in.isFinished()) {
+                    response.suspend();
+                }
             } else {
                 final NIOReader in = request.getReader(false);
                 final NIOWriter out = response.getWriter();
@@ -299,6 +304,10 @@ final class EchoServer {
                         out.write(buf, 0, read);
                     }
 
+                    if (in.isFinished()) {
+                        break;
+                    }
+
                     // try to install a ReadHandler.  If this fails,
                     // continue at the top of the loop and read available data,
                     // otherwise break the look and allow the handler to wait for
@@ -326,7 +335,9 @@ final class EchoServer {
                     }
                 } while (!in.isFinished());
 
-                response.suspend();
+                if (!in.isFinished()) {
+                    response.suspend();
+                }
             }
         }
 
