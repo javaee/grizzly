@@ -141,11 +141,12 @@ public final class BuffersBuffer extends CompositeBuffer {
             this.memoryManager = TransportFactory.getInstance().getDefaultMemoryManager();
         }
 
-        initBuffers(buffers, buffersSize);
-        
-        calcCapacity();
+        if (buffers != null || this.buffers == null) {
+            initBuffers(buffers, buffersSize);
+            calcCapacity();
+            this.limit = capacity;
+        }
 
-        this.limit = capacity;
         this.isReadOnly = isReadOnly;
     }
 
