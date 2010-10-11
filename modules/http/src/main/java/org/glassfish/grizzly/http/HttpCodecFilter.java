@@ -452,10 +452,6 @@ public abstract class HttpCodecFilter extends BaseFilter
                     return ctx.getRerunFilterAction();
                 } else {
                     // if no remainder - just stop
-                    if (httpHeader.isRequest()) {
-                        ((HttpRequestPacket) httpHeader).getResponse().recycle();
-                        httpHeader.recycle();
-                    }
                     return ctx.getStopAction();
                 }
             }
@@ -640,7 +636,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                                                    contentEncoder);
             encodedBuffer = Buffers.appendBuffers(memoryManager,
                     encodedBuffer, content);
-            httpContent.recycle();
+
             if (encodedBuffer.isComposite()) {
                 // If during buffer appending - composite buffer was created -
                 // allow buffer disposing
