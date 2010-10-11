@@ -627,7 +627,9 @@ public abstract class HttpCodecFilter extends BaseFilter
 
             HttpProbeNotifier.notifyContentChunkSerialize(this, connection, httpContent);
             
-            if ((encodedHttpContent = encodeContent(connection, httpContent)) == null) return encodedBuffer;
+            if ((encodedHttpContent = encodeContent(connection, httpContent)) == null) {
+                return encodedBuffer;
+            }
             
             final TransferEncoding contentEncoder = httpHeader.getTransferEncoding();
 

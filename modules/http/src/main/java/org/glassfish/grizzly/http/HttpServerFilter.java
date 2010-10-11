@@ -288,7 +288,11 @@ public class HttpServerFilter extends HttpCodecFilter {
             prepareResponse(response.getRequest(), response);
         }
 
-        return super.encodeHttpPacket(connection, input);
+        final Buffer encoded = super.encodeHttpPacket(connection, input);
+        if (input instanceof HttpContent) {
+            input.recycle();
+        }
+        return encoded;
     }
 
     @Override

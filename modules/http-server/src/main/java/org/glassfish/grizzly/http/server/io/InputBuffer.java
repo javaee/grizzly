@@ -205,6 +205,7 @@ public class InputBuffer {
             if (content.getContent().hasRemaining()) {
                 compositeBuffer.append(content.getContent());
             }
+            content.recycle();
             contentRead = content.isLast();
         }
 
@@ -763,6 +764,8 @@ public class InputBuffer {
                 Buffer b = c.getContent();
                 read += b.remaining();
                 compositeBuffer.append(c.getContent());
+                rr.recycle();
+                c.recycle();
             }
             return read;
         }
@@ -840,7 +843,7 @@ public class InputBuffer {
                     last = c.isLast();
 
                     rr.recycle();
-
+                    c.recycle();
                     isNeedMoreInput = false;
                 }
 

@@ -190,7 +190,8 @@ public class HttpServerFilter extends BaseFilter
                             ctx.recycle();
                             return action;
                         }
-                    } 
+                    }
+                    httpContent.recycle();
                 }
             }
         } else { // this code will be run, when we resume after suspend
