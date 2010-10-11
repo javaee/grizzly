@@ -54,9 +54,13 @@ import java.util.logging.Logger;
 public final class DefaultSelectionKeyHandler implements SelectionKeyHandler {
 
     private static final Logger LOGGER = Grizzly.logger(DefaultSelectionKeyHandler.class);
-    private static final int[] ioEvent2SelectionKeyInterest = {
-        0, SelectionKey.OP_ACCEPT, 0, SelectionKey.OP_CONNECT, 0,
-        SelectionKey.OP_READ, SelectionKey.OP_WRITE, 0};
+
+// Comment the mapping array and use if instead (appear to be faster)
+//
+//    private static final int[] ioEvent2SelectionKeyInterest = {
+//        0, SelectionKey.OP_ACCEPT, 0, SelectionKey.OP_CONNECT, 0,
+//        SelectionKey.OP_READ, SelectionKey.OP_WRITE, 0};
+
     private final static IOEvent[][] ioEventMap;
 
     static {
@@ -98,7 +102,13 @@ public final class DefaultSelectionKeyHandler implements SelectionKeyHandler {
 
     @Override
     public int ioEvent2SelectionKeyInterest(IOEvent ioEvent) {
-        return ioEvent2SelectionKeyInterest[ioEvent.ordinal()];
+        switch (ioEvent) {
+            case READ: return SelectionKey.OP_READ;
+            case WRITE: return SelectionKey.OP_WRITE;
+            case SERVER_ACCEPT: return SelectionKey.OP_ACCEPT;
+            case CLIENT_CONNECTED: return SelectionKey.OP_CONNECT;
+            default: return 0;
+        }
     }
 
     @Override

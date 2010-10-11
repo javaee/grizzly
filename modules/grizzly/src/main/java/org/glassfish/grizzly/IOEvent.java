@@ -54,6 +54,16 @@ public enum IOEvent {
     NONE,
 
     /**
+     * Event occurs on a {@link Connection}, once it gets available for read.
+     */
+    READ,
+
+    /**
+     * Event occurs on a {@link Connection}, once it  gets available for write.
+     */
+    WRITE,
+
+    /**
      * Event occurs on a server {@link Connection}, when it becomes ready
      * to accept new client {@link Connection}.
      *
@@ -80,16 +90,6 @@ public enum IOEvent {
      * Event occurs on a {@link Connection}, once it was connected to server.
      */
     CONNECTED,
-
-    /**
-     * Event occurs on a {@link Connection}, once it gets available for read.
-     */
-    READ,
-
-    /**
-     * Event occurs on a {@link Connection}, once it  gets available for write.
-     */
-    WRITE,
     
     /**
      * Event occurs on a {@link Connection}, once it gets closed.

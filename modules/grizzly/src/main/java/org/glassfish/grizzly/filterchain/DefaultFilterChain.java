@@ -79,11 +79,12 @@ import java.util.concurrent.ExecutionException;
  */
 public final class DefaultFilterChain extends ListFacadeFilterChain {
 
-    private static final Operation[] IOEVENT_2_OPERATION = new Operation[] {
-        Operation.NONE, Operation.NONE, Operation.ACCEPT,
-        Operation.NONE, Operation.CONNECT,
-        Operation.READ, Operation.NONE, Operation.CLOSE
-    };
+//    Comment the mapping array, because "if"s work faster
+//    private static final Operation[] IOEVENT_2_OPERATION = new Operation[] {
+//        Operation.NONE, Operation.NONE, Operation.ACCEPT,
+//        Operation.NONE, Operation.CONNECT,
+//        Operation.READ, Operation.NONE, Operation.CLOSE
+//    };
 
     public enum FILTER_STATE_TYPE {
         INCOMPLETE, REMAINDER
@@ -121,7 +122,8 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             final IOEvent ioEvent = internalContext.getIoEvent();
 
             if (ioEvent != IOEvent.WRITE) {
-                filterChainContext.setOperation(IOEVENT_2_OPERATION[ioEvent.ordinal()]);
+                filterChainContext.setOperation(FilterChainContext.ioEvent2Operation(ioEvent));
+//                filterChainContext.setOperation(IOEVENT_2_OPERATION[ioEvent.ordinal()]);
             } else {
                 // On OP_WRITE - call the async write queue
                 final Connection connection = context.getConnection();

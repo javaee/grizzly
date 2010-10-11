@@ -57,6 +57,7 @@ import org.glassfish.grizzly.memory.Buffers;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.IOEvent;
 
 /**
  * {@link FilterChain} {@link Context} implementation.
@@ -621,6 +622,23 @@ public final class FilterChainContext implements AttributeStorage {
         sb.append(']');
 
         return sb.toString();
+    }
+
+//    Comment the mapping array, because "if"s work faster
+//    private static final Operation[] IOEVENT_2_OPERATION = new Operation[] {
+//        Operation.NONE, Operation.NONE, Operation.ACCEPT,
+//        Operation.NONE, Operation.CONNECT,
+//        Operation.READ, Operation.NONE, Operation.CLOSE
+//    };
+    static Operation ioEvent2Operation(final IOEvent ioEvent) {
+        switch(ioEvent) {
+            case READ: return Operation.READ;
+            case WRITE: return Operation.WRITE;
+            case ACCEPTED: return Operation.ACCEPT;
+            case CONNECTED: return Operation.CONNECT;
+            case CLOSED: return Operation.CLOSE;
+            default: return Operation.NONE;
+        }
     }
 
     public final class TransportContext {
