@@ -56,6 +56,7 @@
     <name>grizzly-modules</name>
     <url>https://grizzly.dev.java.net</url>
     <modules>
+        <module>utils</module>
         <module>grizzly</module>
         <module>rcm</module>
         <module>http</module>
