@@ -199,6 +199,8 @@ public class InputBuffer {
         this.ctx = ctx;
         connection = ctx.getConnection();
         compositeBuffer = CompositeBuffer.newBuffer(connection.getTransport().getMemoryManager());
+        compositeBuffer.allowBufferDispose(true);
+        compositeBuffer.allowInternalBuffersDispose(true);
         Object message = ctx.getMessage();
         if (message instanceof HttpContent) {
             HttpContent content = (HttpContent) ctx.getMessage();
