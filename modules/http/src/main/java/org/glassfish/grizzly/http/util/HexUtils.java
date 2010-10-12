@@ -245,7 +245,15 @@ public final class HexUtils {
         return IS_HEX_DIGIT[c];
     }
 
+    public static boolean isHexDigit(int c) {
+        return IS_HEX_DIGIT[c];
+    }
+
     public static int hexDigit2Dec(byte hexDigit) {
+        return DEC[hexDigit];
+    }
+
+    public static int hexDigit2Dec(int hexDigit) {
         return DEC[hexDigit];
     }
 }

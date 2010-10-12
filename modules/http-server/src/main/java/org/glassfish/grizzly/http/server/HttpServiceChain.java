@@ -41,10 +41,9 @@
 package org.glassfish.grizzly.http.server;
 
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.http.server.jmx.JmxEventListener;
 import org.glassfish.grizzly.http.server.jmx.Monitorable;
-import org.glassfish.grizzly.http.util.BufferChunk;
+import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.RequestURIRef;
 import org.glassfish.grizzly.http.server.util.Mapper;
@@ -55,6 +54,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.http.util.CharChunk;
 
 /**
  * The HttpServiceChain class allows the invocation of multiple {@link HttpService}s
@@ -109,7 +109,7 @@ public class HttpServiceChain extends HttpService implements JmxEventListener {
 
     public HttpServiceChain(final HttpServer gws) {
         this.gws = gws;
-        mapper = new Mapper(TransportFactory.getInstance().getDefaultMemoryManager());
+        mapper = new Mapper();
         mapper.setDefaultHostName(LOCAL_HOST);
         // We will decode it
         setDecodeUrl(false);
@@ -178,7 +178,7 @@ public class HttpServiceChain extends HttpService implements JmxEventListener {
             MappingData mappingData;
             try {
                 RequestURIRef uriRef = request.getRequest().getRequestURIRef();
-                BufferChunk decodedURI = uriRef.getDecodedRequestURIBC();
+                DataChunk decodedURI = uriRef.getDecodedRequestURIBC();
                 //MessageBytes decodedURI = req.decodedURI();
                 //decodedURI.duplicate(req.requestURI());
                 // TODO: cleanup notes (int version/string version)
@@ -345,13 +345,14 @@ public class HttpServiceChain extends HttpService implements JmxEventListener {
      *
      * @throws Exception if an error occurs mapping the request
      */
-    private void mapUriWithSemicolon(final BufferChunk serverName,
-                                     final BufferChunk decodedURI,
+    private void mapUriWithSemicolon(final DataChunk serverName,
+                                     final DataChunk decodedURI,
                                      int semicolonPos,
                                      final MappingData mappingData)
     throws Exception {
 
-        final int oldEnd = decodedURI.getEnd();
+        final CharChunk charChunk = decodedURI.getCharChunk();
+        final int oldEnd = charChunk.getEnd();
 
         if (semicolonPos == 0) {
             semicolonPos = decodedURI.indexOf(';', 0);
@@ -361,12 +362,12 @@ public class HttpServiceChain extends HttpService implements JmxEventListener {
             semicolonPos = oldEnd;
         }
 
-        decodedURI.setEnd(semicolonPos);
+        charChunk.setEnd(semicolonPos);
 
         try {
             mapper.map(serverName, decodedURI, mappingData);
         } finally {
-            decodedURI.setEnd(oldEnd);
+            charChunk.setEnd(oldEnd);
         }
     }
 

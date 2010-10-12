@@ -44,7 +44,7 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
-import org.glassfish.grizzly.http.util.BufferChunk;
+import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.ContentType;
 import org.glassfish.grizzly.http.util.MimeHeaders;
@@ -66,7 +66,7 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
     protected boolean isCommitted;
     protected final MimeHeaders headers = new MimeHeaders();
     
-    protected final BufferChunk protocolBC = BufferChunk.newInstance();
+    protected final DataChunk protocolC = DataChunk.newInstance();
     protected Protocol parsedProtocol;
 
     protected boolean isChunked;
@@ -82,7 +82,7 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
     
     protected boolean secure;
 
-    protected final BufferChunk upgrade = BufferChunk.newInstance();
+    protected final DataChunk upgrade = DataChunk.newInstance();
 
     private TransferEncoding transferEncoding;
     private final List<ContentEncoding> contentEncodings = new ArrayList<ContentEncoding>();
@@ -236,7 +236,7 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
         return upgradeStr;
     }
 
-    public BufferChunk getUpgradeBC() {
+    public DataChunk getUpgradeDC() {
         return upgrade;
     }
 
@@ -280,7 +280,7 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
      */
     public long getContentLength() {
         if (contentLength == -1) {
-            final BufferChunk contentLengthChunk =
+            final DataChunk contentLengthChunk =
                     headers.getValue(Constants.CONTENT_LENGTH_HEADER);
             if (contentLengthChunk != null) {
                 contentLength = Ascii.parseLong(contentLengthChunk);
@@ -359,7 +359,7 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
      *
      * @param value container for the content-type value.
      */
-    protected void extractContentEncoding(BufferChunk value) {
+    protected void extractContentEncoding(DataChunk value) {
         final int idx = headers.indexOf(Constants.CONTENT_ENCODING_HEADER, 0);
 
         if (idx != -1) {
@@ -398,15 +398,15 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
     /**
      * Obtain content-type value and mark it as serialized.
      *
-     * @param bc container for the content-type value.
+     * @param dc container for the content-type value.
      */
-    protected void extractContentType(BufferChunk bc) {
+    protected void extractContentType(DataChunk dc) {
         if (!contentTypeParsed) {
             contentTypeParsed = true;
 
             if (contentType == null) {
                 final int idx = headers.indexOf(Constants.CONTENT_TYPE_HEADER, 0);
-                final BufferChunk value;
+                final DataChunk value;
                 if (idx != -1 && !((value = headers.getValue(idx)).isNull())) {
                     contentType = value.toString();
                     headers.getAndSetSerialized(idx, true);
@@ -414,7 +414,7 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
             }
         }
 
-        bc.setString(contentType);
+        dc.setString(contentType);
     }
 
     /**
@@ -425,10 +425,10 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
             contentTypeParsed = true;
 
             if (contentType == null) {
-                BufferChunk bc = headers.getValue("content-type");
+                DataChunk dc = headers.getValue("content-type");
 
-                if (bc != null && !bc.isNull()) {
-                    contentType = bc.toString();
+                if (dc != null && !dc.isNull()) {
+                    contentType = dc.toString();
                 }
             }
         }
@@ -491,14 +491,14 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
     }
 
     /**
-     * Get the HTTP message protocol version as {@link BufferChunk}
+     * Get the HTTP message protocol version as {@link DataChunk}
      * (avoiding creation of a String object). The result format is "HTTP/1.x".
      * 
-     * @return the HTTP message protocol version as {@link BufferChunk}
+     * @return the HTTP message protocol version as {@link DataChunk}
      * (avoiding creation of a String object). The result format is "HTTP/1.x".
      */
-    public BufferChunk getProtocolBC() {
-        return protocolBC;
+    public DataChunk getProtocolDC() {
+        return protocolC;
     }
 
     /**
@@ -508,7 +508,7 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
      */
     public String getProtocolString() {
         if (parsedProtocol == null) {
-            return getProtocolBC().toString();
+            return getProtocolDC().toString();
         }
 
         return parsedProtocol.getProtocolString();
@@ -523,16 +523,16 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
             return parsedProtocol;
         }
 
-        if (protocolBC.isNull() || protocolBC.size() == 0) {
+        if (protocolC.isNull() || protocolC.getLength() == 0) {
             parsedProtocol = Protocol.HTTP_0_9;
-        } else if (protocolBC.equals(Protocol.HTTP_1_1.getProtocolString())) {
+        } else if (protocolC.equals(Protocol.HTTP_1_1.getProtocolString())) {
             parsedProtocol = Protocol.HTTP_1_1;
-        } else if (protocolBC.equals(Protocol.HTTP_1_0.getProtocolString())) {
+        } else if (protocolC.equals(Protocol.HTTP_1_0.getProtocolString())) {
             parsedProtocol = Protocol.HTTP_1_0;
-        } else if (protocolBC.equals(Protocol.HTTP_0_9.getProtocolString())) {
+        } else if (protocolC.equals(Protocol.HTTP_0_9.getProtocolString())) {
             parsedProtocol = Protocol.HTTP_0_9;
         } else {
-            throw new IllegalStateException("Unknown protocol " + protocolBC.toString());
+            throw new IllegalStateException("Unknown protocol " + protocolC.toString());
         }
 
         return parsedProtocol;
@@ -587,7 +587,7 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
     protected void reset() {
         secure = false;
         attributes.recycle();
-        protocolBC.recycle();
+        protocolC.recycle();
         parsedProtocol = null;
         contentEncodings.clear();
         headers.clear();
@@ -634,7 +634,7 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
          */
         @SuppressWarnings({"unchecked"})
         public final T protocol(String protocol) {
-            packet.getProtocolBC().setString(protocol);
+            packet.getProtocolDC().setString(protocol);
             return (T) this;
         }
 

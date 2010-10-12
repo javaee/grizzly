@@ -48,9 +48,28 @@ import java.io.CharConversionException;
  * @author Alexey Stashok
  */
 public class URLDecoder {
-    public static void decode(final BufferChunk bufferChunk)
+    public static void decode(final DataChunk dataChunk)
             throws CharConversionException {
-        decode(bufferChunk, true);
+        decode(dataChunk, true);
+    }
+
+   /**
+     * URLDecode the {@link DataChunk}
+     */
+    public static void decode(final DataChunk dataChunk,
+            final boolean allowEncodedSlash) throws CharConversionException {
+        switch (dataChunk.getType()) {
+            case Buffer:
+                decode(dataChunk.getBufferChunk(), allowEncodedSlash);
+                return;
+            case String:
+                decode(dataChunk.toString(), allowEncodedSlash);
+                return;
+            case Chars:
+                decode(dataChunk.getCharChunk(), allowEncodedSlash);
+                return;
+            default: throw new NullPointerException();
+        }
     }
     
     /**
@@ -95,6 +114,48 @@ public class URLDecoder {
         bufferChunk.setEnd(idx);
     }
 
+    /**
+     * URLDecode the {@link CharChunk}
+     */
+    public static void decode(final CharChunk charChunk,
+            final boolean allowEncodedSlash) throws CharConversionException {
+
+        final char[] buffer = charChunk.getBuffer();
+        int start = charChunk.getStart();
+        int end = charChunk.getLimit();
+
+        int idx = start;
+        for (int j = start; j < end; j++, idx++) {
+            final char c = buffer[j];
+
+            if (c == '+') {
+                buffer[idx] = ' ';
+            } else if (c != '%') {
+                buffer[idx] = c;
+            } else {
+                // read next 2 digits
+                if (j + 2 >= end) {
+                    throw new IllegalStateException("Unexpected termination");
+                }
+                char c1 = buffer[j + 1];
+                char c2 = buffer[j + 2];
+
+                if (!HexUtils.isHexDigit(c1) || !HexUtils.isHexDigit(c2)) {
+                    throw new IllegalStateException("isHexDigit");
+                }
+
+                j += 2;
+                int res = x2c(c1, c2);
+                if (!allowEncodedSlash && (res == '/')) {
+                    throw new CharConversionException("Encoded slashes are not allowed");
+                }
+                buffer[idx] = (char) res;
+            }
+        }
+
+        charChunk.setLimit(idx);
+    }
+    
     // XXX Old code, needs to be replaced !!!!
     // 
     public static String decode(final String str) throws CharConversionException {
@@ -162,5 +223,9 @@ public class URLDecoder {
 
     private static int x2c(byte b1, byte b2) {
         return (HexUtils.hexDigit2Dec(b1) << 4) + HexUtils.hexDigit2Dec(b2);
+    }
+
+    private static int x2c(int c1, int c2) {
+        return (HexUtils.hexDigit2Dec(c1) << 4) + HexUtils.hexDigit2Dec(c2);
     }
 }

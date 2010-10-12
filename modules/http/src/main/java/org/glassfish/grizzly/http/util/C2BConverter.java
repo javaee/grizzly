@@ -179,7 +179,7 @@ public class C2BConverter {
         } else if( type==MessageBytes.T_CHARS ) {
             CharChunk charC=mb.getCharChunk();
             convert( charC.getBuffer(),
-                                charC.getOffset(), charC.getLength());
+                                charC.getStart(), charC.getLength());
             //System.out.println("XXX Converting " + mb.getCharChunk() );
         } else {
             if (logger.isLoggable(Level.FINE)){

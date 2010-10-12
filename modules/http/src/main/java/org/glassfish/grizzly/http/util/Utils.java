@@ -54,11 +54,11 @@ public class Utils {
     private static ConcurrentHashMap<String, Charset> charsetAliasMap =
             new ConcurrentHashMap<String, Charset>();
 
-    private static HashMap<Integer,BufferChunk> statusMessages =
-            new HashMap<Integer,BufferChunk>();
+    private static HashMap<Integer,DataChunk> statusMessages =
+            new HashMap<Integer,DataChunk>();
     static {
         for (final HttpStatus status : HttpStatus.values()) {
-            statusMessages.put(status.getStatusCode(), status.getReasonPhraseBC());
+            statusMessages.put(status.getStatusCode(), status.getReasonPhraseDC());
         }
     }
 
@@ -90,7 +90,7 @@ public class Utils {
      *  status code.  If there is no message for the specified <code>httpStatus</code>,
      *  <code>null</code> shall be returned.
      */
-    public static BufferChunk getHttpStatusMessage(final int httpStatus) {
+    public static DataChunk getHttpStatusMessage(final int httpStatus) {
 
         return statusMessages.get(httpStatus);
         

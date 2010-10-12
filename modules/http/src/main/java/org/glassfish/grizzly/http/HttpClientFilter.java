@@ -179,7 +179,7 @@ public class HttpClientFilter extends HttpCodecFilter {
                         return false;
                     }
 
-                    httpResponse.getProtocolBC().setBuffer(input,
+                    httpResponse.getProtocolDC().setBuffer(input,
                             parsingState.start, spaceIdx);
 
                     parsingState.start = -1;
@@ -209,7 +209,7 @@ public class HttpClientFilter extends HttpCodecFilter {
                         return false;
                     }
 
-                    httpResponse.getStatusBC().setBuffer(input,
+                    httpResponse.getStatusDC().setBuffer(input,
                             parsingState.start, spaceIdx);
 
                     parsingState.start = -1;
@@ -237,7 +237,7 @@ public class HttpClientFilter extends HttpCodecFilter {
                         return false;
                     }
                     
-                    httpResponse.getReasonPhraseBC(false).setBuffer(
+                    httpResponse.getReasonPhraseDC(false).setBuffer(
                             input, parsingState.start,
                             parsingState.checkpoint);
 
@@ -256,12 +256,12 @@ public class HttpClientFilter extends HttpCodecFilter {
     @Override
     Buffer encodeInitialLine(HttpPacket httpPacket, Buffer output, MemoryManager memoryManager) {
         final HttpRequestPacket httpRequest = (HttpRequestPacket) httpPacket;
-        output = put(memoryManager, output, httpRequest.getMethodBC());
+        output = put(memoryManager, output, httpRequest.getMethodDC());
         output = put(memoryManager, output, Constants.SP);
         output = put(memoryManager, output, httpRequest.getRequestURIRef().getRequestURIBC());
-        if (!httpRequest.getQueryStringBC().isNull()) {
+        if (!httpRequest.getQueryStringDC().isNull()) {
             output = put(memoryManager, output, (byte) '?'); 
-            output = put(memoryManager, output, httpRequest.getQueryStringBC());
+            output = put(memoryManager, output, httpRequest.getQueryStringDC());
         }
         output = put(memoryManager, output, Constants.SP);
         output = put(memoryManager, output, httpRequest.getProtocolString());

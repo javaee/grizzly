@@ -37,12 +37,15 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.http.util;
 
+import java.io.CharConversionException;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Grizzly;
 
 /**
  * Utility class that make sure an HTTP url defined inside a {@link MessageBytes}
@@ -60,10 +63,9 @@ public class HttpRequestURIDecoder {
 
     protected static final boolean ALLOW_BACKSLASH = false;
     private static final boolean COLLAPSE_ADJACENT_SLASHES =
-            Boolean.valueOf(System.getProperty("com.sun.enterprise.web.collapseAdjacentSlashes"
-            , "true")).booleanValue();
-    private static Logger log = Logger.getLogger(
-            HttpRequestURIDecoder.class.getName());
+            Boolean.valueOf(System.getProperty("com.sun.enterprise.web.collapseAdjacentSlashes", "true")).booleanValue();
+    private static final Logger LOGGER = Grizzly.logger(HttpRequestURIDecoder.class);
+    private static final Charset UTF8_CHARSET = Utils.lookupCharset("UTF-8");
 
     /**
      * Decode the http request represented by the bytes inside {@link MessageBytes}
@@ -78,12 +80,12 @@ public class HttpRequestURIDecoder {
     }
 
     /**
-     * Decode the http request represented by the bytes inside {@link MessageBytes}
+     * Decode the HTTP request represented by the bytes inside {@link MessageBytes}
      * using an {@link UDecoder}, using the specified encoding, using the specified
      * [@link B2CConverter} to decode the request.
      * @param decodedURI - The bytes to decode
      * @param urlDecoder - The urlDecoder to use to decode.
-     * @param encoding the encoding value, default is utf-8.
+     * @param encoding the encoding value, default is UTF-8.
      * @param b2cConverter the Bytes to Char Converter.
      * @throws java.lang.Exception
      */
@@ -103,11 +105,73 @@ public class HttpRequestURIDecoder {
         convertURI(decodedURI, encoding, b2cConverter);
 
         // Check that the URI is still normalized
-        if (!checkNormalize(decodedURI)) {
+        if (!checkNormalize(decodedURI.getCharChunk())) {
             throw new IOException("Invalid URI character encoding");
         }
     }
 
+    /**
+     * Decode the HTTP request represented by the bytes inside {@link DataChunk}.
+     * @param decodedURI - The bytes to decode
+     * @throws java.lang.Exception
+     */
+    public static void decode(DataChunk decodedURI)
+            throws CharConversionException {
+        decode(decodedURI, false, UTF8_CHARSET);
+    }
+
+    /**
+     * Decode the HTTP request represented by the bytes inside {@link DataChunk}.
+     * @param decodedURI - The bytes to decode
+     * @param isSlashAllowed allow encoded slashes
+     * @throws java.lang.Exception
+     */
+    public static void decode(DataChunk decodedURI, boolean isSlashAllowed)
+            throws CharConversionException {
+        decode(decodedURI, isSlashAllowed, UTF8_CHARSET);
+    }
+
+    /**
+     * Decode the HTTP request represented by the bytes inside {@link DataChunk}.
+     * @param decodedURI - The bytes to decode
+     * @param encoding the encoding value, default is UTF-8.
+     * @throws java.lang.Exception
+     */
+    public static void decode(final DataChunk decodedURI,
+            final boolean isSlashAllowed, final Charset encoding)
+            throws CharConversionException {
+        
+        // %xx decoding of the URL
+        URLDecoder.decode(decodedURI, isSlashAllowed);
+
+        if (!normalize(decodedURI)) {
+            throw new CharConversionException("Invalid URI character encoding");
+        }
+
+        convertToChars(decodedURI, encoding);
+    }
+
+    /**
+     * Converts the normalized the HTTP request represented by the bytes inside
+     * {@link DataChunk} to chars representation, using the passed encoding.
+     * @param decodedURI - The bytes to decode
+     * @param encoding the encoding value, default is UTF-8.
+     * @throws java.lang.Exception
+     */
+    public static void convertToChars(final DataChunk decodedURI,
+            Charset encoding) throws CharConversionException {
+        if (encoding == null) {
+            encoding = UTF8_CHARSET;
+        }
+
+        decodedURI.toChars(encoding);
+
+        // Check that the URI is still normalized
+        if (!checkNormalize(decodedURI.getCharChunk())) {
+            throw new CharConversionException("Invalid URI character encoding");
+        }
+    }
+    
     /**
      * Convert a URI using the specified encoding, using the specified
      * [@link B2CConverter} to decode the request.
@@ -116,7 +180,7 @@ public class HttpRequestURIDecoder {
      * @param b2cConverter the Bytes to Char Converter.
      * @throws java.lang.Exception
      */
-    private  static void convertURI(MessageBytes uri, String encoding,
+    private static void convertURI(MessageBytes uri, String encoding,
             B2CConverter b2cConverter)
             throws Exception {
 
@@ -124,15 +188,15 @@ public class HttpRequestURIDecoder {
         CharChunk cc = uri.getCharChunk();
         cc.allocate(bc.getLength(), -1);
 
-        if (encoding != null && encoding.trim().length() != 0 &&
-                !"ISO-8859-1".equalsIgnoreCase(encoding)) {
+        if (encoding != null && encoding.trim().length() != 0
+                && !"ISO-8859-1".equalsIgnoreCase(encoding)) {
             try {
                 if (b2cConverter == null) {
                     b2cConverter = new B2CConverter(encoding);
                 }
             } catch (IOException e) {
                 // Ignore
-                log.severe("Invalid URI encoding; using HTTP default");
+                LOGGER.severe("Invalid URI encoding; using HTTP default");
             }
             if (b2cConverter != null) {
                 try {
@@ -141,7 +205,7 @@ public class HttpRequestURIDecoder {
                             cc.getLength());
                     return;
                 } catch (IOException e) {
-                    log.severe("Invalid URI character encoding; trying ascii");
+                    LOGGER.severe("Invalid URI character encoding; trying ascii");
                     cc.recycle();
                 }
             }
@@ -158,7 +222,6 @@ public class HttpRequestURIDecoder {
 
     }
 
-
     /**
      * Normalize URI.
      * <p>
@@ -172,12 +235,34 @@ public class HttpRequestURIDecoder {
 
         int type = uriMB.getType();
         if (type == MessageBytes.T_CHARS) {
-            return normalizeChars(uriMB);
+            return normalizeChars(uriMB.getCharChunk());
         } else {
-            return normalizeBytes(uriMB);
+            return normalizeBytes(uriMB.getByteChunk());
         }
     }
 
+    /**
+     * Normalize URI.
+     * <p>
+     * This method normalizes "\", "//", "/./" and "/../". This method will
+     * return false when trying to go above the root, or if the URI contains
+     * a null byte.
+     *
+     * @param dataChunk URI to be normalized
+     */
+    public static boolean normalize(final DataChunk dataChunk) {
+
+        switch (dataChunk.getType()) {
+            case Buffer:
+                return normalizeBuffer(dataChunk.getBufferChunk());
+            case Chars:
+                return normalizeChars(dataChunk.getCharChunk());
+            case String:
+                throw new IllegalStateException("Can't normalize the string representation");
+            default:
+                throw new NullPointerException();
+        }
+    }
 
     /**
      * Check that the URI is normalized following character decoding.
@@ -188,9 +273,8 @@ public class HttpRequestURIDecoder {
      *
      * @param uriMB URI to be checked (should be chars)
      */
-    public static boolean checkNormalize(MessageBytes uriMB) {
+    public static boolean checkNormalize(final CharChunk uriCC) {
 
-        CharChunk uriCC = uriMB.getCharChunk();
         char[] c = uriCC.getChars();
         int start = uriCC.getStart();
         int end = uriCC.getEnd();
@@ -230,10 +314,7 @@ public class HttpRequestURIDecoder {
 
     }
 
-
-    private static boolean normalizeChars(MessageBytes uriMB) {
-
-        CharChunk uriCC = uriMB.getCharChunk();
+    private static boolean normalizeChars(final CharChunk uriCC) {
         char[] c = uriCC.getChars();
         int start = uriCC.getStart();
         int end = uriCC.getEnd();
@@ -358,7 +439,7 @@ public class HttpRequestURIDecoder {
      * @param message Message to be logged
      */
     protected void log(String message) {
-        log.info(message);
+        LOGGER.info(message);
     }
 
     /**
@@ -368,7 +449,7 @@ public class HttpRequestURIDecoder {
      * @param throwable Associated exception
      */
     protected void log(String message, Throwable throwable) {
-        log.log(Level.SEVERE, message, throwable);
+        LOGGER.log(Level.SEVERE, message, throwable);
     }
 
     /**
@@ -395,15 +476,13 @@ public class HttpRequestURIDecoder {
         mb.setChars(cbuf, 0, bc.getLength());
 
     }
+    private static final int STATE_CHAR = 0;
+    private static final int STATE_SLASH = 1;
+    private static final int STATE_PERCENT = 2;
+    private static final int STATE_SLASHDOT = 3;
+    private static final int STATE_SLASHDOTDOT = 4;
 
-    private static final int STATE_CHAR=0;
-    private static final int STATE_SLASH=1;
-    private static final int STATE_PERCENT=2;
-    private static final int STATE_SLASHDOT=3;
-    private static final int STATE_SLASHDOTDOT=4;
-
-    public static boolean normalizeBytes (MessageBytes mb) {
-        ByteChunk bc = mb.getByteChunk();
+    public static boolean normalizeBytes(final ByteChunk bc) {
         byte[] bs = bc.getBytes();
         int start = bc.getStart();
         int end = bc.getEnd();
@@ -434,9 +513,10 @@ public class HttpRequestURIDecoder {
         int lastSlash = -1;
         int parentSlash = -1;
 
-        for (int pos=start; pos<end; pos++) {
-            if (bs[pos] == (byte) 0)
+        for (int pos = start; pos < end; pos++) {
+            if (bs[pos] == (byte) 0) {
                 return false;
+            }
             if (bs[pos] == (byte) '\\') {
                 if (ALLOW_BACKSLASH) {
                     bs[pos] = (byte) '/';
@@ -451,57 +531,155 @@ public class HttpRequestURIDecoder {
                     parentSlash = lastSlash;
                     lastSlash = srcPos;
                     srcPos++;
-                }
-                else if (state == STATE_SLASH) {
+                } else if (state == STATE_SLASH) {
                     // This is '//'. Ignore if COLLAPSE_ADJACENT_SLASHES is true.
                     // What is the behavior for '/../' patterns if collapse is false.
                     // Ignoring for now.
-                    if (!COLLAPSE_ADJACENT_SLASHES)
+                    if (!COLLAPSE_ADJACENT_SLASHES) {
                         srcPos++;
-                }
-                else if (state == STATE_SLASHDOT) {
+                    }
+                } else if (state == STATE_SLASHDOT) {
                     // This is '/./' ==> move the srcPos one position back
                     srcPos--;
-                }
-                else if (state == STATE_SLASHDOTDOT) {
+                } else if (state == STATE_SLASHDOTDOT) {
                     // This is '/../' ==> search backward to reset lastSlash and parentSlash
                     if (parentSlash == -1) {
                         // This is an error
 //                        System.out.print("Incorrect URI");
                         return false;
-                    }
-                    else {
+                    } else {
                         lastSlash = parentSlash;
                         srcPos = parentSlash;
                         // Find the parentSlash
                         parentSlash = -1;
-                        for (int i=lastSlash-1; i>=start; i--) {
+                        for (int i = lastSlash - 1; i >= start; i--) {
                             if (bs[i] == '/') {
-                               parentSlash = i;
-                               break;
+                                parentSlash = i;
+                                break;
                             }
                         }
                     }
                     state = STATE_SLASH;
                     bs[srcPos++] = bs[pos];
                 }
-            }
-            else if (bs[pos] == '.') {
+            } else if (bs[pos] == '.') {
                 if (state == STATE_CHAR) {
                     bs[srcPos++] = bs[pos];
-                }
-                else if (state == STATE_SLASH) {
+                } else if (state == STATE_SLASH) {
                     state = STATE_SLASHDOT;
                     bs[srcPos++] = bs[pos];
-                }
-                else if (state == STATE_SLASHDOT) {
+                } else if (state == STATE_SLASHDOT) {
                     state = STATE_SLASHDOTDOT;
                     bs[srcPos++] = bs[pos];
                 }
-            }
-            else {
+            } else {
                 state = STATE_CHAR;
                 bs[srcPos++] = bs[pos];
+            }
+        }
+
+        bc.setEnd(srcPos);
+        return true;
+    }
+
+    public static boolean normalizeBuffer(final BufferChunk bc) {
+        final Buffer bs = bc.getBuffer();
+        final int start = bc.getStart();
+        int end = bc.getEnd();
+
+        // An empty URL is not acceptable
+        if (start == end) {
+            return false;
+        }
+
+        // URL * is acceptable
+        if ((end - start == 1) && bs.get(start) == (byte) '*') {
+            return true;
+        }
+
+        // If the URI ends with "/." or "/..", then we append an extra "/"
+        // Note: It is possible to extend the URI by 1 without any side effect
+        // as the next character is a non-significant WS.
+        if (((end - start) > 2) && (bs.get(end - 1) == (byte) '.')) {
+            final byte b = bs.get(end - 2);
+            if (b == (byte) '/'
+                    || (b == (byte) '.'
+                    && bs.get(end - 3) == (byte) '/')) {
+                bs.put(end, (byte) '/');
+                end++;
+            }
+        }
+
+        int state = STATE_CHAR;
+        int srcPos = start;
+
+        int lastSlash = -1;
+        int parentSlash = -1;
+
+        for (int pos = start; pos < end; pos++) {
+            final byte b = bs.get(pos);
+            if (b == (byte) 0) {
+                return false;
+            }
+            if (b == (byte) '\\') {
+                if (ALLOW_BACKSLASH) {
+                    bs.put(pos, (byte) '/');
+                } else {
+                    return false;
+                }
+            }
+
+            if (b == '/') {
+                if (state == STATE_CHAR) {
+                    state = STATE_SLASH;
+                    bs.put(srcPos, b);
+                    parentSlash = lastSlash;
+                    lastSlash = srcPos;
+                    srcPos++;
+                } else if (state == STATE_SLASH) {
+                    // This is '//'. Ignore if COLLAPSE_ADJACENT_SLASHES is true.
+                    // What is the behavior for '/../' patterns if collapse is false.
+                    // Ignoring for now.
+                    if (!COLLAPSE_ADJACENT_SLASHES) {
+                        srcPos++;
+                    }
+                } else if (state == STATE_SLASHDOT) {
+                    // This is '/./' ==> move the srcPos one position back
+                    srcPos--;
+                } else if (state == STATE_SLASHDOTDOT) {
+                    // This is '/../' ==> search backward to reset lastSlash and parentSlash
+                    if (parentSlash == -1) {
+                        // This is an error
+//                        System.out.print("Incorrect URI");
+                        return false;
+                    } else {
+                        lastSlash = parentSlash;
+                        srcPos = parentSlash;
+                        // Find the parentSlash
+                        parentSlash = -1;
+                        for (int i = lastSlash - 1; i >= start; i--) {
+                            if (bs.get(i) == '/') {
+                                parentSlash = i;
+                                break;
+                            }
+                        }
+                    }
+                    state = STATE_SLASH;
+                    bs.put(srcPos++, b);
+                }
+            } else if (b == '.') {
+                if (state == STATE_CHAR) {
+                    bs.put(srcPos++, b);
+                } else if (state == STATE_SLASH) {
+                    state = STATE_SLASHDOT;
+                    bs.put(srcPos++, b);
+                } else if (state == STATE_SLASHDOT) {
+                    state = STATE_SLASHDOTDOT;
+                    bs.put(srcPos++, b);
+                }
+            } else {
+                state = STATE_CHAR;
+                bs.put(srcPos++, b);
             }
         }
 

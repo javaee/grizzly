@@ -172,7 +172,7 @@ public final class UDecoder {
     public void convert(CharChunk mb, boolean query)
             throws IOException {
         //        log( "Converting a char chunk ");
-        int start = mb.getOffset();
+        int start = mb.getStart();
         char buff[] = mb.getBuffer();
         int cend = mb.getEnd();
 
@@ -193,10 +193,11 @@ public final class UDecoder {
         }
 
         for (int j = idx; j < cend; j++, idx++) {
-            if (buff[j] == '+' && query) {
+            final char c = buff[j];
+            if (c == '+' && query) {
                 buff[idx] = ' ';
-            } else if (buff[j] != '%') {
-                buff[idx] = buff[j];
+            } else if (c != '%') {
+                buff[idx] = c;
             } else {
                 // read next 2 digits
                 if (j + 2 >= cend) {
@@ -216,7 +217,7 @@ public final class UDecoder {
         }
         mb.setEnd(idx);
     }
-
+    
     /** URLDecode, will modify the source
      *  Includes converting  '+' to ' '.
      */

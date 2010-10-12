@@ -41,7 +41,7 @@
 package org.glassfish.grizzly.http;
 
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.http.util.BufferChunk;
+import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.http.util.RequestURIRef;
 
@@ -73,13 +73,13 @@ public abstract class HttpRequestPacket extends HttpHeader {
 
     private String localHost;
 
-    private final BufferChunk methodBC = BufferChunk.newInstance();
-    private final BufferChunk queryBC = BufferChunk.newInstance();
-    private final BufferChunk remoteAddressBC = BufferChunk.newInstance();
-    private final BufferChunk remoteHostBC = BufferChunk.newInstance();
-    private final BufferChunk localNameBC = BufferChunk.newInstance();
-    private final BufferChunk localAddressBC = BufferChunk.newInstance();
-    private final BufferChunk serverNameBC = BufferChunk.newInstance();
+    private final DataChunk methodC = DataChunk.newInstance();
+    private final DataChunk queryC = DataChunk.newInstance();
+    private final DataChunk remoteAddressC = DataChunk.newInstance();
+    private final DataChunk remoteHostC = DataChunk.newInstance();
+    private final DataChunk localNameC = DataChunk.newInstance();
+    private final DataChunk localAddressC = DataChunk.newInstance();
+    private final DataChunk serverNameC = DataChunk.newInstance();
 
     private boolean requiresAcknowledgement;
 
@@ -96,7 +96,7 @@ public abstract class HttpRequestPacket extends HttpHeader {
 
 
     protected HttpRequestPacket() {
-        methodBC.setString("GET");
+        methodC.setString("GET");
     }
 
 
@@ -119,14 +119,14 @@ public abstract class HttpRequestPacket extends HttpHeader {
 
 
     /**
-     * Get the HTTP request method as {@link BufferChunk}
+     * Get the HTTP request method as {@link DataChunk}
      * (avoiding creation of a String object). The result format is "GET|POST...".
      *
-     * @return the HTTP request method as {@link BufferChunk}
+     * @return the HTTP request method as {@link DataChunk}
      * (avoiding creation of a String object). The result format is "GET|POST...".
      */
-    public BufferChunk getMethodBC() {
-        return methodBC;
+    public DataChunk getMethodDC() {
+        return methodC;
     }
 
     /**
@@ -135,7 +135,7 @@ public abstract class HttpRequestPacket extends HttpHeader {
      * @return the HTTP request method. The result format is "GET|POST...".
      */
     public String getMethod() {
-        return methodBC.toString();
+        return methodC.toString();
     }
 
     /**
@@ -143,7 +143,7 @@ public abstract class HttpRequestPacket extends HttpHeader {
      * @param method the HTTP request method. Format is "GET|POST...".
      */
     public void setMethod(String method) {
-        this.methodBC.setString(method);
+        this.methodC.setString(method);
     }
 
     /**
@@ -178,16 +178,16 @@ public abstract class HttpRequestPacket extends HttpHeader {
     /**
      * Returns the query string that is contained in the request URL after the
      * path. This method returns null if the URL does not have a query string.
-     * The result is represented as {@link BufferChunk} (avoifing creation of a
+     * The result is represented as {@link DataChunk} (avoiding creation of a
      * String object).
      * 
      * @return the query string that is contained in the request URL after the
      * path. This method returns null if the URL does not have a query string.
-     * The result is represented as {@link BufferChunk} (avoifing creation of a
+     * The result is represented as {@link DataChunk} (avoiding creation of a
      * String object).
      */
-    public BufferChunk getQueryStringBC() {
-        return queryBC;
+    public DataChunk getQueryStringDC() {
+        return queryC;
     }
 
     /**
@@ -198,7 +198,7 @@ public abstract class HttpRequestPacket extends HttpHeader {
      * path. This method returns null if the URL does not have a query string.
      */
     public String getQueryString() {
-        return ((queryBC.isNull()) ? null : queryBC.toString());
+        return ((queryC.isNull()) ? null : queryC.toString());
     }
 
     /**
@@ -207,7 +207,7 @@ public abstract class HttpRequestPacket extends HttpHeader {
      * @param query the query String
      */
     public void setQueryString(String query) {
-        queryBC.setString(query);
+        queryC.setString(query);
     }
 
 
@@ -218,8 +218,8 @@ public abstract class HttpRequestPacket extends HttpHeader {
      * This is the "virtual host", derived from the
      * Host: header.
      */
-    public BufferChunk serverName() {
-        return serverNameBC;
+    public DataChunk serverName() {
+        return serverNameC;
     }
 
 
@@ -243,16 +243,16 @@ public abstract class HttpRequestPacket extends HttpHeader {
     }
 
     /**
-     * @return the {@link BufferChunk} representing the Internet Protocol (IP)
+     * @return the {@link DataChunk} representing the Internet Protocol (IP)
      *  address of the client or last proxy that sent the request.
      */
-    public BufferChunk remoteAddr() {
-        if (remoteAddressBC.isNull()) {
-            remoteAddressBC
+    public DataChunk remoteAddr() {
+        if (remoteAddressC.isNull()) {
+            remoteAddressC
                   .setString(((InetSocketAddress) connection.getPeerAddress())
                         .getAddress().getHostAddress());
         }
-        return remoteAddressBC;
+        return remoteAddressC;
 
     }
 
@@ -267,13 +267,13 @@ public abstract class HttpRequestPacket extends HttpHeader {
 
 
     /**
-     * @return a {@link BufferChunk} representing the fully qualified
+     * @return a {@link DataChunk} representing the fully qualified
      *  name of the client or the last proxy that sent the request. If the
-     *  engine cannot or chooses not to resolve the hostname (to improve
+     *  engine cannot or chooses not to resolve the host name (to improve
      *  performance), this method returns the the IP address.
      */
-    public BufferChunk remoteHost() {
-         if ((remoteHostBC.isNull())) {
+    public DataChunk remoteHost() {
+         if ((remoteHostC.isNull())) {
             String remoteHost = null;
             InetAddress inetAddr = ((InetSocketAddress) connection
                   .getPeerAddress()).getAddress();
@@ -282,15 +282,15 @@ public abstract class HttpRequestPacket extends HttpHeader {
             }
 
             if (remoteHost == null) {
-                if (!remoteAddressBC.isNull()) {
-                    remoteHost = remoteAddressBC.toString();
+                if (!remoteAddressC.isNull()) {
+                    remoteHost = remoteAddressC.toString();
                 } else { // all we can do is punt
-                    remoteHostBC.recycle();
+                    remoteHostC.recycle();
                 }
             }
-            remoteHostBC.setString(remoteHost);
+            remoteHostC.setString(remoteHost);
         }
-        return remoteHostBC;
+        return remoteHostC;
     }
 
 
@@ -328,17 +328,17 @@ public abstract class HttpRequestPacket extends HttpHeader {
 
 
     /**
-     * @return a {@link BufferChunk} representing the host name of the
+     * @return a {@link DataChunk} representing the host name of the
      *  Internet Protocol (IP) interface on which the request was received.
      */
-    public BufferChunk localName() {
+    public DataChunk localName() {
 
-        if (localNameBC.isNull()) {
+        if (localNameC.isNull()) {
             InetAddress inetAddr = ((InetSocketAddress) connection
                   .getLocalAddress()).getAddress();
-            localNameBC.setString(inetAddr.getHostName());
+            localNameC.setString(inetAddr.getHostName());
         }
-        return localNameBC;
+        return localNameC;
         
     }
 
@@ -355,16 +355,16 @@ public abstract class HttpRequestPacket extends HttpHeader {
 
 
     /**
-     * @return a {@link BufferChunk} representing the Internet Protocol (IP)
+     * @return a {@link DataChunk} representing the Internet Protocol (IP)
      *  address of the interface on which the request was received.
      */
-    public BufferChunk localAddr() {
-        if (localAddressBC.isNull()) {
+    public DataChunk localAddr() {
+        if (localAddressC.isNull()) {
             InetAddress inetAddr = ((InetSocketAddress) connection
                   .getLocalAddress()).getAddress();
-            localAddressBC.setString(inetAddr.getHostAddress());
+            localAddressC.setString(inetAddr.getHostAddress());
         }
-        return localAddressBC;
+        return localAddressC;
     }
 
 
@@ -449,13 +449,13 @@ public abstract class HttpRequestPacket extends HttpHeader {
     @Override
     protected void reset() {
         requestURIRef.recycle();
-        queryBC.recycle();
-        methodBC.recycle();
-        remoteAddressBC.recycle();
-        remoteHostBC.recycle();
-        localAddressBC.recycle();
-        localNameBC.recycle();
-        serverNameBC.recycle();
+        queryC.recycle();
+        methodC.recycle();
+        remoteAddressC.recycle();
+        remoteHostC.recycle();
+        localAddressC.recycle();
+        localNameC.recycle();
+        serverNameC.recycle();
 
         requiresAcknowledgement = false;
 
@@ -468,8 +468,8 @@ public abstract class HttpRequestPacket extends HttpHeader {
         response = null;
 
         // XXX Do we need such defaults ?
-        methodBC.setString("GET");
-        protocolBC.setString("HTTP/1.0");
+        methodC.setString("GET");
+        protocolC.setString("HTTP/1.0");
 
         super.reset();
     }

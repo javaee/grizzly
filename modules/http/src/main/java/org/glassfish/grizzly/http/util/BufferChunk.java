@@ -40,58 +40,40 @@
 
 package org.glassfish.grizzly.http.util;
 
-import org.glassfish.grizzly.Buffer;
+import java.io.CharConversionException;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CoderResult;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * {@link Buffer} chunk representation.
  * Helps HTTP module to avoid redundant String creation.
- * 
+ *
  * @author Alexey Stashok
  */
-public class BufferChunk {
-    private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
-    
-    public static BufferChunk newInstance() {
-        return new BufferChunk();
-    }
-    
-    Buffer buffer;
+public class BufferChunk implements Chunk {
+    private static final Charset UTF8_CHARSET = Utils.lookupCharset("UTF-8");
+    private static final UTF8Decoder UTF8_DECODER = new UTF8Decoder();
 
-    int start;
-    int end;
+    private Buffer buffer;
+
+    private int start;
+    private int end;
 
     String cachedString;
     Charset cachedStringCharset;
 
-    final CharChunk charChunk;
-    
-    String stringValue;
-
-    protected BufferChunk() {
-        this(new CharChunk());
-    }
-
-    BufferChunk(final CharChunk charChunk) {
-        this.charChunk = charChunk;
-    }
-
-    public BufferChunk toImmutable() {
-        return new Immutable(this);
-    }
-
-    public void set(BufferChunk value) {
-        reset();
-
-        if (value.hasBuffer()) {
-            setBuffer(value.buffer, value.start, value.end);
-            cachedString = value.cachedString;
-            cachedStringCharset = value.cachedStringCharset;
-        } else if (value.hasString()) {
-            stringValue = value.stringValue;
-        }
-
-        onContentChanged();
+    public void setBufferChunk(final Buffer buffer, final int start,
+            final int end) {
+        this.buffer = buffer;
+        this.start = start;
+        this.end = end;
+        resetStringCache();
     }
 
     public Buffer getBuffer() {
@@ -99,93 +81,101 @@ public class BufferChunk {
     }
 
     public void setBuffer(Buffer buffer) {
-        setBuffer(buffer, buffer.position(), buffer.limit());
-    }
-    
-    public void setBuffer(Buffer buffer, int start, int end) {
         this.buffer = buffer;
-        this.start = start;
-        this.end = end;
-        
-        resetString();
         resetStringCache();
-        onContentChanged();
     }
 
+    @Override
     public int getStart() {
         return start;
     }
 
+    @Override
     public void setStart(int start) {
         this.start = start;
         resetStringCache();
-        onContentChanged();
     }
-    
+
+    @Override
     public int getEnd() {
         return end;
     }
 
+    @Override
     public void setEnd(int end) {
         this.end = end;
         resetStringCache();
-        onContentChanged();
     }
 
-    public void setString(String string) {
-        stringValue = string;
-        resetBuffer();
-        onContentChanged();
+    public final int getLength() {
+        return end - start;
+    }
+
+    public boolean isNull() {
+        return buffer == null;
     }
 
     @Override
-    public String toString() {
-        return toString(null);
-    }
+    public void delete(final int start, final int end) {
+        final int diff = this.end - end;
+        if (diff == 0) {
+            this.end = start;
+        } else {
+            final int oldPos = buffer.position();
+            final int oldLim = buffer.limit();
 
-    public String toString(int start, int end) {
-        return toString(null, start, end);
-    }
-
-    public String toString(Charset charset) {
-        return toString(charset, start, end);
+            try {
+                Buffers.setPositionLimit(buffer, start, start + diff);
+                buffer.put(buffer, end, diff);
+                this.end = start + diff;
+            } finally {
+                Buffers.setPositionLimit(buffer, oldPos, oldLim);
+            }
+        }
     }
     
-    public String toString(Charset charset, int start, int end) {
-        if (isNull()) return null;
-        
-        if (hasString()) return stringValue;
+    @Override
+    public final int indexOf(char c, int fromIndex) {
+        return indexOf(buffer, start + fromIndex, end, c);
+    }
 
-        if (charset == null) charset = UTF8_CHARSET;
 
-        if (cachedString != null && charset.equals(cachedStringCharset)) {
-            return cachedString;
+    @Override
+    public final int indexOf(String s, int fromIndex) {
+        return indexOf(buffer, start + fromIndex, end, s);
+    }
+
+    boolean startsWith(String s, int pos) {
+        final int len = s.length();
+        if (len > getLength() - pos) {
+            return false;
         }
 
-        cachedString = buffer.toStringContent(charset, start, end);
-        cachedStringCharset = charset;
-        
-        return cachedString;
-    }
-
-    protected void onContentChanged() {
-    }
-
-    /**
-     * Returns the <tt>BufferChunk</tt> length.
-     *
-     * @return the <tt>BufferChunk</tt> length.
-     */
-    public int size() {
-        if (hasBuffer()) {
-            return end - start;
-        } else if (hasString()) {
-            return stringValue.length();
+        int off = start + pos;
+        for (int i = 0; i < len; i++) {
+            if (buffer.get(off++) != s.charAt(i)) {
+                return false;
+            }
         }
 
-        return 0;
+        return true;
     }
-    
+
+    public boolean startsWithIgnoreCase(String s, int pos) {
+        final int len = s.length();
+        if (len > getLength() - pos) {
+            return false;
+        }
+
+        int off = start + pos;
+        for (int i = 0; i < len; i++) {
+            if (Ascii.toLower(buffer.get(off++)) != Ascii.toLower(s.charAt(i))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     /**
      * Returns the starting index of the specified byte sequence within this
@@ -218,41 +208,77 @@ public class BufferChunk {
                 }
             }
         }
+        
         return -1;
     }
 
-
-    /**
-     * Returns true if the message bytes starts with the specified string.
-     * @param c the character
-     * @param fromIndex The start position
-     */
-    public int indexOf(char c, int fromIndex) {
-        if (hasBuffer()) {
-            int ret = indexOf(buffer, start + fromIndex, end, c);
-            return (ret >= start) ? ret - start : -1;
-        } else if (hasString()) {
-            return stringValue.indexOf(c, fromIndex);
+    public boolean equals(CharSequence s) {
+        if (getLength() != s.length()) {
+            return false;
         }
 
-        return -1;
-    }
-
-    /**
-     * Returns true if the message bytes starts with the specified string.
-     * @param s the string
-     * @param fromIndex The start position
-     */
-    public int indexOf(String s, int fromIndex) {
-        if (hasBuffer()) {
-            int ret = indexOf(buffer, start + fromIndex, end, s);
-            return (ret >= start) ? ret - start : -1;
-        } else if (hasString()) {
-            return stringValue.indexOf(s, fromIndex);
+        for (int i = start; i < end; i++) {
+            if (buffer.get(i) != s.charAt(i - start)) {
+                return false;
+            }
         }
 
-        return -1;
+        return true;
     }
+
+    public boolean equalsIgnoreCase(CharSequence s) {
+        if (getLength() != s.length()) {
+            return false;
+        }
+
+        for (int i = start; i < end; i++) {
+            if (Ascii.toLower(buffer.get(i)) != Ascii.toLower(s.charAt(i - start))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    @Override
+    public String toString() {
+        return toString(null);
+    }
+
+    public String toString(Charset charset) {
+        if (charset == null) charset = UTF8_CHARSET;
+
+        if (cachedString != null && charset.equals(cachedStringCharset)) {
+            return cachedString;
+        }
+
+        cachedString = buffer.toStringContent(charset, start, end);
+
+        cachedStringCharset = charset;
+
+        return cachedString;
+    }
+
+    @Override
+    public String toString(int start, int end) {
+        return buffer.toStringContent(UTF8_CHARSET, start, end);
+    }
+
+    protected void resetStringCache() {
+        cachedString = null;
+        cachedStringCharset = null;
+    }
+    
+    protected void reset() {
+        buffer = null;
+        start = -1;
+        end = -1;
+    }
+    
+    public void recycle() {
+        reset();
+    }
+
 
     private static int indexOf(Buffer buffer, int off, int end, char qq) {
         // Works only for UTF
@@ -263,6 +289,7 @@ public class BufferChunk {
             }
             off++;
         }
+        
         return -1;
     }
 
@@ -272,9 +299,9 @@ public class BufferChunk {
         if (strLen == 0) {
             return off;
         }
-        
+
         if (strLen > (end - off)) return -1;
-        
+
         int strOffs = 0;
         final int lastOffs = end - strLen;
 
@@ -292,52 +319,6 @@ public class BufferChunk {
             off++;
         }
         return -1;
-    }
-    
-    /**
-     * Compares the message bytes to the specified String object.
-     * @param s the String to compare
-     * @return true if the comparison succeeded, false otherwise
-     */
-    public boolean equals(String s) {
-        if (!hasString()) {
-            if ((end - start) != s.length()) {
-                return false;
-            }
-
-            for(int i = start; i < end; i++) {
-                if (buffer.get(i) != s.charAt(i - start)) {
-                    return false;
-                }
-            }
-
-            return true;
-        } else {
-            return stringValue.equals(s);
-        }
-    }
-
-    /**
-     * Compares the message bytes to the specified String object.
-     * @param s the String to compare
-     * @return true if the comparison succeeded, false otherwise
-     */
-    public boolean equalsIgnoreCase(String s) {
-        if (!hasString()) {
-            if ((end - start) != s.length()) {
-                return false;
-            }
-            
-            for(int i = start; i < end; i++) {
-                if (Ascii.toLower(buffer.get(i)) != Ascii.toLower(s.charAt(i - start))) {
-                    return false;
-                }
-            }
-            
-            return true;
-        } else {
-            return stringValue.equalsIgnoreCase(s);
-        }
     }
 
     /**
@@ -394,193 +375,55 @@ public class BufferChunk {
         return result;
     }
 
-
-
     /**
-     * Returns <code>true</code> if the <code>BufferChunk</code> starts with
-     * the specified string.
-     *  
-     * @param s the string
-     * @param pos The start position
-     *
-     * @return <code>true</code> if the </code>BufferChunk</code> starts with
-     *  the specified string.
+     * Convert a {@link BufferChunk} using the specified encoding.
+     * @param charChank char array to put result to.
+     * @param encoding the encoding value
+     * @throws java.lang.Exception
      */
-    public boolean startsWithIgnoreCase(String s, int pos) {
-        if (!hasString()) {
-            int len = s.length();
-            if (len > end - start - pos) {
-                return false;
-            }
-            
-            int off = start + pos;
-            for (int i = 0; i < len; i++) {
-                if (Ascii.toLower(buffer.get(off++)) != Ascii.toLower(s.charAt(i))) {
-                    return false;
+    public CharChunk toChars(final CharChunk cc, final Charset encoding)
+            throws CharConversionException {
+
+        cc.allocate(getLength(), -1);
+
+        if (UTF8_CHARSET.equals(encoding)) {
+            try {
+                UTF8_DECODER.convert(this, cc);
+            } catch (IOException e) {
+                if (!(e instanceof CharConversionException)) {
+                    throw new CharConversionException();
                 }
-            }
-            
-            return true;
-        } else {
-            if (stringValue.length() < pos + s.length()) {
-                return false;
-            }
 
-            for (int i = 0; i < s.length(); i++) {
-                if (Ascii.toLower(s.charAt(i))
-                        != Ascii.toLower(stringValue.charAt(pos + i))) {
-                    return false;
-                }
+                throw (CharConversionException) e;
             }
-            return true;
-        }
-    }
+//            uri.setChars(cc.getChars(), cc.getStart(), cc.getEnd());
+            return cc;
+        } else if (!Constants.DEFAULT_CHARACTER_ENCODING.equalsIgnoreCase(encoding.name())) {
+            final ByteBuffer bb = buffer.toByteBuffer(start, end);
+            final char[] ccBuf = cc.getChars();
+            final int ccStart = cc.getStart();
+            final CharBuffer cb = CharBuffer.wrap(ccBuf, ccStart, ccBuf.length - ccStart);
 
+            final CharsetDecoder decoder = encoding.newDecoder();
+            final CoderResult cr = decoder.decode(bb, cb, true);
 
-    /**
-     * Returns <code>true</code> if the <code>BufferChunk</code> starts with
-     * the specified string.
-     * @param s the string
-     * @param pos The start position
-     *
-     * @return <code>true</code> if the <code>BufferChunk</code> starts with
-     *  the specified string.
-     */
-    public boolean startsWith(String s, int pos) {
-        if (!hasString()) {
-            int len = s.length();
-            if (len > end - start - pos) {
-                return false;
+            if (cr != CoderResult.UNDERFLOW) {
+                throw new CharConversionException("Decoding error");
             }
 
-            int off = start + pos;
-            for (int i = 0; i < len; i++) {
-                if (buffer.get(off++) != s.charAt(i)) {
-                    return false;
-                }
-            }
+            cc.setEnd(cb.position());
+//            uri.setChars(cc.getChars(), cc.getStart(), cc.getEnd());
 
-            return true;
-        } else {
-            if (stringValue.length() < pos + s.length()) {
-                return false;
-            }
-
-            for (int i = 0; i < s.length(); i++) {
-                if (s.charAt(i) != stringValue.charAt(pos + i)) {
-                    return false;
-                }
-            }
-            return true;
-        }
-    }
-    
-    public final boolean hasBuffer() {
-        return buffer != null;
-    }
-
-    public final boolean hasString() {
-        return stringValue != null;
-    }
-    
-    public final boolean isNull() {
-        return !hasBuffer() && !hasString();
-    }
-
-    protected void resetBuffer() {
-        start = -1;
-        end = -1;
-        buffer = null;
-    }
-
-    protected void resetString() {
-        stringValue = null;
-        charChunk.recycle();
-    }
-    
-    protected void resetStringCache() {
-        cachedString = null;
-        cachedStringCharset = null;
-    }
-    
-    protected void reset() {
-        start = -1;
-        end = -1;
-        buffer = null;
-        cachedString = null;
-        cachedStringCharset = null;
-        stringValue = null;
-        charChunk.recycle();
-    }
-
-    public void recycle() {
-        reset();
-    }
-
-    final static class Immutable extends BufferChunk {
-        public Immutable(BufferChunk original) {
-            super(original.charChunk);
-            this.start = original.start;
-            this.end = original.end;
-            this.buffer = original.buffer;
-            this.cachedString = original.cachedString;
-            this.cachedStringCharset = original.cachedStringCharset;
-            this.stringValue = original.stringValue;
+            return cc;
         }
 
-        @Override
-        public BufferChunk toImmutable() {
-            return this;
+        // Default encoding: fast conversion
+        final char[] cbuf = cc.getChars();
+        for (int i = 0; i < getLength(); i++) {
+            cbuf[i] = (char) (buffer.get(i + start) & 0xff);
         }
 
-        @Override
-        public void set(BufferChunk value) {
-            return;
-        }
-
-        @Override
-        public void setBuffer(Buffer buffer, int start, int end) {
-            return;
-        }
-
-        @Override
-        public void setStart(int start) {
-            return;
-        }
-
-        @Override
-        public void setEnd(int end) {
-            return;
-        }
-
-        @Override
-        public void setString(String string) {
-            return;
-        }
-
-        @Override
-        protected final void resetBuffer() {
-            return;
-        }
-
-        @Override
-        protected final void resetString() {
-            return;
-        }
-
-        @Override
-        protected final void resetStringCache() {
-            return;
-        }
-
-        @Override
-        protected void reset() {
-            return;
-        }
-
-        @Override
-        public void recycle() {
-                return;
-        }
+        return cc;
+//        uri.setChars(cbuf, 0, bc.getLength());
     }
 }

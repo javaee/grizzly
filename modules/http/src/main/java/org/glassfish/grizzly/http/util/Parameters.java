@@ -92,7 +92,7 @@ public final class Parameters extends MultiMap {
     private boolean didMerge=false;
     
     MimeHeaders  headers;
-    BufferChunk queryBC;
+    DataChunk queryBC;
 
     UDecoder urlDec;
     
@@ -118,7 +118,7 @@ public final class Parameters extends MultiMap {
 	super( INITIAL_SIZE );
     }
 
-    public void setQuery(BufferChunk queryBC) {
+    public void setQuery(DataChunk queryBC) {
         this.queryBC = queryBC;
     }
 
@@ -578,7 +578,7 @@ public final class Parameters extends MultiMap {
 	    if (data.getType()!= MessageBytes.T_CHARS ) 
 		data.toChars();
 	    CharChunk cc=data.getCharChunk();
-	    processParameters( cc.getChars(), cc.getOffset(),
+	    processParameters( cc.getChars(), cc.getStart(),
 			       cc.getLength());
 	}
     }

@@ -107,12 +107,12 @@ servlet needs direct access to headers).
  *  Memory-efficient repository for Mime Headers. When the object is recycled, it
  *  will keep the allocated headers[] and all the MimeHeaderField - no GC is generated.
  *
- *  For input headers it is possible to use the BufferChunk for Fileds - so no GC
+ *  For input headers it is possible to use the DataChunk for Fileds - so no GC
  *  will be generated.
  *
  *  The only garbage is generated when using the String for header names/values -
  *  this can't be avoided when the servlet calls header methods, but is easy
- *  to avoid inside tomcat. The goal is to use _only_ BufferChunk-based Fields,
+ *  to avoid inside tomcat. The goal is to use _only_ DataChunk-based Fields,
  *  and reduce to 0 the memory overhead of tomcat.
  *
  *  TODO:
@@ -194,7 +194,7 @@ public class MimeHeaders {
      * Returns the Nth header name, or null if there is no such header.
      * This may be used to iterate through all header fields.
      */
-    public BufferChunk getName(int n) {
+    public DataChunk getName(int n) {
         return n >= 0 && n < count ? headers[n].getName() : null;
     }
 
@@ -202,7 +202,7 @@ public class MimeHeaders {
      * Returns the Nth header value, or null if there is no such header.
      * This may be used to iterate through all header fields.
      */
-    public BufferChunk getValue(int n) {
+    public DataChunk getValue(int n) {
         return n >= 0 && n < count ? headers[n].getValue() : null;
     }
 
@@ -283,7 +283,7 @@ public class MimeHeaders {
     /** Create a new named header , return the MessageBytes
     container for the new value
      */
-    public BufferChunk addValue(String name) {
+    public DataChunk addValue(String name) {
         MimeHeaderField mh = createHeader();
         mh.getName().setString(name);
         return mh.getValue();
@@ -293,18 +293,18 @@ public class MimeHeaders {
     The conversion to chars can be delayed until
     encoding is known.
      */
-    public BufferChunk addValue(Buffer buffer, int startN, int len) {
+    public DataChunk addValue(Buffer buffer, int startN, int len) {
         MimeHeaderField mhf = createHeader();
         mhf.getName().setBuffer(buffer, startN, len);
         return mhf.getValue();
     }
 
     /** Allow "set" operations - 
-    return a BufferChunk container for the
+    return a DataChunk container for the
     header value ( existing header or new
     if this .
      */
-    public BufferChunk setValue(String name) {
+    public DataChunk setValue(String name) {
         for (int i = 0; i < count; i++) {
             if (headers[i].getName().equalsIgnoreCase(name)) {
                 for (int j = i + 1; j < count; j++) {
@@ -326,7 +326,7 @@ public class MimeHeaders {
      * field exists, null is returned.  If more than one such field is
      * in the header, an arbitrary one is returned.
      */
-    public BufferChunk getValue(String name) {
+    public DataChunk getValue(String name) {
         for (int i = 0; i < count; i++) {
             if (headers[i].getName().equalsIgnoreCase(name)) {
                 return headers[i].getValue();
@@ -338,7 +338,7 @@ public class MimeHeaders {
     // bad shortcut - it'll convert to string ( too early probably,
     // encoding is guessed very late )
     public String getHeader(String name) {
-        BufferChunk mh = getValue(name);
+        DataChunk mh = getValue(name);
         return mh != null ? mh.toString() : null;
     }
 
@@ -453,7 +453,7 @@ class ValuesEnumerator implements Enumeration<String> {
 
     int pos;
     int size;
-    BufferChunk next;
+    DataChunk next;
     MimeHeaders headers;
     String name;
 
@@ -468,7 +468,7 @@ class ValuesEnumerator implements Enumeration<String> {
     private void findNext() {
         next = null;
         for (; pos < size; pos++) {
-            BufferChunk n1 = headers.getName(pos);
+            DataChunk n1 = headers.getName(pos);
             if (n1.equalsIgnoreCase(name)) {
                 next = headers.getValue(pos);
                 break;
@@ -484,7 +484,7 @@ class ValuesEnumerator implements Enumeration<String> {
 
     @Override
     public String nextElement() {
-        BufferChunk current = next;
+        DataChunk current = next;
         findNext();
         return current.toString();
     }
@@ -492,8 +492,8 @@ class ValuesEnumerator implements Enumeration<String> {
 
 class MimeHeaderField {
 
-    protected final BufferChunk nameB = BufferChunk.newInstance();
-    protected final BufferChunk valueB = BufferChunk.newInstance();
+    protected final DataChunk nameB = DataChunk.newInstance();
+    protected final DataChunk valueB = DataChunk.newInstance();
 
     private boolean isSerialized;
     /**
@@ -508,11 +508,11 @@ class MimeHeaderField {
         valueB.recycle();
     }
 
-    public BufferChunk getName() {
+    public DataChunk getName() {
         return nameB;
     }
 
-    public BufferChunk getValue() {
+    public DataChunk getValue() {
         return valueB;
     }
 

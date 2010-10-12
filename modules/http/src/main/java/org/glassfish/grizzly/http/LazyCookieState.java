@@ -59,7 +59,7 @@
 package org.glassfish.grizzly.http;
 
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.http.util.BufferChunk;
+import org.glassfish.grizzly.http.util.DataChunk;
 
 
 /**
@@ -75,14 +75,14 @@ import org.glassfish.grizzly.http.util.BufferChunk;
  */
 public class LazyCookieState {
     // Version 0 (Netscape) attributes
-    private BufferChunk name = BufferChunk.newInstance();
-    private BufferChunk value = BufferChunk.newInstance();
+    private DataChunk name = DataChunk.newInstance();
+    private DataChunk value = DataChunk.newInstance();
     // Expires - Not stored explicitly. Generated from Max-Age (see V1)
-    private BufferChunk path = BufferChunk.newInstance();
-    private BufferChunk domain = BufferChunk.newInstance();
+    private DataChunk path = DataChunk.newInstance();
+    private DataChunk domain = DataChunk.newInstance();
     private boolean secure;
     // Version 1 (RFC2109) attributes
-    private BufferChunk comment = BufferChunk.newInstance();
+    private DataChunk comment = DataChunk.newInstance();
 
 
     // Note: Servlet Spec =< 2.5 only refers to Netscape and RFC2109,
@@ -104,15 +104,15 @@ public class LazyCookieState {
         secure = false;
     }
 
-    public BufferChunk getComment() {
+    public DataChunk getComment() {
         return comment;
     }
 
-    public BufferChunk getDomain() {
+    public DataChunk getDomain() {
         return domain;
     }
 
-    public BufferChunk getPath() {
+    public DataChunk getPath() {
         return path;
     }
 
@@ -124,11 +124,11 @@ public class LazyCookieState {
         return secure;
     }
 
-    public BufferChunk getName() {
+    public DataChunk getName() {
         return name;
     }
 
-    public BufferChunk getValue() {
+    public DataChunk getValue() {
         return value;
     }
 

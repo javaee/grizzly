@@ -91,7 +91,7 @@ public class B2CConverter {
     private B2CConverterBlocking blockingConverter;
 
     protected B2CConverter() {
-        init("US_ASCII");
+        init("US-ASCII");
     }
 
     /** Create a converter, with bytes going to a byte buffer

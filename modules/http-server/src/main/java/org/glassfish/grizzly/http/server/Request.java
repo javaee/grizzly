@@ -72,8 +72,7 @@ import org.glassfish.grizzly.http.server.util.Enumerator;
 import org.glassfish.grizzly.http.server.util.Globals;
 import org.glassfish.grizzly.http.server.util.ParameterMap;
 import org.glassfish.grizzly.http.server.util.StringParser;
-import org.glassfish.grizzly.http.util.BufferChunk;
-import org.glassfish.grizzly.http.util.ByteChunk;
+import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.FastHttpDateFormat;
 import org.glassfish.grizzly.http.util.Parameters;
 import org.glassfish.grizzly.http.util.RequestURIRef;
@@ -104,6 +103,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import org.glassfish.grizzly.http.util.Chunk;
 
 /**
  * Wrapper object for the Coyote request.
@@ -2121,30 +2121,37 @@ public class Request {
      */
     protected void parseSessionId() {
 
-        RequestURIRef ref = request.getRequestURIRef();
-        BufferChunk decodedURI;
-        try {
-            decodedURI = ref.getDecodedRequestURIBC();
-        } catch (CharConversionException ignored) {
-            return;
+        final RequestURIRef ref = request.getRequestURIRef();
+        final DataChunk uriDC = ref.getRequestURIBC();
+
+        switch (uriDC.getType()) {
+            case Buffer:
+                parseSessionId(uriDC.getBufferChunk());
+                return;
+            case Chars:
+                parseSessionId(uriDC.getCharChunk());
+                return;
+            default:
+                throw new IllegalStateException("Unexpected DataChunk type: " + uriDC.getType());
         }
+    }
 
-        int semicolon = decodedURI.indexOf(match, 0);
+
+    private void parseSessionId(final Chunk uriChunk) {
+        final int semicolon = uriChunk.indexOf(match, 0);
+
         if (semicolon > 0) {
-
             // Parse session ID, and extract it from the decoded request URI
-            int start = decodedURI.getStart();
-            int end = decodedURI.getEnd();
+            final int start = uriChunk.getStart();
 
-            int sessionIdStart = start + semicolon + match.length();
-            int semicolon2 = decodedURI.indexOf(';', sessionIdStart);
-            String sessionId;
-            if (semicolon2 >= 0) {
-                sessionId = decodedURI.toString(sessionIdStart, semicolon2);
-            } else {
-                sessionId = decodedURI.toString(sessionIdStart, end - sessionIdStart);
-            }
-            int jrouteIndex = sessionId.lastIndexOf(':');
+            final int sessionIdStart = start + semicolon + match.length();
+            final int semicolon2 = uriChunk.indexOf(';', sessionIdStart);
+
+            final int end = semicolon >= 0 ? semicolon2 : uriChunk.getEnd();
+
+            final String sessionId = uriChunk.toString(sessionIdStart, end);
+            
+            final int jrouteIndex = sessionId.lastIndexOf(':');
             if (jrouteIndex > 0) {
                 setRequestedSessionId(sessionId.substring(0, jrouteIndex));
                 if (jrouteIndex < (sessionId.length()-1)) {
@@ -2156,43 +2163,45 @@ public class Request {
 
             setRequestedSessionURL(true);
 
-            if (!request.getRequestURIRef().getRequestURIBC().isNull()) {
-                parseSessionIdFromRequestURI();
-            }
+            uriChunk.delete(sessionIdStart, end);
+//            if (!request.requestURI().getByteChunk().isNull()) {
+//                extractSessionIdFromRequestURI();
+//            }
         } else {
             setRequestedSessionId(null);
             setRequestedSessionURL(false);
         }
-    }
 
+    }
+    
     /**
      * Extracts the session ID from the request URI.
      */
-    protected void parseSessionIdFromRequestURI() {
-
-        int start, end, semicolon, semicolon2;
-
-        // TODO Rework this to not depend on ByteChunk
-        BufferChunk bc = request.getRequestURIRef().getRequestURIBC();
-        ByteChunk uriBC = new ByteChunk(bc.size());
-        byte[] bytes = bc.getBuffer().toByteBuffer().array();
-        uriBC.setBytes(bytes, 0, bytes.length);
-        start = uriBC.getStart();
-        end = uriBC.getEnd();
-        semicolon = uriBC.indexOf(match, 0, match.length(), 0);
-
-        if (semicolon > 0) {
-            semicolon2 = uriBC.indexOf
-                (';', semicolon + match.length());
-            uriBC.setEnd(start + semicolon);
-            byte[] buf = uriBC.getBuffer();
-            if (semicolon2 >= 0) {
-                System.arraycopy(buf, start + semicolon2, buf, start + semicolon, end - start - semicolon2);
-                uriBC.setBytes(buf, start, semicolon
-                               + (end - start - semicolon2));
-            }
-        }
-    }
+//    protected void extractSessionIdFromRequestURI() {
+//
+//        int start, end, semicolon, semicolon2;
+//
+//        // TODO Rework this to not depend on ByteChunk
+//        DataChunk bc = request.getRequestURIRef().getRequestURIBC();
+//        ByteChunk uriBC = new ByteChunk(bc.size());
+//        byte[] bytes = bc.getBuffer().toByteBuffer().array();
+//        uriBC.setBytes(bytes, 0, bytes.length);
+//        start = uriBC.getStart();
+//        end = uriBC.getEnd();
+//        semicolon = uriBC.indexOf(match, 0, match.length(), 0);
+//
+//        if (semicolon > 0) {
+//            semicolon2 = uriBC.indexOf
+//                (';', semicolon + match.length());
+//            uriBC.setEnd(start + semicolon);
+//            byte[] buf = uriBC.getBuffer();
+//            if (semicolon2 >= 0) {
+//                System.arraycopy(buf, start + semicolon2, buf, start + semicolon, end - start - semicolon2);
+//                uriBC.setBytes(buf, start, semicolon
+//                               + (end - start - semicolon2));
+//            }
+//        }
+//    }
 
     /**
      * Set a flag indicating whether or not the requested session ID for this

@@ -61,7 +61,7 @@ import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.http.Protocol;
-import org.glassfish.grizzly.http.util.BufferChunk;
+import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
@@ -101,7 +101,7 @@ public class GZipEncodingTest extends TestCase {
                 final HttpResponsePacket httpResponse = (HttpResponsePacket) httpPacket;
                 final HttpRequestPacket httpRequest = httpResponse.getRequest();
 
-                final BufferChunk bc = httpRequest.getHeaders().getValue("accept-encoding");
+                final DataChunk bc = httpRequest.getHeaders().getValue("accept-encoding");
 
                 return bc != null && bc.indexOf("gzip", 0) != -1;
             }
@@ -170,7 +170,7 @@ public class GZipEncodingTest extends TestCase {
                 final HttpResponsePacket httpResponse = (HttpResponsePacket) httpPacket;
                 final HttpRequestPacket httpRequest = httpResponse.getRequest();
 
-                final BufferChunk bc = httpRequest.getHeaders().getValue("accept-encoding");
+                final DataChunk bc = httpRequest.getHeaders().getValue("accept-encoding");
 
                 return bc != null && bc.indexOf("gzip", 0) != -1;
             }
@@ -219,7 +219,7 @@ public class GZipEncodingTest extends TestCase {
                 final HttpResponsePacket httpResponse = (HttpResponsePacket) httpPacket;
                 final HttpRequestPacket httpRequest = httpResponse.getRequest();
 
-                final BufferChunk bc = httpRequest.getHeaders().getValue("accept-encoding");
+                final DataChunk bc = httpRequest.getHeaders().getValue("accept-encoding");
 
                 return bc != null && bc.indexOf("gzip", 0) != -1;
             }

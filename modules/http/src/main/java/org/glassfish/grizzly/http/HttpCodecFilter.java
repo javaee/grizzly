@@ -48,8 +48,8 @@ import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.util.Ascii;
-import org.glassfish.grizzly.http.util.BufferChunk;
-import org.glassfish.grizzly.http.util.CacheableBufferChunk;
+import org.glassfish.grizzly.http.util.DataChunk;
+import org.glassfish.grizzly.http.util.CacheableDataChunk;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.Buffers;
@@ -62,6 +62,7 @@ import org.glassfish.grizzly.utils.ArraySet;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import org.glassfish.grizzly.http.util.BufferChunk;
 
 /**
  * The {@link org.glassfish.grizzly.filterchain.Filter}, responsible for transforming {@link Buffer} into
@@ -652,8 +653,8 @@ public abstract class HttpCodecFilter extends BaseFilter
     protected Buffer encodeKnownHeaders(MemoryManager memoryManager,
             Buffer buffer, HttpHeader httpHeader) {
         
-        final CacheableBufferChunk name = CacheableBufferChunk.create();
-        final CacheableBufferChunk value = CacheableBufferChunk.create();
+        final CacheableDataChunk name = CacheableDataChunk.create();
+        final CacheableDataChunk value = CacheableDataChunk.create();
 
         name.setString(Constants.CONTENT_TYPE_HEADER);
         httpHeader.extractContentType(value);
@@ -684,7 +685,7 @@ public abstract class HttpCodecFilter extends BaseFilter
 
     private Buffer encodeContentEncodingHeader(final MemoryManager memoryManager,
             Buffer buffer, HttpHeader httpHeader,
-            final CacheableBufferChunk name, final CacheableBufferChunk value) {
+            final CacheableDataChunk name, final CacheableDataChunk value) {
 
         final List<ContentEncoding> packetContentEncodings =
                 httpHeader.getContentEncodings(true);
@@ -714,7 +715,7 @@ public abstract class HttpCodecFilter extends BaseFilter
 
         for (int i = 0; i < mimeHeadersNum; i++) {
             if (!mimeHeaders.getAndSetSerialized(i, true)) {
-                final BufferChunk value = mimeHeaders.getValue(i);
+                final DataChunk value = mimeHeaders.getValue(i);
                 if (!value.isNull()) {
                     buffer = encodeMimeHeader(memoryManager, buffer,
                             mimeHeaders.getName(i), value, true);
@@ -726,7 +727,7 @@ public abstract class HttpCodecFilter extends BaseFilter
     }
 
     protected static Buffer encodeMimeHeader(final MemoryManager memoryManager,
-            Buffer buffer, final BufferChunk name, final BufferChunk value,
+            Buffer buffer, final DataChunk name, final DataChunk value,
             final boolean encodeLastCRLF) {
 
         buffer = put(memoryManager, buffer, name);
@@ -986,7 +987,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         parsingState.isTransferEncodingHeader = false;
 
         if (parsingState.isUpgradeHeader) {
-            httpHeader.getUpgradeBC().setBuffer(input, parsingState.start,
+            httpHeader.getUpgradeDC().setBuffer(input, parsingState.start,
                     parsingState.checkpoint2);
             parsingState.isUpgradeHeader = false;
         }
@@ -1093,18 +1094,18 @@ public abstract class HttpCodecFilter extends BaseFilter
     }
 
     protected static Buffer put(MemoryManager memoryManager,
-            Buffer dstBuffer, BufferChunk chunk) {
+            Buffer dstBuffer, DataChunk chunk) {
 
         if (chunk.isNull()) return dstBuffer;
         
-        if (chunk.hasBuffer()) {
-            final int length = chunk.getEnd() - chunk.getStart();
+        if (chunk.getType() == DataChunk.Type.Buffer) {
+            final BufferChunk bc = chunk.getBufferChunk();
+            final int length = bc.getLength();
             if (dstBuffer.remaining() < length) {
-                dstBuffer =
-                        resizeBuffer(memoryManager, dstBuffer, length);
+                dstBuffer = resizeBuffer(memoryManager, dstBuffer, length);
             }
 
-            dstBuffer.put(chunk.getBuffer(), chunk.getStart(),
+            dstBuffer.put(bc.getBuffer(), bc.getStart(),
                     length);
 
             return dstBuffer;
@@ -1117,8 +1118,7 @@ public abstract class HttpCodecFilter extends BaseFilter
             Buffer dstBuffer, String s) {
         final int size = s.length();
         if (dstBuffer.remaining() < size) {
-            dstBuffer =
-                    resizeBuffer(memoryManager, dstBuffer, size);
+            dstBuffer = resizeBuffer(memoryManager, dstBuffer, size);
         }
 
         for (int i = 0; i < size; i++) {
@@ -1145,8 +1145,7 @@ public abstract class HttpCodecFilter extends BaseFilter
             Buffer headerBuffer, byte value) {
 
         if (!headerBuffer.hasRemaining()) {
-            headerBuffer =
-                    resizeBuffer(memoryManager, headerBuffer, 1);
+            headerBuffer = resizeBuffer(memoryManager, headerBuffer, 1);
         }
 
         headerBuffer.put(value);
@@ -1274,7 +1273,7 @@ public abstract class HttpCodecFilter extends BaseFilter
     }
     
     final void setContentEncodingsOnParsing(HttpHeader httpHeader) {
-        final BufferChunk bc =
+        final DataChunk bc =
                 httpHeader.getHeaders().getValue(Constants.CONTENT_ENCODING_HEADER);
         
         if (bc != null) {
@@ -1289,7 +1288,7 @@ public abstract class HttpCodecFilter extends BaseFilter
             }
 
             // last ContentEncoding
-            final ContentEncoding ce = lookupContentEncoding(bc, currentIdx, bc.size());
+            final ContentEncoding ce = lookupContentEncoding(bc, currentIdx, bc.getLength());
             encodings.add(ce);
         }
     }
@@ -1298,10 +1297,10 @@ public abstract class HttpCodecFilter extends BaseFilter
         // If user specified content-length - we don't encode the content
         if (httpHeader.getContentLength() >= 0) return;
         
-        final BufferChunk bc =
+        final DataChunk bc =
                 httpHeader.getHeaders().getValue(Constants.CONTENT_ENCODING_HEADER);
 
-        final boolean isSomeEncodingApplied = bc != null && bc.size() > 0;
+        final boolean isSomeEncodingApplied = bc != null && bc.getLength() > 0;
 
         final ContentEncoding[] encodingsLibrary = contentEncodings.getArray();
         if (encodingsLibrary == null) return;
@@ -1321,7 +1320,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         }
     }
     
-    private ContentEncoding lookupContentEncoding(BufferChunk bc,
+    private ContentEncoding lookupContentEncoding(DataChunk bc,
             int startIdx, int endIdx) {
         final ContentEncoding[] encodings = contentEncodings.getArray();
 
@@ -1364,7 +1363,7 @@ public abstract class HttpCodecFilter extends BaseFilter
     }
 
     private static boolean lookupAlias(ContentEncoding encoding,
-                                       BufferChunk aliasBuffer,
+                                       DataChunk aliasBuffer,
                                        int startIdx) {
 
         final String[] aliases = encoding.getAliases();
@@ -1415,7 +1414,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         public int checkpoint = -1; // extra parsing state field
         public int checkpoint2 = -1; // extra parsing state field
 
-        public BufferChunk headerValueStorage;
+        public DataChunk headerValueStorage;
 
         public long parsingNumericValue;
 

@@ -45,7 +45,6 @@ import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.memory.DefaultMemoryManager;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 
 import static org.glassfish.grizzly.http.Constants.ASCII_CHARSET;
@@ -106,16 +105,16 @@ public enum HttpStatus {
 
     private final int status;
     private final String reasonPhrase;
-    private final BufferChunk reasonPhraseBC;
+    private final DataChunk reasonPhraseBC;
 
     HttpStatus(final int status, final String reasonPhrase) {
         this.status = status;
         this.reasonPhrase = reasonPhrase;
-        final BufferChunk bc = new BufferChunk();
+        final DataChunk dataChunk = DataChunk.newInstance();
         final DefaultMemoryManager mm = (DefaultMemoryManager) TransportFactory.getInstance().getDefaultMemoryManager();
         ByteBufferWrapper wrapper = mm.wrap(ByteBuffer.wrap(reasonPhrase.getBytes(ASCII_CHARSET)));
-        bc.setBuffer(wrapper);
-        reasonPhraseBC = bc.toImmutable();
+        dataChunk.setBuffer(wrapper, wrapper.position(), wrapper.limit());
+        reasonPhraseBC = dataChunk.toImmutable();
     }
 
 
@@ -130,10 +129,10 @@ public enum HttpStatus {
     }
 
     /**
-     * @return the {@link BufferChunk} containing the reason phrase as
+     * @return the {@link DataChunk} containing the reason phrase as
      *  defined by <code>RFC 2616</code>.
      */
-    public BufferChunk getReasonPhraseBC() {
+    public DataChunk getReasonPhraseDC() {
         return reasonPhraseBC;
     }
 

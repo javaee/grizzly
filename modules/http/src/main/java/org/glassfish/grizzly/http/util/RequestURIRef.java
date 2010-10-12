@@ -50,32 +50,43 @@ import java.nio.charset.Charset;
 public class RequestURIRef {
     private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
     
-    private final BufferChunk requestURIBC = BufferChunk.newInstance();
+    private final DataChunk requestURIBC = DataChunk.newInstance();
     private boolean isDecoded;
+    private Charset decodedCharset;
     private boolean wasSlashAllowed = true;
     
-    public final BufferChunk getRequestURIBC() {
+    public final DataChunk getRequestURIBC() {
         return requestURIBC;
     }
 
-    public final BufferChunk getDecodedRequestURIBC() throws CharConversionException {
-        return getDecodedRequestURIBC(wasSlashAllowed);
+    public final DataChunk getDecodedRequestURIBC() throws CharConversionException {
+        return getDecodedRequestURIBC(wasSlashAllowed, UTF8_CHARSET);
     }
 
-    public BufferChunk getDecodedRequestURIBC(boolean isSlashAllowed)
+    public DataChunk getDecodedRequestURIBC(boolean isSlashAllowed)
             throws CharConversionException {
-        
+        return getDecodedRequestURIBC(isSlashAllowed, UTF8_CHARSET);
+    }
+
+    public DataChunk getDecodedRequestURIBC(final boolean isSlashAllowed,
+            final Charset charset) throws CharConversionException {
+
         if (isDecoded) {
             if (isSlashAllowed != wasSlashAllowed)
                 throw new IllegalStateException(
                         "URI was already decoded with isSlashAllowed=" + wasSlashAllowed);
-            
-            return requestURIBC;
+            if (charset == decodedCharset) {
+                return requestURIBC;
+            } else {
+                HttpRequestURIDecoder.convertToChars(requestURIBC, charset);
+            }
+        } else {
+            HttpRequestURIDecoder.decode(requestURIBC, isSlashAllowed, charset);
+            isDecoded = true;
+            wasSlashAllowed = isSlashAllowed;
         }
 
-        URLDecoder.decode(requestURIBC, isSlashAllowed);
-        wasSlashAllowed = isSlashAllowed;
-        isDecoded = true;
+        decodedCharset = charset;
         return requestURIBC;
     }
 
@@ -102,28 +113,10 @@ public class RequestURIRef {
     public String getDecodedURI(final boolean isSlashAllowed, Charset charset)
             throws CharConversionException {
         
-        if (isDecoded) {
-            if (isSlashAllowed != wasSlashAllowed)
-                throw new IllegalStateException(
-                        "URI was already decoded with isSlashAllowed=" + wasSlashAllowed);
+        getDecodedRequestURIBC(isSlashAllowed, charset);
 
-            return requestURIBC.toString(charset);
-        }
-
-        if (!requestURIBC.hasString()) {
-            URLDecoder.decode(requestURIBC, isSlashAllowed);
-        } else {
-            if (charset == null) {
-                charset = UTF8_CHARSET;
-            }
-            
-            requestURIBC.setString(
-                    URLDecoder.decode(requestURIBC.toString(charset), isSlashAllowed));
-        }
-
-        wasSlashAllowed = isSlashAllowed;
-        isDecoded = true;
-        return requestURIBC.toString(charset);
+        final String strValue = requestURIBC.toString();
+        return strValue;
     }
 
     public void setDecodedURI(String uri) {

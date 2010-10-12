@@ -59,7 +59,7 @@
 package org.glassfish.grizzly.http;
 
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.http.util.BufferChunk;
+import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.CookieParserUtils;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import java.util.ArrayList;
@@ -67,6 +67,7 @@ import java.util.Collection;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.http.util.BufferChunk;
 
 /**
  * A collection of cookies - reusable and tuned for server side performance.
@@ -154,21 +155,22 @@ public final class Cookies {
                 break;
             }
 
-            BufferChunk cookieValue = headers.getValue(pos);
+            DataChunk cookieValue = headers.getValue(pos);
             if (cookieValue == null || cookieValue.isNull()) {
                 pos++;
                 continue;
             }
 
             // Uncomment to test the new parsing code
-            if (cookieValue.hasBuffer()) {
+            if (cookieValue.getType() == DataChunk.Type.Buffer) {
                 if (logger.isLoggable(Level.FINE)) {
                     log("Parsing b[]: " + cookieValue.toString());
                 }
 
-                CookieParserUtils.parseClientCookies(cookies, cookieValue.getBuffer(),
-                        cookieValue.getStart(),
-                        cookieValue.size());
+                final BufferChunk bufferChunk = cookieValue.getBufferChunk();
+                CookieParserUtils.parseClientCookies(cookies, bufferChunk.getBuffer(),
+                        bufferChunk.getStart(),
+                        bufferChunk.getLength());
             } else {
                 throw new IllegalStateException("Not implemented");
             }

@@ -41,7 +41,7 @@
 package org.glassfish.grizzly.web;
 
 import org.glassfish.grizzly.http.HttpHeader;
-import org.glassfish.grizzly.http.util.BufferChunk;
+import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.EncodingFilter;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.SocketConnectorHandler;
@@ -314,7 +314,7 @@ public class FileCacheTest {
                             if (!httpPacket.isRequest()) {
                                 final HttpResponsePacket response = (HttpResponsePacket) httpPacket;
                                 final HttpRequestPacket request;
-                                final BufferChunk acceptEncoding;
+                                final DataChunk acceptEncoding;
                                 if (response.isChunked() && (request = response.getRequest()) != null &&
                                         (acceptEncoding = request.getHeaders().getValue("Accept-Encoding")) != null &&
                                         acceptEncoding.indexOf("gzip", 0) >= 0) {

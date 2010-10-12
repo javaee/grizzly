@@ -38,55 +38,35 @@
  * holder.
  */
 
-package org.glassfish.grizzly.http.core;
+package org.glassfish.grizzly.http.util;
 
-import org.glassfish.grizzly.http.util.URLDecoder;
-import org.glassfish.grizzly.http.util.DataChunk;
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.TransportFactory;
-import org.glassfish.grizzly.memory.MemoryManager;
-import java.net.URLEncoder;
-import java.nio.charset.Charset;
-import junit.framework.TestCase;
-import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.ThreadCache;
 
 /**
- * Parse URL decoder
- * 
+ * {@link DataChunk} implementation, which could be cached in the thread cache.
  * @author Alexey Stashok
  */
-public class URIDecoderTest extends TestCase {
-    private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
-    
-    public void testURLNoChangeBB() throws Exception {
-        testDecoder("http://localhost:8080/helloworld");
+public class CacheableDataChunk extends DataChunk {
+    private static final ThreadCache.CachedTypeIndex<CacheableDataChunk> CACHE_IDX =
+            ThreadCache.obtainIndex(CacheableDataChunk.class, 2);
+
+    public static CacheableDataChunk create() {
+        final CacheableDataChunk dataChunk = ThreadCache.takeFromCache(CACHE_IDX);
+        if (dataChunk != null) {
+            return dataChunk;
+        }
+
+        return new CacheableDataChunk();
     }
 
-    public void testURLSpaceBB() throws Exception {
-        testDecoder("http://localhost:8080/hello world");
+    @Override
+    public void reset() {
+        super.reset();
     }
 
-    public void testURLUTFBB() throws Exception {
-        String s = "http://localhost:8080/\u043F\u0440\u0438\u0432\u0435\u0442 \u043C\u0438\u0440";
-
-        testDecoder(s);
-    }
-
-    @SuppressWarnings({"unchecked"})
-    private void testDecoder(String inputURI) throws Exception {
-        
-        MemoryManager mm = TransportFactory.getInstance().getDefaultMemoryManager();
-        String encodedURI = URLEncoder.encode(inputURI, UTF8_CHARSET.name());
-
-        Buffer b = Buffers.wrap(mm, encodedURI);
-
-        DataChunk bufferChunk = DataChunk.newInstance();
-        bufferChunk.setBuffer(b, b.position(), b.limit());
-
-        URLDecoder.decode(bufferChunk);
-
-        String decodedURI = bufferChunk.toString(UTF8_CHARSET);
-
-        assertEquals(inputURI, decodedURI);
+    @Override
+    public void recycle() {
+        reset();
+        ThreadCache.putToCache(CACHE_IDX, this);
     }
 }

@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.http;
 
+import org.glassfish.grizzly.http.util.BufferChunk;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.EmptyCompletionHandler;
@@ -48,7 +49,7 @@ import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.http.util.BufferChunk;
+import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.FastHttpDateFormat;
 import org.glassfish.grizzly.http.util.HexUtils;
 import org.glassfish.grizzly.http.util.HttpStatus;
@@ -246,7 +247,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         final HttpRequestPacketImpl request = (HttpRequestPacketImpl) httpHeader;
 
         // If it's upgraded HTTP - don't check semantics
-        if (!request.getUpgradeBC().isNull()) return false;
+        if (!request.getUpgradeDC().isNull()) return false;
 
         
         prepareRequest(request, buffer.hasRemaining());
@@ -316,7 +317,7 @@ public class HttpServerFilter extends HttpCodecFilter {
                         return false;
                     }
 
-                    httpRequest.getMethodBC().setBuffer(input,
+                    httpRequest.getMethodDC().setBuffer(input,
                             parsingState.start, spaceIdx);
 
                     parsingState.start = -1;
@@ -364,11 +365,11 @@ public class HttpServerFilter extends HttpCodecFilter {
                     }
 
                     if (parsingState.checkpoint > parsingState.start) {
-                        httpRequest.getProtocolBC().setBuffer(
+                        httpRequest.getProtocolDC().setBuffer(
                                 input, parsingState.start,
                                 parsingState.checkpoint);
                     } else {
-                        httpRequest.getProtocolBC().setString("");
+                        httpRequest.getProtocolDC().setString("");
                     }
 
                     parsingState.subState = 0;
@@ -388,9 +389,9 @@ public class HttpServerFilter extends HttpCodecFilter {
         final HttpResponsePacket httpResponse = (HttpResponsePacket) httpPacket;
         output = put(memoryManager, output, httpResponse.getProtocol().getProtocolBytes());
         output = put(memoryManager, output, Constants.SP);
-        output = put(memoryManager, output, httpResponse.getStatusBC());
+        output = put(memoryManager, output, httpResponse.getStatusDC());
         output = put(memoryManager, output, Constants.SP);
-        output = put(memoryManager, output, httpResponse.getReasonPhraseBC(true));
+        output = put(memoryManager, output, httpResponse.getReasonPhraseDC(true));
 
         return output;
     }
@@ -423,12 +424,13 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
 
         if (found) {
-            httpRequest.getRequestURIRef().getRequestURIBC().setBuffer(input, state.start, offset);
+            final DataChunk requestURIBC = httpRequest.getRequestURIRef().getRequestURIBC();
+            requestURIBC.setBuffer(input, state.start, offset);
             if (state.checkpoint != -1) {
                 // cut RequestURI to not include query string
-                httpRequest.getRequestURIRef().getRequestURIBC().setEnd(state.checkpoint);
+                requestURIBC.getBufferChunk().setEnd(state.checkpoint);
 
-                httpRequest.getQueryStringBC().setBuffer(input,
+                httpRequest.getQueryStringDC().setBuffer(input,
                         state.checkpoint + 1, offset);
             }
 
@@ -480,7 +482,7 @@ public class HttpServerFilter extends HttpCodecFilter {
             }
         }
 
-        BufferChunk methodBC = request.getMethodBC();
+        DataChunk methodBC = request.getMethodDC();
         if (methodBC.equals("HEAD")) {
             // No entity body
             state.contentDelimitation = true;
@@ -537,7 +539,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         final ProcessingState state = request.getProcessingState();
         final HttpResponsePacket response = request.getResponse();
 
-        final BufferChunk methodBC = request.getMethodBC();
+        final DataChunk methodBC = request.getMethodDC();
 
         if (methodBC.equals("GET")) {
             request.setExpectContent(false);
@@ -558,7 +560,8 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         // Check for a full URI (including protocol://host:port/)
         // Check for a full URI (including protocol://host:port/)
-        BufferChunk uriBC = request.getRequestURIRef().getRequestURIBC();
+        final BufferChunk uriBC =
+                request.getRequestURIRef().getRequestURIBC().getBufferChunk();
         if (uriBC.startsWithIgnoreCase("http", 0)) {
 
             int pos = uriBC.indexOf("://", 4);
@@ -568,16 +571,16 @@ public class HttpServerFilter extends HttpCodecFilter {
                 Buffer uriB = uriBC.getBuffer();
                 slashPos = uriBC.indexOf('/', pos + 3);
                 if (slashPos == -1) {
-                    slashPos = uriBC.size();
+                    slashPos = uriBC.getLength();
                     // Set URI as "/"
-                    uriBC.setBuffer(uriB, uriBCStart + pos + 1, 1);
+                    uriBC.setBufferChunk(uriB, uriBCStart + pos + 1, 1);
                 } else {
-                    uriBC.setBuffer(uriB,
+                    uriBC.setBufferChunk(uriB,
                                     uriBCStart + slashPos,
-                                    uriBC.size() - slashPos);
+                                    uriBC.getLength() - slashPos);
                 }
-                BufferChunk hostMB = headers.setValue("host");
-                hostMB.setBuffer(uriB,
+                DataChunk hostDC = headers.setValue("host");
+                hostDC.setBuffer(uriB,
                                  uriBCStart + pos + 3,
                                  slashPos - pos - 3);
             }
@@ -587,13 +590,14 @@ public class HttpServerFilter extends HttpCodecFilter {
         final boolean isHttp11 = protocol == Protocol.HTTP_1_1;
 
         // ------ Set keep-alive flag
-        final BufferChunk connectionValueMB = headers.getValue("connection");
-        final boolean isConnectionClose = (connectionValueMB != null &&
-                connectionValueMB.findBytesAscii(Constants.CLOSE_BYTES) != -1);
+        final DataChunk connectionValueDC = headers.getValue("connection");
+        final boolean isConnectionClose = (connectionValueDC != null &&
+                connectionValueDC.getBufferChunk().findBytesAscii(Constants.CLOSE_BYTES) != -1);
 
         if (!isConnectionClose) {
             state.keepAlive = isHttp11 ||
-                    (connectionValueMB != null && connectionValueMB.findBytesAscii(Constants.KEEPALIVE_BYTES) != -1);
+                    (connectionValueDC != null &&
+                    connectionValueDC.getBufferChunk().findBytesAscii(Constants.KEEPALIVE_BYTES) != -1);
         }
         // --------------------------
 
@@ -602,16 +606,17 @@ public class HttpServerFilter extends HttpCodecFilter {
             state.contentDelimitation = true;
         }
 
-        BufferChunk hostBC = headers.getValue("host");
+        final DataChunk hostBC = headers.getValue("host");
 
         // Check host header
-        if (isHttp11 && hostBC == null) {
+        if (hostBC != null) {
+            parseHost(hostBC.getBufferChunk(), request, response, state);
+        } else if (isHttp11) {
             state.error = true;
             // 400 - Bad request
             HttpStatus.BAD_REQUEST_400.setValues(response);
+            return;
         }
-
-        parseHost(hostBC, request, response, state);
 
         if (!state.contentDelimitation) {
             // If there's no content length

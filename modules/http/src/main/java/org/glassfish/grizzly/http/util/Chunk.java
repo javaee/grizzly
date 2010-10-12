@@ -40,33 +40,31 @@
 
 package org.glassfish.grizzly.http.util;
 
-import org.glassfish.grizzly.ThreadCache;
-
 /**
- * {@link BufferChunk} implementation, which could be cached in the thread cache.
+ * General interface for {@link CharChunk} and {@link BufferChunk}.
+ *
  * @author Alexey Stashok
+ *
+ * @since 2.0
+ *
+ * @see CharChunk
+ * @see BufferChunk
+ * @see DataChunk
  */
-public class CacheableBufferChunk extends BufferChunk {
-    private static final ThreadCache.CachedTypeIndex<CacheableBufferChunk> CACHE_IDX =
-            ThreadCache.obtainIndex(CacheableBufferChunk.class, 2);
+public interface Chunk {
+    public int getStart();
 
-    public static CacheableBufferChunk create() {
-        final CacheableBufferChunk bufferChunk = ThreadCache.takeFromCache(CACHE_IDX);
-        if (bufferChunk != null) {
-            return bufferChunk;
-        }
+    public void setStart(int start);
 
-        return new CacheableBufferChunk();
-    }
+    public int getEnd();
+    
+    public void setEnd(int end);
 
-    @Override
-    public void reset() {
-        super.reset();
-    }
+    public String toString(int start, int end);
 
-    @Override
-    public void recycle() {
-        reset();
-        ThreadCache.putToCache(CACHE_IDX, this);
-    }
+    public int indexOf(char c, int start);
+
+    public int indexOf(String s, int start);
+
+    public void delete(int start, int end);
 }

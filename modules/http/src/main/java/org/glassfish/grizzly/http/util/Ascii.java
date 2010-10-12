@@ -375,21 +375,47 @@ public final class Ascii {
         return n;
     }
 
-    public static long parseLong(BufferChunk bufferChunk) {
-        if (bufferChunk.hasBuffer()) {
-            return parseLong(bufferChunk.getBuffer(),
-                    bufferChunk.getStart(),
-                    bufferChunk.getEnd() - bufferChunk.getStart());
-        } else {
-            return Long.parseLong(bufferChunk.toString());
+    public static long parseLong(final DataChunk dataChunk) {
+        switch(dataChunk.getType()) {
+            case Buffer:
+                final BufferChunk bc = dataChunk.getBufferChunk();
+
+                return parseLong(bc.getBuffer(),
+                        bc.getStart(),
+                        bc.getLength());
+            case String:
+                return Long.parseLong(dataChunk.toString());
+            case Chars:
+                final CharChunk cc = dataChunk.getCharChunk();
+
+                return parseLong(cc.getBuffer(),
+                        cc.getStart(),
+                        cc.getLength());
+
+            default: throw new NullPointerException();
         }
     }
 
-    public static long parseLong(BufferChunk bufferChunk, int offset, int length) {
-        if (bufferChunk.hasBuffer()) {
-            return parseLong(bufferChunk.getBuffer(), bufferChunk.getStart() + offset, length);
-        } else {
-            return parseLong(bufferChunk.toString(), offset, length);
+    public static long parseLong(final DataChunk dataChunk, final int offset,
+            final int length) {
+        
+        switch(dataChunk.getType()) {
+            case Buffer:
+                final BufferChunk bc = dataChunk.getBufferChunk();
+
+                return parseLong(bc.getBuffer(),
+                        bc.getStart() + offset,
+                        length);
+            case String:
+                return parseLong(dataChunk.toString(), offset, length);
+            case Chars:
+                final CharChunk cc = dataChunk.getCharChunk();
+
+                return parseLong(cc.getBuffer(),
+                        cc.getStart() + offset,
+                        cc.getLength());
+
+            default: throw new NullPointerException();
         }
     }
 

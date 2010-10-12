@@ -46,7 +46,7 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
-import org.glassfish.grizzly.http.util.BufferChunk;
+import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.MemoryManager;
@@ -629,8 +629,8 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
                 // 304 Not Modified.
                 // For every other method, 412 Precondition Failed is sent
                 // back.
-                final BufferChunk methodBC = request.getMethodBC();
-                if (methodBC.equals("GET") || methodBC.equals("HEAD")) {
+                final DataChunk methodC = request.getMethodDC();
+                if (methodC.equals("GET") || methodC.equals("HEAD")) {
                     HttpStatus.NOT_MODIFIED_304.setValues(response);
                     response.setHeader("ETag", eTag);
                     return false;
@@ -781,10 +781,10 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
     }
 
     /**
-     * Notify registered {@link FileCacheProbe}s about the "entry hitted" event.
+     * Notify registered {@link FileCacheProbe}s about the "entry hit event.
      *
      * @param fileCache the <tt>FileCache</tt> event occurred on.
-     * @param entry entry been hitted.
+     * @param entry entry been hit.
      */
     protected static void notifyProbesEntryHit(final FileCache fileCache,
             final FileCacheEntry entry) {

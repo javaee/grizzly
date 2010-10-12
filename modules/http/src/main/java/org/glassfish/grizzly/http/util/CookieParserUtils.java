@@ -1030,7 +1030,27 @@ public class CookieParserUtils {
         }
     }
 
+    /**
+     * Unescapes any double quotes in the given cookie value.
+     *
+     * @param dc The cookie value to modify
+     */
+    public static void unescapeDoubleQuotes(DataChunk dc) {
+        switch (dc.getType()) {
+            case Buffer:
+                unescapeDoubleQuotes(dc.getBufferChunk());
+                return;
+            case String:
+                final String s = dc.toString();
+                dc.setString(unescapeDoubleQuotes(s, 0, s.length()));
+                return;
+            case Chars:
 
+            default: throw new NullPointerException();
+
+        }
+    }
+    
     /**
      * Unescapes any double quotes in the given cookie value.
      *
@@ -1038,7 +1058,7 @@ public class CookieParserUtils {
      */
     public static void unescapeDoubleQuotes(BufferChunk bc) {
 
-        if (bc == null || bc.size() == 0) {
+        if (bc == null || bc.getLength() == 0) {
             return;
         }
 
@@ -1057,6 +1077,34 @@ public class CookieParserUtils {
         }
 
         bc.setEnd(dest);
+    }
+
+    /**
+     * Unescapes any double quotes in the given cookie value.
+     *
+     * @param cc The cookie value to modify
+     */
+    public static void unescapeDoubleQuotes(CharChunk cc) {
+
+        if (cc == null || cc.getLength() == 0) {
+            return;
+        }
+
+        int src = cc.getStart();
+        int end = cc.getLimit();
+        int dest = src;
+        char[] buffer = cc.getBuffer();
+
+        while (src < end) {
+            if (buffer[src] == '\\' && src < end && buffer[src + 1] == '"') {
+                src++;
+            }
+            buffer[dest] = buffer[src];
+            dest++;
+            src++;
+        }
+
+        cc.setLimit(dest);
     }
 
     /**

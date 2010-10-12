@@ -58,7 +58,7 @@
 
 package org.glassfish.grizzly.http.server.util;
 
-import org.glassfish.grizzly.http.util.BufferChunk;
+import org.glassfish.grizzly.http.util.DataChunk;
 
 /**
  * Mapping data.
@@ -70,20 +70,22 @@ public class MappingData {
     public Object host = null;
     public Object context = null;
     public Object wrapper = null;
+    public String servletName = null;
     public boolean jspWildCard = false;
     // START GlassFish 1024
     public boolean isDefaultContext = false;
     // END GlassFish 1024
-    public BufferChunk contextPath = BufferChunk.newInstance();
-    public BufferChunk requestPath = BufferChunk.newInstance();
-    public BufferChunk wrapperPath = BufferChunk.newInstance();
-    public BufferChunk pathInfo = BufferChunk.newInstance();
-    public BufferChunk redirectPath = BufferChunk.newInstance();
+    public DataChunk contextPath = DataChunk.newInstance();
+    public DataChunk requestPath = DataChunk.newInstance();
+    public DataChunk wrapperPath = DataChunk.newInstance();
+    public DataChunk pathInfo = DataChunk.newInstance();
+    public DataChunk redirectPath = DataChunk.newInstance();
 
     public void recycle() {
         host = null;
         context = null;
         wrapper = null;
+        servletName = null;
         pathInfo.recycle();
         requestPath.recycle();
         wrapperPath.recycle();
@@ -101,6 +103,7 @@ public class MappingData {
         sb.append("host: ").append(host);
         sb.append("\ncontext: ").append(context);
         sb.append("\nwrapper: ").append(wrapper);
+        sb.append("\nservletName: ").append(servletName);
         sb.append("\ncontextPath: ").append(contextPath);
         sb.append("\nrequestPath: ").append(requestPath);
         sb.append("\nwrapperPath: ").append(wrapperPath);

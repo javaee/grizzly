@@ -59,6 +59,7 @@
 package org.glassfish.grizzly.http;
 
 import java.nio.charset.Charset;
+import org.glassfish.grizzly.http.util.Utils;
 
 /**
  * Constants.
@@ -66,7 +67,10 @@ import java.nio.charset.Charset;
  * @author Remy Maucherat
  */
 public final class Constants {
-    public static final Charset ASCII_CHARSET = Charset.forName("ASCII");
+    public static final String DEFAULT_CHARACTER_ENCODING="ISO-8859-1";
+
+    public static final Charset ASCII_CHARSET = Utils.lookupCharset("ASCII");
+    public static final Charset DEFAULT_CHARSET = Utils.lookupCharset(DEFAULT_CHARACTER_ENCODING);
 
 
     /**
@@ -323,10 +327,6 @@ public final class Constants {
     public final static byte[] LAST_CHUNK_CRLF_BYTES = "0\r\n".getBytes(ASCII_CHARSET);
 
     public final static String CONTENT_ENCODING_HEADER = "content-encoding";
-
-    // TODO Grizzly 2.0, by default, parsed the request URI using UTF-8.
-    // We should probably do so with query parameters
-    public static final String DEFAULT_CHARACTER_ENCODING="ISO-8859-1";
 
     public static final String EXPECT_100_CONTINUE_NAME = "expect";
 
