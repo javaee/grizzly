@@ -61,6 +61,8 @@ import org.glassfish.grizzly.memory.Buffers;
 public class HttpContent implements HttpPacket, org.glassfish.grizzly.Appendable<HttpContent> {
     private static final ThreadCache.CachedTypeIndex<HttpContent> CACHE_IDX =
             ThreadCache.obtainIndex(HttpContent.class, 2);
+    private static final ThreadCache.CachedTypeIndex<Builder> BUILDER_CACHE_IDX =
+            ThreadCache.obtainIndex(Builder.class, 2);
 
     public static HttpContent create() {
         return create(null);
@@ -77,6 +79,15 @@ public class HttpContent implements HttpPacket, org.glassfish.grizzly.Appendable
         return new HttpContent(httpHeader);
     }
 
+    private static Builder createBuilder(HttpHeader httpHeader) {
+        final Builder builder = ThreadCache.takeFromCache(BUILDER_CACHE_IDX);
+        if (builder != null) {
+            builder.packet = create(httpHeader);
+            return builder;
+        }
+        return new Builder(httpHeader);
+    }
+
     /**
      * Returns {@link HttpContent} builder.
      * 
@@ -84,7 +95,7 @@ public class HttpContent implements HttpPacket, org.glassfish.grizzly.Appendable
      * @return {@link Builder}.
      */
     public static Builder builder(HttpHeader httpHeader) {
-        return new Builder(httpHeader);
+        return createBuilder(httpHeader);
     }
 
     protected boolean isLast;
@@ -227,7 +238,11 @@ public class HttpContent implements HttpPacket, org.glassfish.grizzly.Appendable
          * @return <tt>HttpContent</tt>
          */
         public HttpContent build() {
-            return packet;
+            try {
+                return packet;
+            } finally {
+                ThreadCache.putToCache(BUILDER_CACHE_IDX, this);
+            }
         }
     }
 }

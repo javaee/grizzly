@@ -52,6 +52,8 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
 public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
     private static final ThreadCache.CachedTypeIndex<HttpTrailer> CACHE_IDX =
             ThreadCache.obtainIndex(HttpTrailer.class, 2);
+    private static final ThreadCache.CachedTypeIndex<Builder> BUILDER_CACHE_IDX =
+            ThreadCache.obtainIndex(Builder.class, 2);
 
     public static HttpTrailer create() {
         return create(null);
@@ -68,20 +70,26 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
         return new HttpTrailer(httpHeader);
     }
 
+    private static Builder createBuilder(HttpHeader httpHeader) {
+        final Builder builder = ThreadCache.takeFromCache(BUILDER_CACHE_IDX);
+        if (builder != null) {
+            builder.packet = create(httpHeader);
+            return builder;
+        }
+        return new Builder(httpHeader);
+    }
+
     /**
      * Returns {@link HttpTrailer} builder.
      *
      * @return {@link Builder}.
      */
     public static Builder builder(HttpHeader httpHeader) {
-        return new Builder(httpHeader);
+        return createBuilder(httpHeader);
     }
 
     private MimeHeaders headers;
-    
-    protected HttpTrailer() {
-        this(null);
-    }
+
 
     protected HttpTrailer(HttpHeader httpHeader) {
         super(httpHeader);
@@ -200,7 +208,11 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
          */
         @Override
         public final HttpTrailer build() {
-            return (HttpTrailer) packet;
+            try {
+                return (HttpTrailer) packet;
+            } finally {
+                ThreadCache.putToCache(BUILDER_CACHE_IDX, this);
+            }
         }
     }
 }
