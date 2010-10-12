@@ -245,7 +245,7 @@ public class DefaultProtocolFilter implements ProtocolFilter {
             workerThread.setProcessorTask(null);
                        
             ctx.setKeyRegistrationState(
-                    Context.KeyRegistrationState.REGISTER);
+                    Context.KeyRegistrationState.NONE);
             return true;
         }
 
