@@ -61,6 +61,7 @@ import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 
 import java.util.Queue;
+import java.util.concurrent.Future;
 import java.util.logging.Level;
 
 /**
@@ -152,7 +153,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                 buffer, dstAddress, 0);
         
         // create and initialize the write queue record
-        final AsyncWriteQueueRecord queueRecord = AsyncWriteQueueRecord.create(
+        final AsyncWriteQueueRecord queueRecord = createRecord(
                 buffer, null, currentResult, completionHandler,
                 interceptor, dstAddress, buffer, false);
 
@@ -171,7 +172,7 @@ public abstract class AbstractNIOAsyncQueueWriter
 
         try {
             if (isLocked) {
-                final int bytesWritten = doWrite(connection, queueRecord);
+                final int bytesWritten = write0(connection, queueRecord);
                 connectionQueue.releaseSpace(bytesWritten, true);
             } else if (pendingBytes > maxPendingBytes && bufferSize > 0) {
                 connectionQueue.releaseSpace(bufferSize, false);
@@ -287,6 +288,19 @@ public abstract class AbstractNIOAsyncQueueWriter
         }
     }
 
+    protected AsyncWriteQueueRecord createRecord(final Object message,
+            final Future future,
+            final WriteResult currentResult,
+            final CompletionHandler completionHandler,
+            final Interceptor interceptor,
+            final Object dstAddress,
+            final Buffer outputBuffer,
+            final boolean isCloned) {
+        return AsyncWriteQueueRecord.create(message, future, currentResult,
+                completionHandler, interceptor, dstAddress, outputBuffer,
+                isCloned);
+    }
+    
     /**
      * {@inheritDoc}
      */
@@ -330,7 +344,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                             new Object[]{connection, queueRecord});
                 }
                 
-                final int bytesWritten = doWrite(connection, queueRecord);
+                final int bytesWritten = write0(connection, queueRecord);
                 connectionQueue.releaseSpace(bytesWritten, true);
 
                 // check if buffer was completely written
@@ -427,28 +441,28 @@ public abstract class AbstractNIOAsyncQueueWriter
     public final void close() {
     }
 
-    /**
-     * Performs real write on the NIO channel
-
-     * @param connection the {@link Connection} to write to
-     * @param queueRecord the record to write
-     * @throws java.io.IOException
-     */
-    protected final <E> int doWrite(final Connection connection,
-            final AsyncWriteQueueRecord queueRecord) throws IOException {
-        
-        final Buffer outputBuffer = queueRecord.getOutputBuffer();
-        final SocketAddress dstAddress = (SocketAddress) queueRecord.getDstAddress();
-        final WriteResult currentResult = queueRecord.getCurrentResult();
-        final int bytesWritten = write0(connection, dstAddress,
-                outputBuffer, currentResult);
-
-        if (bytesWritten == -1) {
-            throw new IOException("Connection is closed");
-        }
-
-        return bytesWritten;
-    }
+//    /**
+//     * Performs real write on the NIO channel
+//
+//     * @param connection the {@link Connection} to write to
+//     * @param queueRecord the record to write
+//     * @throws java.io.IOException
+//     */
+//    protected final int doWrite(final Connection connection,
+//            final AsyncWriteQueueRecord queueRecord) throws IOException {
+//
+//        final Buffer outputBuffer = queueRecord.getOutputBuffer();
+//        final SocketAddress dstAddress = (SocketAddress) queueRecord.getDstAddress();
+//        final WriteResult currentResult = queueRecord.getCurrentResult();
+//        final int bytesWritten = write0(connection, dstAddress,
+//                outputBuffer, currentResult);
+//
+//        if (bytesWritten == -1) {
+//            throw new IOException("Connection is closed");
+//        }
+//
+//        return bytesWritten;
+//    }
 
     protected final void onWriteComplete(Connection connection,
             AsyncWriteQueueRecord record) throws IOException {
@@ -527,9 +541,8 @@ public abstract class AbstractNIOAsyncQueueWriter
         return !buffer.hasRemaining();
     }
 
-    protected abstract int write0(Connection connection,
-            SocketAddress dstAddress, Buffer buffer,
-            WriteResult<Buffer, SocketAddress> currentResult)
+    protected abstract int write0(final Connection connection,
+            final AsyncWriteQueueRecord queueRecord)
             throws IOException;
 
     protected abstract void onReadyToWrite(Connection connection)

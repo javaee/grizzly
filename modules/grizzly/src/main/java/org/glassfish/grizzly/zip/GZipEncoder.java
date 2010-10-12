@@ -49,10 +49,10 @@ import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.zip.CRC32;
 import java.util.zip.Deflater;
+import org.glassfish.grizzly.memory.ByteBufferArray;
 
 /**
  * This class implements a {@link org.glassfish.grizzly.Transformer} which encodes plain data to
@@ -217,10 +217,12 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
         // excess copying in deflateBytes (see Deflater.c)
         int stride = bufferSize;
         Buffer resultBuffer = null;
+        final ByteBufferArray byteBufferArray = buffer.toByteBufferArray();
+        final ByteBuffer[] buffers = byteBufferArray.getArray();
+        final int size = byteBufferArray.size();
 
-        final ByteBuffer[] buffers = buffer.toByteBufferArray();
-
-        for (ByteBuffer byteBuffer : buffers) {
+        for (int i = 0; i < size; i++) {
+            final ByteBuffer byteBuffer = buffers[i];
             final int len = byteBuffer.remaining();
             if (len > 0) {
                 final byte[] buf;
@@ -236,8 +238,8 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
                     byteBuffer.position(byteBuffer.position() - len);
                 }
 
-                for (int i = 0; i < len; i += stride) {
-                    deflater.setInput(buf, off + i, Math.min(stride, len - i));
+                for (int j = 0; j < len; j += stride) {
+                    deflater.setInput(buf, off + j, Math.min(stride, len - j));
                     while (!deflater.needsInput()) {
                         final Buffer deflated = deflate(deflater, memoryManager);
                         if (deflated != null) {
@@ -251,7 +253,11 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
             }
         }
 
+        byteBufferArray.restore();
+        byteBufferArray.recycle();
+
         buffer.position(buffer.limit());
+        
         return resultBuffer;
     }
 

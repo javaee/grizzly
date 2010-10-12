@@ -336,9 +336,12 @@ public class Buffers {
                 }
             }
         } else {
-            final ByteBuffer[] srcByteBuffers = src.toByteBufferArray(position,
+            final ByteBufferArray array = src.toByteBufferArray(position,
                     position + length);
-            for(ByteBuffer srcByteBuffer : srcByteBuffers) {
+
+            final ByteBuffer[] srcByteBuffers = array.getArray();
+            for (int i = 0; i < array.size(); i++) {
+                final ByteBuffer srcByteBuffer = srcByteBuffers[i];
                 final int initialPosition = srcByteBuffer.position();
                 final int srcByteBufferLen = srcByteBuffer.remaining();
 
@@ -347,11 +350,14 @@ public class Buffers {
                             srcByteBuffer.arrayOffset() + initialPosition,
                             srcByteBufferLen);
                 } else {
-                    for (int i = 0; i < srcByteBufferLen; i++) {
-                        dstBuffer.put(srcByteBuffer.get(initialPosition + i));
+                    for (int j = 0; j < srcByteBufferLen; i++) {
+                        dstBuffer.put(srcByteBuffer.get(initialPosition + j));
                     }
                 }
             }
+
+            array.restore();
+            array.recycle();
         }
     }
 
@@ -438,11 +444,17 @@ public class Buffers {
             final ByteBuffer byteBuffer = buffer.toByteBuffer();
             fill(byteBuffer, position, limit, b);
         } else {
-            final ByteBuffer[] byteBuffers =
-                    buffer.toByteBufferArray(position, limit);
-            for (ByteBuffer byteBuffer : byteBuffers) {
+            final ByteBufferArray array = buffer.toByteBufferArray(position, limit);
+            final ByteBuffer[] byteBuffers = array.getArray();
+            final int size = array.size();
+
+            for (int i = 0; i < size; i++) {
+                final ByteBuffer byteBuffer = byteBuffers[i];
                 fill(byteBuffer, b);
             }
+
+            array.restore();
+            array.recycle();
         }
     }
 

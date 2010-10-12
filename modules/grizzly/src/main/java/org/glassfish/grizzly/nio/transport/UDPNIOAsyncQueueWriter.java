@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import org.glassfish.grizzly.nio.AbstractNIOAsyncQueueWriter;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.nio.NIOTransport;
@@ -64,12 +65,12 @@ public final class UDPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
     }
 
     @Override
-    protected int write0(Connection connection, SocketAddress dstAddress,
-            Buffer buffer,
-            WriteResult<Buffer, SocketAddress> currentResult)
-            throws IOException {
+    protected int write0(Connection connection, AsyncWriteQueueRecord queueRecord) throws IOException {
+        final Buffer outputBuffer = queueRecord.getOutputBuffer();
+        final SocketAddress dstAddress = (SocketAddress) queueRecord.getDstAddress();
+        final WriteResult currentResult = queueRecord.getCurrentResult();
         return ((UDPNIOTransport) transport).write((UDPNIOConnection) connection,
-                dstAddress, buffer, currentResult);
+                dstAddress, outputBuffer, currentResult);
     }
 
     @Override

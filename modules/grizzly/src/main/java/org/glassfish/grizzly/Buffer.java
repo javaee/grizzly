@@ -43,6 +43,7 @@ package org.glassfish.grizzly;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
+import org.glassfish.grizzly.memory.ByteBufferArray;
 
 /**
  * JDK {@link java.nio.ByteBuffer} was taken as base for Grizzly
@@ -1229,7 +1230,11 @@ public interface Buffer extends Comparable<Buffer> {
 
     public ByteBuffer toByteBuffer(int position, int limit);
 
-    public ByteBuffer[] toByteBufferArray();
+    public ByteBufferArray toByteBufferArray();
 
-    public ByteBuffer[] toByteBufferArray(int position, int limit);
+    public ByteBufferArray toByteBufferArray(ByteBufferArray array);
+
+    public ByteBufferArray toByteBufferArray(int position, int limit);
+
+    public ByteBufferArray toByteBufferArray(ByteBufferArray array, int position, int limit);
 }

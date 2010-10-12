@@ -54,16 +54,19 @@ import org.glassfish.grizzly.utils.DebugPoint;
  * 
  * @author Alexey Stashok
  */
-public final class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
+public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     private static final ThreadCache.CachedTypeIndex<AsyncWriteQueueRecord> CACHE_IDX =
             ThreadCache.obtainIndex(AsyncWriteQueueRecord.class, 2);
 
-    public static AsyncWriteQueueRecord create(Object message,
-            Future future,
-            WriteResult currentResult, CompletionHandler completionHandler,
-            Interceptor interceptor, Object dstAddress,
-            Buffer outputBuffer,
-            boolean isCloned) {
+    public static AsyncWriteQueueRecord create(
+            final Object message,
+            final Future future,
+            final WriteResult currentResult,
+            final CompletionHandler completionHandler,
+            final Interceptor interceptor,
+            final Object dstAddress,
+            final Buffer outputBuffer,
+            final boolean isCloned) {
 
         final AsyncWriteQueueRecord asyncWriteQueueRecord =
                 ThreadCache.takeFromCache(CACHE_IDX);
@@ -86,7 +89,7 @@ public final class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     private boolean isCloned;
     private Buffer outputBuffer;
 
-    private AsyncWriteQueueRecord(Object message, Future future,
+    protected AsyncWriteQueueRecord(Object message, Future future,
             WriteResult currentResult, CompletionHandler completionHandler,
             Interceptor interceptor, Object dstAddress,
             Buffer outputBuffer,

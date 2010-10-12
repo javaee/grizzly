@@ -326,14 +326,20 @@ public class ByteBufferWrapper implements Buffer {
         if (!src.isComposite()) {
             Buffers.put(src.toByteBuffer(), position, length, visible);
         } else {
-            final ByteBuffer[] bbs =
+            final ByteBufferArray array =
                     src.toByteBufferArray(position, position + length);
             
-            for(ByteBuffer bb : bbs) {
+            final ByteBuffer[] bbs = array.getArray();
+            final int size = array.size();
+            
+            for (int i = 0; i < size; i++) {
+                final ByteBuffer bb = bbs[i];
                 final int pos = bb.position();
                 Buffers.put(bb, pos, bb.remaining(), visible);
-                bb.position(pos);
             }
+
+            array.restore();
+            array.recycle();
         }
         
         return this;
@@ -577,12 +583,12 @@ public class ByteBufferWrapper implements Buffer {
     }
 
     @Override
-    public ByteBuffer toByteBuffer() {
+    public final ByteBuffer toByteBuffer() {
         return visible;
     }
 
     @Override
-    public ByteBuffer toByteBuffer(int position, int limit) {
+    public final ByteBuffer toByteBuffer(int position, int limit) {
         final int currentPosition = visible.position();
         final int currentLimit = visible.limit();
 
@@ -600,12 +606,36 @@ public class ByteBufferWrapper implements Buffer {
     }
 
     @Override
-    public ByteBuffer[] toByteBufferArray() {
-        return new ByteBuffer[] {toByteBuffer()};
+    public final ByteBufferArray toByteBufferArray() {
+        return toByteBufferArray(null);
     }
 
     @Override
-    public ByteBuffer[] toByteBufferArray(int position, int limit) {
-        return new ByteBuffer[] {toByteBuffer(position, limit)};
+    public final ByteBufferArray toByteBufferArray(int position, int limit) {
+        return toByteBufferArray(null, position, limit);
+    }
+
+    @Override
+    public ByteBufferArray toByteBufferArray(ByteBufferArray array) {
+        if (array == null) {
+            array = ByteBufferArray.create();
+}
+
+        array.add(visible);
+        return array;
+    }
+
+    @Override
+    public ByteBufferArray toByteBufferArray(ByteBufferArray array, int position, int limit) {
+        if (array == null) {
+            array = ByteBufferArray.create();
+        }
+
+        array.add(visible);
+
+        // array will hold the old pos/lim values, which will be restored on array.restore() call
+        Buffers.setPositionLimit(this, position, limit);
+
+        return array;
     }
 }

@@ -91,6 +91,7 @@ import org.glassfish.grizzly.threadpool.AbstractThreadPool;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import java.util.concurrent.TimeUnit;
+import org.glassfish.grizzly.memory.ByteBufferArray;
 
 /**
  * UDP NIO transport implementation
@@ -660,11 +661,16 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         final int read;
 
         if (buffer.isComposite()) {
-            final ByteBuffer[] byteBuffers = buffer.toByteBufferArray();
-            read = (int) ((DatagramChannel) connection.getChannel()).read(byteBuffers);
+            final ByteBufferArray array = buffer.toByteBufferArray();
+            final ByteBuffer[] byteBuffers = array.getArray();
+            final int size = array.size();
 
+            read = (int) ((DatagramChannel) connection.getChannel()).read(byteBuffers, 0, size);
+
+            array.restore();
+            array.recycle();
+            
             if (read > 0) {
-                resetByteBuffers(byteBuffers, read);
                 buffer.position(buffer.position() + read);
             }
         } else {
@@ -760,11 +766,16 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         } else {
 
             if (buffer.isComposite()) {
-                final ByteBuffer[] byteBuffers = buffer.toByteBufferArray();
-                written = (int) ((DatagramChannel) connection.getChannel()).write(byteBuffers);
+                final ByteBufferArray array = buffer.toByteBufferArray();
+                final ByteBuffer[] byteBuffers = array.getArray();
+                final int size = array.size();
+
+                written = (int) ((DatagramChannel) connection.getChannel()).write(byteBuffers, 0, size);
+
+                array.restore();
+                array.recycle();
 
                 if (written > 0) {
-                    resetByteBuffers(byteBuffers, written);
                     buffer.position(buffer.position() + written);
                 }
             } else {

@@ -40,16 +40,23 @@
 
 package org.glassfish.grizzly.nio.transport;
 
+import java.util.concurrent.Future;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Interceptor;
+import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import org.glassfish.grizzly.nio.AbstractNIOAsyncQueueWriter;
 import org.glassfish.grizzly.nio.NIOTransport;
 import java.io.IOException;
-import java.net.SocketAddress;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
+import org.glassfish.grizzly.memory.ByteBufferArray;
 import org.glassfish.grizzly.nio.NIOConnection;
+import org.glassfish.grizzly.utils.DebugPoint;
 
 /**
  * The TCP transport {@link AsyncQueueWriter} implementation, based on
@@ -64,16 +71,135 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
     }
 
     @Override
-    protected int write0(Connection connection, SocketAddress dstAddress,
-            Buffer buffer,
-            WriteResult<Buffer, SocketAddress> currentResult)
-            throws IOException {
-        return ((TCPNIOTransport) transport).write(connection, buffer, currentResult);
+    protected AsyncWriteQueueRecord createRecord(
+            final Object message,
+            final Future future,
+            final WriteResult currentResult,
+            final CompletionHandler completionHandler,
+            final Interceptor interceptor,
+            final Object dstAddress,
+            final Buffer outputBuffer,
+            final boolean isCloned) {
+        return TCPNIOQueueRecord.create(message, future, currentResult,
+                completionHandler, interceptor, dstAddress, outputBuffer,
+                isCloned);
+    }
+
+
+
+    @Override
+    protected int write0(Connection connection, AsyncWriteQueueRecord queueRecord) throws IOException {
+        final WriteResult currentResult = queueRecord.getCurrentResult();
+        final Buffer buffer = queueRecord.getOutputBuffer();
+        final TCPNIOQueueRecord record = (TCPNIOQueueRecord) queueRecord;
+
+        final int written;
+        
+        if (buffer.isComposite()) {
+            ByteBufferArray array = record.byteBufferArray;
+            if (array == null) {
+                array = buffer.toByteBufferArray();
+                record.byteBufferArray = array;
+            }
+
+            written = ((TCPNIOTransport) transport).write(connection,
+                    array, currentResult);
+
+
+            if (!buffer.hasRemaining()) {
+                array.restore();
+            }
+
+            if (written > 0) {
+                buffer.position(buffer.position() + written);
+            }
+
+        } else {
+            written = ((TCPNIOTransport) transport).write(connection, buffer.toByteBuffer(),
+                    currentResult);
+        }
+
+        ((TCPNIOConnection) connection).onWrite(buffer, written);
+
+        if (currentResult != null) {
+            currentResult.setMessage(buffer);
+            currentResult.setWrittenSize(currentResult.getWrittenSize()
+                    + written);
+            currentResult.setDstAddress(
+                    connection.getPeerAddress());
+        }
+
+        return written;
     }
 
     @Override
     protected final void onReadyToWrite(Connection connection) throws IOException {
         final NIOConnection nioConnection = (NIOConnection) connection;
         nioConnection.enableIOEvent(IOEvent.WRITE);
+    }
+
+    private static class TCPNIOQueueRecord extends AsyncWriteQueueRecord {
+
+        private static final ThreadCache.CachedTypeIndex<TCPNIOQueueRecord> CACHE_IDX =
+                ThreadCache.obtainIndex(TCPNIOQueueRecord.class, 2);
+
+        public static AsyncWriteQueueRecord create(
+                final Object message,
+                final Future future,
+                final WriteResult currentResult,
+                final CompletionHandler completionHandler,
+                final Interceptor interceptor,
+                final Object dstAddress,
+                final Buffer outputBuffer,
+                final boolean isCloned) {
+
+            final TCPNIOQueueRecord asyncWriteQueueRecord =
+                    ThreadCache.takeFromCache(CACHE_IDX);
+
+            if (asyncWriteQueueRecord != null) {
+                asyncWriteQueueRecord.isRecycled = false;
+                asyncWriteQueueRecord.set(message, future, currentResult,
+                        completionHandler, interceptor, dstAddress,
+                        outputBuffer, isCloned);
+
+                return asyncWriteQueueRecord;
+}
+
+            return new TCPNIOQueueRecord(message, future, currentResult,
+                    completionHandler, interceptor, dstAddress,
+                    outputBuffer, isCloned);
+        }
+
+        private ByteBufferArray byteBufferArray;
+        
+        public TCPNIOQueueRecord(final Object message,
+                final Future future,
+                final WriteResult currentResult,
+                final CompletionHandler completionHandler,
+                final Interceptor interceptor,
+                final Object dstAddress,
+                final Buffer outputBuffer,
+                final boolean isCloned) {
+            super(message, future, currentResult, completionHandler,
+                    interceptor, dstAddress, outputBuffer, isCloned);
+        }
+
+        @Override
+        public void recycle() {
+            checkRecycled();
+            reset();
+            isRecycled = true;
+            if (Grizzly.isTrackingThreadCache()) {
+                recycleTrack = new DebugPoint(new Exception(),
+                        Thread.currentThread().getName());
+            }
+
+            if (byteBufferArray != null) {
+                byteBufferArray.recycle();
+                byteBufferArray = null;
+            }
+            
+            ThreadCache.putToCache(CACHE_IDX, this);
+        }
     }
 }

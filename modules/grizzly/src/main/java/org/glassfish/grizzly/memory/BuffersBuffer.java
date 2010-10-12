@@ -1186,44 +1186,66 @@ public final class BuffersBuffer extends CompositeBuffer {
                 memoryManager, limit - position);
 
         final Buffer startBuffer = buffers[pos1];
+        final ByteBufferArray array = ByteBufferArray.create();
+        
         fillByteBuffer(resultByteBuffer,
-                startBuffer.toByteBufferArray(bufPosition, startBuffer.limit()));
+                startBuffer.toByteBufferArray(array, bufPosition, startBuffer.limit()));
 
         for(int i = pos1 + 1; i < pos2; i++) {
-            fillByteBuffer(resultByteBuffer, buffers[i].toByteBufferArray());
+            fillByteBuffer(resultByteBuffer, buffers[i].toByteBufferArray(array));
         }
 
         final Buffer endBuffer = buffers[pos2];
         fillByteBuffer(resultByteBuffer,
-                endBuffer.toByteBufferArray(endBuffer.position(), bufLimit));
+                endBuffer.toByteBufferArray(array, endBuffer.position(), bufLimit));
 
+        array.restore();
+        array.recycle();
+        
         return (ByteBuffer) resultByteBuffer.flip();
     }
 
-    private void fillByteBuffer(ByteBuffer bb, ByteBuffer[] bbs) {
-        for(ByteBuffer srcByteBuffer : bbs) {
-            int oldPostion = srcByteBuffer.position();
+    private void fillByteBuffer(ByteBuffer bb, ByteBufferArray array) {
+        final ByteBuffer[] bbs = array.getArray();
+        final int size = array.size();
+        
+        for (int i = 0; i < size; i++) {
+            final ByteBuffer srcByteBuffer = bbs[i];
             bb.put(srcByteBuffer);
-            srcByteBuffer.position(oldPostion);
         }
     }
 
     @Override
-    public ByteBuffer[] toByteBufferArray() {
-        return toByteBufferArray(position, limit);
+    public ByteBufferArray toByteBufferArray() {
+        return toByteBufferArray(null, position, limit);
     }
 
     @Override
-    public ByteBuffer[] toByteBufferArray(int position, int limit) {
+    public ByteBufferArray toByteBufferArray(ByteBufferArray array) {
+        return toByteBufferArray(array, position, limit);
+    }
+
+    @Override
+    public ByteBufferArray toByteBufferArray(int position, int limit) {
+        return toByteBufferArray(null, position, limit);
+    }
+    
+    @Override
+    public ByteBufferArray toByteBufferArray(ByteBufferArray array, int position, int limit) {
+
         if (position < 0 || position > capacity || limit < 0 || limit > capacity)
             throw new IndexOutOfBoundsException();
 
+        if (array == null) {
+            array = ByteBufferArray.create();
+        }
+
         if (buffersSize == 0) {
-            return Buffers.EMPTY_BYTE_BUFFER_ARRAY;
+            return array;
         } else if (buffersSize == 1) {
             final Buffer b = buffers[0];
             final int startPos = b.position();
-            return b.toByteBufferArray(position + startPos,
+            return b.toByteBufferArray(array, position + startPos,
                     limit + startPos);
         }
 
@@ -1237,48 +1259,25 @@ public final class BuffersBuffer extends CompositeBuffer {
 
         if (pos1 == pos2) {
             final Buffer buffer = buffers[pos1];
-            return buffer.toByteBufferArray(bufPosition, bufLimit);
+            return buffer.toByteBufferArray(array, bufPosition, bufLimit);
         }
 
-        int resultBuffersSize = 0;
-        ByteBuffer[] resultBuffers = new ByteBuffer[8];
-
         final Buffer startBuffer = buffers[pos1];
-        final ByteBuffer[] startBuffers = startBuffer.toByteBufferArray(
+        startBuffer.toByteBufferArray(array,
                 bufPosition, startBuffer.limit());
-        int length = startBuffers.length;
-        resultBuffers = ensureArrayCapacity(resultBuffers,
-                resultBuffersSize + length);
-        System.arraycopy(startBuffers, 0, resultBuffers, 0, length);
-        resultBuffersSize += length;
 
         for(int i = pos1 + 1; i < pos2; i++) {
             final Buffer srcBuffer = buffers[i];
-            final ByteBuffer[] srcByteBufferArray = srcBuffer.toByteBufferArray();
-            length = srcByteBufferArray.length;
-            resultBuffers = ensureArrayCapacity(resultBuffers,
-                    resultBuffersSize + length);
-            System.arraycopy(srcByteBufferArray, 0, resultBuffers,
-                    resultBuffersSize, length);
-            resultBuffersSize += length;
+            srcBuffer.toByteBufferArray(array);
         }
 
         final Buffer endBuffer = buffers[pos2];
-        final ByteBuffer[] endBuffers = endBuffer.toByteBufferArray(
+        endBuffer.toByteBufferArray(array,
                 endBuffer.position(), bufLimit);
-        length = endBuffers.length;
-        resultBuffers = ensureArrayCapacity(resultBuffers,
-                resultBuffersSize + length);
-        System.arraycopy(endBuffers, 0, resultBuffers, resultBuffersSize, length);
-        resultBuffersSize += length;
 
-        if (resultBuffersSize != resultBuffers.length) {
-            resultBuffers = Arrays.copyOf(resultBuffers, resultBuffersSize);
+        return array;
         }
         
-        return resultBuffers;
-    }
-
     private ByteBuffer[] ensureArrayCapacity(ByteBuffer[] originalArray, int newCapacity) {
         if (originalArray.length >= newCapacity) {
             return originalArray;

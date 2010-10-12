@@ -37,12 +37,9 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly;
 
 import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.memory.BuffersBuffer;
-import org.glassfish.grizzly.memory.ByteBuffersBuffer;
 import org.glassfish.grizzly.memory.DefaultMemoryManager;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.memory.CompositeBuffer;
@@ -55,21 +52,11 @@ import java.util.Arrays;
  */
 public class CompositeBufferTest extends GrizzlyTestCase {
 
-    enum CompositeBufferType {
-
-        BUFFERS, BYTE_BUFFERS;
-    }
-
     public void testSingleBuffer() {
-        doTestSingleBuffer(CompositeBufferType.BUFFERS);
-        doTestSingleBuffer(CompositeBufferType.BYTE_BUFFERS);
-    }
-
-    private void doTestSingleBuffer(CompositeBufferType type) {
         MemoryManager manager = new DefaultMemoryManager();
 
         Buffer buffer = manager.allocate(1 + 2 + 2 + 4 + 8 + 4 + 8);
-        CompositeBuffer compositeBuffer = createCompositeBuffer(type, buffer);
+        CompositeBuffer compositeBuffer = createCompositeBuffer(buffer);
 
         byte v1 = (byte) 127;
         char v2 = 'c';
@@ -99,15 +86,10 @@ public class CompositeBufferTest extends GrizzlyTestCase {
     }
 
     public void testSingleBufferIndexedAccess() {
-        doTestSingleBufferIndexedAccess(CompositeBufferType.BUFFERS);
-        doTestSingleBufferIndexedAccess(CompositeBufferType.BYTE_BUFFERS);
-    }
-
-    private void doTestSingleBufferIndexedAccess(CompositeBufferType type) {
         MemoryManager manager = new DefaultMemoryManager();
 
         Buffer buffer = manager.allocate(1 + 2 + 2 + 4 + 8 + 4 + 8);
-        CompositeBuffer compositeBuffer = createCompositeBuffer(type, buffer);
+        CompositeBuffer compositeBuffer = createCompositeBuffer(buffer);
 
         byte v1 = (byte) 127;
         char v2 = 'c';
@@ -135,8 +117,7 @@ public class CompositeBufferTest extends GrizzlyTestCase {
     }
 
     public void testBytes() {
-        for (CompositeBufferType type : CompositeBufferType.values()) {
-            doTest(type, new Byte[]{-1, 0, 127, -127}, 4, 1,
+        doTest(new Byte[]{-1, 0, 127, -127}, 4, 1,
                     new Put<Byte>() {
 
                         @Override
@@ -152,11 +133,9 @@ public class CompositeBufferTest extends GrizzlyTestCase {
                         }
                     });
         }
-    }
 
     public void testBytesIndexed() {
-        for (CompositeBufferType type : CompositeBufferType.values()) {
-            doTestIndexed(type, new Byte[]{-1, 0, 127, -127}, 4, 1,
+        doTestIndexed(new Byte[]{-1, 0, 127, -127}, 4, 1,
                     new Put<Byte>() {
 
                         @Override
@@ -172,11 +151,9 @@ public class CompositeBufferTest extends GrizzlyTestCase {
                         }
                     }, 1);
         }
-    }
 
     public void testChars() {
-        for (CompositeBufferType type : CompositeBufferType.values()) {
-            doTest(type, new Character[]{'a', 'b', 'c', 'd'}, 3, 3,
+        doTest(new Character[]{'a', 'b', 'c', 'd'}, 3, 3,
                     new Put<Character>() {
 
                         @Override
@@ -192,11 +169,9 @@ public class CompositeBufferTest extends GrizzlyTestCase {
                         }
                     });
         }
-    }
 
     public void testCharsIndexed() {
-        for (CompositeBufferType type : CompositeBufferType.values()) {
-            doTestIndexed(type, new Character[]{'a', 'b', 'c', 'd'}, 3, 3,
+        doTestIndexed(new Character[]{'a', 'b', 'c', 'd'}, 3, 3,
                     new Put<Character>() {
 
                         @Override
@@ -212,11 +187,9 @@ public class CompositeBufferTest extends GrizzlyTestCase {
                         }
                     }, 2);
         }
-    }
 
     public void testShort() {
-        for (CompositeBufferType type : CompositeBufferType.values()) {
-            doTest(type, new Short[]{Short.MIN_VALUE, -1}, 3, 3,
+        doTest(new Short[]{Short.MIN_VALUE, -1}, 3, 3,
                     new Put<Short>() {
 
                         @Override
@@ -232,11 +205,9 @@ public class CompositeBufferTest extends GrizzlyTestCase {
                         }
                     });
         }
-    }
 
     public void testShortIndexed() {
-        for (CompositeBufferType type : CompositeBufferType.values()) {
-            doTestIndexed(type, new Short[]{Short.MIN_VALUE, -1}, 3, 3,
+        doTestIndexed(new Short[]{Short.MIN_VALUE, -1}, 3, 3,
                     new Put<Short>() {
 
                         @Override
@@ -252,11 +223,9 @@ public class CompositeBufferTest extends GrizzlyTestCase {
                         }
                     }, 2);
         }
-    }
 
     public void testInt() {
-        for (CompositeBufferType type : CompositeBufferType.values()) {
-            doTest(type, new Integer[]{Integer.MIN_VALUE, -1, Integer.MAX_VALUE, 0}, 4, 5,
+        doTest(new Integer[]{Integer.MIN_VALUE, -1, Integer.MAX_VALUE, 0}, 4, 5,
                     new Put<Integer>() {
 
                         @Override
@@ -272,11 +241,9 @@ public class CompositeBufferTest extends GrizzlyTestCase {
                         }
                     });
         }
-    }
 
     public void testIntIndexed() {
-        for (CompositeBufferType type : CompositeBufferType.values()) {
-            doTestIndexed(type, new Integer[]{Integer.MIN_VALUE, -1, Integer.MAX_VALUE, 0}, 4, 5,
+        doTestIndexed(new Integer[]{Integer.MIN_VALUE, -1, Integer.MAX_VALUE, 0}, 4, 5,
                     new Put<Integer>() {
 
                         @Override
@@ -292,11 +259,9 @@ public class CompositeBufferTest extends GrizzlyTestCase {
                         }
                     }, 4);
         }
-    }
 
     public void testLong() {
-        for (CompositeBufferType type : CompositeBufferType.values()) {
-            doTest(type, new Long[]{Long.MIN_VALUE, -1L, Long.MAX_VALUE, 0L}, 4, 9,
+        doTest(new Long[]{Long.MIN_VALUE, -1L, Long.MAX_VALUE, 0L}, 4, 9,
                     new Put<Long>() {
 
                         @Override
@@ -312,11 +277,9 @@ public class CompositeBufferTest extends GrizzlyTestCase {
                         }
                     });
         }
-    }
 
     public void testLongIndexed() {
-        for (CompositeBufferType type : CompositeBufferType.values()) {
-            doTestIndexed(type, new Long[]{Long.MIN_VALUE, -1L, Long.MAX_VALUE, 0L}, 4, 9,
+        doTestIndexed(new Long[]{Long.MIN_VALUE, -1L, Long.MAX_VALUE, 0L}, 4, 9,
                     new Put<Long>() {
 
                         @Override
@@ -332,11 +295,9 @@ public class CompositeBufferTest extends GrizzlyTestCase {
                         }
                     }, 8);
         }
-    }
 
     public void testFloat() {
-        for (CompositeBufferType type : CompositeBufferType.values()) {
-            doTest(type, new Float[]{Float.MIN_VALUE, -1f, Float.MAX_VALUE, 0f}, 4, 5,
+        doTest(new Float[]{Float.MIN_VALUE, -1f, Float.MAX_VALUE, 0f}, 4, 5,
                     new Put<Float>() {
 
                         @Override
@@ -352,11 +313,9 @@ public class CompositeBufferTest extends GrizzlyTestCase {
                         }
                     });
         }
-    }
 
     public void testFloatIndexed() {
-        for (CompositeBufferType type : CompositeBufferType.values()) {
-            doTestIndexed(type, new Float[]{Float.MIN_VALUE, -1f, Float.MAX_VALUE, 0f}, 4, 5,
+        doTestIndexed(new Float[]{Float.MIN_VALUE, -1f, Float.MAX_VALUE, 0f}, 4, 5,
                     new Put<Float>() {
 
                         @Override
@@ -372,11 +331,9 @@ public class CompositeBufferTest extends GrizzlyTestCase {
                         }
                     }, 4);
         }
-    }
 
     public void testDouble() {
-        for (CompositeBufferType type : CompositeBufferType.values()) {
-            doTest(type, new Double[]{Double.MIN_VALUE, -1.0, Double.MAX_VALUE, 0.0}, 4, 9,
+        doTest(new Double[]{Double.MIN_VALUE, -1.0, Double.MAX_VALUE, 0.0}, 4, 9,
                     new Put<Double>() {
 
                         @Override
@@ -392,11 +349,9 @@ public class CompositeBufferTest extends GrizzlyTestCase {
                         }
                     });
         }
-    }
 
     public void testDoubleIndexed() {
-        for (CompositeBufferType type : CompositeBufferType.values()) {
-            doTestIndexed(type, new Double[]{Double.MIN_VALUE, -1.0, Double.MAX_VALUE, 0.0}, 4, 9,
+        doTestIndexed(new Double[]{Double.MIN_VALUE, -1.0, Double.MAX_VALUE, 0.0}, 4, 9,
                     new Put<Double>() {
 
                         @Override
@@ -412,41 +367,8 @@ public class CompositeBufferTest extends GrizzlyTestCase {
                         }
                     }, 8);
         }
-    }
 
     public void testBuffers() {
-        doTestBuffers(CompositeBufferType.BUFFERS);
-        doTestBuffers(CompositeBufferType.BYTE_BUFFERS);
-    }
-
-    public void testEmptyBufferPrepend() {
-        MemoryManager manager = new DefaultMemoryManager();
-
-        for (CompositeBufferType type : CompositeBufferType.values()) {
-
-            Buffer buffer1 = Buffers.wrap(manager, "1234");
-            buffer1.position(3);
-
-            Buffer buffer2 = manager.allocate(0);
-
-            CompositeBuffer compositeBuffer = createCompositeBuffer(type, buffer1);
-            assertEquals('4', (char) compositeBuffer.get(0));
-
-            Buffer resultBuffer = Buffers.appendBuffers(manager, buffer2, compositeBuffer);
-
-            assertEquals(resultBuffer.toStringContent(), "4");
-        }
-    }
-
-    public void testSplit() {
-        MemoryManager manager = new DefaultMemoryManager();
-
-        for (CompositeBufferType type : CompositeBufferType.values()) {
-            doTestSplit(type, 100);
-        }
-    }
-
-    private void doTestBuffers(CompositeBufferType type) {
         MemoryManager manager = new DefaultMemoryManager();
 
         Buffer sampleBuffer = Buffers.wrap(manager, new byte[]{-1, 0, 1, 1, 2, 3, 4});
@@ -454,17 +376,37 @@ public class CompositeBufferTest extends GrizzlyTestCase {
         Buffer b1 = manager.allocate(3);
         Buffer b2 = manager.allocate(4);
 
-        CompositeBuffer compositeBuffer = createCompositeBuffer(type, b1, b2);
+        CompositeBuffer compositeBuffer = createCompositeBuffer(b1, b2);
         compositeBuffer.put(sampleBuffer);
         compositeBuffer.flip();
         sampleBuffer.flip();
 
         while (sampleBuffer.hasRemaining()) {
             assertEquals(sampleBuffer.get(), compositeBuffer.get());
-        }
+    }
     }
 
-    private <E> void doTest(CompositeBufferType type, E[] testData,
+    public void testEmptyBufferPrepend() {
+        MemoryManager manager = new DefaultMemoryManager();
+
+            Buffer buffer1 = Buffers.wrap(manager, "1234");
+            buffer1.position(3);
+
+            Buffer buffer2 = manager.allocate(0);
+
+        CompositeBuffer compositeBuffer = createCompositeBuffer(buffer1);
+            assertEquals('4', (char) compositeBuffer.get(0));
+
+            Buffer resultBuffer = Buffers.appendBuffers(manager, buffer2, compositeBuffer);
+
+            assertEquals(resultBuffer.toStringContent(), "4");
+        }
+
+    public void testSplit() {
+        doTestSplit(100);
+        }
+
+    private <E> void doTest(E[] testData,
             int buffersNum, int bufferSize, Put<E> put, Get<E> get) {
 
         MemoryManager manager = new DefaultMemoryManager();
@@ -474,7 +416,7 @@ public class CompositeBufferTest extends GrizzlyTestCase {
             buffers[i] = manager.allocate(bufferSize);
         }
 
-        CompositeBuffer compositeBuffer = createCompositeBuffer(type, buffers);
+        CompositeBuffer compositeBuffer = createCompositeBuffer(buffers);
 
         for (int i = 0; i < testData.length; i++) {
             put.put(compositeBuffer, testData[i]);
@@ -487,7 +429,7 @@ public class CompositeBufferTest extends GrizzlyTestCase {
         }
     }
 
-    private <E> void doTestIndexed(CompositeBufferType type, E[] testData,
+    private <E> void doTestIndexed(E[] testData,
             int buffersNum, int bufferSize, Put<E> put, Get<E> get,
             int eSizeInBytes) {
 
@@ -498,7 +440,7 @@ public class CompositeBufferTest extends GrizzlyTestCase {
             buffers[i] = manager.allocate(bufferSize);
         }
 
-        CompositeBuffer compositeBuffer = createCompositeBuffer(type, buffers);
+        CompositeBuffer compositeBuffer = createCompositeBuffer(buffers);
 
         for (int i = 0; i < testData.length; i++) {
             put.putIndexed(compositeBuffer, i * eSizeInBytes, testData[i]);
@@ -509,7 +451,7 @@ public class CompositeBufferTest extends GrizzlyTestCase {
         }
     }
 
-    private <E> void doTestSplit(CompositeBufferType type, int size) {
+    private <E> void doTestSplit(int size) {
 
         MemoryManager manager = new DefaultMemoryManager();
 
@@ -532,7 +474,7 @@ public class CompositeBufferTest extends GrizzlyTestCase {
                         buffers[num] = manager.allocate(remainder);
                     }
 
-                    CompositeBuffer compositeBuffer = createCompositeBuffer(type, buffers);
+                    CompositeBuffer compositeBuffer = createCompositeBuffer(buffers);
 
                     for (int k = 0; k < compositeBuffer.remaining(); k++) {
                         compositeBuffer.put(k, (byte) (k % 127));
@@ -546,7 +488,7 @@ public class CompositeBufferTest extends GrizzlyTestCase {
                     assertEquals("Slice2  unexpected length", size - j, slice2.remaining());
                 }
             } catch (Exception e) {
-                throw new IllegalStateException("Exception happened. type=" + type + " size=" + size + " chunkSize=" + i + " splitPos=" + j, e);
+                throw new IllegalStateException("Exception happened. size=" + size + " chunkSize=" + i + " splitPos=" + j, e);
             }
         }
 
@@ -574,19 +516,8 @@ public class CompositeBufferTest extends GrizzlyTestCase {
         }
     }
 
-    private CompositeBuffer createCompositeBuffer(CompositeBufferType type,
-            Buffer... buffers) {
-        switch(type) {
-            case BUFFERS:
-                return BuffersBuffer.create(
+    private CompositeBuffer createCompositeBuffer(Buffer... buffers) {
+        return CompositeBuffer.newBuffer(
                         TransportFactory.getInstance().getDefaultMemoryManager(), buffers);
-            case BYTE_BUFFERS:
-                CompositeBuffer cb = ByteBuffersBuffer.create(
-                        TransportFactory.getInstance().getDefaultMemoryManager());
-                for(Buffer buffer : buffers) cb.append(buffer);
-                return cb;
         }
-
-        return null;
     }
-}

@@ -95,6 +95,7 @@ import org.glassfish.grizzly.threadpool.WorkerThread;
 import java.io.EOFException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
+import org.glassfish.grizzly.memory.ByteBufferArray;
 
 /**
  * TCP Transport NIO implementation
@@ -833,16 +834,20 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
                         (SocketChannel) tcpConnection.getChannel();
                 
                 if (buffer.isComposite()) {
-                    final ByteBuffer[] byteBuffers = buffer.toByteBufferArray();
+                    final ByteBufferArray array = buffer.toByteBufferArray();
+                    final ByteBuffer[] byteBuffers = array.getArray();
+                    final int size = array.size();
 
                     if (!isSelectorThread) {
-                        read = doReadInLoop(socketChannel, byteBuffers);
+                        read = doReadInLoop(socketChannel, byteBuffers, 0, size);
                     } else {
-                        read = (int) socketChannel.read(byteBuffers);
+                        read = (int) socketChannel.read(byteBuffers, 0, size);
                     }
 
+                    array.restore();
+                    array.recycle();
+
                     if (read > 0) {
-                        resetByteBuffers(byteBuffers, read);
                         buffer.position(buffer.position() + read);
                     }
                 } else {
@@ -890,15 +895,15 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         return read;
     }
     
-    private int doReadInLoop(SocketChannel socketChannel,
-            ByteBuffer[] byteBuffers) throws IOException {
+    private int doReadInLoop(final SocketChannel socketChannel,
+            final ByteBuffer[] byteBuffers, final int offset, final int length) throws IOException {
         
         int read = 0;
         int readAttempt = 0;
         int readNow;
-        final ByteBuffer lastByteBuffer = byteBuffers[byteBuffers.length - 1];
+        final ByteBuffer lastByteBuffer = byteBuffers[length - 1];
         
-        while ((readNow = (int) socketChannel.read(byteBuffers)) >= 0) {
+        while ((readNow = (int) socketChannel.read(byteBuffers, offset, length)) >= 0) {
             read += readNow;
             if (!lastByteBuffer.hasRemaining()
                     || ++readAttempt >= maxReadAttempts) {
@@ -924,16 +929,20 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         final TCPNIOConnection tcpConnection = (TCPNIOConnection) connection;
         int written;
         if (buffer.isComposite()) {
-            final ByteBuffer[] byteBuffers = buffer.toByteBufferArray();
-            written = (int) ((SocketChannel) tcpConnection.getChannel()).write(byteBuffers);
+            final ByteBufferArray array = buffer.toByteBufferArray();
+            final ByteBuffer[] byteBuffers = array.getArray();
+            final int size = array.size();
+            written = (int) ((SocketChannel) tcpConnection.getChannel()).write(byteBuffers, 0, size);
 
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (composite) write {1} bytes",
                         new Object[]{connection, written});
             }
 
+            array.restore();
+            array.recycle();
+
             if (written > 0) {
-                resetByteBuffers(byteBuffers, written);
                 buffer.position(buffer.position() + written);
             }
         } else {
@@ -963,21 +972,42 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         return written;
     }
 
+    int write(Connection connection, ByteBufferArray byteBufferArray,
+            WriteResult currentResult) throws IOException {
+
+        final TCPNIOConnection tcpConnection = (TCPNIOConnection) connection;
+        final ByteBuffer[] byteBuffers = byteBufferArray.getArray();
+        final int size = byteBufferArray.size();
+        final int written = (int) ((SocketChannel) tcpConnection.getChannel()).write(
+                byteBuffers, 0, size);
+
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (composite) write {1} bytes",
+                    new Object[]{connection, written});
+        }
+
+        return written;
+    }
+
+    int write(Connection connection, ByteBuffer byteBuffer,
+            WriteResult currentResult) throws IOException {
+
+        final TCPNIOConnection tcpConnection = (TCPNIOConnection) connection;
+        final int written = ((SocketChannel) tcpConnection.getChannel()).write(byteBuffer);
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (plain) write {1} bytes",
+                    new Object[]{connection, written});
+        }
+
+        return written;
+    }
+    
     /**
      * {@inheritDoc}
      */
     @Override
     protected JmxObject createJmxManagementObject() {
         return new org.glassfish.grizzly.nio.transport.jmx.TCPNIOTransport(this);
-    }
-
-    private static void resetByteBuffers(final ByteBuffer[] byteBuffers, int processed) {
-        int index = 0;
-        while(processed > 0) {
-            final ByteBuffer byteBuffer = byteBuffers[index++];
-            byteBuffer.position(0);
-            processed -= byteBuffer.remaining();
-        }
     }
 
     class RegisterChannelCompletionHandler

@@ -51,6 +51,7 @@ import java.nio.ByteBuffer;
 import java.util.zip.CRC32;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
+import org.glassfish.grizzly.memory.ByteBufferArray;
 
 /**
  * This class implements a {@link org.glassfish.grizzly.Transformer} which decodes data
@@ -153,11 +154,14 @@ public class GZipDecoder extends AbstractTransformer<Buffer, Buffer> {
         final Inflater inflater = state.getInflater();
         final CRC32 inCrc32 = state.getCrc32();
 
-        final ByteBuffer[] byteBuffers = buffer.toByteBufferArray();
+        final ByteBufferArray byteBufferArray = buffer.toByteBufferArray();
+        final ByteBuffer[] byteBuffers = byteBufferArray.getArray();
+        final int size = byteBufferArray.size();
 
         Buffer resultBuffer = null;
 
-        for (ByteBuffer byteBuffer : byteBuffers) {
+        for (int i = 0; i < size; i++) {
+            final ByteBuffer byteBuffer = byteBuffers[i];
             final int len = byteBuffer.remaining();
 
             final byte[] array;
@@ -200,8 +204,14 @@ public class GZipDecoder extends AbstractTransformer<Buffer, Buffer> {
                     decodedBuffer.dispose();
                     if (inflater.finished() || inflater.needsDictionary()) {
                         final int remainder = inflater.getRemaining();
+
+                        final int remaining = byteBuffer.remaining();
+
+                        byteBufferArray.restore();
+                        byteBufferArray.recycle();
+
                         buffer.position(
-                                buffer.position() + byteBuffer.remaining() - remainder);
+                                buffer.position() + remaining - remainder);
 
                         state.setDecodeStatus(DecodeStatus.TRAILER);
                         return resultBuffer;
@@ -209,7 +219,12 @@ public class GZipDecoder extends AbstractTransformer<Buffer, Buffer> {
                 }
             } while (lastInflated > 0);
 
-            buffer.position(buffer.position() + byteBuffer.remaining());
+            final int remaining = byteBuffer.remaining();
+
+            byteBufferArray.restore();
+            byteBufferArray.recycle();
+
+            buffer.position(buffer.position() + remaining);
         }
 
         return resultBuffer;
