@@ -52,13 +52,23 @@ import org.glassfish.grizzly.Cacheable;
  * 
  * @author Alexey Stashok
  */
-public interface HttpPacket extends Cacheable {
+public abstract class HttpPacket implements Cacheable {
     /**
-     * Returns <tt>true</tt>, if this HTTP message represents HTTP messsage header,
+     * Returns <tt>true</tt> if passed {@link Object} is a <tt>HttpPacket</tt>.
+     *
+     * @param packet
+     * @return <tt>true</tt> if passed {@link Object} is a <tt>HttpPacket</tt>.
+     */
+    public static boolean isHttp(Object packet) {
+        return HttpPacket.class.isAssignableFrom(packet.getClass());
+    }
+    
+    /**
+     * Returns <tt>true</tt>, if this HTTP message represents HTTP message header,
      * or <tt>false</tt> otherwise.
      * 
-     * @return <tt>true</tt>, if this HTTP message represents HTTP messsage header,
+     * @return <tt>true</tt>, if this HTTP message represents HTTP message header,
      * or <tt>false</tt> otherwise.
      */
-    public boolean isHeader();
+    public abstract boolean isHeader();
 }

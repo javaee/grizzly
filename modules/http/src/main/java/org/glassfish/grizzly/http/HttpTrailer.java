@@ -55,6 +55,16 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
     private static final ThreadCache.CachedTypeIndex<Builder> BUILDER_CACHE_IDX =
             ThreadCache.obtainIndex(Builder.class, 2);
 
+    /**
+     * Returns <tt>true</tt> if passed {@link HttpContent} is a <tt>HttpTrailder</tt>.
+     *
+     * @param httpContent
+     * @return <tt>true</tt> if passed {@link HttpContent} is a <tt>HttpTrailder</tt>.
+     */
+    public static boolean isTrailer(HttpContent httpContent) {
+        return HttpTrailer.class.isAssignableFrom(httpContent.getClass());
+    }
+
     public static HttpTrailer create() {
         return create(null);
     }

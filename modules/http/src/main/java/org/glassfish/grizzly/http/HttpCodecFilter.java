@@ -498,7 +498,7 @@ public abstract class HttpCodecFilter extends BaseFilter
     public NextAction handleWrite(FilterChainContext ctx) throws IOException {
         final Object message = ctx.getMessage();
         
-        if (message instanceof HttpPacket) {
+        if (HttpPacket.isHttp(message)) {
             // Get HttpPacket
             final HttpPacket input = (HttpPacket) ctx.getMessage();
             // Get Connection

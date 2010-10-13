@@ -308,7 +308,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
         if (hasContent) {
             httpChunkBuffer = Buffers.appendBuffers(memoryManager,
                     httpChunkBuffer, content);
-            if (httpChunkBuffer instanceof CompositeBuffer) {
+            if (httpChunkBuffer.isComposite()) {
                 httpChunkBuffer.allowBufferDispose(true);
                 ((CompositeBuffer) httpChunkBuffer).allowInternalBuffersDispose(true);
             }
@@ -317,9 +317,15 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
         Buffer httpChunkTrailer;
         if (!isLastChunk) {
             httpChunkTrailer = memoryManager.allocate(2);
-            httpChunkTrailer.put(Constants.CRLF_BYTES);
         } else {
-            httpChunkTrailer = memoryManager.allocate(256);
+            final boolean isTrailer = HttpTrailer.isTrailer(httpContent) &&
+                    ((HttpTrailer) httpContent).getHeaders().size() > 0;
+
+            if (!isTrailer) {
+                httpChunkTrailer = memoryManager.allocate(8);
+            } else {
+                httpChunkTrailer = memoryManager.allocate(256);
+            }
 
             if (hasContent) {
                 httpChunkTrailer = HttpCodecFilter.put(memoryManager, httpChunkTrailer,
@@ -328,16 +334,17 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
                         Constants.LAST_CHUNK_CRLF_BYTES);
             }
 
-            if (httpContent instanceof HttpTrailer) {
+            if (isTrailer) {
                 final HttpTrailer httpTrailer = (HttpTrailer) httpContent;
                 final MimeHeaders mimeHeaders = httpTrailer.getHeaders();
                 httpChunkTrailer = HttpCodecFilter.encodeMimeHeaders(memoryManager,
                         httpChunkTrailer, mimeHeaders);
             }
 
-            httpChunkTrailer = HttpCodecFilter.put(memoryManager, httpChunkTrailer,
-                    Constants.CRLF_BYTES);
         }
+        
+        httpChunkTrailer = HttpCodecFilter.put(memoryManager, httpChunkTrailer,
+                Constants.CRLF_BYTES);
 
         httpChunkTrailer.trim();
         httpChunkTrailer.allowBufferDispose(true);

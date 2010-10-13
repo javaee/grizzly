@@ -61,7 +61,8 @@ import java.util.List;
  * 
  * @author Alexey Stashok
  */
-public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, AttributeStorage {
+public abstract class HttpHeader extends HttpPacket
+        implements MimeHeadersPacket, AttributeStorage {
 
     protected boolean isCommitted;
     protected final MimeHeaders headers = new MimeHeaders();

@@ -290,7 +290,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
 
         final Buffer encoded = super.encodeHttpPacket(connection, input);
-        if (input instanceof HttpContent) {
+        if (HttpContent.isContent(input)) {
             input.recycle();
         }
         return encoded;

@@ -58,11 +58,23 @@ import org.glassfish.grizzly.memory.Buffers;
  *
  * @author Alexey Stashok
  */
-public class HttpContent implements HttpPacket, org.glassfish.grizzly.Appendable<HttpContent> {
+public class HttpContent extends HttpPacket
+        implements org.glassfish.grizzly.Appendable<HttpContent> {
+    
     private static final ThreadCache.CachedTypeIndex<HttpContent> CACHE_IDX =
             ThreadCache.obtainIndex(HttpContent.class, 2);
     private static final ThreadCache.CachedTypeIndex<Builder> BUILDER_CACHE_IDX =
             ThreadCache.obtainIndex(Builder.class, 2);
+
+    /**
+     * Returns <tt>true</tt> if passed {@link HttpPacket} is a <tt>HttpContent</tt>.
+     *
+     * @param httpPacket
+     * @return <tt>true</tt> if passed {@link HttpPacket} is a <tt>HttpContent</tt>.
+     */
+    public static boolean isContent(HttpPacket httpPacket) {
+        return HttpContent.class.isAssignableFrom(httpPacket.getClass());
+    }
 
     public static HttpContent create() {
         return create(null);
