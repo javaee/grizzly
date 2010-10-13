@@ -90,7 +90,6 @@ public final class BuffersBuffer extends CompositeBuffer {
             return buffer;
         }
 
-        System.out.println("CACHE MISS");
         return new BuffersBuffer(memoryManager, buffers, buffersSize, isReadOnly);
     }
 
