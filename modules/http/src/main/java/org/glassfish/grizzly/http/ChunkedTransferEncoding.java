@@ -48,6 +48,7 @@ import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.HexUtils;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
@@ -307,6 +308,10 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
         if (hasContent) {
             httpChunkBuffer = Buffers.appendBuffers(memoryManager,
                     httpChunkBuffer, content);
+            if (httpChunkBuffer instanceof CompositeBuffer) {
+                httpChunkBuffer.allowBufferDispose(true);
+                ((CompositeBuffer) httpChunkBuffer).allowInternalBuffersDispose(true);
+            }
         }
 
         Buffer httpChunkTrailer = memoryManager.allocate(256);

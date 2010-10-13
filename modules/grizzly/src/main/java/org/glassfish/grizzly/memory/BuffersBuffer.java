@@ -57,7 +57,7 @@ import org.glassfish.grizzly.utils.ArrayUtils;
  */
 public final class BuffersBuffer extends CompositeBuffer {
     private static final ThreadCache.CachedTypeIndex<BuffersBuffer> CACHE_IDX =
-            ThreadCache.obtainIndex(BuffersBuffer.class, 2);
+            ThreadCache.obtainIndex(BuffersBuffer.class, 5);
 
     /**
      * Construct <tt>BuffersBuffer</tt>.
@@ -90,6 +90,7 @@ public final class BuffersBuffer extends CompositeBuffer {
             return buffer;
         }
 
+        System.out.println("CACHE MISS");
         return new BuffersBuffer(memoryManager, buffers, buffersSize, isReadOnly);
     }
 
