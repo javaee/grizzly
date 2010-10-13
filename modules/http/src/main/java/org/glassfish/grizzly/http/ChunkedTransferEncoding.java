@@ -313,13 +313,14 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
                 ((CompositeBuffer) httpChunkBuffer).allowInternalBuffersDispose(true);
             }
         }
-
-        Buffer httpChunkTrailer = memoryManager.allocate(256);
-
+        
+        Buffer httpChunkTrailer;
         if (!isLastChunk) {
-            httpChunkTrailer = HttpCodecFilter.put(memoryManager, httpChunkTrailer,
-                    Constants.CRLF_BYTES);
+            httpChunkTrailer = memoryManager.allocate(2);
+            httpChunkTrailer.put(Constants.CRLF_BYTES);
         } else {
+            httpChunkTrailer = memoryManager.allocate(256);
+
             if (hasContent) {
                 httpChunkTrailer = HttpCodecFilter.put(memoryManager, httpChunkTrailer,
                         Constants.CRLF_BYTES);
