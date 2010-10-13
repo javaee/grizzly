@@ -47,11 +47,13 @@ import com.sun.grizzly.util.WorkerThread;
 import java.nio.channels.SelectionKey;
 
 /**
- * Utility class, which implements general response suspension funtionality.
+ * Utility class, which implements general response suspension functionality.
  * 
  * @author Alexey Stashok
  */
 public class SuspendResponseUtils {
+    private static final ThreadLocal<Boolean> SUSPENDED_IN_CURRENT_THREAD = new ThreadLocal<Boolean>();
+
     private static final String SUSPENDED_RESPONSE_ATTR = "SuspendedResponse";
     
     public static void attach(SelectionKey selectionKey,
@@ -99,5 +101,19 @@ public class SuspendResponseUtils {
         }
 
         return new ThreadAttachment();
+    }
+
+    public static boolean isSuspendedInCurrentThread() {
+        return SUSPENDED_IN_CURRENT_THREAD.get() == Boolean.TRUE; // ThreadLocal can be null
+    }
+
+    public static void setSuspendedInCurrentThread() {
+        SUSPENDED_IN_CURRENT_THREAD.set(Boolean.TRUE);
+    }
+
+    public static boolean removeSuspendedInCurrentThread() {
+        final boolean result = SUSPENDED_IN_CURRENT_THREAD.get() == Boolean.TRUE;
+        SUSPENDED_IN_CURRENT_THREAD.remove();
+        return result;
     }
 }

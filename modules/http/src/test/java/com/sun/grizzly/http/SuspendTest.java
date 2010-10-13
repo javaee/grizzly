@@ -287,7 +287,7 @@ public class SuspendTest {
 
                     @Override
                     public void resumed(StaticResourcesAdapter attachment) {
-                        writeToSuspendedClient(res);
+                        writeToNotSuspendedClient(res);
                     }
                 });
                 resumeLater(res);
@@ -307,7 +307,7 @@ public class SuspendTest {
 
                     @Override
                     public void cancelled(StaticResourcesAdapter attachment) {
-                        writeToSuspendedClient(res);
+                        writeToNotSuspendedClient(res);
                         try {
                             res.flush();
                         } catch (IOException ex) {
@@ -342,7 +342,7 @@ public class SuspendTest {
                             res.resume();
                             fail("should not reach here");
                         } catch (IllegalStateException ise) {
-                            writeToSuspendedClient(res);
+                            writeToNotSuspendedClient(res);
                         }
                     }
                 });
@@ -430,7 +430,7 @@ public class SuspendTest {
                             res.resume();
                             fail("should no get here");
                         } catch (IllegalStateException ex) {
-                            writeToSuspendedClient(res);
+                            writeToNotSuspendedClient(res);
                         }
                     }
                 });
@@ -452,7 +452,7 @@ public class SuspendTest {
 
                         @Override
                         public void resumed(GrizzlyAdapter attachment) {
-                            if (res.isSuspended()) {
+                            if (!res.isSuspended()) {
                                 Utils.dumpErr("Resumed");
                                 try {
                                     res.getWriter().write(testString);
@@ -672,6 +672,18 @@ public class SuspendTest {
                 } catch (Exception ex) {
                     ex.printStackTrace();
                 }
+            }
+        }
+
+        protected void writeToNotSuspendedClient(Response resp) {
+            if (!resp.isSuspended()) {
+                try {
+                    write(resp, testData);
+                } catch (Throwable ex) {
+                    ex.printStackTrace();
+                }
+            } else {
+                fail("Suspended.");
             }
         }
 

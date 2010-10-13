@@ -63,6 +63,7 @@ import com.sun.grizzly.tcp.http11.filters.VoidOutputFilter;
 import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.SelectionKeyAttachment;
 import com.sun.grizzly.util.ThreadAttachment;
+import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.http.MimeHeaders;
 import java.io.IOException;
@@ -184,8 +185,8 @@ public class Response<A> {
 
     protected Request req;
 
-    // The underlying {@link SocketChannel}
-    private SocketChannel channel;
+    // The underlying {@link SelectionKey}
+    private SelectionKey selectionKey;
 
     // Is the request suspended.
     private volatile boolean isSuspended = false;
@@ -692,7 +693,7 @@ public class Response<A> {
     
     public void recycle() {
         
-        channel = null;
+        selectionKey = null;
         contentType = null;
         contentLanguage = null;
         locale = DEFAULT_LOCALE;
@@ -731,16 +732,22 @@ public class Response<A> {
     }
 
     /**
-     * Set the underlying {@link SocketChannel} 
+     * Set the underlying {@link SelectionKey}
      */
-    public void setChannel(SocketChannel channel){
-	this.channel = channel;	
+    public void setSelectionKey(SelectionKey selectionKey) {
+	this.selectionKey = selectionKey;
     }
 
+    /**
+     * Return the underlying {@link SelectionKey}
+     */
+    public SelectionKey getSelectionKey() {
+	return selectionKey;
+    }
     
     /**
      * Return the underlying {@link SocketChannel} 
-     * <strong>WARNING</strong>. If you directly uses the {@link SocketChannel}, 
+     * <strong>WARNING</strong>. If you directly use the {@link SocketChannel}, 
      * you must make sure {@link Response#sendHeaders} followed by a {@link Response#flush()}
      * if  you just want to manipulate the response body, but not the header. 
      * If you don't want to let Grizzly write the headers for you,
@@ -748,7 +755,7 @@ public class Response<A> {
      * to the {@link SocketChannel} 
      */
     public SocketChannel getChannel(){
-	return channel;
+	return (SocketChannel) selectionKey.channel();
     }
 
     /**
@@ -765,17 +772,22 @@ public class Response<A> {
             }
             
             isSuspended = false;
-            boolean isReallySuspended = ra.isAttached();
+
             req.action(ActionCode.CANCEL_SUSPENDED_RESPONSE, null);
-            if (isReallySuspended){
-                ra.resume();
-                req.action(ActionCode.ACTION_FINISH_RESPONSE, null);
-            } else {
-                ra.invokeCompletionHandler();
+
+            if (SuspendResponseUtils.removeSuspendedInCurrentThread()) {
+                return;
             }
 
-            ra = null;
+//            boolean isReallySuspended = ra.isAttached();
+//            if (isReallySuspended){
+                ra.resume();
+                req.action(ActionCode.ACTION_FINISH_RESPONSE, null);
+//            } else {
+//                ra.invokeCompletionHandler();
+//            }
         } finally {
+            ra = null;
             lock.unlock();
         }
     }
@@ -792,9 +804,14 @@ public class Response<A> {
             if (!isSuspended){
                 throw new IllegalStateException("Not Suspended");
             }
-            isSuspended = false;
 
+            isSuspended = false;
+            
             req.action(ActionCode.CANCEL_SUSPENDED_RESPONSE, null);  
+            if (SuspendResponseUtils.removeSuspendedInCurrentThread()) {
+                return;
+            }
+
             ra.cancel();
             req.action(ActionCode.ACTION_FINISH_RESPONSE, null);
         } finally {
@@ -887,35 +904,49 @@ public class Response<A> {
      * @param ra {@link ResponseAttachment} used to times out idle connection.
      */     
     public void suspend(long timeout, A attachment,
-            CompletionHandler<? super A> competionHandler, ResponseAttachment<A> ra){
-        if (isSuspended){
-            throw new IllegalStateException("Already Suspended");
-        }   
-        isSuspended = true;
+            CompletionHandler<? super A> competionHandler, ResponseAttachment<A> ra) {
+        lock.lock();
 
-        if (ra == null){
-            ra = new ResponseAttachment(timeout, attachment, competionHandler, this);
-        }
+        try {
+            if (isSuspended) {
+                throw new IllegalStateException("Already Suspended");
+            }
+            isSuspended = true;
 
-        ra.lock = lock;
-        if (competionHandler == null){
-            competionHandler = new CompletionHandler(){
-                public void resumed(Object attachment) {
-                    if (LoggerUtils.getLogger().isLoggable(Level.FINE)){
-                        LoggerUtils.getLogger().fine(Response.this 
-                                + " resumed" + attachment);
+            if (ra == null) {
+                ra = new ResponseAttachment(timeout, attachment, competionHandler, this);
+            }
+
+            ra.lock = lock;
+            if (competionHandler == null) {
+                competionHandler = new CompletionHandler() {
+
+                    public void resumed(Object attachment) {
+                        if (LoggerUtils.getLogger().isLoggable(Level.FINE)) {
+                            LoggerUtils.getLogger().fine(Response.this
+                                    + " resumed" + attachment);
+                        }
                     }
-                }
-                public void cancelled(Object attachment) {
-                    if (LoggerUtils.getLogger().isLoggable(Level.FINE)){
-                        LoggerUtils.getLogger().fine(Response.this 
-                                + " cancelled" + attachment);
+
+                    public void cancelled(Object attachment) {
+                        if (LoggerUtils.getLogger().isLoggable(Level.FINE)) {
+                            LoggerUtils.getLogger().fine(Response.this
+                                    + " cancelled" + attachment);
+                        }
                     }
-                }                
-            };
-            ra.completionHandler = competionHandler;
+                };
+                ra.completionHandler = competionHandler;
+            }
+            this.ra = ra;
+
+            WorkerThread wt = (WorkerThread) Thread.currentThread();
+            wt.getAttachment().setAttribute(Response.SUSPENDED, Boolean.TRUE);
+
+            SuspendResponseUtils.attach(selectionKey, ra);
+            SuspendResponseUtils.setSuspendedInCurrentThread();
+        } finally {
+            lock.unlock();
         }
-        this.ra = ra;
     }
     
     
@@ -937,7 +968,6 @@ public class Response<A> {
         private final Response response;
         protected volatile ReentrantLock lock;
         private volatile long idleTimeoutDelay;
-        private volatile boolean isAttached;
 
         protected volatile ThreadAttachment threadAttachment;
         
@@ -947,14 +977,6 @@ public class Response<A> {
             this.attachment = attachment;
             this.completionHandler = completionHandler;
             this.response = response;
-        }
-
-        public boolean isAttached() {
-            return isAttached;
-        }
-
-        public void markAttached(boolean isAttached) {
-            this.isAttached = isAttached;
         }
 
         public A getAttachment() {
@@ -993,19 +1015,19 @@ public class Response<A> {
             this.threadAttachment = threadAttachment;
         }
 
-        public void invokeCompletionHandler(){
+        public void invokeCompletionHandler() {
             completionHandler.resumed(attachment);
         }
-        
-        public void resume(){
+
+        public void resume() {
             invokeCompletionHandler();
-            try{
+            try {
                 response.sendHeaders();
                 response.flush();
                 response.finish();
-            } catch (IOException ex){
-                if (LoggerUtils.getLogger().isLoggable(Level.FINE)){
-                    LoggerUtils.getLogger().log(Level.FINEST,"resume",ex);
+            } catch (IOException ex) {
+                if (LoggerUtils.getLogger().isLoggable(Level.FINE)) {
+                    LoggerUtils.getLogger().log(Level.FINEST, "resume", ex);
                 }
             }
         }
@@ -1024,22 +1046,21 @@ public class Response<A> {
         }
 
         public void onKeySelected(SelectionKey selectionKey) {
-            if (!selectionKey.isValid() || discardDisconnectEvent){
+            if (!selectionKey.isValid() || discardDisconnectEvent) {
                 selectionKey.cancel();
                 return;
             }
             boolean connectionClosed = true;
             try {
-                connectionClosed = ((SocketChannel)selectionKey.channel()).
-                    read(ByteBuffer.allocate(1)) == -1;
+                connectionClosed = ((SocketChannel) selectionKey.channel()).read(ByteBuffer.allocate(1)) == -1;
             } catch (IOException ex) {
-                if (LoggerUtils.getLogger().isLoggable(Level.FINE)){
-                    LoggerUtils.getLogger().log(Level.FINEST,"handleSelectionKey",ex);
+                if (LoggerUtils.getLogger().isLoggable(Level.FINE)) {
+                    LoggerUtils.getLogger().log(Level.FINEST, "handleSelectionKey", ex);
                 }
-            } finally{
-                if (connectionClosed){
-                   completionHandler.cancelled(attachment);
-                   selectionKey.cancel();
+            } finally {
+                if (connectionClosed) {
+                    completionHandler.cancelled(attachment);
+                    selectionKey.cancel();
                 }
             }
         }
@@ -1047,19 +1068,19 @@ public class Response<A> {
         /**
          * Method will be called to notify about async HTTP processing timeout
          * @return <tt>true</tt>, if async processing has been finished, or <tt>false</tt>
-         * if we should reregister the channel to continue async HTTP request processing
+         * if we should re-register the channel to continue async HTTP request processing
          */
-        public boolean timeout(){
+        public boolean timeout() {
             // If the buffers are empty, commit the response header
             try {
                 cancel();
             } finally {
-                if (!response.isCommitted()){
-                    try{
+                if (!response.isCommitted()) {
+                    try {
                         response.sendHeaders();
                         response.flush();
                         response.finish();
-                    } catch (IOException ex){
+                    } catch (IOException ex) {
                         // Swallow?
                     }
                 }
@@ -1078,19 +1099,19 @@ public class Response<A> {
      * Add a {@link ResponseFilter}, which will be called every bytes are
      * ready to be written.
      */
-    public void addResponseFilter(final ResponseFilter responseFilter){
-        if (outputBuffer instanceof InternalOutputBuffer){
-            ((InternalOutputBuffer)outputBuffer).addLastOutputFilter(
-                    new VoidOutputFilter(){                
+    public void addResponseFilter(final ResponseFilter responseFilter) {
+        if (outputBuffer instanceof InternalOutputBuffer) {
+            ((InternalOutputBuffer) outputBuffer).addLastOutputFilter(
+                    new VoidOutputFilter() {
+
                         @Override
                         public int doWrite(ByteChunk chunk, Response res)
-                            throws IOException {
+                                throws IOException {
                             responseFilter.filter(chunk);
                             buffer.doWrite(chunk, res);
                             return chunk.getLength();
                         }
-
-            });
+                    });
         } else {
             throw new IllegalStateException("Not Supported");
         }

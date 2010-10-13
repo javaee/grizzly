@@ -66,7 +66,6 @@ import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.RequestGroupInfo;
 import com.sun.grizzly.tcp.RequestInfo;
 import com.sun.grizzly.tcp.Response;
-import com.sun.grizzly.tcp.Response.ResponseAttachment;
 import com.sun.grizzly.tcp.SuspendResponseUtils;
 import com.sun.grizzly.tcp.http11.FilterFactory;
 import com.sun.grizzly.tcp.http11.InputFilter;
@@ -104,7 +103,6 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
 import java.util.Collection;
 import java.util.Locale;
 import java.util.StringTokenizer;
@@ -612,15 +610,16 @@ public class ProcessorTask extends TaskBase implements Processor,
         }
         // Setting up the I/O
         inputBuffer.setInputStream(input);
-        if ( key != null ) {
+        if (key != null) {
             inputStream = input;
             outputBuffer.setAsyncHttpWriteEnabled(
                     isAsyncHttpWriteEnabled);
             outputBuffer.setAsyncQueueWriter(
                     selectorHandler.getAsyncQueueWriter());
             outputBuffer.setSelectionKey(key);
-	     response.setChannel((SocketChannel)key.channel());
+            response.setSelectionKey(key);
         }
+        
         configPreProcess();
     }
 
@@ -722,7 +721,7 @@ public class ProcessorTask extends TaskBase implements Processor,
 
             invokeAdapter();
             postResponse();
-        } while (!error && keepAlive && !response.isSuspended() &&
+        } while (!error && keepAlive && !SuspendResponseUtils.isSuspendedInCurrentThread() &&
                 (handleKeepAliveBlockingThread || inputBuffer.available() > 0));
         return error;
     }
@@ -737,14 +736,10 @@ public class ProcessorTask extends TaskBase implements Processor,
         }
 
         // Do not commit the response;
-        if (response.isSuspended()){
-            WorkerThread wt = (WorkerThread)Thread.currentThread();
-            wt.getAttachment().setAttribute(Response.SUSPENDED,Boolean.TRUE);
-            final ResponseAttachment ra = response.getResponseAttachment();
-            ra.markAttached(true);
-            SuspendResponseUtils.attach(key, ra);
+        if (SuspendResponseUtils.isSuspendedInCurrentThread()) {
             return;
         }
+        
         finishResponse();
     }
 

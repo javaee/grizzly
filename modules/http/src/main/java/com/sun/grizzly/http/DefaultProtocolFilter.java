@@ -47,7 +47,7 @@ import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.filter.ReadFilter;
 import com.sun.grizzly.http.algorithms.NoParsingAlgorithm;
 import com.sun.grizzly.rcm.ResourceAllocationFilter;
-import com.sun.grizzly.tcp.Response;
+import com.sun.grizzly.tcp.SuspendResponseUtils;
 import com.sun.grizzly.util.InputReader;
 import com.sun.grizzly.util.SelectionKeyAttachment;
 import com.sun.grizzly.util.StreamAlgorithm;
@@ -60,7 +60,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Default ProtocolFilter implementation, that allows http request processing.
+ * Default ProtocolFilter implementation, that allows HTTP request processing.
  *
  * @author Jeanfrancois Arcand
  */
@@ -237,8 +237,9 @@ public class DefaultProtocolFilter implements ProtocolFilter {
             keepAlive = true;
         }
         
-        Object ra = workerThread.getAttachment().getAttribute(Response.SUSPENDED);
-        if (processorTask != null && !processorTask.isError() && ra != null){
+//        Object ra = workerThread.getAttachment().getAttribute(Response.SUSPENDED);
+        final boolean isSuspended = SuspendResponseUtils.removeSuspendedInCurrentThread();
+        if (processorTask != null && !processorTask.isError() && isSuspended) {
             // Detatch anything associated with the Thread.
             workerThread.setInputStream(new InputReader());
             workerThread.setByteBuffer(null);

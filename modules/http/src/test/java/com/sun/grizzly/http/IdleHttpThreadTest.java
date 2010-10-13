@@ -333,7 +333,7 @@ public class IdleHttpThreadTest extends TestCase {
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "killed";
         String response = "";
-        
+
         try {
             createSelectorThread();
             st.setAdapter(new StaticResourcesAdapter() {
@@ -343,12 +343,9 @@ public class IdleHttpThreadTest extends TestCase {
                     try {
                         BlockingQueue q = new ArrayBlockingQueue(10);
                         q.take();
-                    } catch (Throwable t) {
-                        t.printStackTrace();
-                    } finally {
-                        ByteChunk bc = new ByteChunk();
-                        bc.append(testString.getBytes(), 0, testString.length());
-                        res.doWrite(bc);
+                    } catch (InterruptedException e) {
+//                        e.printStackTrace();
+                        throw new IOException(e.getMessage());
                     }
                 }
 
