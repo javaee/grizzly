@@ -83,19 +83,20 @@ public class DataChunk {
         switch(value.getType()) {
             case Buffer: {
             final BufferChunk anotherBufferChunk = value.bufferChunk;
-                setBuffer(anotherBufferChunk.getBuffer(),
+                setBufferInternal(anotherBufferChunk.getBuffer(),
                         anotherBufferChunk.getStart(),
                         anotherBufferChunk.getEnd());
                 break;
             }
             case String: {
-                setString(value.stringValue);
+                setStringInternal(value.stringValue);
                 break;
             }
             case Chars: {
                 final CharChunk anotherCharChunk = value.charChunk;
-                setChars(anotherCharChunk.getChars(), anotherCharChunk.getStart(),
-                        anotherCharChunk.getLimit());
+                setCharsInternal(anotherCharChunk.getChars(),
+                                 anotherCharChunk.getStart(),
+                                 anotherCharChunk.getLimit());
                 break;
             }
         }
@@ -107,15 +108,10 @@ public class DataChunk {
         return bufferChunk;
     }
 
-    public void setBuffer(final Buffer buffer, final int position,
-            final int limit) {
-        type = Type.Buffer;
-
-        bufferChunk.setBufferChunk(buffer, position, limit);
-        
-        resetString();
-        resetCharChunk();
-        onContentChanged();
+    public void setBuffer(final Buffer buffer,
+                          final int position,
+                          final int limit) {
+        setBufferInternal(buffer, position, limit);
     }
 
     public CharChunk getCharChunk() {
@@ -123,20 +119,11 @@ public class DataChunk {
     }
 
     public void setChars(final char[] chars, final int position, final int limit) {
-        type = Type.Chars;
-        charChunk.setChars(chars, position, limit - position);
-        
-        resetString();
-        resetBuffer();
-        onContentChanged();
+        setCharsInternal(chars, position, limit);
     }
 
     public void setString(String string) {
-        type = Type.String;
-        stringValue = string;
-        resetBuffer();
-        resetCharChunk();
-        onContentChanged();
+        setStringInternal(string);
     }
 
     public void toChars(final Charset charset) throws CharConversionException {
@@ -363,6 +350,36 @@ public class DataChunk {
 
     public void recycle() {
         reset();
+    }
+
+    private void setBufferInternal(final Buffer buffer, final int position,
+            final int limit) {
+        type = Type.Buffer;
+
+        bufferChunk.setBufferChunk(buffer, position, limit);
+
+        resetString();
+        resetCharChunk();
+        onContentChanged();
+    }
+
+    private void setCharsInternal(final char[] chars,
+                                  final int position,
+                                  final int limit) {
+        type = Type.Chars;
+        charChunk.setChars(chars, position, limit - position);
+
+        resetString();
+        resetBuffer();
+        onContentChanged();
+    }
+
+    private void setStringInternal(String string) {
+        type = Type.String;
+        stringValue = string;
+        resetBuffer();
+        resetCharChunk();
+        onContentChanged();
     }
 
     final static class Immutable extends DataChunk {

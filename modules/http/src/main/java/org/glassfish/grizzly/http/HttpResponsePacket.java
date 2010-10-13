@@ -78,7 +78,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
     /**
      * Status code.
      */
-    protected int parsedStatusInt = NON_PARSED_STATUS;    
+    protected int parsedStatusInt = NON_PARSED_STATUS;
     protected final DataChunk statusC = new StatusDataChunk();
 
     /**
@@ -139,8 +139,16 @@ public abstract class HttpResponsePacket extends HttpHeader {
      */
     public void setStatus(int status) {
         // the order is important here as statusDC.setXXX will reset the parsedIntStatus
-        statusC.setString(Integer.toString(status));
+        statusC.set(Utils.getHttpStatus(status));
         parsedStatusInt = status;
+    }
+
+
+    public void setStatus(int status, DataChunk statusDC) {
+
+        statusC.set(statusDC);
+        parsedStatusInt = status;
+
     }
 
 
@@ -179,6 +187,10 @@ public abstract class HttpResponsePacket extends HttpHeader {
      */
     public void setReasonPhrase(String message) {
         reasonPhraseC.setString(message);
+    }
+
+    public void setReasonPhrase(DataChunk reason) {
+        reasonPhraseC.set(reason);
     }
 
 

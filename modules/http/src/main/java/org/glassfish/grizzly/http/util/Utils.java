@@ -55,10 +55,13 @@ public class Utils {
             new ConcurrentHashMap<String, Charset>();
 
     private static HashMap<Integer,DataChunk> statusMessages =
-            new HashMap<Integer,DataChunk>();
+            new HashMap<Integer,DataChunk>(HttpStatus.values().length);
+    private static HashMap<Integer,DataChunk> statusCodes =
+            new HashMap<Integer,DataChunk>(HttpStatus.values().length);
     static {
         for (final HttpStatus status : HttpStatus.values()) {
             statusMessages.put(status.getStatusCode(), status.getReasonPhraseDC());
+            statusCodes.put(status.getStatusCode(), status.getStatusDC());
         }
     }
 
@@ -94,6 +97,17 @@ public class Utils {
 
         return statusMessages.get(httpStatus);
         
+    }
+
+
+    /**
+     * @param httpStatus HTTP status code
+     * @return {@link DataChunk} representation of the status.
+     */
+    public static DataChunk getHttpStatus(final int httpStatus) {
+
+        return statusCodes.get(httpStatus);
+
     }
 
 }

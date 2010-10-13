@@ -105,16 +105,21 @@ public enum HttpStatus {
 
     private final int status;
     private final String reasonPhrase;
-    private final DataChunk reasonPhraseBC;
+    private final DataChunk reasonPhraseDC;
+    private final DataChunk statusDC;
 
     HttpStatus(final int status, final String reasonPhrase) {
         this.status = status;
         this.reasonPhrase = reasonPhrase;
         final DataChunk dataChunk = DataChunk.newInstance();
+        final DataChunk statusChunk = DataChunk.newInstance();
         final DefaultMemoryManager mm = (DefaultMemoryManager) TransportFactory.getInstance().getDefaultMemoryManager();
         ByteBufferWrapper wrapper = mm.wrap(ByteBuffer.wrap(reasonPhrase.getBytes(ASCII_CHARSET)));
+        ByteBufferWrapper wrapper2 = mm.wrap(ByteBuffer.wrap(Integer.toString(status).getBytes(ASCII_CHARSET)));
         dataChunk.setBuffer(wrapper, wrapper.position(), wrapper.limit());
-        reasonPhraseBC = dataChunk.toImmutable();
+        statusChunk.setBuffer(wrapper2, wrapper2.position(), wrapper2.limit());
+        reasonPhraseDC = dataChunk.toImmutable();
+        statusDC = statusChunk.toImmutable();
     }
 
 
@@ -128,12 +133,16 @@ public enum HttpStatus {
         return status;
     }
 
+    public DataChunk getStatusDC() {
+        return statusDC;
+    }
+
     /**
      * @return the {@link DataChunk} containing the reason phrase as
      *  defined by <code>RFC 2616</code>.
      */
     public DataChunk getReasonPhraseDC() {
-        return reasonPhraseBC;
+        return reasonPhraseDC;
     }
 
     /**
@@ -141,8 +150,8 @@ public enum HttpStatus {
      * @param response the response to set the status and reason phrase on.
      */
     public void setValues(HttpResponsePacket response) {
-        response.setStatus(status);
-        response.setReasonPhrase(reasonPhrase);
+        response.setStatus(status, statusDC);
+        response.setReasonPhrase(reasonPhraseDC);
     }
 
 }
