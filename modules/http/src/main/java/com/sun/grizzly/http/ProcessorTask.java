@@ -476,6 +476,9 @@ public class ProcessorTask extends TaskBase implements Processor,
     private boolean setSkipPostExecute;
     private boolean httpExtension = false;
 
+    // ProcessorTask post processor
+    private PostProcessor externalPostProcessor;
+
     // ----------------------------------------------------- Constructor ---- //
 
     public ProcessorTask(){
@@ -693,13 +696,6 @@ public class ProcessorTask extends TaskBase implements Processor,
             String serverName = Grizzly.getServerInfo();
             int status = response.getStatus();
             if (statusDropsConnection(response.getStatus())){
-
-                if (Thread.currentThread() instanceof HttpWorkerThread){
-                    // Avoid data corruption is the response has been suspended.
-                    HttpWorkerThread workerThread = (HttpWorkerThread)Thread.currentThread();
-                    workerThread.getAttachment().setAttribute(Response.SUSPENDED, null);
-                }
-
                 ByteBuffer bb = HtmlHelper.getErrorPage(messageDropConnection(status),
                         "HTTP/1.1 " +  response.getStatus()
                         + " " + messageDropConnection(status) + "\r\n",
@@ -1258,11 +1254,16 @@ public class ProcessorTask extends TaskBase implements Processor,
                 error = true;
                 response.setErrorException(ex);
             }
-            if (!keepAlive){
-                selectorHandler.addPendingKeyCancel(key);
-                recycle();
-                selectorThread.returnTask(this);
+
+            if (externalPostProcessor != null) {
+                externalPostProcessor.postProcess(this);
             }
+
+//            if (!keepAlive){
+//                selectorHandler.addPendingKeyCancel(key);
+//                recycle();
+//                selectorThread.returnTask(this);
+//            }
         }
     }
 
@@ -2118,6 +2119,7 @@ public class ProcessorTask extends TaskBase implements Processor,
             streamAlgorithm = null;
         }
 
+        externalPostProcessor = null;
         socket = null;
         dropConnection = false;
         reRegisterSelectionKey = true;
@@ -2608,6 +2610,14 @@ public class ProcessorTask extends TaskBase implements Processor,
      */
     public boolean isInitialized() {
         return started;
+    }
+
+    void setPostProcessor(PostProcessor postProcessor) {
+        this.externalPostProcessor = postProcessor;
+    }
+
+    public static interface PostProcessor {
+        public void postProcess(ProcessorTask processorTask);
     }
 }
 

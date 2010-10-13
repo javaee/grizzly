@@ -63,7 +63,6 @@ import com.sun.grizzly.tcp.http11.filters.VoidOutputFilter;
 import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.SelectionKeyAttachment;
 import com.sun.grizzly.util.ThreadAttachment;
-import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.http.MimeHeaders;
 import java.io.IOException;
@@ -106,8 +105,6 @@ public class Response<A> {
     // --------------------------------------------------- Suspend/Resume ---- /
     
     private final ReentrantLock lock = new ReentrantLock();
-
-    public final static String SUSPENDED="suspend";
 
     // ----------------------------------------------------- Instance Variables
 
@@ -938,9 +935,6 @@ public class Response<A> {
                 ra.completionHandler = competionHandler;
             }
             this.ra = ra;
-
-            WorkerThread wt = (WorkerThread) Thread.currentThread();
-            wt.getAttachment().setAttribute(Response.SUSPENDED, Boolean.TRUE);
 
             SuspendResponseUtils.attach(selectionKey, ra);
             SuspendResponseUtils.setSuspendedInCurrentThread();

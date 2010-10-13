@@ -44,6 +44,7 @@ import com.sun.grizzly.Context;
 import com.sun.grizzly.Controller;
 import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.ProtocolFilter;
+import com.sun.grizzly.SelectorHandler;
 import com.sun.grizzly.filter.ReadFilter;
 import com.sun.grizzly.http.algorithms.NoParsingAlgorithm;
 import com.sun.grizzly.rcm.ResourceAllocationFilter;
@@ -65,6 +66,7 @@ import java.util.logging.Logger;
  * @author Jeanfrancois Arcand
  */
 public class DefaultProtocolFilter implements ProtocolFilter {
+    private static final PostProcessor POST_PROCESSOR = new PostProcessor();
     
     /**
      * The {@link StreamAlgorithm} class.
@@ -217,14 +219,27 @@ public class DefaultProtocolFilter implements ProtocolFilter {
             }
                        
             configureProcessorTask(processorTask, ctx, streamAlgorithm);
-            
-            try{
-                keepAlive = processorTask.process(inputStream,null);
-            } catch (Throwable ex){
+
+            try {
+                processorTask.setPostProcessor(POST_PROCESSOR);
+                keepAlive = processorTask.process(inputStream, null);
+
+                final boolean isSuspended = SuspendResponseUtils.removeSuspendedInCurrentThread();
+                if (processorTask != null && !processorTask.isError() && isSuspended) { // Process suspended HTTP request
+                    // Detatch anything associated with the Thread.
+                    workerThread.setInputStream(new InputReader());
+                    workerThread.setByteBuffer(null);
+                    workerThread.setProcessorTask(null);
+
+                    ctx.setKeyRegistrationState(
+                            Context.KeyRegistrationState.NONE);
+                    return true;
+                }
+            } catch (Throwable ex) {
                 if (logger.isLoggable(Level.SEVERE)) {
                     logger.log(Level.SEVERE,
-                               LogMessages.SEVERE_GRIZZLY_HTTP_DPF_PROCESSOR_TASK_ERROR(),
-                               ex);
+                            LogMessages.SEVERE_GRIZZLY_HTTP_DPF_PROCESSOR_TASK_ERROR(),
+                            ex);
                 }
                 keepAlive = false;
             }
@@ -237,19 +252,6 @@ public class DefaultProtocolFilter implements ProtocolFilter {
             keepAlive = true;
         }
         
-//        Object ra = workerThread.getAttachment().getAttribute(Response.SUSPENDED);
-        final boolean isSuspended = SuspendResponseUtils.removeSuspendedInCurrentThread();
-        if (processorTask != null && !processorTask.isError() && isSuspended) {
-            // Detatch anything associated with the Thread.
-            workerThread.setInputStream(new InputReader());
-            workerThread.setByteBuffer(null);
-            workerThread.setProcessorTask(null);
-                       
-            ctx.setKeyRegistrationState(
-                    Context.KeyRegistrationState.NONE);
-            return true;
-        }
-
         streamAlgorithm.postParse(byteBuffer);
         
         if (processorTask != null){
@@ -317,4 +319,24 @@ public class DefaultProtocolFilter implements ProtocolFilter {
         return false;
     }
 
+    private static final class PostProcessor implements ProcessorTask.PostProcessor {
+
+        public void postProcess(ProcessorTask processorTask) {
+            final boolean keepAlive = processorTask.isKeepAlive();
+            final SelectorHandler selectorHandler = processorTask.getSelectorHandler();
+            final SelectionKey selectionKey = processorTask.getSelectionKey();
+            final SelectorThread selectorThread = processorTask.getSelectorThread();
+
+            if (keepAlive) {
+                selectorHandler.register(selectionKey,
+                        SelectionKey.OP_READ);
+            } else {
+                selectorHandler.addPendingKeyCancel(selectionKey);
+            }
+
+            processorTask.recycle();
+            selectorThread.returnTask(processorTask);
+        }
+
+    }
 }
