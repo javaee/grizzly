@@ -183,13 +183,7 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
      */
     @Override
     public ByteBuffer allocateByteBuffer(int size) {
-        ProbeNotifier.notifyBufferAllocated(monitoringConfig, size);
-
-        if (isDirect) {
-            return ByteBuffer.allocateDirect(size);
-        } else {
-            return ByteBuffer.allocate(size);
-        }
+        return allocateByteBuffer0(size);
     }
 
     @Override
@@ -217,5 +211,15 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
      */
     protected JmxObject createJmxManagementObject() {
         return new org.glassfish.grizzly.memory.jmx.ByteBufferManager(this);
+    }
+
+    protected final ByteBuffer allocateByteBuffer0(final int size) {
+        
+        ProbeNotifier.notifyBufferAllocated(monitoringConfig, size);
+        if (isDirect) {
+            return ByteBuffer.allocateDirect(size);
+        } else {
+            return ByteBuffer.allocate(size);
+        }
     }
 }

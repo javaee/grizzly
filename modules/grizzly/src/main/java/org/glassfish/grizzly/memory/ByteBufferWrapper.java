@@ -123,18 +123,17 @@ public class ByteBufferWrapper implements Buffer {
 
     @Override
     public void dispose() {
-        checkDispose();
-        if (DEBUG_MODE) { // if debug is on - clear the buffer content
-            visible.clear();
-            while(visible.hasRemaining()) {
-                visible.put((byte) 0xFF);
-            }
-
-            disposeStackTrace = new Exception("ByteBufferWrapper was disposed from: ");
-        }
-
+        prepareDispose();
         memoryManager.release(this);
         visible = null;
+    }
+
+    protected final void prepareDispose() {
+        checkDispose();
+        if (DEBUG_MODE) { // if debug is on - clear the buffer content
+            // Use static logic class to help JIT optimize the code
+            DebugLogic.doDebug(this);
+        }
     }
 
     @Override
@@ -637,5 +636,16 @@ public class ByteBufferWrapper implements Buffer {
         Buffers.setPositionLimit(this, position, limit);
 
         return array;
+    }
+
+    private static class DebugLogic {
+        static void doDebug(ByteBufferWrapper wrapper) {
+            wrapper.visible.clear();
+            while(wrapper.visible.hasRemaining()) {
+                wrapper.visible.put((byte) 0xFF);
+            }
+
+            wrapper.disposeStackTrace = new Exception("ByteBufferWrapper was disposed from: ");
+        }
     }
 }

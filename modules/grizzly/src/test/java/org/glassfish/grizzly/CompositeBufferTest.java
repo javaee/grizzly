@@ -404,7 +404,7 @@ public class CompositeBufferTest extends GrizzlyTestCase {
 
     public void testSplit() {
         doTestSplit(100);
-        }
+    }
 
     private <E> void doTest(E[] testData,
             int buffersNum, int bufferSize, Put<E> put, Get<E> get) {

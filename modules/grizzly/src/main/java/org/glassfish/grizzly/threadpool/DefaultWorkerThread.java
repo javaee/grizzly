@@ -73,7 +73,7 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
             Runnable runTask) {
         super(runTask, name);
         this.attrBuilder = attrBuilder;
-        attributes = createAttributeHolder();
+        attributes = new IndexedAttributeHolder(attrBuilder);
     }
 
     @Override
@@ -94,8 +94,8 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
         return objectCache.get(index);
     }
 
-    public final <E> void putToCache(ThreadCache.CachedTypeIndex<E> index, E o) {
-        objectCache.put(index, o);
+    public final <E> boolean putToCache(ThreadCache.CachedTypeIndex<E> index, E o) {
+        return objectCache.put(index, o);
     }
 
     @Override
@@ -121,10 +121,6 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
         transactionStartedTimeMillis = 0;
     }
     
-    protected AttributeHolder createAttributeHolder() {
-        return new IndexedAttributeHolder(attrBuilder);
-    }
-
     @Override
     public boolean isSelectorThread() {
         return isSelectorThread;

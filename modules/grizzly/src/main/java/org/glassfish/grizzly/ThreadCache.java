@@ -52,8 +52,8 @@ import java.util.Map;
 public final class ThreadCache {
     private static final ObjectCacheElement[] INITIAL_OBJECT_ARRAY = new ObjectCacheElement[16];
     
-    private static final Map<Class, CachedTypeIndex> typeIndexMap =
-            new HashMap<Class, CachedTypeIndex>();
+    private static final Map<String, CachedTypeIndex> typeIndexMap =
+            new HashMap<String, CachedTypeIndex>();
     
     private static int indexCounter;
 
@@ -62,20 +62,26 @@ public final class ThreadCache {
 
     public static synchronized <E> CachedTypeIndex<E> obtainIndex(
             Class<E> clazz, int size) {
-        
-        CachedTypeIndex typeIndex = typeIndexMap.get(clazz);
+        return obtainIndex(clazz.getName(), clazz, size);
+
+    }
+
+    public static synchronized <E> CachedTypeIndex<E> obtainIndex(String name,
+            Class<E> clazz, int size) {
+
+        CachedTypeIndex typeIndex = typeIndexMap.get(name);
         if (typeIndex == null) {
-            typeIndex = new CachedTypeIndex(indexCounter++, clazz, size);
-            typeIndexMap.put(clazz, typeIndex);
+            typeIndex = new CachedTypeIndex(indexCounter++, name, clazz, size);
+            typeIndexMap.put(name, typeIndex);
         }
 
         return typeIndex;
     }
 
-    public static void putToCache(CachedTypeIndex index, Object o) {
+    public static boolean putToCache(CachedTypeIndex index, Object o) {
         final Thread currentThread = Thread.currentThread();
         if (currentThread instanceof DefaultWorkerThread) {
-            ((DefaultWorkerThread) currentThread).putToCache(index, o);
+            return ((DefaultWorkerThread) currentThread).putToCache(index, o);
         } else {
             ObjectCache genericCache = genericCacheAttr.get();
             if (genericCache == null) {
@@ -83,7 +89,7 @@ public final class ThreadCache {
                 genericCacheAttr.set(genericCache);
             }
             
-            genericCache.put(index, o);
+            return genericCache.put(index, o);
         }
     }
 
@@ -104,7 +110,7 @@ public final class ThreadCache {
     public static final class ObjectCache {
         private ObjectCacheElement[] objectCacheElements;
 
-        public void put(CachedTypeIndex index, Object o) {
+        public boolean put(CachedTypeIndex index, Object o) {
             if (objectCacheElements != null &&
                     index.getIndex() < objectCacheElements.length) {
                 ObjectCacheElement objectCache = objectCacheElements[index.getIndex()];
@@ -113,8 +119,7 @@ public final class ThreadCache {
                     objectCacheElements[index.getIndex()] = objectCache;
                 }
 
-                objectCache.put(o);
-                return;
+                return objectCache.put(o);
             }
 
             final ObjectCacheElement[] arrayToGrow =
@@ -126,8 +131,8 @@ public final class ThreadCache {
             objectCacheElements = Arrays.copyOf(arrayToGrow, newSize);
 
             final ObjectCacheElement objectCache = new ObjectCacheElement(index.getSize());
-            objectCache.put(o);
             objectCacheElements[index.getIndex()] = objectCache;
+            return objectCache.put(o);
         }
 
         public <E> E get(CachedTypeIndex<E> index) {
@@ -155,10 +160,13 @@ public final class ThreadCache {
             cache = new Object[size];
         }
 
-        public void put(Object o) {
+        public boolean put(Object o) {
             if (index < size) {
                 cache[index++] = o;
+                return true;
             }
+
+            return false;
         }
 
         public Object get() {
@@ -178,15 +186,21 @@ public final class ThreadCache {
         private final int index;
         private final Class clazz;
         private final int size;
+        private final String name;
 
-        public CachedTypeIndex(int index, Class<E> clazz, int size) {
+        public CachedTypeIndex(int index, String name, Class<E> clazz, int size) {
             this.index = index;
+            this.name = name;
             this.clazz = clazz;
             this.size = size;
         }
 
         public int getIndex() {
             return index;
+        }
+
+        public String getName() {
+            return name;
         }
 
         public Class getClazz() {

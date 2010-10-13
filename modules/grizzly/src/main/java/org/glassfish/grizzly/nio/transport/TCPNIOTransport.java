@@ -849,7 +849,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
                     if (read > 0) {
                         buffer.position(buffer.position() + read);
-                    }
+                    }                    
                 } else {
                     final ByteBuffer byteBuffer = buffer.toByteBuffer();
                     if (!isSelectorThread) {

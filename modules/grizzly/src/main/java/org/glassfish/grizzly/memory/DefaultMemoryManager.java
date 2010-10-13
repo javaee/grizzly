@@ -58,9 +58,9 @@ public final class DefaultMemoryManager extends ByteBufferManager {
     private static final ThreadCache.CachedTypeIndex<TrimAwareWrapper> CACHE_IDX =
             ThreadCache.obtainIndex(TrimAwareWrapper.class, 2);
 
-    public DefaultMemoryManager() {
-        super();
-    }
+    private final ThreadCache.CachedTypeIndex<SmallBuffer> SMALL_BUFFER_CACHE_IDX =
+            ThreadCache.obtainIndex(SmallBuffer.class.getName() + "." +
+            System.identityHashCode(this), SmallBuffer.class, 16);
 
     private static TrimAwareWrapper createTrimAwareBuffer(
             ByteBufferManager memoryManager,
@@ -77,10 +77,23 @@ public final class DefaultMemoryManager extends ByteBufferManager {
 
     public static final int DEFAULT_MAX_BUFFER_SIZE = 1024 * 128;
     
+    public static final int DEFAULT_SMALL_BUFFER_SIZE = 32;
+
     /**
      * Max size of memory pool for one thread.
      */
-    private volatile int maxThreadBufferSize = DEFAULT_MAX_BUFFER_SIZE;
+    private final int maxThreadBufferSize;
+
+    private final int smallBufferSize;
+
+    public DefaultMemoryManager() {
+        this(DEFAULT_MAX_BUFFER_SIZE, DEFAULT_SMALL_BUFFER_SIZE);
+    }
+
+    public DefaultMemoryManager(final int maxThreadBufferSize, final int smallBufferSize) {
+        this.maxThreadBufferSize = maxThreadBufferSize;
+        this.smallBufferSize = smallBufferSize;
+    }
 
     /**
      * Get the maximum size of memory pool for one thread.
@@ -92,12 +105,17 @@ public final class DefaultMemoryManager extends ByteBufferManager {
     }
 
     /**
-     * Set the maximum size of memory pool for one thread.
-     *
-     * @param maxThreadBufferSize the maximum size of memory pool for one thread.
+     * {@inheritDoc}
      */
-    public void setMaxThreadBufferSize(int maxThreadBufferSize) {
-        this.maxThreadBufferSize = maxThreadBufferSize;
+    @Override
+    public ByteBufferWrapper allocate(final int size) {
+        if (size <= smallBufferSize) {
+            final ByteBufferWrapper buffer = createSmallBuffer();
+            buffer.limit(size);
+            return buffer;
+        }
+        
+        return super.allocate(size);
     }
 
     /**
@@ -138,6 +156,18 @@ public final class DefaultMemoryManager extends ByteBufferManager {
         } else {
             return super.allocateByteBuffer(size);
         }
+    }
+
+    private SmallBuffer createSmallBuffer() {
+
+        final SmallBuffer buffer = ThreadCache.takeFromCache(SMALL_BUFFER_CACHE_IDX);
+        if (buffer != null) {
+            ProbeNotifier.notifyBufferAllocatedFromPool(monitoringConfig,
+                    smallBufferSize);
+            return buffer;
+        }
+
+        return new SmallBuffer(allocateByteBuffer0(smallBufferSize));
     }
 
     private ThreadLocalPool reallocatePoolBuffer() {
@@ -387,11 +417,11 @@ public final class DefaultMemoryManager extends ByteBufferManager {
     }
 
     /**
-     * {@link ByteBufferWrapper} implementation, which supports triming. In
+     * {@link ByteBufferWrapper} implementation, which supports trimming. In
      * other words it's possible to return unused {@link org.glassfish.grizzly.Buffer} space to
      * pool.
      */
-    public static final class TrimAwareWrapper extends ByteBufferWrapper
+    private static final class TrimAwareWrapper extends ByteBufferWrapper
             implements Cacheable {
 
         private TrimAwareWrapper(ByteBufferManager memoryManager,
@@ -446,4 +476,38 @@ public final class DefaultMemoryManager extends ByteBufferManager {
             recycle();
         }
     }
+
+    /**
+     * {@link ByteBufferWrapper} implementation, which supports trimming. In
+     * other words it's possible to return unused {@link org.glassfish.grizzly.Buffer} space to
+     * pool.
+     */
+    private final class SmallBuffer extends ByteBufferWrapper
+            implements Cacheable {
+
+        private SmallBuffer(ByteBuffer underlyingByteBuffer) {
+            super(DefaultMemoryManager.this, underlyingByteBuffer);
+        }
+
+        @Override
+        public void dispose() {
+            super.prepareDispose();
+            visible.clear();
+            recycle();
+        }
+
+        @Override
+        public void recycle() {
+            if (visible.remaining() == smallBufferSize) {
+                allowBufferDispose = false;
+                disposeStackTrace = null;
+
+                if (ThreadCache.putToCache(SMALL_BUFFER_CACHE_IDX, this)) {
+                    ProbeNotifier.notifyBufferReleasedToPool(monitoringConfig,
+                            smallBufferSize);
+                }
+            }
+        }
+    }
+
 }
