@@ -323,7 +323,8 @@ public class ByteBufferWrapper implements Buffer {
     @Override
     public ByteBufferWrapper put(Buffer src, int position, int length) {
         if (!src.isComposite()) {
-            Buffers.put(src.toByteBuffer(), position, length, visible);
+            Buffers.put(src, position, length, this);
+            src.tryDispose();
         } else {
             final ByteBufferArray array =
                     src.toByteBufferArray(position, position + length);

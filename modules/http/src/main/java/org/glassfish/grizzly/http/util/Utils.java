@@ -121,43 +121,33 @@ public class Utils {
      * @param l the long to convert.
      * @param b the buffer to write the conversion result to.
      */
-    public static void toString(long l, Buffer b) {
-        final int radix = 10;
+    public static void longToBuffer(long l, final Buffer b) {
         if (l == 0) {
-            b.put((byte) '0');
-            b.flip();
+            b.put(0, (byte) '0');
+            b.limit(1);
             return;
         }
 
-        int count = 2;
-        long j = l;
-        boolean negative = l < 0;
-        if (!negative) {
-            count = 1;
-            j = -l;
-        }
-        while ((l /= radix) != 0) {
-            count++;
+        final int radix = 10;
+        final boolean negative;
+        if (l < 0) {
+            negative = true;
+            l = -l;
+        } else {
+            negative = false;
         }
 
-        final int position = count;
+        int position = b.limit();
 
-        //char[] buffer = new char[count];
         do {
-            int ch = 0 - (int) (j % radix);
-            if (ch > 9) {
-                ch = ch - 10 + 'a';
-            } else {
-                ch += '0';
-            }
-            b.put(--count, (byte) ch);
-        } while ((j /= radix) != 0);
+            final int ch = '0' + (int) (l % radix);
+            b.put(--position, (byte) ch);
+        } while ((l /= radix) != 0);
+
         if (negative) {
-            b.put(0, (byte) '-');
+            b.put(--position, (byte) '-');
         }
         b.position(position);
-        b.limit(position);
-        b.flip();
 
     }
 

@@ -256,10 +256,11 @@ public abstract class HttpHeader extends HttpPacket
         }
     }
 
-    protected Buffer getLengthAsBuffer(Connection c, long length) {
+    protected static Buffer getLengthAsBuffer(Connection c, long length) {
         final MemoryManager mm = c.getTransport().getMemoryManager();
         final Buffer b = mm.allocate(20);
-        Utils.toString(contentLength, b);
+        b.allowBufferDispose(true);
+        Utils.longToBuffer(length, b);
         return b;
     }
 
