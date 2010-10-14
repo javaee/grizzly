@@ -221,7 +221,9 @@ public class OutputBuffer {
             monitor = null;
         }
 
-        close();
+        if (!closed) {
+            close();
+        }
 
         ctx.notifyDownstream(HttpServerFilter.RESPONSE_COMPLETE_EVENT);
 
