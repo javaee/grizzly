@@ -66,7 +66,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -386,7 +385,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      * @param ctx
      * @throws java.io.IOException
      */
-    private final void initSelector(Context ctx) throws IOException{
+    private void initSelector(Context ctx) throws IOException{
         try {
             isShutDown.set(false);
 
@@ -448,7 +447,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
         SelectorHandlerTask task;
         while((task = tasks.poll()) != null) {
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest("Processing pending task: " + task);
+                logger.log(Level.FINEST, "Processing pending task: {0}", task);
             }
 
             task.run(ctx);
@@ -661,7 +660,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
     }
 
     /**
-     * Shuntdown this instance by closing its Selector and associated channels.
+     * Shutdown this instance by closing its Selector and associated channels.
      */
     public void shutdown() {
         // If shutdown was called for this SelectorHandler
@@ -669,19 +668,16 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
 
         stateHolder.setState(State.STOPPED);
 
-        if (selector != null) {
-            try {
-                boolean isContinue = true;
-                while(isContinue) {
-                    try {
-                        for(SelectionKey selectionKey : selector.keys()) {
-                            selectionKeyHandler.close(selectionKey);
-                        }
+        final Selector localSelector = selector;
 
-                        isContinue = false;
-                    } catch (ConcurrentModificationException e) {
-                        // ignore
-                    }
+        if (localSelector != null) {
+            localSelector.wakeup();
+            
+            try {
+                SelectionKey[] keys = new SelectionKey[0];
+                keys = localSelector.keys().toArray(keys);
+                for (SelectionKey key : keys) {
+                    selectionKeyHandler.close(key);
                 }
             } catch (ClosedSelectorException e) {
                 // If Selector is already closed - OK
@@ -709,8 +705,8 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
         }
 
         try{
-            if (selector != null)
-                selector.close();
+            if (localSelector != null)
+                localSelector.close();
         } catch (Throwable ex){
             Controller.logger().log(Level.SEVERE,
                     "selector.close",ex);
@@ -1293,12 +1289,6 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
                 if (!socket.isOutputShutdown()) socket.shutdownOutput();
             } catch (IOException e) {
                 logger.log(Level.FINEST, "Unexpected exception during channel outputShutdown", e);
-            }
-
-            try{
-                socket.close();
-            } catch (IOException e) {
-                logger.log(Level.FINEST, "Unexpected exception during socket close", e);
             }
         }
 
