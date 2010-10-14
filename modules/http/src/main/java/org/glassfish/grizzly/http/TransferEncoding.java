@@ -79,10 +79,13 @@ public interface TransferEncoding {
      * At this time <tt>TransferEncoding</tt> is able to change, update HTTP
      * packet headers.
      *
+     * @param c connection associated with this packet.
      * @param httpHeader HTTP packet headers.
      * @param content ready HTTP content (might be null).
      */
-    public void prepareSerialize(HttpHeader httpHeader, HttpContent content);
+    public void prepareSerialize(Connection c,
+                                 HttpHeader httpHeader,
+                                 HttpContent content);
 
     /**
      * Parse HTTP packet payload, represented by {@link Buffer} using specific

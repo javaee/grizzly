@@ -87,7 +87,9 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
      * {@inheritDoc}
      */
     @Override
-    public void prepareSerialize(HttpHeader httpHeader, HttpContent content) {
+    public void prepareSerialize(Connection c,
+                                 HttpHeader httpHeader,
+                                 HttpContent content) {
         httpHeader.makeTransferEncodingHeader(Constants.CHUNKED_ENCODING);
     }
 

@@ -76,11 +76,13 @@ public final class FixedLengthTransferEncoding implements TransferEncoding {
     }
 
     @Override
-    public void prepareSerialize(HttpHeader httpHeader, HttpContent httpContent) {
+    public void prepareSerialize(Connection c,
+                                 HttpHeader httpHeader,
+                                 HttpContent httpContent) {
         final int defaultContentLength = httpContent != null ?
             httpContent.getContent().remaining() : -1;
         
-        httpHeader.makeContentLengthHeader(defaultContentLength);
+        httpHeader.makeContentLengthHeader(c, defaultContentLength);
     }
 
 

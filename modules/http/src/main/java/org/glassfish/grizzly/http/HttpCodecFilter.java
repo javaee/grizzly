@@ -598,7 +598,9 @@ public abstract class HttpCodecFilter extends BaseFilter
                     return encodedBuffer; // DO NOT MARK COMMITTED
                 }
             }
-            setTransferEncodingOnSerializing(httpHeader, httpContent);
+            setTransferEncodingOnSerializing(connection,
+                                             httpHeader,
+                                             httpContent);
             setContentEncodingsOnSerializing(httpHeader);
 
             encodedBuffer = memoryManager.allocate(8192);
@@ -1175,15 +1177,16 @@ public abstract class HttpCodecFilter extends BaseFilter
         }
     }
 
-    final void setTransferEncodingOnSerializing(HttpHeader httpHeader,
-            HttpContent httpContent) {
+    final void setTransferEncodingOnSerializing(Connection c,
+                                                HttpHeader httpHeader,
+                                                HttpContent httpContent) {
 
         final TransferEncoding[] encodings = transferEncodings.getArray();
         if (encodings == null) return;
         
         for (TransferEncoding encoding : encodings) {
             if (encoding.wantEncode(httpHeader)) {
-                encoding.prepareSerialize(httpHeader, httpContent);
+                encoding.prepareSerialize(c, httpHeader, httpContent);
                 httpHeader.setTransferEncoding(encoding);
                 return;
             }

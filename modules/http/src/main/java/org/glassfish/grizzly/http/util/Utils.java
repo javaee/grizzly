@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly.http.util;
 
+import org.glassfish.grizzly.Buffer;
+
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
@@ -107,6 +109,55 @@ public class Utils {
     public static DataChunk getHttpStatus(final int httpStatus) {
 
         return statusCodes.get(httpStatus);
+
+    }
+
+    /**
+     * Converts the specified long as a string representation to the provided
+     * buffer.
+     *
+     * This code is based off {@link Long#toString()}
+     *
+     * @param l the long to convert.
+     * @param b the buffer to write the conversion result to.
+     */
+    public static void toString(long l, Buffer b) {
+        final int radix = 10;
+        if (l == 0) {
+            b.put((byte) '0');
+            b.flip();
+            return;
+        }
+
+        int count = 2;
+        long j = l;
+        boolean negative = l < 0;
+        if (!negative) {
+            count = 1;
+            j = -l;
+        }
+        while ((l /= radix) != 0) {
+            count++;
+        }
+
+        final int position = count;
+
+        //char[] buffer = new char[count];
+        do {
+            int ch = 0 - (int) (j % radix);
+            if (ch > 9) {
+                ch = ch - 10 + 'a';
+            } else {
+                ch += '0';
+            }
+            b.put(--count, (byte) ch);
+        } while ((j /= radix) != 0);
+        if (negative) {
+            b.put(0, (byte) '-');
+        }
+        b.position(position);
+        b.limit(position);
+        b.flip();
 
     }
 

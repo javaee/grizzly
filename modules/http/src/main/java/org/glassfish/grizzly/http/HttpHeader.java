@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly.http;
 
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
@@ -48,6 +50,9 @@ import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.ContentType;
 import org.glassfish.grizzly.http.util.MimeHeaders;
+import org.glassfish.grizzly.http.util.Utils;
+import org.glassfish.grizzly.memory.MemoryManager;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -251,23 +256,29 @@ public abstract class HttpHeader extends HttpPacket
         }
     }
 
+    protected Buffer getLengthAsBuffer(Connection c, long length) {
+        final MemoryManager mm = c.getTransport().getMemoryManager();
+        final Buffer b = mm.allocate(20);
+        Utils.toString(contentLength, b);
+        return b;
+    }
 
     /**
      * Makes sure content-length header is present.
      * 
      * @param defaultLength default content-length value.
      */
-    protected void makeContentLengthHeader(long defaultLength) {
+    protected void makeContentLengthHeader(Connection c, long defaultLength) {
         if (contentLength != -1) {
-            headers.setValue(Constants.CONTENT_LENGTH_HEADER).setString(
-                    Long.toString(contentLength));
+            final Buffer b = getLengthAsBuffer(c, contentLength);
+            headers.setValue(Constants.CONTENT_LENGTH_HEADER).setBuffer(b, b.position(), b.limit());
         } else if (defaultLength != -1) {
+            Buffer b = getLengthAsBuffer(c, defaultLength);
             final int idx = headers.indexOf(Constants.CONTENT_LENGTH_HEADER, 0);
             if (idx == -1) {
-                headers.addValue(Constants.CONTENT_LENGTH_HEADER).setString(
-                        Long.toString(defaultLength));
+                headers.addValue(Constants.CONTENT_LENGTH_HEADER).setBuffer(b, b.position(), b.limit());
             } else if (headers.getValue(idx).isNull()) {
-                headers.getValue(idx).setString(Long.toString(defaultLength));
+                headers.getValue(idx).setBuffer(b, b.position(), b.limit());
             }
         }
     }
