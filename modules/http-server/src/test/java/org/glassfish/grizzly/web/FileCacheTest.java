@@ -37,10 +37,11 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.web;
 
 import org.glassfish.grizzly.http.HttpHeader;
+import org.glassfish.grizzly.http.server.filecache.FileCache;
+import org.glassfish.grizzly.http.server.filecache.FileCacheEntry;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.EncodingFilter;
 import org.glassfish.grizzly.Connection;
@@ -75,6 +76,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.glassfish.grizzly.http.server.filecache.FileCacheProbe;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -83,7 +86,6 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import static org.junit.Assert.*;
 
-
 /**
  * Test File Cache implementation
  * 
@@ -91,8 +93,8 @@ import static org.junit.Assert.*;
  */
 @RunWith(Parameterized.class)
 public class FileCacheTest {
-    public static final int PORT = 18891;
 
+    public static final int PORT = 18891;
     private HttpServer gws;
     private final boolean isSslEnabled;
 
@@ -103,8 +105,7 @@ public class FileCacheTest {
     @Parameters
     public static Collection<Object[]> getSslParameter() {
         return Arrays.asList(new Object[][]{
-                    {Boolean.FALSE}
-                    ,{Boolean.TRUE}
+                    {Boolean.FALSE}, {Boolean.TRUE}
                 });
     }
 
@@ -126,6 +127,9 @@ public class FileCacheTest {
     public void testSimpleFile() throws Exception {
         final String fileName = "./pom.xml";
 
+        final StatsCacheProbe probe = new StatsCacheProbe();
+        gws.getServerConfiguration().getMonitoringConfig().getFileCacheConfig().addProbes(probe);
+
         startWebServer(new HttpService() {
 
             @Override
@@ -139,9 +143,9 @@ public class FileCacheTest {
                     }
 
                     final NIOWriter writer = res.getWriter();
-                    writer.write(error == null ?
-                        "Hello not cached data" :
-                        "Error happened: " + error);
+                    writer.write(error == null
+                            ? "Hello not cached data"
+                            : "Error happened: " + error);
                     writer.close();
 
                 } catch (Exception ex) {
@@ -164,29 +168,41 @@ public class FileCacheTest {
                 .header("Host", "localhost")
                 .build();
 
-        final Future<HttpContent> responseFuture1 = send("localhost", PORT, request1);
-        final HttpContent response1 = responseFuture1.get(10, TimeUnit.SECONDS);
+        boolean isOk = false;
+        try {
+            final Future<HttpContent> responseFuture1 = send("localhost", PORT, request1);
+            final HttpContent response1 = responseFuture1.get(10, TimeUnit.SECONDS);
 
-        assertEquals("Not cached data mismatch", "Hello not cached data", response1.getContent().toStringContent());
+            assertEquals("Not cached data mismatch\n" + probe, "Hello not cached data", response1.getContent().toStringContent());
 
-        
-        final File file = new File(fileName);
-        InputStream fis = new FileInputStream(file);
-        byte[] data = new byte[(int) file.length()];
-        fis.read(data);
-        fis.close();
 
-        final String pattern = new String(data);
+            final File file = new File(fileName);
+            InputStream fis = new FileInputStream(file);
+            byte[] data = new byte[(int) file.length()];
+            fis.read(data);
+            fis.close();
 
-        final Future<HttpContent> responseFuture2 = send("localhost", PORT, request2);
-        final HttpContent response2 = responseFuture2.get(10, TimeUnit.SECONDS);
-        assertEquals("Cached data mismatch", pattern, response2.getContent().toStringContent());
+            final String pattern = new String(data);
+
+            final Future<HttpContent> responseFuture2 = send("localhost", PORT, request2);
+            final HttpContent response2 = responseFuture2.get(10, TimeUnit.SECONDS);
+            assertEquals("Cached data mismatch\n" + probe, pattern, response2.getContent().toStringContent());
+            isOk = true;
+        } finally {
+            if (!isOk) {
+                System.err.println(probe);
+            }
+        }
     }
 
 //    @Ignore
     @Test
     public void testGZip() throws Exception {
         final String fileName = "./pom.xml";
+
+        final StatsCacheProbe probe = new StatsCacheProbe();
+        gws.getServerConfiguration().getMonitoringConfig().getFileCacheConfig().addProbes(probe);
+
         startWebServer(new HttpService() {
 
             @Override
@@ -200,9 +216,9 @@ public class FileCacheTest {
                     }
 
                     final NIOWriter writer = res.getWriter();
-                    writer.write(error == null ?
-                        "Hello not cached data" :
-                        "Error happened: " + error);
+                    writer.write(error == null
+                            ? "Hello not cached data"
+                            : "Error happened: " + error);
                     writer.close();
 
                 } catch (Exception ex) {
@@ -227,31 +243,41 @@ public class FileCacheTest {
                 .header("Accept-Encoding", "gzip")
                 .build();
 
-        final Future<HttpContent> responseFuture1 = send("localhost", PORT, request1);
-        final HttpContent response1 = responseFuture1.get(10, TimeUnit.SECONDS);
+        boolean isOk = false;
+        try {
+            final Future<HttpContent> responseFuture1 = send("localhost", PORT, request1);
+            final HttpContent response1 = responseFuture1.get(10, TimeUnit.SECONDS);
 
-        assertEquals("gzip", response1.getHttpHeader().getHeader("Content-Encoding"));
-        assertEquals("Not cached data mismatch", "Hello not cached data", response1.getContent().toStringContent());
+            assertEquals(probe.toString(), "gzip", response1.getHttpHeader().getHeader("Content-Encoding"));
+            assertEquals("Not cached data mismatch\n" + probe, "Hello not cached data", response1.getContent().toStringContent());
 
 
-        final File file = new File(fileName);
-        InputStream fis = new FileInputStream(file);
-        byte[] data = new byte[(int) file.length()];
-        fis.read(data);
-        fis.close();
+            final File file = new File(fileName);
+            InputStream fis = new FileInputStream(file);
+            byte[] data = new byte[(int) file.length()];
+            fis.read(data);
+            fis.close();
 
-        final String pattern = new String(data);
+            final String pattern = new String(data);
 
-        final Future<HttpContent> responseFuture2 = send("localhost", PORT, request2);
-        final HttpContent response2 = responseFuture2.get(10, TimeUnit.SECONDS);
-        assertEquals("gzip", response2.getHttpHeader().getHeader("Content-Encoding"));
-        assertEquals("Cached data mismatch", pattern, response2.getContent().toStringContent());
+            final Future<HttpContent> responseFuture2 = send("localhost", PORT, request2);
+            final HttpContent response2 = responseFuture2.get(10, TimeUnit.SECONDS);
+            assertEquals(probe.toString(), "gzip", response2.getHttpHeader().getHeader("Content-Encoding"));
+            assertEquals("Cached data mismatch\n" + probe, pattern, response2.getContent().toStringContent());
+            isOk = false;
+            throw new IllegalStateException();
+        } finally {
+            if (!isOk) {
+                System.err.println(probe);
+            }
+        }
     }
 
     @Test
     public void testIfModified() throws Exception {
         final String fileName = "./pom.xml";
         startWebServer(new HttpService(".") {
+
             @Override
             public void service(Request request, Response response)
                     throws Exception {
@@ -293,13 +319,13 @@ public class FileCacheTest {
         assertEquals("304 is expected", 304, ((HttpResponsePacket) response2.getHttpHeader()).getStatus());
         assertTrue("empty body is expected", !response2.getContent().hasRemaining());
     }
-    
+
     private void configureWebServer() throws Exception {
         gws = new HttpServer();
         final NetworkListener listener =
                 new NetworkListener("grizzly",
-                                    NetworkListener.DEFAULT_NETWORK_HOST,
-                                    PORT);
+                NetworkListener.DEFAULT_NETWORK_HOST,
+                PORT);
         if (isSslEnabled) {
             listener.setSecure(true);
             listener.setSSLEngineConfig(createSSLConfig(true));
@@ -309,22 +335,23 @@ public class FileCacheTest {
                 GZipContentEncoding.DEFAULT_IN_BUFFER_SIZE,
                 GZipContentEncoding.DEFAULT_OUT_BUFFER_SIZE,
                 new EncodingFilter() {
-                        @Override
-                        public boolean applyEncoding(HttpHeader httpPacket) {
-                            if (!httpPacket.isRequest()) {
-                                final HttpResponsePacket response = (HttpResponsePacket) httpPacket;
-                                final HttpRequestPacket request;
-                                final DataChunk acceptEncoding;
-                                if (response.isChunked() && (request = response.getRequest()) != null &&
-                                        (acceptEncoding = request.getHeaders().getValue("Accept-Encoding")) != null &&
-                                        acceptEncoding.indexOf("gzip", 0) >= 0) {
-                                    return true;
-                                }
-                            }
 
-                            return false;
+                    @Override
+                    public boolean applyEncoding(HttpHeader httpPacket) {
+                        if (!httpPacket.isRequest()) {
+                            final HttpResponsePacket response = (HttpResponsePacket) httpPacket;
+                            final HttpRequestPacket request;
+                            final DataChunk acceptEncoding;
+                            if (response.isChunked() && (request = response.getRequest()) != null
+                                    && (acceptEncoding = request.getHeaders().getValue("Accept-Encoding")) != null
+                                    && acceptEncoding.indexOf("gzip", 0) >= 0) {
+                                return true;
+                            }
                         }
-                    }));
+
+                        return false;
+                    }
+                }));
 
         gws.addListener(listener);
     }
@@ -336,7 +363,7 @@ public class FileCacheTest {
 
     private Future<HttpContent> send(String host, int port, HttpPacket request) throws Exception {
         final FutureImpl<HttpContent> future = SafeFutureImpl.create();
-        
+
         final FilterChainBuilder builder = FilterChainBuilder.stateless();
         builder.add(new TransportFilter());
 
@@ -384,6 +411,7 @@ public class FileCacheTest {
     }
 
     private static class HttpMessageFilter extends BaseFilter {
+
         private final FutureImpl<HttpContent> future;
 
         public HttpMessageFilter(FutureImpl<HttpContent> future) {
@@ -406,6 +434,69 @@ public class FileCacheTest {
 
             return ctx.getStopAction();
         }
+    }
 
+    private static class StatsCacheProbe implements FileCacheProbe {
+
+        final AtomicInteger entryAddedCounter = new AtomicInteger();
+        final AtomicInteger entryRemovedCounter = new AtomicInteger();
+        final AtomicInteger entryHitCounter = new AtomicInteger();
+        final AtomicInteger entryMissedCounter = new AtomicInteger();
+        final AtomicInteger entryErrorCounter = new AtomicInteger();
+
+        @Override
+        public void onEntryAddedEvent(FileCache fileCache, FileCacheEntry entry) {
+            entryAddedCounter.incrementAndGet();
+        }
+
+        @Override
+        public void onEntryRemovedEvent(FileCache fileCache, FileCacheEntry entry) {
+            entryRemovedCounter.incrementAndGet();
+        }
+
+        @Override
+        public void onEntryHitEvent(FileCache fileCache, FileCacheEntry entry) {
+            entryHitCounter.incrementAndGet();
+        }
+
+        @Override
+        public void onEntryMissedEvent(FileCache fileCache, String host, String requestURI) {
+            entryMissedCounter.incrementAndGet();
+        }
+
+        @Override
+        public void onErrorEvent(FileCache fileCache, Throwable error) {
+            entryErrorCounter.incrementAndGet();
+        }
+
+        public int getEntryAddedCounter() {
+            return entryAddedCounter.get();
+        }
+
+        public int getEntryRemovedCounter() {
+            return entryRemovedCounter.get();
+        }
+        public int getEntryHitCounter() {
+            return entryHitCounter.get();
+        }
+        public int getEntryMissedCounter() {
+            return entryMissedCounter.get();
+        }
+        public int getEntryErrorCounter() {
+            return entryErrorCounter.get();
+        }
+
+        @Override
+        public String toString() {
+            final StringBuilder sb = new StringBuilder("file-cache-stats[added=")
+            .append(getEntryAddedCounter())
+            .append(", removed=").append(getEntryRemovedCounter())
+            .append(", hit=").append(getEntryHitCounter())
+            .append(", missed=").append(getEntryMissedCounter())
+            .append(", error=").append(getEntryErrorCounter())
+            .append("]");
+
+            return sb.toString();
+        }
     }
 }
