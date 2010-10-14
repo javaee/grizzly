@@ -101,6 +101,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -146,7 +147,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     protected int port;
     
     protected boolean initialized = false;    
-    protected volatile boolean running = false;    
+    protected final AtomicBoolean running = new AtomicBoolean();
     // ----------------------------------------------------- JMX Support ---/
     
     
@@ -1106,7 +1107,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      */
     public void run(){
         try{
-            running = true;
+            running.set(true);
 
             rampUpProcessorTask();
             registerComponents();
@@ -1161,8 +1162,8 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     
     
     public void stopEndpoint() {
-        if (!running) return;
-        running = false;
+        if (!running.getAndSet(false)) return;
+        
         try{
             controller.stop();
         } catch (IOException ex){
@@ -1357,7 +1358,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
 
 
     public boolean isRunning() {
-        return running;
+        return running.get();
     }
 
 
@@ -1953,9 +1954,9 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     /**
      * Enable the {@link AsyncHandler} used when asynchronous
      */
-    public void setEnableAsyncExecution(boolean asyncExecution){
+    public void setEnableAsyncExecution(boolean asyncExecution) {
         this.asyncExecution = asyncExecution;     
-        if (running){
+        if (running.get()) {
             reconfigureAsyncExecution();
         }
     }

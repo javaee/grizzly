@@ -786,27 +786,30 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * defined, the default will be used.
      */
     public void start() throws IOException {
-        if (isStarted()) return;
-
-        logVersion();
 
         stateHolder.getStateLocker().writeLock().lock();
-        if (kernelExecutor.isShutdown()) {
-            // Re-create 
-            kernelExecutor = createKernelExecutor();
-        }
-        
-        autoConfigureCore();
-        if (threadPool == null) {
-            threadPool = GrizzlyExecutorService.createInstance();
-        }
 
-        if (threadPool.isShutdown()) {
-            threadPool = GrizzlyExecutorService.createInstance();
-        }
-
-        ensureAppropriatePoolSize( threadPool );
         try {
+            if (isStarted()) {
+                return;
+            }
+            logVersion();
+
+            if (kernelExecutor.isShutdown()) {
+                // Re-create
+                kernelExecutor = createKernelExecutor();
+            }
+
+            autoConfigureCore();
+            if (threadPool == null) {
+                threadPool = GrizzlyExecutorService.createInstance();
+            }
+
+            if (threadPool.isShutdown()) {
+                threadPool = GrizzlyExecutorService.createInstance();
+            }
+
+            ensureAppropriatePoolSize(threadPool);
             final State state = stateHolder.getState(false);
             if (state == null || state == State.STOPPED) {
                 // if selectorHandlers were not set by user explicitly,
@@ -885,9 +888,9 @@ public class Controller implements Runnable, Lifecycle, Copyable,
 
     /**
      * Stop the Controller by canceling all the registered keys.
-     * @param isAsync, true if controller should be stopped asynchrounously and control
+     * @param isAsync, true if controller should be stopped asynchronously and control
      *                 returned immediately. If false - control will be returned
-     *                 after Controller will be completely stoped.
+     *                 after Controller will be completely stopped.
      */
     public void stop(boolean isAsync) throws IOException {
         final CountDownLatch latch = new CountDownLatch(1);
