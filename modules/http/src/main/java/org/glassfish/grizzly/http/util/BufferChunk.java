@@ -264,18 +264,19 @@ public class BufferChunk implements Chunk {
         return buffer.toStringContent(UTF8_CHARSET, start, end);
     }
 
-    protected void resetStringCache() {
+    protected final void resetStringCache() {
         cachedString = null;
         cachedStringCharset = null;
     }
     
-    protected void reset() {
+    protected final void reset() {
         buffer = null;
         start = -1;
         end = -1;
+        resetStringCache();
     }
     
-    public void recycle() {
+    public final void recycle() {
         reset();
     }
 

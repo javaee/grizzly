@@ -143,73 +143,73 @@ public class ByteBufferWrapper implements Buffer {
     }
 
     @Override
-    public int capacity() {
+    public final int capacity() {
         return visible.capacity();
     }
 
     @Override
-    public int position() {
+    public final int position() {
         checkDispose();
         return visible.position();
     }
 
     @Override
-    public ByteBufferWrapper position(int newPosition) {
+    public final ByteBufferWrapper position(final int newPosition) {
         checkDispose();
         visible.position(newPosition);
         return this;
     }
 
     @Override
-    public int limit() {
+    public final int limit() {
         checkDispose();
         return visible.limit();
     }
 
     @Override
-    public ByteBufferWrapper limit(int newLimit) {
+    public final ByteBufferWrapper limit(final int newLimit) {
         checkDispose();
         visible.limit(newLimit);
         return this;
     }
 
     @Override
-    public ByteBufferWrapper mark() {
+    public final ByteBufferWrapper mark() {
         visible.mark();
         return this;
     }
 
     @Override
-    public ByteBufferWrapper reset() {
+    public final ByteBufferWrapper reset() {
         visible.reset();
         return this;
     }
 
     @Override
-    public ByteBufferWrapper clear() {
+    public final ByteBufferWrapper clear() {
         visible.clear();
         return this;
     }
 
     @Override
-    public ByteBufferWrapper flip() {
+    public final ByteBufferWrapper flip() {
         visible.flip();
         return this;
     }
 
     @Override
-    public ByteBufferWrapper rewind() {
+    public final ByteBufferWrapper rewind() {
         visible.rewind();
         return this;
     }
 
     @Override
-    public int remaining() {
+    public final int remaining() {
         return visible.remaining();
     }
 
     @Override
-    public boolean hasRemaining() {
+    public final boolean hasRemaining() {
         return visible.hasRemaining();
     }
 
@@ -606,29 +606,27 @@ public class ByteBufferWrapper implements Buffer {
 
     @Override
     public final ByteBufferArray toByteBufferArray() {
-        return toByteBufferArray(null);
+        final ByteBufferArray array = ByteBufferArray.create();
+        array.add(visible);
+
+        return array;
     }
 
     @Override
-    public final ByteBufferArray toByteBufferArray(int position, int limit) {
-        return toByteBufferArray(null, position, limit);
+    public final ByteBufferArray toByteBufferArray(final int position,
+            final int limit) {
+        return toByteBufferArray(ByteBufferArray.create(), position, limit);
     }
 
     @Override
-    public ByteBufferArray toByteBufferArray(ByteBufferArray array) {
-        if (array == null) {
-            array = ByteBufferArray.create();
-}
-
+    public final ByteBufferArray toByteBufferArray(final ByteBufferArray array) {
         array.add(visible);
         return array;
     }
 
     @Override
-    public ByteBufferArray toByteBufferArray(ByteBufferArray array, int position, int limit) {
-        if (array == null) {
-            array = ByteBufferArray.create();
-        }
+    public final ByteBufferArray toByteBufferArray(final ByteBufferArray array,
+            final int position, final int limit) {
 
         array.add(visible);
 
