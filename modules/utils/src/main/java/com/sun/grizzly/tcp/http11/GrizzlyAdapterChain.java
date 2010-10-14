@@ -129,7 +129,8 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
      * @param response The {@link GrizzlyResponse}
      */
     @Override
-    public void service(GrizzlyRequest request, GrizzlyResponse response) {
+    public void service(GrizzlyRequest request, GrizzlyResponse response)
+            throws Exception {
         // For backward compatibility.
         final Request req = request.getRequest();
         req.setNote(INVOKED_ADAPTER, null);

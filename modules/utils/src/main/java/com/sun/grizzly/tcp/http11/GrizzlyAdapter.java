@@ -181,7 +181,7 @@ abstract public class GrizzlyAdapter extends StaticResourcesAdapter {
      * @param request The  {@link GrizzlyRequest}
      * @param response The  {@link GrizzlyResponse}
      */
-    abstract public void service(GrizzlyRequest request,GrizzlyResponse response);
+    abstract public void service(GrizzlyRequest request,GrizzlyResponse response) throws Exception;
     
     
     /**

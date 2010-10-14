@@ -642,25 +642,27 @@ public class GrizzlyWebServer {
      * Enable JMX Management by configuring the {@link Management}
      * @param jmxManagement An instance of the {@link Management} interface
      */
-    public void enableJMX(Management jmxManagement){
+    public void enableJMX(Management jmxManagement) {
         supportHttp();
-        if (jmxManagement == null) return;
-        
-        ((SelectorThread)grizzlyListener).setManagement(jmxManagement);
+        if (jmxManagement == null) {
+            return;
+        }
+
+        ((SelectorThread) grizzlyListener).setManagement(jmxManagement);
         try {
-            ObjectName sname = new ObjectName(mBeanName);                   
+            ObjectName sname = new ObjectName(mBeanName);
             jmxManagement.registerComponent(grizzlyListener, sname, null);
         } catch (Exception ex) {
             SelectorThread.logger().log(Level.SEVERE, "Enabling JMX failed", ex);
-        }      
+        }
     }
     
     /**
      * Are we using a {@link SelectorThread}
      * @return true
      */
-    private void supportHttp(){
-        if (!(grizzlyListener instanceof SelectorThread)){
+    private void supportHttp() {
+        if (!(grizzlyListener instanceof SelectorThread)) {
             throw new IllegalStateException("Not supported with GrizzlyListener: "
                     + grizzlyListener);
         }
@@ -673,13 +675,13 @@ public class GrizzlyWebServer {
      * gathering statistics. Invoking {@link Statistics#startGatheringStatistics}
      * will do it.
      */
-    public Statistics getStatistics(){
+    public Statistics getStatistics() {
         supportHttp();
-        if (statistics == null){
-            statistics = new Statistics(((SelectorThread)grizzlyListener));
+        if (statistics == null) {
+            statistics = new Statistics(((SelectorThread) grizzlyListener));
         }
         return statistics;
-    } 
+    }
  
     /**
      * Set the initial number of  threads in a thread pool.

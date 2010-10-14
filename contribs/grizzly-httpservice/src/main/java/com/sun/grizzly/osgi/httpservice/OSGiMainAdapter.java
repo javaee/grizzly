@@ -92,7 +92,7 @@ public class OSGiMainAdapter extends GrizzlyAdapter implements OSGiGrizzlyAdapte
      * <p/>
      * {@inheritDoc}
      */
-    public void service(GrizzlyRequest request, GrizzlyResponse response) {
+    public void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
         boolean invoked = false;
         String alias = request.getDecodedRequestURI();
         String originalAlias = alias;

@@ -1659,7 +1659,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     
     /**
      * Set the {@link Management} interface. Setting this interface automatically
-     * expose Grizzl Http Engine mbeans.
+     * expose Grizzly HTTP Engine mbeans.
      * @param jmxManagement
      */
     public void setManagement(Management jmxManagement) {
