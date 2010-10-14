@@ -164,7 +164,6 @@ public final class DefaultMemoryManager extends ByteBufferManager {
         if (buffer != null) {
             ProbeNotifier.notifyBufferAllocatedFromPool(monitoringConfig,
                     smallBufferSize);
-            buffer.clear();
             return buffer;
         }
 
