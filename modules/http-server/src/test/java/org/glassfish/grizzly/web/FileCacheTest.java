@@ -264,8 +264,7 @@ public class FileCacheTest {
             final HttpContent response2 = responseFuture2.get(10, TimeUnit.SECONDS);
             assertEquals(probe.toString(), "gzip", response2.getHttpHeader().getHeader("Content-Encoding"));
             assertEquals("Cached data mismatch\n" + probe, pattern, response2.getContent().toStringContent());
-            isOk = false;
-            throw new IllegalStateException();
+            isOk = true;
         } finally {
             if (!isOk) {
                 System.err.println(probe);
