@@ -53,12 +53,12 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class Utils {
 
-    private static ConcurrentHashMap<String, Charset> charsetAliasMap =
+    private static final ConcurrentHashMap<String, Charset> charsetAliasMap =
             new ConcurrentHashMap<String, Charset>();
 
-    private static HashMap<Integer,DataChunk> statusMessages =
+    private static final HashMap<Integer,DataChunk> statusMessages =
             new HashMap<Integer,DataChunk>(HttpStatus.values().length);
-    private static HashMap<Integer,DataChunk> statusCodes =
+    private static final HashMap<Integer,DataChunk> statusCodes =
             new HashMap<Integer,DataChunk>(HttpStatus.values().length);
     static {
         for (final HttpStatus status : HttpStatus.values()) {
@@ -118,36 +118,36 @@ public class Utils {
      *
      * This code is based off {@link Long#toString()}
      *
-     * @param l the long to convert.
-     * @param b the buffer to write the conversion result to.
+     * @param value the long to convert.
+     * @param buffer the buffer to write the conversion result to.
      */
-    public static void longToBuffer(long l, final Buffer b) {
-        if (l == 0) {
-            b.put(0, (byte) '0');
-            b.limit(1);
+    public static void longToBuffer(long value, final Buffer buffer) {
+        if (value == 0) {
+            buffer.put(0, (byte) '0');
+            buffer.limit(1);
             return;
         }
 
         final int radix = 10;
         final boolean negative;
-        if (l < 0) {
+        if (value < 0) {
             negative = true;
-            l = -l;
+            value = -value;
         } else {
             negative = false;
         }
 
-        int position = b.limit();
+        int position = buffer.limit();
 
         do {
-            final int ch = '0' + (int) (l % radix);
-            b.put(--position, (byte) ch);
-        } while ((l /= radix) != 0);
+            final int ch = '0' + (int) (value % radix);
+            buffer.put(--position, (byte) ch);
+        } while ((value /= radix) != 0);
 
         if (negative) {
-            b.put(--position, (byte) '-');
+            buffer.put(--position, (byte) '-');
         }
-        b.position(position);
+        buffer.position(position);
 
     }
 
