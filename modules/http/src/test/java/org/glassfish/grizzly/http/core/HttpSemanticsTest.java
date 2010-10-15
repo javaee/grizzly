@@ -84,7 +84,7 @@ import org.glassfish.grizzly.memory.Buffers;
  */
 public class HttpSemanticsTest extends TestCase {
 
-    public static final int PORT = 8004;
+    public static final int PORT = 19004;
     private final FutureImpl<Throwable> exception = SafeFutureImpl.create();
 
 

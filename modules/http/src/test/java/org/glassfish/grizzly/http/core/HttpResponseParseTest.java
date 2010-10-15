@@ -84,7 +84,7 @@ import org.glassfish.grizzly.memory.Buffers;
 public class HttpResponseParseTest extends TestCase {
     private static final Logger logger = Grizzly.logger(HttpResponseParseTest.class);
     
-    public static int PORT = 8001;
+    public static int PORT = 19001;
 
     public void testHeaderlessResponseLine() throws Exception {
         doHttpResponseTest("HTTP/1.0", 200, "OK", Collections.<String, Pair<String, String>>emptyMap(), "\r\n");

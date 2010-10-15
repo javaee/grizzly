@@ -82,7 +82,7 @@ public class HttpCommTest extends TestCase {
 
     private static final Logger logger = Grizzly.logger(HttpCommTest.class);
 
-    public static int PORT = 8002;
+    public static int PORT = 19002;
 
     public void testSinglePacket() throws Exception {
         FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.stateless();

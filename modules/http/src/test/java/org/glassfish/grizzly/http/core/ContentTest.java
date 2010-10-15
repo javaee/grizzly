@@ -76,7 +76,7 @@ import org.glassfish.grizzly.memory.Buffers;
  */
 public class ContentTest extends TestCase {
 
-    public static int PORT = 8003;
+    public static int PORT = 19003;
 
     @SuppressWarnings({"unchecked"})
     public void testExplicitContentLength() throws Exception {
