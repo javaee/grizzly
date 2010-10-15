@@ -650,7 +650,7 @@ public class Request {
      * @param name Name of the note to be returned
      */
     public Object getNote(String name) {
-        return (notes.get(name));
+        return notes.get(name);
     }
 
 
@@ -659,7 +659,7 @@ public class Request {
      * that exist for this request.
      */
     public Iterator getNoteNames() {
-        return (notes.keySet().iterator());
+        return notes.keySet().iterator();
     }
 
 
@@ -782,7 +782,7 @@ public class Request {
      * Return the content length for this Request.
      */
     public int getContentLength() {
-        return ((int) request.getContentLength());
+        return (int) request.getContentLength();
     }
 
 
@@ -790,7 +790,7 @@ public class Request {
      * Return the content type for this Request.
      */
     public String getContentType() {
-        return (request.getContentType());
+        return request.getContentType();
     }
 
 
@@ -1049,7 +1049,7 @@ public class Request {
      * Return the scheme used to make this Request.
      */
     public String getScheme() {
-        return ((request.isSecure() ? "https" : "http"));
+        return request.isSecure() ? "https" : "http";
     }
 
 
@@ -1057,7 +1057,7 @@ public class Request {
      * Return the server name responding to this Request.
      */
     public String getServerName() {
-        return (request.serverName().toString());
+        return request.serverName().toString();
     }
 
 
@@ -1065,7 +1065,7 @@ public class Request {
      * Return the server port responding to this Request.
      */
     public int getServerPort() {
-        return (request.getServerPort());
+        return request.getServerPort();
     }
 
 
@@ -1073,7 +1073,7 @@ public class Request {
      * Was this request received on a secure connection?
      */
     public boolean isSecure() {
-        return (request.isSecure());
+        return request.isSecure();
     }
     
 
@@ -1415,7 +1415,7 @@ public class Request {
      * Return the authentication type used for this Request.
      */
     public String getAuthType() {
-        return (authType);
+        return authType;
     }
 
 
@@ -1510,9 +1510,9 @@ public class Request {
 
         String value = getHeader(name);
         if (value == null) {
-            return (-1);
+            return -1;
         } else {
-            return (Integer.parseInt(value));
+            return Integer.parseInt(value);
         }
 
     }
@@ -1541,7 +1541,7 @@ public class Request {
         String queryString = request.getQueryString();
 
         if (queryString == null || queryString.isEmpty()) {
-            return (null);
+            return null;
         } else {
             return queryString;
         }
@@ -1564,7 +1564,7 @@ public class Request {
         if (userPrincipal != null) {
             return userPrincipal.getName();
         } else {
-            return (null);
+            return null;
         }
 
     }

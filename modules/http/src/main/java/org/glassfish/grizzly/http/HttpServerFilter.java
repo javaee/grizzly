@@ -391,7 +391,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         output = put(memoryManager, output, Constants.SP);
         output = put(memoryManager, output, httpResponse.getStatusDC());
         output = put(memoryManager, output, Constants.SP);
-        output = put(memoryManager, output, httpResponse.getReasonPhraseDC(true));
+        output = put(memoryManager, output, httpResponse.getReasonPhraseDC());
 
         return output;
     }

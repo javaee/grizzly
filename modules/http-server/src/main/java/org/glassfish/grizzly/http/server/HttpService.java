@@ -60,7 +60,7 @@ import java.util.logging.Logger;
  *
  * The {@link HttpService} provides developers
  * with a simple and consistent mechanism for extending the functionality of the
- * HTTP WebServer and for bridging existing http based technology like
+ * HTTP WebServer and for bridging existing HTTP based technology like
  * JRuby-on-Rail, Servlet, Bayeux Protocol or any HTTP based protocol.
  *
  * @author Jeanfrancois Arcand
@@ -83,6 +83,11 @@ public abstract class HttpService {
      * Is the URL decoded
      */
     private boolean decodeURL = true;
+
+    /**
+     * Are custom status messages (reason phrases) allowed?
+     */
+    private boolean allowCustomStatusMessage = true;
     
     /**
      * Create <tt>HttpService</tt>, which, by default, won't handle requests
@@ -141,6 +146,10 @@ public abstract class HttpService {
                     return;
                 }
             }
+
+            response.getResponse().setAllowCustomReasonPhrase(
+                    allowCustomStatusMessage);
+            
             request.parseSessionId();
             service(request, response);
         } catch (Exception t) {
@@ -190,16 +199,39 @@ public abstract class HttpService {
     }
 
     /**
-     * Is http url request allowed to contains encoded slash.
-     * @return Is http url request allowed to contains encoded slash.
+     * Returns <code>true</code> if custom status messages (reason phrases)
+     * are allowed for this response, or <code>false</tt> otherwise.
+     *
+     * @return <code>true</code> if custom status messages (reason phrases)
+     * are allowed for this response, or <code>false</tt> otherwise.
+     */
+    public boolean isAllowCustomStatusMessage() {
+        return allowCustomStatusMessage;
+    }
+
+    /**
+     * Sets if the custom status messages (reason phrases) are allowed for
+     * this response.
+     *
+     * @param allowCustomReasonPhrase <code>true</code> if custom status
+     * messages (reason phrases) are allowed for this response,
+     * or <code>false</tt> otherwise.
+     */
+    public void setAllowCustomStatusMessage(boolean allowCustomStatusMessage) {
+        this.allowCustomStatusMessage = allowCustomStatusMessage;
+    }
+
+    /**
+     * Is HTTP URL request allowed to contains encoded slash.
+     * @return Is HTTP URL request allowed to contains encoded slash.
      */
     public boolean isAllowEncodedSlash() {
         return allowEncodedSlash;
     }
 
     /**
-     * When true, url that contains encoded slash will be allowed. When false,
-     * the url will be rejected and considered ans an invalid one.
+     * When true, URL that contains encoded slash will be allowed. When false,
+     * the URL will be rejected and considered as an invalid one.
      * @param allowEncodedSlash true
      */
     public void setAllowEncodedSlash(boolean allowEncodedSlash) {

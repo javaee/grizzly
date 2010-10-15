@@ -93,6 +93,11 @@ public abstract class HttpResponsePacket extends HttpHeader {
      */
     private boolean acknowledgment;
 
+    /**
+     * Do we allow custom reason phrase.
+     */
+    private boolean allowCustomReasonPhrase = true;
+
 
     /**
      * Returns {@link HttpResponsePacket} builder.
@@ -151,23 +156,57 @@ public abstract class HttpResponsePacket extends HttpHeader {
 
     }
 
+    /**
+     * Returns <code>true</code> if custom status reason phrases are allowed for
+     * this response, or <code>false</tt> otherwise.
+     *
+     * @return <code>true</code> if custom status reason phrases are allowed for
+     * this response, or <code>false</tt> otherwise.
+     */
+    public final boolean isAllowCustomReasonPhrase() {
+        return allowCustomReasonPhrase;
+    }
 
     /**
-     * Gets the status reason phrase for this response as {@link DataChunk}
-     * (avoid creation of a String object}.
+     * Sets if the custom status reason phrases are allowed for
+     * this response.
      *
-     * @param useDefault if <code>true</code> and no reason phase has been
-     *  explicitly set, the default as defined by <code>RFC 2616</code> will
-     *  be returned. 
+     * @param allowCustomReasonPhrase <code>true</code> if custom status
+     * reason phrases are allowed for this response, or <code>false</tt> otherwise.
+     */
+    public final void setAllowCustomReasonPhrase(final boolean allowCustomReasonPhrase) {
+        this.allowCustomReasonPhrase = allowCustomReasonPhrase;
+    }
+
+    /**
+     * Gets the custom status reason phrase for this response as {@link DataChunk}
+     * (avoid creation of a String object}.
      *
      * @return the status reason phrase for this response as {@link DataChunk}
      * (avoid creation of a String object}.
      */
-    public DataChunk getReasonPhraseDC(boolean useDefault) {
-        if (useDefault && reasonPhraseC.isNull()) {
+    public final DataChunk getReasonPhraseRawDC() {
+        return reasonPhraseC;
+    }
+
+    /**
+     * Gets the status reason phrase for this response as {@link DataChunk}
+     * (avoid creation of a String object}. This implementation takes into
+     * consideration the {@link #isAllowCustomReasonPhrase()} property - if the
+     * custom reason phrase is allowed and it's value is not null - then the
+     * returned result will be equal to {@link #getReasonPhraseRawDC()}, otherwise
+     * if custom reason phrase is disallowed or its value is null - the default
+     * reason phrase for the HTTP response {@link #getStatus()} will be returned.
+     *
+     * @return the status reason phrase for this response as {@link DataChunk}
+     * (avoid creation of a String object}.
+     */
+    public final DataChunk getReasonPhraseDC() {
+        if (allowCustomReasonPhrase && !reasonPhraseC.isNull()) {
+            return reasonPhraseC;
+        } else {
             return Utils.getHttpStatusMessage(getStatus());
         }
-        return reasonPhraseC;
     }
 
     /**
@@ -175,10 +214,9 @@ public abstract class HttpResponsePacket extends HttpHeader {
      *
      * @return the status reason phrase for this response.
      */
-    public String getReasonPhrase() {
-        return reasonPhraseC.toString();
+    public final String getReasonPhrase() {
+        return getReasonPhraseDC().toString();
     }
-
 
     /**
      * Sets the status reason phrase for this response.
@@ -243,6 +281,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
         statusC.recycle();
         parsedStatusInt = NON_PARSED_STATUS;
         acknowledgment = false;
+        allowCustomReasonPhrase = true;
         reasonPhraseC.recycle();
         locale = null;
         contentLanguage = null;
