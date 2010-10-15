@@ -102,7 +102,7 @@ public final class UDecoder {
     /**
      * URLDecode the {@link ByteChunk}
      */
-    public void convert(ByteChunk mb, boolean query, boolean allowEncodedSlash)
+    public static void convert(ByteChunk mb, boolean query, boolean allowEncodedSlash)
             throws IOException {
         int start = mb.getOffset();
         byte buff[] = mb.getBytes();
@@ -169,7 +169,7 @@ public final class UDecoder {
 
     /** In-buffer processing - the buffer will be modified
      */
-    public void convert(CharChunk mb, boolean query)
+    public static void convert(CharChunk mb, boolean query)
             throws IOException {
         //        log( "Converting a char chunk ");
         int start = mb.getStart();
@@ -235,7 +235,7 @@ public final class UDecoder {
 
     /** URLDecode, will modify the source
      */
-    public void convert(MessageBytes mb, boolean query, boolean allowEncodingSlash)
+    public static void convert(MessageBytes mb, boolean query, boolean allowEncodingSlash)
             throws IOException {
 
         switch (mb.getType()) {
@@ -259,11 +259,11 @@ public final class UDecoder {
 
     // XXX Old code, needs to be replaced !!!!
     //
-    public final String convert(String str) {
+    public static String convert(String str) {
         return convert(str, true);
     }
 
-    public final String convert(String str, boolean query) {
+    public static String convert(String str, boolean query) {
         if (str == null) {
             return null;
         }
@@ -341,7 +341,7 @@ public final class UDecoder {
     }
 
     /**
-     * Overide the default value
+     * Override the default value
      * @param allowEncodedSlash
      */
     public void setAllowEncodedSlash(boolean allowEncodedSlash) {
