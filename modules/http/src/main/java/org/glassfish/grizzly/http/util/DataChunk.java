@@ -51,8 +51,6 @@ import org.glassfish.grizzly.Buffer;
  * @author Alexey Stashok
  */
 public class DataChunk {
-    public static final Charset UTF8_CHARSET = Utils.lookupCharset("UTF-8");
-
     public enum Type {None, Buffer, Chars, String};
     
     public static DataChunk newInstance() {

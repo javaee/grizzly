@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.http;
 
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;

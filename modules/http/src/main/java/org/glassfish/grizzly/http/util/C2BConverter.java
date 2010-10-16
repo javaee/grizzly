@@ -85,7 +85,7 @@ public class C2BConverter {
     public C2BConverter(ByteChunk output, String encoding) throws IOException {
         this.bb=output;
         this.enc=encoding;
-        encoder = Utils.lookupCharset(enc).newEncoder().
+        encoder = Charsets.lookupCharset(enc).newEncoder().
 		onMalformedInput(CodingErrorAction.REPLACE).
 		onUnmappableCharacter(CodingErrorAction.REPLACE);
     }
@@ -183,7 +183,7 @@ public class C2BConverter {
             //System.out.println("XXX Converting " + mb.getCharChunk() );
         } else {
             if (logger.isLoggable(Level.FINE)){
-                logger.fine("XXX unknowon type " + type );
+                logger.log(Level.FINE, "XXX unknowon type {0}", type);
             }
         }
         //System.out.println("C2B: XXX " + bb.getBuffer() + bb.getLength());

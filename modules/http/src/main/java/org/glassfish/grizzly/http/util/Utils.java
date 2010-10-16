@@ -53,13 +53,10 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class Utils {
 
-    private static final ConcurrentHashMap<String, Charset> charsetAliasMap =
-            new ConcurrentHashMap<String, Charset>();
-
-    private static final HashMap<Integer,DataChunk> statusMessages =
-            new HashMap<Integer,DataChunk>(HttpStatus.values().length);
-    private static final HashMap<Integer,DataChunk> statusCodes =
-            new HashMap<Integer,DataChunk>(HttpStatus.values().length);
+    private static final HashMap<Integer, DataChunk> statusMessages =
+            new HashMap<Integer, DataChunk>(HttpStatus.values().length);
+    private static final HashMap<Integer, DataChunk> statusCodes =
+            new HashMap<Integer, DataChunk>(HttpStatus.values().length);
     static {
         for (final HttpStatus status : HttpStatus.values()) {
             statusMessages.put(status.getStatusCode(), status.getReasonPhraseDC());
@@ -69,24 +66,6 @@ public class Utils {
 
 
     // ---------------------------------------------------------- Public Methods
-
-
-    /**
-     * Lookup a {@link Charset} by name.
-     * Fixes Charset concurrency issue (http://paul.vox.com/library/post/the-mysteries-of-java-character-set-performance.html)
-     *
-     * @param charsetName
-     * @return {@link Charset}
-     */
-    public static Charset lookupCharset(String charsetName) {
-        Charset charset = charsetAliasMap.get(charsetName);
-        if (charset == null) {
-            charset = Charset.forName(charsetName);
-            charsetAliasMap.putIfAbsent(charsetName, charset);
-        }
-
-        return charset;
-    }
 
 
     /**

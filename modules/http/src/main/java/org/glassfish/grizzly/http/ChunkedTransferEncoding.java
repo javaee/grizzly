@@ -45,6 +45,7 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.http.HttpCodecFilter.ContentParsingState;
 import org.glassfish.grizzly.http.HttpCodecFilter.HeaderParsingState;
 import org.glassfish.grizzly.http.util.Ascii;
+import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.http.util.HexUtils;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.Buffers;

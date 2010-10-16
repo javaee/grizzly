@@ -49,6 +49,7 @@ import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.memory.Buffers;
+import static org.glassfish.grizzly.http.util.Charsets.*;
 
 /**
  * {@link Buffer} chunk representation.
@@ -57,7 +58,6 @@ import org.glassfish.grizzly.memory.Buffers;
  * @author Alexey Stashok
  */
 public class BufferChunk implements Chunk {
-    private static final Charset UTF8_CHARSET = Utils.lookupCharset("UTF-8");
     private static final UTF8Decoder UTF8_DECODER = new UTF8Decoder();
 
     private Buffer buffer;
@@ -399,7 +399,7 @@ public class BufferChunk implements Chunk {
             }
 //            uri.setChars(cc.getChars(), cc.getStart(), cc.getEnd());
             return cc;
-        } else if (!Constants.DEFAULT_CHARACTER_ENCODING.equalsIgnoreCase(encoding.name())) {
+        } else if (!DEFAULT_CHARACTER_ENCODING.equalsIgnoreCase(encoding.name())) {
             final ByteBuffer bb = buffer.toByteBuffer(start, end);
             final char[] ccBuf = cc.getChars();
             final int ccStart = cc.getStart();

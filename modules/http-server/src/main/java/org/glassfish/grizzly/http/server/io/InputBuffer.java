@@ -46,8 +46,7 @@ import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
-import org.glassfish.grizzly.http.util.Constants;
-import org.glassfish.grizzly.http.util.Utils;
+import static org.glassfish.grizzly.http.util.Charsets.*;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -56,6 +55,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
+import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 
 /**
@@ -122,7 +122,7 @@ public class InputBuffer {
      * The default character encoding to use if none is specified by the
      * {@link org.glassfish.grizzly.http.HttpRequestPacket}.
      */
-    private String encoding = Constants.DEFAULT_CHARACTER_ENCODING;
+    private String encoding = DEFAULT_CHARACTER_ENCODING;
 
     /**
      * The {@link CharsetDecoder} used to convert binary to character data.
@@ -241,7 +241,7 @@ public class InputBuffer {
 
         averageCharsPerByte = 1.0f;
 
-        encoding = Constants.DEFAULT_CHARACTER_ENCODING;
+        encoding = DEFAULT_CHARACTER_ENCODING;
 
     }
 
@@ -895,7 +895,7 @@ public class InputBuffer {
     private CharsetDecoder getDecoder() {
 
         if (decoder == null) {
-            Charset cs = Utils.lookupCharset(encoding);
+            Charset cs = Charsets.lookupCharset(encoding);
             decoder = cs.newDecoder();
             decoder.onMalformedInput(CodingErrorAction.REPLACE);
             decoder.onUnmappableCharacter(CodingErrorAction.REPLACE);

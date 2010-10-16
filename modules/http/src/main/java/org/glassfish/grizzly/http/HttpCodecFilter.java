@@ -63,6 +63,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import org.glassfish.grizzly.http.util.BufferChunk;
+import org.glassfish.grizzly.http.util.Constants;
 
 /**
  * The {@link org.glassfish.grizzly.filterchain.Filter}, responsible for transforming {@link Buffer} into

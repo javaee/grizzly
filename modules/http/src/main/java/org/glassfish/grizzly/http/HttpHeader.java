@@ -56,6 +56,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.glassfish.grizzly.http.util.Constants;
 
 /**
  * {@link HttpPacket}, which represents HTTP message header. There are 2 subtypes

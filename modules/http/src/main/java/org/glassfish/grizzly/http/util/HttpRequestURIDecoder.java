@@ -46,6 +46,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Grizzly;
+import static org.glassfish.grizzly.http.util.Charsets.*;
 
 /**
  * Utility class that make sure an HTTP url defined inside a {@link MessageBytes}
@@ -65,7 +66,6 @@ public class HttpRequestURIDecoder {
     private static final boolean COLLAPSE_ADJACENT_SLASHES =
             Boolean.valueOf(System.getProperty("com.sun.enterprise.web.collapseAdjacentSlashes", "true")).booleanValue();
     private static final Logger LOGGER = Grizzly.logger(HttpRequestURIDecoder.class);
-    private static final Charset UTF8_CHARSET = Utils.lookupCharset("UTF-8");
 
     /**
      * Decode the http request represented by the bytes inside {@link MessageBytes}

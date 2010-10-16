@@ -47,7 +47,7 @@ import org.glassfish.grizzly.memory.DefaultMemoryManager;
 
 import java.nio.ByteBuffer;
 
-import static org.glassfish.grizzly.http.Constants.ASCII_CHARSET;
+import static org.glassfish.grizzly.http.util.Charsets.ASCII_CHARSET;
 
 /**
  * This <code>enum</code> encapsulates the HTTP response status and

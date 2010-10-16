@@ -108,7 +108,7 @@ public class B2CConverter {
                 throw new IllegalStateException("Can not initialize blocking converter");
             }
         } else {
-            charset = Utils.lookupCharset(encoding);
+            charset = Charsets.lookupCharset(encoding);
             decoder = charset.newDecoder().
                     onMalformedInput(CodingErrorAction.REPLACE).
                     onUnmappableCharacter(CodingErrorAction.REPLACE);

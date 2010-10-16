@@ -48,6 +48,7 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.memory.MemoryManager;
 import java.io.IOException;
+import org.glassfish.grizzly.http.util.Constants;
 
 /**
  * Client side {@link HttpCodecFilter} implementation, which is responsible for

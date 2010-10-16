@@ -50,8 +50,11 @@ import java.io.CharConversionException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.http.util.Charsets;
+import org.glassfish.grizzly.http.util.RequestURIRef;
 
 /**
  * Base class to use when Request/Response/InputStream/OutputStream
@@ -83,6 +86,11 @@ public abstract class HttpService {
      * Is the URL decoded
      */
     private boolean decodeURL = true;
+
+    /**
+     * Request URI encoding
+     */
+    private Charset requestURIEncoding;
 
     /**
      * Are custom status messages (reason phrases) allowed?
@@ -135,11 +143,14 @@ public abstract class HttpService {
         }
 
         try {
+            final HttpRequestPacket httpRequestPacket = request.getRequest();
+            final RequestURIRef requestURIRef = httpRequestPacket.getRequestURIRef();
+            requestURIRef.setDefaultURIEncoding(requestURIEncoding);
+
             if (decodeURL) {
                 // URI decoding
-                final HttpRequestPacket httpRequestPacket = request.getRequest();
                 try {
-                    httpRequestPacket.getRequestURIRef().getDecodedRequestURIBC(allowEncodedSlash);
+                    requestURIRef.getDecodedRequestURIBC(allowEncodedSlash);
                 } catch (CharConversionException e) {
                     response.setStatus(HttpStatus.NOT_FOUND_404);
                     response.setDetailMessage("Invalid URI: " + e.getMessage());
@@ -269,6 +280,30 @@ public abstract class HttpService {
      */
     public void setDocRoot(File docRoot) {
         staticResourcesHandler.setDocRoot(docRoot);
+    }
+
+    /**
+     * Get the request URI encoding used by this <tt>HttpService</tt>.
+     * @return the request URI encoding used by this <tt>HttpService</tt>.
+     */
+    public Charset getRequestURIEncoding() {
+        return requestURIEncoding;
+    }
+
+    /**
+     * Set the request URI encoding used by this <tt>HttpService</tt>.
+     * @param requestURIEncoding the request URI encoding used by this <tt>HttpService</tt>.
+     */
+    public void setRequestURIEncoding(final Charset requestURIEncoding) {
+        this.requestURIEncoding = requestURIEncoding;
+    }
+
+    /**
+     * Set the request URI encoding used by this <tt>HttpService</tt>.
+     * @param requestURIEncoding the request URI encoding used by this <tt>HttpService</tt>.
+     */
+    public void setRequestURIEncoding(final String requestURIEncoding) {
+        this.requestURIEncoding = Charsets.lookupCharset(requestURIEncoding);
     }
 
     /**

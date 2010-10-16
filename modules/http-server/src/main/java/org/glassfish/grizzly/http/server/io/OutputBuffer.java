@@ -51,7 +51,6 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.http.server.Constants;
-import org.glassfish.grizzly.http.util.Utils;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.AbstractNIOConnection;
@@ -64,6 +63,7 @@ import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 import java.util.concurrent.atomic.AtomicReference;
+import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.memory.Buffers;
 
 /**
@@ -585,7 +585,7 @@ public class OutputBuffer {
             if (encoding == null) {
                 encoding = Constants.DEFAULT_CHARACTER_ENCODING;
             }
-            final Charset cs = Utils.lookupCharset(encoding);
+            final Charset cs = Charsets.lookupCharset(encoding);
             encoder = cs.newEncoder();
             encoder.onMalformedInput(CodingErrorAction.REPLACE);
             encoder.onUnmappableCharacter(CodingErrorAction.REPLACE);

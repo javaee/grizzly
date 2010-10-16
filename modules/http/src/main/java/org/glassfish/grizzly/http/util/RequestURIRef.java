@@ -42,30 +42,31 @@ package org.glassfish.grizzly.http.util;
 
 import java.io.CharConversionException;
 import java.nio.charset.Charset;
+import static org.glassfish.grizzly.http.util.Charsets.*;
 
 /**
  *
  * @author Alexey Stashok
  */
 public class RequestURIRef {
-    private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
-    
     private final DataChunk requestURIBC = DataChunk.newInstance();
     private boolean isDecoded;
-    private Charset decodedCharset;
+    private Charset decodedURIEncoding;
     private boolean wasSlashAllowed = true;
+
+    private Charset defaultURIEncoding = UTF8_CHARSET;
     
     public final DataChunk getRequestURIBC() {
         return requestURIBC;
     }
 
     public final DataChunk getDecodedRequestURIBC() throws CharConversionException {
-        return getDecodedRequestURIBC(wasSlashAllowed, UTF8_CHARSET);
+        return getDecodedRequestURIBC(wasSlashAllowed, defaultURIEncoding);
     }
 
     public DataChunk getDecodedRequestURIBC(boolean isSlashAllowed)
             throws CharConversionException {
-        return getDecodedRequestURIBC(isSlashAllowed, UTF8_CHARSET);
+        return getDecodedRequestURIBC(isSlashAllowed, defaultURIEncoding);
     }
 
     public DataChunk getDecodedRequestURIBC(final boolean isSlashAllowed,
@@ -75,7 +76,7 @@ public class RequestURIRef {
             if (isSlashAllowed != wasSlashAllowed)
                 throw new IllegalStateException(
                         "URI was already decoded with isSlashAllowed=" + wasSlashAllowed);
-            if (charset == decodedCharset) {
+            if (charset == decodedURIEncoding) {
                 return requestURIBC;
             } else {
                 HttpRequestURIDecoder.convertToChars(requestURIBC, charset);
@@ -86,7 +87,7 @@ public class RequestURIRef {
             wasSlashAllowed = isSlashAllowed;
         }
 
-        decodedCharset = charset;
+        decodedURIEncoding = charset;
         return requestURIBC;
     }
 
@@ -94,8 +95,8 @@ public class RequestURIRef {
         return getURI(null);
     }
 
-    public String getURI(Charset charset) {
-        return requestURIBC.toString(charset);
+    public String getURI(Charset encoding) {
+        return requestURIBC.toString(encoding);
     }
 
     public void setURI(String uri) {
@@ -110,10 +111,10 @@ public class RequestURIRef {
         return getDecodedURI(isSlashAllowed, null);
     }
 
-    public String getDecodedURI(final boolean isSlashAllowed, Charset charset)
+    public String getDecodedURI(final boolean isSlashAllowed, Charset encoding)
             throws CharConversionException {
         
-        getDecodedRequestURIBC(isSlashAllowed, charset);
+        getDecodedRequestURIBC(isSlashAllowed, encoding);
 
         final String strValue = requestURIBC.toString();
         return strValue;
@@ -132,9 +133,19 @@ public class RequestURIRef {
         this.isDecoded = isDecoded;
     }
 
+    public Charset getDefaultURIEncoding() {
+        return defaultURIEncoding;
+    }
+
+    public void setDefaultURIEncoding(Charset defaultURIEncoding) {
+        this.defaultURIEncoding = defaultURIEncoding;
+    }
+
     public void recycle() {
         requestURIBC.recycle();
         isDecoded = false;
         wasSlashAllowed = true;
+        decodedURIEncoding = null;
+        defaultURIEncoding = UTF8_CHARSET;
     }
 }
