@@ -272,16 +272,10 @@ public class Buffers {
         }
     }
 
-    public static void setPositionLimit(Buffer buffer, int position, int limit) {
-        final int currentLimit = buffer.limit();
-
-        if (position <= currentLimit) {
-            buffer.position(position);
-            buffer.limit(limit);
-        } else {
-            buffer.limit(limit);
-            buffer.position(position);
-        }
+    public static void setPositionLimit(final Buffer buffer,
+            final int position, final int limit) {
+        buffer.limit(limit);
+        buffer.position(position);
     }
 
     public static void setPositionLimit(ByteBuffer buffer, int position, int limit) {
