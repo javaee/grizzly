@@ -129,7 +129,7 @@ public class HttpServerFilter extends BaseFilter
                 httpRequestInProcessAttr.set(connection, serviceRequest);
                 final Response serviceResponse = Response.create();
 
-                serviceRequest.initialize(serviceResponse, request, httpContent, ctx, this);
+                serviceRequest.initialize(serviceResponse, request, ctx, this);
                 final SuspendStatus suspendStatus = new SuspendStatus();
 
                 serviceResponse.initialize(serviceRequest, response, ctx,
@@ -259,9 +259,7 @@ public class HttpServerFilter extends BaseFilter
 
         response.finish();
 
-        HttpServerProbeNotifier.notifyRequestComplete(this,
-                                                     connection,
-                response);
+        HttpServerProbeNotifier.notifyRequestComplete(this, connection, response);
         response.recycle();
         request.recycle();
 

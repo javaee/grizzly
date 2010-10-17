@@ -227,23 +227,18 @@ public class Request {
      */
     protected HttpRequestPacket request;
 
-    protected HttpContent initialRequestContent;
-
-
     protected FilterChainContext ctx;
 
     protected HttpServerFilter httpServerFilter;
 
     public void initialize(Response response,
                            HttpRequestPacket request,
-                           HttpContent initialRequestContent,
                            FilterChainContext ctx,
                            HttpServerFilter httpServerFilter) {
         this.response = response;
         this.request = request;
         this.ctx = ctx;
         this.httpServerFilter = httpServerFilter;
-        this.initialRequestContent = initialRequestContent;
         inputBuffer.initialize(request, ctx);
     }
 
@@ -253,11 +248,6 @@ public class Request {
      */
     public HttpRequestPacket getRequest() {
         return this.request;
-    }
-
-
-    public HttpContent getInitialRequestContent() {
-        return initialRequestContent;
     }
 
 
