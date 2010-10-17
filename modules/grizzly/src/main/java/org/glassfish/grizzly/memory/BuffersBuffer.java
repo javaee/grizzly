@@ -522,10 +522,10 @@ public final class BuffersBuffer extends CompositeBuffer {
     }
 
     @Override
-    public Buffer slice(int position, int limit) {
+    public Buffer slice(final int position, final int limit) {
         checkDispose();
 
-        if (buffersSize == 0) {
+        if (buffersSize == 0 || (position == limit)) {
             return Buffers.EMPTY_BUFFER;
         } else if (buffersSize == 1) {
             return buffers[0].slice(position, limit);
@@ -1161,7 +1161,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         if (position < 0 || position > capacity || limit < 0 || limit > capacity)
             throw new IndexOutOfBoundsException();
 
-        if (buffersSize == 0) {
+        if (buffersSize == 0 || (position == limit)) {
             return Buffers.EMPTY_BYTE_BUFFER;
         } else if (buffersSize == 1) {
             final Buffer buffer = buffers[0];
@@ -1255,7 +1255,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         if (position < 0 || position > capacity || limit < 0 || limit > capacity)
             throw new IndexOutOfBoundsException();
 
-        if (buffersSize == 0) {
+        if (buffersSize == 0 || (position == limit)) {
             return array;
         } else if (buffersSize == 1) {
             final Buffer b = buffers[0];
