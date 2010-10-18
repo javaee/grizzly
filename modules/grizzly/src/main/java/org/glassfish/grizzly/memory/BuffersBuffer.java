@@ -421,35 +421,34 @@ public final class BuffersBuffer extends CompositeBuffer {
 
         checkIndex(position);
         final int posBufferIndex = lastSegmentIndex;
-        final int posBufferPos = toActiveBufferPos(position);
+//        final int posBufferPos = toActiveBufferPos(position);
 
         checkIndex(limit - 1);
         final int limitBufferIndex = lastSegmentIndex;
-        final int limitBufferLimit = toActiveBufferPos(limit);
+//        final int limitBufferLimit = toActiveBufferPos(limit);
 
         final int rightTrim = buffersSize - limitBufferIndex - 1;
 
-        if (posBufferIndex > 0) {
-            for (int i = 0; i < posBufferIndex; i++) {
-                final Buffer buffer = buffers[i];
-                final int bufferSize = buffer.remaining();
-                setPosLim(position - bufferSize, limit - bufferSize);
+        int shift = 0;
 
-                if (allowInternalBuffersDispose) {
-                    buffer.tryDispose();
-                }
+        for (int i = 0; i < posBufferIndex; i++) {
+            final Buffer buffer = buffers[i];
+            shift += buffer.remaining();
+
+            if (allowInternalBuffersDispose) {
+                buffer.tryDispose();
             }
         }
 
-        if (rightTrim > 0) {
-            for (int i = 0; i < rightTrim; i++) {
-                final int idx = buffersSize - i - 1;
-                final Buffer buffer = buffers[idx];
-                buffers[idx] = null;
+        setPosLim(position - shift, limit - shift);
 
-                if (allowInternalBuffersDispose) {
-                    buffer.tryDispose();
-                }
+        for (int i = 0; i < rightTrim; i++) {
+            final int idx = buffersSize - i - 1;
+            final Buffer buffer = buffers[idx];
+            buffers[idx] = null;
+
+            if (allowInternalBuffersDispose) {
+                buffer.tryDispose();
             }
         }
 
@@ -460,24 +459,24 @@ public final class BuffersBuffer extends CompositeBuffer {
             Arrays.fill(buffers, buffersSize, buffersSize + posBufferIndex, null);
         }
 
-        if (posBufferPos > 0) {
-            final Buffer firstBuffer = buffers[0];
-            final int diff = posBufferPos - firstBuffer.position();
-            if (diff > 0) {
-                firstBuffer.position(posBufferPos);
+//        if (posBufferPos > 0) {
+//            final Buffer firstBuffer = buffers[0];
+//            final int diff = posBufferPos - firstBuffer.position();
+//            if (diff > 0) {
+//                firstBuffer.position(posBufferPos);
+//
+//                position = 0;
+//                limit -= diff;
+//            }
+//        }
 
-                position = 0;
-                limit -= diff;
-            }
-        }
-
-        if (limitBufferLimit > 0) {
-            final Buffer lastBuffer = buffers[buffersSize - 1];
-            final int diff = lastBuffer.limit() - limitBufferLimit;
-            if (diff > 0) {
-                lastBuffer.limit(limitBufferLimit);
-            }
-        }
+//        if (limitBufferLimit > 0) {
+//            final Buffer lastBuffer = buffers[buffersSize - 1];
+//            final int diff = lastBuffer.limit() - limitBufferLimit;
+//            if (diff > 0) {
+//                lastBuffer.limit(limitBufferLimit);
+//            }
+//        }
 
         calcCapacity();
         resetLastLocation();
@@ -1253,7 +1252,7 @@ public final class BuffersBuffer extends CompositeBuffer {
             final int position, final int limit) {
         
         if (position < 0 || position > capacity || limit < 0 || limit > capacity)
-            throw new IndexOutOfBoundsException();
+            throw new IndexOutOfBoundsException(toString() + " Requested: position=" + position + " limit=" + limit);
 
         if (buffersSize == 0 || (position == limit)) {
             return array;

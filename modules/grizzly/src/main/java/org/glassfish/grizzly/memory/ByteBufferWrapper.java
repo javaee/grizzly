@@ -303,25 +303,25 @@ public class ByteBufferWrapper implements Buffer {
     }
 
     @Override
-    public ByteBufferWrapper get(byte[] dst) {
+    public ByteBufferWrapper get(final byte[] dst) {
         return get(dst, 0, dst.length);
     }
 
     @Override
-    public ByteBufferWrapper get(byte[] dst, int offset, int length) {
+    public ByteBufferWrapper get(final byte[] dst, final int offset, final int length) {
         Buffers.get(visible, dst, offset, length);
         return this;
     }
 
     @Override
-    public ByteBufferWrapper put(Buffer src) {
+    public ByteBufferWrapper put(final Buffer src) {
         put(src, src.position(), src.remaining());
         src.position(src.limit());
         return this;
     }
 
     @Override
-    public ByteBufferWrapper put(Buffer src, int position, int length) {
+    public ByteBufferWrapper put(final Buffer src, final int position, final int length) {
         if (!src.isComposite()) {
             Buffers.put(src.toByteBuffer(), position, length, visible);
         } else {
