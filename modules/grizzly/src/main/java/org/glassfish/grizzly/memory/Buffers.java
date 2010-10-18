@@ -46,8 +46,11 @@ import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.glassfish.grizzly.Appender;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.TransportFactory;
 
 /**
@@ -59,6 +62,8 @@ import org.glassfish.grizzly.TransportFactory;
  */
 
 public class Buffers {
+    private static final Logger LOGGER = Grizzly.logger(Buffers.class);
+
     public static final Appender BUFFER_APPENDER = new Appender<Buffer>() {
         @Override
         public Buffer append(Buffer element1, Buffer element2) {
@@ -288,6 +293,9 @@ public class Buffers {
             final int length, final ByteBuffer dstBuffer) {
 
         if (dstBuffer.remaining() < length) {
+            LOGGER.log(Level.WARNING, "BufferOverflow srcBuffer={0} srcOffset={1}"
+                    + " length={2} dstBuffer={3}",
+                    new Object[]{srcBuffer, srcOffset, length, dstBuffer});
             throw new BufferOverflowException();
         }
 

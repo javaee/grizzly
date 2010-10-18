@@ -1158,7 +1158,7 @@ public final class BuffersBuffer extends CompositeBuffer {
     @Override
     public ByteBuffer toByteBuffer(int position, int limit) {
         if (position < 0 || position > capacity || limit < 0 || limit > capacity)
-            throw new IndexOutOfBoundsException();
+            throw new IndexOutOfBoundsException("position=" + position + " limit=" + limit + "on " + toString());
 
         if (buffersSize == 0 || (position == limit)) {
             return Buffers.EMPTY_BYTE_BUFFER;
@@ -1252,7 +1252,7 @@ public final class BuffersBuffer extends CompositeBuffer {
             final int position, final int limit) {
         
         if (position < 0 || position > capacity || limit < 0 || limit > capacity)
-            throw new IndexOutOfBoundsException(toString() + " Requested: position=" + position + " limit=" + limit);
+            throw new IndexOutOfBoundsException("position=" + position + " limit=" + limit + "on " + toString());
 
         if (buffersSize == 0 || (position == limit)) {
             return array;
