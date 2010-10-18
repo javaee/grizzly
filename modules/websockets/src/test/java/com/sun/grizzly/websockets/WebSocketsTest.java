@@ -51,6 +51,8 @@ import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.net.jsse.JSSEImplementation;
 import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
 
 import javax.net.ssl.SSLContext;
@@ -88,6 +90,11 @@ public class WebSocketsTest {
     private static SSLConfig sslConfig;
     public static final int PORT = 1725;
 
+    @BeforeSuite
+    public void enable() {
+        WebSocketEngine.setWebSocketEnabled(true);
+    }
+
     public void securityKeys() {
         validate("&2^3 4  1l6h85  F  3Z  31");
         validate("k ]B28GZ8  0  x *95 Y 6  92q0");
@@ -105,6 +112,23 @@ public class WebSocketsTest {
         run(new EchoServlet());
     }
 
+
+    @Test(expectedExceptions = {IllegalStateException.class})
+    public void websocketsNotEnabled() {
+        WebSocketEngine.setWebSocketEnabled(false);
+        final WebSocketApplication app = new WebSocketApplication() {
+            @Override
+            public boolean isApplicationRequest(Request request) {
+                return false;
+            }
+        };
+        try {
+            WebSocketEngine.getEngine().register(app);
+        } finally {
+            WebSocketEngine.getEngine().unregister(app);
+            WebSocketEngine.setWebSocketEnabled(true);
+        }
+    }
     private void run(final Servlet servlet) throws Exception {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(servlet));
         final Map<String, Object> sent = new ConcurrentHashMap<String, Object>();

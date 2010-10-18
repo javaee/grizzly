@@ -50,8 +50,8 @@ import com.sun.grizzly.util.WorkerThreadImpl;
 import org.jvnet.hk2.component.Habitat;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -65,7 +65,7 @@ import java.util.logging.Logger;
 public class GrizzlyConfig {
     private static final Logger logger = LoggerUtils.getLogger();
     private final NetworkConfig config;
-    private Habitat habitat;
+    private final Habitat habitat;
     private final List<GrizzlyServiceListener> listeners = new ArrayList<GrizzlyServiceListener>();
 
     public GrizzlyConfig(String file) {
@@ -90,7 +90,7 @@ public class GrizzlyConfig {
         synchronized (listeners) {
             final List<NetworkListener> networkListeners = config.getNetworkListeners().getNetworkListener();
 
-            final FutureImpl future = new FutureImpl();
+            final FutureImpl<Boolean> future = new FutureImpl<Boolean>();
             final AtomicInteger counter = new AtomicInteger(networkListeners.size());
 
             for (final NetworkListener listener : networkListeners) {

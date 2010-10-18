@@ -38,41 +38,31 @@
  * holder.
  */
 
-package com.sun.grizzly.localization;
+package com.sun.grizzly.util;
 
-/**
- * Localizable message.
- *
- * @author WS Development Team
- */
-public interface Localizable {
-    /**
-     * Gets the key in the resource bundle.
-     *
-     * @return
-     *      if this method returns {@link #NOT_LOCALIZABLE},
-     *      that means the message is not localizable, and
-     *      the first item of {@link #getArguments()} array
-     *      holds a String.
-     */
-    String getKey();
+import junit.framework.TestCase;
+import org.junit.Assert;
 
-    /**
-     * Returns the arguments for message formatting.
-     *
-     * @return
-     *      can be an array of length 0 but never be null.
-     */
-    Object[] getArguments();
-    String getResourceBundleName();
+import java.util.Enumeration;
+import java.util.Properties;
+import java.util.ResourceBundle;
+import java.util.Set;
+import java.util.TreeSet;
 
-
-    /**
-     * Special constant that represents a message that
-     * is not localizable.
-     *
-     * <p>
-     * Use of "new" is to create an unique instance.
-     */
-    String NOT_LOCALIZABLE = new String("\u0000");
+public class LogMessagesTest extends TestCase {
+    public void testMessageNumbers() {
+        ResourceBundle bundle = ResourceBundle.getBundle("com.sun.grizzly.util.log");
+        final Enumeration<String> keys = bundle.getKeys();
+        Set<String> found = new TreeSet<String>();
+        while(keys.hasMoreElements()) {
+            final String key = keys.nextElement();
+            final String value = bundle.getString(key);
+            String id = value.split(":")[0];
+            if(found.contains(id)) {
+                Assert.fail(String.format("Duplicate ID found (%s) for key %s", id, key));
+            } else {
+                found.add(id);
+            }
+        }
+    }
 }

@@ -56,6 +56,7 @@ import java.util.List;
 @Configured
 public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
     boolean DISPLAY_CONFIGURATION = false;
+    boolean ENABLE_SNOOP = false;
     boolean TCP_NO_DELAY = true;
     int ACCEPTOR_THREADS = 1;
     int BUFFER_SIZE = 8192;
@@ -109,7 +110,7 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
      * Dump the requests/response information in server.log. Useful for debugging purpose, but significantly reduce
      * performance as the request/response bytes are translated to String.
      */
-    @Attribute(defaultValue = "" + DISPLAY_CONFIGURATION, dataType = Boolean.class)
+    @Attribute(defaultValue = "" + ENABLE_SNOOP, dataType = Boolean.class)
     String getEnableSnoop();
 
     void setEnableSnoop(String bool);

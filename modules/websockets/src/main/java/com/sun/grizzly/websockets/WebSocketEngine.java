@@ -44,8 +44,10 @@ import com.sun.grizzly.BaseSelectionKeyHandler;
 import com.sun.grizzly.arp.AsyncExecutor;
 import com.sun.grizzly.arp.AsyncProcessorTask;
 import com.sun.grizzly.http.ProcessorTask;
+import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
+import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.util.Utils;
 
 import java.io.IOException;
@@ -69,6 +71,7 @@ public class WebSocketEngine {
     public static final int DEFAULT_TIMEOUT;
 
     private static final WebSocketEngine engine = new WebSocketEngine();
+    private static volatile boolean isWebSocketEnabled;
     static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     private final List<WebSocketApplication> applications = new ArrayList<WebSocketApplication>();
     private final Map<WebSocketApplication, StackTraceElement[]> map = new HashMap<WebSocketApplication, StackTraceElement[]>();
@@ -87,6 +90,19 @@ public class WebSocketEngine {
         SecKey.init();
     }
 
+    /**
+     * Return true is Comet is enabled, e.g. {@link SelectorThread#setEnableAsyncExecution(boolean)}
+     * has been set to <tt>true</tt>
+     * @return
+     */
+    public static boolean isWebSocketEnabled() {
+        return isWebSocketEnabled;
+    }
+
+    public static void setWebSocketEnabled(boolean webSocketEnabled) {
+        isWebSocketEnabled = webSocketEnabled;
+    }
+
     public static WebSocketEngine getEngine() {
         return engine;
     }
@@ -99,13 +115,12 @@ public class WebSocketEngine {
                     app = application;
                 } else if(constrainApplications) {
                     for (Map.Entry<WebSocketApplication, StackTraceElement[]> entry : map.entrySet()) {
-                        System.out.println("WebSocketEngine.getApplication: entry.getKey() = " + entry.getKey());
                         final StackTraceElement[] traceElements = entry.getValue();
                         for (StackTraceElement element : traceElements) {
                             System.out.println(element);
                         }
                     }
-                    throw new HandshakeException("Multiple applications are registered for this request");
+                    throw new HandshakeException(LogMessages.WARNING_GRIZZLY_WS_MULTIPLE_APPS());
                 }
             }
         }
@@ -158,6 +173,10 @@ public class WebSocketEngine {
     }
 
     public void register(WebSocketApplication app) {
+        if (!isWebSocketEnabled()){
+            throw new IllegalStateException(LogMessages.SEVERE_GRIZZLY_WS_NOT_ENABLED());
+        }
+
         applications.add(app);
         map.put(app, Thread.currentThread().getStackTrace());
     }

@@ -73,6 +73,7 @@ import com.sun.grizzly.util.ExtendedThreadPool;
 import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.buf.UDecoder;
 import com.sun.grizzly.websockets.WebSocketAsyncFilter;
+import com.sun.grizzly.websockets.WebSocketEngine;
 import org.jvnet.hk2.component.Habitat;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 
@@ -432,6 +433,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
      */
     private void configureWebSockets(Habitat habitat) {
         enableAsyncHandler(habitat, "websockets", WebSocketAsyncFilter.class);
+        WebSocketEngine.setWebSocketEnabled(true);
     }
 
     private void enableAsyncHandler(Habitat habitat, final String name,
