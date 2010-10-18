@@ -66,6 +66,7 @@ import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
+import org.glassfish.grizzly.nio.PendingWriteQueueLimitExceededException;
 
 /**
  * SSL {@link Filter} to operate with SSL encrypted data.
@@ -90,6 +91,9 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
 
     private final ConnectionCloseListener closeListener = new ConnectionCloseListener();
     
+    // Max pending bytes SSLFilter may enqueue
+    protected volatile int maxPendingBytes = Integer.MAX_VALUE;
+
     public SSLFilter() {
         this(null, null);
     }
@@ -123,6 +127,31 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                 "SSLFilter-HandshakeCompletionHandlerAttr");
     }
 
+    /**
+     * @return the maximum number of bytes that may be pending to be written
+     *  to a particular {@link Connection}.
+     * This value is related to the situation when we try to send application
+     * data before SSL handshake completes, so the data should be stored and
+     * sent on wire once handshake will be completed.
+     */
+    public int getMaxPendingBytesPerConnection() {
+        return maxPendingBytes;
+    }
+
+    /**
+     * Configures the maximum number of bytes pending to be written
+     * for a particular {@link Connection}.
+     * This value is related to the situation when we try to send application
+     * data before SSL handshake completes, so the data should be stored and
+     * sent on wire once handshake will be completed.
+     *
+     * @param maxQueuedWrites maximum number of pending writes that may be
+     *  queued for a particular {@link Connection}
+     */
+    public void setMaxPendingBytesPerConnection(final int maxPendingBytes) {
+        this.maxPendingBytes = maxPendingBytes;
+    }
+    
     @Override
     public NextAction handleRead(final FilterChainContext ctx)
             throws IOException {
@@ -138,7 +167,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                 SSLUtils.setSSLEngine(connection, sslEngine);
             }
 
-            Buffer buffer = doHandshakeStep(sslEngine, ctx);
+            final Buffer buffer = doHandshakeStep(sslEngine, ctx);
 
             final boolean hasRemaining = buffer.hasRemaining();
             
@@ -251,139 +280,141 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
 
         final Connection connection = context.getConnection();
         final Object dstAddress = context.getAddress();
-        Buffer inputBuffer = (Buffer) context.getMessage();
+        final Buffer inputBuffer = context.getMessage();
 
         final boolean isLoggingFinest = LOGGER.isLoggable(Level.FINEST);
 
-        final SSLSession sslSession = sslEngine.getSession();
-        final int appBufferSize = sslSession.getApplicationBufferSize();
+        synchronized (connection) {
+            final SSLSession sslSession = sslEngine.getSession();
+            final int appBufferSize = sslSession.getApplicationBufferSize();
 
-        HandshakeStatus handshakeStatus = sslEngine.getHandshakeStatus();
+            HandshakeStatus handshakeStatus = sslEngine.getHandshakeStatus();
 
-        final MemoryManager memoryManager =
-                connection.getTransport().getMemoryManager();
+            final MemoryManager memoryManager =
+                    connection.getTransport().getMemoryManager();
 
-        while (true) {
+            while (true) {
 
-            if (isLoggingFinest) {
-                LOGGER.log(Level.FINEST, "Loop Engine: {0} handshakeStatus={1}",
-                        new Object[] {sslEngine, sslEngine.getHandshakeStatus()});
-            }
+                if (isLoggingFinest) {
+                    LOGGER.log(Level.FINEST, "Loop Engine: {0} handshakeStatus={1}",
+                            new Object[]{sslEngine, sslEngine.getHandshakeStatus()});
+                }
 
-            switch (handshakeStatus) {
-                case NEED_UNWRAP: {
+                switch (handshakeStatus) {
+                    case NEED_UNWRAP: {
 
-                    if (isLoggingFinest) {
-                        LOGGER.log(Level.FINEST, "NEED_UNWRAP Engine: {0}", sslEngine);
-                    }
-
-                    if (inputBuffer == null || !inputBuffer.hasRemaining()) {
-                        return inputBuffer;
-                    }
-
-                    final int expectedLength = getSSLPacketSize(inputBuffer);
-                    if (expectedLength == -1 ||
-                            inputBuffer.remaining() < expectedLength) {
-                        return inputBuffer;
-                    }
-
-                    final SSLEngineResult sslEngineResult;
-
-                    if (!inputBuffer.isComposite()) {
-                        final ByteBuffer inputBB = inputBuffer.toByteBuffer();
-
-                        final Buffer outputBuffer = memoryManager.allocate(
-                                appBufferSize);
-
-                        sslEngineResult = sslEngine.unwrap(inputBB,
-                                outputBuffer.toByteBuffer());
-                        outputBuffer.dispose();
-
-                        if (inputBuffer.hasRemaining()) {
-                            // shift remainder to the buffer position 0
-                            inputBuffer.compact();
-                            // trim
-                            inputBuffer.trim();
+                        if (isLoggingFinest) {
+                            LOGGER.log(Level.FINEST, "NEED_UNWRAP Engine: {0}", sslEngine);
                         }
 
-                    } else {
-                        final int pos = inputBuffer.position();
-                        final ByteBuffer inputByteBuffer =
-                                inputBuffer.toByteBuffer(pos,
-                                pos + expectedLength);
+                        if (inputBuffer == null || !inputBuffer.hasRemaining()) {
+                            return inputBuffer;
+                        }
 
-                        final Buffer outputBuffer = memoryManager.allocate(
-                                appBufferSize);
+                        final int expectedLength = getSSLPacketSize(inputBuffer);
+                        if (expectedLength == -1
+                                || inputBuffer.remaining() < expectedLength) {
+                            return inputBuffer;
+                        }
 
-                        sslEngineResult = sslEngine.unwrap(inputByteBuffer,
-                                outputBuffer.toByteBuffer());
+                        final SSLEngineResult sslEngineResult;
 
-                        inputBuffer.position(pos + sslEngineResult.bytesConsumed());
+                        if (!inputBuffer.isComposite()) {
+                            final ByteBuffer inputBB = inputBuffer.toByteBuffer();
 
-                        outputBuffer.dispose();
-                    }
+                            final Buffer outputBuffer = memoryManager.allocate(
+                                    appBufferSize);
 
-                    final Status status = sslEngineResult.getStatus();
+                            sslEngineResult = sslEngine.unwrap(inputBB,
+                                    outputBuffer.toByteBuffer());
+                            outputBuffer.dispose();
 
-                    if (status == Status.BUFFER_UNDERFLOW) {
-                        return inputBuffer;
-                    } else if (status == Status.BUFFER_OVERFLOW) {
-                        throw new SSLException("Buffer overflow");
-                    }
+                            if (inputBuffer.hasRemaining()) {
+                                // shift remainder to the buffer position 0
+                                inputBuffer.compact();
+                                // trim
+                                inputBuffer.trim();
+                            }
 
-                    handshakeStatus = sslEngine.getHandshakeStatus();
-                    break;
-                }
+                        } else {
+                            final int pos = inputBuffer.position();
+                            final ByteBuffer inputByteBuffer =
+                                    inputBuffer.toByteBuffer(pos,
+                                    pos + expectedLength);
 
-                case NEED_WRAP: {
-                    if (isLoggingFinest) {
-                        LOGGER.log(Level.FINEST, "NEED_WRAP Engine: {0}", sslEngine);
-                    }
+                            final Buffer outputBuffer = memoryManager.allocate(
+                                    appBufferSize);
 
-                    final Buffer buffer = memoryManager.allocate(
-                            sslEngine.getSession().getPacketBufferSize());
-                    buffer.allowBufferDispose(true);
+                            sslEngineResult = sslEngine.unwrap(inputByteBuffer,
+                                    outputBuffer.toByteBuffer());
 
-                    try {
-                        sslEngine.wrap(Buffers.EMPTY_BYTE_BUFFER,
-                                       buffer.toByteBuffer());
+                            inputBuffer.position(pos + sslEngineResult.bytesConsumed());
 
-                        buffer.trim();
+                            outputBuffer.dispose();
+                        }
 
-                        context.write(dstAddress, buffer, null);
+                        final Status status = sslEngineResult.getStatus();
+
+                        if (status == Status.BUFFER_UNDERFLOW) {
+                            return inputBuffer;
+                        } else if (status == Status.BUFFER_OVERFLOW) {
+                            throw new SSLException("Buffer overflow");
+                        }
 
                         handshakeStatus = sslEngine.getHandshakeStatus();
-                    } catch (SSLException e) {
-                        buffer.dispose();
-                        throw e;
-                    } catch (IOException e) {
-                        buffer.dispose();
-                        throw e;
-                    } catch (Exception e) {
-                        buffer.dispose();
-                        throw new IOException("Unexpected exception", e);
+                        break;
                     }
 
-                    break;
-                }
+                    case NEED_WRAP: {
+                        if (isLoggingFinest) {
+                            LOGGER.log(Level.FINEST, "NEED_WRAP Engine: {0}", sslEngine);
+                        }
 
-                case NEED_TASK: {
-                    if (isLoggingFinest) {
-                        LOGGER.log(Level.FINEST, "NEED_TASK Engine: {0}", sslEngine);
+                        final Buffer buffer = memoryManager.allocate(
+                                sslEngine.getSession().getPacketBufferSize());
+                        buffer.allowBufferDispose(true);
+
+                        try {
+                            sslEngine.wrap(Buffers.EMPTY_BYTE_BUFFER,
+                                    buffer.toByteBuffer());
+
+                            buffer.trim();
+
+                            context.write(dstAddress, buffer, null);
+
+                            handshakeStatus = sslEngine.getHandshakeStatus();
+                        } catch (SSLException e) {
+                            buffer.dispose();
+                            throw e;
+                        } catch (IOException e) {
+                            buffer.dispose();
+                            throw e;
+                        } catch (Exception e) {
+                            buffer.dispose();
+                            throw new IOException("Unexpected exception", e);
+                        }
+
+                        break;
                     }
-                    SSLUtils.executeDelegatedTask(sslEngine);
-                    handshakeStatus = sslEngine.getHandshakeStatus();
-                    break;
+
+                    case NEED_TASK: {
+                        if (isLoggingFinest) {
+                            LOGGER.log(Level.FINEST, "NEED_TASK Engine: {0}", sslEngine);
+                        }
+                        SSLUtils.executeDelegatedTask(sslEngine);
+                        handshakeStatus = sslEngine.getHandshakeStatus();
+                        break;
+                    }
+
+                    case FINISHED:
+                    case NOT_HANDSHAKING: {
+                        return inputBuffer;
+                    }
                 }
 
-                case FINISHED:
-                case NOT_HANDSHAKING: {
+                if (handshakeStatus == HandshakeStatus.FINISHED) {
                     return inputBuffer;
                 }
-            }
-
-            if (handshakeStatus == HandshakeStatus.FINISHED) {
-                return inputBuffer;
             }
         }
     }
@@ -499,12 +530,13 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         return len;
     }
 
-    private final static class PendingWriteCompletionHandler
+    private final class PendingWriteCompletionHandler
             extends EmptyCompletionHandler<SSLEngine> {
 
         private final Connection connection;
         private final List<FilterChainContext> pendingWriteContexts;
-
+        private int sizeInBytes = 0;
+        
         private IOException error;
         private boolean isComplete;
         
@@ -517,7 +549,16 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
             synchronized(connection) {
                 if (error != null) throw error;
                 if (isComplete) return false;
+                final Buffer buffer = context.getMessage();
 
+                final int newSize = sizeInBytes + buffer.remaining();
+                if (newSize > maxPendingBytes) {
+                    throw new PendingWriteQueueLimitExceededException(
+                            "Max queued data limit exceeded: "
+                            + newSize + ">" + maxPendingBytes);
+                }
+                
+                sizeInBytes = newSize;
                 pendingWriteContexts.add(context);
 
                 return true;
@@ -534,6 +575,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                     }
                     
                     pendingWriteContexts.clear();
+                    sizeInBytes = 0;
                 }
             } catch (Exception e) {
                 failed(e);
