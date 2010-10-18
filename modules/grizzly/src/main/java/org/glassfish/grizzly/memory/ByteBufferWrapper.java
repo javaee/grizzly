@@ -642,7 +642,7 @@ public class ByteBufferWrapper implements Buffer {
             while(wrapper.visible.hasRemaining()) {
                 wrapper.visible.put((byte) 0xFF);
             }
-
+            wrapper.visible.flip();
             wrapper.disposeStackTrace = new Exception("ByteBufferWrapper was disposed from: ");
         }
     }

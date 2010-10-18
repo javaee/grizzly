@@ -756,16 +756,16 @@ public class InputBuffer {
      *
      * @throws IOException if an I/O error occurs while reading content
      */
-    private int fill(int requestedLen) throws IOException {
+    private int fill(final int requestedLen) throws IOException {
 
         if (request.isExpectContent()) {
             int read = 0;
             while (read < requestedLen && request.isExpectContent()) {
-                ReadResult rr = ctx.read();
-                HttpContent c = (HttpContent) rr.getMessage();
-                Buffer b = c.getContent();
+                final ReadResult rr = ctx.read();
+                final HttpContent c = (HttpContent) rr.getMessage();
+                final Buffer b = c.getContent();
                 read += b.remaining();
-                compositeBuffer.append(c.getContent());
+                compositeBuffer.append(b);
                 rr.recycle();
                 c.recycle();
             }

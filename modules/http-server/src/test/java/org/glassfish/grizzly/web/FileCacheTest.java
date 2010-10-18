@@ -39,7 +39,13 @@
  */
 package org.glassfish.grizzly.web;
 
+import org.glassfish.grizzly.http.ContentEncoding;
+import org.glassfish.grizzly.http.HttpProbe;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.ConnectionProbe;
+import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.http.HttpHeader;
+import org.glassfish.grizzly.http.TransferEncoding;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
 import org.glassfish.grizzly.http.server.filecache.FileCacheEntry;
 import org.glassfish.grizzly.http.util.DataChunk;
@@ -127,8 +133,12 @@ public class FileCacheTest {
     public void testSimpleFile() throws Exception {
         final String fileName = "./pom.xml";
 
-        final StatsCacheProbe probe = new StatsCacheProbe();
-        gws.getServerConfiguration().getMonitoringConfig().getFileCacheConfig().addProbes(probe);
+        final StatsConnectionProbe connectionProbe = new StatsConnectionProbe();
+        final StatsHttpProbe httpProbe = new StatsHttpProbe();
+        final StatsCacheProbe cacheProbe = new StatsCacheProbe();
+        gws.getServerConfiguration().getMonitoringConfig().getFileCacheConfig().addProbes(cacheProbe);
+        gws.getServerConfiguration().getMonitoringConfig().getHttpConfig().addProbes(httpProbe);
+        gws.getServerConfiguration().getMonitoringConfig().getConnectionConfig().addProbes(connectionProbe);
 
         startWebServer(new HttpService() {
 
@@ -173,7 +183,7 @@ public class FileCacheTest {
             final Future<HttpContent> responseFuture1 = send("localhost", PORT, request1);
             final HttpContent response1 = responseFuture1.get(10, TimeUnit.SECONDS);
 
-            assertEquals("Not cached data mismatch\n" + probe, "Hello not cached data", response1.getContent().toStringContent());
+            assertEquals("Not cached data mismatch\n" + cacheProbe, "Hello not cached data", response1.getContent().toStringContent());
 
 
             final File file = new File(fileName);
@@ -186,11 +196,13 @@ public class FileCacheTest {
 
             final Future<HttpContent> responseFuture2 = send("localhost", PORT, request2);
             final HttpContent response2 = responseFuture2.get(10, TimeUnit.SECONDS);
-            assertEquals("Cached data mismatch\n" + probe, pattern, response2.getContent().toStringContent());
+            assertEquals("Cached data mismatch\n" + cacheProbe, pattern, response2.getContent().toStringContent());
             isOk = true;
         } finally {
             if (!isOk) {
-                System.err.println(probe);
+                System.err.println(connectionProbe);
+                System.err.println(httpProbe);
+                System.err.println(cacheProbe);
             }
         }
     }
@@ -435,6 +447,125 @@ public class FileCacheTest {
         }
     }
 
+    private static class StatsConnectionProbe implements ConnectionProbe {
+        final AtomicInteger sentBytesCounter = new AtomicInteger();
+        final AtomicInteger receivedCounter = new AtomicInteger();
+
+        @Override
+        public void onBindEvent(Connection connection) {
+        }
+
+        @Override
+        public void onAcceptEvent(Connection connection) {
+        }
+
+        @Override
+        public void onConnectEvent(Connection connection) {
+        }
+
+        @Override
+        public void onReadEvent(Connection connection, Buffer data, int size) {
+            receivedCounter.addAndGet(size);
+        }
+
+        @Override
+        public void onWriteEvent(Connection connection, Buffer data, int size) {
+            sentBytesCounter.addAndGet(size);
+        }
+
+        @Override
+        public void onErrorEvent(Connection connection, Throwable error) {
+        }
+
+        @Override
+        public void onCloseEvent(Connection connection) {
+        }
+
+        @Override
+        public void onIOEventReadyEvent(Connection connection, IOEvent ioEvent) {
+        }
+
+        @Override
+        public void onIOEventEnableEvent(Connection connection, IOEvent ioEvent) {
+        }
+
+        @Override
+        public void onIOEventDisableEvent(Connection connection, IOEvent ioEvent) {
+        }
+
+        @Override
+        public String toString() {
+            final StringBuilder sb = new StringBuilder("connection-stats[received=")
+            .append(receivedCounter.get())
+            .append(", sent=").append(sentBytesCounter.get())
+            .append("]");
+
+            return sb.toString();
+        }
+
+    }
+
+    private static class StatsHttpProbe implements HttpProbe {
+        final AtomicInteger sentBytesCounter = new AtomicInteger();
+        final AtomicInteger receivedCounter = new AtomicInteger();
+
+        @Override
+        public void onDataReceivedEvent(Connection connection, Buffer buffer) {
+            receivedCounter.addAndGet(buffer.remaining());
+        }
+
+        @Override
+        public void onDataSentEvent(Connection connection, Buffer buffer) {
+            sentBytesCounter.addAndGet(buffer.remaining());
+        }
+
+        @Override
+        public void onHeaderParseEvent(Connection connection, HttpHeader header, int size) {
+        }
+
+        @Override
+        public void onHeaderSerializeEvent(Connection connection, HttpHeader header, Buffer buffer) {
+        }
+
+        @Override
+        public void onContentChunkParseEvent(Connection connection, HttpContent content) {
+        }
+
+        @Override
+        public void onContentChunkSerializeEvent(Connection connection, HttpContent content) {
+        }
+
+        @Override
+        public void onContentEncodingParseEvent(Connection connection, HttpHeader header, Buffer buffer, ContentEncoding contentEncoding) {
+        }
+
+        @Override
+        public void onContentEncodingSerializeEvent(Connection connection, HttpHeader header, Buffer buffer, ContentEncoding contentEncoding) {
+        }
+
+        @Override
+        public void onTransferEncodingParseEvent(Connection connection, HttpHeader header, Buffer buffer, TransferEncoding transferEncoding) {
+        }
+
+        @Override
+        public void onTransferEncodingSerializeEvent(Connection connection, HttpHeader header, Buffer buffer, TransferEncoding transferEncoding) {
+        }
+
+        @Override
+        public void onErrorEvent(Connection connection, Throwable error) {
+        }
+
+        @Override
+        public String toString() {
+            final StringBuilder sb = new StringBuilder("http-stats[received=")
+            .append(receivedCounter.get())
+            .append(", sent=").append(sentBytesCounter.get())
+            .append("]");
+
+            return sb.toString();
+        }
+    }
+    
     private static class StatsCacheProbe implements FileCacheProbe {
 
         final AtomicInteger entryAddedCounter = new AtomicInteger();

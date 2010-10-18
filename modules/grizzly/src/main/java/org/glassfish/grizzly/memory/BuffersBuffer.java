@@ -712,10 +712,9 @@ public final class BuffersBuffer extends CompositeBuffer {
         while(true) {
             int oldPos = buffer.position();
             buffer.position(bufferPosition);
-            int bytesToCopy = Math.min(buffer.remaining(), length);
+            final int bytesToCopy = Math.min(buffer.remaining(), length);
             buffer.get(dst, offset, bytesToCopy);
             buffer.position(oldPos);
-            bufferPosition += (bytesToCopy - 1);
 
             length -= bytesToCopy;
             offset += bytesToCopy;
@@ -1133,14 +1132,15 @@ public final class BuffersBuffer extends CompositeBuffer {
     }
 
     @Override
-    public String toStringContent(Charset charset, int position, int limit) {
+    public String toStringContent(Charset charset, final int position,
+            final int limit) {
         checkDispose();
 
         if (charset == null) {
             charset = Charset.defaultCharset();
         }
 
-        byte[] tmpBuffer = new byte[limit - position];
+        final byte[] tmpBuffer = new byte[limit - position];
 
         int oldPosition = this.position;
         int oldLimit = this.limit;
@@ -1333,7 +1333,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         resetLastLocation();
     }
 
-    private void setPosLim(int position, int limit) {
+    private void setPosLim(final int position, final int limit) {
         if (position > limit) {
             throw new IllegalArgumentException("Position exceeds a limit: " + position + ">" + limit);
         }

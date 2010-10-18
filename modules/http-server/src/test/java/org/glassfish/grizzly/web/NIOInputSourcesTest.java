@@ -64,7 +64,6 @@ import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.memory.MemoryUtils;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import junit.framework.TestCase;
@@ -77,6 +76,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.ByteBufferWrapper;
 
 /**
  * Test case to exercise <code>AsyncStreamReader</code>.
@@ -85,6 +85,12 @@ public class NIOInputSourcesTest extends TestCase {
 
     private static final char[] ALPHA = "abcdefghijklmnopqrstuvwxyz".toCharArray();
     private static final int PORT = 8030;
+
+    @Override
+    protected void setUp() throws Exception {
+        super.setUp();
+        ByteBufferWrapper.DEBUG_MODE = true;
+    }
 
     // ------------------------------------------------------------ Test Methods
 
@@ -95,7 +101,7 @@ public class NIOInputSourcesTest extends TestCase {
     public void testBasicAsyncRead() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final HttpService httpService = new EchoHttpService(testResult, 0);
+        final EchoService httpService = new EchoHttpService(testResult, 0);
         final String expected = buildString(5000);
         final HttpPacket request = createRequest("POST", expected, null);
         doTest(httpService, request, expected, testResult, null, 10);
@@ -110,7 +116,7 @@ public class NIOInputSourcesTest extends TestCase {
     public void testBasicAsyncReadSpecifiedSize() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final HttpService httpService = new EchoHttpService(testResult, 1000);
+        final EchoService httpService = new EchoHttpService(testResult, 1000);
         final String expected = buildString(5000);
         final HttpPacket request = createRequest("POST", expected, null);
         doTest(httpService, request, expected, testResult, null, 10);
@@ -121,17 +127,18 @@ public class NIOInputSourcesTest extends TestCase {
     public void testBasicAsyncReadSlowClient() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final HttpService httpService = new EchoHttpService(testResult, 0);
+        final EchoService httpService = new EchoHttpService(testResult, 0);
         final String expected = buildString(5000);
-        final HttpPacket request = createRequest("POST", expected, null);
+
+        final HttpRequestPacket.Builder b = HttpRequestPacket.builder();
+        b.method("POST").protocol(Protocol.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost:" + PORT);
+        b.contentLength(expected.length());
+        final HttpRequestPacket request = b.build();
+
         final WriteStrategy strategy = new WriteStrategy() {
             @Override
             public void doWrite(FilterChainContext ctx) throws IOException {
 
-                HttpRequestPacket.Builder b = HttpRequestPacket.builder();
-                b.method("POST").protocol(Protocol.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost:" + PORT);
-                b.contentLength(expected.length());
-                HttpRequestPacket request = b.build();
                 ctx.write(request);
                 MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
 
@@ -150,7 +157,7 @@ public class NIOInputSourcesTest extends TestCase {
                     HttpContent ct = cb.build();
                     ctx.write(ct);
                     try {
-                        Thread.sleep(3000);
+                        Thread.sleep(300);
                     } catch (InterruptedException ie) {
                         ie.printStackTrace();
                         testResult.failure(ie);
@@ -166,17 +173,18 @@ public class NIOInputSourcesTest extends TestCase {
     public void testBasicAsyncReadSpecifiedSizeSlowClient() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final HttpService httpService = new EchoHttpService(testResult, 2000);
+        final EchoService httpService = new EchoHttpService(testResult, 2000);
         final String expected = buildString(5000);
-        final HttpPacket request = createRequest("POST", expected, null);
+
+        final HttpRequestPacket.Builder b = HttpRequestPacket.builder();
+        b.method("POST").protocol(Protocol.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost:" + PORT);
+        b.contentLength(expected.length());
+        final HttpRequestPacket request = b.build();
+
         final WriteStrategy strategy = new WriteStrategy() {
             @Override
             public void doWrite(FilterChainContext ctx) throws IOException {
 
-                HttpRequestPacket.Builder b = HttpRequestPacket.builder();
-                b.method("POST").protocol(Protocol.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost:" + PORT);
-                b.contentLength(expected.length());
-                HttpRequestPacket request = b.build();
                 ctx.write(request);
                 MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
 
@@ -195,7 +203,7 @@ public class NIOInputSourcesTest extends TestCase {
                     HttpContent ct = cb.build();
                     ctx.write(ct);
                     try {
-                        Thread.sleep(3000);
+                        Thread.sleep(300);
                     } catch (InterruptedException ie) {
                         ie.printStackTrace();
                         testResult.failure(ie);
@@ -215,7 +223,7 @@ public class NIOInputSourcesTest extends TestCase {
     public void testBasicAsyncReadChar() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final HttpService httpService = new CharacterEchoHttpService(testResult, 0, null);
+        final EchoService httpService = new CharacterEchoHttpService(testResult, 0, null);
         final String expected = buildString(5000);
         final HttpPacket request = createRequest("POST", expected, null);
         doTest(httpService, request, expected, testResult, null, 30);
@@ -230,7 +238,7 @@ public class NIOInputSourcesTest extends TestCase {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
         final String encoding = "UTF-16";
-        final HttpService httpService = new CharacterEchoHttpService(testResult, 0, encoding);
+        final EchoService httpService = new CharacterEchoHttpService(testResult, 0, encoding);
         final String expected = buildString(5000);
         final HttpPacket request = createRequest("POST", expected, encoding);
         ClientFilter filter = new ClientFilter(testResult, request, null, encoding);
@@ -246,7 +254,7 @@ public class NIOInputSourcesTest extends TestCase {
     public void testBasicAsyncReadCharSpecifiedSize() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final HttpService httpService = new CharacterEchoHttpService(testResult, 1000, null);
+        final EchoService httpService = new CharacterEchoHttpService(testResult, 1000, null);
         final String expected = buildString(5000);
         final HttpPacket request = createRequest("POST", expected, null);
         doTest(httpService, request, expected, testResult, null, 10);
@@ -257,17 +265,19 @@ public class NIOInputSourcesTest extends TestCase {
     public void testBasicAsyncReadCharSlowClient() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final HttpService httpService = new EchoHttpService(testResult, 0);
+        final EchoService httpService = new CharacterEchoHttpService(testResult, 0, null);
         final String expected = buildString(5000);
-        final HttpPacket request = createRequest("POST", expected, null);
+
+        final HttpRequestPacket.Builder b = HttpRequestPacket.builder();
+        b.method("POST").protocol(Protocol.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost:" + PORT);
+        b.contentLength(expected.length());
+        final HttpRequestPacket request = b.build();
+
+
         final WriteStrategy strategy = new WriteStrategy() {
             @Override
             public void doWrite(FilterChainContext ctx) throws IOException {
 
-                HttpRequestPacket.Builder b = HttpRequestPacket.builder();
-                b.method("POST").protocol(Protocol.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost:" + PORT);
-                b.contentLength(expected.length());
-                HttpRequestPacket request = b.build();
                 ctx.write(request);
                 MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
 
@@ -286,7 +296,7 @@ public class NIOInputSourcesTest extends TestCase {
                     HttpContent ct = cb.build();
                     ctx.write(ct);
                     try {
-                        Thread.sleep(3000);
+                        Thread.sleep(300);
                     } catch (InterruptedException ie) {
                         ie.printStackTrace();
                         testResult.failure(ie);
@@ -302,17 +312,18 @@ public class NIOInputSourcesTest extends TestCase {
     public void testBasicAsyncReadCharSpecifiedSizeSlowClient() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final HttpService httpService = new EchoHttpService(testResult, 2000);
+        final EchoService httpService = new CharacterEchoHttpService(testResult, 2000, null);
         final String expected = buildString(5000);
-        final HttpPacket request = createRequest("POST", expected, null);
+
+        final HttpRequestPacket.Builder b = HttpRequestPacket.builder();
+        b.method("POST").protocol(Protocol.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost:" + PORT);
+        b.contentLength(expected.length());
+        final HttpRequestPacket request = b.build();
+
         final WriteStrategy strategy = new WriteStrategy() {
             @Override
             public void doWrite(FilterChainContext ctx) throws IOException {
 
-                HttpRequestPacket.Builder b = HttpRequestPacket.builder();
-                b.method("POST").protocol(Protocol.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost:" + PORT);
-                b.contentLength(expected.length());
-                HttpRequestPacket request = b.build();
                 ctx.write(request);
                 MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
 
@@ -331,7 +342,7 @@ public class NIOInputSourcesTest extends TestCase {
                     HttpContent ct = cb.build();
                     ctx.write(ct);
                     try {
-                        Thread.sleep(3000);
+                        Thread.sleep(300);
                     } catch (InterruptedException ie) {
                         ie.printStackTrace();
                         testResult.failure(ie);
@@ -363,7 +374,7 @@ public class NIOInputSourcesTest extends TestCase {
 
     }
 
-    private void doTest(final HttpService httpService,
+    private void doTest(final EchoService httpService,
                         final HttpPacket request,
                         final String expectedResult,
                         final FutureImpl<String> testResult,
@@ -381,7 +392,7 @@ public class NIOInputSourcesTest extends TestCase {
 
 
 
-    private void doTest(final HttpService httpService,
+    private void doTest(final EchoService httpService,
                         final String expectedResult,
                         final FutureImpl<String> testResult,
                         final ClientFilter filter,
@@ -411,7 +422,7 @@ public class NIOInputSourcesTest extends TestCase {
                     assertEquals("Expected a return content length of " + expectedResult.length() + ", received: " + res.length(),
                             expectedResult.length(),
                             res.length());
-                    assertEquals(expectedResult, res);
+                    assertEquals("Server echoed string=" + httpService.getEchoedString(), expectedResult, res);
                 } else {
                     fail("No response content available.");
                 }
@@ -489,11 +500,12 @@ public class NIOInputSourcesTest extends TestCase {
     } // END WriteStrategy
 
 
-    private static class EchoHttpService extends HttpService {
+    private static class EchoHttpService extends EchoService {
 
         private final FutureImpl<String> testResult;
         private final int readSize;
 
+        private final StringBuffer echoedString = new StringBuffer();
 
         // -------------------------------------------------------- Constructors
 
@@ -519,6 +531,7 @@ public class NIOInputSourcesTest extends TestCase {
                 if (available > 0) {
                     byte[] b = new byte[available];
                     int read = reader.read(b);
+                    echoedString.append(new String(b, 0, read));
                     res.getOutputStream().write(b, 0, read);
                 }
                 if (reader.isFinished()) {
@@ -545,6 +558,7 @@ public class NIOInputSourcesTest extends TestCase {
                             testResult.failure(ioe);
                         }
                         try {
+                            echoedString.append(sb);
                             res.getOutputStream().write(sb.toString().getBytes());
                         } catch (Exception e) {
                             testResult.failure(e);
@@ -581,14 +595,22 @@ public class NIOInputSourcesTest extends TestCase {
             }
         }
 
+        @Override
+        public String getEchoedString() {
+            return echoedString.toString();
+        }
+
+
     } // END EchoHttpService
 
 
-    private static class CharacterEchoHttpService extends HttpService {
+    private static class CharacterEchoHttpService extends EchoService {
 
         private final FutureImpl<String> testResult;
         private final int readSize;
         private final String encoding;
+
+        private final StringBuffer echoedString = new StringBuffer();
 
 
         // -------------------------------------------------------- Constructors
@@ -684,8 +706,16 @@ public class NIOInputSourcesTest extends TestCase {
             }
         }
 
+        @Override
+        public String getEchoedString() {
+            return echoedString.toString();
+        }
+
     } // END CharacterEchoHttpService
 
+    private static abstract class EchoService extends HttpService {
+        public abstract String getEchoedString();
+    }
 
     private static class ClientFilter extends BaseFilter {
         private final static Logger logger = Grizzly.logger(ClientFilter.class);
@@ -771,7 +801,7 @@ public class NIOInputSourcesTest extends TestCase {
                 if (logger.isLoggable(Level.FINE)) {
                     logger.log(Level.FINE, "HTTP content size: {0}", buffer.remaining());
                 }
-                if (buffer.remaining() > 0) {
+                if (buffer.hasRemaining()) {
                     bytesDownloaded += buffer.remaining();
 
                     buf.append(buffer);
