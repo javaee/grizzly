@@ -272,15 +272,16 @@ public class ThreadPoolConfig {
 
     @Override
     public String toString() {
-        return ThreadPoolConfig.class.getSimpleName() + " :\r\n"
-                + "  poolName: " + poolName + "\r\n"
-                + "  corePoolSize: " + corePoolSize + "\r\n"
-                + "  maxPoolSize: " + maxPoolSize + "\r\n"
-                + "  queue: " + queue.getClass() + "\r\n"
-                + "  queueLimit: " + queueLimit + "\r\n"
-                + "  keepAliveTime (millis): " + keepAliveTimeMillis + "\r\n"
-                + "  threadFactory: " + threadFactory + "\r\n"
-                + "  priority: " + priority + "\r\n"
-                + "  monitoringProbe: " + monitoringProbe + "\r\n";
+        return new StringBuilder().append(ThreadPoolConfig.class.getSimpleName())
+                .append(" :\r\n").append("  poolName: ").append(poolName)
+                .append("\r\n").append("  corePoolSize: ").append(corePoolSize)
+                .append("\r\n").append("  maxPoolSize: ").append(maxPoolSize)
+                .append("\r\n").append("  queue: ").append((queue != null) ? queue.getClass() : "NONE")
+                .append("\r\n").append("  queueLimit: ").append(queueLimit).append("\r\n")
+                .append("  keepAliveTime (millis): ").append(keepAliveTimeMillis)
+                .append("\r\n").append("  threadFactory: ").append(threadFactory)
+                .append("\r\n").append("  priority: ").append(priority)
+                .append("\r\n").append("  monitoringProbe: ").append(monitoringProbe)
+                .append("\r\n").toString();
     }
 }
