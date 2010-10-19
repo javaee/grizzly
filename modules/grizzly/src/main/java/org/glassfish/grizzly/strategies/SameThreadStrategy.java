@@ -41,13 +41,11 @@
 package org.glassfish.grizzly.strategies;
 
 import java.io.IOException;
-import java.util.concurrent.Executor;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.PostProcessor;
 import org.glassfish.grizzly.Strategy;
 import org.glassfish.grizzly.nio.NIOConnection;
-import org.glassfish.grizzly.utils.CurrentThreadExecutor;
 
 /**
  * {@link Strategy}, which executes {@link org.glassfish.grizzly.Processor}s in a current thread.

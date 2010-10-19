@@ -60,30 +60,35 @@ import java.util.concurrent.ExecutorService;
 public final class LeaderFollowerStrategy extends AbstractStrategy {
     /*
      * NONE,
-     * SERVER_ACCEPT,
-     * ACCEPTED,
-     * CONNECTED,
      * READ,
      * WRITE,
+     * SERVER_ACCEPT,
+     * ACCEPTED,
+     * CLIENT_CONNECTED,
+     * CONNECTED
      * CLOSED
      */
-    private final Executor[] executors;
+//    private final Executor[] executors;
+    private final Executor workerThreadExecutor;
     
     public LeaderFollowerStrategy(final ExecutorService workerThreadPool) {
-        this(
-                new WorkerThreadExecutor(workerThreadPool));
+        this(new WorkerThreadExecutor(workerThreadPool));
     }
 
     protected LeaderFollowerStrategy(Executor workerThreadProcessorExecutor) {
 
-        executors = new Executor[] {null, null, null, null,
-            workerThreadProcessorExecutor, workerThreadProcessorExecutor,
-            workerThreadProcessorExecutor};
+//        executors = new Executor[] {null,
+//            workerThreadProcessorExecutor, workerThreadProcessorExecutor,
+//            null, null, null, null,
+//            workerThreadProcessorExecutor};
+        this.workerThreadExecutor = workerThreadProcessorExecutor;
     }
 
     @Override
     public boolean executeIoEvent(Connection connection, IOEvent ioEvent) throws IOException {
-        final Executor executor = executors[ioEvent.ordinal()];
+//        final Executor executor = executors[ioEvent.ordinal()];
+        final Executor executor = getExecutor(ioEvent);
+        
         final boolean isReadWrite =
                 (ioEvent == IOEvent.READ || ioEvent == IOEvent.WRITE);
         
@@ -104,6 +109,16 @@ public final class LeaderFollowerStrategy extends AbstractStrategy {
         } else {
             connection.getTransport().fireIOEvent(ioEvent, connection, pp);
             return true;
+        }
+    }
+
+    private Executor getExecutor(final IOEvent ioEvent) {
+        switch(ioEvent) {
+            case READ:
+            case WRITE:
+            case CLOSED: return workerThreadExecutor;
+
+            default: return null;
         }
     }
 }

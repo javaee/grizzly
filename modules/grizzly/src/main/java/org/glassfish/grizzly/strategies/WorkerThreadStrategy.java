@@ -65,15 +65,19 @@ public final class WorkerThreadStrategy extends AbstractStrategy {
     
     /*
      * NONE,
-     * SERVER_ACCEPT,
-     * ACCEPTED,
-     * CONNECTED,
      * READ,
      * WRITE,
+     * SERVER_ACCEPT,
+     * ACCEPTED,
+     * CLIENT_CONNECTED,
+     * CONNECTED
      * CLOSED
      */
-    private final Executor[] executors;
+//    private final Executor[] executors;
 
+    private final Executor sameThreadExecutor;
+    private final Executor workerThreadExecutor;
+    
     public WorkerThreadStrategy(final ExecutorService workerThreadPool) {
         this(new CurrentThreadExecutor(),
                 new WorkerThreadExecutor(workerThreadPool));
@@ -81,11 +85,14 @@ public final class WorkerThreadStrategy extends AbstractStrategy {
 
     protected WorkerThreadStrategy(Executor sameThreadProcessorExecutor,
             Executor workerThreadProcessorExecutor) {
+        this.sameThreadExecutor = sameThreadProcessorExecutor;
+        this.workerThreadExecutor = workerThreadProcessorExecutor;
         
-        executors = new Executor[] {null, sameThreadProcessorExecutor,
-            sameThreadProcessorExecutor, sameThreadProcessorExecutor,
-            workerThreadProcessorExecutor, workerThreadProcessorExecutor,
-            workerThreadProcessorExecutor};
+//        executors = new Executor[] {null, workerThreadProcessorExecutor,
+//            workerThreadProcessorExecutor, sameThreadProcessorExecutor,
+//            sameThreadProcessorExecutor, sameThreadProcessorExecutor,
+//            sameThreadProcessorExecutor,
+//            workerThreadProcessorExecutor};
     }
 
     @Override
@@ -105,7 +112,9 @@ public final class WorkerThreadStrategy extends AbstractStrategy {
             pp = null;
         }
 
-        final Executor executor = executors[ioEvent.ordinal()];
+//        final Executor executor = executors[ioEvent.ordinal()];
+        final Executor executor = getExecutor(ioEvent);
+        
         executor.execute(new Runnable() {
             @Override
             public void run() {
@@ -133,5 +142,15 @@ public final class WorkerThreadStrategy extends AbstractStrategy {
         });
 
         return true;
+    }
+
+    private Executor getExecutor(final IOEvent ioEvent) {
+        switch(ioEvent) {
+            case READ:
+            case WRITE:
+            case CLOSED: return workerThreadExecutor;
+
+            default: return sameThreadExecutor;
+        }
     }
 }
