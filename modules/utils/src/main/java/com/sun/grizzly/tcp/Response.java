@@ -1003,6 +1003,8 @@ public class Response<A> {
 
         public void setIdleTimeoutDelay(long idleTimeoutDelay) {
             this.idleTimeoutDelay = idleTimeoutDelay;
+            SuspendResponseUtils.updateIdleTimeOutDelay(response.selectionKey,
+                                                        response.getResponseAttachment());
         }
 
         void setThreadAttachment(ThreadAttachment threadAttachment) {

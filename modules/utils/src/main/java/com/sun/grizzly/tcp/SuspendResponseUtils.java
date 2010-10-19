@@ -74,6 +74,18 @@ public class SuspendResponseUtils {
         threadAttachment.setAttribute(SUSPENDED_RESPONSE_ATTR, suspendedResponse);
     }
 
+    public static void updateIdleTimeOutDelay(SelectionKey selectionKey,
+                                              Response.ResponseAttachment suspendedResponse) {
+
+        Object attachment = selectionKey.attachment();
+        if (attachment != null) {
+            suspendedResponse.resetTimeout();
+            final ThreadAttachment threadAttachment = (ThreadAttachment) attachment;
+            threadAttachment.setIdleTimeoutDelay(suspendedResponse.getIdleTimeoutDelay());
+        }
+
+    }
+
     public static void detach(SelectionKey selectionKey) {
         final Object attachment = selectionKey.attachment();
         if (attachment != null && attachment instanceof ThreadAttachment) {
