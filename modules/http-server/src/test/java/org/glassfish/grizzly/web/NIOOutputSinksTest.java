@@ -308,24 +308,30 @@ public class NIOOutputSinksTest extends TestCase {
             public void service(final Request request, final Response response) throws Exception {
                 
                 clientTransport.pause();
-                response.setContentType("text/plain");
-                final NIOWriter out = response.getWriter();
-
-                while (out.canWrite(LENGTH)) {
-                    char[] c = new char[LENGTH];
-                    fill(c);
-                    writeCounter.addAndGet(c.length);
-                    out.write(c);
-                    out.flush();
-                }
-
-                clientTransport.resume();
                 response.suspend();
 
+                response.setContentType("text/plain");
+                final NIOWriter out = response.getWriter();
                 Connection c = request.getContext().getConnection();
                 final TaskQueue tqueue = ((AbstractNIOConnection) c).getAsyncWriteQueue();
 
-                out.notifyCanWrite(new WriteHandler() {
+
+                while (!notifyCanWrite(out, tqueue, response)) {
+                    char[] data = new char[LENGTH];
+                    fill(data);
+                    writeCounter.addAndGet(data.length);
+                    out.write(data);
+                    out.flush();
+                }                
+
+                clientTransport.resume();
+            }
+
+            private boolean notifyCanWrite(final NIOWriter out,
+                    final TaskQueue tqueue, final Response response) {
+
+                return out.notifyCanWrite(new WriteHandler() {
+
                     @Override
                     public void onWritePossible() {
                         callbackInvoked.compareAndSet(false, true);
@@ -334,9 +340,7 @@ public class NIOOutputSinksTest extends TestCase {
                         } catch (IOException ioe) {
                             ioe.printStackTrace();
                         }
-
                         assertTrue(MAX_LENGTH - tqueue.spaceInBytes() >= LENGTH);
-
                         try {
                             clientTransport.resume();
                         } catch (IOException ioe) {
@@ -353,7 +357,6 @@ public class NIOOutputSinksTest extends TestCase {
                             ioe.printStackTrace();
                         }
                         response.resume();
-
                     }
 
                     @Override
@@ -361,7 +364,7 @@ public class NIOOutputSinksTest extends TestCase {
                         response.resume();
                         throw new RuntimeException(t);
                     }
-                }, (LENGTH));
+                }, LENGTH);
             }
 
         };
