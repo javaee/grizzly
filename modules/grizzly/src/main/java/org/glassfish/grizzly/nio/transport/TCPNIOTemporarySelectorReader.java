@@ -45,7 +45,6 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorReader;
-import java.net.SocketAddress;
 
 /**
  *
@@ -57,8 +56,8 @@ public final class TCPNIOTemporarySelectorReader extends TemporarySelectorReader
     }
 
     @Override
-    protected int readNow0(Connection connection, Buffer buffer,
-            ReadResult currentResult) throws IOException {
+    protected final int readNow0(final Connection connection, Buffer buffer,
+            final ReadResult currentResult) throws IOException {
         final int oldPosition = buffer != null ? buffer.position() : 0;
         
         if ((buffer = ((TCPNIOTransport) transport).read(connection, buffer)) != null) {

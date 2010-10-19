@@ -66,25 +66,13 @@ import org.glassfish.grizzly.nio.NIOConnection;
 public abstract class TemporarySelectorWriter
         extends AbstractWriter<SocketAddress> {
 
-    private static final int DEFAULT_TIMEOUT = 30000;
-
     private static final Logger LOGGER = Grizzly.logger(TemporarySelectorWriter.class);
 
     protected final TemporarySelectorsEnabledTransport transport;
 
-    private int timeoutMillis = DEFAULT_TIMEOUT;
-
     public TemporarySelectorWriter(
             TemporarySelectorsEnabledTransport transport) {
         this.transport = transport;
-    }
-
-    public int getTimeout() {
-        return timeoutMillis;
-    }
-
-    public void setTimeout(int timeout) {
-        this.timeoutMillis = timeout;
     }
 
     /**
@@ -97,7 +85,9 @@ public abstract class TemporarySelectorWriter
             Interceptor<WriteResult<Buffer, SocketAddress>> interceptor)
             throws IOException {
         return write(connection, dstAddress, buffer, completionHandler,
-                interceptor, timeoutMillis, TimeUnit.MILLISECONDS);
+                interceptor,
+                ((NIOConnection) connection).getWriteTimeout(TimeUnit.MILLISECONDS),
+                TimeUnit.MILLISECONDS);
     }
 
     /**

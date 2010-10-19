@@ -70,25 +70,15 @@ import org.glassfish.grizzly.nio.NIOConnection;
 public abstract class TemporarySelectorReader
         extends AbstractReader<SocketAddress> {
 
-    private static final int DEFAULT_TIMEOUT = 30000;
     private static final Logger LOGGER = Grizzly.logger(TemporarySelectorReader.class);
     
     public static final int DEFAULT_BUFFER_SIZE = 8192;
     protected int defaultBufferSize = DEFAULT_BUFFER_SIZE;
     protected final TemporarySelectorsEnabledTransport transport;
-    private int timeoutMillis = DEFAULT_TIMEOUT;
 
     public TemporarySelectorReader(
             TemporarySelectorsEnabledTransport transport) {
         this.transport = transport;
-    }
-
-    public int getTimeout() {
-        return timeoutMillis;
-    }
-
-    public void setTimeout(int timeout) {
-        this.timeoutMillis = timeout;
     }
 
     @Override
@@ -98,7 +88,8 @@ public abstract class TemporarySelectorReader
             Interceptor<ReadResult> interceptor) throws IOException {
         return read(connection, message, completionHandler,
                 interceptor,
-                timeoutMillis, TimeUnit.MILLISECONDS);
+                ((NIOConnection) connection).getReadTimeout(TimeUnit.MILLISECONDS),
+                TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -138,7 +129,7 @@ public abstract class TemporarySelectorReader
             }
 
             if (interceptor != null) {
-                interceptor.intercept(timeoutMillis, connection, currentResult);
+                interceptor.intercept(COMPLETE_EVENT, connection, currentResult);
             }
 
             return ReadyFutureImpl.create(currentResult);
@@ -171,17 +162,17 @@ public abstract class TemporarySelectorReader
         return currentResult.getReadSize();
     }
 
-    protected final int read0(Connection connection, ReadResult currentResult,
-            Buffer buffer, long timeout, TimeUnit timeunit)
+    protected final int read0(final Connection connection, final ReadResult currentResult,
+            final Buffer buffer, final long timeout, final TimeUnit timeunit)
             throws IOException {
 
         int bytesRead;
 
-        NIOConnection nioConnection = (NIOConnection) connection;
+        final NIOConnection nioConnection = (NIOConnection) connection;
         Selector readSelector = null;
         SelectionKey key = null;
-        SelectableChannel channel = nioConnection.getChannel();
-        long readTimeout = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
+        final SelectableChannel channel = nioConnection.getChannel();
+        final long readTimeout = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
 
         try {
             bytesRead = readNow0(connection, buffer, currentResult);

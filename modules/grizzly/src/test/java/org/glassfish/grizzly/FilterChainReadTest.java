@@ -331,8 +331,6 @@ public class FilterChainReadTest extends TestCase {
             transport.bind(PORT);
             transport.start();
 
-            final BlockingQueue<String> resultQueue = new LinkedTransferQueue<String>();
-
             Future<Connection> future = transport.connect("localhost", PORT);
             connection = (TCPNIOConnection) future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
