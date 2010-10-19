@@ -304,8 +304,7 @@ public class StaticResourcesAdapter implements Adapter {
         }
 
         res.finish();
-        req.recycle();
-        res.recycle();
+
     }
 
     /**
