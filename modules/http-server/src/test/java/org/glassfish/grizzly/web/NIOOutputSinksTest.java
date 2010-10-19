@@ -319,6 +319,9 @@ public class NIOOutputSinksTest extends TestCase {
                     out.flush();
                 }
 
+                clientTransport.resume();
+                response.suspend();
+
                 Connection c = request.getContext().getConnection();
                 final TaskQueue tqueue = ((AbstractNIOConnection) c).getAsyncWriteQueue();
 
@@ -359,9 +362,6 @@ public class NIOOutputSinksTest extends TestCase {
                         throw new RuntimeException(t);
                     }
                 }, (LENGTH));
-
-                clientTransport.resume();
-                response.suspend();
             }
 
         };
