@@ -773,16 +773,17 @@ public class Response<A> {
             req.action(ActionCode.CANCEL_SUSPENDED_RESPONSE, null);
 
             if (SuspendResponseUtils.removeSuspendedInCurrentThread()) {
+                // It's possible that the response was resumed within the
+                // same thread that invoked suspend().  In this case, invoke
+                // the completion handler but do not finish the response as
+                // this response is going to exit normally.
+                ra.invokeCompletionHandler();
                 return;
             }
 
-//            boolean isReallySuspended = ra.isAttached();
-//            if (isReallySuspended){
-                ra.resume();
-                req.action(ActionCode.ACTION_FINISH_RESPONSE, null);
-//            } else {
-//                ra.invokeCompletionHandler();
-//            }
+            ra.resume();
+            req.action(ActionCode.ACTION_FINISH_RESPONSE, null);
+
         } finally {
             ra = null;
             lock.unlock();
@@ -806,6 +807,11 @@ public class Response<A> {
             
             req.action(ActionCode.CANCEL_SUSPENDED_RESPONSE, null);  
             if (SuspendResponseUtils.removeSuspendedInCurrentThread()) {
+                // It's possible that the response was cancelled within the
+                // same thread that invoked suspend().  In this case, invoke
+                // cancel, but do not finish the response as this response is
+                // going to exit normally.
+                ra.cancel();
                 return;
             }
 
