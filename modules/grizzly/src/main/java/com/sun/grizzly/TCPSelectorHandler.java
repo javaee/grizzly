@@ -66,6 +66,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -675,7 +676,14 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
             
             try {
                 SelectionKey[] keys = new SelectionKey[0];
-                keys = localSelector.keys().toArray(keys);
+                while(true) {
+                    try {
+                        keys = localSelector.keys().toArray(keys);
+                        break;
+                    } catch (ConcurrentModificationException ignore) {
+                    }
+                }
+
                 for (SelectionKey key : keys) {
                     selectionKeyHandler.close(key);
                 }
