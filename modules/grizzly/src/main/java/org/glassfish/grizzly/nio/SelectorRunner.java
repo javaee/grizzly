@@ -52,6 +52,7 @@ import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
@@ -169,7 +170,14 @@ public final class SelectorRunner implements Runnable {
         if (localSelector != null) {
             try {
                 SelectionKey[] keys = new SelectionKey[0];
-                keys = localSelector.keys().toArray(keys);
+                while(true) {
+                    try {
+                        keys = localSelector.keys().toArray(keys);
+                        break;
+                    } catch (ConcurrentModificationException ignore) {
+                    }
+                }
+                
                 for (final SelectionKey selectionKey : keys) {
                     final Connection connection =
                             transport.getSelectionKeyHandler().
