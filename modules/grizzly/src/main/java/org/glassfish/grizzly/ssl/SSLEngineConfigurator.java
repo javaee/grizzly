@@ -81,6 +81,7 @@ public class SSLEngineConfigurator {
      * Has the enabled Cipher configured.
      */
     private boolean isCipherConfigured = false;
+    private boolean lazyInit = false;
 
     public SSLEngineConfigurator(SSLContext sslContext) {
         this(sslContext, true, false, false);
@@ -306,15 +307,29 @@ public class SSLEngineConfigurator {
         return ciphers;
     }
 
+    public boolean isLazyInit() {
+        return lazyInit;
+    }
+
+    public void setLazyInit(final boolean lazy) {
+        lazyInit = lazy;
+    }
+
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder("SSLEngineConfigurator[clientMode=");
-        sb.append(clientMode);
+        final StringBuilder sb = new StringBuilder();
+        sb.append("SSLEngineConfigurator");
+        sb.append("{clientMode=").append(clientMode);
+        sb.append(", enabledCipherSuites=")
+            .append(enabledCipherSuites == null ? "null" : Arrays.asList(enabledCipherSuites).toString());
+        sb.append(", enabledProtocols=")
+            .append(enabledProtocols == null ? "null" : Arrays.asList(enabledProtocols).toString());
         sb.append(", needClientAuth=").append(needClientAuth);
         sb.append(", wantClientAuth=").append(wantClientAuth);
-        sb.append(", enabledProtocols=").append(Arrays.toString(enabledProtocols));
-        sb.append(", enabledCipherSuites=").append(Arrays.toString(enabledCipherSuites));
-        sb.append(']');
+        sb.append(", isProtocolConfigured=").append(isProtocolConfigured);
+        sb.append(", isCipherConfigured=").append(isCipherConfigured);
+        sb.append(", lazyInit=").append(lazyInit);
+        sb.append('}');
         return sb.toString();
     }
 

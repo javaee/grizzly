@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly;
 
+import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
@@ -48,6 +49,7 @@ import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.threadpool.ThreadPoolProbe;
 import org.glassfish.grizzly.utils.StateHolder;
 import java.io.IOException;
+import java.nio.channels.Selector;
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -60,23 +62,23 @@ import java.util.concurrent.ExecutorService;
  */
 public interface Transport extends JmxMonitoringAware<TransportProbe> {
     
-    public enum State {STARTING, START, PAUSE, STOPPING, STOP}
+    enum State {STARTING, START, PAUSE, STOPPING, STOP}
 
-    public enum IOEventReg {REGISTER, DEREGISTER}
+    enum IOEventReg {REGISTER, DEREGISTER}
 
     /**
      * Gets the {@link Transport} name.
      * 
      * @return the {@link Transport} name.
      */
-    public String getName();
+    String getName();
 
     /**
      * Sets the {@link Transport} name.
      *
      * @param name the {@link Transport} name.
      */
-    public void setName(String name);
+    void setName(String name);
 
     /**
      * Return the {@link Transport} state controller. Using the state controller,
@@ -84,7 +86,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * 
      * @return {@link StateHolder} state controller.
      */
-    public StateHolder<State> getState();
+    StateHolder<State> getState();
 
     /**
      * Returns the {@link Transport} mode.
@@ -97,7 +99,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * <tt>true</tt>, if {@link Transport} is operating in blocking mode, or
      * <tt>false</tt> otherwise.
      */
-    public boolean isBlocking();
+    boolean isBlocking();
 
     /**
      * Sets the {@link Transport} mode.
@@ -108,11 +110,11 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * if {@link Transport} should operate in blocking mode, or
      * <tt>false</tt> otherwise.
      */
-    public void configureBlocking(boolean isBlocking);
+    void configureBlocking(boolean isBlocking);
 
-    public void configureStandalone(boolean isStandalone);
+    void configureStandalone(boolean isStandalone);
 
-    public boolean isStandalone();
+    boolean isStandalone();
 
     /**
      * Gets the default {@link Processor}, which will process <tt>Transport</tt>
@@ -127,7 +129,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * {@link Connection} I/O events, if one doesn't have
      * own {@link Processor} preferences.
      */
-    public Processor obtainProcessor(IOEvent ioEvent, Connection connection);
+    Processor obtainProcessor(IOEvent ioEvent, Connection connection);
 
     /**
      * Gets the default {@link Processor}, which will process {@link Connection}
@@ -142,7 +144,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * {@link Connection} I/O events, if one doesn't have
      * own {@link Processor} preferences.
      */
-    public Processor getProcessor();
+    Processor getProcessor();
 
     /**
      * Sets the default {@link Processor}, which will process {@link Connection}
@@ -153,7 +155,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * {@link Connection} I/O events, if one doesn't have own
      * {@link Processor} preferences.
      */
-    public void setProcessor(Processor processor);
+    void setProcessor(Processor processor);
 
     /**
      * Gets the default {@link ProcessorSelector}, which will be used to get
@@ -173,7 +175,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * {@link Connection} doesn't have neither preferred {@link Processor}
      * nor {@link ProcessorSelector}.
      */
-    public ProcessorSelector getProcessorSelector();
+    ProcessorSelector getProcessorSelector();
 
     /**
      * Sets the default {@link ProcessorSelector}, which will be used to get
@@ -193,7 +195,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      *  and {@link Connection} doesn't have neither preferred {@link Processor}
      *  nor {@link ProcessorSelector}.
      */
-    public void setProcessorSelector(ProcessorSelector selector);
+    void setProcessorSelector(ProcessorSelector selector);
 
     /**
      * Get the {@link Transport} associated {@link MemoryManager}, which will
@@ -204,7 +206,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * which will be used by the {@link Transport}, its {@link Connection}s
      * and by during processing I/O events, occurred on {@link Connection}s.
      */
-    public MemoryManager getMemoryManager();
+    MemoryManager getMemoryManager();
 
     /**
      * Set the {@link Transport} associated {@link MemoryManager}, which will
@@ -216,7 +218,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * its {@link Connection}s and by during processing I/O events, occurred
      * on {@link Connection}s.
      */
-    public void setMemoryManager(MemoryManager memoryManager);
+    void setMemoryManager(MemoryManager memoryManager);
 
     /**
      * Get the {@link Strategy} implementation, which will be used by
@@ -228,7 +230,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * @return the {@link Strategy} implementation, which will be used by
      * {@link Transport} to process {@link IOEvent}.
      */
-    public Strategy getStrategy();
+    Strategy getStrategy();
 
     /**
      * Set the {@link Strategy} implementation, which will be used by
@@ -240,7 +242,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * @param strategy the {@link Strategy} implementation, which will be used
      * by {@link Transport} to process {@link IOEvent}.
      */
-    public void setStrategy(Strategy strategy);
+    void setStrategy(Strategy strategy);
 
     /**
      * Get the default size of {@link Buffer}s, which will be allocated for
@@ -251,7 +253,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * @return the default size of {@link Buffer}s, which will be allocated for
      * reading data from {@link Transport}'s {@link Connection}s.
      */
-    public int getReadBufferSize();
+    int getReadBufferSize();
 
     /**
      * Set the default size of {@link Buffer}s, which will be allocated for
@@ -263,7 +265,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * be allocated for reading data from {@link Transport}'s
      * {@link Connection}s.
      */
-    public void setReadBufferSize(int readBufferSize);
+    void setReadBufferSize(int readBufferSize);
 
     /**
      * Get the default size of {@link Buffer}s, which will be allocated for
@@ -274,7 +276,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * @return the default size of {@link Buffer}s, which will be allocated for
      * writing data to {@link Transport}'s {@link Connection}s.
      */
-    public int getWriteBufferSize();
+    int getWriteBufferSize();
 
     /**
      * Set the default size of {@link Buffer}s, which will be allocated for
@@ -286,73 +288,73 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * be allocated for writing data to {@link Transport}'s
      * {@link Connection}s.
      */
-    public void setWriteBufferSize(int writeBufferSize);
+    void setWriteBufferSize(int writeBufferSize);
 
     /**
      * Get a thread pool, which will process transport internal tasks like
-     * NIO {@link java.nio.channels.Selector} polling etc.
+     * NIO {@link Selector} polling etc.
      *
      * @return {@link ExecutorService} transport thread pool.
      */
-    public ExecutorService getThreadPool();
+    ExecutorService getThreadPool();
 
     /**
      * Set a thread pool, which will process transport internal tasks like
-     * NIO {@link java.nio.channels.Selector} polling etc.
+     * NIO {@link Selector} polling etc.
      *
      * @param threadPool {@link ExecutorService} transport thread pool.
      */
-    public void setThreadPool(ExecutorService threadPool);
+    void setThreadPool(ExecutorService threadPool);
 
     /**
      * Get {@link Transport} associated {@link AttributeBuilder}, which will
      * be used by {@link Transport} and its {@link Connection}s to store custom
-     * {@link org.glassfish.grizzly.attributes.Attribute}s.
+     * {@link Attribute}s.
      * 
      * @return {@link Transport} associated {@link AttributeBuilder}, which will
      * be used by {@link Transport} and its {@link Connection}s to store custom
-     * {@link org.glassfish.grizzly.attributes.Attribute}s.
+     * {@link Attribute}s.
      */
-    public AttributeBuilder getAttributeBuilder();
+    AttributeBuilder getAttributeBuilder();
 
     /**
      * Set {@link Transport} associated {@link AttributeBuilder}, which will
      * be used by {@link Transport} and its {@link Connection}s to store custom
-     * {@link org.glassfish.grizzly.attributes.Attribute}s.
+     * {@link Attribute}s.
      *
      * @param attributeBuilder {@link Transport} associated
      * {@link AttributeBuilder}, which will be used by {@link Transport} and
-     * its {@link Connection}s to store custom {@link org.glassfish.grizzly.attributes.Attribute}s.
+     * its {@link Connection}s to store custom {@link Attribute}s.
      */
-    public void setAttributeBuilder(AttributeBuilder attributeBuilder);
+    void setAttributeBuilder(AttributeBuilder attributeBuilder);
 
     /**
      * Starts the transport
      * 
-     * @throws java.io.IOException
+     * @throws IOException
      */
-    public void start() throws IOException;
+    void start() throws IOException;
     
     /**
      * Stops the transport and closes all the connections
      * 
-     * @throws java.io.IOException
+     * @throws IOException
      */
-    public void stop() throws IOException;
+    void stop() throws IOException;
     
     /**
      * Pauses the transport
      * 
-     * @throws java.io.IOException
+     * @throws IOException
      */
-    public void pause() throws IOException;
+    void pause() throws IOException;
     
     /**
      * Resumes the transport after a pause
      * 
-     * @throws java.io.IOException
+     * @throws IOException
      */
-    public void resume() throws IOException;
+    void resume() throws IOException;
     
     /**
      * Fires specific {@link IOEvent} on the {@link Connection}
@@ -360,7 +362,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * @param ioEvent I/O event
      * @param connection {@link Connection}, on which we fire the event.
      */
-    public IOEventReg fireIOEvent(IOEvent ioEvent, Connection connection,
+    IOEventReg fireIOEvent(IOEvent ioEvent, Connection connection,
             PostProcessor postProcessor) throws IOException;
 
     /**
@@ -369,9 +371,9 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * @return <tt>true</tt>, if this <tt>Transport</tt> is in stopped state,
      *         <tt>false</tt> otherwise.
      */
-    public boolean isStopped();
+    boolean isStopped();
 
-    public boolean isPaused();
+    boolean isPaused();
 
     /**
      * Get the {@link Reader} to read data from the {@link Connection}.
@@ -382,7 +384,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * 
      * @return {@link Reader}.
      */
-    public Reader getReader(Connection connection);
+    Reader getReader(Connection connection);
 
     /**
      * Get the {@link Reader} implementation, depending on the requested mode.
@@ -391,7 +393,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      *
      * @return {@link Reader}.
      */
-    public Reader getReader(boolean isBlocking);
+    Reader getReader(boolean isBlocking);
 
     /**
      * Get the {@link Writer} to write data to the {@link Connection}.
@@ -402,7 +404,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      *
      * @return {@link Writer}.
      */
-    public Writer getWriter(Connection connection);
+    Writer getWriter(Connection connection);
 
     /**
      * Get the {@link Writer} implementation, depending on the requested mode.
@@ -411,28 +413,28 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      *
      * @return {@link Writer}.
      */
-    public Writer getWriter(boolean isBlocking);
+    Writer getWriter(boolean isBlocking);
 
     /**
      * Get the monitoring configuration for Transport {@link Connection}s.
      */
-    public MonitoringConfig<ConnectionProbe> getConnectionMonitoringConfig();
+    MonitoringConfig<ConnectionProbe> getConnectionMonitoringConfig();
 
     /**
      * Get the monitoring configuration for Transport thread pool.
      */
-    public MonitoringConfig<ThreadPoolProbe> getThreadPoolMonitoringConfig();
+    MonitoringConfig<ThreadPoolProbe> getThreadPoolMonitoringConfig();
 
     /**
      * Get the <tt>Transport</tt> monitoring configuration {@link MonitoringConfig}.
      */
     @Override
-    public JmxMonitoringConfig<TransportProbe> getMonitoringConfig();
+    JmxMonitoringConfig<TransportProbe> getMonitoringConfig();
 
     /**
      * Method gets invoked, when error occur during the <tt>Transport</tt> lifecycle.
      *
      * @param error {@link Throwable}.
      */
-    public void notifyTransportError(Throwable error);
+    void notifyTransportError(Throwable error);
 }

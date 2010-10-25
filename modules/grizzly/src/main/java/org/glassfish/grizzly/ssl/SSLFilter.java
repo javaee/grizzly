@@ -109,19 +109,21 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         super(new SSLDecoderTransformer(), new SSLEncoderTransformer());
 
         if (serverSSLEngineConfigurator == null) {
-            serverSSLEngineConfigurator = new SSLEngineConfigurator(
+            this.serverSSLEngineConfigurator = new SSLEngineConfigurator(
                     SSLContextConfigurator.DEFAULT_CONFIG.createSSLContext(),
                     false, false, false);
+        } else {
+            this.serverSSLEngineConfigurator = serverSSLEngineConfigurator;
         }
 
         if (clientSSLEngineConfigurator == null) {
-            clientSSLEngineConfigurator = new SSLEngineConfigurator(
+            this.clientSSLEngineConfigurator = new SSLEngineConfigurator(
                     SSLContextConfigurator.DEFAULT_CONFIG.createSSLContext(),
                     true, false, false);
+        } else {
+            this.clientSSLEngineConfigurator = clientSSLEngineConfigurator;
         }
 
-        this.serverSSLEngineConfigurator = serverSSLEngineConfigurator;
-        this.clientSSLEngineConfigurator = clientSSLEngineConfigurator;
         handshakeCompletionHandlerAttr =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
                 "SSLFilter-HandshakeCompletionHandlerAttr");

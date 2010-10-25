@@ -79,7 +79,7 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Name of class, which implements transport logic
      */
-    @Attribute(defaultValue = "com.glassfish.grizzly.TCPSelectorHandler")
+    @Attribute(defaultValue = "org.glassfish.grizzly.nio.transport.TCPNIOTransport")
     String getClassname();
 
     void setClassname(String value);

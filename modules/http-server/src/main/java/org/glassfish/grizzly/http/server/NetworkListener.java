@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.http.server;
 
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.filterchain.Filter;
@@ -57,6 +58,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.net.ssl.SSLEngine;
 
 public class NetworkListener {
 
@@ -140,7 +142,7 @@ public class NetworkListener {
 
 
     /**
-     * Configuration for the {@link javax.net.ssl.SSLEngine} that will be used
+     * Configuration for the {@link SSLEngine} that will be used
      * for secure listeners.
      */
     private SSLEngineConfigurator sslEngineConfig;
@@ -151,6 +153,7 @@ public class NetworkListener {
      */
     private int maxHttpHeaderSize = -1;
 
+    private String compression;
 
     /**
      * {@link FileCache} to be used by this <code>NetworkListener</code>.
@@ -184,8 +187,18 @@ public class NetworkListener {
      * {@link HttpCodecFilter} associated with this listener.
      */
     private HttpCodecFilter httpCodecFilter;
-
-
+    private boolean rcmSupportEnabled;
+    private boolean authPassthroughEnabled;
+    private int maxPostSize;
+    private String compressableMimeTypes;
+    private String noCompressionUserAgents;
+    private int compressionMinSize;
+    private String restrictedUserAgents;
+    private int uploadTimeout;
+    private boolean disableUploadTimeout;
+    private boolean traceEnabled;
+    private String uriEncoding;
+    private int transactionTimeout;
     // ------------------------------------------------------------ Constructors
 
 
@@ -413,7 +426,7 @@ public class NetworkListener {
 
 
     /**
-     * @return the {@link javax.net.ssl.SSLEngine} configuration for this
+     * @return the {@link SSLEngine} configuration for this
      *  listener.
      */
     public SSLEngineConfigurator getSslEngineConfig() {
@@ -425,7 +438,7 @@ public class NetworkListener {
 
     /**
      * <p>
-     * Provides customization of the {@link javax.net.ssl.SSLEngine}
+     * Provides customization of the {@link SSLEngine}
      * used by this listener.
      * </p>
      *
@@ -453,6 +466,14 @@ public class NetworkListener {
 
         return maxHttpHeaderSize;
 
+    }
+
+    public String getCompression() {
+        return compression;
+    }
+
+    public void setCompression(final String compression) {
+        this.compression = compression;
     }
 
 
@@ -531,7 +552,7 @@ public class NetworkListener {
 
     /**
      * @return the maximum size, in bytes, of all data waiting to be written
-     *  to the associated {@link org.glassfish.grizzly.Connection}.
+     *  to the associated {@link Connection}.
      */
     public int getMaxPendingBytes() {
 
@@ -542,10 +563,10 @@ public class NetworkListener {
 
     /**
      * The maximum size, in bytes, of all data waiting to be written
-     * to the associated {@link org.glassfish.grizzly.Connection}.
+     * to the associated {@link Connection}.
      *
      * @param maxPendingBytes the maximum size, in bytes, of all data waiting
-     *  to be written to the associated {@link org.glassfish.grizzly.Connection}.
+     *  to be written to the associated {@link Connection}.
      */
     public void setMaxPendingBytes(int maxPendingBytes) {
 
@@ -573,7 +594,7 @@ public class NetworkListener {
      */
     public boolean isStarted() {
 
-        return (!transport.isStopped());
+        return !transport.isStopped();
         
     }
 
@@ -604,7 +625,7 @@ public class NetworkListener {
         if (LOGGER.isLoggable(Level.INFO)) {
             LOGGER.log(Level.INFO,
                        "Started listener bound to [{0}]",
-                       (host + ':' + port));
+                host + ':' + port);
         }
 
 
@@ -630,7 +651,7 @@ public class NetworkListener {
         if (LOGGER.isLoggable(Level.INFO)) {
             LOGGER.log(Level.INFO,
                        "Stopped listener bound to [{0}]",
-                       (host + ':' + port));
+                host + ':' + port);
         }
 
     }
@@ -655,7 +676,7 @@ public class NetworkListener {
         if (LOGGER.isLoggable(Level.INFO)) {
             LOGGER.log(Level.INFO,
                        "Paused listener bound to [{0}]",
-                       (host + ':' + port));
+                host + ':' + port);
         }
 
     }
@@ -679,7 +700,7 @@ public class NetworkListener {
         if (LOGGER.isLoggable(Level.INFO)) {
             LOGGER.log(Level.INFO,
                        "Resumed listener bound to [{0}]",
-                       (host + ':' + port));
+                host + ':' + port);
         }
 
     }
@@ -744,10 +765,106 @@ public class NetworkListener {
             throw new IllegalArgumentException("Argument "
                                                   + name
                                                   + " cannot be "
-                                                  + ((value == null)
+                                                  + (value == null
                                                           ? "null"
                                                           : "have a zero length")); // I18n
         }
 
-    }    
+    }
+
+    public boolean isRcmSupportEnabled() {
+        return rcmSupportEnabled;
+    }
+
+    public void setRcmSupportEnabled(final boolean enabled) {
+        rcmSupportEnabled = enabled;
+    }
+
+    public boolean isAuthPassthroughEnabled() {
+        return authPassthroughEnabled;
+    }
+
+    public void setAuthPassthroughEnabled(final boolean authPassthroughEnabled) {
+        this.authPassthroughEnabled = authPassthroughEnabled;
+    }
+
+    public void setMaxPostSize(final int maxPostSize) {
+        this.maxPostSize = maxPostSize;
+    }
+
+    public void setCompressableMimeTypes(final String compressableMimeTypes) {
+        this.compressableMimeTypes = compressableMimeTypes;
+    }
+
+    public void setNoCompressionUserAgents(final String noCompressionUserAgents) {
+        this.noCompressionUserAgents = noCompressionUserAgents;
+    }
+
+    public void setCompressionMinSize(final int compressionMinSize) {
+        this.compressionMinSize = compressionMinSize;
+    }
+
+    public void setRestrictedUserAgents(final String restrictedUserAgents) {
+        this.restrictedUserAgents = restrictedUserAgents;
+    }
+
+    public void setUploadTimeout(final int uploadTimeout) {
+        this.uploadTimeout = uploadTimeout;
+    }
+
+    public void setDisableUploadTimeout(final boolean disableUploadTimeout) {
+        this.disableUploadTimeout = disableUploadTimeout;
+    }
+
+    public void setTraceEnabled(final boolean traceEnabled) {
+        this.traceEnabled = traceEnabled;
+    }
+
+    public void setUriEncoding(final String uriEncoding) {
+        this.uriEncoding = uriEncoding;
+    }
+
+    public String getCompressableMimeTypes() {
+        return compressableMimeTypes;
+    }
+
+    public int getCompressionMinSize() {
+        return compressionMinSize;
+    }
+
+    public boolean isDisableUploadTimeout() {
+        return disableUploadTimeout;
+    }
+
+    public int getMaxPostSize() {
+        return maxPostSize;
+    }
+
+    public String getNoCompressionUserAgents() {
+        return noCompressionUserAgents;
+    }
+
+    public String getRestrictedUserAgents() {
+        return restrictedUserAgents;
+    }
+
+    public boolean isTraceEnabled() {
+        return traceEnabled;
+    }
+
+    public int getUploadTimeout() {
+        return uploadTimeout;
+    }
+
+    public String getUriEncoding() {
+        return uriEncoding;
+    }
+
+    public int getTransactionTimeout() {
+        return transactionTimeout;
+    }
+
+    public void setTransactionTimeout(final int transactionTimeout) {
+        this.transactionTimeout = transactionTimeout;
+    }
 }

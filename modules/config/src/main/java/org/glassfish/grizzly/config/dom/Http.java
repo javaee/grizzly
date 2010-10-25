@@ -45,6 +45,7 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 
+import static org.glassfish.grizzly.http.server.Constants.*;
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
@@ -60,7 +61,9 @@ import org.glassfish.grizzly.http.Constants;
  */
 @Configured
 public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
-    @Attribute(defaultValue = "org.glassfish.grizzly.tcp.StaticResourcesAdapter")
+    String COMPRESSION_DEFAULT = "off";
+
+    @Attribute(defaultValue = "org.glassfish.grizzly.http.server.StaticResourcesHandler")
     String getAdapter();
 
     void setAdapter(String adapter);
@@ -93,7 +96,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setCompressableMimeType(String type);
 
-    @Attribute(defaultValue = "off", dataType = String.class)
+    @Attribute(defaultValue = COMPRESSION_DEFAULT, dataType = String.class)
     @Pattern(regexp = "on|off|force|\\d+")
     String getCompression();
 
@@ -104,7 +107,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setCompressionMinSizeBytes(String size);
 
-    @Attribute(defaultValue = "300000", dataType = Integer.class)
+    @Attribute(defaultValue = "" +DEFAULT_CONNECTION_UPLOAD_TIMEOUT, dataType = Integer.class)
     String getConnectionUploadTimeoutMillis();
 
     void setConnectionUploadTimeoutMillis(String timeout);

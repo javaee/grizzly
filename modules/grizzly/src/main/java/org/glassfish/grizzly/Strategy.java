@@ -51,7 +51,7 @@ import java.io.IOException;
  * @author Alexey Stashok
  */
 public interface Strategy {
-    public boolean executeIoEvent(Connection connection, IOEvent ioEvent) throws IOException;
+    boolean executeIoEvent(Connection connection, IOEvent ioEvent) throws IOException;
 //    /**
 //     * Prepare {@link Strategy} for processing {@link IOEvent}, occured on the
 //     * {@link Connection}.

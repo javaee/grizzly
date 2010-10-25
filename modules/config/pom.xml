@@ -170,6 +170,11 @@
             <artifactId>grizzly-http-server</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.glassfish.grizzly</groupId>
+            <artifactId>grizzly-utils</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 <!--
         <dependency>
             <groupId>com.glassfish.grizzly</groupId>

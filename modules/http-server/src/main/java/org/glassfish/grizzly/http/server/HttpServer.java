@@ -51,6 +51,7 @@ import org.glassfish.grizzly.http.server.jmx.JmxEventListener;
 import org.glassfish.grizzly.monitoring.jmx.GrizzlyJmxManager;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.rcm.ResourceAllocationFilter;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import java.io.IOException;
 import java.util.Map;
@@ -515,7 +516,15 @@ public class HttpServer {
                                 false);
                     listener.setSSLEngineConfig(sslConfig);
                 }
-                builder.add(new SSLFilter(sslConfig, null));
+                final SSLFilter filter = new SSLFilter(sslConfig, null);
+                if (sslConfig.isLazyInit()) {
+                    System.out.println("Lazy init'ing ssl");
+                    builder.add(new LazyInitSslFilter(filter));
+                } else {
+                    System.out.println("adding ssl filter");
+                    builder.add(filter);
+                }
+
             }
             final int maxHeaderSize = listener.getMaxHttpHeaderSize() == -1
                                         ? org.glassfish.grizzly.http.HttpServerFilter.DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE
@@ -530,7 +539,10 @@ public class HttpServer {
             for (ContentEncoding contentEncoding : contentEncodings) {
                 httpServerFilter.addContentEncoding(contentEncoding);
             }
-            
+            if (listener.isRcmSupportEnabled()) {
+                builder.add(new ResourceAllocationFilter());
+            }
+
             httpServerFilter.getMonitoringConfig().addProbes(
                     serverConfig.getMonitoringConfig().getHttpConfig().getProbes());
             builder.add(httpServerFilter);
@@ -540,11 +552,8 @@ public class HttpServer {
             }
 
             final FileCache fileCache = listener.getFileCache();
-            fileCache.initialize(listener.getTransport().getMemoryManager(),
-                    delayedExecutor);
-
-            final FileCacheFilter fileCacheFilter =
-                    new FileCacheFilter(fileCache);
+            fileCache.initialize(listener.getTransport().getMemoryManager(), delayedExecutor);
+            final FileCacheFilter fileCacheFilter = new FileCacheFilter(fileCache);
             fileCache.getMonitoringConfig().addProbes(
                     serverConfig.getMonitoringConfig().getFileCacheConfig().getProbes());
             builder.add(fileCacheFilter);

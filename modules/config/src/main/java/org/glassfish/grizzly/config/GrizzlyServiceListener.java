@@ -37,43 +37,31 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.config;
 
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.util.List;
-import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.config.dom.FileCache;
 import org.glassfish.grizzly.config.dom.Http;
 import org.glassfish.grizzly.config.dom.NetworkListener;
 import org.glassfish.grizzly.config.dom.Protocol;
+import org.glassfish.grizzly.config.dom.Ssl;
 import org.glassfish.grizzly.config.dom.ThreadPool;
 import org.glassfish.grizzly.config.dom.Transport;
-import org.glassfish.grizzly.config.dom.Ssl;
-import org.glassfish.grizzly.filterchain.Filter;
-import org.glassfish.grizzly.filterchain.FilterChain;
-import org.glassfish.grizzly.filterchain.FilterChainEnabledTransport;
-import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.FilterAdapter;
 import org.glassfish.grizzly.http.HttpServerFilter;
-import org.glassfish.grizzly.http.WebFilter;
-import org.glassfish.grizzly.http.WebFilterConfig;
+import org.glassfish.grizzly.http.KeepAlive;
 import org.glassfish.grizzly.http.server.HttpServer;
+import org.glassfish.grizzly.http.server.HttpService;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
-import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.rcm.ResourceAllocationFilter;
-import org.glassfish.grizzly.ssl.SSLFilter;
-import org.glassfish.grizzly.tcp.Adapter;
-import org.glassfish.grizzly.threadpool.DefaultThreadPool;
+import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
+import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
+import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
 /**
  * <p>The GrizzlyServiceListener is responsible of mapping incoming requests to the proper Container or Grizzly
@@ -87,66 +75,42 @@ import org.glassfish.grizzly.threadpool.DefaultThreadPool;
  * @author Jeanfrancois Arcand
  * @author Justin Lee
  */
-public class GrizzlyServiceListener {
+public final class GrizzlyServiceListener {
     /**
      * The logger to use for logging messages.
      */
-    protected static final Logger logger = Logger.getLogger(GrizzlyServiceListener.class.getName());
+    static final Logger logger = Logger.getLogger(GrizzlyServiceListener.class.getName());
     private boolean isEmbeddedHttpSecured;
     private String name;
     private int port;
-    private NIOTransport nioTransport;
-    private HttpServerFilter webFilterConfig;
+    private HttpServerFilter httpServerFilter;
     private String defaultVirtualServer;
+    private HttpServer server;
+    private TCPNIOTransport nioTransport;
+    private org.glassfish.grizzly.http.server.NetworkListener networkListener;
 
     /**
      * Configures the given grizzlyListener.
      *
-     * @param networkListener The listener to configure
+     * @param listener The listener to configure
      */
-    public GrizzlyServiceListener(NetworkListener networkListener) throws IOException {
-        final Protocol httpProtocol = networkListener.findHttpProtocol();
+    public GrizzlyServiceListener(NetworkListener listener) throws IOException {
+        final Protocol httpProtocol = listener.findHttpProtocol();
         if (httpProtocol != null) {
             isEmbeddedHttpSecured = Boolean.parseBoolean(
                 httpProtocol.getSecurityEnabled());
         }
-        configureListener(networkListener);
-        setName(networkListener.getName());
-        final WebFilter filter = new WebFilter(getName(), webFilterConfig);
-        filter.initialize();
-        add(filter);
-        System.out.println(Arrays.toString(((FilterChainEnabledTransport) nioTransport).getFilterChain().toArray()));
-    }
-
-    public WebFilterConfig getWebFilterConfig() {
-        return webFilterConfig;
-    }
-
-    private void add(final Filter filter) {
-        ((FilterChainEnabledTransport) nioTransport).getFilterChain().add(filter);
-    }
-
-    private void add(final Filter filter, final Class<? extends Filter> after) {
-        final FilterChain chain = ((FilterChainEnabledTransport) nioTransport).getFilterChain();
-        boolean added = false;
-        for (int index = 0; index < chain.size() && !added; index++) {
-            if (chain.get(index).getClass().isAssignableFrom(after)) {
-                added = true;
-                chain.add(index + 1, filter);
-            }
-        }
-        if (!added) {
-            chain.add(filter);
-        }
+        setName(listener.getName());
+        configureListener(listener);
     }
 
     public void start() throws IOException {
         System.out.println("Starting listener " + getName());
-        nioTransport.start();
+        server.start();
     }
 
     public void stop() throws IOException {
-        nioTransport.stop();
+        server.stop();
     }
 
     public String getDefaultVirtualServer() {
@@ -161,7 +125,7 @@ public class GrizzlyServiceListener {
         return name;
     }
 
-    public void setName(String name) {
+    public final void setName(String name) {
         this.name = name;
     }
 
@@ -176,45 +140,44 @@ public class GrizzlyServiceListener {
         configureThreadPool(networkListener);
     }
 
-    protected void configureTransport(NetworkListener listener) {
+    void configureTransport(NetworkListener listener) {
         final Transport transport = listener.findTransport();
         try {
             if ("tcp".equalsIgnoreCase(transport.getName())) {
-            if(listener.findHttpProtocol() != null) {
-                createHttpServer(listener);
+                if (listener.findHttpProtocol() != null) {
+                    createHttpServer(listener);
+                } else {
+                    throw new GrizzlyConfigException("Unsupported listener configuration on " + listener.getName());
+                }
             } else {
-                throw new GrizzlyConfigException("Unsupported listener configuration on " + listener.getName());
+                throw new GrizzlyConfigException("Unsupported transport type " + transport.getName());
             }
-        } else {
-            throw new GrizzlyConfigException("Unsupported transport type " + transport.getName());
-        }
         } catch (IOException e) {
             throw new GrizzlyConfigException(e.getMessage(), e);
         }
+        final int backLog = Integer.parseInt(transport.getMaxConnectionsCount());
+        nioTransport = networkListener.getTransport();
+        nioTransport.setSelectorRunnersCount(Integer.parseInt(transport.getAcceptorThreads()));
+        nioTransport.setTcpNoDelay(Boolean.valueOf(transport.getTcpNoDelay()));
+        nioTransport.setLinger(Integer.parseInt(transport.getLinger()));
+        nioTransport.setReadBufferSize(Integer.parseInt(transport.getBufferSizeBytes()));
     }
 
     private void createHttpServer(final NetworkListener listener) throws IOException {
-        final HttpServer server = new HttpServer();
-        final org.glassfish.grizzly.http.server.NetworkListener http
-            = new org.glassfish.grizzly.http.server.NetworkListener(listener.getName(), listener.getAddress(),
+        server = new HttpServer();
+        networkListener = new org.glassfish.grizzly.http.server.NetworkListener(listener.getName(),
+            listener.getAddress(),
             Integer.parseInt(listener.getPort()));
-        final Transport transport = listener.findTransport();
-        final int backLog = Integer.parseInt(transport.getMaxConnectionsCount());
-
-        http.
+        server.addListener(networkListener);
 //        nioTransport = TransportFactory.getInstance().createTCPTransport();
 //        final TCPNIOTransport tcp = (TCPNIOTransport) nioTransport;
 //        tcp.setTcpNoDelay(GrizzlyConfig.toBoolean(transport.getTcpNoDelay()));
 //
-//        nioTransport.setSelectorRunnersCount(Integer.parseInt(transport.getAcceptorThreads()));
 //        transport settings
-//        webFilterConfig = new WebFilterConfig();
-//        webFilterConfig.setClassLoader(getClass().getClassLoader());
-//        webFilterConfig.setRequestBufferSize(Integer.parseInt(transport.getBufferSizeBytes()));
-//        webFilterConfig.setDisplayConfiguration(GrizzlyConfig.toBoolean(transport.getDisplayConfiguration()));
-
-        server.addListener(http);
-        server.start();
+//        httpServerFilter = new WebFilterConfig();
+//        httpServerFilter.setClassLoader(getClass().getClassLoader());
+//        httpServerFilter.setRequestBufferSize(Integer.parseInt(transport.getBufferSizeBytes()));
+//        httpServerFilter.setDisplayConfiguration(GrizzlyConfig.toBoolean(transport.getDisplayConfiguration()));
     }
 
     private void configureProtocol(NetworkListener networkListener, boolean mayEnableComet) {
@@ -229,6 +192,7 @@ public class GrizzlyServiceListener {
             defaultVirtualServer = http.getDefaultVirtualServer();
             // acceptor-threads
             if (mayEnableComet && GrizzlyConfig.toBoolean(http.getCometSupportEnabled())) {
+                throw new GrizzlyConfigException("Comet not support in 2.x yet.");
 //                configureComet(habitat);
             }
             if (Boolean.valueOf(protocol.getSecurityEnabled())) {
@@ -344,13 +308,16 @@ public class GrizzlyServiceListener {
 
     private void configureSsl(final Protocol protocol) {
         final Ssl ssl = protocol.getSsl();
-        if (Boolean.valueOf(ssl.getAllowLazyInit())) {
-            System.out.println("Lazy init'ing ssl");
-            add(new LazyInitSslFilter(ssl));
-        } else {
-            System.out.println("adding ssl filter");
-            add(new SSLFilter(SSLConfigHolder.configureSSL(ssl)), TransportFilter.class);
-        }
+        networkListener.setSecure(true);
+        final SSLEngineConfigurator engineConfigurator = networkListener.getSslEngineConfig();
+        final SSLConfigHolder holder = new SSLConfigHolder(ssl);
+        engineConfigurator.setEnabledCipherSuites(holder.getEnabledCipherSuites());
+        engineConfigurator.setEnabledProtocols(holder.getEnabledProtocols());
+        engineConfigurator.setNeedClientAuth(holder.isNeedClientAuth());
+        engineConfigurator.setWantClientAuth(holder.isWantClientAuth());
+        engineConfigurator.setClientMode(holder.isClientMode());
+        engineConfigurator.setLazyInit(holder.isAllowLazyInit());
+        networkListener.setSSLEngineConfig(engineConfigurator);
     }
 /*
     protected void configurePortUnification() {
@@ -384,70 +351,73 @@ public class GrizzlyServiceListener {
      * Configure the Grizzly FileCache mechanism
      */
     private void configureFileCache(FileCache cache) {
-        if (cache != null && GrizzlyConfig.toBoolean(cache.getEnabled())) {
-            org.glassfish.grizzly.http.FileCache fileCache = new org.glassfish.grizzly.http.FileCache(webFilterConfig);
-            webFilterConfig.setFileCache(fileCache);
+        final org.glassfish.grizzly.http.server.filecache.FileCache fileCache = networkListener.getFileCache();
+        fileCache.setEnabled(GrizzlyConfig.toBoolean(cache.getEnabled()));
+        if (cache != null && fileCache.isEnabled()) {
             fileCache.setSecondsMaxAge(Integer.parseInt(cache.getMaxAgeSeconds()));
             fileCache.setMaxCacheEntries(Integer.parseInt(cache.getMaxFilesCount()));
-            fileCache.setMaxLargeCacheSize(Integer.parseInt(cache.getMaxCacheSizeBytes()));
+            fileCache.setMaxLargeFileCacheSize(Integer.parseInt(cache.getMaxCacheSizeBytes()));
         }
     }
 
     private void configureHttpListenerProperty(Http http) throws NumberFormatException {
         // http settings
+        final ServerConfiguration configuration = server.getServerConfiguration();
         try {
-            webFilterConfig.setAdapter((Adapter) Class.forName(http.getAdapter()).newInstance());
+            configuration.addHttpService((HttpService) Class.forName(http.getAdapter()).newInstance());
         } catch (Exception e) {
             throw new GrizzlyConfigException(e.getMessage(), e);
         }
-        webFilterConfig.setMaxKeepAliveRequests(Integer.parseInt(http.getMaxConnections()));
-        webFilterConfig
-            .getProperties().put("authPassthroughEnabled", GrizzlyConfig.toBoolean(http.getAuthPassThroughEnabled()));
-        webFilterConfig.setMaxPostSize(Integer.parseInt(http.getMaxPostSizeBytes()));
-        webFilterConfig.setCompression(http.getCompression());
-        webFilterConfig.setCompressableMimeTypes(http.getCompressableMimeType());
+        networkListener.setRcmSupportEnabled(GrizzlyConfig.toBoolean(http.getRcmSupportEnabled()));
+        networkListener.setChunkingEnabled(GrizzlyConfig.toBoolean(http.getChunkingEnabled()));
+
         nioTransport.setWriteBufferSize(Integer.parseInt(http.getSendBufferSizeBytes()));
-        webFilterConfig.setNoCompressionUserAgents(http.getNoCompressionUserAgents());
-        webFilterConfig.setCompressionMinSize(Integer.parseInt(http.getCompressionMinSizeBytes()));
-        webFilterConfig.setRestrictedUserAgents(http.getRestrictedUserAgents());
-        if (GrizzlyConfig.toBoolean(http.getRcmSupportEnabled())) {
-            ((TCPNIOTransport) nioTransport).getFilterChain().add(new ResourceAllocationFilter());
-        }
-        webFilterConfig.setUploadTimeout(Integer.parseInt(http.getConnectionUploadTimeoutMillis()));
-        webFilterConfig.setDisableUploadTimeout(GrizzlyConfig.toBoolean(http.getUploadTimeoutEnabled()));
-        webFilterConfig.setUseChunking(GrizzlyConfig.toBoolean(http.getChunkingEnabled()));
-        webFilterConfig.getProperties().put("uriEncoding", http.getUriEncoding());
-        webFilterConfig.getProperties().put("traceEnabled", GrizzlyConfig.toBoolean(http.getTraceEnabled()));
+
+        networkListener.setCompression(http.getCompression());
+        networkListener.setAuthPassthroughEnabled(GrizzlyConfig.toBoolean(http.getAuthPassThroughEnabled()));
+        networkListener.setMaxPostSize(Integer.parseInt(http.getMaxPostSizeBytes()));
+        networkListener.setCompressableMimeTypes(http.getCompressableMimeType());
+        networkListener.setNoCompressionUserAgents(http.getNoCompressionUserAgents());
+        networkListener.setCompressionMinSize(Integer.parseInt(http.getCompressionMinSizeBytes()));
+        networkListener.setRestrictedUserAgents(http.getRestrictedUserAgents());
+        networkListener.setUploadTimeout(Integer.parseInt(http.getConnectionUploadTimeoutMillis()));
+        networkListener.setDisableUploadTimeout(GrizzlyConfig.toBoolean(http.getUploadTimeoutEnabled()));
+        networkListener.setUriEncoding(http.getUriEncoding());
+        networkListener.setTraceEnabled(GrizzlyConfig.toBoolean(http.getTraceEnabled()));
     }
 
     private void configureKeepAlive(Http http) {
         if (http != null) {
-            webFilterConfig.setKeepAliveTimeoutInSeconds(Integer.parseInt(http.getTimeoutSeconds()));
-            webFilterConfig.setMaxKeepAliveRequests(Integer.parseInt(http.getMaxConnections()));
+            final KeepAlive keepAlive = networkListener.getKeepAlive();
+            keepAlive.setMaxRequestsCount(Integer.parseInt(http.getMaxConnections()));
+            keepAlive.setIdleTimeoutInSeconds(Integer.parseInt(http.getTimeoutSeconds()));
         }
     }
 
     private void configureHttpProtocol(Http http) {
         if (http != null) {
-            webFilterConfig.setMaxHttpHeaderSize(Integer.parseInt(http.getHeaderBufferLengthBytes()));
+            networkListener.setMaxHttpHeaderSize(Integer.parseInt(http.getHeaderBufferLengthBytes()));
         }
     }
 
-    private void configureThreadPool(NetworkListener networkListener) {
-        final ThreadPool threadPool = networkListener.findThreadPool();
+    private void configureThreadPool(NetworkListener listener) {
+        final ThreadPool threadPool = listener.findThreadPool();
         if (null != threadPool) {
             try {
-                Http http = networkListener.findHttpProtocol().getHttp();
+                Http http = listener.findHttpProtocol().getHttp();
                 int keepAlive = http == null ? 0 : Integer.parseInt(http.getTimeoutSeconds());
                 final int maxQueueSize = threadPool.getMaxQueueSize() != null ? Integer.MAX_VALUE
                     : Integer.parseInt(threadPool.getMaxQueueSize());
                 final int minThreads = Integer.parseInt(threadPool.getMinThreadPoolSize());
                 final int maxThreads = Integer.parseInt(threadPool.getMaxThreadPoolSize());
                 final int timeout = Integer.parseInt(threadPool.getIdleThreadTimeoutSeconds());
-                webFilterConfig.setWorkerThreadPool(newThreadPool(minThreads, maxThreads, maxQueueSize,
-                    keepAlive < 0 ? Long.MAX_VALUE : keepAlive * 1000, TimeUnit.MILLISECONDS));
-//                webFilterConfig.setCoreThreads(minThreads);
-//                webFilterConfig.setMaxThreads(maxThreads);
+                final ThreadPoolConfig poolConfig = ThreadPoolConfig.DEFAULT.clone();
+                poolConfig.setCorePoolSize(minThreads);
+                networkListener.getTransport().setThreadPool(GrizzlyExecutorService.createInstance(poolConfig));
+//                networkListener.getTransport().setThreadPool(newThreadPool(minThreads, maxThreads, maxQueueSize,
+//                    keepAlive < 0 ? Long.MAX_VALUE : keepAlive * 1000, TimeUnit.MILLISECONDS));
+//                httpServerFilter.setCoreThreads(minThreads);
+//                httpServerFilter.setMaxThreads(maxThreads);
                 List<String> l = ManagementFactory.getRuntimeMXBean().getInputArguments();
                 boolean debugMode = false;
                 for (String s : l) {
@@ -458,10 +428,10 @@ public class GrizzlyServiceListener {
                 }
                 if (!debugMode && timeout > 0) {
                     // Idle Threads cannot be alive more than 15 minutes by default
-                    webFilterConfig.setTransactionTimeout(timeout * 1000);
+                    networkListener.setTransactionTimeout(timeout * 1000);
                 } else {
                     // Disable the mechanism
-                    webFilterConfig.setTransactionTimeout(-1);
+                    networkListener.setTransactionTimeout(-1);
                 }
             } catch (NumberFormatException ex) {
                 logger.log(Level.WARNING, " Invalid thread-pool attribute", ex);
@@ -469,36 +439,7 @@ public class GrizzlyServiceListener {
         }
     }
 
-    protected DefaultThreadPool newThreadPool(int minThreads, int maxThreads,
-        int maxQueueSize, long timeout, TimeUnit timeunit) {
-        return new DefaultThreadPool(minThreads, maxThreads, maxQueueSize, timeout, timeunit);
-    }
-
-    public NIOTransport getTransport() {
-        return nioTransport;
-    }
-
-    private class LazyInitSslFilter extends FilterAdapter {
-        private Ssl ssl;
-        private boolean initialized = false;
-
-        public LazyInitSslFilter(final Ssl ssl) {
-            this.ssl = ssl;
-        }
-
-        private void init() {
-            if (!initialized) {
-                add(new SSLFilter(SSLConfigHolder.configureSSL(ssl)), getClass());
-                final FilterChain chain = ((FilterChainEnabledTransport) nioTransport).getFilterChain();
-                chain.remove(this);
-                initialized = true;
-            }
-        }
-
-        @Override
-        public NextAction handleAccept(final FilterChainContext ctx, final NextAction nextAction) throws IOException {
-            init();
-            return nextAction;
-        }
+    public HttpService getHttpService() {
+        return server.getHttpService();
     }
 }

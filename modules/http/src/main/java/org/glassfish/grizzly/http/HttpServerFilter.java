@@ -92,6 +92,8 @@ public class HttpServerFilter extends HttpCodecFilter {
     private final KeepAlive keepAlive;
 
     private final boolean processKeepAlive;
+    private boolean authPassthroughEnabled;
+    private boolean traceEnabled;
 
     /**
      * Constructor, which creates <tt>HttpServerFilter</tt> instance
@@ -749,16 +751,28 @@ public class HttpServerFilter extends HttpCodecFilter {
 
     private boolean checkKeepAliveRequestsCount(final Connection connection) {
         final KeepAliveContext keepAliveContext;
+        
+        return !(processKeepAlive && (keepAliveContext =
+            keepAliveContextAttr.get(connection)) != null) || ++keepAliveContext.requestsProcessed <= keepAlive
+            .getMaxRequestsCount();
 
-        if (processKeepAlive && (keepAliveContext =
-                keepAliveContextAttr.get(connection)) != null) {
-
-            return ++keepAliveContext.requestsProcessed <= keepAlive.getMaxRequestsCount();
-        }
-
-        return true;
     }
 
+    public boolean isAuthPassthroughEnabled() {
+        return authPassthroughEnabled;
+    }
+
+    public void setAuthPassthroughEnabled(final boolean enabled) {
+        authPassthroughEnabled = enabled;
+    }
+
+    public boolean isTraceEnabled() {
+        return traceEnabled;
+    }
+
+    public void setTraceEnabled(final boolean enabled) {
+        traceEnabled = enabled;
+    }
     // ---------------------------------------------------------- Nested Classes
 
 

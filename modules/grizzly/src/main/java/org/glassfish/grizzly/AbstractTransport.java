@@ -370,7 +370,7 @@ public abstract class AbstractTransport implements Transport {
      * Close the connection, managed by Transport
      * 
      * @param connection
-     * @throws java.io.IOException
+     * @throws IOException
      */
     protected abstract void closeConnection(Connection connection) throws IOException;
 
@@ -416,7 +416,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * Starts the transport
      * 
-     * @throws java.io.IOException
+     * @throws IOException
      */
     @Override
     public abstract void start() throws IOException;
@@ -424,7 +424,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * Stops the transport and closes all the connections
      * 
-     * @throws java.io.IOException
+     * @throws IOException
      */
     @Override
     public abstract void stop() throws IOException;
@@ -432,7 +432,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * Pauses the transport
      * 
-     * @throws java.io.IOException
+     * @throws IOException
      */
     @Override
     public abstract void pause() throws IOException;
@@ -440,7 +440,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * Resumes the transport after a pause
      * 
-     * @throws java.io.IOException
+     * @throws IOException
      */
     @Override
     public abstract void resume() throws IOException;

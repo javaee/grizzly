@@ -40,18 +40,8 @@
 
 package org.glassfish.grizzly.config;
 
-import org.glassfish.grizzly.util.LogMessages;
-import org.glassfish.grizzly.SSLConfig;
-import org.glassfish.grizzly.config.dom.NetworkListener;
-import org.glassfish.grizzly.config.dom.Protocol;
-import org.glassfish.grizzly.config.dom.Ssl;
-import org.glassfish.grizzly.util.net.SSLImplementation;
-import org.glassfish.grizzly.util.net.ServerSocketFactory;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -60,8 +50,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.net.ssl.SSLException;
+import javax.net.ServerSocketFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLServerSocketFactory;
+
+import org.glassfish.grizzly.config.dom.NetworkListener;
+import org.glassfish.grizzly.config.dom.Protocol;
+import org.glassfish.grizzly.config.dom.Ssl;
+import org.glassfish.grizzly.util.LogMessages;
 
 /**
  *
@@ -74,14 +71,6 @@ public class SSLConfigHolder {
 
     private final static Logger logger = Logger.getLogger(SSLConfigHolder.class.getName());
 
-    /**
-     * The <code>SSLImplementation</code>
-     */
-    protected SSLImplementation sslImplementation;
-    /**
-     * The <code>SSLContext</code> associated with the SSL implementation we are running on.
-     */
-    protected SSLContext sslContext;
     /**
      * The list of cipher suite
      */
@@ -108,34 +97,9 @@ public class SSLConfigHolder {
      */
     private final Ssl ssl;
 
-    public SSLConfigHolder(final Ssl ssl) throws SSLException {
+    public SSLConfigHolder(final Ssl ssl) throws GrizzlyConfigException {
         this.ssl = ssl;
-        sslImplementation = lookupSSLImplementation(ssl);
-
-        if (sslImplementation == null) {
-            throw new SSLException("Can not configure SSLImplementation");
-        }
-    }
-
-    /**
-     * Set the SSLContext required to support SSL over NIO.
-     */
-    public void setSSLConfig(final SSLConfig sslConfig) {
-        sslContext = sslConfig.createSSLContext();
-    }
-
-    /**
-     * Return the SSLContext required to support SSL over NIO.
-     */
-    public SSLContext getSSLContext() {
-        return sslContext;
-    }
-
-    /**
-     * Return the current <code>SSLImplementation</code> this Thread
-     */
-    public SSLImplementation getSSLImplementation() {
-        return sslImplementation;
+        configureSSL();
     }
 
     /**
@@ -179,28 +143,6 @@ public class SSLConfigHolder {
         return wantClientAuth;
     }
 
-    public SSLEngine createSSLEngine() {
-        final SSLEngine sslEngine = sslContext.createSSLEngine();
-
-        if (logger.isLoggable(Level.FINE)) {
-            logger.log(Level.FINE, "newSSLEngine: " + sslEngine);
-        }
-
-        if (enabledCipherSuites != null){
-            sslEngine.setEnabledCipherSuites(enabledCipherSuites);
-        }
-
-        if (enabledProtocols != null){
-            sslEngine.setEnabledProtocols(enabledProtocols);
-        }
-
-        sslEngine.setUseClientMode(clientMode);
-        sslEngine.setWantClientAuth(wantClientAuth);
-        sslEngine.setNeedClientAuth(needClientAuth);
-
-        return sslEngine;
-    }
-
     /**
      * Configures the SSL properties on the given PECoyoteConnector from the SSL config of the given HTTP listener.
      */
@@ -208,7 +150,7 @@ public class SSLConfigHolder {
         final List<String> tmpSSLArtifactsList = new LinkedList<String>();
 
         try {
-            initializeSSL();
+//            initializeSSL();
 
             if (ssl != null) {
                 // client-auth
@@ -301,8 +243,8 @@ public class SSLConfigHolder {
      *
      * @throws Exception
      */
+/*
     private void initializeSSL() throws Exception {
-        SSLImplementation sslHelper = getSSLImplementation();
 
         final ServerSocketFactory serverSF = sslHelper.getServerSocketFactory();
 
@@ -329,25 +271,28 @@ public class SSLConfigHolder {
         setAttribute(serverSF, "truststoreType", ssl != null ? ssl.getTrustStoreType() : null, "javax.net.ssl.trustStoreType", "JKS");
         setAttribute(serverSF, "truststorePass", ssl != null ? getTrustStorePassword(ssl) : null, "javax.net.ssl.trustStorePassword", "changeit");
         // cert nick name
-        serverSF.setAttribute("keyAlias", ssl != null ? ssl.getCertNickname() : null);
-        serverSF.init();
-
-        sslContext = serverSF.getSSLContext();
-        
-        CipherInfo.updateCiphers(sslContext);
+//        serverSF.setAttribute("keyAlias", ssl != null ? ssl.getCertNickname() : null);
+//        serverSF.init();
+//
+//        sslContext = serverSF.getSSLContext();
+//
+//        CipherInfo.updateCiphers(sslContext);
     }
+*/
 
 
-    public static boolean isAllowLazyInit(final Ssl ssl) {
+    public boolean isAllowLazyInit() {
         return ssl == null || Boolean.parseBoolean(ssl.getAllowLazyInit());
     }
 
+/*
     private static void setAttribute(final ServerSocketFactory serverSF, final String name, final String value,
         final String property, final String defaultValue) {
         serverSF.setAttribute(name, value == null ?
             System.getProperty(property, defaultValue) :
             value);
     }
+*/
 
     private static String getKeyStorePassword(Ssl ssl) {
         if (PLAIN_PASSWORD_PROVIDER_NAME.equalsIgnoreCase(ssl.getKeyStorePasswordProvider())) {
@@ -383,22 +328,13 @@ public class SSLConfigHolder {
         return null;
     }
 
+/*
     private static SSLImplementation lookupSSLImplementation(Ssl ssl) {
         try {
             final String sslImplClassName = ssl.getClassname();
             if (sslImplClassName != null) {
                 try {
-                    Class clazz;
-                    ClassLoader cl = getContextClassLoader();
-                    if (cl != null) {
-                        try {
-                            clazz = Class.forName(sslImplClassName, false, cl);
-                        } catch (ClassNotFoundException ex) {
-                            clazz = Class.forName(sslImplClassName);
-                        }
-                    } else {
-                        clazz = Class.forName(sslImplClassName);
-                    }
+                    Class clazz = Utils.loadClass(sslImplClassName);
 
                     SSLImplementation impl = (SSLImplementation) clazz.newInstance();
 
@@ -431,34 +367,19 @@ public class SSLConfigHolder {
 
         return null;
     }
-
-    private static ClassLoader getContextClassLoader() {
-        return AccessController.doPrivileged(
-                new PrivilegedAction<ClassLoader>() {
-
-                    public ClassLoader run() {
-                        ClassLoader cl = null;
-                        try {
-                            cl = Thread.currentThread().getContextClassLoader();
-                        } catch (SecurityException ignore) {
-                        }
-                        return cl;
-                    }
-                });
-    }
-
+*/
 
     /*
-     * Evalutates the given List of cipher suite names, converts each cipher
-     * suite that is enabled (i.e., not preceded by a '-') to the corresponding
-     * JSSE cipher suite name, and returns a String[] of enabled cipher suites.
-     *
-     * @param sslCiphers List of SSL ciphers to evaluate.
-     *
-     * @return String[] of cipher suite names, or null if none of the cipher
-     *  suites in the given List are enabled or can be mapped to corresponding
-     *  JSSE cipher suite names
-     */
+    * Evalutates the given List of cipher suite names, converts each cipher
+    * suite that is enabled (i.e., not preceded by a '-') to the corresponding
+    * JSSE cipher suite name, and returns a String[] of enabled cipher suites.
+    *
+    * @param sslCiphers List of SSL ciphers to evaluate.
+    *
+    * @return String[] of cipher suite names, or null if none of the cipher
+    *  suites in the given List are enabled or can be mapped to corresponding
+    *  JSSE cipher suite names
+    */
     private static String[] getJSSECiphers(final List<String> configuredCiphers) {
         Set<String> enabledCiphers = null;
         for (String cipher : configuredCiphers) {

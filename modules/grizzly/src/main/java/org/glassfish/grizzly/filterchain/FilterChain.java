@@ -42,6 +42,7 @@ package org.glassfish.grizzly.filterchain;
 
 import java.util.List;
 
+import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.Processor;
 import org.glassfish.grizzly.Codec;
 import org.glassfish.grizzly.CompletionHandler;
@@ -94,29 +95,28 @@ import java.io.IOException;
  * @author Alexey Stashok
  */
 public interface FilterChain extends Processor, List<Filter> {
-    public FilterChainContext obtainFilterChainContext(Connection connection);
+    FilterChainContext obtainFilterChainContext(Connection connection);
     
     /**
-     * Method processes occurred {@link org.glassfish.grizzly.IOEvent} on this
-     * {@link FilterChain}.
+     * Method processes occurred {@link IOEvent} on this {@link FilterChain}.
      *
      * @param context processing context
      * @return {@link ProcessorResult}
      *
-     * @throws java.io.IOException
+     * @throws IOException
      */
-    public ProcessorResult execute(FilterChainContext context) throws IOException;
+    ProcessorResult execute(FilterChainContext context) throws IOException;
 
-    public <M> GrizzlyFuture<WriteResult> flush(Connection connection,
+    <M> GrizzlyFuture<WriteResult> flush(Connection connection,
             CompletionHandler<WriteResult> completionHandler) throws IOException;
 
-    public GrizzlyFuture fireEventUpstream(Connection connection, Object event,
+    GrizzlyFuture fireEventUpstream(Connection connection, Object event,
             CompletionHandler completionHandler) throws IOException;
     
-    public GrizzlyFuture fireEventDownstream(Connection connection, Object event,
+    GrizzlyFuture fireEventDownstream(Connection connection, Object event,
             CompletionHandler completionHandler) throws IOException;
 
-    public ReadResult read(FilterChainContext context) throws IOException;
+    ReadResult read(FilterChainContext context) throws IOException;
 
-    public void fail(FilterChainContext context, Throwable failure);
+    void fail(FilterChainContext context, Throwable failure);
 }

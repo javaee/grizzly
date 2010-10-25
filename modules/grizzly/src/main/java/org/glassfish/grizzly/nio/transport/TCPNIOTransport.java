@@ -116,45 +116,45 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
     /**
      * The Server connections.
      */
-    protected final Collection<TCPNIOServerConnection> serverConnections;
+    final Collection<TCPNIOServerConnection> serverConnections;
     /**
      * Transport AsyncQueueIO
      */
-    protected AsyncQueueIO asyncQueueIO;
+    AsyncQueueIO asyncQueueIO;
     /**
      * Server socket backlog.
      */
-    protected TemporarySelectorIO temporarySelectorIO;
+    TemporarySelectorIO temporarySelectorIO;
     /**
      * The server socket time out
      */
-    protected int serverSocketSoTimeout = 0;
+    int serverSocketSoTimeout = 0;
     /**
      * The socket tcpDelay.
      * 
      * Default value for tcpNoDelay is disabled (set to true).
      */
-    protected boolean tcpNoDelay = true;
+    boolean tcpNoDelay = true;
     /**
      * The socket reuseAddress
      */
-    protected boolean reuseAddress = true;
+    boolean reuseAddress = true;
     /**
      * The socket linger.
      */
-    protected int linger = -1;
+    int linger = -1;
     /**
      * The socket keepAlive mode.
      */
-    protected boolean isKeepAlive = false;
+    boolean isKeepAlive = false;
     /**
      * The socket time out
      */
-    protected int clientSocketSoTimeout = -1;
+    int clientSocketSoTimeout = -1;
     /**
      * Default channel connection timeout
      */
-    protected int connectionTimeout =
+    int connectionTimeout =
             TCPNIOConnectorHandler.DEFAULT_CONNECTION_TIMEOUT;
 
     private int maxReadAttempts = 3;
@@ -172,7 +172,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         this(DEFAULT_TRANSPORT_NAME);
     }
 
-    protected TCPNIOTransport(String name) {
+    TCPNIOTransport(String name) {
         super(name);
         
         readBufferSize = DEFAULT_READ_BUFFER_SIZE;
@@ -569,7 +569,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         return connection;
     }
 
-    protected void configureNIOConnection(TCPNIOConnection connection) {
+    void configureNIOConnection(TCPNIOConnection connection) {
         connection.configureBlocking(isBlocking);
         connection.configureStandalone(isStandalone);
         connection.setProcessor(processor);
@@ -582,7 +582,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
      * @param channel <code>SocketChannel</code> to configure
      * @throws java.io.IOException
      */
-    protected void configureChannel(SocketChannel channel) throws IOException {
+    void configureChannel(SocketChannel channel) throws IOException {
         Socket socket = channel.socket();
 
         channel.configureBlocking(false);

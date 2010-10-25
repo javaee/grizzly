@@ -84,21 +84,20 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
     void setMaxQueueSize(String value);
 
     /**
-     * Maximum number of threads in the threadpool servicing
+     * Maximum number of threads in the thread pool servicing
      requests in this queue. This is the upper bound on the no. of
-     threads that exist in the threadpool.
+     threads that exist in the thread pool.
      */
     @Attribute(defaultValue = "5", dataType = Integer.class)
     @Min(value=2)
     @Max(Integer.MAX_VALUE)
     String getMaxThreadPoolSize();
 
-    void setMaxThreadPoolSize(String value)  throws PropertyVetoException;
+    void setMaxThreadPoolSize(String value);
 
     /**
-     * Minimum number of threads in the threadpool servicing
-     requests in this queue. These are created up front when this
-     threadpool is instantiated
+     * Minimum number of threads in the thread pool servicing requests in this queue. These are created up front when
+     * this thread pool is instantiated
      */
     @Attribute(defaultValue = "2", dataType = Integer.class)
     @Min(2)
