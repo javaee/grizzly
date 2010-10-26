@@ -126,7 +126,7 @@ public class GrizzlyInputBuffer extends Reader
     /**
      * State of the output buffer.
      */
-    private int state = 0;
+    int state = 0;
 
 
     /**

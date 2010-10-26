@@ -1947,8 +1947,12 @@ public class GrizzlyRequest {
 
         parameters.handleQueryParameters();
 
-        if (usingInputStream || usingReader)
+        // getInputStream() or getReader() may have been called on the request,
+        // but if no read() methods have been invoked before getRequestParameters()
+        // was invoked, it's safe to continue parameter processing.
+        if (inputBuffer.state != inputBuffer.INITIAL_STATE) {
             return;
+        }
 
         if (!getMethod().equalsIgnoreCase("POST"))
             return;

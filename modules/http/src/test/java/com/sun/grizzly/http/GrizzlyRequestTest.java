@@ -63,20 +63,24 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.Writer;
+import java.net.HttpURLConnection;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class GrizzlyRequestTest extends TestCase {
 
     private SSLConfig sslConfig;
-    private SSLSelectorThread st;
+    private SelectorThread st;
     private static final int PORT = 7333;
     private Logger logger = LoggerUtils.getLogger();
     private String trustStoreFile;
     private String keyStoreFile;
+    private AtomicReference<Throwable> error = new AtomicReference<Throwable>();
 
     @Override
     public void setUp() throws URISyntaxException {
@@ -115,7 +119,7 @@ public class GrizzlyRequestTest extends TestCase {
 
 
     public void testGetUserPrincipalSSL() throws Exception {
-        createSelectorThread();
+        createSSLSelectorThread();
         try {
             HostnameVerifier hv = new HostnameVerifier() {
                 public boolean verify(String urlHostName, SSLSession session) {
@@ -156,11 +160,59 @@ public class GrizzlyRequestTest extends TestCase {
         }
     }
 
+    public void testParametersAvailable() throws Throwable {
+        try {
+            createSelectorThread(new InputAdapter());
+            URL url = new URL("http://localhost:" + PORT + "/path");
+            HttpURLConnection c = (HttpURLConnection) url.openConnection();
+            c.setDoOutput(true);
+            c.setRequestMethod("POST");
+            c.setRequestProperty("content-type", "application/x-www-form-urlencoded");
+            OutputStream out = c.getOutputStream();
+            out.write("param1=value1".getBytes());
+            out.flush();
+            out.close();
+
+            Thread.sleep(100);
+            Throwable t = error.get();
+            if (t != null) {
+                throw t;
+            }
+        } finally {
+            SelectorThreadUtils.stopSelectorThread(st);
+        }
+    }
+
+    public void testParametersAvailable2() throws Throwable {
+        try {
+            createSelectorThread(new InputAdapter2());
+            URL url = new URL("http://localhost:" + PORT + "/path");
+            HttpURLConnection c = (HttpURLConnection) url.openConnection();
+            c.setDoOutput(true);
+            c.setRequestMethod("POST");
+            c.setRequestProperty("content-type", "application/x-www-form-urlencoded");
+            OutputStream out = c.getOutputStream();
+            out.write("param1=value1".getBytes());
+            out.flush();
+            out.close();
+
+            Thread.sleep(100);
+            Throwable t = error.get();
+            if (t != null) {
+                throw t;
+            }
+        } finally {
+            SelectorThreadUtils.stopSelectorThread(st);
+        }
+    }
+
+
     // --------------------------------------------------------- Private Methods
 
 
-    public void createSelectorThread() throws Exception {
-        st = new SSLSelectorThread();
+    public void createSSLSelectorThread() throws Exception {
+        final SSLSelectorThread sslt = new SSLSelectorThread();
+        st = sslt;
         st.setPort(PORT);
         st.setAdapter(new MyAdapter());
         st.setDisplayConfiguration(Utils.VERBOSE_TESTS);
@@ -175,21 +227,73 @@ public class GrizzlyRequestTest extends TestCase {
         st.setBufferSize(32768);
         st.setMaxKeepAliveRequests(8196);
         st.setWebAppRootPath("/dev/null");
-        st.setSSLConfig(sslConfig);
+        sslt.setSSLConfig(sslConfig);
         try {
-            st.setSSLImplementation(new JSSEImplementation());
+            sslt.setSSLImplementation(new JSSEImplementation());
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
           st.enableMonitoring();
-        st.setNeedClientAuth(true);
+        sslt.setNeedClientAuth(true);
         st.listen();
 
 
     }
 
 
+     public void createSelectorThread(final GrizzlyAdapter adapter) throws Exception {
+        st = new SelectorThread();
+        st.setPort(PORT);
+        st.setAdapter(adapter);
+        st.setDisplayConfiguration(Utils.VERBOSE_TESTS);
+        st.setFileCacheIsEnabled(false);
+        st.setLargeFileCacheEnabled(false);
+        st.setBufferResponse(false);
+        st.setKeepAliveTimeoutInSeconds(2000);
+
+        st.initThreadPool();
+        ((ExtendedThreadPool) st.getThreadPool()).setMaximumPoolSize(50);
+
+        st.setBufferSize(32768);
+        st.setMaxKeepAliveRequests(8196);
+        st.setWebAppRootPath("/dev/null");
+        st.enableMonitoring();
+        st.listen();
+    }
+
+
     // ---------------------------------------------------------- Nested Classes
+
+    private final class InputAdapter extends GrizzlyAdapter {
+
+        @Override
+        public void service(GrizzlyRequest request, GrizzlyResponse response) {
+            try {
+                request.getInputStream();
+                Map params = request.getParameterMap();
+                assertTrue("param1 not available", params.containsKey("param1"));
+                assertEquals("value1", request.getParameter("param1"));
+            } catch (Throwable t) {
+                error.set(t);
+            }
+        }
+    }
+
+    private final class InputAdapter2 extends GrizzlyAdapter {
+
+        @Override
+        public void service(GrizzlyRequest request, GrizzlyResponse response) {
+            try {
+                InputStream in = request.getInputStream();
+                in.read();
+                Map params = request.getParameterMap();
+                assertTrue("param1 shouldn't be available", params.containsKey("param1"));
+                assertNull(request.getParameter("param1"));
+            } catch (Throwable t) {
+                error.set(t);
+            }
+        }
+    }
 
 
     private static final class MyAdapter extends GrizzlyAdapter {
