@@ -518,10 +518,8 @@ public class HttpServer {
                 }
                 final SSLFilter filter = new SSLFilter(sslConfig, null);
                 if (sslConfig.isLazyInit()) {
-                    System.out.println("Lazy init'ing ssl");
                     builder.add(new LazyInitSslFilter(filter));
                 } else {
-                    System.out.println("adding ssl filter");
                     builder.add(filter);
                 }
 
