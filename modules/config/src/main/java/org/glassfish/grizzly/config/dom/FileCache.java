@@ -45,7 +45,7 @@ import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.types.PropertyBag;
-import org.glassfish.grizzly.http.Constants;
+import org.glassfish.grizzly.http.util.Constants;
 
 /**
  * Created Jan 8, 2009
