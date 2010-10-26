@@ -120,13 +120,8 @@ public class ServerConfiguration {
      * @param httpService a {@link HttpService}
      * @param mapping        context path mapping information.
      */
-    public void addHttpService(HttpService httpService,
-                                  String... mapping) {
-        if (mapping == null) {
-            mapping = ROOT_MAPPING;
-        }
-
-        services.put(httpService, mapping);
+    public void addHttpService(HttpService httpService, String... mapping) {
+        services.put(httpService, mapping == null ? ROOT_MAPPING : mapping);
     }
 
     /**
@@ -137,7 +132,7 @@ public class ServerConfiguration {
      *  <tt>false</tt>
      */
     public boolean removeHttpService(HttpService httpService) {
-        return (services.remove(httpService) != null);
+        return services.remove(httpService) != null;
     }
 
 
@@ -155,8 +150,8 @@ public class ServerConfiguration {
                 public void service(Request request, Response response) {
                     try {
                         ByteBuffer b = HtmlHelper.getErrorPage("Not Found",
-                                                               "Resource identified by path '" + request.getRequestURI() + "', does not exist.",
-                                                               getHttpServerName() + '/' + getHttpServerVersion());
+                            "Resource identified by path '" + request.getRequestURI() + "', does not exist.",
+                            getHttpServerName() + '/' + getHttpServerVersion());
                         MemoryManager mm = request.getContext().getConnection().getTransport().getMemoryManager();
                         Buffer buf = Buffers.wrap(mm, b);
                         NIOOutputStream out = response.getOutputStream();
@@ -226,7 +221,7 @@ public class ServerConfiguration {
                 return null;
             } else {
                 final int count = INSTANCE_COUNT.incrementAndGet();
-                name = ((count == 0) ? "HttpServer" : "HttpServer-" + count);
+                name = count == 0 ? "HttpServer" : "HttpServer-" + count;
             }
         }
         return name;

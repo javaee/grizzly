@@ -83,7 +83,6 @@ public final class GrizzlyServiceListener {
     private boolean isEmbeddedHttpSecured;
     private String name;
     private int port;
-    private HttpServerFilter httpServerFilter;
     private String defaultVirtualServer;
     private HttpServer server;
     private TCPNIOTransport nioTransport;
@@ -130,7 +129,7 @@ public final class GrizzlyServiceListener {
     }
 
     public int getPort() {
-        return port;
+        return networkListener.getPort();
     }
 
     public void configureListener(NetworkListener networkListener) {
@@ -182,9 +181,9 @@ public final class GrizzlyServiceListener {
 
     private void configureProtocol(NetworkListener networkListener, boolean mayEnableComet) {
         final Protocol protocol = networkListener.findProtocol();
-        if (protocol.getHttp() != null) {
+        final Http http = protocol.getHttp();
+        if (http != null) {
             // Only HTTP protocol defined
-            final Http http = protocol.getHttp();
             configureHttpListenerProperty(http);
             configureKeepAlive(http);
             configureHttpProtocol(http);
@@ -364,7 +363,10 @@ public final class GrizzlyServiceListener {
         // http settings
         final ServerConfiguration configuration = server.getServerConfiguration();
         try {
-            configuration.addHttpService((HttpService) Class.forName(http.getAdapter()).newInstance());
+            final String adapter = http.getAdapter();
+            if(adapter != null) {
+                configuration.addHttpService((HttpService)Class.forName(adapter).newInstance());
+            }
         } catch (Exception e) {
             throw new GrizzlyConfigException(e.getMessage(), e);
         }
@@ -413,11 +415,10 @@ public final class GrizzlyServiceListener {
                 final int timeout = Integer.parseInt(threadPool.getIdleThreadTimeoutSeconds());
                 final ThreadPoolConfig poolConfig = ThreadPoolConfig.DEFAULT.clone();
                 poolConfig.setCorePoolSize(minThreads);
+                poolConfig.setMaxPoolSize(maxThreads);
+                poolConfig.setQueueLimit(maxQueueSize);
+                poolConfig.setKeepAliveTime(keepAlive < 0 ? Long.MAX_VALUE : keepAlive , TimeUnit.SECONDS);
                 networkListener.getTransport().setThreadPool(GrizzlyExecutorService.createInstance(poolConfig));
-//                networkListener.getTransport().setThreadPool(newThreadPool(minThreads, maxThreads, maxQueueSize,
-//                    keepAlive < 0 ? Long.MAX_VALUE : keepAlive * 1000, TimeUnit.MILLISECONDS));
-//                httpServerFilter.setCoreThreads(minThreads);
-//                httpServerFilter.setMaxThreads(maxThreads);
                 List<String> l = ManagementFactory.getRuntimeMXBean().getInputArguments();
                 boolean debugMode = false;
                 for (String s : l) {

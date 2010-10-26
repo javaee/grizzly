@@ -57,7 +57,7 @@ import org.testng.annotations.Test;
  * @author <a href="mailto:justin.lee@glassfish.com">Justin Lee</a>
  */
 @SuppressWarnings({"IOResourceOpenedButNotSafelyClosed"})
-@Test(enabled = false)
+@Test
 public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
     public void processConfig() throws IOException, InstantiationException {
         GrizzlyConfig grizzlyConfig = null;

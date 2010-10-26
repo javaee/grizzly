@@ -63,7 +63,7 @@ import org.glassfish.grizzly.http.util.Constants;
 public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     String COMPRESSION_DEFAULT = "off";
 
-    @Attribute(defaultValue = "org.glassfish.grizzly.http.server.StaticResourcesHandler")
+    @Attribute
     String getAdapter();
 
     void setAdapter(String adapter);
