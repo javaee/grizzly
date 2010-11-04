@@ -57,10 +57,10 @@ import java.util.logging.Logger;
 
 /**
  * Static resources handler, which handles static resources requests made to a
- * {@link HttpService}.
+ * {@link HttpRequestProcessor}.
  *
  * This class doesn't not decode the {@link Request} uri and just do
- * basic security check. If you need more protection, use the {@link HttpService}.
+ * basic security check. If you need more protection, use the {@link HttpRequestProcessor}.
  *
  * @author Jeanfrancois Arcand
  * @author Alexey Stashok

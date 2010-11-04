@@ -52,7 +52,7 @@ import org.glassfish.grizzly.http.HttpClientFilter;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.server.*;
-import org.glassfish.grizzly.http.server.HttpService;
+import org.glassfish.grizzly.http.server.HttpRequestProcessor;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
@@ -158,7 +158,7 @@ public class SuspendTest {
                 !isServer, false, false);
     }
 
-    private void startWebServer(HttpService httpService) throws Exception {
+    private void startWebServer(HttpRequestProcessor httpService) throws Exception {
         gws.getServerConfiguration().addHttpService(httpService);
         gws.start();
     }
@@ -405,7 +405,7 @@ public class SuspendTest {
 
     @Test
     public void testSuspendResumedCompletionHandlerHttpService() throws Exception {
-        startWebServer(new HttpService() {
+        startWebServer(new HttpRequestProcessor() {
 
             @Override
             public void service(final Request req, final Response res) {
@@ -439,7 +439,7 @@ public class SuspendTest {
 
     @Test
     public void testSuspendTimeoutCompletionHandlerHttpService() throws Exception {
-        startWebServer(new HttpService() {
+        startWebServer(new HttpRequestProcessor() {
 
             @Override
             public void service(final Request req, final Response res) {
@@ -467,7 +467,7 @@ public class SuspendTest {
 
     @Test
     public void testFastSuspendResumeHttpService() throws Exception {
-        startWebServer(new HttpService() {
+        startWebServer(new HttpRequestProcessor() {
 
             @Override
             public void service(final Request req, final Response res) {
@@ -597,7 +597,7 @@ public class SuspendTest {
         }, 2, TimeUnit.SECONDS);
     }
 
-    private class TestStaticResourcesHttpService extends HttpService {
+    private class TestStaticResourcesHttpService extends HttpRequestProcessor {
 
         @Override
         public void service(Request req, Response res) {

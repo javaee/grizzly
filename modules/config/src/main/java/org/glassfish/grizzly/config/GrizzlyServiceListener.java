@@ -53,10 +53,9 @@ import org.glassfish.grizzly.config.dom.Protocol;
 import org.glassfish.grizzly.config.dom.Ssl;
 import org.glassfish.grizzly.config.dom.ThreadPool;
 import org.glassfish.grizzly.config.dom.Transport;
-import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.http.KeepAlive;
+import org.glassfish.grizzly.http.server.HttpRequestProcessor;
 import org.glassfish.grizzly.http.server.HttpServer;
-import org.glassfish.grizzly.http.server.HttpService;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
@@ -365,7 +364,7 @@ public final class GrizzlyServiceListener {
         try {
             final String adapter = http.getAdapter();
             if(adapter != null) {
-                configuration.addHttpService((HttpService)Class.forName(adapter).newInstance());
+                configuration.addHttpService((HttpRequestProcessor)Class.forName(adapter).newInstance());
             }
         } catch (Exception e) {
             throw new GrizzlyConfigException(e.getMessage(), e);
@@ -440,7 +439,7 @@ public final class GrizzlyServiceListener {
         }
     }
 
-    public HttpService getHttpService() {
+    public HttpRequestProcessor getHttpService() {
         return server.getHttpService();
     }
 }

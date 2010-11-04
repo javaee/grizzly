@@ -141,7 +141,7 @@ public class HttpServerFilter extends BaseFilter
                 try {
                     ctx.setMessage(serviceResponse);
 
-                    final HttpService httpService = gws.getHttpService();
+                    final HttpRequestProcessor httpService = gws.getHttpService();
                     if (httpService != null) {
                         httpService.doService(serviceRequest, serviceResponse);
                     }

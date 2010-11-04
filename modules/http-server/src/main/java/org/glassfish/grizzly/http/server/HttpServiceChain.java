@@ -57,32 +57,32 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.http.util.CharChunk;
 
 /**
- * The HttpServiceChain class allows the invocation of multiple {@link HttpService}s
+ * The HttpServiceChain class allows the invocation of multiple {@link HttpRequestProcessor}s
  * every time a new HTTP request is ready to be handled. Requests are mapped
- * to their associated {@link HttpService} at runtime using the mapping
+ * to their associated {@link HttpRequestProcessor} at runtime using the mapping
  * information configured when invoking the {@link HttpServiceChain#addService
  * (org.glassfish.grizzly.http.server.HttpService, java.lang.String[])}
  *
  *
  * Note: This class is <strong>NOT</strong> thread-safe, so make sure synchronization
- *  is performed when dynamically adding and removing {@link HttpService}
+ *  is performed when dynamically adding and removing {@link HttpRequestProcessor}
  *
  * @author Jeanfrancois Arcand
  */
-public class HttpServiceChain extends HttpService implements JmxEventListener {
+public class HttpServiceChain extends HttpRequestProcessor implements JmxEventListener {
     private static final Logger logger = Grizzly.logger(HttpServiceChain.class);
 
     protected final static int MAPPING_DATA = 12;
     protected final static int MAPPED_SERVICE = 13;
     /**
-     * The list of {@link HttpService} instance.
+     * The list of {@link HttpRequestProcessor} instance.
      */
-    private ConcurrentHashMap<HttpService, String[]> services =
-            new ConcurrentHashMap<HttpService, String[]>();
-    private ConcurrentHashMap<HttpService, JmxObject> monitors =
-            new ConcurrentHashMap<HttpService, JmxObject>();
+    private ConcurrentHashMap<HttpRequestProcessor, String[]> services =
+            new ConcurrentHashMap<HttpRequestProcessor, String[]>();
+    private ConcurrentHashMap<HttpRequestProcessor, JmxObject> monitors =
+            new ConcurrentHashMap<HttpRequestProcessor, JmxObject>();
     /**
-     * Internal {@link Mapper} used to Map request to their associated {@link HttpService}
+     * Internal {@link Mapper} used to Map request to their associated {@link HttpRequestProcessor}
      */
     private Mapper mapper;
     /**
@@ -120,8 +120,8 @@ public class HttpServiceChain extends HttpService implements JmxEventListener {
 
     @Override
     public void jmxEnabled() {
-        for (Entry<HttpService,String[]> entry : services.entrySet()) {
-            final HttpService httpService = entry.getKey();
+        for (Entry<HttpRequestProcessor,String[]> entry : services.entrySet()) {
+            final HttpRequestProcessor httpService = entry.getKey();
             if (httpService instanceof Monitorable) {
                 registerJmxForService(httpService);
             }
@@ -130,8 +130,8 @@ public class HttpServiceChain extends HttpService implements JmxEventListener {
 
     @Override
     public void jmxDisabled() {
-        for (Entry<HttpService,String[]> entry : services.entrySet()) {
-            final HttpService httpService = entry.getKey();
+        for (Entry<HttpRequestProcessor,String[]> entry : services.entrySet()) {
+            final HttpRequestProcessor httpService = entry.getKey();
             if (httpService instanceof Monitorable) {
                 deregisterJmxForService(httpService);
             }
@@ -144,15 +144,15 @@ public class HttpServiceChain extends HttpService implements JmxEventListener {
 
     @Override
     public void start() {
-        for (Entry<HttpService, String[]> entry : services.entrySet()) {
-            final HttpService httpService = entry.getKey();
+        for (Entry<HttpRequestProcessor, String[]> entry : services.entrySet()) {
+            final HttpRequestProcessor httpService = entry.getKey();
             httpService.start();
         }
         started = true;
     }
 
     /**
-     * Map the {@link Request} to the proper {@link HttpService}
+     * Map the {@link Request} to the proper {@link HttpRequestProcessor}
      * @param request The {@link Request}
      * @param response The {@link Response}
      */
@@ -162,7 +162,7 @@ public class HttpServiceChain extends HttpService implements JmxEventListener {
         if (oldMappingAlgorithm) {
             int i = 0;
             int size = services.size();
-            for (Entry<HttpService, String[]> entry : services.entrySet()) {
+            for (Entry<HttpRequestProcessor, String[]> entry : services.entrySet()) {
                 entry.getKey().doService(request, response);
                 if (response.getStatus() == 404 && i != size - 1) {
                     // Reset the
@@ -200,12 +200,12 @@ public class HttpServiceChain extends HttpService implements JmxEventListener {
                                     mappingData);
 
 
-                HttpService httpService;
-                if (mappingData.context != null && mappingData.context instanceof HttpService) {
+                HttpRequestProcessor httpService;
+                if (mappingData.context != null && mappingData.context instanceof HttpRequestProcessor) {
                     if (mappingData.wrapper != null) {
-                        httpService = (HttpService) mappingData.wrapper;
+                        httpService = (HttpRequestProcessor) mappingData.wrapper;
                     } else {
-                        httpService = (HttpService) mappingData.context;
+                        httpService = (HttpRequestProcessor) mappingData.context;
                     }
                     // We already decoded the URL.
                     httpService.setDecodeUrl(false);
@@ -232,12 +232,12 @@ public class HttpServiceChain extends HttpService implements JmxEventListener {
 
 
     /**
-     * Add a {@link HttpService} and its associated array of mapping. The mapping
-     * data will be used to map incoming request to its associated {@link HttpService}.
-     * @param httpService {@link HttpService} instance
+     * Add a {@link HttpRequestProcessor} and its associated array of mapping. The mapping
+     * data will be used to map incoming request to its associated {@link HttpRequestProcessor}.
+     * @param httpService {@link HttpRequestProcessor} instance
      * @param mappings an array of mapping.
      */
-    public void addService(HttpService httpService, String[] mappings) {
+    public void addService(HttpRequestProcessor httpService, String[] mappings) {
         if (oldMappingAlgorithm) {
             throw new IllegalStateException("Cannot mix addService(HttpService) "
                     + "and addService(HttpService,String[]");
@@ -263,14 +263,14 @@ public class HttpServiceChain extends HttpService implements JmxEventListener {
 
     }
 
-    private void registerJmxForService(final HttpService httpService) {
+    private void registerJmxForService(final HttpRequestProcessor httpService) {
         final Monitorable monitorable = (Monitorable) httpService;
         final JmxObject jmx = monitorable.createManagementObject();
         monitors.putIfAbsent(httpService, jmx);
         gws.jmxManager.register(gws.managementObject, jmx, jmx.getJmxName());
     }
 
-    private void deregisterJmxForService(final HttpService httpService) {
+    private void deregisterJmxForService(final HttpRequestProcessor httpService) {
 
         JmxObject jmx = monitors.get(httpService);
         if (jmx != null) {
@@ -301,18 +301,18 @@ public class HttpServiceChain extends HttpService implements JmxEventListener {
 
     @Override
     public void destroy() {
-        for (Entry<HttpService, String[]> service : services.entrySet()) {
-            final HttpService a = service.getKey();
+        for (Entry<HttpRequestProcessor, String[]> service : services.entrySet()) {
+            final HttpRequestProcessor a = service.getKey();
             a.destroy();
         }
         started = false;
     }
 
     /**
-     * Remove a {@link HttpService}
+     * Remove a {@link HttpRequestProcessor}
      * @return <tt>true</tt> if removed
      */
-    public boolean removeHttpService(HttpService httpService) {
+    public boolean removeHttpService(HttpRequestProcessor httpService) {
         if (httpService == null) {
             throw new IllegalStateException();
         }

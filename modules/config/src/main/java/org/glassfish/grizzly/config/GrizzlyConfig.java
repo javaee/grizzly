@@ -50,30 +50,23 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.config.dom.NetworkConfig;
 import org.glassfish.grizzly.config.dom.NetworkListener;
 import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
-import org.jvnet.hk2.component.Habitat;
 
 /**
  * Created Nov 24, 2008
  *
- * @author <a href="mailto:justin.lee@glassfish.com">Justin Lee</a>
+ * @author <a href="mailto:justin.d.lee@oracle.com">Justin Lee</a>
  */
 public class GrizzlyConfig {
     private static final Logger logger = Logger.getLogger(GrizzlyConfig.class.getName());
     private final NetworkConfig config;
-    private Habitat habitat;
     private final List<GrizzlyServiceListener> listeners = new ArrayList<GrizzlyServiceListener>();
 
     public GrizzlyConfig(String file) {
-        habitat = Utils.getHabitat(file);
-        config = habitat.getComponent(NetworkConfig.class);
+        config = Utils.getHabitat(file).getComponent(NetworkConfig.class);
     }
 
     public NetworkConfig getConfig() {
         return config;
-    }
-
-    public Habitat getHabitat() {
-        return habitat;
     }
 
     public List<GrizzlyServiceListener> getListeners() {

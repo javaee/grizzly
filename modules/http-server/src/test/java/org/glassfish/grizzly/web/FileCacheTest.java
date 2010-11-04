@@ -64,7 +64,7 @@ import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.server.*;
-import org.glassfish.grizzly.http.server.HttpService;
+import org.glassfish.grizzly.http.server.HttpRequestProcessor;
 import org.glassfish.grizzly.http.server.io.NIOWriter;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
@@ -140,7 +140,7 @@ public class FileCacheTest {
         gws.getServerConfiguration().getMonitoringConfig().getHttpConfig().addProbes(httpProbe);
         gws.getServerConfiguration().getMonitoringConfig().getConnectionConfig().addProbes(connectionProbe);
 
-        startWebServer(new HttpService() {
+        startWebServer(new HttpRequestProcessor() {
 
             @Override
             public void service(final Request req, final Response res) {
@@ -215,7 +215,7 @@ public class FileCacheTest {
         final StatsCacheProbe probe = new StatsCacheProbe();
         gws.getServerConfiguration().getMonitoringConfig().getFileCacheConfig().addProbes(probe);
 
-        startWebServer(new HttpService() {
+        startWebServer(new HttpRequestProcessor() {
 
             @Override
             public void service(final Request req, final Response res) {
@@ -287,7 +287,7 @@ public class FileCacheTest {
     @Test
     public void testIfModified() throws Exception {
         final String fileName = "./pom.xml";
-        startWebServer(new HttpService(".") {
+        startWebServer(new HttpRequestProcessor(".") {
 
             @Override
             public void service(Request request, Response response)
@@ -367,7 +367,7 @@ public class FileCacheTest {
         gws.addListener(listener);
     }
 
-    private void startWebServer(HttpService httpService) throws Exception {
+    private void startWebServer(HttpRequestProcessor httpService) throws Exception {
         gws.getServerConfiguration().addHttpService(httpService);
         gws.start();
     }

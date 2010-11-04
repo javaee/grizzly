@@ -75,25 +75,23 @@ import java.io.Serializable;
 public final class CharChunk implements Chunk, Cloneable, Serializable {
 
     // Input interface, used when the buffer is emptied.
-    public static interface CharInputChannel {
+    public interface CharInputChannel {
         /**
          * Read new bytes ( usually the internal conversion buffer ).
          * The implementation is allowed to ignore the parameters,
          * and mutate the chunk if it wishes to implement its own buffering.
          */
-        public int realReadChars(char cbuf[], int off, int len)
-            throws IOException;
+        int realReadChars(char cbuf[], int off, int len) throws IOException;
     }
     /**
      *  When we need more space we'll either
      *  grow the buffer ( up to the limit ) or send it to a channel.
      */
-    public static interface CharOutputChannel {
+    public interface CharOutputChannel {
         /** Send the bytes ( usually the internal conversion buffer ).
          *  Expect 8k output if the buffer is full.
          */
-        public void realWriteChars(char cbuf[], int off, int len)
-            throws IOException;
+        void realWriteChars(char cbuf[], int off, int len) throws IOException;
     }
 
     // --------------------

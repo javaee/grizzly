@@ -40,8 +40,6 @@
 
 package org.glassfish.grizzly.config;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -50,7 +48,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.net.ServerSocketFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLServerSocketFactory;
@@ -58,6 +55,7 @@ import javax.net.ssl.SSLServerSocketFactory;
 import org.glassfish.grizzly.config.dom.NetworkListener;
 import org.glassfish.grizzly.config.dom.Protocol;
 import org.glassfish.grizzly.config.dom.Ssl;
+import org.glassfish.grizzly.config.ssl.ServerSocketFactory;
 import org.glassfish.grizzly.util.LogMessages;
 
 /**
@@ -243,7 +241,6 @@ public class SSLConfigHolder {
      *
      * @throws Exception
      */
-/*
     private void initializeSSL() throws Exception {
 
         final ServerSocketFactory serverSF = sslHelper.getServerSocketFactory();
@@ -278,21 +275,16 @@ public class SSLConfigHolder {
 //
 //        CipherInfo.updateCiphers(sslContext);
     }
-*/
 
 
     public boolean isAllowLazyInit() {
         return ssl == null || Boolean.parseBoolean(ssl.getAllowLazyInit());
     }
 
-/*
     private static void setAttribute(final ServerSocketFactory serverSF, final String name, final String value,
         final String property, final String defaultValue) {
-        serverSF.setAttribute(name, value == null ?
-            System.getProperty(property, defaultValue) :
-            value);
+        serverSF.setAttribute(name, value == null ? System.getProperty(property, defaultValue) : value);
     }
-*/
 
     private static String getKeyStorePassword(Ssl ssl) {
         if (PLAIN_PASSWORD_PROVIDER_NAME.equalsIgnoreCase(ssl.getKeyStorePasswordProvider())) {

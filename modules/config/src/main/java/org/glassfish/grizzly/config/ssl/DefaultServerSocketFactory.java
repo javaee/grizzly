@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -36,61 +36,61 @@
  * and therefore, elected the GPL Version 2 license, then the option applies
  * only if the new code is made subject to such option by the copyright
  * holder.
+ *
+ *
+ * This file incorporates work covered by the following copyright and
+ * permission notice:
+ *
+ * Copyright 2004 The Apache Software Foundation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+package org.glassfish.grizzly.config.ssl;
 
-package org.glassfish.grizzly.config;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
 
-//import javax.servlet.Servlet;
-//import com.glassfish.grizzly.http.servlet.ServletAdapter;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.AfterMethod;
-import org.jvnet.hk2.config.Dom;
+/**
+ * Default server socket factory. Doesn't do much except give us plain ol' server sockets.
+ *
+ * @author db@eng.sun.com
+ * @author Harish Prabandham
+ */
+class DefaultServerSocketFactory extends ServerSocketFactory {
+    DefaultServerSocketFactory() {
+    }
 
-public abstract class GrizzlyServletTestBase {
-//    private GrizzlyConfig grizzlyConfig;
-//
-//    @BeforeMethod(alwaysRun = true)
-//    public void setupServlet() {
-//        try {
-//            shutdownContainer();
-//            grizzlyConfig = new GrizzlyConfig(getConfigFile());
-//            grizzlyConfig.setupNetwork();
-//            int count = 0;
-//            for (GrizzlyServiceListener listener : grizzlyConfig.getListeners()) {
-//                addServlet(listener);
-//            }
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            throw new RuntimeException(e.getMessage());
-//        }
-//    }
-//
-//    protected String getConfigFile() {
-//        return "grizzly-config.xml";
-//    }
-//
-//    @AfterMethod(alwaysRun = true)
-//    public void shutdownContainer() {
-//        if(grizzlyConfig != null) {
-//            grizzlyConfig.shutdown();
-//        }
-//    }
-//
-//    private void addServlet(final GrizzlyServiceListener listener) {
-//        ServletAdapter sa = new ServletAdapter();
-//        sa.setServletInstance(getServlet());
-//        sa.setContextPath(getContextPath());
-//        sa.setServletPath(getServletPath());
-//        listener.getEmbeddedHttp().setAdapter(sa);
-//    }
-//
-//    protected String getContextPath() {
-//        return "/grizzly-servlet-test";
-//    }
-//
-//    protected String getServletPath() {
-//        return "/" + Dom.convertName(getClass().getSimpleName());
-//    }
-//
-//    protected abstract Servlet getServlet();
+    public ServerSocket createSocket(int port) throws IOException {
+        return new ServerSocket(port);
+    }
+
+    public ServerSocket createSocket(int port, int backlog) throws IOException {
+        return new ServerSocket(port, backlog);
+    }
+
+    public ServerSocket createSocket(int port, int backlog, InetAddress ifAddress) throws IOException {
+        return new ServerSocket(port, backlog, ifAddress);
+    }
+
+    public Socket acceptSocket(ServerSocket socket) throws IOException {
+        return socket.accept();
+    }
+
+    public void handshake(Socket sock) throws IOException {
+    }
+
+    public void init() throws IOException {
+    }
 }

@@ -40,16 +40,28 @@
 
 package org.glassfish.grizzly.config;
 
+import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.net.URL;
+import java.net.URLConnection;
+
+import org.glassfish.grizzly.http.server.StaticResourcesHandler;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 /**
  * Created Jan 5, 2009
  *
- * @author <a href="mailto:justin.lee@glassfish.com">Justin Lee</a>
+ * @author <a href="mailto:justin.d.lee@oracle.com">Justin Lee</a>
  */
-@Test
+@Test(enabled=false)
 public class PUGrizzlyConfigTest {
-
-/*
     public void puConfig() throws IOException, InstantiationException {
         GrizzlyConfig grizzlyConfig = null;
         
@@ -117,30 +129,37 @@ public class PUGrizzlyConfigTest {
         
     private String getContent(URLConnection connection) throws IOException {
         final InputStream inputStream = connection.getInputStream();
+        StringBuilder builder;
         InputStreamReader reader = new InputStreamReader(inputStream);
-        StringBuilder builder = new StringBuilder();
-        char[] buffer = new char[1024];
-        int read;
-        while ((read = reader.read(buffer)) != -1) {
-            builder.append(buffer, 0, read);
+        try {
+            builder = new StringBuilder();
+            char[] buffer = new char[1024];
+            int read;
+            while ((read = reader.read(buffer)) != -1) {
+                builder.append(buffer, 0, read);
+            }
+        } finally {
+            reader.close();
         }
-
         return builder.toString();
     }
 
     private void setRootFolder(GrizzlyServiceListener listener, int count) throws IOException {
-        final NIOTransport http = listener.getTransport();
-        final StaticResourcesAdapter adapter = (StaticResourcesAdapter) http.getConfig().getAdapter();
+        final StaticResourcesHandler  adapter = (StaticResourcesHandler ) listener.getHttpService().getStaticResourcesHandler();
         final String name = System.getProperty("java.io.tmpdir", "/tmp") + "/grizzly-config-root" + count;
         File dir = new File(name);
         dir.mkdirs();
         final FileWriter writer = new FileWriter(new File(dir, "index.html"));
-        writer.write("<html><body>You've found the server on port " + http.getPort() + "</body></html>");
-        writer.flush();
-        writer.close();
-        adapter.setRootFolder(name);
+        try {
+            writer.write("<html><body>You've found the server on port " + listener.getPort() + "</body></html>");
+        } finally {
+            writer.flush();
+            writer.close();
+        }
+        adapter.setDocRoot(name);
     }
 
+    @SuppressWarnings({"SocketOpenedButNotSafelyClosed"})
     private String getXProtocolContent(String host, int port) throws IOException {
         Socket s = null;
         OutputStream os = null;
@@ -181,5 +200,4 @@ public class PUGrizzlyConfigTest {
             } catch (IOException e) {}
         }
     }
-*/
 }

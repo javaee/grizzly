@@ -105,7 +105,7 @@ public class HttpServer {
     /**
      * HttpService, which processes HTTP requests
      */
-    private volatile HttpService httpService;
+    private volatile HttpRequestProcessor httpService;
 
     /**
      * Mapping of {@link NetworkListener}s, by name, used by this server
@@ -327,10 +327,10 @@ public class HttpServer {
 
 
     /**
-     * @return the {@link HttpService} used by this <code>HttpServer</code>
+     * @return the {@link HttpRequestProcessor} used by this <code>HttpServer</code>
      *  instance.
      */
-    public HttpService getHttpService() {
+    public HttpRequestProcessor getHttpService() {
         return httpService;
     }
 

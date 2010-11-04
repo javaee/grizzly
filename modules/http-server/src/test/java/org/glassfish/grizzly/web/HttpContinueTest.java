@@ -41,7 +41,7 @@
 package org.glassfish.grizzly.web;
 
 import org.glassfish.grizzly.http.server.*;
-import org.glassfish.grizzly.http.server.HttpService;
+import org.glassfish.grizzly.http.server.HttpRequestProcessor;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import junit.framework.TestCase;
 
@@ -61,7 +61,7 @@ public class HttpContinueTest extends TestCase {
     public void test100Continue() throws Exception {
 
         final SafeFutureImpl<String> future = new SafeFutureImpl<String>();
-        HttpServer server = createServer(new HttpService() {
+        HttpServer server = createServer(new HttpRequestProcessor() {
 
             @Override
             public void service(Request request, Response response) throws Exception {
@@ -210,7 +210,7 @@ public class HttpContinueTest extends TestCase {
     // --------------------------------------------------------- Private Methods
 
 
-    private HttpServer createServer(final HttpService httpService,
+    private HttpServer createServer(final HttpRequestProcessor httpService,
                                           final String... mappings) {
 
         HttpServer server = new HttpServer();

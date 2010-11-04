@@ -55,7 +55,7 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.server.*;
-import org.glassfish.grizzly.http.server.HttpService;
+import org.glassfish.grizzly.http.server.HttpRequestProcessor;
 import org.glassfish.grizzly.http.server.io.NIOOutputStream;
 import org.glassfish.grizzly.http.server.io.NIOWriter;
 import org.glassfish.grizzly.http.server.io.WriteHandler;
@@ -141,7 +141,7 @@ public class NIOOutputSinksTest extends TestCase {
         clientTransport.setProcessor(filterChainBuilder.build());
         final AtomicInteger writeCounter = new AtomicInteger();
         final AtomicBoolean callbackInvoked = new AtomicBoolean(false);
-        final HttpService ga = new HttpService() {
+        final HttpRequestProcessor ga = new HttpRequestProcessor() {
 
             @Override
             public void service(final Request request, final Response response) throws Exception {
@@ -302,7 +302,7 @@ public class NIOOutputSinksTest extends TestCase {
         clientTransport.setProcessor(filterChainBuilder.build());
         final AtomicInteger writeCounter = new AtomicInteger();
         final AtomicBoolean callbackInvoked = new AtomicBoolean(false);
-        final HttpService ga = new HttpService() {
+        final HttpRequestProcessor ga = new HttpRequestProcessor() {
 
             @Override
             public void service(final Request request, final Response response) throws Exception {
@@ -446,7 +446,7 @@ public class NIOOutputSinksTest extends TestCase {
 
         final TCPNIOTransport clientTransport = TransportFactory.getInstance().createTCPTransport();
         clientTransport.setProcessor(filterChainBuilder.build());
-        final HttpService ga = new HttpService() {
+        final HttpRequestProcessor ga = new HttpRequestProcessor() {
 
             @Override
             public void service(final Request request, final Response response) throws Exception {

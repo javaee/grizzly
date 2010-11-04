@@ -50,7 +50,7 @@ import org.glassfish.grizzly.http.util.Constants;
 /**
  * Created Jan 8, 2009
  *
- * @author <a href="mailto:justin.lee@glassfish.com">Justin Lee</a>
+ * @author <a href="mailto:justin.d.lee@oracle.com">Justin Lee</a>
  */
 @Configured
 public interface FileCache extends ConfigBeanProxy, Injectable, PropertyBag {

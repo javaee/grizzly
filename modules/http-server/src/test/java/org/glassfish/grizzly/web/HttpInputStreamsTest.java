@@ -1018,7 +1018,7 @@ public class HttpInputStreamsTest extends TestCase {
     }
 
 
-    private static final class SimpleResponseHttpService extends HttpService {
+    private static final class SimpleResponseHttpService extends HttpRequestProcessor {
         private final FutureImpl<Boolean> testResult;
         private final ReadStrategy strategy;
 

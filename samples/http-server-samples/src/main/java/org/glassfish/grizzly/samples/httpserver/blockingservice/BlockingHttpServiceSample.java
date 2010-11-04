@@ -51,8 +51,8 @@ import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.HttpClientFilter;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.http.server.HttpRequestProcessor;
 import org.glassfish.grizzly.http.server.HttpServer;
-import org.glassfish.grizzly.http.server.HttpService;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
@@ -73,7 +73,7 @@ import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * <p>
- * This example demonstrates the use of a {@link org.glassfish.grizzly.http.server.HttpService} to echo
+ * This example demonstrates the use of a {@link HttpRequestProcessor} to echo
  * <code>HTTP</code> <code>POST</code> data sent by the client, back to the client.
  * </p>
  *
@@ -87,9 +87,9 @@ import org.glassfish.grizzly.memory.Buffers;
  *               read, and ultimately display, the response from the server.
  *    </li>
  *    <li>
- *       BlockingEchoService: This {@link org.glassfish.grizzly.http.server.HttpService} is installed to the
+ *       BlockingEchoService: This {@link HttpRequestProcessor} is installed to the
  *                            {@link org.glassfish.grizzly.http.server.HttpServer} instance and associated
- *                            with the path <code>/echo</code>.  This {@link org.glassfish.grizzly.http.server.HttpService}
+ *                            with the path <code>/echo</code>.  This {@link HttpRequestProcessor}
  *                            is fairly simple.  The service uses the {@link org.glassfish.grizzly.http.server.io.NIOReader}
  *                            returned by {@link org.glassfish.grizzly.http.server.Request#getReader(boolean)} in blocking
  *                            mode.  As data is received, the same data is then immediately
@@ -300,7 +300,7 @@ public class BlockingHttpServiceSample {
      * This service using blocking streams to read POST data and echo it back to the
      * client.
      */
-    private static class BlockingEchoService extends HttpService {
+    private static class BlockingEchoService extends HttpRequestProcessor {
 
 
         // -------------------------------------------- Methods from HttpService

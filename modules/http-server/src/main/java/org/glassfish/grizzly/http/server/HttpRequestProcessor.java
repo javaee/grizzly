@@ -61,16 +61,16 @@ import org.glassfish.grizzly.http.util.RequestURIRef;
  * are needed to implement a customized HTTP container/extension to the
  * HTTP module.
  *
- * The {@link HttpService} provides developers
+ * The {@link HttpRequestProcessor} provides developers
  * with a simple and consistent mechanism for extending the functionality of the
  * HTTP WebServer and for bridging existing HTTP based technology like
  * JRuby-on-Rail, Servlet, Bayeux Protocol or any HTTP based protocol.
  *
  * @author Jeanfrancois Arcand
  */
-public abstract class HttpService {
+public abstract class HttpRequestProcessor {
     
-    private final static Logger logger = Grizzly.logger(HttpService.class);
+    private final static Logger logger = Grizzly.logger(HttpRequestProcessor.class);
     
     protected final StaticResourcesHandler staticResourcesHandler =
             new StaticResourcesHandler();
@@ -101,7 +101,7 @@ public abstract class HttpService {
      * Create <tt>HttpService</tt>, which, by default, won't handle requests
      * to the static resources.
      */
-    public HttpService() {
+    public HttpRequestProcessor() {
         this(null);
     }
 
@@ -115,7 +115,7 @@ public abstract class HttpService {
      * If the <tt>docRoot</tt> is <tt>null</tt> - static pages won't be served
      * by this <tt>HttpService</tt>
      */
-    public HttpService(String docRoot) {
+    public HttpRequestProcessor(String docRoot) {
         staticResourcesHandler.setDocRoot(docRoot);
     }
 
@@ -182,7 +182,7 @@ public abstract class HttpService {
 
 
     /**
-     * Called when the {@link HttpService}'s
+     * Called when the {@link HttpRequestProcessor}'s
      * container is started by invoking {@link HttpServer#start}.
      *
      * By default, it does nothing.

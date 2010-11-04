@@ -615,7 +615,7 @@ public class HttpResponseStreamsTest extends TestCase {
     }
 
 
-    private static final class TestHttpService extends HttpService {
+    private static final class TestHttpService extends HttpRequestProcessor {
 
         private final WriteStrategy strategy;
 

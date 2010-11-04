@@ -54,7 +54,7 @@ import org.glassfish.grizzly.http.HttpClientFilter;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.server.*;
-import org.glassfish.grizzly.http.server.HttpService;
+import org.glassfish.grizzly.http.server.HttpRequestProcessor;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
@@ -110,7 +110,7 @@ public class SkipRemainderTest {
             SafeFutureImpl.create(), SafeFutureImpl.create()
         };
         
-        startWebServer(new HttpService() {
+        startWebServer(new HttpRequestProcessor() {
             @Override
             public void service(Request req, Response res)
                     throws Exception {
@@ -214,7 +214,7 @@ public class SkipRemainderTest {
         gws.addListener(listener);
     }
 
-    private void startWebServer(HttpService httpService) throws Exception {
+    private void startWebServer(HttpRequestProcessor httpService) throws Exception {
         gws.getServerConfiguration().addHttpService(httpService);
         gws.start();
     }

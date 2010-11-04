@@ -73,7 +73,7 @@ public class ServerConfiguration {
 
     // Non-exposed
 
-    private Map<HttpService, String[]> services = new LinkedHashMap<HttpService, String[]>();
+    private Map<HttpRequestProcessor, String[]> services = new LinkedHashMap<HttpRequestProcessor, String[]>();
 
     private Set<JmxEventListener> jmxEventListeners = new CopyOnWriteArraySet<JmxEventListener>();
 
@@ -112,39 +112,39 @@ public class ServerConfiguration {
 
 
     /**
-     * Adds the specified {@link HttpService}
+     * Adds the specified {@link HttpRequestProcessor}
      * with its associated mapping(s). Requests will be dispatched to a
-     * {@link HttpService} based on these mapping
+     * {@link HttpRequestProcessor} based on these mapping
      * values.
      *
-     * @param httpService a {@link HttpService}
+     * @param httpService a {@link HttpRequestProcessor}
      * @param mapping        context path mapping information.
      */
-    public void addHttpService(HttpService httpService, String... mapping) {
+    public void addHttpService(HttpRequestProcessor httpService, String... mapping) {
         services.put(httpService, mapping == null ? ROOT_MAPPING : mapping);
     }
 
     /**
      *
-     * Removes the specified {@link HttpService}.
+     * Removes the specified {@link HttpRequestProcessor}.
      *
      * @return <tt>true</tt>, if the operation was successful, otherwise
      *  <tt>false</tt>
      */
-    public boolean removeHttpService(HttpService httpService) {
+    public boolean removeHttpService(HttpRequestProcessor httpService) {
         return services.remove(httpService) != null;
     }
 
 
     /**
-     * @return the {@link HttpService} to be used by this server instance.
-     *  This may be a single {@link HttpService} or a composite of multiple
-     *  {@link HttpService} instances wrapped by a {@link HttpServiceChain}.
+     * @return the {@link HttpRequestProcessor} to be used by this server instance.
+     *  This may be a single {@link HttpRequestProcessor} or a composite of multiple
+     *  {@link HttpRequestProcessor} instances wrapped by a {@link HttpServiceChain}.
      */
-    protected HttpService buildService() {
+    protected HttpRequestProcessor buildService() {
 
         if (services.isEmpty()) {
-            return new HttpService(docRoot) {
+            return new HttpRequestProcessor(docRoot) {
                 @SuppressWarnings({"unchecked"})
                 @Override
                 public void service(Request request, Response response) {
@@ -172,7 +172,7 @@ public class ServerConfiguration {
         final int servicesNum = services.size();
 
         if (servicesNum == 1) {
-            HttpService httpService = services.keySet().iterator().next();
+            HttpRequestProcessor httpService = services.keySet().iterator().next();
             if (httpService.getDocRoot() == null) {
                 httpService.setDocRoot(docRoot);
             }
@@ -184,8 +184,8 @@ public class ServerConfiguration {
         addJmxEventListener(serviceChain);
         serviceChain.setDocRoot(docRoot);
 
-        for (Map.Entry<HttpService, String[]> serviceRecord : services.entrySet()) {
-            final HttpService httpService = serviceRecord.getKey();
+        for (Map.Entry<HttpRequestProcessor, String[]> serviceRecord : services.entrySet()) {
+            final HttpRequestProcessor httpService = serviceRecord.getKey();
             final String[] mappings = serviceRecord.getValue();
 
             if (httpService.getDocRoot() == null) {
