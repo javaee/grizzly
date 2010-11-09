@@ -46,25 +46,24 @@ import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.http.HtmlHelper;
 import com.sun.grizzly.util.http.HttpRequestURIDecoder;
+import com.sun.grizzly.util.http.MimeType;
+
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.lang.Exception;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
-
-import com.sun.grizzly.util.http.MimeType;
-import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Simple {@link Adapter} that map the {@link Request} URI to a local file. The 
- * file is send synchronously using the NIO send file mechanism 
+ * Simple {@link Adapter} that map the {@link Request} URI to a local file. The
+ * file is send synchronously using the NIO send file mechanism
  * (@link File#transfertTo}.
- *
- * This class doesn't not decode the {@link Request} uri and just do 
+ * <p/>
+ * This class doesn't not decode the {@link Request} uri and just do
  * basic security check. If you need more protection, use the {@link GrizzlyAdapter}
  * class instead or extend the {@link StaticResourcesAdapter#service}
  * and use {@link HttpRequestURIDecoder} to protect against security attack.
@@ -113,8 +112,9 @@ public class StaticResourcesAdapter implements Adapter {
 
     /**
      * Based on the {@link Request} URI, try to map the file from the rootFolder, and send it synchronously using send file.
-     * @param req the {@link Request} 
-     * @param res the {@link Response} 
+     *
+     * @param req the {@link Request}
+     * @param res the {@link Response}
      * @throws Exception
      */
     public void service(Request req, final Response res) throws Exception {
@@ -136,8 +136,8 @@ public class StaticResourcesAdapter implements Adapter {
     }
 
     /**
-     * Lookup a resource based on the request URI, and send it using send file. 
-     * 
+     * Lookup a resource based on the request URI, and send it using send file.
+     *
      * @param uri The request URI
      * @param req the {@link Request}
      * @param res the {@link Response}
@@ -145,111 +145,119 @@ public class StaticResourcesAdapter implements Adapter {
      */
     protected void service(String uri, Request req, final Response res)
             throws Exception {
-        FileInputStream fis = null;
-        try {
-            initWebDir();
+        if (req.method().equalsIgnoreCase("GET")) {
+            FileInputStream fis = null;
+            try {
+                initWebDir();
 
-            boolean found = false;
-            File resource = null;
+                boolean found = false;
+                File resource = null;
 
-            for (File webDir : fileFolders) {
-                // local file
-                resource = cache.get(uri);
-                if (resource == null) {
-                    resource = new File(webDir, uri);
-                    if (resource.exists() && resource.isDirectory()) {
-                        final File f = new File(resource, "/index.html");
-                        if (f.exists()) {
-                            resource = f;
-                            found = true;
-                            break;
+                for (File webDir : fileFolders) {
+                    // local file
+                    resource = cache.get(uri);
+                    if (resource == null) {
+                        resource = new File(webDir, uri);
+                        if (resource.exists() && resource.isDirectory()) {
+                            final File f = new File(resource, "/index.html");
+                            if (f.exists()) {
+                                resource = f;
+                                found = true;
+                                break;
+                            }
                         }
+                    }
+
+                    if (resource.isDirectory() || !resource.exists()) {
+                        found = false;
+                    } else {
+                        found = true;
+                        break;
                     }
                 }
 
-                if (resource.isDirectory() || !resource.exists()) {
-                    found = false;
+                cache.put(uri, resource);
+                if (!found) {
+                    if (logger.isLoggable(Level.FINE)) {
+                        logger.log(Level.FINE, "File not found  " + resource);
+                    }
+                    res.setStatus(404);
+                    if (commitErrorResponse) {
+                        customizedErrorPage(req, res);
+                    }
+                    return;
+                }
+
+                res.setStatus(200);
+                String substr;
+                int dot = uri.lastIndexOf(".");
+                if (dot < 0) {
+                    substr = resource.toString();
+                    dot = substr.lastIndexOf(".");
                 } else {
-                    found = true;
-                    break;
+                    substr = uri;
+                }
+                if (dot > 0) {
+                    String ext = substr.substring(dot + 1);
+                    String ct = MimeType.get(ext, defaultContentType);
+                    if (ct != null) {
+                        res.setContentType(ct);
+                    }
+                } else {
+                    res.setContentType(defaultContentType);
+                }
+
+                long length = resource.length();
+                res.setContentLengthLong(length);
+
+                // Send the header, and flush the bytes as we will now move to use
+                // send file.
+                res.sendHeaders();
+
+                if (req.method().toString().equalsIgnoreCase("HEAD")) {
+                    return;
+                }
+
+                fis = new FileInputStream(resource);
+                OutputBuffer outputBuffer = res.getOutputBuffer();
+
+                if (useSendFile &&
+                        (outputBuffer instanceof FileOutputBuffer) &&
+                        ((FileOutputBuffer) outputBuffer).isSupportFileSend()) {
+                    res.flush();
+
+                    long nWrite = 0;
+                    while (nWrite < length) {
+                        nWrite += ((FileOutputBuffer) outputBuffer).sendFile(fis.getChannel(), nWrite, length - nWrite);
+                    }
+                } else {
+                    byte b[] = new byte[8192];
+                    ByteChunk chunk = new ByteChunk();
+                    int rd = 0;
+                    while ((rd = fis.read(b)) > 0) {
+                        chunk.setBytes(b, 0, rd);
+                        res.doWrite(chunk);
+                    }
+                }
+            } finally {
+                if (fis != null) {
+                    try {
+                        fis.close();
+                    } catch (IOException ex) {
+                    }
                 }
             }
-
-            cache.put(uri, resource);
-            if (!found) {
-                if (logger.isLoggable(Level.FINE)) {
-                    logger.log(Level.FINE, "File not found  " + resource);
-                }
-                res.setStatus(404);
-                if (commitErrorResponse) {
-                    customizedErrorPage(req, res);
-                }
-                return;
-            }
-
-            res.setStatus(200);
-            String substr;
-            int dot = uri.lastIndexOf(".");
-            if (dot < 0) {
-                substr = resource.toString();
-                dot = substr.lastIndexOf(".");
-            } else {
-                substr = uri;
-            }
-            if (dot > 0) {
-                String ext = substr.substring(dot + 1);
-                String ct = MimeType.get(ext, defaultContentType);
-                if (ct != null) {
-                    res.setContentType(ct);
-                }
-            } else {
-                res.setContentType(defaultContentType);
-            }
-
-            long length = resource.length();
-            res.setContentLengthLong(length);
-
-            // Send the header, and flush the bytes as we will now move to use
-            // send file.
-            res.sendHeaders();
-
-            if (req.method().toString().equalsIgnoreCase("HEAD")){
-                return;
-            }
-
-            fis = new FileInputStream(resource);
-            OutputBuffer outputBuffer = res.getOutputBuffer();
-
-            if (useSendFile &&
-                    (outputBuffer instanceof FileOutputBuffer) &&
-                    ((FileOutputBuffer) outputBuffer).isSupportFileSend()) {
-                res.flush();
-
-                long nWrite = 0;
-                while (nWrite < length) {
-                    nWrite += ((FileOutputBuffer) outputBuffer).sendFile(fis.getChannel(), nWrite, length - nWrite);
-                }
-            } else {
-                byte b[] = new byte[8192];
-                ByteChunk chunk = new ByteChunk();
-                int rd = 0;
-                while ((rd = fis.read(b)) > 0) {
-                    chunk.setBytes(b, 0, rd);
-                    res.doWrite(chunk);
-                }
-            }
-        } finally {
-            if (fis != null) {
-                try {
-                    fis.close();
-                } catch (IOException ex) {
-                }
+        } else {
+            res.setStatus(405);
+            if (commitErrorResponse) {
+                customizedErrorPage(req, res);
             }
         }
     }
 
     /**
-     * Customize the error pahe 
+     * Customize the error pahe
+     *
      * @param req The {@link Request} object
      * @param res The {@link Response} object
      * @throws Exception
@@ -279,10 +287,10 @@ public class StaticResourcesAdapter implements Adapter {
     }
 
     /**
-     * Finish the {@link Response} and recycle the {@link Request} and the 
+     * Finish the {@link Response} and recycle the {@link Request} and the
      * {@link Response}. If the {@link StaticResourcesAdapter#commitErrorResponse}
      * is set to false, this method does nothing.
-     * 
+     *
      * @param req {@link Request}
      * @param res {@link Response}
      * @throws Exception
@@ -309,6 +317,7 @@ public class StaticResourcesAdapter implements Adapter {
 
     /**
      * Return the directory from where files will be serviced.
+     *
      * @return the directory from where file will be serviced.
      * @deprecated - use {@link #getRootFolders}
      */
@@ -318,12 +327,11 @@ public class StaticResourcesAdapter implements Adapter {
 
     /**
      * Set the directory from where files will be serviced.
-     *
+     * <p/>
      * NOTE: For backward compatibility, invoking that method will
      * clear all previous values added using {@link #addRootFolder}.
-     * 
+     *
      * @param rootFolder the directory from where files will be serviced.
-     * 
      * @deprecated - use {@link #addRootFolder}
      */
     public void setRootFolder(String rootFolder) {
@@ -333,8 +341,9 @@ public class StaticResourcesAdapter implements Adapter {
 
     /**
      * Return the list of folders the adapter can serve file from.
+     *
      * @return a {@link Queue} of the folders this Adapter can
-     * serve file from.
+     *         serve file from.
      */
     public Queue<String> getRootFolders() {
         return rootFolders;
@@ -342,6 +351,7 @@ public class StaticResourcesAdapter implements Adapter {
 
     /**
      * Add a folder to the list of folders this Adapter can serve file from.
+     *
      * @param rootFolder
      * @return
      */
@@ -377,7 +387,7 @@ public class StaticResourcesAdapter implements Adapter {
 
     /**
      * @return <code>true</code> if {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}
-     *  to send a static resources.
+     *         to send a static resources.
      */
     public boolean isUseSendFile() {
         return useSendFile;
@@ -389,8 +399,8 @@ public class StaticResourcesAdapter implements Adapter {
      * memory and flushed using {@link ByteBuffer}.
      *
      * @param useSendFile True if {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}
-     *  to send a static resources, false if the File needs to be loaded in
-     *  memory and flushed using {@link ByteBuffer}
+     *                    to send a static resources, false if the File needs to be loaded in
+     *                    memory and flushed using {@link ByteBuffer}
      */
     public void setUseSendFile(boolean useSendFile) {
         this.useSendFile = useSendFile;
@@ -399,8 +409,9 @@ public class StaticResourcesAdapter implements Adapter {
     /**
      * Return the context path used for servicing resources. By default, "" is
      * used so request taking the form of http://host:port/index.html are serviced
-     * directly. If set, the resource will be available under 
+     * directly. If set, the resource will be available under
      * http://host:port/context-path/index.html
+     *
      * @return the context path.
      */
     public String getResourcesContextPath() {
@@ -410,8 +421,9 @@ public class StaticResourcesAdapter implements Adapter {
     /**
      * Set the context path used for servicing resource. By default, "" is
      * used so request taking the form of http://host:port/index.html are serviced
-     * directly. If set, the resource will be available under 
+     * directly. If set, the resource will be available under
      * http://host:port/context-path/index.html
+     *
      * @param resourcesContextPath the context path
      */
     public void setResourcesContextPath(String resourcesContextPath) {
@@ -421,7 +433,7 @@ public class StaticResourcesAdapter implements Adapter {
     /**
      * If the content-type of the request cannot be determined, used the default
      * value. Current default is text/html
-     * 
+     *
      * @return the defaultContentType
      */
     public String getDefaultContentType() {
@@ -431,7 +443,7 @@ public class StaticResourcesAdapter implements Adapter {
     /**
      * Set the default content-type if we can't determine it.
      * Default was text/html
-     * 
+     *
      * @param defaultContentType the defaultContentType to set
      */
     public void setDefaultContentType(String defaultContentType) {
