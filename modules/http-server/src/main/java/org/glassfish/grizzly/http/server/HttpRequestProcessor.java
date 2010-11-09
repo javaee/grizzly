@@ -70,7 +70,7 @@ import org.glassfish.grizzly.http.util.RequestURIRef;
  */
 public abstract class HttpRequestProcessor {
     
-    private final static Logger logger = Grizzly.logger(HttpRequestProcessor.class);
+    protected final static Logger logger = Grizzly.logger(HttpRequestProcessor.class);
     
     protected final StaticResourcesHandler staticResourcesHandler =
             new StaticResourcesHandler();

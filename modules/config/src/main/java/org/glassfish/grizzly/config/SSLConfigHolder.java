@@ -37,7 +37,6 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.config;
 
 import java.util.HashMap;
@@ -50,25 +49,23 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLServerSocketFactory;
 
 import org.glassfish.grizzly.config.dom.NetworkListener;
 import org.glassfish.grizzly.config.dom.Protocol;
 import org.glassfish.grizzly.config.dom.Ssl;
+import org.glassfish.grizzly.config.ssl.SSLImplementation;
 import org.glassfish.grizzly.config.ssl.ServerSocketFactory;
 import org.glassfish.grizzly.util.LogMessages;
 
 /**
- *
  * @author oleksiys
  */
 public class SSLConfigHolder {
     public static final String APP_BUFFER_ATTR_NAME = "TMP_DECODED_BUFFER";
-
     private static final String PLAIN_PASSWORD_PROVIDER_NAME = "plain";
-
     private final static Logger logger = Logger.getLogger(SSLConfigHolder.class.getName());
-
     /**
      * The list of cipher suite
      */
@@ -89,14 +86,15 @@ public class SSLConfigHolder {
      * True when requesting authentication.
      */
     protected boolean wantClientAuth = false;
-
     /**
      * SSL settings
      */
     private final Ssl ssl;
+    private final SSLImplementation sslImplementation;
 
     public SSLConfigHolder(final Ssl ssl) throws GrizzlyConfigException {
         this.ssl = ssl;
+        sslImplementation = lookupSSLImplementation(ssl);
         configureSSL();
     }
 
@@ -146,10 +144,8 @@ public class SSLConfigHolder {
      */
     public boolean configureSSL() {
         final List<String> tmpSSLArtifactsList = new LinkedList<String>();
-
         try {
-//            initializeSSL();
-
+            initializeSSL();
             if (ssl != null) {
                 // client-auth
                 if (Boolean.parseBoolean(ssl.getClientAuthEnabled())) {
@@ -166,12 +162,12 @@ public class SSLConfigHolder {
                     tmpSSLArtifactsList.add("TLSv1");
                 }
                 if (Boolean.parseBoolean(ssl.getSsl3Enabled())
-                        || Boolean.parseBoolean(ssl.getTlsEnabled())) {
+                    || Boolean.parseBoolean(ssl.getTlsEnabled())) {
                     tmpSSLArtifactsList.add("SSLv2Hello");
                 }
                 if (tmpSSLArtifactsList.isEmpty()) {
                     logEmptyWarning(ssl, "WEB0307: All SSL protocol variants disabled for network-listener {0},"
-                            + " using SSL implementation specific defaults");
+                        + " using SSL implementation specific defaults");
                 } else {
                     final String[] protocols = new String[tmpSSLArtifactsList.size()];
                     tmpSSLArtifactsList.toArray(protocols);
@@ -185,7 +181,6 @@ public class SSLConfigHolder {
                         needClientAuth = true;
                     }
                 }
-
                 tmpSSLArtifactsList.clear();
                 // ssl3-tls-ciphers
                 final String ssl3Ciphers = ssl.getSsl3TlsCiphers();
@@ -203,32 +198,29 @@ public class SSLConfigHolder {
                         tmpSSLArtifactsList.add(cipher.trim());
                     }
                 }
-
                 final String[] ciphers = getJSSECiphers(tmpSSLArtifactsList);
                 if (ciphers == null || ciphers.length == 0) {
                     logEmptyWarning(ssl, "WEB0308: All SSL cipher suites disabled for network-listener(s) {0}."
-                            + "  Using SSL implementation specific defaults");
+                        + "  Using SSL implementation specific defaults");
                 } else {
                     enabledCipherSuites = ciphers;
                 }
             }
-
             return true;
         } catch (Exception e) {
             if (logger.isLoggable(Level.WARNING)) {
                 logger.log(Level.WARNING,
-                        LogMessages.WARNING_GRIZZLY_CONFIG_SSL_GENERAL_CONFIG_ERROR(),
-                        e);
+                    LogMessages.WARNING_GRIZZLY_CONFIG_SSL_GENERAL_CONFIG_ERROR(),
+                    e);
             }
         }
-
         return false;
     }
 
     protected void logEmptyWarning(Ssl ssl, final String msg) {
         final StringBuilder name = new StringBuilder();
         for (NetworkListener listener : ((Protocol) ssl.getParent()).findNetworkListeners()) {
-            if(name.length() != 0) {
+            if (name.length() != 0) {
                 name.append(", ");
             }
             name.append(listener.getName());
@@ -242,9 +234,7 @@ public class SSLConfigHolder {
      * @throws Exception
      */
     private void initializeSSL() throws Exception {
-
-        final ServerSocketFactory serverSF = sslHelper.getServerSocketFactory();
-
+        final ServerSocketFactory serverSF = sslImplementation.getServerSocketFactory();
         if (ssl != null) {
             if (ssl.getCrlFile() != null) {
                 setAttribute(serverSF, "crlFile", ssl.getCrlFile(), null, null);
@@ -252,30 +242,29 @@ public class SSLConfigHolder {
             if (ssl.getTrustAlgorithm() != null) {
                 setAttribute(serverSF, "truststoreAlgorithm", ssl.getTrustAlgorithm(), null, null);
             }
-
             if (ssl.getKeyAlgorithm() != null) {
                 setAttribute(serverSF, "algorithm", ssl.getKeyAlgorithm(), null, null);
             }
             setAttribute(serverSF, "trustMaxCertLength", ssl.getTrustMaxCertLength(), null, null);
         }
-
         // key store settings
         setAttribute(serverSF, "keystore", ssl != null ? ssl.getKeyStore() : null, "javax.net.ssl.keyStore", null);
-        setAttribute(serverSF, "keystoreType", ssl != null ? ssl.getKeyStoreType() : null, "javax.net.ssl.keyStoreType", "JKS");
-        setAttribute(serverSF, "keystorePass", ssl != null ? getKeyStorePassword(ssl) : null, "javax.net.ssl.keyStorePassword", "changeit");
+        setAttribute(serverSF, "keystoreType", ssl != null ? ssl.getKeyStoreType() : null, "javax.net.ssl.keyStoreType",
+            "JKS");
+        setAttribute(serverSF, "keystorePass", ssl != null ? getKeyStorePassword(ssl) : null,
+            "javax.net.ssl.keyStorePassword", "changeit");
         // trust store settings
-        setAttribute(serverSF, "truststore", ssl != null ? ssl.getTrustStore() : null, "javax.net.ssl.trustStore", null);
-        setAttribute(serverSF, "truststoreType", ssl != null ? ssl.getTrustStoreType() : null, "javax.net.ssl.trustStoreType", "JKS");
-        setAttribute(serverSF, "truststorePass", ssl != null ? getTrustStorePassword(ssl) : null, "javax.net.ssl.trustStorePassword", "changeit");
+        setAttribute(serverSF, "truststore", ssl != null ? ssl.getTrustStore() : null, "javax.net.ssl.trustStore",
+            null);
+        setAttribute(serverSF, "truststoreType", ssl != null ? ssl.getTrustStoreType() : null,
+            "javax.net.ssl.trustStoreType", "JKS");
+        setAttribute(serverSF, "truststorePass", ssl != null ? getTrustStorePassword(ssl) : null,
+            "javax.net.ssl.trustStorePassword", "changeit");
         // cert nick name
-//        serverSF.setAttribute("keyAlias", ssl != null ? ssl.getCertNickname() : null);
-//        serverSF.init();
-//
-//        sslContext = serverSF.getSSLContext();
-//
-//        CipherInfo.updateCiphers(sslContext);
+        serverSF.setAttribute("keyAlias", ssl != null ? ssl.getCertNickname() : null);
+        serverSF.init();
+        CipherInfo.updateCiphers(serverSF.getSSLContext());
     }
-
 
     public boolean isAllowLazyInit() {
         return ssl == null || Boolean.parseBoolean(ssl.getAllowLazyInit());
@@ -305,73 +294,56 @@ public class SSLConfigHolder {
     private static String getStorePasswordCustom(String storePasswordProvider) {
         try {
             final SecurePasswordProvider provider =
-                    (SecurePasswordProvider) Utils.newInstance(storePasswordProvider);
+                (SecurePasswordProvider) Utils.newInstance(storePasswordProvider);
             if (provider != null) {
                 return provider.getPassword();
             }
         } catch (Exception e) {
             if (logger.isLoggable(Level.WARNING)) {
                 logger.log(Level.WARNING,
-                           LogMessages.WARNING_GRIZZLY_CONFIG_SSL_SECURE_PASSWORD_INITIALIZATION_ERROR(storePasswordProvider),
-                           e);
+                    LogMessages.WARNING_GRIZZLY_CONFIG_SSL_SECURE_PASSWORD_INITIALIZATION_ERROR(storePasswordProvider),
+                    e);
             }
         }
-
         return null;
     }
 
-/*
     private static SSLImplementation lookupSSLImplementation(Ssl ssl) {
+        SSLImplementation instance = null;
+        final String sslImplClassName = ssl.getClassname();
         try {
-            final String sslImplClassName = ssl.getClassname();
             if (sslImplClassName != null) {
                 try {
-                    Class clazz = Utils.loadClass(sslImplClassName);
-
-                    SSLImplementation impl = (SSLImplementation) clazz.newInstance();
-
-                    if (impl != null) {
-                        return impl;
-                    } else {
-                        if (logger.isLoggable(Level.WARNING)) {
-                            logger.warning(LogMessages.WARNING_GRIZZLY_CONFIG_SSL_SSL_IMPLEMENTATION_LOAD_ERROR(sslImplClassName));
-                        }
-                        return SSLImplementation.getInstance();
-                    }
+                    instance = (SSLImplementation) Utils.loadClass(sslImplClassName).newInstance();
                 } catch (Exception e) {
                     if (logger.isLoggable(Level.SEVERE)) {
                         logger.log(Level.SEVERE,
-                                   LogMessages.SEVERE_GRIZZLY_CONFIG_SSL_CLASS_LOAD_FAILED_ERROR(sslImplClassName),
-                                   e);
+                            LogMessages.SEVERE_GRIZZLY_CONFIG_SSL_CLASS_LOAD_FAILED_ERROR(sslImplClassName), e);
                     }
-                    return SSLImplementation.getInstance();
                 }
             } else {
-                return SSLImplementation.getInstance();
+                instance = SSLImplementation.getInstance();
             }
         } catch (Exception e) {
             if (logger.isLoggable(Level.WARNING)) {
-                logger.log(Level.WARNING,
-                           LogMessages.WARNING_GRIZZLY_CONFIG_SSL_GENERAL_CONFIG_ERROR(),
-                           e);
+                logger.log(Level.WARNING, LogMessages.WARNING_GRIZZLY_CONFIG_SSL_GENERAL_CONFIG_ERROR(), e);
             }
         }
-
-        return null;
+        if (instance == null) {
+            throw new GrizzlyConfigException(LogMessages.SEVERE_GRIZZLY_CONFIG_SSL_ERROR());
+        }
+        return instance;
     }
-*/
 
-    /*
-    * Evalutates the given List of cipher suite names, converts each cipher
-    * suite that is enabled (i.e., not preceded by a '-') to the corresponding
-    * JSSE cipher suite name, and returns a String[] of enabled cipher suites.
-    *
-    * @param sslCiphers List of SSL ciphers to evaluate.
-    *
-    * @return String[] of cipher suite names, or null if none of the cipher
-    *  suites in the given List are enabled or can be mapped to corresponding
-    *  JSSE cipher suite names
-    */
+    /**
+     * Evaluates the given List of cipher suite names, converts each cipher suite that is enabled (i.e., not preceded by
+     * a '-') to the corresponding JSSE cipher suite name, and returns a String[] of enabled cipher suites.
+     *
+     * @param configuredCiphers List of SSL ciphers to evaluate.
+     *
+     * @return String[] of cipher suite names, or null if none of the cipher suites in the given List are enabled or can
+     *         be mapped to corresponding JSSE cipher suite names
+     */
     private static String[] getJSSECiphers(final List<String> configuredCiphers) {
         Set<String> enabledCiphers = null;
         for (String cipher : configuredCiphers) {
@@ -392,61 +364,51 @@ public class SSLConfigHolder {
                 }
             }
         }
-
         return ((enabledCiphers == null)
-                ? null
-                : enabledCiphers.toArray(new String[enabledCiphers.size()]));
+            ? null
+            : enabledCiphers.toArray(new String[enabledCiphers.size()]));
     }
-
-
     /*
-     * Converts the given cipher suite name to the corresponding JSSE cipher.
-     *
-     * @param cipher The cipher suite name to convert
-     *
-     * @return The corresponding JSSE cipher suite name, or null if the given
-     * cipher suite name can not be mapped
-     */
-    private static String getJSSECipher(final String cipher) {
+    * Converts the given cipher suite name to the corresponding JSSE cipher.
+    *
+    * @param cipher The cipher suite name to convert
+    *
+    * @return The corresponding JSSE cipher suite name, or null if the given
+    * cipher suite name can not be mapped
+    */
 
+    private static String getJSSECipher(final String cipher) {
         final CipherInfo ci = CipherInfo.getCipherInfo(cipher);
         return ((ci != null) ? ci.getCipherName() : null);
 
     }
-
-
     // ---------------------------------------------------------- Nested Classes
 
-
     /**
-     * This class represents the information associated with ciphers.
-     * It also maintains a Map from configName to CipherInfo.
+     * This class represents the information associated with ciphers. It also maintains a Map from configName to
+     * CipherInfo.
      */
     private static final class CipherInfo {
         private static final short SSL2 = 0x1;
         private static final short SSL3 = 0x2;
         private static final short TLS = 0x4;
-
         // The old names mapped to the standard names as existed
         private static final String[][] OLD_CIPHER_MAPPING = {
-                // IWS 6.x or earlier
-                {"rsa_null_md5", "SSL_RSA_WITH_NULL_MD5"},
-                {"rsa_null_sha", "SSL_RSA_WITH_NULL_SHA"},
-                {"rsa_rc4_40_md5", "SSL_RSA_EXPORT_WITH_RC4_40_MD5"},
-                {"rsa_rc4_128_md5", "SSL_RSA_WITH_RC4_128_MD5"},
-                {"rsa_rc4_128_sha", "SSL_RSA_WITH_RC4_128_SHA"},
-                {"rsa_3des_sha", "SSL_RSA_WITH_3DES_EDE_CBC_SHA"},
-                {"fips_des_sha", "SSL_RSA_WITH_DES_CBC_SHA"},
-                {"rsa_des_sha", "SSL_RSA_WITH_DES_CBC_SHA"},
-
-                // backward compatible with AS 9.0 or earlier
-                {"SSL_RSA_WITH_NULL_MD5", "SSL_RSA_WITH_NULL_MD5"},
-                {"SSL_RSA_WITH_NULL_SHA", "SSL_RSA_WITH_NULL_SHA"}
+            // IWS 6.x or earlier
+            {"rsa_null_md5", "SSL_RSA_WITH_NULL_MD5"},
+            {"rsa_null_sha", "SSL_RSA_WITH_NULL_SHA"},
+            {"rsa_rc4_40_md5", "SSL_RSA_EXPORT_WITH_RC4_40_MD5"},
+            {"rsa_rc4_128_md5", "SSL_RSA_WITH_RC4_128_MD5"},
+            {"rsa_rc4_128_sha", "SSL_RSA_WITH_RC4_128_SHA"},
+            {"rsa_3des_sha", "SSL_RSA_WITH_3DES_EDE_CBC_SHA"},
+            {"fips_des_sha", "SSL_RSA_WITH_DES_CBC_SHA"},
+            {"rsa_des_sha", "SSL_RSA_WITH_DES_CBC_SHA"},
+            // backward compatible with AS 9.0 or earlier
+            {"SSL_RSA_WITH_NULL_MD5", "SSL_RSA_WITH_NULL_MD5"},
+            {"SSL_RSA_WITH_NULL_SHA", "SSL_RSA_WITH_NULL_SHA"}
         };
-
-        private static final Map<String,CipherInfo> ciphers =
-                new HashMap<String,CipherInfo>();
-
+        private static final Map<String, CipherInfo> ciphers =
+            new HashMap<String, CipherInfo>();
         @SuppressWarnings({"UnusedDeclaration"})
         private final String configName;
         private final String cipherName;
@@ -458,18 +420,18 @@ public class SSLConfigHolder {
                 String nonStdName = OLD_CIPHER_MAPPING[i][0];
                 String stdName = OLD_CIPHER_MAPPING[i][1];
                 ciphers.put(nonStdName,
-                        new CipherInfo(nonStdName, stdName, (short) (SSL3 | TLS)));
+                    new CipherInfo(nonStdName, stdName, (short) (SSL3 | TLS)));
             }
         }
 
         /**
-         * @param configName      name used in domain.xml, sun-acc.xml
-         * @param cipherName      name that may depends on backend
+         * @param configName name used in domain.xml, sun-acc.xml
+         * @param cipherName name that may depends on backend
          * @param protocolVersion
          */
         private CipherInfo(final String configName,
-                           final String cipherName,
-                           final short protocolVersion) {
+            final String cipherName,
+            final short protocolVersion) {
             this.configName = configName;
             this.cipherName = cipherName;
             this.protocolVersion = protocolVersion;
@@ -483,6 +445,7 @@ public class SSLConfigHolder {
                 ciphers.put(s, new CipherInfo(s, s, (short) (SSL3 | TLS)));
             }
         }
+
         public static CipherInfo getCipherInfo(final String configName) {
             return ciphers.get(configName);
         }

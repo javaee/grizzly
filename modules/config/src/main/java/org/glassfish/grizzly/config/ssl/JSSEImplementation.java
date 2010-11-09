@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,95 +55,57 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.glassfish.grizzly.config.ssl;
 
-package org.glassfish.grizzly.ssl;
+import java.net.Socket;
+import javax.net.ssl.SSLEngine;
 
-import java.io.IOException;
+import org.glassfish.grizzly.ssl.SSLSupport;
 
 /**
- * SSLSupport
+ * JSSEImplementation:
  *
- * Interface for SSL-specific functions
+ * Concrete implementation class for JSSE
  *
  * @author EKR
  */
-public interface SSLSupport {
-    /**
-     * The Request attribute key for the key size.
-     */
-    String KEY_SIZE_KEY = "javax.servlet.request.key_size";
+public class JSSEImplementation extends SSLImplementation {
+    static final String JSSE14Factory = "com.sun.grizzly.util.net.jsse.JSSE14Factory";
+    static final String SSLSocketClass = "javax.net.ssl.SSLSocket";
+    private JSSEFactory factory;
 
-    /**
-     * A mapping table to determine the number of effective bits in the key
-     * when using a cipher suite containing the specified cipher name.  The
-     * underlying data came from the TLS Specification (RFC 2246), Appendix C.
-     */
-    CipherData ciphers[] = {
-        new CipherData("_WITH_NULL_", 0),
-        new CipherData("_WITH_IDEA_CBC_", 128),
-        new CipherData("_WITH_RC2_CBC_40_", 40),
-        new CipherData("_WITH_RC4_40_", 40),
-        new CipherData("_WITH_RC4_128_", 128),
-        new CipherData("_WITH_DES40_CBC_", 40),
-        new CipherData("_WITH_DES_CBC_", 56),
-        new CipherData("_WITH_3DES_EDE_CBC_", 168)
-    };
-
-    /**
-     * The cipher suite being used on this connection.
-     */
-    String getCipherSuite() throws IOException;
-
-    /**
-     * The client certificate chain (if any).
-     */
-    Object[] getPeerCertificateChain()
-        throws IOException;
-
-    /**
-     * The client certificate chain (if any).
-     * @param force If <tt>true</tt>, then re-negotiate the
-     *              connection if necessary.
-     */
-    Object[] getPeerCertificateChain(boolean force)
-        throws IOException;
-
-    /**
-     * Get the keysize.
-     *
-     * What we're supposed to put here is ill-defined by the
-     * Servlet spec (S 4.7 again). There are at least 4 potential
-     * values that might go here:
-     *
-     * (a) The size of the encryption key
-     * (b) The size of the MAC key
-     * (c) The size of the key-exchange key
-     * (d) The size of the signature key used by the server
-     *
-     * Unfortunately, all of these values are nonsensical.
-     */
-    Integer getKeySize() throws IOException;
-
-    /**
-     * The current session Id.
-     */
-    String getSessionId() throws IOException;
-    /**
-     * Simple data class that represents the cipher being used, along with the
-     * corresponding effective key size.  The specified phrase must appear in the
-     * name of the cipher suite to be recognized.
-     */
-
-    final class CipherData {
-
-        public String phrase = null;
-
-        public int keySize = 0;
-
-        public CipherData(String phrase, int keySize) {
-            this.phrase = phrase;
-            this.keySize = keySize;
+    public JSSEImplementation() throws ClassNotFoundException {
+        // Check to see if JSSE is floating around somewhere
+        Class.forName(SSLSocketClass);
+        try {
+            Class factcl = Class.forName(JSSE14Factory);
+            factory = (JSSEFactory) factcl.newInstance();
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
         }
-
     }
+
+    @Override
+    public String getImplementationName() {
+        return "JSSE";
+    }
+
+    @Override
+    public ServerSocketFactory getServerSocketFactory() {
+        ServerSocketFactory ssf = factory.getSocketFactory();
+        return ssf;
+    }
+
+    @Override
+    public SSLSupport getSSLSupport(Socket s) {
+        SSLSupport ssls = factory.getSSLSupport(s);
+        return ssls;
+    }
+    // START SJSAS 6439313
+
+    @Override
+    public SSLSupport getSSLSupport(SSLEngine sslEngine) {
+        return factory.getSSLSupport(sslEngine);
+    }
+    // END SJSAS 6439313    
 }

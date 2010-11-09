@@ -72,8 +72,7 @@ public class MimeMap implements FileNameMap {
 
     // Defaults - all of them are "well-known" types,
     // you can add using normal web.xml.
-    public final static Map<String, String> DEFAULT_MAP =
-            new HashMap<String, String>(103);
+    public final static Map<String, String> DEFAULT_MAP = new HashMap<String, String>(103);
 
     static {
         DEFAULT_MAP.put("txt", "text/plain");
@@ -174,6 +173,7 @@ public class MimeMap implements FileNameMap {
         DEFAULT_MAP.put("wmls", "text/vnd.wap.wmlscript");
         DEFAULT_MAP.put("wmlscriptc", "application/vnd.wap.wmlscriptc");
     }
+    
     private final Map<String, String> map = new HashMap<String, String>();
 
     public void addContentType(String extn, String type) {

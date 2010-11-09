@@ -74,7 +74,7 @@ import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
  * @author Jeanfrancois Arcand
  * @author Justin Lee
  */
-public final class GrizzlyServiceListener {
+public class GrizzlyServiceListener {
     /**
      * The logger to use for logging messages.
      */

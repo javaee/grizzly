@@ -57,15 +57,9 @@ public abstract class GrizzlyJmxManager {
     protected final ManagedObjectManager mom;
 
     static {
-        ServiceFinder<GrizzlyJmxManager> serviceFinder =
-                ServiceFinder.find(GrizzlyJmxManager.class);
+        ServiceFinder<GrizzlyJmxManager> serviceFinder = ServiceFinder.find(GrizzlyJmxManager.class);
         final Iterator<GrizzlyJmxManager> it = serviceFinder.iterator();
-
-        if(it.hasNext()) {
-            manager = it.next();
-        } else {
-            manager = new DefaultJmxManager();
-        }
+        manager = it.hasNext() ? it.next() : new DefaultJmxManager();
     }
 
     /**

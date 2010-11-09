@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,20 +37,19 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+package org.glassfish.grizzly.http.util;
 
-package org.glassfish.grizzly.http.server.util;
-
-import java.util.Properties;
-
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Hardcoded mime-type supported by default.
+ * Hardcoded mime-type supported by default.   Additional extension/mime-type mappings may be added by calling {@link
+ * MimeType#add(String, String)}, however, keep in mind that these mappings are per-JVM.
  *
  * @author Jeanfrancois Arcand
  */
-public class MimeType{
-
-    private static Properties contentTypes = new Properties();
+public class MimeType {
+    private final static Map<String, String> contentTypes = new HashMap<String, String>();
 
     static {
         contentTypes.put("abs", "audio/x-mpeg");
@@ -94,7 +93,7 @@ public class MimeType{
         contentTypes.put("html", "text/html");
         contentTypes.put("hqx", "application/mac-binhex40");
         contentTypes.put("ief", "image/ief");
-        contentTypes.put("jad", "text/vnd.glassfish.j2me.app-descriptor");
+        contentTypes.put("jad", "text/vnd.sun.j2me.app-descriptor");
         contentTypes.put("jar", "application/java-archive");
         contentTypes.put("java", "text/plain");
         contentTypes.put("jnlp", "application/x-java-jnlp-file");
@@ -200,10 +199,49 @@ public class MimeType{
         contentTypes.put("zip", "application/zip");
     }
 
-
-    public static String get(String extension){
-        return contentTypes.getProperty(extension,"text/plain");
+    /**
+     * @param extension the extension
+     *
+     * @return the content type associated with <code>extension</code>.  If no association is found, this method will
+     *         return <code>text/plain</code>
+     */
+    public static String get(String extension) {
+        return get(extension, "text/plain");
     }
 
+    /**
+     * @param extension the extension
+     * @param defaultCt the content type to return if there is no known association for the specified extension
+     *
+     * @return the content type associated with <code>extension</code> or if no associate is found, returns
+     *         <code>defaultCt</code>
+     */
+    public static String get(String extension, String defaultCt) {
+        final String mime = contentTypes.get(extension);
+        return mime == null ? defaultCt : mime;
+    }
+
+    /**
+     * @param extension the extension
+     *
+     * @return <code>true</code> if the specified extension has been registered otherwise, returns <code>false</code>
+     */
+    public static boolean contains(String extension) {
+        return contentTypes.containsKey(extension);
+    }
+
+    /**
+     * <p> Associates the specified extension and content type </p>
+     *
+     * @param extension the extension
+     * @param contentType the content type associated with the extension
+     */
+    public static void add(String extension, String contentType) {
+        if (extension != null && extension.length() != 0
+            && contentType != null && contentType.length() != 0) {
+
+            contentTypes.put(extension, contentType);
+        }
+    }
 }
 

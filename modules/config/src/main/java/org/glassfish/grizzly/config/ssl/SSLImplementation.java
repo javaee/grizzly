@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,95 +55,64 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.glassfish.grizzly.config.ssl;
 
-package org.glassfish.grizzly.ssl;
+import java.net.Socket;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.net.ssl.SSLEngine;
 
-import java.io.IOException;
+import org.glassfish.grizzly.ssl.SSLSupport;
 
 /**
- * SSLSupport
+ * SSLImplementation:
  *
- * Interface for SSL-specific functions
+ * Abstract factory and base class for all SSL implementations.
  *
  * @author EKR
  */
-public interface SSLSupport {
+public abstract class SSLImplementation {
     /**
-     * The Request attribute key for the key size.
+     * Default Logger.
      */
-    String KEY_SIZE_KEY = "javax.servlet.request.key_size";
+    private final static Logger logger = Logger.getLogger(SSLImplementation.class.getName());
+    // The default implementations in our search path
+    private static final String JSSEImplementationClass = JSSEImplementation.class.getName();
+    private static final String[] implementations = {JSSEImplementationClass};
 
-    /**
-     * A mapping table to determine the number of effective bits in the key
-     * when using a cipher suite containing the specified cipher name.  The
-     * underlying data came from the TLS Specification (RFC 2246), Appendix C.
-     */
-    CipherData ciphers[] = {
-        new CipherData("_WITH_NULL_", 0),
-        new CipherData("_WITH_IDEA_CBC_", 128),
-        new CipherData("_WITH_RC2_CBC_40_", 40),
-        new CipherData("_WITH_RC4_40_", 40),
-        new CipherData("_WITH_RC4_128_", 128),
-        new CipherData("_WITH_DES40_CBC_", 40),
-        new CipherData("_WITH_DES_CBC_", 56),
-        new CipherData("_WITH_3DES_EDE_CBC_", 168)
-    };
-
-    /**
-     * The cipher suite being used on this connection.
-     */
-    String getCipherSuite() throws IOException;
-
-    /**
-     * The client certificate chain (if any).
-     */
-    Object[] getPeerCertificateChain()
-        throws IOException;
-
-    /**
-     * The client certificate chain (if any).
-     * @param force If <tt>true</tt>, then re-negotiate the
-     *              connection if necessary.
-     */
-    Object[] getPeerCertificateChain(boolean force)
-        throws IOException;
-
-    /**
-     * Get the keysize.
-     *
-     * What we're supposed to put here is ill-defined by the
-     * Servlet spec (S 4.7 again). There are at least 4 potential
-     * values that might go here:
-     *
-     * (a) The size of the encryption key
-     * (b) The size of the MAC key
-     * (c) The size of the key-exchange key
-     * (d) The size of the signature key used by the server
-     *
-     * Unfortunately, all of these values are nonsensical.
-     */
-    Integer getKeySize() throws IOException;
-
-    /**
-     * The current session Id.
-     */
-    String getSessionId() throws IOException;
-    /**
-     * Simple data class that represents the cipher being used, along with the
-     * corresponding effective key size.  The specified phrase must appear in the
-     * name of the cipher suite to be recognized.
-     */
-
-    final class CipherData {
-
-        public String phrase = null;
-
-        public int keySize = 0;
-
-        public CipherData(String phrase, int keySize) {
-            this.phrase = phrase;
-            this.keySize = keySize;
+    public static SSLImplementation getInstance() throws ClassNotFoundException {
+        for (String implementation : implementations) {
+            try {
+                return getInstance(implementation);
+            } catch (Exception e) {
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.log(Level.FINE, "Error creating " + implementation, e);
+                }
+            }
         }
-
+        // If we can't instantiate any of these
+        throw new ClassNotFoundException("Can't find any SSL implementation");
     }
-}
+
+    public static SSLImplementation getInstance(String className) throws ClassNotFoundException {
+        if (className == null) {
+            return getInstance();
+        }
+        try {
+            return (SSLImplementation) ((Class) Class.forName(className)).newInstance();
+        } catch (Exception e) {
+            if (logger.isLoggable(Level.FINEST)) {
+                logger.log(Level.FINEST, "Error loading SSL Implementation " + className, e);
+            }
+            throw new ClassNotFoundException("Error loading SSL Implementation " + className + " :" + e.toString());
+        }
+    }
+
+    public abstract String getImplementationName();
+
+    public abstract ServerSocketFactory getServerSocketFactory();
+
+    public abstract SSLSupport getSSLSupport(Socket sock);
+
+    public abstract SSLSupport getSSLSupport(SSLEngine sslEngine);
+}    

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,48 +37,32 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package org.glassfish.grizzly.http;
 
-import org.glassfish.grizzly.Connection;
+package com.sun.grizzly.util;
 
-/**
- * Monitoring probe providing callbacks that may be invoked by Grizzly {@link KeepAlive}.
- *
- * @author Alexey Stashok
- *
- * @since 2.0
- */
-public interface KeepAliveProbe {
+import junit.framework.TestCase;
+import org.junit.Assert;
 
-    /**
-     * Method will be called, when new keep-alive HTTP connection is getting established.
-     * This method is getting invoked, when 1st HTTP request processing completes,
-     * but the Connection will be kept alive to process next HTTP request.
-     *
-     * @param connection {@link Connection}, the event belongs to.
-     */
-    void onConnectionAcceptEvent(Connection connection);
+import java.util.Enumeration;
+import java.util.Properties;
+import java.util.ResourceBundle;
+import java.util.Set;
+import java.util.TreeSet;
 
-    /**
-     * Method will be called, when HTTP request comes on a kept alive connection.
-     *
-     * @param connection {@link Connection}, the event belongs to.
-     * @param requestNumber HTTP request number, being processed on the given keep-alive connection.
-     */
-    void onHitEvent(Connection connection, int requestNumber);
-
-    /**
-     * Method will be called, when the Connection could be used in the keep alive mode,
-     * but due to KeepAlive config limitations it will be closed.
-     *
-     * @param connection {@link Connection}, the event belongs to.
-     */
-    void onRefuseEvent(Connection connection);
-
-    /**
-     * Method will be called, when the keep alive Connection idle timeout expired.
-     *
-     * @param connection {@link Connection}, the event belongs to.
-     */
-    void onTimeoutEvent(Connection connection);
+public class LogMessagesTest extends TestCase {
+    public void testMessageNumbers() {
+        ResourceBundle bundle = ResourceBundle.getBundle("org.glassfish.grizzly.util.log");
+        final Enumeration<String> keys = bundle.getKeys();
+        Set<String> found = new TreeSet<String>();
+        while(keys.hasMoreElements()) {
+            final String key = keys.nextElement();
+            final String value = bundle.getString(key);
+            String id = value.split(":")[0];
+            if(found.contains(id)) {
+                Assert.fail(String.format("Duplicate ID found (%s) for key %s", id, key));
+            } else {
+                found.add(id);
+            }
+        }
+    }
 }

@@ -94,7 +94,8 @@ public abstract class JSSESocketFactory extends ServerSocketFactory {
     private static final String defaultKeyPass = "changeit";
     protected static final Logger logger = Logger.getLogger(JSSESocketFactory.class.getName());
     protected boolean initialized;
-    protected boolean clientAuth = false;
+    protected boolean clientAuthNeed = false;
+    protected boolean clientAuthWant = false;
     protected SSLServerSocketFactory sslProxy = null;
     protected String[] enabledCiphers;
 
@@ -132,7 +133,11 @@ public abstract class JSSESocketFactory extends ServerSocketFactory {
         SSLSocket asock = null;
         try {
             asock = (SSLSocket) socket.accept();
-            asock.setNeedClientAuth(clientAuth);
+            if(clientAuthNeed) {
+                asock.setNeedClientAuth(clientAuthNeed);
+            } else {
+                asock.setWantClientAuth(clientAuthWant);
+            }
         } catch (SSLException e) {
             throw new SocketException("SSL handshake error" + e.toString());
         }
@@ -350,6 +355,10 @@ public abstract class JSSESocketFactory extends ServerSocketFactory {
             requestedProtocols));
         // we don't know if client auth is needed -
         // after parsing the request we may re-handshake
-        socket.setNeedClientAuth(clientAuth);
+        if(clientAuthNeed) {
+            socket.setNeedClientAuth(clientAuthNeed);
+        } else {
+            socket.setWantClientAuth(clientAuthWant);
+        }
     }
 }

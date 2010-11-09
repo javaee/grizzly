@@ -110,7 +110,9 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
             final ThreadPool threadPool = grizzlyConfig.getConfig().getNetworkListeners().getThreadPool().get(0);
             Assert.assertEquals(threadPool.getMaxThreadPoolSize(), "5");
         } finally {
-            grizzlyConfig.shutdown();
+            if(grizzlyConfig != null) {
+                grizzlyConfig.shutdown();
+            }
         }
     }
 

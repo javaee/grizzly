@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -36,49 +36,50 @@
  * and therefore, elected the GPL Version 2 license, then the option applies
  * only if the new code is made subject to such option by the copyright
  * holder.
+ *
+ *
+ * This file incorporates work covered by the following copyright and
+ * permission notice:
+ *
+ * Copyright 2004 The Apache Software Foundation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-package org.glassfish.grizzly.http;
+package org.glassfish.grizzly.config.ssl;
 
-import org.glassfish.grizzly.Connection;
+import java.net.Socket;
+import javax.net.ssl.SSLEngine;
+
+import org.glassfish.grizzly.ssl.SSLSupport;
 
 /**
- * Monitoring probe providing callbacks that may be invoked by Grizzly {@link KeepAlive}.
+ * Factory interface to construct components based on the JSSE version in use.
  *
- * @author Alexey Stashok
- *
- * @since 2.0
+ * @author Bill Barker
  */
-public interface KeepAliveProbe {
+interface JSSEFactory {
+    /**
+     * Returns the ServerSocketFactory to use.
+     */
+    ServerSocketFactory getSocketFactory();
 
     /**
-     * Method will be called, when new keep-alive HTTP connection is getting established.
-     * This method is getting invoked, when 1st HTTP request processing completes,
-     * but the Connection will be kept alive to process next HTTP request.
-     *
-     * @param connection {@link Connection}, the event belongs to.
+     * returns the SSLSupport attached to this socket.
      */
-    void onConnectionAcceptEvent(Connection connection);
+    SSLSupport getSSLSupport(Socket socket);
 
     /**
-     * Method will be called, when HTTP request comes on a kept alive connection.
-     *
-     * @param connection {@link Connection}, the event belongs to.
-     * @param requestNumber HTTP request number, being processed on the given keep-alive connection.
+     * returns the SSLSupport attached to this SSLEngine.
      */
-    void onHitEvent(Connection connection, int requestNumber);
-
-    /**
-     * Method will be called, when the Connection could be used in the keep alive mode,
-     * but due to KeepAlive config limitations it will be closed.
-     *
-     * @param connection {@link Connection}, the event belongs to.
-     */
-    void onRefuseEvent(Connection connection);
-
-    /**
-     * Method will be called, when the keep alive Connection idle timeout expired.
-     *
-     * @param connection {@link Connection}, the event belongs to.
-     */
-    void onTimeoutEvent(Connection connection);
+    SSLSupport getSSLSupport(SSLEngine sslEngine);
 }

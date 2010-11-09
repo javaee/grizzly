@@ -111,10 +111,9 @@ public class JSSE14SocketFactory extends JSSESocketFactory {
      */
     public void init() throws IOException {
         try {
-            String clientAuthStr = (String) attributes.get("clientauth");
-            if (clientAuthStr != null) {
-                clientAuth = Boolean.valueOf(clientAuthStr);
-            }
+            clientAuthNeed = Boolean.valueOf((String) attributes.get("clientAuthNeed"));
+            clientAuthWant = Boolean.valueOf((String) attributes.get("clientAuthWant"));
+            
             // SSL protocol variant (e.g., TLS, SSL v3, etc.)
             String protocol = (String) attributes.get("protocol");
             if (protocol == null) {
