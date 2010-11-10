@@ -47,12 +47,12 @@
     <parent>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-contribs</artifactId>
-        <version>1.9.22-SNAPSHOT</version>
+        <version>1.9.23-SNAPSHOT</version>
     </parent>
     <groupId>com.sun.grizzly.osgi.httpservice</groupId>
     <artifactId>httpservice-its</artifactId>
     <packaging>jar</packaging>
-    <version>1.9.22-SNAPSHOT</version>
+    <version>1.9.23-SNAPSHOT</version>
     <name>Grizzly OSGi HttpService Integration Tests</name>
 
     <properties>
