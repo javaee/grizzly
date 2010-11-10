@@ -98,7 +98,7 @@ verify SVN_PWD "Missing --password option for your svn password"
 
 if [ -z "${PREPARE}" ] 
 then
-	SVN_URL="-DconnectionUrl=scm:svn:https://grizzly.dev.java.net/svn/grizzly/tags/${BRANCH}"
+	SVN_URL="-DconnectionUrl=scm:svn:https://svn.java.net/svn/grizzly~svn/tags/${BRANCH}/"
 fi
 
 if [ "${PREPARE}" ]

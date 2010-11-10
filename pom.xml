@@ -49,21 +49,21 @@
     <version>1.9.23-SNAPSHOT</version>
     <url>https://grizzly.dev.java.net</url>
     <issueManagement>
-        <system>bugzilla</system>
-        <url>https://grizzly.dev.java.net/servlets/ProjectIssues</url>
+        <system>JIRA</system>
+        <url>http://java.net/jira/browse/GRIZZLY</url>
     </issueManagement>
     <mailingLists>
         <mailingList>
             <name>Grizzly Dev List</name>
-            <archive>dev@grizzly.dev.java.net</archive>
+            <archive>dev@grizzly.java.net</archive>
         </mailingList>
         <mailingList>
             <name>Grizzly Support List</name>
-            <archive>users@grizzly.dev.java.net</archive>
+            <archive>users@grizzly.java.net</archive>
         </mailingList>
         <mailingList>
             <name>Grizzly Announce List</name>
-            <archive>announces@grizzly.dev.java.net</archive>
+            <archive>announce@grizzly.java.net</archive>
         </mailingList>
     </mailingLists>
     <developers>
@@ -99,9 +99,9 @@
         </license>
     </licenses>
     <scm>
-        <connection>scm:svn:https://www.dev.java.net/svn/grizzly</connection>
-        <developerConnection>scm:svn:https://www.dev.java.net/svn/grizzly</developerConnection>
-        <url>https://grizzly.dev.java.net/source/browse/grizzly/#dirlist</url>
+        <connection>scm:svn:https://svn.java.net/svn/grizzly~svn/</connection>
+        <developerConnection>scm:svn:https://svn.java.net/svn/grizzly~svn/</developerConnection>
+        <url>https://svn.java.net/svn/grizzly~svn/</url>
     </scm>
     <organization>
         <name>Oracle Corpration</name>
@@ -190,7 +190,7 @@
             <plugin>
                 <artifactId>maven-release-plugin</artifactId>
                 <configuration>
-                    <tagBase>https://www.dev.java.net/svn/grizzly/tags/</tagBase>
+                    <tagBase>https://svn.java.net/svn/grizzly~svn/tags/</tagBase>
                 </configuration>
             </plugin>
             <plugin>
