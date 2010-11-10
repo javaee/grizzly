@@ -176,27 +176,28 @@ public class MimeMap implements FileNameMap {
     
     private final Map<String, String> map = new HashMap<String, String>();
 
-    public void addContentType(String extn, String type) {
-        map.put(extn, type.toLowerCase());
+    public void addContentType(String ext, String type) {
+        map.put(ext, type.toLowerCase());
     }
 
     public Iterator<String> getExtensions() {
         return map.keySet().iterator();
     }
 
-    public String getContentType(String extn) {
-        String type = map.get(extn.toLowerCase());
+    public String getContentType(String ext) {
+        String type = map.get(ext.toLowerCase());
         if (type == null) {
-            type = DEFAULT_MAP.get(extn);
+            type = DEFAULT_MAP.get(ext);
         }
         return type;
     }
 
-    public void removeContentType(String extn) {
-        map.remove(extn.toLowerCase());
+    public void removeContentType(String ext) {
+        map.remove(ext.toLowerCase());
     }
 
-    /** Get extension of file, without fragment id
+    /**
+     * Get extension of file, without fragment id
      */
     public static String getExtension(String fileName) {
         // play it safe and get rid of any fragment id
@@ -212,22 +213,12 @@ public class MimeMap implements FileNameMap {
         //             fileName = fileName.substring(0, i);
         //         }
         int i = fileName.lastIndexOf('.', newEnd);
-        if (i != -1) {
-            return fileName.substring(i + 1, newEnd);
-        } else {
-            // no extension, no content type
-            return null;
-        }
+        return i != -1 ? fileName.substring(i + 1, newEnd) : null;
     }
 
     @Override
     public String getContentTypeFor(String fileName) {
-        String extn = getExtension(fileName);
-        if (extn != null) {
-            return getContentType(extn);
-        } else {
-            // no extension, no content type
-            return null;
-        }
+        String ext = getExtension(fileName);
+        return ext != null ? getContentType(ext) : null;
     }
 }
