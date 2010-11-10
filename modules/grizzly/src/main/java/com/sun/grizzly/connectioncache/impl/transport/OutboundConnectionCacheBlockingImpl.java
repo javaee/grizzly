@@ -492,7 +492,9 @@ public final class OutboundConnectionCacheBlockingImpl<C extends Closeable>
             dprint( "->reclaimOrClose: " + conn ) ;
         
         try {
-            final boolean isOverflow = (numberOfConnections() > highWaterMark());
+            final boolean isOverflow = (numberOfConnections() > highWaterMark())
+                    || (cs.entry.totalConnections() > maxParallelConnections);
+            
             final boolean connectionClosed = isOverflow || !isConnected( conn );
             if (connectionClosed) {
                 if (debug()) {

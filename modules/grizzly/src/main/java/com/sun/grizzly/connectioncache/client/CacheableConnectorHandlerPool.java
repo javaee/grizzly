@@ -103,11 +103,11 @@ public class CacheableConnectorHandlerPool implements
         connectorInstanceHandler.release(connectorHandler);
     }
 
-    OutboundConnectionCache<ConnectorHandler> getOutboundConnectionCache() {
+    public OutboundConnectionCache<ConnectorHandler> getOutboundConnectionCache() {
         return outboundConnectionCache;
     }
 
-    ConnectionFinder getConnectionFinder() {
+    public ConnectionFinder getConnectionFinder() {
         return connectionFinder;
     }
 

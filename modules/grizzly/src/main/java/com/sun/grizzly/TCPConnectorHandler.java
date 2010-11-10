@@ -41,6 +41,7 @@
 package com.sun.grizzly;
 
 import com.sun.grizzly.Controller.Protocol;
+import com.sun.grizzly.util.FutureImpl;
 import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.util.InputReader;
 import java.io.IOException;
@@ -52,7 +53,9 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 /**
  * Non blocking TCP Connector Handler. The recommended way to use this class
@@ -96,9 +99,9 @@ public class TCPConnectorHandler extends
     
 
     /**
-     * IsConnected Latch related
+     * IsConnected future
      */
-    private volatile CountDownLatch isConnectedLatch;
+    private volatile FutureImpl<Boolean> isConnectedFuture;
     
     
     /**
@@ -175,17 +178,27 @@ public class TCPConnectorHandler extends
         }
         
             // Wait for the onConnect to be invoked.
-        isConnectedLatch = new CountDownLatch(1);
+        isConnectedFuture = new FutureImpl<Boolean>();
 
         selectorHandler.connect(remoteAddress, localAddress,
                 callbackHandler);
         inputStream = new InputReader();
         
         try {
-            isConnectedLatch.await(connectionTimeout, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException ex) {
-            throw new IOException(ex.getMessage());
+            isConnectedFuture.get(connectionTimeout, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            throw new IOException(e.getMessage());
+        } catch (ExecutionException e) {
+            final Throwable cause = e.getCause();
+            if (cause instanceof IOException) {
+                throw (IOException) cause;
         }
+
+            throw new IOException("Unexpected exception during connect. " +
+                    cause.getClass().getName() + ": " + cause.getMessage());
+        } catch (TimeoutException e) {
+            throw new IOException("Connection timeout");
+    }
     }
     
     
@@ -272,7 +285,9 @@ public class TCPConnectorHandler extends
      * @param key - a {@link SelectionKey}
      */
     public void finishConnect(SelectionKey key) throws IOException{
-        try{
+        Throwable error = null;
+        
+        try {
             if (Controller.logger().isLoggable(Level.FINE)) {
                 Controller.logger().log(Level.FINE, "Finish connect");
             }
@@ -286,10 +301,20 @@ public class TCPConnectorHandler extends
             if (Controller.logger().isLoggable(Level.FINE)) {
                 Controller.logger().log(Level.FINE, "isConnected: " + isConnected);
             }
-        } catch (IOException ex){
-            throw ex;
+        } catch (Throwable e) {
+            error = e;
         } finally {
-            isConnectedLatch.countDown();
+            if (error == null) {
+                isConnectedFuture.setResult(Boolean.TRUE);
+            } else {
+                isConnectedFuture.setException(error);
+                if (error instanceof IOException) {
+                    throw (IOException) error;
+        }
+
+                throw new IOException("Unexpected exception during connect. " +
+                        error.getClass().getName() + ": " + error.getMessage());
+    }
         }
     }
     

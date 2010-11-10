@@ -181,7 +181,7 @@ public class CacheableConnectorHandler
                 } catch (IOException e) {
                 }
 
-                outboundConnectionCache.release(underlyingConnectorHandler, 0);
+                outboundConnectionCache.close(underlyingConnectorHandler);
                 underlyingConnectorHandler = null;
             } else {
                 return;
@@ -202,6 +202,11 @@ public class CacheableConnectorHandler
         return localCH != null ? localCH.getUnderlyingChannel() : null;
     }    
     
+    public void forceClose() throws IOException {
+        parentPool.getOutboundConnectionCache().close(underlyingConnectorHandler);
+        underlyingConnectorHandler = null;
+    }
+
     public void close() throws IOException {
         parentPool.getOutboundConnectionCache().release(underlyingConnectorHandler, 0);
         underlyingConnectorHandler = null;
@@ -217,16 +222,12 @@ public class CacheableConnectorHandler
         return underlyingConnectorHandler.write(byteBuffer, blocking);
     }
     
-    public void finishConnect(SelectionKey key) {
+    public void finishConnect(SelectionKey key) throws IOException {
         // Call underlying finishConnect only if connection was just established
         if (connectExecutor.wasCalled()) {
-            try {
                 underlyingConnectorHandler.finishConnect(key);
-            } catch (IOException ex){
-                Controller.logger().severe(ex.getMessage());
             }
         }
-    }
 
     @Override
     public boolean isConnected() {

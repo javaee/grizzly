@@ -48,6 +48,7 @@ import com.sun.grizzly.async.AsyncReadCallbackHandler;
 import com.sun.grizzly.async.AsyncReadCondition;
 import com.sun.grizzly.async.AsyncWriteCallbackHandler;
 import com.sun.grizzly.async.ByteBufferCloner;
+import com.sun.grizzly.util.FutureImpl;
 import com.sun.grizzly.util.OutputWriter;
 import com.sun.grizzly.util.SSLOutputWriter;
 import com.sun.grizzly.util.SSLUtils;
@@ -61,8 +62,10 @@ import java.nio.channels.NotYetConnectedException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLContext;
@@ -147,9 +150,9 @@ public class SSLConnectorHandler
 
     
     /**
-     * IsConnected Latch related
+     * IsConnected future
      */
-    private volatile CountDownLatch isConnectedLatch;
+    private volatile FutureImpl<Boolean> isConnectedFuture;
     
     /**
      * Are we creating a controller every run.
@@ -272,16 +275,26 @@ public class SSLConnectorHandler
         }
         
         // Wait for the onConnect to be invoked.
-        isConnectedLatch = new CountDownLatch(1);
+        isConnectedFuture = new FutureImpl<Boolean>();
         
         selectorHandler.connect(remoteAddress, localAddress, 
                 new SSLInternalCallbackHandler());
         
         try {
-            isConnectedLatch.await(30, TimeUnit.SECONDS);
-        } catch (InterruptedException ex) {
-            throw new IOException(ex.getMessage());
+            isConnectedFuture.get(30, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new IOException(e.getMessage());
+        } catch (ExecutionException e) {
+            final Throwable cause = e.getCause();
+            if (cause instanceof IOException) {
+                throw (IOException) cause;
         }
+
+            throw new IOException("Unexpected exception during connect. " +
+                    cause.getClass().getName() + ": " + cause.getMessage());
+        } catch (TimeoutException e) {
+            throw new IOException("Connection timeout");
+    }
     }
     
     /**
@@ -561,6 +574,8 @@ public class SSLConnectorHandler
      * @param key - a {@link SelectionKey}
      */
     public void finishConnect(SelectionKey key) throws IOException{
+        Throwable error = null;
+
         try {
             if (logger.isLoggable(Level.FINE)) {
                 logger.log(Level.FINE, "Finish connect");
@@ -574,10 +589,20 @@ public class SSLConnectorHandler
             if (isConnected) {
                 initSSLEngineIfRequired();
             }
-        } catch (IOException e) {
-            throw e;
+        } catch (Throwable e) {
+            error = e;
         } finally {
-            isConnectedLatch.countDown();
+            if (error == null) {
+                isConnectedFuture.setResult(Boolean.TRUE);
+            } else {
+                isConnectedFuture.setException(error);
+                if (error instanceof IOException) {
+                    throw (IOException) error;
+        }
+
+                throw new IOException("Unexpected exception during connect. " +
+                        error.getClass().getName() + ": " + error.getMessage());
+    }
         }
     }
     
