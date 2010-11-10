@@ -150,8 +150,12 @@ public class TLSPUPreProcessor implements PUPreProcessor {
         if (sslEngine == null) {
             sslEngine = sslContext.createSSLEngine();
             sslEngine.setUseClientMode(false);
-            sslEngine.setNeedClientAuth(needClientAuth);
-            sslEngine.setWantClientAuth(wantClientAuth);
+            if (needClientAuth) {
+                sslEngine.setNeedClientAuth(needClientAuth);
+            }
+            if (wantClientAuth) {
+                sslEngine.setWantClientAuth(wantClientAuth);
+            }
         }
         
         if (isloglevelfine) {

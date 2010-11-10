@@ -52,7 +52,8 @@ import java.io.IOException;
 public class ChatApplication extends WebSocketApplication {
     @Override
     public boolean isApplicationRequest(Request request) {
-        return request.requestURI().equals("/chat");
+        final String uri = request.requestURI().toString();
+        return uri.endsWith("/chat");
     }
 
     @Override

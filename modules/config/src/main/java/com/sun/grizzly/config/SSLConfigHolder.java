@@ -193,8 +193,12 @@ public class SSLConfigHolder {
         }
 
         sslEngine.setUseClientMode(clientMode);
-        sslEngine.setWantClientAuth(wantClientAuth);
-        sslEngine.setNeedClientAuth(needClientAuth);
+        if (wantClientAuth) {
+            sslEngine.setWantClientAuth(wantClientAuth);
+        }
+        if (needClientAuth) {
+            sslEngine.setNeedClientAuth(needClientAuth);
+        }
 
         return sslEngine;
     }

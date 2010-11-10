@@ -1834,10 +1834,10 @@ public class GrizzlyRequest {
                             getAttribute(Globals.SSL_CERTIFICATE_ATTR);
                 }
                 if ((certs == null) || (certs.length < 1)) {
-                    throw new IllegalStateException(sm.getString("grizzlyRequest.no.certificates"));
+                    userPrincipal = null;
+                } else {
+                    userPrincipal = certs[0].getSubjectX500Principal();
                 }
-
-                userPrincipal = certs[0].getSubjectX500Principal();
             }
         }
         return (userPrincipal);

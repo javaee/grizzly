@@ -395,9 +395,13 @@ public class SSLReadFilter implements ProtocolFilter{
         if (sslEngine == null) {
            sslEngine = newSSLEngine();
         }
-        
-        sslEngine.setWantClientAuth(wantClientAuth);
-        sslEngine.setNeedClientAuth(needClientAuth);
+
+        if (wantClientAuth) {
+            sslEngine.setWantClientAuth(wantClientAuth);
+        }
+        if (needClientAuth) {
+            sslEngine.setNeedClientAuth(needClientAuth);
+        }
         return sslEngine;
     }
            

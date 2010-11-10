@@ -525,10 +525,9 @@ public class SSLUtils {
                 logger.log(Level.FINE,"Error getting client certs",t);
         }
  
-        if (certs == null && needClientAuth){
+        if (certs == null && (sslEngine.getNeedClientAuth() || sslEngine.getWantClientAuth())) {
             sslEngine.getSession().invalidate();
-            sslEngine.setNeedClientAuth(true);
-            sslEngine.beginHandshake();         
+            sslEngine.beginHandshake();
                       
             ByteBuffer origBB = byteBuffer;
             // In case the application hasn't read all the body bytes.
