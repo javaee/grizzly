@@ -190,7 +190,7 @@
             <plugin>
                 <artifactId>maven-release-plugin</artifactId>
                 <configuration>
-                    <tagBase>https://www.dev.java.net/svn/grizzly/tags</tagBase>
+                    <tagBase>https://www.dev.java.net/svn/grizzly/tags/</tagBase>
                 </configuration>
             </plugin>
             <plugin>
