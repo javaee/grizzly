@@ -139,7 +139,13 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     @Override
     protected void initController() {
         if (controller == null) {
-            controller = new Controller();
+            controller = new Controller() {
+                @Override
+                public void logVersion() {
+                    // Make this a no-op.  The GF GrizzlyProxy already logs the
+                    // Grizzly version; no need to do it twice.
+                }
+            };
         }
 
         controller.setKernelExecutorFactory(

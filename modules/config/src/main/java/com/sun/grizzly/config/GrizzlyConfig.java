@@ -94,7 +94,12 @@ public class GrizzlyConfig {
             final AtomicInteger counter = new AtomicInteger(networkListeners.size());
 
             for (final NetworkListener listener : networkListeners) {
-                final Controller controller = new Controller();
+                final Controller controller = new Controller() {
+                    @Override
+                    public void logVersion() {
+                        //no-op
+                    }
+                };
                 controller.addStateListener(new ControllerStateListenerAdapter() {
                     @Override
                     public void onReady() {
