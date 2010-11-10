@@ -316,9 +316,6 @@ public class SSLConfigHolder {
                 setAttribute(serverSF, "algorithm", ssl.getKeyAlgorithm(), null, null);
             }
             setAttribute(serverSF, "trustMaxCertLength", ssl.getTrustMaxCertLength(), null, null);
-            
-            serverSF.setAttribute("clientAuthNeed", "need".equalsIgnoreCase(ssl.getClientAuth()));
-            serverSF.setAttribute("clientAuthWant", "want".equalsIgnoreCase(ssl.getClientAuth()));
         }
 
         // key store settings
@@ -331,8 +328,6 @@ public class SSLConfigHolder {
         setAttribute(serverSF, "truststorePass", ssl != null ? getTrustStorePassword(ssl) : null, "javax.net.ssl.trustStorePassword", "changeit");
         // cert nick name
         serverSF.setAttribute("keyAlias", ssl != null ? ssl.getCertNickname() : null);
-        
-        
         serverSF.init();
 
         sslContext = serverSF.getSSLContext();

@@ -59,12 +59,11 @@
 package com.sun.grizzly.util.net;
 
 import com.sun.grizzly.util.LoggerUtils;
-import com.sun.grizzly.util.net.jsse.JSSEImplementation;
-
-import javax.net.ssl.SSLEngine;
 import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+// START SJSAS 6439313
+import javax.net.ssl.SSLEngine;
 // END SJSAS 6439313
 
 /* SSLImplementation:
@@ -73,72 +72,66 @@ import java.util.logging.Logger;
 
    @author EKR
 */
-
 abstract public class SSLImplementation {
     /**
      * Default Logger.
      */
     private final static Logger logger = LoggerUtils.getLogger();
-
-
+    
+            
     // The default implementations in our search path
-    private static final String JSSEImplementationClass =
-            "com.sun.grizzly.util.net.jsse.JSSEImplementation";
+    private static final String JSSEImplementationClass=
+	"com.sun.grizzly.util.net.jsse.JSSEImplementation";
+    
+    private static final String[] implementations=
+    {        
+        JSSEImplementationClass
+    };
 
-    private static final String[] implementations =
-            {
-                    JSSEImplementationClass
-            };
+    public static SSLImplementation getInstance() throws ClassNotFoundException
+    {
+	for(int i=0;i<implementations.length;i++){
+	    try {
+               SSLImplementation impl=
+		    getInstance(implementations[i]);
+		return impl;
+	    } catch (Exception e) {
+		if(logger.isLoggable(Level.FINE)) 
+		    logger.log(Level.FINE,"Error creating " + implementations[i],e);
+	    }
+	}
 
-    public static SSLImplementation getInstance() throws ClassNotFoundException {
-        for (int i = 0; i < implementations.length; i++) {
-            try {
-                SSLImplementation impl =
-                        getInstance(implementations[i]);
-                return impl;
-            } catch (Exception e) {
-                if (logger.isLoggable(Level.FINE)) {
-                    logger.log(Level.FINE, "Error creating " + implementations[i], e);
-                }
-            }
-        }
-
-        // If we can't instantiate any of these
-        throw new ClassNotFoundException("Can't find any SSL implementation");
+	// If we can't instantiate any of these
+	throw new ClassNotFoundException("Can't find any SSL implementation");
     }
 
     public static SSLImplementation getInstance(String className)
-            throws ClassNotFoundException {
-        if (className == null) {
-            return getInstance();
-        }
+	throws ClassNotFoundException
+    {
+	if(className==null) return getInstance();
 
-        try {
-            // Workaround for the J2SE 1.4.x classloading problem (under Solaris).
-            // Class.forName(..) fails without creating class using new.
-            // This is an ugly workaround.
-            if (JSSEImplementationClass.equals(className)) {
-                return new JSSEImplementation();
-            }
-            Class clazz = Class.forName(className);
-            return (SSLImplementation) clazz.newInstance();
-        } catch (Exception e) {
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.log(Level.FINEST, "Error loading SSL Implementation "
-                        + className, e);
-            }
-            throw new ClassNotFoundException("Error loading SSL Implementation "
-                    + className + " :" + e.toString());
-        }
+	try {
+	    // Workaround for the J2SE 1.4.x classloading problem (under Solaris).
+	    // Class.forName(..) fails without creating class using new.
+	    // This is an ugly workaround. 
+	    if( JSSEImplementationClass.equals(className) ) {
+		return new com.sun.grizzly.util.net.jsse.JSSEImplementation();
+	    }
+	    Class clazz=Class.forName(className);
+	    return (SSLImplementation)clazz.newInstance();
+	} catch (Exception e){
+	    if(logger.isLoggable(Level.FINEST))
+		logger.log(Level.FINEST,"Error loading SSL Implementation "
+			     +className, e);
+	    throw new ClassNotFoundException("Error loading SSL Implementation "
+				      +className+ " :" +e.toString());
+	}
     }
 
     abstract public String getImplementationName();
-
     abstract public ServerSocketFactory getServerSocketFactory();
-
     abstract public SSLSupport getSSLSupport(Socket sock);
     // START SJSAS 6439313
-
     public abstract SSLSupport getSSLSupport(SSLEngine sslEngine);
     // END SJSAS 6439313
 }    

@@ -52,32 +52,33 @@ import java.util.logging.Level;
 
 /**
  * Base class to use when GrizzlyRequest/Response/InputStream/OutputStream
- * are needed to implement a customized HTTP container/extendion to the
+ * are needed to implement a customized HTTP container/extendion to the 
  * http module. The {@link ServletAdapter} demonstrate and easy and powerfull
  * way of how to extend this class.
- *
- * The {@link GrizzlyAdapter} provides developpers with a simple and
- * consistent mechanism for extending the functionality of the HTTP WebServer and for bridging existing
- * http based technology like JRuby-on-Rail, Servlet, Bayeux Protocol or any
+ * 
+ * The {@link GrizzlyAdapter} provides developpers with a simple and 
+ * consistent mechanism for extending the functionality of the HTTP WebServer and for bridging existing 
+ * http based technology like JRuby-on-Rail, Servlet, Bayeux Protocol or any 
  * http based protocol.
- *
+ * 
  * @author Jeanfrancois Arcand
  */
 abstract public class GrizzlyAdapter extends StaticResourcesAdapter {
 
     protected static final int ADAPTER_NOTES = 31;
     protected static final boolean ALLOW_BACKSLASH = false;
-
+    
     protected boolean chunkingDisabled = false;
 
 
     public GrizzlyAdapter() {
+        super();
         commitErrorResponse = false;
     }
 
-
+    
     /**
-     * Create a new instance which will look for static pages located
+     * Create a new instance which will look for static pages located 
      * under <tt>publicDirectory</tt> folder.
      * @param publicDirectory the folder where the static resource are located.
      */
@@ -86,26 +87,26 @@ abstract public class GrizzlyAdapter extends StaticResourcesAdapter {
         commitErrorResponse = false;
     }
 
-
+    
     /**
      * <tt>true</tt> if static resource handling should be handled
      * by this class.
      */
     private boolean handleStaticResources = false;
-
-
+    
+    
     /**
-     * Allow request that uses encoded slash.
+     * Allow request that uses encoded slash. 
      */
     private boolean allowEncodedSlash = UDecoder.ALLOW_ENCODED_SLASH;
-
-
+    
+    
     /**
      * Is the URL decoded
      */
     private boolean decodeURL = true;
-
-
+    
+    
     /**
      * Wrap a {@link Request} and {@link Response} with associated high level
      * classes like {@link GrizzlyRequest} and {@link GrizzlyResponse}. The later
@@ -116,8 +117,8 @@ abstract public class GrizzlyAdapter extends StaticResourcesAdapter {
      * @throws java.lang.Exception
      */
     @Override
-    final public void service(Request req, Response res) throws Exception {
-
+    final public void service(Request req, Response res) throws Exception {   
+        
         // We need to set this value for every request as they are shared
         // amongs several GrizzlyAdapter
         req.getURLDecoder().setAllowEncodedSlash(allowEncodedSlash);
@@ -130,10 +131,10 @@ abstract public class GrizzlyAdapter extends StaticResourcesAdapter {
                 return;
             }
         }
-
+        
         GrizzlyRequest request = (GrizzlyRequest) req.getNote(ADAPTER_NOTES);
         GrizzlyResponse response = (GrizzlyResponse) res.getNote(ADAPTER_NOTES);
-
+        
         if (request == null) {
             // Create objects
             request = new GrizzlyRequest();
@@ -173,16 +174,16 @@ abstract public class GrizzlyAdapter extends StaticResourcesAdapter {
         }
     }
 
-
+    
     /**
-     * This method should contains the logic for any http extension to the
+     * This method should contains the logic for any http extension to the 
      * Grizzly HTTP Webserver.
      * @param request The  {@link GrizzlyRequest}
      * @param response The  {@link GrizzlyResponse}
      */
     abstract public void service(GrizzlyRequest request,GrizzlyResponse response) throws Exception;
-
-
+    
+    
     /**
      * Once the {@link #service} method has been execyuted, the container will
      * call this method to allow any extension to clean up there associated
@@ -191,12 +192,12 @@ abstract public class GrizzlyAdapter extends StaticResourcesAdapter {
      * @param response The  {@link GrizzlyResponse}
      */
     public void afterService(GrizzlyRequest request,
-            GrizzlyResponse response) throws Exception{
+            GrizzlyResponse response) throws Exception{        
     }
-
-
+    
+    
     /**
-     * Clean up the {@link Request} and {@link Response} object, and commit the
+     * Clean up the {@link Request} and {@link Response} object, and commit the 
      * response, and then invoke the {@link #afterService} method to allow extension
      * of this class to clean their own objects.
      * @param req the {@link Request}
@@ -207,14 +208,14 @@ abstract public class GrizzlyAdapter extends StaticResourcesAdapter {
     final public void afterService(Request req, Response res) throws Exception {
         GrizzlyRequest request = (GrizzlyRequest) req.getNote(ADAPTER_NOTES);
         GrizzlyResponse response = (GrizzlyResponse) res.getNote(ADAPTER_NOTES);
-        try{
+        try{                     
             if (request != null && response != null) {
                 afterService(request,response);
             }
         } catch (Exception ex){
             logger.log(Level.SEVERE,"afterService", ex);
             throw ex;
-        }
+        }       
         try {
             if (response != null){
                 response.finishResponse();
@@ -227,22 +228,22 @@ abstract public class GrizzlyAdapter extends StaticResourcesAdapter {
             if (request != null){
                 request.recycle();
             }
-
+            
             if (response != null){
                 response.recycle();
             }
         }
     }
 
-
+    
     /**
      * Called when the {@link GrizzlyAdapter}'s container is started by invoking
      * {@link GrizzlyWebServer#start} or when {@linl SelectorThread.start}. By default,
      * it does nothing.
      */
-    public void start() {}
-
-
+    public void start() {} 
+    
+    
     /**
      * Invoked when the {@link GrizzlyWebServer} or {@link SelectorThread}
      * is stopped or removed. By default, this method does nothing. Just override
@@ -259,7 +260,7 @@ abstract public class GrizzlyAdapter extends StaticResourcesAdapter {
         return handleStaticResources;
     }
 
-
+    
     /**
      * Enable static resource handling. Default is false.
      * @param handleStaticResources
@@ -277,14 +278,14 @@ abstract public class GrizzlyAdapter extends StaticResourcesAdapter {
     }
 
     /**
-     * When true, url that contains encoded slash will be allowed. When false,
+     * When true, url that contains encoded slash will be allowed. When false, 
      * the url will be rejected and considered ans an invalid one.
-     * @param allowEncodedSlash true
+     * @param allowEncodedSlash true 
      */
     public void setAllowEncodedSlash(boolean allowEncodedSlash) {
         this.allowEncodedSlash = allowEncodedSlash;
     }
-
+    
     /**
      * Should this class decode the URL
      */
