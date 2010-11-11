@@ -48,8 +48,6 @@ import org.jvnet.hk2.config.Dom;
 import org.jvnet.hk2.config.DuckTyped;
 import org.jvnet.hk2.config.types.PropertyBag;
 
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
 import java.beans.PropertyVetoException;
 import java.util.ArrayList;
 import java.util.List;
@@ -61,6 +59,7 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
     int MAX_THREADPOOL_SIZE = 5;
     int MIN_THREADPOOL_SIZE = 2;
     String CLASSNAME = "com.sun.grizzly.http.StatsThreadPool";
+    String PARAMETERIZED_NUMBER_PATTERN = "\\$\\{.+\\}|\\d+";
 
     /**
      * The classname of a thread pool implementation
@@ -74,7 +73,6 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
      * Idle threads are removed from pool, after this time (in seconds)
      */
     @Attribute(defaultValue = "" + IDLE_THREAD_TIMEOUT, dataType = Integer.class)
-    @Max(Integer.MAX_VALUE)
     String getIdleThreadTimeoutSeconds();
 
     void setIdleThreadTimeoutSeconds(String value);
@@ -83,7 +81,6 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
      * The maxim number of tasks, which could be queued on the thread pool.  -1 disables any maximum checks.
      */
     @Attribute(defaultValue = "" + MAX_QUEUE_SIZE, dataType = Integer.class)
-    @Max(Integer.MAX_VALUE)
     String getMaxQueueSize();
 
     void setMaxQueueSize(String value);
@@ -94,8 +91,6 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
      * threads that exist in the thread pool.
      */
     @Attribute(defaultValue = "" + MAX_THREADPOOL_SIZE, dataType = Integer.class)
-    @Min(value = 2)
-    @Max(Integer.MAX_VALUE)
     String getMaxThreadPoolSize();
 
     void setMaxThreadPoolSize(String value) throws PropertyVetoException;
@@ -106,8 +101,6 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
      * thread pool is instantiated
      */
     @Attribute(defaultValue = "" + MIN_THREADPOOL_SIZE, dataType = Integer.class)
-    @Min(2)
-    @Max(Integer.MAX_VALUE)
     String getMinThreadPoolSize();
 
     void setMinThreadPoolSize(String value);

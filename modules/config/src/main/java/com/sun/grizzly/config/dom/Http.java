@@ -40,8 +40,6 @@
 
 package com.sun.grizzly.config.dom;
 
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 
@@ -188,7 +186,6 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
      * The size of the buffer used by the request processing threads for reading the request data
      */
     @Attribute(defaultValue = "" + HEADER_BUFFER_LENGTH, dataType = Integer.class)
-    @Max(Integer.MAX_VALUE)
     String getHeaderBufferLengthBytes();
 
     void setHeaderBufferLengthBytes(String length);
@@ -197,13 +194,11 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
      * Max number of connection in the Keep Alive mode
      */
     @Attribute(defaultValue = "" + MAX_CONNECTIONS, dataType = Integer.class)
-    @Max(Integer.MAX_VALUE)
     String getMaxConnections();
 
     void setMaxConnections(String max);
 
     @Attribute(defaultValue = "" + MAX_POST_SIZE, dataType = Integer.class)
-    @Max(Integer.MAX_VALUE)
     String getMaxPostSizeBytes();
 
     void setMaxPostSizeBytes(String max);
@@ -224,7 +219,6 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
      * specified here
      */
     @Attribute(dataType = Integer.class)
-    @Max(65535)
     String getRedirectPort();
 
     void setRedirectPort(final String redirectPort);
@@ -233,8 +227,6 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
      * Time after which the request times out in seconds
      */
     @Attribute(defaultValue = "" + REQUEST_TIMEOUT, dataType = Integer.class)
-    @Min(-1)
-    @Max(Integer.MAX_VALUE)
     String getRequestTimeoutSeconds();
 
     void setRequestTimeoutSeconds(String timeout);
@@ -248,7 +240,6 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
      * Size of the buffer for response bodies in bytes
      */
     @Attribute(defaultValue = "" + SEND_BUFFER_LENGTH, dataType = Integer.class)
-    @Max(Integer.MAX_VALUE)
     String getSendBufferSizeBytes();
 
     void setSendBufferSizeBytes(String size);
@@ -268,7 +259,6 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
      * Keep Alive timeout, max time a connection can be deemed as idle and kept in the keep-alive state
      */
     @Attribute(defaultValue = "" + TIMEOUT, dataType = Integer.class)
-    @Max(Integer.MAX_VALUE)
     String getTimeoutSeconds();
 
     void setTimeoutSeconds(String timeout);
