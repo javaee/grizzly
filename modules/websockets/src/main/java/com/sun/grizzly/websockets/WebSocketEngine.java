@@ -146,8 +146,8 @@ public class WebSocketEngine {
                     socket.setNetworkHandler(handler);
                     handler.handshake(task.getSSLSupport() != null);
 
-                    enableRead(task, key);
                     key.attach(handler.getAttachment());
+                    enableRead(task, key);
                 }
             } catch (IOException e) {
                 logger.log(Level.SEVERE, e.getMessage(), e);
