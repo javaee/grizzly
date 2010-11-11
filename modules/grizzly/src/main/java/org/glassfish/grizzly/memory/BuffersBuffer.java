@@ -231,7 +231,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         return this;
     }
 
-    private void ensureBuffersCapacity(int newElementsNum) {
+    private void ensureBuffersCapacity(final int newElementsNum) {
         final int newSize = buffersSize + newElementsNum;
 
         if (newSize > buffers.length) {
@@ -690,12 +690,12 @@ public final class BuffersBuffer extends CompositeBuffer {
     }
 
     @Override
-    public BuffersBuffer get(byte[] dst) {
+    public BuffersBuffer get(final byte[] dst) {
         return get(dst, 0, dst.length);
     }
 
     @Override
-    public BuffersBuffer get(byte[] dst, int offset, int length) {
+    public BuffersBuffer get(final byte[] dst, int offset, int length) {
         checkDispose();
         if (length == 0) return this;
 
@@ -730,12 +730,12 @@ public final class BuffersBuffer extends CompositeBuffer {
     }
 
     @Override
-    public BuffersBuffer put(byte[] src) {
+    public BuffersBuffer put(final byte[] src) {
         return put(src, 0, src.length);
     }
 
     @Override
-    public BuffersBuffer put(byte[] src, int offset, int length) {
+    public BuffersBuffer put(final byte[] src, int offset, int length) {
         checkDispose();
         checkReadOnly();
 
