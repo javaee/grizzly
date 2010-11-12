@@ -49,7 +49,7 @@ import java.io.IOException;
 public class ChatWebSocket extends BaseServerWebSocket {
     private String user;
 
-    public ChatWebSocket(WebSocketListener... listeners) {
+    public ChatWebSocket(WebSocketListener[] listeners) {
         super(listeners);
     }
 

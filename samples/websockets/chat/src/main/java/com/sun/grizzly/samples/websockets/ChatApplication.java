@@ -57,8 +57,8 @@ public class ChatApplication extends WebSocketApplication {
     }
 
     @Override
-    public WebSocket createSocket(WebSocketListener... listeners) throws IOException {
-        return new ChatWebSocket();
+    public WebSocket createSocket(WebSocketListener[] listeners) throws IOException {
+        return new ChatWebSocket(listeners);
     }
 
     public void onMessage(WebSocket socket, DataFrame frame) throws IOException {
