@@ -40,10 +40,11 @@
 
 package org.glassfish.grizzly.http.util;
 
+import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.http.HttpResponsePacket;
-import org.glassfish.grizzly.memory.ByteBufferWrapper;
-import org.glassfish.grizzly.memory.DefaultMemoryManager;
+import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.MemoryManager;
 
 import java.nio.ByteBuffer;
 
@@ -113,9 +114,9 @@ public enum HttpStatus {
         this.reasonPhrase = reasonPhrase;
         final DataChunk dataChunk = DataChunk.newInstance();
         final DataChunk statusChunk = DataChunk.newInstance();
-        final DefaultMemoryManager mm = (DefaultMemoryManager) TransportFactory.getInstance().getDefaultMemoryManager();
-        ByteBufferWrapper wrapper = mm.wrap(ByteBuffer.wrap(reasonPhrase.getBytes(ASCII_CHARSET)));
-        ByteBufferWrapper wrapper2 = mm.wrap(ByteBuffer.wrap(Integer.toString(status).getBytes(ASCII_CHARSET)));
+        final MemoryManager mm = TransportFactory.getInstance().getDefaultMemoryManager();
+        Buffer wrapper = Buffers.wrap(mm, ByteBuffer.wrap(reasonPhrase.getBytes(ASCII_CHARSET)));
+        Buffer wrapper2 = Buffers.wrap(mm, ByteBuffer.wrap(Integer.toString(status).getBytes(ASCII_CHARSET)));
         dataChunk.setBuffer(wrapper, wrapper.position(), wrapper.limit());
         statusChunk.setBuffer(wrapper2, wrapper2.position(), wrapper2.limit());
         reasonPhraseDC = dataChunk.toImmutable();
