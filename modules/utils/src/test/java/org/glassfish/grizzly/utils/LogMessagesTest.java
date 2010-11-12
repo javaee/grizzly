@@ -38,13 +38,12 @@
  * holder.
  */
 
-package com.sun.grizzly.util;
+package org.glassfish.grizzly.utils;
 
 import junit.framework.TestCase;
 import org.junit.Assert;
 
 import java.util.Enumeration;
-import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.TreeSet;
