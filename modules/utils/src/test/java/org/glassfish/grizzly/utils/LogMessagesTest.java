@@ -50,7 +50,7 @@ import java.util.TreeSet;
 
 public class LogMessagesTest extends TestCase {
     public void testMessageNumbers() {
-        ResourceBundle bundle = ResourceBundle.getBundle("org.glassfish.grizzly.util.log");
+        ResourceBundle bundle = ResourceBundle.getBundle("org.glassfish.grizzly.localization.log");
         final Enumeration<String> keys = bundle.getKeys();
         Set<String> found = new TreeSet<String>();
         while(keys.hasMoreElements()) {

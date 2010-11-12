@@ -49,7 +49,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLServerSocketFactory;
 
 import org.glassfish.grizzly.config.dom.NetworkListener;
@@ -57,7 +56,7 @@ import org.glassfish.grizzly.config.dom.Protocol;
 import org.glassfish.grizzly.config.dom.Ssl;
 import org.glassfish.grizzly.config.ssl.SSLImplementation;
 import org.glassfish.grizzly.config.ssl.ServerSocketFactory;
-import org.glassfish.grizzly.util.LogMessages;
+import org.glassfish.grizzly.localization.LogMessages;
 
 /**
  * @author oleksiys
