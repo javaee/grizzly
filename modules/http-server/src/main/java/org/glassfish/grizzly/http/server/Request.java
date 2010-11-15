@@ -1601,23 +1601,82 @@ public class Request {
      */
     public StringBuilder getRequestURL() {
 
-        StringBuilder url = new StringBuilder();
-        String scheme = getScheme();
-        int port = getServerPort();
+        final StringBuilder url = new StringBuilder();
+        return appendRequestURL(this, url);
+
+    }
+
+    /**
+     * Appends the reconstructed URL the client used to make the request.
+     * The appended URL contains a protocol, server name, port
+     * number, and server path, but it does not include query
+     * string parameters.
+     * <p>
+     * Because this method returns a <code>StringBuilder</code>,
+     * not a <code>String</code>, you can modify the URL easily,
+     * for example, to append query parameters.
+     * <p>
+     * This method is useful for creating redirect messages and
+     * for reporting errors.
+     *
+     * @return A <code>StringBuilder</code> object containing the appended
+     *  reconstructed URL
+     */
+    public static StringBuilder appendRequestURL(final Request request,
+            final StringBuilder buffer) {
+        
+        final String scheme = request.getScheme();
+        int port = request.getServerPort();
         if (port < 0)
             port = 80; // Work around java.net.URL bug
 
-        url.append(scheme);
-        url.append("://");
-        url.append(getServerName());
+        buffer.append(scheme);
+        buffer.append("://");
+        buffer.append(request.getServerName());
         if ((scheme.equals("http") && (port != 80))
             || (scheme.equals("https") && (port != 443))) {
-            url.append(':');
-            url.append(port);
+            buffer.append(':');
+            buffer.append(port);
         }
-        url.append(getRequestURI());
+        buffer.append(request.getRequestURI());
+        return buffer;
 
-        return new StringBuilder(url);
+    }
+    
+    /**
+     * Appends the reconstructed URL the client used to make the request.
+     * The appended URL contains a protocol, server name, port
+     * number, and server path, but it does not include query
+     * string parameters.
+     * <p>
+     * Because this method returns a <code>StringBuffer</code>,
+     * not a <code>String</code>, you can modify the URL easily,
+     * for example, to append query parameters.
+     * <p>
+     * This method is useful for creating redirect messages and
+     * for reporting errors.
+     *
+     * @return A <code>StringBuffer</code> object containing the appended
+     *  reconstructed URL
+     */
+    public static StringBuffer appendRequestURL(final Request request,
+            final StringBuffer buffer) {
+
+        final String scheme = request.getScheme();
+        int port = request.getServerPort();
+        if (port < 0)
+            port = 80; // Work around java.net.URL bug
+
+        buffer.append(scheme);
+        buffer.append("://");
+        buffer.append(request.getServerName());
+        if ((scheme.equals("http") && (port != 80))
+            || (scheme.equals("https") && (port != 443))) {
+            buffer.append(':');
+            buffer.append(port);
+        }
+        buffer.append(request.getRequestURI());
+        return buffer;
 
     }
 

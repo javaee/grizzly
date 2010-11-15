@@ -1107,6 +1107,7 @@ public class Response {
         // Clear any data content that has been buffered
         resetBuffer();
 
+        finish();
         // Cause the response to be finished (from the application perspective)
 //        setSuspended(true);
 
@@ -1172,6 +1173,7 @@ public class Response {
             setStatus(HttpStatus.NOT_FOUND_404);
         }
 
+        finish();
         // Cause the response to be finished (from the application perspective)
 //        setSuspended(true);
 
