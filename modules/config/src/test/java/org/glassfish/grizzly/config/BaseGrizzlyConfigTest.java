@@ -99,6 +99,6 @@ public class BaseGrizzlyConfigTest {
         } catch (IOException e) {
             Assert.fail(e.getMessage(), e);
         }
-        adapter.setDocRoot(name);
+        adapter.addDocRoot(name);
     }
 }

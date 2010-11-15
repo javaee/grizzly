@@ -52,23 +52,25 @@ import org.glassfish.grizzly.http.util.HttpStatus;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.utils.ArraySet;
 
 /**
  * Static resources handler, which handles static resources requests made to a
  * {@link HttpRequestProcessor}.
  *
- * This class doesn't not decode the {@link Request} uri and just do
+ * This class doesn't not decode the {@link Request} URI and just do
  * basic security check. If you need more protection, use the {@link HttpRequestProcessor}.
  *
  * @author Jeanfrancois Arcand
  * @author Alexey Stashok
  */
 public class StaticResourcesHandler {
-    private static Logger logger = Grizzly.logger(StaticResourcesHandler.class);
+    private static final Logger LOGGER = Grizzly.logger(StaticResourcesHandler.class);
     
-    protected volatile File docRoot;
+    protected final ArraySet<File> docRoots = new ArraySet<File>(File.class);
 
     protected String resourcesContextPath = "";
 
@@ -79,11 +81,11 @@ public class StaticResourcesHandler {
     }
 
     public StaticResourcesHandler(String rootFolder) {
-        setDocRoot(rootFolder);
+        addDocRoot(rootFolder);
     }
 
     public StaticResourcesHandler(File rootFolder) {
-        setDocRoot(rootFolder);
+        addDocRoot(rootFolder);
     }
 
     /**
@@ -122,24 +124,45 @@ public class StaticResourcesHandler {
         
         FileInputStream fis = null;
         try {
-            // local file
-            File resource = new File(docRoot, uri);
 
-            if (resource.isDirectory()) {
-                final File f = new File(resource, "/index.html");
-                if (!f.exists()) {
-                    resource = null;
+            boolean found = false;
+
+            final File[] fileFolders = docRoots.getArray();
+            if (fileFolders == null) return false;
+            
+            File resource = null;
+            
+            for (int i = 0; i < fileFolders.length; i++) {
+                final File webDir = fileFolders[i];
+                // local file
+                resource = new File(webDir, uri);
+                final boolean exists = resource.exists();
+                final boolean isDirectory = resource.isDirectory();
+                
+                if (exists && isDirectory) {
+                    final File f = new File(resource, "/index.html");
+                    if (f.exists()) {
+                        resource = f;
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (isDirectory || !exists) {
+                    found = false;
                 } else {
-                    resource = f;
+                    found = true;
+                    break;
                 }
             }
 
-            if (resource == null || !resource.exists()) {
-                if (logger.isLoggable(Level.FINE)) {
-                    logger.log(Level.FINE, "File not found  " + resource);
+            if (!found) {
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, "File not found  {0}", resource);
                 }
                 return false;
             }
+            
             res.setStatus(HttpStatus.OK_200);
             String substr;
             int dot = uri.lastIndexOf(".");
@@ -190,31 +213,45 @@ public class StaticResourcesHandler {
     }
 
     /**
-     * Return the directory from where files will be serviced.
-     * @return the directory from where file will be serviced.
+     * Return the default directory from where files will be serviced.
+     * @return the default directory from where file will be serviced.
      */
-    public File getDocRoot() {
-        return docRoot;
+    public File getDefaultDocRoot() {
+        final File[] array = docRoots.getArray();
+        return (array != null && array.length > 0) ? array[0] : null;
     }
 
     /**
-     * Set the directory from where files will be serviced.
-     * @param docRoot the directory from where files will be serviced.
+     * Return the list of directories from where files will be serviced.
+     * @return the list of directories from where files will be serviced.
      */
-    public void setDocRoot(String docRoot) {
-        if (docRoot != null) {
-            setDocRoot(new File(docRoot));
-        } else {
-            setDocRoot((File) null);
+    public Set<File> getDocRoots() {
+        return docRoots;
+    }
+    
+    /**
+     * Add the directory from where files will be serviced.
+     * @param docRoot the directory from where files will be serviced.
+     * 
+     * @return return the {@link File} representation of the passed <code>docRoot</code>.
+     */
+    public final File addDocRoot(String docRoot) {
+        if (docRoot == null) {
+            throw new NullPointerException("docRoot can't be null");
         }
+
+        final File file = new File(docRoot);
+        addDocRoot(file);
+        
+        return file;
     }
 
     /**
      * Set the directory from where files will be serviced.
      * @param docRoot the directory from where files will be serviced.
      */
-    public void setDocRoot(File docRoot) {
-        this.docRoot = docRoot;
+    public final void addDocRoot(File docRoot) {
+        docRoots.add(docRoot);
     }
 
     /**

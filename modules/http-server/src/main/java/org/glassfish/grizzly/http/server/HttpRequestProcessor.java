@@ -51,6 +51,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.Collections;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.http.util.Charsets;
@@ -102,7 +104,7 @@ public abstract class HttpRequestProcessor {
      * to the static resources.
      */
     public HttpRequestProcessor() {
-        this(null);
+        this((Set<String>) null);
     }
 
 
@@ -110,13 +112,30 @@ public abstract class HttpRequestProcessor {
      * Create a new instance which will look for static pages located
      * under the <tt>docRoot</tt>. If the <tt>docRoot</tt> is <tt>null</tt> -
      * static pages won't be served by this <tt>HttpService</tt>
-     * 
+     *
      * @param docRoot the folder where the static resource are located.
      * If the <tt>docRoot</tt> is <tt>null</tt> - static pages won't be served
      * by this <tt>HttpService</tt>
      */
     public HttpRequestProcessor(String docRoot) {
-        staticResourcesHandler.setDocRoot(docRoot);
+        this(Collections.singleton(docRoot));
+    }
+
+    /**
+     * Create a new instance which will look for static pages located
+     * under the <tt>docRoot</tt>. If the <tt>docRoot</tt> is <tt>null</tt> -
+     * static pages won't be served by this <tt>HttpService</tt>
+     * 
+     * @param docRoots the folders where the static resource are located.
+     * If the <tt>docRoot</tt> is empty - static pages won't be served
+     * by this <tt>HttpService</tt>
+     */
+    public HttpRequestProcessor(Set<String> docRoots) {
+        if (docRoots != null) {
+            for (String docRoot : docRoots) {
+                staticResourcesHandler.addDocRoot(docRoot);
+            }
+        }
     }
 
     /**
@@ -137,7 +156,7 @@ public abstract class HttpRequestProcessor {
             }
         }
         
-        if (staticResourcesHandler.getDocRoot() != null &&
+        if (!staticResourcesHandler.getDocRoots().isEmpty() &&
                 staticResourcesHandler.handle(request, response)) {
             return;
         }
@@ -250,36 +269,43 @@ public abstract class HttpRequestProcessor {
     }
 
     /**
-     * Return the directory from where files will be serviced, or <tt>null</tt>,
-     * if static resources won't be served by this <tt>HttpService</tt>.
+     * Return the list of directories where files will be serviced from.
      * 
-     * @return the directory from where file will be serviced, or <tt>null</tt>,
-     * if static resources won't be served by this <tt>HttpService</tt>.
+     * @return the list of directories where files will be serviced from.
      */
-    public File getDocRoot() {
-        return staticResourcesHandler.getDocRoot();
+    public Set<File> getDocRoots() {
+        return staticResourcesHandler.getDocRoots();
     }
 
     /**
-     * Set the directory from where files will be serviced, if passed value is
-     * <tt>null</tt> - static resources won't be served by this <tt>HttpService</tt>.
+     * Add the directory to the list of directories where files will be serviced from.
      *
-     * @param docRoot the directory from where files will be serviced, if passed value is
-     * <tt>null</tt> - static resources won't be served by this <tt>HttpService</tt>.
+     * @param docRoot the directory to be added to the list of directories
+     *                where files will be serviced from.
+     * 
+     * @return return the {@link File} representation of the passed <code>docRoot</code>.
      */
-    public void setDocRoot(String docRoot) {
-        staticResourcesHandler.setDocRoot(docRoot);
+    public File addDocRoot(String docRoot) {
+        return staticResourcesHandler.addDocRoot(docRoot);
     }
 
     /**
-     * Set the directory from where files will be serviced, if passed value is
-     * <tt>null</tt> - static resources won't be served by this <tt>HttpService</tt>.
+     * Add the directory to the list of directories where files will be serviced from.
      *
-     * @param docRoot the directory from where files will be serviced, if passed value is
-     * <tt>null</tt> - static resources won't be served by this <tt>HttpService</tt>.
+     * @param docRoot the directory to be added to the list of directories
+     *                where files will be serviced from.
      */
-    public void setDocRoot(File docRoot) {
-        staticResourcesHandler.setDocRoot(docRoot);
+    public void addDocRoot(File docRoot) {
+        staticResourcesHandler.addDocRoot(docRoot);
+    }
+
+    /**
+     * Removes the directory from the list of directories where static files will be serviced from.
+     *
+     * @param docRoot the directory to remove.
+     */
+    public void removeDocRoot(File docRoot) {
+        staticResourcesHandler.getDocRoots().remove(docRoot);
     }
 
     /**

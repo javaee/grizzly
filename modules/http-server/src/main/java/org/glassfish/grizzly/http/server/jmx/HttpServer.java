@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.http.server.jmx;
 
+import java.util.Collection;
 import org.glassfish.grizzly.http.server.*;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.monitoring.jmx.GrizzlyJmxManager;
@@ -124,8 +125,8 @@ public class HttpServer extends JmxObject {
 
     @ManagedAttribute(id="document-root")
     @Description("The document root of this server instance.")
-    public String getDocumentRoot() {
-        return gws.getServerConfiguration().getDocRoot();
+    public Collection<String> getDocumentRoots() {
+        return gws.getServerConfiguration().getDocRoots();
     }
 
 

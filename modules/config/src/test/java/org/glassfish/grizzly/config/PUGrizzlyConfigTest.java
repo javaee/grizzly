@@ -156,7 +156,7 @@ public class PUGrizzlyConfigTest {
             writer.flush();
             writer.close();
         }
-        adapter.setDocRoot(name);
+        adapter.addDocRoot(name);
     }
 
     @SuppressWarnings({"SocketOpenedButNotSafelyClosed"})

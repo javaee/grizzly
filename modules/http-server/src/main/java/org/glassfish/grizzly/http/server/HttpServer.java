@@ -456,7 +456,7 @@ public class HttpServer {
 
         final HttpServer server = new HttpServer();
         final ServerConfiguration config = server.getServerConfiguration();
-        config.setDocRoot(path);
+        config.addDocRoot(path);
         final NetworkListener listener =
                 new NetworkListener("grizzly",
                                     NetworkListener.DEFAULT_NETWORK_HOST,

@@ -37,11 +37,14 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.utils;
 
 import java.lang.reflect.Array;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.Set;
 
 /**
  * The thread safe set implementation, which uses array to hold its elements.
@@ -49,9 +52,15 @@ import java.util.Arrays;
  *
  * @author Alexey Stashok
  */
-public class ArraySet<T> {
+public class ArraySet<T> implements Set<T> {
+
     private volatile T[] array;
     private final Object sync = new Object();
+    private final Class<T> clazz;
+
+    public ArraySet(Class<T> clazz) {
+        this.clazz = clazz;
+    }
     
     /**
      * Add the element(s) to the set.
@@ -62,14 +71,15 @@ public class ArraySet<T> {
      * element(s) was/were present in the set and, as the result, the set values
      * were just reset.
      */
-    public final boolean add(final T... elements) {
-        if (elements.length == 0) return false;
-        
-        synchronized(sync) {
+    public final boolean addAll(final T... elements) {
+        if (elements.length == 0) {
+            return false;
+        }
+
+        synchronized (sync) {
             int startIdx = 0;
             if (array == null) {
-                array = (T[]) Array.newInstance(
-                        elements.getClass().getComponentType(), 1);
+                array = (T[]) Array.newInstance(clazz, 1);
                 array[0] = elements[0];
                 startIdx = 1;
             }
@@ -78,7 +88,35 @@ public class ArraySet<T> {
 
             for (int i = startIdx; i < elements.length; i++) {
                 final T element = elements[i];
-                
+
+                final T[] oldArray = array;
+                array = ArrayUtils.addUnique(array, element);
+
+                result |= (oldArray != array);
+            }
+
+            return result;
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean addAll(Collection<? extends T> collection) {
+        if (collection.isEmpty()) {
+            return false;
+        }
+
+        synchronized (sync) {
+            if (array == null) {
+                array = (T[]) Array.newInstance(clazz, 1);
+            }
+
+            boolean result = false;
+
+            for (T element : collection) {
+
                 final T[] oldArray = array;
                 array = ArrayUtils.addUnique(array, element);
 
@@ -100,10 +138,12 @@ public class ArraySet<T> {
      */
     public final boolean add(ArraySet<T> source) {
         final T[] sourceArraySet = source.getArray();
-        
-        if (sourceArraySet == null) return false;
-        
-        synchronized(sync) {
+
+        if (sourceArraySet == null) {
+            return false;
+        }
+
+        synchronized (sync) {
             if (array == null) {
                 array = Arrays.copyOf(sourceArraySet, sourceArraySet.length);
                 return true;
@@ -113,7 +153,7 @@ public class ArraySet<T> {
 
             for (int i = 0; i < sourceArraySet.length; i++) {
                 final T element = sourceArraySet[i];
-                
+
                 final T[] oldArray = array;
                 array = ArrayUtils.addUnique(array, element);
 
@@ -123,7 +163,7 @@ public class ArraySet<T> {
             return result;
         }
     }
-    
+
     /**
      * Remove element(s) from the set.
      *
@@ -131,16 +171,18 @@ public class ArraySet<T> {
      * @return <tt>true</tt>, if at least one element was found and removed,
      * or <tt>false</tt> otherwise.
      */
-    public final boolean remove(T... elements) {
-        if (elements.length == 0) return false;
+    public final boolean removeAll(Object... elements) {
+        if (elements.length == 0) {
+            return false;
+        }
 
-        synchronized(sync) {
+        synchronized (sync) {
             if (array == null) {
                 return false;
             }
 
             boolean result = false;
-            for (T element : elements) {
+            for (Object element : elements) {
                 final T[] oldArray = array;
 
 
@@ -173,7 +215,9 @@ public class ArraySet<T> {
      */
     public final T[] getArrayCopy() {
         final T[] localArray = array;
-        if (localArray == null) return null;
+        if (localArray == null) {
+            return null;
+        }
 
         return Arrays.copyOf(localArray, localArray.length);
     }
@@ -186,7 +230,7 @@ public class ArraySet<T> {
      * @return the copy of the underlying array. If the underlying array is
      * <tt>null</tt> - then empty array will be returned.
      */
-    public final T[] obtainArrayCopy(Class<T> clazz) {
+    public final T[] obtainArrayCopy() {
         final T[] localArray = array;
         if (localArray == null) return (T[]) Array.newInstance(clazz, 0);
 
@@ -196,7 +240,233 @@ public class ArraySet<T> {
     /**
      * Remove all the set elements.
      */
+    @Override
     public void clear() {
         array = null;
+    }
+
+    //===================== java.util.Set =================================
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int size() {
+        final T[] localArray = array;
+        return localArray != null ? localArray.length : 0;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isEmpty() {
+        return size() == 0;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean add(T e) {
+        return addAll(e);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean contains(Object o) {
+        final Object[] localArray = array;
+
+        if (localArray == null) {
+            return false;
+        }
+
+        for (int i = 0; i < localArray.length; i++) {
+            if (localArray[i].equals(o)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Object[] toArray() {
+        final Object[] localArray = array;
+
+        return Arrays.copyOf(localArray, localArray.length);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public <K> K[] toArray(K[] a) {
+        final Object[] localArray = array;
+
+        if (localArray == null) {
+            return a;
+        }
+
+        final int size = localArray.length;
+
+        if (a.length < size) { // Make a new array of a's runtime type, but my contents:
+            return (K[]) Arrays.copyOf(localArray, size, a.getClass());
+        }
+        System.arraycopy(localArray, 0, a, 0, localArray.length);
+        if (a.length > size) {
+            a[size] = null;
+        }
+        return a;
+
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean remove(Object o) {
+        return removeAll(o);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean containsAll(Collection<?> collection) {
+        if (collection.isEmpty()) {
+            return true;
+        }
+
+        final Object[] localArray = array;
+
+        for (Object element : collection) {
+            if (ArrayUtils.indexOf(localArray, element) == -1) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean retainAll(final Collection<?> collection) {
+        final T[] localArray = array;
+        if (localArray == null) {
+            return false;
+        }
+
+        final T[] newArray = (T[]) Array.newInstance(clazz, 
+                Math.min(localArray.length, collection.size()));
+        int newSize = 0;
+        for (int i = 0; i < localArray.length; i++) {
+            final T elem = localArray[i];
+            if (collection.contains(elem)) {
+                newArray[newSize++] = elem;
+            }
+        }
+
+        if (newSize == localArray.length) {
+            return false;
+        }
+
+        array = Arrays.copyOf(newArray, newSize);
+
+        return true;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean removeAll(Collection<?> collection) {
+        final T[] localArray = array;
+        if (localArray == null) {
+            return false;
+        }
+
+        final T[] newArray = (T[]) Array.newInstance(clazz, localArray.length);
+        int newSize = 0;
+        for (int i = 0; i < localArray.length; i++) {
+            final T elem = localArray[i];
+            if (!collection.contains(elem)) {
+                newArray[newSize++] = elem;
+            }
+        }
+
+        if (newSize == localArray.length) {
+            return false;
+        }
+
+        array = Arrays.copyOf(newArray, newSize);
+
+        return true;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Iterator<T> iterator() {
+        return new Itr();
+    }
+
+    /**
+     * Iterator
+     */
+    private class Itr implements Iterator<T> {
+
+        int cursor; // index of next element to return
+        T lastRet; // last returned element
+        T nextElem;
+
+        public Itr() {
+            advance();
+        }
+
+        @Override
+        public boolean hasNext() {
+            return nextElem != null;
+        }
+
+        @SuppressWarnings("unchecked")
+        @Override
+        public T next() {
+            if (nextElem == null) throw new NoSuchElementException();
+
+            lastRet = nextElem;
+            advance();
+            
+            return lastRet;
+        }
+
+        @Override
+        public void remove() {
+            if (lastRet == null) {
+                throw new IllegalStateException();
+            }
+
+            ArraySet.this.remove(lastRet);
+            cursor--;
+            lastRet = null;
+        }
+
+        private void advance() {
+            final Object[] localArray = array;
+            if (localArray == null || cursor >= localArray.length) {
+                nextElem = null;
+                
+                return;
+            }
+
+            nextElem = (T) localArray[cursor++];
+        }
     }
 }

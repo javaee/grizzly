@@ -56,7 +56,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.utils.ArraySet;
 
 /**
  * Configuration options for a particular {@link HttpServer} instance.
@@ -68,7 +70,7 @@ public class ServerConfiguration {
     /*
      * The directory from which static resources will be served from.
      */
-    private String docRoot = null;
+    private final ArraySet<String> docRoots = new ArraySet<String>(String.class);
 
 
     // Non-exposed
@@ -102,14 +104,17 @@ public class ServerConfiguration {
     // ---------------------------------------------------------- Public Methods
 
 
-    public String getDocRoot() {
-        return docRoot;
+    public Set<String> getDocRoots() {
+        return docRoots;
     }
 
-    public void setDocRoot(String docRoot) {
-        this.docRoot = docRoot;
+    public void addDocRoot(String docRoot) {
+        docRoots.add(docRoot);
     }
 
+    public void removeDocRoot(String docRoot) {
+        docRoots.remove(docRoot);
+    }
 
     /**
      * Adds the specified {@link HttpRequestProcessor}
@@ -144,7 +149,7 @@ public class ServerConfiguration {
     protected HttpRequestProcessor buildService() {
 
         if (services.isEmpty()) {
-            return new HttpRequestProcessor(docRoot) {
+            return new HttpRequestProcessor(docRoots) {
                 @SuppressWarnings({"unchecked"})
                 @Override
                 public void service(Request request, Response response) {
@@ -162,7 +167,8 @@ public class ServerConfiguration {
                         out.flush();
 
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        logger.log(Level.WARNING,
+                                "Exception during building service", e);
                     }
 
                 }
@@ -173,8 +179,8 @@ public class ServerConfiguration {
 
         if (servicesNum == 1) {
             HttpRequestProcessor httpService = services.keySet().iterator().next();
-            if (httpService.getDocRoot() == null) {
-                httpService.setDocRoot(docRoot);
+            if (httpService.getDocRoots().isEmpty()) {
+                addAllDocRoots(httpService);
             }
             
             return httpService;
@@ -182,16 +188,13 @@ public class ServerConfiguration {
 
         HttpServiceChain serviceChain = new HttpServiceChain(instance);
         addJmxEventListener(serviceChain);
-        serviceChain.setDocRoot(docRoot);
+        addAllDocRoots(serviceChain);
 
         for (Map.Entry<HttpRequestProcessor, String[]> serviceRecord : services.entrySet()) {
             final HttpRequestProcessor httpService = serviceRecord.getKey();
             final String[] mappings = serviceRecord.getValue();
 
-            if (httpService.getDocRoot() == null) {
-                httpService.setDocRoot(docRoot);
-            }
-            
+            addAllDocRoots(httpService);
             serviceChain.addService(httpService, mappings);
         }
 
@@ -368,6 +371,12 @@ public class ServerConfiguration {
 
         this.httpServerVersion = httpServerVersion;
 
+    }
+
+    private void addAllDocRoots(HttpRequestProcessor httpService) {
+        for (String docRoot : this.docRoots) {
+            httpService.addDocRoot(docRoot);
+        }
     }
     
 } // END ServerConfiguration

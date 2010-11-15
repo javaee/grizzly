@@ -314,7 +314,7 @@ public class HttpRequestURIDecoder {
 
     }
 
-    private static boolean normalizeChars(final CharChunk uriCC) {
+    public static boolean normalizeChars(final CharChunk uriCC) {
         char[] c = uriCC.getChars();
         int start = uriCC.getStart();
         int end = uriCC.getEnd();

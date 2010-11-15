@@ -104,7 +104,7 @@ public final class ArrayUtils {
      * wasn't present in the array. <tt>null</tt> will be returned if the last
      * element was removed from the passed array.
      */
-    public static <T> T[] remove(T[] array, T element) {
+    public static <T> T[] remove(T[] array, Object element) {
         final int idx = indexOf(array, element);
         if (idx != -1) {
             final int length = array.length;
@@ -138,7 +138,7 @@ public final class ArrayUtils {
      *
      * @return element's index, or <tt>-1</tt> if element wasn't found.
      */
-    public static <T> int indexOf(T[] array, T element) {
+    public static <T> int indexOf(T[] array, Object element) {
         for (int i = 0; i < array.length; i++) {
             if (element.equals(array[i])) {
                 return i;

@@ -61,7 +61,6 @@ package org.glassfish.grizzly.http.server;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
 import org.glassfish.grizzly.http.server.io.InputBuffer;

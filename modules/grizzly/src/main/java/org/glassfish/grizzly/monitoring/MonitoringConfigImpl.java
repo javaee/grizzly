@@ -55,7 +55,7 @@ public class MonitoringConfigImpl<E> implements MonitoringConfig<E> {
 
     public MonitoringConfigImpl(Class<E> clazz) {
         this.clazz = clazz;
-        monitoringProbes = new ArraySet<E>();
+        monitoringProbes = new ArraySet<E>(clazz);
     }
 
     /**
@@ -63,7 +63,7 @@ public class MonitoringConfigImpl<E> implements MonitoringConfig<E> {
      */
     @Override
     public void addProbes(E... probes) {
-        monitoringProbes.add(probes);
+        monitoringProbes.addAll(probes);
     }
 
     /**
@@ -71,7 +71,7 @@ public class MonitoringConfigImpl<E> implements MonitoringConfig<E> {
      */
     @Override
     public boolean removeProbes(E... probes) {
-        return monitoringProbes.remove(probes);
+        return monitoringProbes.removeAll(probes);
     }
 
     /**
@@ -79,7 +79,7 @@ public class MonitoringConfigImpl<E> implements MonitoringConfig<E> {
      */
     @Override
     public E[] getProbes() {
-        return monitoringProbes.obtainArrayCopy(clazz);
+        return monitoringProbes.obtainArrayCopy();
     }
 
     /**

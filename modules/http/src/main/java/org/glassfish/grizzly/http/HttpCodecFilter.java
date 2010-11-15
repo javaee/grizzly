@@ -88,10 +88,10 @@ public abstract class HttpCodecFilter extends BaseFilter
     public static final int DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE = 8192;
 
     private final ArraySet<TransferEncoding> transferEncodings =
-            new ArraySet<TransferEncoding>();
+            new ArraySet<TransferEncoding>(TransferEncoding.class);
     
     protected final ArraySet<ContentEncoding> contentEncodings =
-            new ArraySet<ContentEncoding>();
+            new ArraySet<ContentEncoding>(ContentEncoding.class);
 
     protected boolean chunkingEnabled;
 
@@ -150,7 +150,7 @@ public abstract class HttpCodecFilter extends BaseFilter
      * @param ctx processing context.
      *
      * @return <code>true</code> if an error has occurred while processing
-     *  the header portion of the http request, otherwise returns
+     *  the header portion of the HTTP request, otherwise returns
      *  <code>false</code>.s
      */
     abstract boolean onHttpPacketParsed(HttpHeader httpHeader, FilterChainContext ctx);
@@ -164,7 +164,7 @@ public abstract class HttpCodecFilter extends BaseFilter
      * @param ctx
      *
      * @return <code>true</code> if an error has occurred while processing
-     *  the header portion of the http request, otherwise returns
+     *  the header portion of the HTTP request, otherwise returns
      *  <code>false</code>.
      */
     abstract boolean onHttpHeaderParsed(HttpHeader httpHeader, Buffer buffer,
@@ -173,11 +173,11 @@ public abstract class HttpCodecFilter extends BaseFilter
     
     /**
      * <p>
-     * Callback which is invoked when parsing an http message fails.
+     * Callback which is invoked when parsing an HTTP message fails.
      * </p>
      *
      * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
-     * @param ctx the {@link FilterChainContext} procesing this request
+     * @param ctx the {@link FilterChainContext} processing this request
      */
     abstract void onHttpError(HttpHeader httpHeader, FilterChainContext ctx) throws IOException;
 
@@ -189,7 +189,7 @@ public abstract class HttpCodecFilter extends BaseFilter
      *
      * @param isSecure <tt>true</tt>, if the Filter will be used for secured HTTPS communication,
      *                 or <tt>false</tt> otherwise. It's possible to pass <tt>null</tt>, in this
-     *                 case Filter will try to autodetect security.
+     *                 case Filter will try to auto-detect security.
      * @param chunkingEnabled <code>true</code> if the chunked transfer encoding
      *  should be used when no explicit content length has been set.
      * @param maxHeadersSize the maximum size of the HTTP message header.
@@ -206,7 +206,7 @@ public abstract class HttpCodecFilter extends BaseFilter
 
         this.maxHeadersSize = maxHeadersSize;
         this.chunkingEnabled = chunkingEnabled;
-        transferEncodings.add(new FixedLengthTransferEncoding(),
+        transferEncodings.addAll(new FixedLengthTransferEncoding(),
                 new ChunkedTransferEncoding(maxHeadersSize));
     }
 
@@ -239,7 +239,7 @@ public abstract class HttpCodecFilter extends BaseFilter
      * @return registered {@link TransferEncoding}s.
      */
     public TransferEncoding[] getTransferEncodings() {
-        return transferEncodings.obtainArrayCopy(TransferEncoding.class);
+        return transferEncodings.obtainArrayCopy();
     }
     
     /**
@@ -275,7 +275,7 @@ public abstract class HttpCodecFilter extends BaseFilter
      * @return registered {@link ContentEncoding}s.
      */
     public ContentEncoding[] getContentEncodings() {
-        return contentEncodings.obtainArrayCopy(ContentEncoding.class);
+        return contentEncodings.obtainArrayCopy();
     }
 
     /**
