@@ -396,4 +396,8 @@ public abstract class HttpRequestProcessor {
     protected void setDecodeUrl(boolean decodeURL){
         this.decodeURL = decodeURL;
     }
+
+    @Deprecated
+    public void afterService(Request request, Response response) throws Exception {
+    }
 }

@@ -65,6 +65,7 @@ import javax.naming.directory.DirContext;
 import org.glassfish.grizzly.Grizzly;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.logging.Logger;
@@ -128,7 +129,7 @@ public class Mapper {
 
 
     // START GlassFish 1024
-    private HashMap defaultContextPathsMap = new HashMap();
+    private Map<String, String> defaultContextPathsMap = new HashMap<String, String>();
 
 
     /**
@@ -240,10 +241,10 @@ public class Mapper {
             }
         }
 
-        String defaultContextPath = (String) defaultContextPathsMap.get(name);
+        String defaultContextPath = defaultContextPathsMap.get(name);
         if (defaultContextPath != null) {
             newHost.defaultContextPaths[0] = defaultContextPath;
-	}
+        }
     }
 
 
