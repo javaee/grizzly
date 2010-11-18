@@ -87,7 +87,7 @@ public class SSLUtils {
     
     /**
      * Read and decrypt bytes from the underlying SSL connections.
-     * @param socketChannel underlying socket channel
+     * @param channel underlying socket channel
      * @param sslEngine{@link SSLEngine}
      * @param byteBuffer buffer for application decrypted data
      * @param inputBB buffer for reading enrypted data from socket
@@ -164,7 +164,7 @@ public class SSLUtils {
             if (r.isClosed) {
                 try {
                     sslEngine.closeInbound();
-                } catch (IOException ex) {
+                } catch (IOException ignored) {
                 }
             }
         } catch (Throwable t){
@@ -525,7 +525,9 @@ public class SSLUtils {
                 logger.log(Level.FINE,"Error getting client certs",t);
         }
  
-        if (certs == null && (sslEngine.getNeedClientAuth() || sslEngine.getWantClientAuth())) {
+        if (certs == null
+                && needClientAuth
+                && (sslEngine.getNeedClientAuth() || sslEngine.getWantClientAuth())) {
             sslEngine.getSession().invalidate();
             sslEngine.beginHandshake();
                       
@@ -539,7 +541,7 @@ public class SSLUtils {
             outputBB.position(0);
             outputBB.limit(0); 
             
-            // We invalidate ssl seesion, so no need for unwrap
+            // We invalidate ssl session, so no need for unwrap
             try{
                 doHandshake(channel, byteBuffer, inputBB, outputBB, 
                         sslEngine, HandshakeStatus.NEED_WRAP, timeout);
