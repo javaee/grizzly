@@ -64,7 +64,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     boolean DNS_LOOKUP_ENABLED = false;
     boolean RCM_SUPPORT_ENABLED = false;
     boolean TIMEOUT_ENABLED = true;
-    boolean TRACE_ENABLED = true;
+    boolean TRACE_ENABLED = false;
     boolean UPLOAD_TIMEOUT_ENABLED = true;
     boolean WEBSOCKET_SUPPORT_ENABLED = false;
     boolean XPOWERED_BY = true;
