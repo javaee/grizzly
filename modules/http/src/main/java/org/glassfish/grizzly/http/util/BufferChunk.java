@@ -385,7 +385,8 @@ public class BufferChunk implements Chunk {
     public CharChunk toChars(final CharChunk cc, final Charset encoding)
             throws CharConversionException {
 
-        cc.allocate(getLength(), -1);
+        final int length = getLength();
+        cc.allocate(length, -1);
 
         if (UTF8_CHARSET.equals(encoding)) {
             try {
@@ -420,10 +421,11 @@ public class BufferChunk implements Chunk {
 
         // Default encoding: fast conversion
         final char[] cbuf = cc.getChars();
-        for (int i = 0; i < getLength(); i++) {
+        for (int i = 0; i < length; i++) {
             cbuf[i] = (char) (buffer.get(i + start) & 0xff);
         }
-
+        cc.setEnd(length);
+        
         return cc;
 //        uri.setChars(cbuf, 0, bc.getLength());
     }
