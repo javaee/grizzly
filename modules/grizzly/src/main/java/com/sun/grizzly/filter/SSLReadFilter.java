@@ -123,6 +123,9 @@ public class SSLReadFilter implements ProtocolFilter{
      * Has the enabled Cipher configured.
      */
     private boolean isCipherConfigured = false;
+
+
+    private int sslActivityTimeout = SSLUtils.DEFAULT_SSL_INACTIVITY_TIMEOUT;
     
     
     /**
@@ -172,7 +175,7 @@ public class SSLReadFilter implements ProtocolFilter{
                 if (count == 0 && ctx.removeAttribute(SSL_PREREAD_DATA) == null) {
                     result = false;
                 }
-            } else if (doHandshake(key, SSLUtils.getReadTimeout())) {
+            } else if (doHandshake(key, sslActivityTimeout)) {
                 hasHandshake = true;
                 // set "no available data" for secured output buffer
                 ByteBuffer outputBB = workerThread.getOutputBB();
@@ -417,6 +420,7 @@ public class SSLReadFilter implements ProtocolFilter{
         wantClientAuth = sslConfig.isWantClientAuth();
         needClientAuth = sslConfig.isNeedClientAuth();
         clientMode = sslConfig.isClientMode();
+        sslActivityTimeout = sslConfig.getSslInactivityTimeout();
     }
     
     /**
@@ -535,8 +539,16 @@ public class SSLReadFilter implements ProtocolFilter{
     public void setWantClientAuth(boolean wantClientAuth) {
         this.wantClientAuth = wantClientAuth;
     }
-    
-    
+
+
+    public int getSslActivityTimeout() {
+        return sslActivityTimeout;
+    }
+
+    public void setSslActivityTimeout(int sslActivityTimeout) {
+        this.sslActivityTimeout = sslActivityTimeout;
+    }
+
     /**
      * Return the list of allowed protocol.
      * @return String[] an array of supported protocols.

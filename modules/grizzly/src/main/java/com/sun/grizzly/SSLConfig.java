@@ -40,6 +40,8 @@
 
 package com.sun.grizzly;
 
+import com.sun.grizzly.util.SSLUtils;
+
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -121,6 +123,8 @@ public class SSLConfig {
     private boolean needClientAuth = false;
 
     private boolean wantClientAuth = false;
+
+    private int sslInactivityTimeout = SSLUtils.DEFAULT_SSL_INACTIVITY_TIMEOUT;
 
     /**
      * Default constructor. Reads configuration properties from
@@ -310,6 +314,14 @@ public class SSLConfig {
 
     public void setClientMode(boolean clientMode) {
         this.clientMode = clientMode;
+    }
+
+    public int getSslInactivityTimeout() {
+        return sslInactivityTimeout;
+    }
+
+    public void setSslInactivityTimeout(int sslInactivityTimeout) {
+        this.sslInactivityTimeout = sslInactivityTimeout;
     }
 
     /**

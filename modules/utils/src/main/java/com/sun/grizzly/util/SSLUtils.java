@@ -82,20 +82,43 @@ public class SSLUtils {
     /**
      * The time to wait before timing out when reading bytes
      */
-    private static int readTimeout = 30000;    
-    
-    
+    public static int DEFAULT_SSL_INACTIVITY_TIMEOUT = 30 * 1000;
+
     /**
      * Read and decrypt bytes from the underlying SSL connections.
      * @param channel underlying socket channel
      * @param sslEngine{@link SSLEngine}
      * @param byteBuffer buffer for application decrypted data
-     * @param inputBB buffer for reading enrypted data from socket
+     * @param inputBB buffer for reading encrypted data from socket
+     * @return  number of bytes produced
+     * @throws java.io.IOException
+     */
+    public static Utils.Result doSecureRead(SelectableChannel channel,
+                                            SSLEngine sslEngine,
+                                            ByteBuffer byteBuffer,
+                                            ByteBuffer inputBB) throws IOException {
+        return doSecureRead(channel,
+                            sslEngine,
+                            byteBuffer,
+                            inputBB,
+                DEFAULT_SSL_INACTIVITY_TIMEOUT);
+    }
+
+    /**
+     * Read and decrypt bytes from the underlying SSL connections.
+     * @param channel underlying socket channel
+     * @param sslEngine{@link SSLEngine}
+     * @param byteBuffer buffer for application decrypted data
+     * @param inputBB buffer for reading encrypted data from socket
+     * @param timeout ssl inactivity timeout
      * @return  number of bytes produced
      * @throws java.io.IOException 
      */    
-    public static Utils.Result doSecureRead(SelectableChannel channel, SSLEngine sslEngine,
-            ByteBuffer byteBuffer, ByteBuffer inputBB) throws IOException {
+    public static Utils.Result doSecureRead(SelectableChannel channel,
+                                            SSLEngine sslEngine,
+                                            ByteBuffer byteBuffer,
+                                            ByteBuffer inputBB,
+                                            int timeout) throws IOException {
         
         boolean isFirstTime = true;
         
@@ -111,7 +134,7 @@ public class SSLUtils {
                 r.bytesRead = inputBB.position();
                 r.isClosed = false;
             } else {
-                r = SSLUtils.doRead(channel, inputBB, sslEngine, readTimeout);
+                r = SSLUtils.doRead(channel, inputBB, sslEngine, timeout);
             }
             
             isFirstTime = false;
@@ -365,7 +388,7 @@ public class SSLUtils {
             SSLEngine sslEngine, HandshakeStatus handshakeStatus) 
             throws IOException {
         return doHandshake(channel, byteBuffer, inputBB, outputBB,
-                sslEngine, handshakeStatus, readTimeout);
+                sslEngine, handshakeStatus, DEFAULT_SSL_INACTIVITY_TIMEOUT);
     }
 
     
@@ -645,16 +668,6 @@ public class SSLUtils {
    
         outputBB.position(0);
         outputBB.limit(0);
-    }
-
-
-    public static int getReadTimeout() {
-        return readTimeout;
-    }
-
-    
-    public static void setReadTimeout(int aReadTimeout) {
-        readTimeout = aReadTimeout;
     }
 
 }

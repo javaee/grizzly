@@ -90,7 +90,10 @@ public class TLSPUPreProcessor implements PUPreProcessor {
     /** 
      * True when requesting authentication.
      */
-    private boolean wantClientAuth = false; 
+    private boolean wantClientAuth = false;
+
+
+    private int sslInactivityTimeout = SSLUtils.DEFAULT_SSL_INACTIVITY_TIMEOUT;
     
     
     /**
@@ -205,8 +208,8 @@ public class TLSPUPreProcessor implements PUPreProcessor {
 
             try {
                 byteBuffer = SSLUtils.doHandshake(channel, byteBuffer, 
-                        inputBB, outputBB, sslEngine, handshakeStatus, 
-                        SSLUtils.getReadTimeout(), inputBB.position() > 0);
+                        inputBB, outputBB, sslEngine, handshakeStatus,
+                        sslInactivityTimeout, inputBB.position() > 0);
                 if (isloglevelfine) {
                     logger.log(Level.FINE, "handshake is done");
                 }
@@ -255,8 +258,8 @@ public class TLSPUPreProcessor implements PUPreProcessor {
             }
             
             if (inputBB.position() == 0) {
-                byteRead = SSLUtils.doRead(channel, inputBB, sslEngine, 
-                        SSLUtils.getReadTimeout()).bytesRead;
+                byteRead = SSLUtils.doRead(channel, inputBB, sslEngine,
+                        sslInactivityTimeout).bytesRead;
             } else {
                 byteRead = inputBB.position();
             }
@@ -318,6 +321,7 @@ public class TLSPUPreProcessor implements PUPreProcessor {
         sslContext = sslConfig.createSSLContext();
         wantClientAuth = sslConfig.isWantClientAuth();
         needClientAuth = sslConfig.isNeedClientAuth();
+        sslInactivityTimeout = sslConfig.getSslInactivityTimeout();
     }
 
     /**
@@ -331,7 +335,15 @@ public class TLSPUPreProcessor implements PUPreProcessor {
     public boolean isNeedClientAuth() {
         return needClientAuth;
     }
-    
+
+    public int getSslInactivityTimeout() {
+        return sslInactivityTimeout;
+    }
+
+    public void setSslInactivityTimeout(int sslInactivityTimeout) {
+        this.sslInactivityTimeout = sslInactivityTimeout;
+    }
+
     public void setNeedClientAuth(boolean needClientAuth) {
         this.needClientAuth = needClientAuth;
     }

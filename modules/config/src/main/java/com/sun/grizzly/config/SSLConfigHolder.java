@@ -102,6 +102,11 @@ public class SSLConfigHolder {
     protected boolean wantClientAuth = false;
 
     /**
+     * Handshake timeout.
+     */
+    protected int sslInactivityTimeout = Ssl.DEFAULT_SSL_INACTIVITY_TIMEOUT * 1000;
+
+    /**
      * SSL settings
      */
     private final Ssl ssl;
@@ -177,6 +182,13 @@ public class SSLConfigHolder {
         return wantClientAuth;
     }
 
+    /**
+     * @see com.sun.grizzly.config.dom.Ssl#getSSLInactivityTimeout()
+     */
+    public int getSslInactivityTimeout() {
+        return sslInactivityTimeout;
+    }
+
     public SSLEngine createSSLEngine() {
         final SSLEngine sslEngine = sslContext.createSSLEngine();
 
@@ -247,6 +259,8 @@ public class SSLConfigHolder {
                         needClientAuth = true;
                     }
                 }
+
+                sslInactivityTimeout = Integer.parseInt(ssl.getSSLInactivityTimeout()) * 1000;
 
                 tmpSSLArtifactsList.clear();
                 // ssl3-tls-ciphers

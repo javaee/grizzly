@@ -168,6 +168,7 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
         readFilter.setEnabledProtocols(sslConfigHolder.getEnabledProtocols());
         readFilter.setNeedClientAuth(sslConfigHolder.isNeedClientAuth());
         readFilter.setWantClientAuth(sslConfigHolder.isWantClientAuth());
+        readFilter.setSslActivityTimeout(sslConfigHolder.getSslInactivityTimeout());
         return readFilter;
     }
 

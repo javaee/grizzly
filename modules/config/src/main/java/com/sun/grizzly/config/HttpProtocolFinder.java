@@ -78,8 +78,6 @@ public class HttpProtocolFinder extends com.sun.grizzly.http.portunif.HttpProtoc
 
     private final AtomicBoolean isConfigured = new AtomicBoolean();
 
-    private final static int sslReadTimeout = 5000;
-
     public void configure(ProtocolFinder configuration) {
         Protocol protocol = configuration.findProtocol();
         isSecured = Boolean.parseBoolean(protocol.getSecurityEnabled());
@@ -158,7 +156,7 @@ public class HttpProtocolFinder extends com.sun.grizzly.http.portunif.HttpProtoc
             try {
                 byteBuffer = SSLUtils.doHandshake(channel, byteBuffer,
                         inputBB, outputBB, sslEngine, handshakeStatus,
-                        sslReadTimeout, inputBB.position() > 0);
+                        sslConfigHolder.getSslInactivityTimeout(), inputBB.position() > 0);
                 if (isloglevelfine) {
                     logger.log(Level.FINE, "handshake is done");
                 }
@@ -203,11 +201,11 @@ public class HttpProtocolFinder extends com.sun.grizzly.http.portunif.HttpProtoc
                 final long startTime = System.currentTimeMillis();
 
                 String protocol = null;
-                
+                final int timeout = sslConfigHolder.getSslInactivityTimeout();
                 while((protocol = super.find(context, protocolRequest)) == null &&
-                        System.currentTimeMillis() - startTime < sslReadTimeout) {
+                        System.currentTimeMillis() - startTime < timeout) {
                     byteRead = SSLUtils.doRead(channel, inputBB, sslEngine,
-                            sslReadTimeout).bytesRead;
+                            timeout).bytesRead;
                     if (byteRead == -1) {
                         logger.log(Level.FINE, "EOF");
                         throw new EOFException();

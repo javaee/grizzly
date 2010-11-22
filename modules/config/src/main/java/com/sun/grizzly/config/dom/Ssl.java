@@ -60,6 +60,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
     boolean TLS_ENABLED = true;
     boolean TLS_ROLLBACK_ENABLED = true;
     int MAX_CERT_LENGTH = 5;
+    int DEFAULT_SSL_INACTIVITY_TIMEOUT = 30;
     String CLIENT_AUTH_PATTERN = "(|need|want)";
     String STORE_TYPE_PATTERN = "(JKS|NSS)";
     String PASSWORD_PROVIDER = "plain";
@@ -241,4 +242,13 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
     String getAllowLazyInit();
 
     void setAllowLazyInit(String value);
+
+    /**
+     * @return the timeout within which there must be activity from the client.
+     *  Defaults to {@value #DEFAULT_SSL_INACTIVITY_TIMEOUT} seconds.
+     */
+    @Attribute(defaultValue = "" + DEFAULT_SSL_INACTIVITY_TIMEOUT, dataType = Integer.class)
+    String getSSLInactivityTimeout();
+
+    void setSSLInactivityTimeout(int handshakeTimeout);
 }
