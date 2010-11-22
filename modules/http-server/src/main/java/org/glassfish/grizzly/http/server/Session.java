@@ -107,7 +107,7 @@ public class Session {
      * Set this object as validated.
      * @param isValid
      */
-    public void setIsValid(boolean isValid){
+    public void setValid(boolean isValid){
         this.isValid = isValid;
         if (!isValid){
             timestamp = -1;

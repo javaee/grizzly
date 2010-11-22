@@ -52,7 +52,6 @@ import org.glassfish.grizzly.http.util.HttpStatus;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.utils.ArraySet;
@@ -71,8 +70,6 @@ public class StaticResourcesHandler {
     private static final Logger LOGGER = Grizzly.logger(StaticResourcesHandler.class);
     
     protected final ArraySet<File> docRoots = new ArraySet<File>(File.class);
-
-    protected String resourcesContextPath = "";
 
     private volatile int fileCacheFilterIdx = -1;
 
@@ -94,17 +91,24 @@ public class StaticResourcesHandler {
      * using send file.
      * @param req the {@link Request}
      * @param res the {@link Response}
+     * @param resourcesContextPath the context path used for servicing resources
      * @throws Exception
      */
-    public boolean handle(Request req, final Response res) throws Exception {
+    public boolean handle(Request req, final Response res,
+            String resourcesContextPath) throws Exception {
+        
         String uri = req.getRequestURI();
-        if (uri.indexOf("..") >= 0 || !uri.startsWith(resourcesContextPath)) {
+        if (uri.indexOf("..") >= 0) {
             return false;
         }
 
-        // We map only file that take the form of name.extension
-        if (uri.indexOf(".") != -1) {
+        if (!"".equals(resourcesContextPath)) {
+            if (!uri.startsWith(resourcesContextPath)) {
+                return false;
+            }
+
             uri = uri.substring(resourcesContextPath.length());
+            return false;
         }
 
         return handle(uri, req, res);
@@ -225,7 +229,7 @@ public class StaticResourcesHandler {
      * Return the list of directories from where files will be serviced.
      * @return the list of directories from where files will be serviced.
      */
-    public Set<File> getDocRoots() {
+    public ArraySet<File> getDocRoots() {
         return docRoots;
     }
     
@@ -252,28 +256,6 @@ public class StaticResourcesHandler {
      */
     public final void addDocRoot(File docRoot) {
         docRoots.add(docRoot);
-    }
-
-    /**
-     * Return the context path used for servicing resources. By default, "" is
-     * used so request taking the form of http://host:port/index.html are serviced
-     * directly. If set, the resource will be available under
-     * http://host:port/context-path/index.html
-     * @return the context path.
-     */
-    public String getResourcesContextPath() {
-        return resourcesContextPath;
-    }
-
-    /**
-     * Set the context path used for servicing resource. By default, "" is
-     * used so request taking the form of http://host:port/index.html are serviced
-     * directly. If set, the resource will be available under
-     * http://host:port/context-path/index.html
-     * @param resourcesContextPath the context path
-     */
-    public void setResourcesContextPath(String resourcesContextPath) {
-        this.resourcesContextPath = resourcesContextPath;
     }
 
     public final boolean addToFileCache(Request req, File resource) {

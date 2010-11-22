@@ -102,6 +102,14 @@ import java.util.TreeMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.attributes.Attribute;
+import org.glassfish.grizzly.attributes.AttributeBuilder;
+import org.glassfish.grizzly.attributes.AttributeHolder;
+import org.glassfish.grizzly.attributes.DefaultAttributeBuilder;
+import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 import org.glassfish.grizzly.http.util.Chunk;
 
 /**
@@ -114,6 +122,7 @@ import org.glassfish.grizzly.http.util.Chunk;
 
 public class Request {
 
+    private static final Logger LOGGER = Grizzly.logger(Request.class);
 
     private static final ThreadCache.CachedTypeIndex<Request> CACHE_IDX =
             ThreadCache.obtainIndex(Request.class, 2);
@@ -129,16 +138,13 @@ public class Request {
     }
 
 
+    private static final AttributeBuilder ATTR_BUILDER =
+            new DefaultAttributeBuilder();
+
     // ----------------------------------------------------------- Constructors
 
 
     protected Request() {
-         // START OF SJSAS 6231069
-        formats = (SimpleDateFormat[]) staticDateFormats.get();
-        formats[0].setTimeZone(TimeZone.getTimeZone("GMT"));
-        formats[1].setTimeZone(TimeZone.getTimeZone("GMT"));
-        formats[2].setTimeZone(TimeZone.getTimeZone("GMT"));
-        // END OF SJSAS 6231069
     }
 
 
@@ -184,8 +190,9 @@ public class Request {
     /**
      * Simple daemon thread.
      */
-    private static class SchedulerThread extends Thread{
-        public SchedulerThread(Runnable r, String name){
+    private static class SchedulerThread extends Thread {
+
+        public SchedulerThread(Runnable r, String name) {
             super(r, name);
             setDaemon(true);
         }
@@ -195,26 +202,28 @@ public class Request {
     /**
      * That code is far from optimal and needs to be rewrite appropriately.
      */
-    static{
-        sessionExpirer.scheduleAtFixedRate(new Runnable(){
+    static {
+        sessionExpirer.scheduleAtFixedRate(new Runnable() {
+
             @Override
-            public void run(){
+            public void run() {
                 long currentTime = System.currentTimeMillis();
                 Iterator<Map.Entry<String, Session>> iterator = sessions.entrySet().iterator();
                 Map.Entry<String, Session> entry;
-                while (iterator.hasNext()){
+                while (iterator.hasNext()) {
                     entry = iterator.next();
 
-                    if (entry.getValue().getSessionTimeout() == -1) continue;
+                    if (entry.getValue().getSessionTimeout() == -1) {
+                        continue;
+                    }
 
-                    if (currentTime - entry.getValue().getTimestamp() >
-                            entry.getValue().getSessionTimeout()){
-                        entry.getValue().setIsValid(false);
+                    if (currentTime - entry.getValue().getTimestamp()
+                            > entry.getValue().getSessionTimeout()) {
+                        entry.getValue().setValid(false);
                         iterator.remove();
                     }
                 }
             }
-
         }, 5, 5, TimeUnit.SECONDS);
     }
 
@@ -230,10 +239,12 @@ public class Request {
 
     protected HttpServerFilter httpServerFilter;
 
-    public void initialize(Response response,
-                           HttpRequestPacket request,
-                           FilterChainContext ctx,
-                           HttpServerFilter httpServerFilter) {
+    protected List<AfterServiceListener> afterServicesList = new ArrayList();
+
+    public void initialize(final Response response,
+                           final HttpRequestPacket request,
+                           final FilterChainContext ctx,
+                           final HttpServerFilter httpServerFilter) {
         this.response = response;
         this.request = request;
         this.ctx = ctx;
@@ -267,32 +278,6 @@ public class Request {
 
     protected Cookies rawCookies;
 
-    // START OF SJSAS 6231069
-    /*
-    protected SimpleDateFormat formats[] = {
-        new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US),
-        new SimpleDateFormat("EEEEEE, dd-MMM-yy HH:mm:ss zzz", Locale.US),
-        new SimpleDateFormat("EEE MMMM d HH:mm:ss yyyy", Locale.US)
-    }*/
-
-    /**
-     * The set of SimpleDateFormat formats to use in getDateHeader().
-     */
-    private static ThreadLocal staticDateFormats = new ThreadLocal() {
-        @Override
-        protected Object initialValue() {
-            SimpleDateFormat[] f = new SimpleDateFormat[3];
-            f[0] = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz",
-                                        Locale.US);
-            f[1] = new SimpleDateFormat("EEEEEE, dd-MMM-yy HH:mm:ss zzz",
-                                        Locale.US);
-            f[2] = new SimpleDateFormat("EEE MMMM d HH:mm:ss yyyy", Locale.US);
-            return f;
-        }
-    };
-    protected SimpleDateFormat formats[];
-    // END OF SJSAS 6231069
-
     /**
      * The default Locale if none are specified.
      */
@@ -321,7 +306,10 @@ public class Request {
      * Internal notes associated with this request by Catalina components
      * and event listeners.
      */
-    private transient HashMap<String,Object> notes = new HashMap<String,Object>();
+//    private transient HashMap<String,Object> notes = new HashMap<String,Object>();
+
+    private final transient AttributeHolder attributeHolder =
+            new IndexedAttributeHolder(ATTR_BUILDER);
 
 
     /**
@@ -521,6 +509,34 @@ public class Request {
 
     // --------------------------------------------------------- Public Methods
 
+    /**
+     * Add the listener, which will be notified, once <tt>Request</tt> processing will be finished.
+     * @param listener the listener, which will be notified, once <tt>Request</tt> processing will be finished.
+     */
+    public void addAfterServiceListener(AfterServiceListener listener) {
+        afterServicesList.add(listener);
+    }
+
+    /**
+     * Remove the "after-service" listener, which was previously added by {@link #addAfterServiceListener(org.glassfish.grizzly.http.server.AfterServiceListener)}.
+     * @param listener the "after-service" listener, which was previously added by {@link #addAfterServiceListener(org.glassfish.grizzly.http.server.AfterServiceListener)}.
+     */
+    public void removeAfterServiceListener(AfterServiceListener listener) {
+        afterServicesList.remove(listener);
+    }
+
+    protected void onAfterService() {
+        final int size = afterServicesList.size();
+
+        for (int i = 0; i < size; i++) {
+            try {
+                final AfterServiceListener listener = afterServicesList.get(i);
+                listener.onAfterService(this);
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Unexpected error during afterService notification", e);
+            }
+        }
+    }
 
     /**
      * Release all object references, and initialize instance variables, in
@@ -566,6 +582,9 @@ public class Request {
         parameterMap.clear();
         parameters.recycle();
 
+        afterServicesList.clear();
+        
+        attributeHolder.recycle();
 //        if (System.getSecurityManager() != null) {
 //            if (inputStream != null) {
 //                inputStream.clear();
@@ -633,45 +652,62 @@ public class Request {
 
 
     /**
-     * Return the object bound with the specified name to the internal notes
-     * for this request, or <code>null</code> if no such binding exists.
+     * Create a named {@link Note} associated with this Request.
      *
-     * @param name Name of the note to be returned
+     * @param <E> the {@link Note} type.
+     * @param name the {@link Note} name.
+     * @return the {@link Note}.
      */
-    public Object getNote(String name) {
-        return notes.get(name);
+    public static <E> Note<E> createNote(final String name) {
+        return new Note(ATTR_BUILDER.createAttribute(name));
+    }
+    
+    /**
+     * Return the {@link Note} value associated with this <tt>Request</tt>,
+     * or <code>null</code> if no such binding exists.
+     * Use {@link #createNote(java.lang.String)} to create a new {@link Note}.
+     *
+     * @param note {@link Note} value to be returned
+     */
+    public <E> E getNote(final Note<E> note) {
+        return note.attribute.get(attributeHolder);
     }
 
 
     /**
-     * Return an Iterator containing the String names of all notes bindings
+     * Return an {@link Iterator} containing the String names of all note bindings
+     * that exist for this request.
+     * Use {@link #createNote(java.lang.String)} to create a new {@link Note}.
+     *
+     * @return an {@link Iterator} containing the String names of all note bindings
      * that exist for this request.
      */
-    public Iterator getNoteNames() {
-        return notes.keySet().iterator();
+    public Iterator<String> getNoteNames() {
+        return attributeHolder.getAttributeNames().iterator();
     }
 
 
     /**
-     * Remove any object bound to the specified name in the internal notes
-     * for this request.
+     * Remove the {@link Note} value associated with this request.
+     * Use {@link #createNote(java.lang.String)} to create a new {@link Note}.
      *
-     * @param name Name of the note to be removed
+     * @param note {@link Note} value to be removed
      */
-    public void removeNote(String name) {
-        notes.remove(name);
+    public <E> E removeNote(final Note<E> note) {
+        return note.attribute.remove(attributeHolder);
     }
 
 
     /**
-     * Bind an object to a specified name in the internal notes associated
-     * with this request, replacing any existing binding for this name.
+     * Bind the {@link Note} value to this Request,
+     * replacing any existing binding for this name.
+     * Use {@link #createNote(java.lang.String)} to create a new {@link Note}.
      *
-     * @param name Name to which the object should be bound
-     * @param value Object to be bound to the specified name
+     * @param note {@link Note} to which the object should be bound
+     * @param value the {@link Note} value be bound to the specified {@link Note}.
      */
-    public void setNote(String name, Object value) {
-        notes.put(name, value);
+    public <E> void setNote(final Note<E> note, final E value) {
+        note.attribute.set(attributeHolder, value);
     }
 
 
@@ -1446,13 +1482,18 @@ public class Request {
         if (value == null)
             return (-1L);
 
-        // Attempt to convert the date header in a variety of formats
-        long result = FastHttpDateFormat.parseDate(value, formats);
-        if (result != (-1L)) {
-            return result;
-        }
-        throw new IllegalArgumentException(value);
+        final SimpleDateFormats formats = SimpleDateFormats.create();
 
+        try {
+            // Attempt to convert the date header in a variety of formats
+            long result = FastHttpDateFormat.parseDate(value, formats.getFormats());
+            if (result != (-1L)) {
+                return result;
+            }
+            throw new IllegalArgumentException(value);
+        } finally {
+            formats.recycle();
+        }
     }
 
 
@@ -2289,5 +2330,52 @@ public class Request {
 
         this.requestedSessionURL = flag;
 
+    }
+
+    private final static class SimpleDateFormats {
+        private static final ThreadCache.CachedTypeIndex<SimpleDateFormats> CACHE_IDX =
+                ThreadCache.obtainIndex(SimpleDateFormats.class, 1);
+
+        public static SimpleDateFormats create() {
+            final SimpleDateFormats formats =
+                    ThreadCache.takeFromCache(CACHE_IDX);
+            if (formats != null) {
+                return formats;
+            }
+
+            return new SimpleDateFormats();
+        }
+
+        private final SimpleDateFormat[] f;
+        public SimpleDateFormats() {
+            f = new SimpleDateFormat[3];
+            f[0] = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz",
+                                        Locale.US);
+            f[1] = new SimpleDateFormat("EEEEEE, dd-MMM-yy HH:mm:ss zzz",
+                                        Locale.US);
+            f[2] = new SimpleDateFormat("EEE MMMM d HH:mm:ss yyyy", Locale.US);
+
+            f[0].setTimeZone(TimeZone.getTimeZone("GMT"));
+
+            f[1].setTimeZone(TimeZone.getTimeZone("GMT"));
+
+            f[2].setTimeZone(TimeZone.getTimeZone("GMT"));
+        }
+
+        public SimpleDateFormat[] getFormats() {
+            return f;
+        }
+
+        public void recycle() {
+            ThreadCache.putToCache(CACHE_IDX, this);
+        }
+    }
+
+    public static final class Note<E> {
+        private final Attribute<E> attribute;
+
+        public Note(Attribute<E> attribute) {
+            this.attribute = attribute;
+        }
     }
 }

@@ -643,7 +643,8 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
     boolean startsWith(final String s, final int pos) {
         char[] c = buff;
         int len = s.length();
-        if (c == null || len + pos > end - start) {
+        if (c == null || len + pos > end) {
+//        if (c == null || len + pos > end - start) {
             return false;
         }
         int off = start + pos;

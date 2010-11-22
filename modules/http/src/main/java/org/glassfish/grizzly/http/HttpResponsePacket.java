@@ -242,7 +242,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
 
     /**
      * @return <code>true</code> if this response packet is intended
-     *  as an acknowledgement to an expectation from a client request.
+     *  as an acknowledgment to an expectation from a client request.
      */
     public boolean isAcknowledgement() {
         return acknowledgment;
@@ -250,10 +250,10 @@ public abstract class HttpResponsePacket extends HttpHeader {
 
 
     /**
-     * Mark this packet as an acknowledgement to a client expectation.
+     * Mark this packet as an acknowledgment to a client expectation.
      *
      * @param acknowledgement <code>true</code> if this packet is an
-     *  acknowledgement to a client expectation.
+     *  acknowledgment to a client expectation.
      */
     public void setAcknowledgement(boolean acknowledgement) {
         this.acknowledgment = acknowledgement;
@@ -264,6 +264,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
      * Mark this packet as having been acknowledged.
      */
     public void acknowledged() {
+        request.requiresAcknowledgement(false);
         acknowledgment = false;
         parsedStatusInt = NON_PARSED_STATUS;
         reasonPhraseC.recycle();

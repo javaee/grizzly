@@ -64,6 +64,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.glassfish.grizzly.http.util.BufferChunk;
 import org.glassfish.grizzly.http.util.Constants;
+import org.omg.PortableServer.REQUEST_PROCESSING_POLICY_ID;
 
 /**
  * The {@link org.glassfish.grizzly.filterchain.Filter}, responsible for transforming {@link Buffer} into
@@ -595,7 +596,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                     HttpProbeNotifier.notifyHeaderSerialize(this, connection,
                             httpHeader, encodedBuffer);
 
-                    response.acknowledged(); 
+                    response.acknowledged();
                     return encodedBuffer; // DO NOT MARK COMMITTED
                 }
             }

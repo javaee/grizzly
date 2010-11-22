@@ -259,6 +259,7 @@ public class HttpServerFilter extends BaseFilter
 
         response.finish();
 
+        request.onAfterService();
         HttpServerProbeNotifier.notifyRequestComplete(this, connection, response);
         response.recycle();
         request.recycle();

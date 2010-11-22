@@ -57,6 +57,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.http.util.RequestURIRef;
+import org.glassfish.grizzly.utils.ArraySet;
 
 /**
  * Base class to use when Request/Response/InputStream/OutputStream
@@ -72,7 +73,7 @@ import org.glassfish.grizzly.http.util.RequestURIRef;
  */
 public abstract class HttpRequestProcessor {
     
-    protected final static Logger logger = Grizzly.logger(HttpRequestProcessor.class);
+    private final static Logger LOGGER = Grizzly.logger(HttpRequestProcessor.class);
     
     protected final StaticResourcesHandler staticResourcesHandler =
             new StaticResourcesHandler();
@@ -98,6 +99,9 @@ public abstract class HttpRequestProcessor {
      * Are custom status messages (reason phrases) allowed?
      */
     private boolean allowCustomStatusMessage = true;
+
+    // the context path used for servicing resources
+    private String resourcesContextPath = "";
     
     /**
      * Create <tt>HttpService</tt>, which, by default, won't handle requests
@@ -157,7 +161,7 @@ public abstract class HttpRequestProcessor {
         }
         
         if (!staticResourcesHandler.getDocRoots().isEmpty() &&
-                staticResourcesHandler.handle(request, response)) {
+                staticResourcesHandler.handle(request, response, resourcesContextPath)) {
             return;
         }
 
@@ -183,7 +187,7 @@ public abstract class HttpRequestProcessor {
             request.parseSessionId();
             service(request, response);
         } catch (Exception t) {
-            logger.log(Level.SEVERE,"service exception", t);
+            LOGGER.log(Level.SEVERE,"service exception", t);
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
             response.setDetailMessage("Internal Error");
             throw t;
@@ -273,7 +277,7 @@ public abstract class HttpRequestProcessor {
      * 
      * @return the list of directories where files will be serviced from.
      */
-    public Set<File> getDocRoots() {
+    public ArraySet<File> getDocRoots() {
         return staticResourcesHandler.getDocRoots();
     }
 
@@ -306,6 +310,28 @@ public abstract class HttpRequestProcessor {
      */
     public void removeDocRoot(File docRoot) {
         staticResourcesHandler.getDocRoots().remove(docRoot);
+    }
+
+    /**
+     * Return the context path used for servicing resources. By default, "" is
+     * used so request taking the form of http://host:port/index.html are serviced
+     * directly. If set, the resource will be available under
+     * http://host:port/context-path/index.html
+     * @return the context path.
+     */
+    public String getResourcesContextPath() {
+        return resourcesContextPath;
+    }
+
+    /**
+     * Set the context path used for servicing resource. By default, "" is
+     * used so request taking the form of http://host:port/index.html are serviced
+     * directly. If set, the resource will be available under
+     * http://host:port/context-path/index.html
+     * @param resourcesContextPath the context path
+     */
+    public void setResourcesContextPath(String resourcesContextPath) {
+        this.resourcesContextPath = resourcesContextPath;
     }
 
     /**

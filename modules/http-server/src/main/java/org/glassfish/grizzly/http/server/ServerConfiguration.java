@@ -41,23 +41,16 @@
 package org.glassfish.grizzly.http.server;
 
 
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.http.server.io.NIOOutputStream;
+import java.util.Collections;
+import java.util.HashMap;
 import org.glassfish.grizzly.http.server.jmx.JmxEventListener;
-import org.glassfish.grizzly.http.server.util.HtmlHelper;
-import org.glassfish.grizzly.http.util.HttpStatus;
-import org.glassfish.grizzly.memory.MemoryManager;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.utils.ArraySet;
 
 /**
@@ -67,19 +60,22 @@ public class ServerConfiguration {
 
     private static final AtomicInteger INSTANCE_COUNT = new AtomicInteger(-1);
 
+    private static final String[] ROOT_MAPPING = {"/"};
+
     /*
      * The directory from which static resources will be served from.
      */
     private final ArraySet<String> docRoots = new ArraySet<String>(String.class);
-
+    private final Set<String> unmodifiableDocRoots = Collections.unmodifiableSet(docRoots);
 
     // Non-exposed
 
-    private Map<HttpRequestProcessor, String[]> services = new LinkedHashMap<HttpRequestProcessor, String[]>();
+    final Map<HttpRequestProcessor, String[]> services =
+            new ConcurrentHashMap<HttpRequestProcessor, String[]>();
+    private final Map<HttpRequestProcessor, String[]> unmodifiableServices =
+            Collections.unmodifiableMap(services);
 
     private Set<JmxEventListener> jmxEventListeners = new CopyOnWriteArraySet<JmxEventListener>();
-
-    private static final String[] ROOT_MAPPING = {"/"};
 
     private final HttpServerMonitoringConfig monitoringConfig = new HttpServerMonitoringConfig();
 
@@ -89,7 +85,7 @@ public class ServerConfiguration {
 
     private String httpServerVersion = "2.0";
 
-    private final HttpServer instance;
+    final HttpServer instance;
 
     private boolean jmxEnabled;
     
@@ -104,16 +100,27 @@ public class ServerConfiguration {
     // ---------------------------------------------------------- Public Methods
 
 
+    /**
+     *
+     * Returns the set of registered docroots.
+     * Please note, the returned set is read-only.
+     *
+     * @return the set of registered docroots.
+     */
     public Set<String> getDocRoots() {
-        return docRoots;
+        return unmodifiableDocRoots;
     }
 
-    public void addDocRoot(String docRoot) {
+    public synchronized void addDocRoot(final String docRoot) {
         docRoots.add(docRoot);
+
+        instance.onAddDocRoot(docRoot);
     }
 
-    public void removeDocRoot(String docRoot) {
-        docRoots.remove(docRoot);
+    public synchronized void removeDocRoot(final String docRoot) {
+        if (docRoots.remove(docRoot)) {
+            instance.onRemoveDocRoot(docRoot);
+        }
     }
 
     /**
@@ -125,8 +132,14 @@ public class ServerConfiguration {
      * @param httpService a {@link HttpRequestProcessor}
      * @param mapping        context path mapping information.
      */
-    public void addHttpService(HttpRequestProcessor httpService, String... mapping) {
-        services.put(httpService, mapping == null ? ROOT_MAPPING : mapping);
+    public synchronized void addHttpService(final HttpRequestProcessor httpService, String... mapping) {
+        if (mapping == null) {
+            mapping = ROOT_MAPPING;
+        }
+
+        services.put(httpService, mapping);
+
+        instance.onAddHttpService(httpService, mapping);
     }
 
     /**
@@ -136,69 +149,24 @@ public class ServerConfiguration {
      * @return <tt>true</tt>, if the operation was successful, otherwise
      *  <tt>false</tt>
      */
-    public boolean removeHttpService(HttpRequestProcessor httpService) {
-        return services.remove(httpService) != null;
+    public synchronized boolean removeHttpService(HttpRequestProcessor httpService) {
+        final boolean result = services.remove(httpService) != null;
+        if (result) {
+            instance.onRemoveHttpService(httpService);
+        }
+
+        return result;
     }
 
-
     /**
-     * @return the {@link HttpRequestProcessor} to be used by this server instance.
-     *  This may be a single {@link HttpRequestProcessor} or a composite of multiple
-     *  {@link HttpRequestProcessor} instances wrapped by a {@link HttpServiceChain}.
+     *
+     * Returns the {@link HttpRequestProcessor} map.
+     * Please note, the returned map is read-only.
+     *
+     * @return the {@link HttpRequestProcessor} map.
      */
-    protected HttpRequestProcessor buildService() {
-
-        if (services.isEmpty()) {
-            return new HttpRequestProcessor(docRoots) {
-                @SuppressWarnings({"unchecked"})
-                @Override
-                public void service(Request request, Response response) {
-                    try {
-                        ByteBuffer b = HtmlHelper.getErrorPage("Not Found",
-                            "Resource identified by path '" + request.getRequestURI() + "', does not exist.",
-                            getHttpServerName() + '/' + getHttpServerVersion());
-                        MemoryManager mm = request.getContext().getConnection().getTransport().getMemoryManager();
-                        Buffer buf = Buffers.wrap(mm, b);
-                        NIOOutputStream out = response.getOutputStream();
-                        response.setStatus(HttpStatus.NOT_FOUND_404);
-                        response.setContentType("text/html");
-                        response.setCharacterEncoding("UTF-8");
-                        out.write(buf);
-                        out.flush();
-
-                    } catch (IOException e) {
-                        logger.log(Level.WARNING,
-                                "Exception during building service", e);
-                    }
-
-                }
-            };
-        }
-
-        final int servicesNum = services.size();
-
-        if (servicesNum == 1) {
-            HttpRequestProcessor httpService = services.keySet().iterator().next();
-            if (httpService.getDocRoots().isEmpty()) {
-                addAllDocRoots(httpService);
-            }
-            
-            return httpService;
-        }
-
-        HttpServiceChain serviceChain = new HttpServiceChain(instance);
-        addJmxEventListener(serviceChain);
-        addAllDocRoots(serviceChain);
-
-        for (Map.Entry<HttpRequestProcessor, String[]> serviceRecord : services.entrySet()) {
-            final HttpRequestProcessor httpService = serviceRecord.getKey();
-            final String[] mappings = serviceRecord.getValue();
-
-            addAllDocRoots(httpService);
-            serviceChain.addService(httpService, mappings);
-        }
-
-        return serviceChain;
+    public Map<HttpRequestProcessor, String[]> getHttpServices() {
+        return unmodifiableServices;
     }
 
     /**
@@ -373,7 +341,7 @@ public class ServerConfiguration {
 
     }
 
-    private void addAllDocRoots(HttpRequestProcessor httpService) {
+    void addAllDocRoots(HttpRequestProcessor httpService) {
         for (String docRoot : this.docRoots) {
             httpService.addDocRoot(docRoot);
         }

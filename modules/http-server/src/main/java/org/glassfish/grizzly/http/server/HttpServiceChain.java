@@ -37,7 +37,6 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.http.server;
 
 import org.glassfish.grizzly.Grizzly;
@@ -54,6 +53,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.http.server.Request.Note;
 import org.glassfish.grizzly.http.util.CharChunk;
 
 /**
@@ -70,10 +70,12 @@ import org.glassfish.grizzly.http.util.CharChunk;
  * @author Jeanfrancois Arcand
  */
 public class HttpServiceChain extends HttpRequestProcessor implements JmxEventListener {
-    private static final Logger logger = Grizzly.logger(HttpServiceChain.class);
 
-    protected final static int MAPPING_DATA = 12;
-    protected final static int MAPPED_SERVICE = 13;
+    private static final Logger LOGGER = Grizzly.logger(HttpServiceChain.class);
+//    protected final static int MAPPING_DATA = 12;
+//    protected final static int MAPPED_SERVICE = 13;
+    private static final Note<MappingData> MAPPING_DATA_NOTE =
+            Request.<MappingData>createNote("MAPPING_DATA");
     /**
      * The list of {@link HttpRequestProcessor} instance.
      */
@@ -90,37 +92,30 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
      */
     private final static String LOCAL_HOST = "localhost";
     /**
-     * Use the deprecated mechanism.
-     */
-    private boolean oldMappingAlgorithm = false;
-
-    /**
      * Flag indicating this HttpService has been started.  Any subsequent
      * HttpService instances added to this chain after is has been started
      * will have their start() method invoked.
      */
     private boolean started;
-
-    private final HttpServer gws;
-
+    private final HttpServer httpServer;
+    /**
+     * Is the root context configured?
+     */
+    private boolean isRootConfigured = false;
 
     // ------------------------------------------------------------ Constructors
-
-
-    public HttpServiceChain(final HttpServer gws) {
-        this.gws = gws;
+    public HttpServiceChain(final HttpServer httpServer) {
+        this.httpServer = httpServer;
         mapper = new Mapper();
         mapper.setDefaultHostName(LOCAL_HOST);
         // We will decode it
         setDecodeUrl(false);
     }
 
-
     // ------------------------------------------- Methods from JmxEventListener
-
     @Override
     public void jmxEnabled() {
-        for (Entry<HttpRequestProcessor,String[]> entry : services.entrySet()) {
+        for (Entry<HttpRequestProcessor, String[]> entry : services.entrySet()) {
             final HttpRequestProcessor httpService = entry.getKey();
             if (httpService instanceof Monitorable) {
                 registerJmxForService(httpService);
@@ -130,7 +125,7 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
 
     @Override
     public void jmxDisabled() {
-        for (Entry<HttpRequestProcessor,String[]> entry : services.entrySet()) {
+        for (Entry<HttpRequestProcessor, String[]> entry : services.entrySet()) {
             final HttpRequestProcessor httpService = entry.getKey();
             if (httpService instanceof Monitorable) {
                 deregisterJmxForService(httpService);
@@ -138,10 +133,7 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
         }
     }
 
-
     // ---------------------------------------------------------- Public Methods
-
-
     @Override
     public void start() {
         for (Entry<HttpRequestProcessor, String[]> entry : services.entrySet()) {
@@ -157,79 +149,58 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
      * @param response The {@link Response}
      */
     @Override
-    public void service(Request request, Response response) throws Exception {
+    public void service(final Request request, final Response response) throws Exception {
         // For backward compatibility.
-        if (oldMappingAlgorithm) {
-            int i = 0;
-            int size = services.size();
-            for (Entry<HttpRequestProcessor, String[]> entry : services.entrySet()) {
-                entry.getKey().doService(request, response);
-                if (response.getStatus() == 404 && i != size - 1) {
-                    // Reset the
-                    response.setStatus(HttpStatus.OK_200);
-                } else {
-                    return;
-                }
-                
-                i++;
+        //Request req = request.getRequest();
+        MappingData mappingData;
+        try {
+            final RequestURIRef uriRef = request.getRequest().getRequestURIRef();
+            final DataChunk decodedURI = uriRef.getDecodedRequestURIBC();
+            //MessageBytes decodedURI = req.decodedURI();
+            //decodedURI.duplicate(req.requestURI());
+            // TODO: cleanup notes (int version/string version)
+            mappingData = request.getNote(MAPPING_DATA_NOTE);
+            if (mappingData == null) {
+                mappingData = new MappingData();
+                request.setNote(MAPPING_DATA_NOTE, mappingData);
+            } else {
+                mappingData.recycle();
             }
-        } else {
-            //Request req = request.getRequest();
-            MappingData mappingData;
+
+            mapUriWithSemicolon(request.getRequest().serverName(),
+                    decodedURI,
+                    0,
+                    mappingData);
+
+
+            HttpRequestProcessor httpService;
+            if (mappingData.context != null && mappingData.context instanceof HttpRequestProcessor) {
+                if (mappingData.wrapper != null) {
+                    httpService = (HttpRequestProcessor) mappingData.wrapper;
+                } else {
+                    httpService = (HttpRequestProcessor) mappingData.context;
+                }
+                // We already decoded the URL.
+                httpService.setDecodeUrl(false);
+                httpService.doService(request, response);
+            } else {
+                response.setStatus(HttpStatus.NOT_FOUND_404);
+                customizedErrorPage(httpServer, request, response);
+            }
+        } catch (Throwable t) {
             try {
-                RequestURIRef uriRef = request.getRequest().getRequestURIRef();
-                DataChunk decodedURI = uriRef.getDecodedRequestURIBC();
-                //MessageBytes decodedURI = req.decodedURI();
-                //decodedURI.duplicate(req.requestURI());
-                // TODO: cleanup notes (int version/string version)
-                mappingData = (MappingData) request.getNote("MAPPING_DATA");
-                if (mappingData == null) {
-                    mappingData = new MappingData();
-                    request.setNote("MAPPING_DATA", mappingData);
-                } else {
-                    mappingData.recycle();
+                response.setStatus(HttpStatus.NOT_FOUND_404);
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, "Invalid URL: " + request.getRequestURI(), t);
                 }
-
-                if (mappingData == null) {
-                    mappingData = (MappingData) request.getNote("MAPPING_DATA");
-                }
-
-                mapUriWithSemicolon(request.getRequest().serverName(),
-                                    decodedURI,
-                                    0,
-                                    mappingData);
-
-
-                HttpRequestProcessor httpService;
-                if (mappingData.context != null && mappingData.context instanceof HttpRequestProcessor) {
-                    if (mappingData.wrapper != null) {
-                        httpService = (HttpRequestProcessor) mappingData.wrapper;
-                    } else {
-                        httpService = (HttpRequestProcessor) mappingData.context;
-                    }
-                    // We already decoded the URL.
-                    httpService.setDecodeUrl(false);
-                    httpService.doService(request, response);
-                } else {
-                    response.setStatus(HttpStatus.NOT_FOUND_404);
-                    customizedErrorPage(gws, request, response);
-                }
-            } catch (Throwable t) {
-                try {
-                    response.setStatus(HttpStatus.NOT_FOUND_404);
-                    if (logger.isLoggable(Level.FINE)) {
-                        logger.log(Level.FINE, "Invalid URL: " + request.getRequestURI(), t);
-                    }
-                    customizedErrorPage(gws, request, response);
-                } catch (Exception ex2) {
-                    if (logger.isLoggable(Level.WARNING)) {
-                        logger.log(Level.WARNING, "Unable to error page", ex2);
-                    }
+                customizedErrorPage(httpServer, request, response);
+            } catch (Exception ex2) {
+                if (LOGGER.isLoggable(Level.WARNING)) {
+                    LOGGER.log(Level.WARNING, "Unable to error page", ex2);
                 }
             }
         }
     }
-
 
     /**
      * Add a {@link HttpRequestProcessor} and its associated array of mapping. The mapping
@@ -238,11 +209,6 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
      * @param mappings an array of mapping.
      */
     public void addService(HttpRequestProcessor httpService, String[] mappings) {
-        if (oldMappingAlgorithm) {
-            throw new IllegalStateException("Cannot mix addService(HttpService) "
-                    + "and addService(HttpService,String[]");
-        }
-
         if (mappings.length == 0) {
             addService(httpService, new String[]{""});
         } else {
@@ -254,10 +220,39 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
             }
             services.put(httpService, mappings);
             for (String mapping : mappings) {
-                String ctx = getContextPath(mapping);
-                mapper.addContext(LOCAL_HOST, ctx, httpService,
-                        new String[]{"index.html", "index.htm"}, null);
-                mapper.addWrapper(LOCAL_HOST, ctx, mapping.substring(ctx.length()), httpService);
+
+                final String ctx = getContextPath(mapping);
+                final String wrapper = getWrapperPath(ctx, mapping);
+                if (!ctx.equals("")) {
+                    mapper.addContext(LOCAL_HOST, ctx, httpService,
+                            new String[]{"index.html", "index.htm"}, null);
+                } else {
+                    if (!isRootConfigured && wrapper.startsWith("*.")) {
+                        isRootConfigured = true;
+                        final HttpRequestProcessor a = new HttpRequestProcessor() {
+
+                            @Override
+                            public void service(Request request, Response response) {
+                                try {
+                                    customizedErrorPage(httpServer, request, response);
+                                } catch (Exception ex) {
+                                }
+                            }
+                        };
+                        mapper.addContext(LOCAL_HOST, ctx, a,
+                                new String[]{"index.html", "index.htm"}, null);
+                    } else {
+                        mapper.addContext(LOCAL_HOST, ctx, httpService,
+                                new String[]{"index.html", "index.htm"}, null);
+                    }
+                }
+                mapper.addWrapper(LOCAL_HOST, ctx, wrapper, httpService);
+
+
+//                String ctx = getContextPath(mapping);
+//                mapper.addContext(LOCAL_HOST, ctx, httpService,
+//                        new String[]{"index.html", "index.htm"}, null);
+//                mapper.addWrapper(LOCAL_HOST, ctx, mapping.substring(ctx.length()), httpService);
             }
         }
 
@@ -267,20 +262,31 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
         final Monitorable monitorable = (Monitorable) httpService;
         final JmxObject jmx = monitorable.createManagementObject();
         monitors.putIfAbsent(httpService, jmx);
-        gws.jmxManager.register(gws.managementObject, jmx, jmx.getJmxName());
+        httpServer.jmxManager.register(httpServer.managementObject, jmx, jmx.getJmxName());
     }
 
     private void deregisterJmxForService(final HttpRequestProcessor httpService) {
 
         JmxObject jmx = monitors.get(httpService);
         if (jmx != null) {
-            gws.jmxManager.unregister(jmx);
+            httpServer.jmxManager.unregister(jmx);
         }
 
     }
 
+    private String getWrapperPath(String ctx, String mapping) {
+
+        if (mapping.indexOf("*.") > 0) {
+            return mapping.substring(mapping.lastIndexOf("/") + 1);
+        } else if (!ctx.equals("")) {
+            return mapping.substring(ctx.length());
+        } else {
+            return mapping;
+        }
+    }
+
     private String getContextPath(String mapping) {
-        String ctx;
+        String ctx = "";
         int slash = mapping.indexOf("/", 1);
         if (slash != -1) {
             ctx = mapping.substring(0, slash);
@@ -288,7 +294,16 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
             ctx = mapping;
         }
 
-        if (ctx.startsWith("/*")) {
+        if (ctx.startsWith("/*.") || ctx.startsWith("*.")) {
+            if (ctx.indexOf("/") == ctx.lastIndexOf("/")) {
+                ctx = "";
+            } else {
+                ctx = ctx.substring(1);
+            }
+        }
+
+
+        if (ctx.startsWith("/*") || ctx.startsWith("*")) {
             ctx = "";
         }
 
@@ -296,6 +311,7 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
         if (ctx.equals("/")) {
             ctx = "";
         }
+
         return ctx;
     }
 
@@ -330,7 +346,6 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
         return (mappings != null);
     }
 
-
     /**
      * Maps the decodedURI to the corresponding HttpService, considering that URI
      * may have a semicolon with extra data followed, which shouldn't be a part
@@ -346,10 +361,10 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
      * @throws Exception if an error occurs mapping the request
      */
     private void mapUriWithSemicolon(final DataChunk serverName,
-                                     final DataChunk decodedURI,
-                                     int semicolonPos,
-                                     final MappingData mappingData)
-    throws Exception {
+            final DataChunk decodedURI,
+            int semicolonPos,
+            final MappingData mappingData)
+            throws Exception {
 
         final CharChunk charChunk = decodedURI.getCharChunk();
         final int oldEnd = charChunk.getEnd();
@@ -371,4 +386,9 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
         }
     }
 
+    public void removeAllHttpServices() {
+        for (final HttpRequestProcessor service : services.keySet()) {
+            removeHttpService(service);
+        }
+    }
 }
