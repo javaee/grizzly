@@ -1,0 +1,257 @@
+/*
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+ *
+ * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ *
+ * The contents of this file are subject to the terms of either the GNU
+ * General Public License Version 2 only ("GPL") or the Common Development
+ * and Distribution License("CDDL") (collectively, the "License").  You
+ * may not use this file except in compliance with the License.  You can
+ * obtain a copy of the License at
+ * https://glassfish.dev.java.net/public/CDDL+GPL_1_1.html
+ * or packager/legal/LICENSE.txt.  See the License for the specific
+ * language governing permissions and limitations under the License.
+ *
+ * When distributing the software, include this License Header Notice in each
+ * file and include the License file at packager/legal/LICENSE.txt.
+ *
+ * GPL Classpath Exception:
+ * Oracle designates this particular file as subject to the "Classpath"
+ * exception as provided by Oracle in the GPL Version 2 section of the License
+ * file that accompanied this code.
+ *
+ * Modifications:
+ * If applicable, add the following below the License Header, with the fields
+ * enclosed by brackets [] replaced by your own identifying information:
+ * "Portions Copyright [year] [name of copyright owner]"
+ *
+ * Contributor(s):
+ * If you wish your version of this file to be governed by only the CDDL or
+ * only the GPL Version 2, indicate your decision by adding "[Contributor]
+ * elects to include this software in this distribution under the [CDDL or GPL
+ * Version 2] license."  If you don't indicate a single choice of license, a
+ * recipient has the option to distribute your version of this file under
+ * either the CDDL, the GPL Version 2 or to extend the choice of license to
+ * its licensees as provided above.  However, if you add GPL Version 2 code
+ * and therefore, elected the GPL Version 2 license, then the option applies
+ * only if the new code is made subject to such option by the copyright
+ * holder.
+ */
+
+package org.glassfish.grizzly.servlet;
+
+
+import java.util.logging.Level;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.util.logging.Logger;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.servlet.utils.Utils;
+
+/**
+ * Basic Servlet Test.
+ *
+ * @author Jeanfrancois Arcand
+ */
+public class BasicServletTest extends HttpServerAbstractTest {
+
+    public static final int PORT = 18890;
+    private static final Logger LOGGER = Grizzly.logger(BasicServletTest.class);
+    private final String header = "text/html;charset=utf8";
+
+    public void testServletName() throws IOException {
+        Utils.dumpOut("testServletName");
+        try {
+            newHttpServer(PORT);
+            String alias = "/contextPath/servletPath/";
+            ServletService servletService = addHttpService(alias);
+            servletService.setContextPath("/contextPath");
+            servletService.setServletPath("/servletPath");
+            servletService.setProperty("servlet-name", "foobar");
+            httpServer.start();
+            HttpURLConnection conn = getConnection("/contextPath/servletPath/pathInfo", PORT);
+            String s = conn.getHeaderField("Servlet-Name");
+            assertEquals(s, "foobar");
+        } finally {
+            stopHttpServer();
+        }
+    }
+
+    public void testSetHeaderTest() throws IOException {
+        Utils.dumpOut("testSetHeaderTest");
+        try {
+            startHttpServer(PORT);
+            String alias = "/1";
+            addHttpService(alias);
+            
+            HttpURLConnection conn = getConnection(alias, PORT);
+            String s = conn.getHeaderField("Content-Type");
+            assertEquals(header, s);
+        } finally {
+            stopHttpServer();
+        }
+    }
+
+    public void testPathInfo() throws IOException {
+        Utils.dumpOut("testPathInfo");
+        try {
+            newHttpServer(PORT);
+            String alias = "/contextPath/servletPath/";
+            ServletService servletService = addHttpService(alias);
+            servletService.setContextPath("/contextPath");
+            servletService.setServletPath("/servletPath");
+            httpServer.start();
+            HttpURLConnection conn = getConnection("/contextPath/servletPath/pathInfo", PORT);
+            String s = conn.getHeaderField("Path-Info");
+            assertEquals(s, "/pathInfo");
+        } finally {
+            stopHttpServer();
+        }
+    }
+
+    public void testNotAllowEncodedSlash() throws IOException {
+        Utils.dumpOut("testNotAllowEncodedSlash");
+        try {
+            newHttpServer(PORT);
+            String alias = "/contextPath/servletPath/";
+            ServletService servletService = addHttpService(alias);
+            servletService.setContextPath("/contextPath");
+            servletService.setServletPath("/servletPath");
+            httpServer.start();
+            HttpURLConnection conn = getConnection("/contextPath/servletPath%5FpathInfo", PORT);
+            String s = conn.getHeaderField("Path-Info");
+            assertNotSame(s, "/pathInfo");
+        } finally {
+            stopHttpServer();
+        }
+    }
+
+    public void testAllowEncodedSlash() throws IOException {
+        Utils.dumpOut("testAllowEncodedSlash");
+        try {
+            newHttpServer(PORT);
+            String alias = "/contextPath/servletPath/";
+            ServletService servletService = addHttpService(alias);
+            servletService.setAllowEncodedSlash(true);
+            servletService.setContextPath("/contextPath");
+            servletService.setServletPath("/servletPath");
+            httpServer.start();
+            HttpURLConnection conn = getConnection("/contextPath/servletPath%5FpathInfo", PORT);
+            String s = conn.getHeaderField("Path-Info");
+            assertNotSame(s, "/pathInfo");
+        } finally {
+            stopHttpServer();
+        }
+    }
+
+    public void testDoubleSlash() throws IOException {
+        Utils.dumpOut("testDoubleSlash");
+        try {
+            newHttpServer(PORT);
+            String alias = "/*.html";
+            ServletService servletService = addHttpService(alias);
+            servletService.setContextPath("/");
+            servletService.setServletPath("/");
+            httpServer.start();
+            HttpURLConnection conn = getConnection("/index.html", PORT);
+            assertEquals(HttpServletResponse.SC_OK,
+                    getResponseCodeFromAlias(conn));
+            String s = conn.getHeaderField("Request-Was");
+            Utils.dumpOut("s: " +s );
+            assertEquals(s, "/index.html");
+        } finally {
+            stopHttpServer();
+        }
+    }
+
+    public void testInitParameters() throws IOException {
+        Utils.dumpOut("testContextParameters");
+        try {
+            newHttpServer(PORT);
+            ServletService sa1 = new ServletService(new HttpServlet() {
+                private ServletConfig config;
+                @Override public void init(ServletConfig config) throws ServletException {
+                    super.init(config);
+                    this.config = config;
+                }
+                @Override protected void service(HttpServletRequest req, HttpServletResponse resp) {
+                    String init = config.getInitParameter("servlet");
+                    String ctx = config.getServletContext().getInitParameter("ctx");
+                    boolean ok = "sa1".equals(init) && "something".equals(ctx);
+                    resp.setStatus(ok ? 200 : 404);
+                }
+            });
+            sa1.addInitParameter("servlet", "sa1");
+            sa1.addContextParameter("ctx", "something");
+            ServletService sa2 = sa1.newServletService(new HttpServlet() {
+                private ServletConfig config;
+                @Override public void init(ServletConfig config) throws ServletException {
+                    super.init(config);
+                    this.config = config;
+                }
+                @Override protected void service(HttpServletRequest req, HttpServletResponse resp) {
+                    String init = config.getInitParameter("servlet");
+                    String ctx = config.getServletContext().getInitParameter("ctx");
+                    boolean ok = "sa2".equals(init) && "something".equals(ctx);
+                    resp.setStatus(ok ? 200 : 404);
+                }
+            });
+            sa2.addInitParameter("servlet", "sa2");
+            httpServer.getServerConfiguration().addHttpService(sa1, new String[]{"/1"});
+            httpServer.getServerConfiguration().addHttpService(sa2, new String[]{"/2"});
+            httpServer.start();
+
+            assertEquals(200, getConnection("/1", PORT).getResponseCode());
+            assertEquals(200, getConnection("/2", PORT).getResponseCode());
+        } finally {
+            stopHttpServer();
+        }
+    }
+
+    /**
+     * Covers issue with "No Content" returned by Servlet.
+     * <a href="http://twitter.com/shock01/status/2136930089">http://twitter.com/shock01/status/2136930089</a>
+     *
+     * @throws IOException I/O
+     */
+    public void testNoContentServlet() throws IOException {
+        try {
+            startHttpServer(PORT);
+            ServletService noContent = new ServletService(new HttpServlet() {
+                @Override protected void service(HttpServletRequest req, HttpServletResponse resp) {
+                    resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
+                }
+            });
+            httpServer.getServerConfiguration().addHttpService(noContent, new String[]{"/NoContent"});
+
+            assertEquals(HttpServletResponse.SC_NO_CONTENT, getConnection("/NoContent", PORT).getResponseCode());
+        } finally {
+            stopHttpServer();
+        }
+    }
+
+    private ServletService addHttpService(final String alias) {
+        ServletService service = new ServletService(new HttpServlet() {
+
+            @Override
+            protected void doGet(
+                    HttpServletRequest req, HttpServletResponse resp)
+                    throws IOException {
+                LOGGER.log(Level.INFO, "{0} received request {1}", new Object[]{alias, req.getRequestURI()});
+                resp.setStatus(HttpServletResponse.SC_OK);
+                resp.setHeader("Content-Type", header);
+                resp.setHeader("Path-Info", req.getPathInfo());
+                resp.setHeader("Request-Was", req.getRequestURI());
+                resp.setHeader("Servlet-Name",getServletName());
+                resp.getWriter().write(alias);
+            }
+        });
+        addHttpService(alias, service);
+        return service;
+    }
+}

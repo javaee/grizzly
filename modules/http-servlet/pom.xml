@@ -55,23 +55,8 @@
     <version>${grizzly-version}</version>
     <name>grizzly-http-servlet</name>
     <url>https://grizzly.dev.java.net</url>
-    <profiles>
-        <profile>
-            <id>jdk-1.5</id>
-            <activation>
-                <jdk>1.5</jdk>
-            </activation>
-            <dependencies>
-                <dependency> <!-- depend on JAXB to enable WADL support -->
-                    <groupId>com.sun.xml.bind</groupId>
-                    <artifactId>jaxb-impl</artifactId>
-                    <version>2.1</version>
-                    <scope>test</scope>
-                </dependency>
-            </dependencies>
-        </profile>
-    </profiles>
     <build>
+        <defaultGoal>install</defaultGoal>
         <plugins>
             <plugin>
                 <groupId>org.apache.felix</groupId>
@@ -80,41 +65,48 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
-                        <Import-Package>*</Import-Package>
-                        <Export-Package>org.glassfish.grizzly.http.servlet.*</Export-Package>
+                        <Import-Package>
+                            org.glassfish.grizzly*;version=${project.version},
+                            *,
+                        </Import-Package>
+                        <Export-Package>org.glassfish.grizzly.servlet.*;version=${project.version}</Export-Package>
                     </instructions>
+                    <unpackBundle>true</unpackBundle>
                 </configuration>
             </plugin>
         </plugins>
     </build>
     <dependencies>
         <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>servlet-api</artifactId>
-            <version>${servlet-version}</version>
+            <groupId>org.glassfish.grizzly</groupId>
+            <artifactId>grizzly-utils</artifactId>
+            <version>${grizzly-version}</version>
         </dependency>
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
-            <artifactId>grizzly-http</artifactId>
+            <artifactId>grizzly-http-server</artifactId>
             <version>${grizzly-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>servlet-api</artifactId>
+            <version>${servlet-version}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.sun.jersey</groupId>
             <artifactId>jersey-client</artifactId>
-            <version>1.0.3-SNAPSHOT</version>
+            <version>${jersey-version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.sun.jersey</groupId>
             <artifactId>jersey-server</artifactId>
-            <version>1.0.3-SNAPSHOT</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>3.8.2</version>
+            <version>${jersey-version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
-</project>
+    <properties>
+        <jersey-version>1.1.5</jersey-version>
+    </properties>
+ </project>
