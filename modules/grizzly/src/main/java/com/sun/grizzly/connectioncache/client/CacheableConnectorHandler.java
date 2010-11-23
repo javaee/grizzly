@@ -45,7 +45,6 @@ import com.sun.grizzly.CallbackHandler;
 import com.sun.grizzly.CallbackHandlerSelectionKeyAttachment;
 import com.sun.grizzly.ConnectorHandler;
 import com.sun.grizzly.Context;
-import com.sun.grizzly.Controller;
 import com.sun.grizzly.Controller.Protocol;
 import com.sun.grizzly.DefaultCallbackHandler;
 import com.sun.grizzly.IOEvent;
@@ -82,6 +81,8 @@ public class CacheableConnectorHandler
     private ConnectorHandler underlyingConnectorHandler;
     
     private final ConnectExecutor connectExecutor;
+
+    private boolean isReusing;
     
     public CacheableConnectorHandler(CacheableConnectorHandlerPool parentPool) {
         this.parentPool = parentPool;
@@ -169,7 +170,8 @@ public class CacheableConnectorHandler
                     parentPool.getConnectionFinder());
 
             /* check whether NEW connection was created, or taken from cache */
-            if (!connectExecutor.wasCalled()) { // if taken from cache
+            isReusing = !connectExecutor.wasCalled();
+            if (isReusing) { // if taken from cache
                 //if connection is taken from cache - explicitly notify callback handler
                 underlyingConnectorHandler.setCallbackHandler(callbackHandler);
                 if (notifyCallbackHandlerPseudoConnect()) {
@@ -225,15 +227,28 @@ public class CacheableConnectorHandler
     public void finishConnect(SelectionKey key) throws IOException {
         // Call underlying finishConnect only if connection was just established
         if (connectExecutor.wasCalled()) {
-                underlyingConnectorHandler.finishConnect(key);
-            }
+            underlyingConnectorHandler.finishConnect(key);
         }
+    }
 
     @Override
     public boolean isConnected() {
         return underlyingConnectorHandler != null && underlyingConnectorHandler.isConnected();
     }
 
+    /**
+     * Return <tt>true</tt> if underlying connection was take from cache and going to be
+     * reused by this <tt>CacheableConnectorHandler</tt>, otherwise return <tt>false</tt>,
+     * if underlying connection was just created and connected.
+     *
+     * @return <tt>true</tt> if underlying connection was take from cache and going to be
+     * reused by this <tt>CacheableConnectorHandler</tt>, otherwise return <tt>false</tt>,
+     * if underlying connection was just created and connected.
+     */
+    public boolean isReusing() {
+        return isReusing;
+    }
+    
     public ConnectorHandler getUnderlyingConnectorHandler() {
         return underlyingConnectorHandler;
     }
