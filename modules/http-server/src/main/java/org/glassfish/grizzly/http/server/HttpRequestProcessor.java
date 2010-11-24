@@ -47,17 +47,13 @@ import org.glassfish.grizzly.http.server.util.HtmlHelper;
 import org.glassfish.grizzly.http.util.HttpStatus;
 
 import java.io.CharConversionException;
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.util.Collections;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.http.util.RequestURIRef;
-import org.glassfish.grizzly.utils.ArraySet;
 
 /**
  * Base class to use when Request/Response/InputStream/OutputStream
@@ -75,10 +71,6 @@ public abstract class HttpRequestProcessor {
     
     private final static Logger LOGGER = Grizzly.logger(HttpRequestProcessor.class);
     
-    protected final StaticResourcesHandler staticResourcesHandler =
-            new StaticResourcesHandler();
-
-
     /**
      * Allow request that uses encoded slash.
      */
@@ -100,47 +92,12 @@ public abstract class HttpRequestProcessor {
      */
     private boolean allowCustomStatusMessage = true;
 
-    // the context path used for servicing resources
-    private String resourcesContextPath = "";
-    
     /**
-     * Create <tt>HttpService</tt>, which, by default, won't handle requests
-     * to the static resources.
+     * Create <tt>HttpService</tt>.
      */
     public HttpRequestProcessor() {
-        this((Set<String>) null);
     }
 
-
-    /**
-     * Create a new instance which will look for static pages located
-     * under the <tt>docRoot</tt>. If the <tt>docRoot</tt> is <tt>null</tt> -
-     * static pages won't be served by this <tt>HttpService</tt>
-     *
-     * @param docRoot the folder where the static resource are located.
-     * If the <tt>docRoot</tt> is <tt>null</tt> - static pages won't be served
-     * by this <tt>HttpService</tt>
-     */
-    public HttpRequestProcessor(String docRoot) {
-        this(Collections.singleton(docRoot));
-    }
-
-    /**
-     * Create a new instance which will look for static pages located
-     * under the <tt>docRoot</tt>. If the <tt>docRoot</tt> is <tt>null</tt> -
-     * static pages won't be served by this <tt>HttpService</tt>
-     * 
-     * @param docRoots the folders where the static resource are located.
-     * If the <tt>docRoot</tt> is empty - static pages won't be served
-     * by this <tt>HttpService</tt>
-     */
-    public HttpRequestProcessor(Set<String> docRoots) {
-        if (docRoots != null) {
-            for (String docRoot : docRoots) {
-                staticResourcesHandler.addDocRoot(docRoot);
-            }
-        }
-    }
 
     /**
      * Handles static resources if this service is configured to do so, otherwise
@@ -158,11 +115,6 @@ public abstract class HttpRequestProcessor {
             if (!sendAcknowledgment(request, response)) {
                 return;
             }
-        }
-        
-        if (!staticResourcesHandler.getDocRoots().isEmpty() &&
-                staticResourcesHandler.handle(request, response, resourcesContextPath)) {
-            return;
         }
 
         try {
@@ -225,14 +177,6 @@ public abstract class HttpRequestProcessor {
     }
 
     /**
-     * Get {@link StaticResourcesHandler}, which handles requests to a static resources.
-     * @return {@link StaticResourcesHandler}, which handles requests to a static resources.
-     */
-    public StaticResourcesHandler getStaticResourcesHandler() {
-        return staticResourcesHandler;
-    }
-
-    /**
      * Returns <code>true</code> if custom status messages (reason phrases)
      * are allowed for this response, or <code>false</tt> otherwise.
      *
@@ -270,68 +214,6 @@ public abstract class HttpRequestProcessor {
      */
     public void setAllowEncodedSlash(boolean allowEncodedSlash) {
         this.allowEncodedSlash = allowEncodedSlash;
-    }
-
-    /**
-     * Return the list of directories where files will be serviced from.
-     * 
-     * @return the list of directories where files will be serviced from.
-     */
-    public ArraySet<File> getDocRoots() {
-        return staticResourcesHandler.getDocRoots();
-    }
-
-    /**
-     * Add the directory to the list of directories where files will be serviced from.
-     *
-     * @param docRoot the directory to be added to the list of directories
-     *                where files will be serviced from.
-     * 
-     * @return return the {@link File} representation of the passed <code>docRoot</code>.
-     */
-    public File addDocRoot(String docRoot) {
-        return staticResourcesHandler.addDocRoot(docRoot);
-    }
-
-    /**
-     * Add the directory to the list of directories where files will be serviced from.
-     *
-     * @param docRoot the directory to be added to the list of directories
-     *                where files will be serviced from.
-     */
-    public void addDocRoot(File docRoot) {
-        staticResourcesHandler.addDocRoot(docRoot);
-    }
-
-    /**
-     * Removes the directory from the list of directories where static files will be serviced from.
-     *
-     * @param docRoot the directory to remove.
-     */
-    public void removeDocRoot(File docRoot) {
-        staticResourcesHandler.getDocRoots().remove(docRoot);
-    }
-
-    /**
-     * Return the context path used for servicing resources. By default, "" is
-     * used so request taking the form of http://host:port/index.html are serviced
-     * directly. If set, the resource will be available under
-     * http://host:port/context-path/index.html
-     * @return the context path.
-     */
-    public String getResourcesContextPath() {
-        return resourcesContextPath;
-    }
-
-    /**
-     * Set the context path used for servicing resource. By default, "" is
-     * used so request taking the form of http://host:port/index.html are serviced
-     * directly. If set, the resource will be available under
-     * http://host:port/context-path/index.html
-     * @param resourcesContextPath the context path
-     */
-    public void setResourcesContextPath(String resourcesContextPath) {
-        this.resourcesContextPath = resourcesContextPath;
     }
 
     /**
@@ -398,9 +280,9 @@ public abstract class HttpRequestProcessor {
      * @param response the {@link Response}.
      *
      * @return <code>true</code> if request processing should continue after
-     *  acknowledgement of the expectation, otherwise return <code>false</code>.
+     *  acknowledgment of the expectation, otherwise return <code>false</code>.
      *
-     * @throws IOException if an error occurs sending the acknowledgement.
+     * @throws IOException if an error occurs sending the acknowledgment.
      */
     protected boolean sendAcknowledgment(final Request request,
             final Response response)

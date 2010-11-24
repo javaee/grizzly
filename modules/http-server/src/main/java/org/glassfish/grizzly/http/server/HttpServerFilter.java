@@ -75,7 +75,7 @@ public class HttpServerFilter extends BaseFilter
     private final Attribute<Request> httpRequestInProcessAttr;
     private final DelayedExecutor.DelayQueue<Response> suspendedResponseQueue;
 
-    private final HttpServer gws;
+    private final HttpServer httpServer;
 
     /**
      * Web server probes
@@ -94,9 +94,9 @@ public class HttpServerFilter extends BaseFilter
     // ------------------------------------------------------------ Constructors
 
 
-    public HttpServerFilter(final HttpServer webServer) {
-        gws = webServer;
-        DelayedExecutor delayedExecutor = webServer.getDelayedExecutor();
+    public HttpServerFilter(final HttpServer httpServer) {
+        this.httpServer = httpServer;
+        DelayedExecutor delayedExecutor = httpServer.getDelayedExecutor();
         suspendedResponseQueue = Response.createDelayQueue(delayedExecutor);
         httpRequestInProcessAttr = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.
                 createAttribute("HttpServerFilter.Request");
@@ -104,6 +104,10 @@ public class HttpServerFilter extends BaseFilter
     }
 
 
+    final HttpServer getHttpServer() {
+        return httpServer;
+    }
+    
     // ----------------------------------------------------- Methods from Filter
 
 
@@ -141,7 +145,7 @@ public class HttpServerFilter extends BaseFilter
                 try {
                     ctx.setMessage(serviceResponse);
 
-                    final HttpRequestProcessor httpService = gws.getHttpService();
+                    final HttpRequestProcessor httpService = httpServer.getHttpService();
                     if (httpService != null) {
                         httpService.doService(serviceRequest, serviceResponse);
                     }

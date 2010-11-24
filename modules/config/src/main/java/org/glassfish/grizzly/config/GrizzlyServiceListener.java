@@ -439,7 +439,7 @@ public class GrizzlyServiceListener {
         }
     }
 
-    public HttpRequestProcessor getHttpService() {
-        return server.getHttpService();
+    public HttpServer getHttpServer() {
+        return server;
     }
 }

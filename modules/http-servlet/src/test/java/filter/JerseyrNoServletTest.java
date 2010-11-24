@@ -49,7 +49,7 @@ import org.glassfish.grizzly.http.server.HttpServer;
 
 public class JerseyrNoServletTest extends TestCase {
 
-    private HttpServer threadSelector;
+    private HttpServer httpServer;
     
     private WebResource r;
 
@@ -61,7 +61,7 @@ public class JerseyrNoServletTest extends TestCase {
     protected void setUp() throws Exception {
         super.setUp();
         
-        threadSelector = Main.startServer();
+        httpServer = Main.startServer();
 
         Client c = Client.create();
         r = c.resource(Main.BASE_URI);
@@ -71,7 +71,7 @@ public class JerseyrNoServletTest extends TestCase {
     protected void tearDown() throws Exception {
         super.tearDown();
 
-        threadSelector.stop();
+        httpServer.stop();
     }
 
     /**

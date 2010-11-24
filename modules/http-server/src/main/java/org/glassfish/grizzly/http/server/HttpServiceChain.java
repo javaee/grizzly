@@ -180,6 +180,9 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
                 } else {
                     httpService = (HttpRequestProcessor) mappingData.context;
                 }
+
+                request.setContextPath(mappingData.contextPath.toString());
+                
                 // We already decoded the URL.
                 httpService.setDecodeUrl(false);
                 httpService.doService(request, response);

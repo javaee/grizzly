@@ -101,7 +101,7 @@ import static org.junit.Assert.*;
 public class FileCacheTest {
 
     public static final int PORT = 18891;
-    private HttpServer gws;
+    private HttpServer httpServer;
     private final boolean isSslEnabled;
 
     public FileCacheTest(boolean isSslEnabled) {
@@ -118,13 +118,13 @@ public class FileCacheTest {
     @Before
     public void before() throws Exception {
         ByteBufferWrapper.DEBUG_MODE = true;
-        configureWebServer();
+        configureHttpServer();
     }
 
     @After
     public void after() throws Exception {
-        if (gws != null) {
-            gws.stop();
+        if (httpServer != null) {
+            httpServer.stop();
         }
     }
 
@@ -136,18 +136,18 @@ public class FileCacheTest {
         final StatsConnectionProbe connectionProbe = new StatsConnectionProbe();
         final StatsHttpProbe httpProbe = new StatsHttpProbe();
         final StatsCacheProbe cacheProbe = new StatsCacheProbe();
-        gws.getServerConfiguration().getMonitoringConfig().getFileCacheConfig().addProbes(cacheProbe);
-        gws.getServerConfiguration().getMonitoringConfig().getHttpConfig().addProbes(httpProbe);
-        gws.getServerConfiguration().getMonitoringConfig().getConnectionConfig().addProbes(connectionProbe);
+        httpServer.getServerConfiguration().getMonitoringConfig().getFileCacheConfig().addProbes(cacheProbe);
+        httpServer.getServerConfiguration().getMonitoringConfig().getHttpConfig().addProbes(httpProbe);
+        httpServer.getServerConfiguration().getMonitoringConfig().getConnectionConfig().addProbes(connectionProbe);
 
-        startWebServer(new HttpRequestProcessor() {
+        startHttpServer(new StaticResourcesService() {
 
             @Override
-            public void service(final Request req, final Response res) {
+            protected void onMissingResource(final Request req, final Response res) {
                 try {
                     String error = null;
                     try {
-                        staticResourcesHandler.addToFileCache(req, new File(fileName));
+                        addToFileCache(req, new File(fileName));
                     } catch (Exception exception) {
                         error = exception.getMessage();
                     }
@@ -213,16 +213,16 @@ public class FileCacheTest {
         final String fileName = "./pom.xml";
 
         final StatsCacheProbe probe = new StatsCacheProbe();
-        gws.getServerConfiguration().getMonitoringConfig().getFileCacheConfig().addProbes(probe);
+        httpServer.getServerConfiguration().getMonitoringConfig().getFileCacheConfig().addProbes(probe);
 
-        startWebServer(new HttpRequestProcessor() {
+        startHttpServer(new StaticResourcesService() {
 
             @Override
-            public void service(final Request req, final Response res) {
+            public void onMissingResource(final Request req, final Response res) {
                 try {
                     String error = null;
                     try {
-                        staticResourcesHandler.addToFileCache(req, new File(fileName));
+                        addToFileCache(req, new File(fileName));
                     } catch (Exception exception) {
                         error = exception.getMessage();
                     }
@@ -287,12 +287,7 @@ public class FileCacheTest {
     @Test
     public void testIfModified() throws Exception {
         final String fileName = "./pom.xml";
-        startWebServer(new HttpRequestProcessor(".") {
-
-            @Override
-            public void service(Request request, Response response)
-                    throws Exception {
-            }
+        startHttpServer(new StaticResourcesService(".") {
         });
 
         final HttpRequestPacket request1 = HttpRequestPacket.builder()
@@ -331,8 +326,8 @@ public class FileCacheTest {
         assertTrue("empty body is expected", !response2.getContent().hasRemaining());
     }
 
-    private void configureWebServer() throws Exception {
-        gws = new HttpServer();
+    private void configureHttpServer() throws Exception {
+        httpServer = new HttpServer();
         final NetworkListener listener =
                 new NetworkListener("grizzly",
                 NetworkListener.DEFAULT_NETWORK_HOST,
@@ -364,12 +359,12 @@ public class FileCacheTest {
                     }
                 }));
 
-        gws.addListener(listener);
+        httpServer.addListener(listener);
     }
 
-    private void startWebServer(HttpRequestProcessor httpService) throws Exception {
-        gws.getServerConfiguration().addHttpService(httpService);
-        gws.start();
+    private void startHttpServer(HttpRequestProcessor httpService) throws Exception {
+        httpServer.getServerConfiguration().addHttpService(httpService);
+        httpServer.start();
     }
 
     private Future<HttpContent> send(String host, int port, HttpPacket request) throws Exception {
@@ -388,7 +383,7 @@ public class FileCacheTest {
         builder.add(new HttpMessageFilter(future));
 
         SocketConnectorHandler connectorHandler = new TCPNIOConnectorHandler(
-                gws.getListener("grizzly").getTransport());
+                httpServer.getListener("grizzly").getTransport());
         connectorHandler.setProcessor(builder.build());
 
         Future<Connection> connectFuture = connectorHandler.connect(host, port);

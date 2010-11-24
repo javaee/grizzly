@@ -180,7 +180,9 @@ public class ServletService extends HttpRequestProcessor {
     private int n = 0;
 
     public ServletService() {
-        this(".");
+        this(new ServletContextImpl(),
+                new HashMap<String, String>(), new HashMap<String, String>(),
+                new ArrayList<String>());
     }
 
     /**
@@ -189,50 +191,36 @@ public class ServletService extends HttpRequestProcessor {
      * @param servlet Instance to be used by this adapter.
      */
     public ServletService(Servlet servlet) {
-        this(".");
+        this();
         this.servletInstance = servlet;
-    }
-
-    /**
-     * Create a new instance which will look for static pages located 
-     * under <tt>publicDirectory</tt> folder.
-     * @param publicDirectory the folder where the static resource are located.
-     */
-    public ServletService(String publicDirectory) {
-        this(publicDirectory, new ServletContextImpl(),
-                new HashMap<String, String>(), new HashMap<String, String>(),
-                new ArrayList<String>());
     }
 
     /**
      * Convenience constructor.
      *
-     * @param publicDirectory The folder where the static resource are located.
      * @param servletCtx {@link ServletContextImpl} to be used by new instance.
      * @param contextParameters Context parameters.
      * @param servletInitParameters servlet initialization parameters.
      * @param listeners Listeners.
      */
-    protected ServletService(String publicDirectory, ServletContextImpl servletCtx,
+    protected ServletService(ServletContextImpl servletCtx,
             Map<String, String> contextParameters, Map<String, String> servletInitParameters,
             List<String> listeners) {
-        this(publicDirectory, servletCtx, contextParameters, servletInitParameters, listeners, true);
+        this(servletCtx, contextParameters, servletInitParameters, listeners, true);
     }
 
     /**
      * Convenience constructor.
      *
-     * @param publicDirectory The folder where the static resource are located.
      * @param servletCtx {@link ServletContextImpl} to be used by new instance.
      * @param contextParameters Context parameters.
      * @param servletInitParameters servlet initialization parameters.
      * @param listeners Listeners.
      * @param initialize false only when the {@link #newServletAdapter()} is invoked.
      */
-    protected ServletService(String publicDirectory, ServletContextImpl servletCtx,
+    protected ServletService(ServletContextImpl servletCtx,
             Map<String, String> contextParameters, Map<String, String> servletInitParameters,
             List<String> listeners, boolean initialize) {
-        super(publicDirectory);
         this.servletCtx = servletCtx;
         servletConfig = new ServletConfigImpl(servletCtx, servletInitParameters);
         this.contextParameters = contextParameters;
@@ -244,16 +232,14 @@ public class ServletService extends HttpRequestProcessor {
     /**
      * Convenience constructor.
      *
-     * @param publicDirectory The folder where the static resource are located.
      * @param servletCtx {@link ServletContextImpl} to be used by new instance.
      * @param contextParameters Context parameters.
      * @param servletInitParameters servlet initialization parameters.
      * @param initialize false only when the {@link #newServletAdapter()} is invoked.
      */
-    protected ServletService(String publicDirectory, ServletContextImpl servletCtx,
+    protected ServletService(ServletContextImpl servletCtx,
             Map<String, String> contextParameters, Map<String, String> servletInitParameters,
             boolean initialize) {
-        super(publicDirectory);
         this.servletCtx = servletCtx;
         servletConfig = new ServletConfigImpl(servletCtx, servletInitParameters);
         this.contextParameters = contextParameters;
@@ -262,7 +248,6 @@ public class ServletService extends HttpRequestProcessor {
     }
 
     public ServletService(Servlet servlet, ServletContextImpl servletContext) {
-        super(".");
         servletInstance = servlet;
         servletCtx = servletContext;
     }
@@ -273,16 +258,18 @@ public class ServletService extends HttpRequestProcessor {
     @Override
     public void start() {
         try {
+            configureServletEnv();
+            
             if (initialize) {
 //                initWebDir();
-                configureClassLoader(getDefaultDocRoot().getCanonicalPath());
+                configureClassLoader(new File(servletCtx.getBasePath()).getCanonicalPath());
             }
+
             if (classLoader != null) {
                 ClassLoader prevClassLoader = Thread.currentThread().getContextClassLoader();
                 Thread.currentThread().setContextClassLoader(classLoader);
                 try {
-                    configureServletEnv();
-                    setResourcesContextPath(contextPath);
+//                    setContextPath(contextPath);
                     if (loadOnStartup) {
                         loadServlet();
                     }
@@ -290,8 +277,7 @@ public class ServletService extends HttpRequestProcessor {
                     Thread.currentThread().setContextClassLoader(prevClassLoader);
                 }
             } else {
-                configureServletEnv();
-                setResourcesContextPath(contextPath);
+//                setContextPath(contextPath);
                 if (loadOnStartup) {
                     loadServlet();
                 }
@@ -465,7 +451,7 @@ public class ServletService extends HttpRequestProcessor {
             servletCtx.setInitParameter(contextParameters);
             servletCtx.setContextPath(contextPath);
 
-            servletCtx.setBasePath(getDefaultDocRootPath());
+            servletCtx.setBasePath(".");
 
             configureProperties(servletCtx);
             servletCtx.initListeners(listeners);
@@ -776,7 +762,7 @@ public class ServletService extends HttpRequestProcessor {
      * @return a new {@link ServletAdapter}
      */
     public ServletService newServletService(Servlet servlet) {
-        ServletService sa = new ServletService(".", servletCtx, contextParameters,
+        ServletService sa = new ServletService(servletCtx, contextParameters,
                 new HashMap<String, String>(), listeners,
                 false);
         if (classLoader != null) {
@@ -807,15 +793,15 @@ public class ServletService extends HttpRequestProcessor {
         this.classLoader = classLoader;
     }
 
-    private String getDefaultDocRootPath() {
-        final File[] basePaths = getDocRoots().getArray();
-        return (basePaths != null && basePaths.length > 0) ? basePaths[0].getPath() : null;
-    }
-
-    private File getDefaultDocRoot() {
-        final File[] basePaths = getDocRoots().getArray();
-        return (basePaths != null && basePaths.length > 0) ? basePaths[0] : null;
-    }
+//    private String getDefaultDocRootPath() {
+//        final File[] basePaths = getDocRoots().getArray();
+//        return (basePaths != null && basePaths.length > 0) ? basePaths[0].getPath() : null;
+//    }
+//
+//    private File getDefaultDocRoot() {
+//        final File[] basePaths = getDocRoots().getArray();
+//        return (basePaths != null && basePaths.length > 0) ? basePaths[0] : null;
+//    }
 
     /**
      * Add a filter to the set of filters that will be executed in this chain.

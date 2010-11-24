@@ -42,16 +42,16 @@ package org.glassfish.grizzly.http.server;
 
 
 import java.util.Collections;
-import java.util.HashMap;
 import org.glassfish.grizzly.http.server.jmx.JmxEventListener;
 
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.glassfish.grizzly.utils.ArraySet;
 
 /**
  * Configuration options for a particular {@link HttpServer} instance.
@@ -62,18 +62,14 @@ public class ServerConfiguration {
 
     private static final String[] ROOT_MAPPING = {"/"};
 
-    /*
-     * The directory from which static resources will be served from.
-     */
-    private final ArraySet<String> docRoots = new ArraySet<String>(String.class);
-    private final Set<String> unmodifiableDocRoots = Collections.unmodifiableSet(docRoots);
-
     // Non-exposed
 
     final Map<HttpRequestProcessor, String[]> services =
             new ConcurrentHashMap<HttpRequestProcessor, String[]>();
     private final Map<HttpRequestProcessor, String[]> unmodifiableServices =
             Collections.unmodifiableMap(services);
+    final List<HttpRequestProcessor> orderedServices =
+            new LinkedList<HttpRequestProcessor>();
 
     private Set<JmxEventListener> jmxEventListeners = new CopyOnWriteArraySet<JmxEventListener>();
 
@@ -88,6 +84,8 @@ public class ServerConfiguration {
     final HttpServer instance;
 
     private boolean jmxEnabled;
+
+    final Object servicesSync = new Object();
     
     // ------------------------------------------------------------ Constructors
 
@@ -101,29 +99,6 @@ public class ServerConfiguration {
 
 
     /**
-     *
-     * Returns the set of registered docroots.
-     * Please note, the returned set is read-only.
-     *
-     * @return the set of registered docroots.
-     */
-    public Set<String> getDocRoots() {
-        return unmodifiableDocRoots;
-    }
-
-    public synchronized void addDocRoot(final String docRoot) {
-        docRoots.add(docRoot);
-
-        instance.onAddDocRoot(docRoot);
-    }
-
-    public synchronized void removeDocRoot(final String docRoot) {
-        if (docRoots.remove(docRoot)) {
-            instance.onRemoveDocRoot(docRoot);
-        }
-    }
-
-    /**
      * Adds the specified {@link HttpRequestProcessor}
      * with its associated mapping(s). Requests will be dispatched to a
      * {@link HttpRequestProcessor} based on these mapping
@@ -132,14 +107,19 @@ public class ServerConfiguration {
      * @param httpService a {@link HttpRequestProcessor}
      * @param mapping        context path mapping information.
      */
-    public synchronized void addHttpService(final HttpRequestProcessor httpService, String... mapping) {
-        if (mapping == null) {
-            mapping = ROOT_MAPPING;
+    public void addHttpService(final HttpRequestProcessor httpService, String... mapping) {
+        synchronized (servicesSync) {
+            if (mapping == null) {
+                mapping = ROOT_MAPPING;
+            }
+
+            if (services.put(httpService, mapping) != null) {
+                orderedServices.remove(httpService);
+            }
+
+            orderedServices.add(httpService);
+            instance.onAddHttpService(httpService, mapping);
         }
-
-        services.put(httpService, mapping);
-
-        instance.onAddHttpService(httpService, mapping);
     }
 
     /**
@@ -150,12 +130,15 @@ public class ServerConfiguration {
      *  <tt>false</tt>
      */
     public synchronized boolean removeHttpService(HttpRequestProcessor httpService) {
-        final boolean result = services.remove(httpService) != null;
-        if (result) {
-            instance.onRemoveHttpService(httpService);
-        }
+        synchronized (servicesSync) {
+            final boolean result = services.remove(httpService) != null;
+            if (result) {
+                orderedServices.remove(httpService);
+                instance.onRemoveHttpService(httpService);
+            }
 
-        return result;
+            return result;
+        }
     }
 
     /**
@@ -341,10 +324,4 @@ public class ServerConfiguration {
 
     }
 
-    void addAllDocRoots(HttpRequestProcessor httpService) {
-        for (String docRoot : this.docRoots) {
-            httpService.addDocRoot(docRoot);
-        }
-    }
-    
 } // END ServerConfiguration

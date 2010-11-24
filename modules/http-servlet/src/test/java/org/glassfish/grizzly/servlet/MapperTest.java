@@ -91,14 +91,14 @@ public class MapperTest extends HttpServerAbstractTest {
             ServletService s1 = getServletService(alias[0]);
             s1.setContextPath("/");
             s1.setServletPath("");
-            s1.addDocRoot(".");
+//            s1.addDocRoot(".");
                 
             httpServer.getServerConfiguration().addHttpService(s1, new String[]{alias[0]});
 
             ServletService s2 = getServletService(alias[1]);
             s2.setContextPath("/jsp");
             s2.setServletPath("");
-            s2.addDocRoot(".");
+//            s2.addDocRoot(".");
                 
             httpServer.getServerConfiguration().addHttpService(s2, new String[]{alias[1]});
             

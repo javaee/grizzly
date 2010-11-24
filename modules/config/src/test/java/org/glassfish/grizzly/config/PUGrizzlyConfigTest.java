@@ -51,8 +51,8 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.net.URL;
 import java.net.URLConnection;
+import org.glassfish.grizzly.http.server.StaticResourcesService;
 
-import org.glassfish.grizzly.http.server.StaticResourcesHandler;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 /**
@@ -70,7 +70,7 @@ public class PUGrizzlyConfigTest {
             grizzlyConfig.setupNetwork();
             int count = 0;
             for (GrizzlyServiceListener listener : grizzlyConfig.getListeners()) {
-                setRootFolder(listener, count++);
+                addStaticResourceService(listener, count++);
             }
             final String httpContent = getContent(new URL("http://localhost:38082").openConnection());
             Assert.assertEquals(httpContent, "<html><body>You've found the server on port 38082</body></html>");
@@ -144,8 +144,7 @@ public class PUGrizzlyConfigTest {
         return builder.toString();
     }
 
-    private void setRootFolder(GrizzlyServiceListener listener, int count) throws IOException {
-        final StaticResourcesHandler  adapter = (StaticResourcesHandler ) listener.getHttpService().getStaticResourcesHandler();
+    private void addStaticResourceService(GrizzlyServiceListener listener, int count) throws IOException {
         final String name = System.getProperty("java.io.tmpdir", "/tmp") + "/grizzly-config-root" + count;
         File dir = new File(name);
         dir.mkdirs();
@@ -156,7 +155,8 @@ public class PUGrizzlyConfigTest {
             writer.flush();
             writer.close();
         }
-        adapter.addDocRoot(name);
+
+        listener.getHttpServer().getServerConfiguration().addHttpService(new StaticResourcesService(name), "/");
     }
 
     @SuppressWarnings({"SocketOpenedButNotSafelyClosed"})

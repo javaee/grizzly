@@ -81,14 +81,14 @@ public class HelloHttpServerTest extends TestCase {
 
             String context = "/";
             String servletPath = "war_autodeploy/php_test";
-            String rootFolder = ".";
+//            String rootFolder = ".";
            
             ServletService adapter = new ServletService();
             adapter.setServletInstance(new HelloServlet());
 
             adapter.setContextPath(context);
             adapter.setServletPath(servletPath);
-            adapter.addDocRoot(rootFolder);
+//            adapter.addDocRoot(rootFolder);
 
             httpServer.getServerConfiguration().addHttpService(adapter, aliases);
 
@@ -114,14 +114,14 @@ public class HelloHttpServerTest extends TestCase {
 
             String context = "/";
             String servletPath = "notvalid/php_test";
-            String rootFolder = ".";
+//            String rootFolder = ".";
            
             ServletService adapter = new ServletService();
             adapter.setServletInstance(new HelloServlet());
 
             adapter.setContextPath(context);
             adapter.setServletPath(servletPath);
-            adapter.addDocRoot(rootFolder);
+//            adapter.addDocRoot(rootFolder);
 
             httpServer.getServerConfiguration().addHttpService(adapter, aliases);
 

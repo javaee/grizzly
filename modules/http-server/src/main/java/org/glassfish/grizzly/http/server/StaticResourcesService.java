@@ -1,45 +1,16 @@
 /*
- * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
- *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
- *
- * The contents of this file are subject to the terms of either the GNU
- * General Public License Version 2 only ("GPL") or the Common Development
- * and Distribution License("CDDL") (collectively, the "License").  You
- * may not use this file except in compliance with the License.  You can
- * obtain a copy of the License at
- * https://glassfish.dev.java.net/public/CDDL+GPL_1_1.html
- * or packager/legal/LICENSE.txt.  See the License for the specific
- * language governing permissions and limitations under the License.
- *
- * When distributing the software, include this License Header Notice in each
- * file and include the License file at packager/legal/LICENSE.txt.
- *
- * GPL Classpath Exception:
- * Oracle designates this particular file as subject to the "Classpath"
- * exception as provided by Oracle in the GPL Version 2 section of the License
- * file that accompanied this code.
- *
- * Modifications:
- * If applicable, add the following below the License Header, with the fields
- * enclosed by brackets [] replaced by your own identifying information:
- * "Portions Copyright [year] [name of copyright owner]"
- *
- * Contributor(s):
- * If you wish your version of this file to be governed by only the CDDL or
- * only the GPL Version 2, indicate your decision by adding "[Contributor]
- * elects to include this software in this distribution under the [CDDL or GPL
- * Version 2] license."  If you don't indicate a single choice of license, a
- * recipient has the option to distribute your version of this file under
- * either the CDDL, the GPL Version 2 or to extend the choice of license to
- * its licensees as provided above.  However, if you add GPL Version 2 code
- * and therefore, elected the GPL Version 2 license, then the option applies
- * only if the new code is made subject to such option by the copyright
- * holder.
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
  */
 
 package org.glassfish.grizzly.http.server;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
@@ -48,70 +19,158 @@ import org.glassfish.grizzly.http.server.filecache.FileCache;
 import org.glassfish.grizzly.http.server.io.OutputBuffer;
 import org.glassfish.grizzly.http.server.util.MimeType;
 import org.glassfish.grizzly.http.util.HttpStatus;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.glassfish.grizzly.utils.ArraySet;
 
 /**
- * Static resources handler, which handles static resources requests made to a
- * {@link HttpRequestProcessor}.
- *
- * This class doesn't not decode the {@link Request} URI and just do
- * basic security check. If you need more protection, use the {@link HttpRequestProcessor}.
+ * {@link HttpRequestProcessor}, which processes requests to a static resources.
  *
  * @author Jeanfrancois Arcand
  * @author Alexey Stashok
  */
-public class StaticResourcesHandler {
-    private static final Logger LOGGER = Grizzly.logger(StaticResourcesHandler.class);
-    
+public class StaticResourcesService extends HttpRequestProcessor {
+    private static final Logger LOGGER = Grizzly.logger(StaticResourcesService.class);
+
     protected final ArraySet<File> docRoots = new ArraySet<File>(File.class);
 
     private volatile int fileCacheFilterIdx = -1;
 
-    public StaticResourcesHandler() {
-        this(".");
+
+   /**
+     * Create <tt>HttpService</tt>, which, by default, will handle requests
+     * to the static resources located in the current directory.
+     */
+    public StaticResourcesService() {
+        addDocRoot(".");
     }
 
-    public StaticResourcesHandler(String rootFolder) {
-        addDocRoot(rootFolder);
-    }
 
-    public StaticResourcesHandler(File rootFolder) {
-        addDocRoot(rootFolder);
+    /**
+     * Create a new instance which will look for static pages located
+     * under the <tt>docRoot</tt>. If the <tt>docRoot</tt> is <tt>null</tt> -
+     * static pages won't be served by this <tt>HttpService</tt>
+     *
+     * @param docRoot the folder where the static resource are located.
+     * If the <tt>docRoot</tt> is <tt>null</tt> - static pages won't be served
+     * by this <tt>HttpService</tt>
+     */
+    public StaticResourcesService(String... docRoots) {
+        if (docRoots != null) {
+            for (String docRoot : docRoots) {
+                addDocRoot(docRoot);
+            }
+        }
     }
 
     /**
-     * Based on the {@link Request} URI, try to map the file from the
-     * {@link StaticResourcesHandler#getDocRoot()}, and send it synchronously
-     * using send file.
-     * @param req the {@link Request}
-     * @param res the {@link Response}
-     * @param resourcesContextPath the context path used for servicing resources
-     * @throws Exception
+     * Create a new instance which will look for static pages located
+     * under the <tt>docRoot</tt>. If the <tt>docRoot</tt> is <tt>null</tt> -
+     * static pages won't be served by this <tt>HttpService</tt>
+     *
+     * @param docRoots the folders where the static resource are located.
+     * If the <tt>docRoot</tt> is empty - static pages won't be served
+     * by this <tt>HttpService</tt>
      */
-    public boolean handle(Request req, final Response res,
-            String resourcesContextPath) throws Exception {
-        
-        String uri = req.getRequestURI();
-        if (uri.indexOf("..") >= 0) {
-            return false;
+    public StaticResourcesService(Set<String> docRoots) {
+        if (docRoots != null) {
+            for (String docRoot : docRoots) {
+                addDocRoot(docRoot);
+            }
+        }
+    }
+
+    /**
+     * Return the default directory from where files will be serviced.
+     * @return the default directory from where file will be serviced.
+     */
+    public File getDefaultDocRoot() {
+        final File[] array = docRoots.getArray();
+        return (array != null && array.length > 0) ? array[0] : null;
+    }
+
+    /**
+     * Return the list of directories where files will be serviced from.
+     *
+     * @return the list of directories where files will be serviced from.
+     */
+    public ArraySet<File> getDocRoots() {
+        return docRoots;
+    }
+
+    /**
+     * Add the directory to the list of directories where files will be serviced from.
+     *
+     * @param docRoot the directory to be added to the list of directories
+     *                where files will be serviced from.
+     *
+     * @return return the {@link File} representation of the passed <code>docRoot</code>.
+     */
+    public final File addDocRoot(String docRoot) {
+        if (docRoot == null) {
+            throw new NullPointerException("docRoot can't be null");
         }
 
+        final File file = new File(docRoot);
+        addDocRoot(file);
+
+        return file;
+    }
+
+    /**
+     * Add the directory to the list of directories where files will be serviced from.
+     *
+     * @param docRoot the directory to be added to the list of directories
+     *                where files will be serviced from.
+     */
+    public final void addDocRoot(File docRoot) {
+        docRoots.add(docRoot);
+    }
+
+    /**
+     * Removes the directory from the list of directories where static files will be serviced from.
+     *
+     * @param docRoot the directory to remove.
+     */
+    public void removeDocRoot(File docRoot) {
+        docRoots.remove(docRoot);
+    }
+    
+    /**
+     * Based on the {@link Request} URI, try to map the file from the
+     * {@link #getDocRoots()}, and send it back to a client.
+     * @param req the {@link Request}
+     * @param res the {@link Response}
+     * @throws Exception
+     */
+    @Override
+    public void service(final Request request, final Response response) throws Exception {
+        final String uri = getRelativeURI(request);
+
+        if (uri == null || !handle(uri, request, response)) {
+            onMissingResource(request, response);
+        }
+    }
+
+    protected String getRelativeURI(final Request request) {
+        String uri = request.getRequestURI();
+        if (uri.indexOf("..") >= 0) {
+            return null;
+        }
+
+        final String resourcesContextPath = request.getContextPath();
         if (!"".equals(resourcesContextPath)) {
             if (!uri.startsWith(resourcesContextPath)) {
-                return false;
+                return null;
             }
 
             uri = uri.substring(resourcesContextPath.length());
-            return false;
         }
 
-        return handle(uri, req, res);
+        return uri;
+    }
+
+    protected void onMissingResource(final Request request, final Response response)
+            throws Exception {
+        customizedErrorPage(request.getServerFilter().getHttpServer(), request, response);
     }
 
     /**
@@ -125,7 +184,7 @@ public class StaticResourcesHandler {
     protected boolean handle(final String uri,
             final Request req,
             final Response res) throws Exception {
-        
+
         FileInputStream fis = null;
         try {
 
@@ -133,16 +192,16 @@ public class StaticResourcesHandler {
 
             final File[] fileFolders = docRoots.getArray();
             if (fileFolders == null) return false;
-            
+
             File resource = null;
-            
+
             for (int i = 0; i < fileFolders.length; i++) {
                 final File webDir = fileFolders[i];
                 // local file
                 resource = new File(webDir, uri);
                 final boolean exists = resource.exists();
                 final boolean isDirectory = resource.isDirectory();
-                
+
                 if (exists && isDirectory) {
                     final File f = new File(resource, "/index.html");
                     if (f.exists()) {
@@ -166,7 +225,7 @@ public class StaticResourcesHandler {
                 }
                 return false;
             }
-            
+
             res.setStatus(HttpStatus.OK_200);
             String substr;
             int dot = uri.lastIndexOf(".");
@@ -186,7 +245,7 @@ public class StaticResourcesHandler {
                 res.setContentType(MimeType.get("html"));
             }
 
-            long length = resource.length();
+            final long length = resource.length();
             res.setContentLengthLong(length);
 
             addToFileCache(req, resource);
@@ -214,48 +273,6 @@ public class StaticResourcesHandler {
                 }
             }
         }
-    }
-
-    /**
-     * Return the default directory from where files will be serviced.
-     * @return the default directory from where file will be serviced.
-     */
-    public File getDefaultDocRoot() {
-        final File[] array = docRoots.getArray();
-        return (array != null && array.length > 0) ? array[0] : null;
-    }
-
-    /**
-     * Return the list of directories from where files will be serviced.
-     * @return the list of directories from where files will be serviced.
-     */
-    public ArraySet<File> getDocRoots() {
-        return docRoots;
-    }
-    
-    /**
-     * Add the directory from where files will be serviced.
-     * @param docRoot the directory from where files will be serviced.
-     * 
-     * @return return the {@link File} representation of the passed <code>docRoot</code>.
-     */
-    public final File addDocRoot(String docRoot) {
-        if (docRoot == null) {
-            throw new NullPointerException("docRoot can't be null");
-        }
-
-        final File file = new File(docRoot);
-        addDocRoot(file);
-        
-        return file;
-    }
-
-    /**
-     * Set the directory from where files will be serviced.
-     * @param docRoot the directory from where files will be serviced.
-     */
-    public final void addDocRoot(File docRoot) {
-        docRoots.add(docRoot);
     }
 
     public final boolean addToFileCache(Request req, File resource) {
@@ -294,4 +311,5 @@ public class StaticResourcesHandler {
         fileCacheFilterIdx = -1;
         return null;
     }
+    
 }

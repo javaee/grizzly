@@ -66,7 +66,7 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
             grizzlyConfig.setupNetwork();
             int count = 0;
             for (GrizzlyServiceListener listener : grizzlyConfig.getListeners()) {
-                setDocRoot(listener, count++);
+                addStaticResourceService(listener, count++);
             }
             final String content = getContent(new URL("http://localhost:38082").openConnection());
             final String content2 = getContent(new URL("http://localhost:38083").openConnection());
@@ -125,7 +125,7 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
             grizzlyConfig.setupNetwork();
             int count = 0;
             for (GrizzlyServiceListener listener : grizzlyConfig.getListeners()) {
-                setDocRoot(listener, count++);
+                addStaticResourceService(listener, count++);
             }
 //            Assert.assertEquals(getContent(new URL("https://localhost:38082").openConnection()),
 //                "<html><body>You've found the server on port 38082</body></html>");

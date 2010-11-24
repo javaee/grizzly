@@ -47,7 +47,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URLConnection;
 
-import org.glassfish.grizzly.http.server.StaticResourcesHandler;
+import org.glassfish.grizzly.http.server.StaticResourcesService;
 import org.jvnet.hk2.config.Dom;
 import org.testng.Assert;
 
@@ -79,8 +79,7 @@ public class BaseGrizzlyConfigTest {
         return "";
     }
 
-    protected void setDocRoot(GrizzlyServiceListener listener, int count) {
-        final StaticResourcesHandler  adapter = (StaticResourcesHandler ) listener.getHttpService().getStaticResourcesHandler();
+    protected void addStaticResourceService(GrizzlyServiceListener listener, int count) {
         final String name = System.getProperty("java.io.tmpdir", "/tmp") + "/"
             + Dom.convertName(getClass().getSimpleName()) + count;
         File dir = new File(name);
@@ -99,6 +98,7 @@ public class BaseGrizzlyConfigTest {
         } catch (IOException e) {
             Assert.fail(e.getMessage(), e);
         }
-        adapter.addDocRoot(name);
+        
+        listener.getHttpServer().getServerConfiguration().addHttpService(new StaticResourcesService(name), "/");
     }
 }

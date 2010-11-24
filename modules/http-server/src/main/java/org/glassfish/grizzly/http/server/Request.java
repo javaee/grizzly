@@ -241,6 +241,8 @@ public class Request {
 
     protected List<AfterServiceListener> afterServicesList = new ArrayList();
 
+    private String contextPath = "";
+
     public void initialize(final Response response,
                            final HttpRequestPacket request,
                            final FilterChainContext ctx,
@@ -252,6 +254,9 @@ public class Request {
         inputBuffer.initialize(request, ctx);
     }
 
+    final HttpServerFilter getServerFilter() {
+        return httpServerFilter;
+    }
 
     /**
      * Get the Coyote request.
@@ -543,6 +548,7 @@ public class Request {
      * preparation for reuse of this object.
      */
     protected final void recycle() {
+        contextPath = "";
         dispatcherType = null;
         requestDispatcherPath = null;
 
@@ -730,7 +736,23 @@ public class Request {
         request.setServerPort(port);
     }
 
+    /**
+     * Returns the portion of the request URI that indicates the context of the request.
+     * The context path always comes first in a request URI.
+     * The path starts with a "/" character but does not end with a "/" character.
+     * For {@link HttpRequestProcessor}s in the default (root) context, this method returns "".
+     * The container does not decode this string.
+     *
+     * @return a String specifying the portion of the request URI that indicates the context of the request
+     */
+    public String getContextPath() {
+        return contextPath;
+    }
 
+    protected void setContextPath(final String contextPath) {
+        this.contextPath = contextPath;
+    }
+    
     // ------------------------------------------------- ServletRequest Methods
 
     /**

@@ -123,11 +123,11 @@ public class HttpServer extends JmxObject {
     }
 
 
-    @ManagedAttribute(id="document-root")
-    @Description("The document root of this server instance.")
-    public Collection<String> getDocumentRoots() {
-        return gws.getServerConfiguration().getDocRoots();
-    }
+//    @ManagedAttribute(id="document-root")
+//    @Description("The document root of this server instance.")
+//    public Collection<String> getDocumentRoots() {
+//        return gws.getServerConfiguration().getDocRoots();
+//    }
 
 
     // ------------------------------------------------------- Protected Methods

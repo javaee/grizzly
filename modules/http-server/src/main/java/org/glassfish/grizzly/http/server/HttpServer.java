@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.http.server;
 
-import java.io.File;
 import org.glassfish.grizzly.ConnectionProbe;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.Processor;
@@ -54,7 +53,6 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.rcm.ResourceAllocationFilter;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -83,12 +81,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.http.server.io.NIOOutputStream;
-import org.glassfish.grizzly.http.server.util.HtmlHelper;
-import org.glassfish.grizzly.http.util.HttpStatus;
-import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.memory.MemoryManager;
 
 
 /**
@@ -304,7 +296,14 @@ public class HttpServer {
 
     private void setupService() {
 
-        buildService();
+        serverConfig.addJmxEventListener(httpServiceChain);
+
+        synchronized (serverConfig.servicesSync) {
+            for (final HttpRequestProcessor httpService : serverConfig.orderedServices) {
+                final String[] mappings = serverConfig.services.get(httpService);
+                httpServiceChain.addService(httpService, mappings);
+            }
+        }
         httpServiceChain.start();
 
     }
@@ -447,7 +446,9 @@ public class HttpServer {
 
         final HttpServer server = new HttpServer();
         final ServerConfiguration config = server.getServerConfiguration();
-        config.addDocRoot(path);
+        if (path != null) {
+            config.addHttpService(new StaticResourcesService(path), "/");
+        }
         final NetworkListener listener =
                 new NetworkListener("grizzly",
                                     NetworkListener.DEFAULT_NETWORK_HOST,
@@ -644,58 +645,6 @@ public class HttpServer {
         }
     }
 
-    /**
-     * @return the {@link HttpRequestProcessor} to be used by this server instance.
-     *  This may be a single {@link HttpRequestProcessor} or a composite of multiple
-     *  {@link HttpRequestProcessor} instances wrapped by a {@link HttpServiceChain}.
-     */
-    private void buildService() {
-        // If there are no services registered in config - return empty service.
-        if (serverConfig.services.isEmpty()) {
-            httpServiceChain.addService(buildEmptyService(serverConfig), new String[] {"/"});
-        }
-
-        // Otherwise build HttpServiceChain
-        buildServiceChain();
-    }
-
-    private static HttpRequestProcessor buildEmptyService(final ServerConfiguration config) {
-        return new HttpRequestProcessor(config.getDocRoots()) {
-
-            @SuppressWarnings({"unchecked"})
-            @Override
-            public void service(Request request, Response response) {
-                try {
-                    ByteBuffer b = HtmlHelper.getErrorPage("Not Found", "Resource identified by path '" + request.getRequestURI() + "', does not exist.", config.getHttpServerName() + '/' + config.getHttpServerVersion());
-                    MemoryManager mm = request.getContext().getConnection().getTransport().getMemoryManager();
-                    Buffer buf = Buffers.wrap(mm, b);
-                    NIOOutputStream out = response.getOutputStream();
-                    response.setStatus(HttpStatus.NOT_FOUND_404);
-                    response.setContentType("text/html");
-                    response.setCharacterEncoding("UTF-8");
-                    out.write(buf);
-                    out.flush();
-                } catch (IOException e) {
-                    LOGGER.log(Level.WARNING, "Exception during building service", e);
-                }
-            }
-        };
-    }
-
-    private void buildServiceChain() {
-
-        serverConfig.addJmxEventListener(httpServiceChain);
-        serverConfig.addAllDocRoots(httpServiceChain);
-
-        for (Map.Entry<HttpRequestProcessor, String[]> serviceRecord : serverConfig.services.entrySet()) {
-            final HttpRequestProcessor httpServiceLocal = serviceRecord.getKey();
-            final String[] mappings = serviceRecord.getValue();
-            serverConfig.addAllDocRoots(httpServiceLocal);
-            httpServiceChain.addService(httpServiceLocal, mappings);
-        }
-    }
-
-
     //************ Runtime config change listeners ******************
 
     /**
@@ -703,19 +652,7 @@ public class HttpServer {
      */
     synchronized void onAddHttpService(HttpRequestProcessor httpService, String[] mapping) {
         if (isStarted()) {
-            final int servicesNum = serverConfig.services.size();
-
-            switch (servicesNum) {
-                case 0: throw new IllegalStateException("Should be at least 1 HttpService registered");
-                case 1: {
-                    httpServiceChain.removeAllHttpServices();
-                }
-                
-                default: {
-                    serverConfig.addAllDocRoots(httpService);
-                    httpServiceChain.addService(httpService, mapping);
-                }
-            }
+            httpServiceChain.addService(httpService, mapping);
         }
     }
 
@@ -724,50 +661,7 @@ public class HttpServer {
      */
     synchronized void onRemoveHttpService(HttpRequestProcessor httpService) {
         if (isStarted()) {
-            final int servicesNum = serverConfig.services.size();
-            switch (servicesNum) {
-                case 0: {
-                    httpServiceChain.removeAllHttpServices();
-                    httpServiceChain.addService(buildEmptyService(serverConfig), new String[] {"/"});
-                    break;
-                }
-
-                default: {
-                    httpServiceChain.removeHttpService(httpService);
-                }
-            }
-        }
-    }
-
-    /**
-     * Modifies docroot mapping during runtime.
-     */
-    synchronized void onAddDocRoot(final String docRoot) {
-        if (isStarted()) {
-
-            for (Map.Entry<HttpRequestProcessor, String[]> serviceRecord : serverConfig.services.entrySet()) {
-                final HttpRequestProcessor internalHttpService = serviceRecord.getKey();
-                internalHttpService.addDocRoot(docRoot);
-            }
-
-            httpServiceChain.addDocRoot(docRoot);
-        }
-    }
-
-    /**
-     * Modifies docroot mapping during runtime.
-     */
-    synchronized void onRemoveDocRoot(final String docRoot) {
-        if (isStarted()) {
-
-            final File docRootFile = new File(docRoot);
-
-            for (Map.Entry<HttpRequestProcessor, String[]> serviceRecord : serverConfig.services.entrySet()) {
-                final HttpRequestProcessor internalHttpService = serviceRecord.getKey();
-                internalHttpService.removeDocRoot(docRootFile);
-            }
-
-            httpServiceChain.removeDocRoot(docRootFile);
+            httpServiceChain.removeHttpService(httpService);
         }
     }
 }

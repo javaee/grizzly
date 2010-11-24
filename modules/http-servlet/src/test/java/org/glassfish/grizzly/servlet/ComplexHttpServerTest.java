@@ -84,10 +84,10 @@ public class ComplexHttpServerTest extends HttpServerAbstractTest {
            
             String context = "/test";
             String servletPath = "/servlet";
-            String rootFolder = ".";
+//            String rootFolder = ".";
            
             for (String alias : aliases) {
-                addHttpService(context + servletPath + alias, context, servletPath, rootFolder);
+                addHttpService(context + servletPath + alias, context, servletPath);
             }
 
             for (String alias : aliases) {
@@ -108,7 +108,7 @@ public class ComplexHttpServerTest extends HttpServerAbstractTest {
     }
 
     private ServletService addHttpService(final String alias, final String context,
-            final String servletPath, final String rootFolder) {
+            final String servletPath) {
         
         ServletService service = new ServletService(new HttpServlet() {
 
@@ -122,7 +122,7 @@ public class ComplexHttpServerTest extends HttpServerAbstractTest {
        
         service.setContextPath(context);
         service.setServletPath(servletPath);
-        service.addDocRoot(rootFolder);
+//        service.addDocRoot(rootFolder);
        
        
         httpServer.getServerConfiguration().addHttpService(service, new String[] { alias });
