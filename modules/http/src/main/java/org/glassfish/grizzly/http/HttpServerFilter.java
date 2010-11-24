@@ -148,12 +148,12 @@ public class HttpServerFilter extends HttpCodecFilter {
             processKeepAlive = false;
         }
 
-        contentEncodings.add(
-                new GZipContentEncoding(
+        final ContentEncoding enc = new GZipContentEncoding(
                 GZipContentEncoding.DEFAULT_IN_BUFFER_SIZE,
-                GZipContentEncoding.DEFAULT_OUT_BUFFER_SIZE));
+                GZipContentEncoding.DEFAULT_OUT_BUFFER_SIZE);
+        contentEncodings.add(enc);
     }
-    
+
     // ----------------------------------------------------------- Configuration
 
 

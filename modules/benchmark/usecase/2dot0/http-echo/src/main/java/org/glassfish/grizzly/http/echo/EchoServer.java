@@ -173,7 +173,7 @@ final class EchoServer {
     // ----------------------------------------------------------- Inner Classes
 
 
-    private final class BlockingEchoService extends HttpService {
+    private final class BlockingEchoService extends HttpRequestProcessor {
 
 
         // ---------------------------------------- Methods from HttpService
@@ -229,7 +229,7 @@ final class EchoServer {
     } // END BlockingEchoService
 
 
-    public final class NonBlockingEchoService extends HttpService {
+    public final class NonBlockingEchoService extends HttpRequestProcessor {
 
 
         // ---------------------------------------- Methods from HttpService
