@@ -168,6 +168,16 @@ public class StaticResourcesService extends HttpRequestProcessor {
         return uri;
     }
 
+    /**
+     * The method will be called, if the static resource requested by the {@link Request}
+     * wasn't found, so {@link StaticResourcesService} implementation may try to
+     * workaround this situation.
+     * The default implementation - sends a 404 response page by calling {@link #customizedErrorPage(org.glassfish.grizzly.http.server.HttpServer, org.glassfish.grizzly.http.server.Request, org.glassfish.grizzly.http.server.Response)}.
+     *
+     * @param request the {@link Request}
+     * @param response the {@link Response}
+     * @throws Exception
+     */
     protected void onMissingResource(final Request request, final Response response)
             throws Exception {
         customizedErrorPage(request.getServerFilter().getHttpServer(), request, response);
