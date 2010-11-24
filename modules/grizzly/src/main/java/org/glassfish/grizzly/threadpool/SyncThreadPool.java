@@ -94,9 +94,14 @@ public class SyncThreadPool extends AbstractThreadPool {
         shutdownNow();
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    public int getCurrentPoolSize() {
+        return currentPoolSize;
+    }
+
+    public int getActiveThreadsCount() {
+        return activeThreadsCount;
+    }
+
     @Override
     public void execute(Runnable task) {
 
