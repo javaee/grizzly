@@ -303,6 +303,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         setSelectorTimeout(Integer.parseInt(transport.getSelectorPollTimeoutMillis()));
         setTcpNoDelay(GrizzlyConfig.toBoolean(transport.getTcpNoDelay()));
         setLinger(Integer.parseInt(transport.getLinger()));
+        enableNioLogging = GrizzlyConfig.toBoolean(transport.getEnableSnoop());
     }
 
     protected ProtocolChainInstanceHandler configureProtocol(NetworkListener networkListener, Protocol protocol,
