@@ -76,6 +76,8 @@ public class HttpProtocolFinder extends com.sun.grizzly.http.portunif.HttpProtoc
     private volatile Ssl ssl;
     private volatile SSLConfigHolder sslConfigHolder;
 
+    private final int readTimeout = 5000;
+
     private final AtomicBoolean isConfigured = new AtomicBoolean();
 
     public void configure(ProtocolFinder configuration) {
@@ -205,7 +207,7 @@ public class HttpProtocolFinder extends com.sun.grizzly.http.portunif.HttpProtoc
                 while((protocol = super.find(context, protocolRequest)) == null &&
                         System.currentTimeMillis() - startTime < timeout) {
                     byteRead = SSLUtils.doRead(channel, inputBB, sslEngine,
-                            timeout).bytesRead;
+                            readTimeout).bytesRead;
                     if (byteRead == -1) {
                         logger.log(Level.FINE, "EOF");
                         throw new EOFException();
