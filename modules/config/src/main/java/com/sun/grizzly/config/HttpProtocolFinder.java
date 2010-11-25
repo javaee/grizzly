@@ -202,10 +202,21 @@ public class HttpProtocolFinder extends com.sun.grizzly.http.portunif.HttpProtoc
 
                 final long startTime = System.currentTimeMillis();
 
-                String protocol = null;
-                final int timeout = sslConfigHolder.getSslInactivityTimeout();
+                String protocol;
+
+                // if we have data available, unwrap it and allow the
+                // initial call to super.fine() in the while loop to go through
+                // on the existing data.  Otherwise, try to read what we can
+                // and continue.  We use a small timeout here instead of using the
+                // inactivity timeout as we don't necessarily need to block
+                // at this point in time.
+                if (inputBB.position() > 0) {
+                    byteBuffer = SSLUtils.unwrapAll(byteBuffer, inputBB, sslEngine);
+                    protocolRequest.setByteBuffer(byteBuffer);
+                    workerThread.setByteBuffer(byteBuffer);
+                }
                 while((protocol = super.find(context, protocolRequest)) == null &&
-                        System.currentTimeMillis() - startTime < timeout) {
+                        System.currentTimeMillis() - startTime < readTimeout) {
                     byteRead = SSLUtils.doRead(channel, inputBB, sslEngine,
                             readTimeout).bytesRead;
                     if (byteRead == -1) {
