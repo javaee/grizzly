@@ -475,7 +475,7 @@
             <uniqueVersion>false</uniqueVersion>
             <!-- the ID maps to settings.xml, so don't change the ID -->
             <id>rator.sfbay</id>
-            <url>dav:http://glassfish-maven-repository.sfbay.sun.com/maven/repositories/glassfish/</url>
+            <url>dav:http://glassfish-maven-repository.us.oracle.com/maven/repositories/glassfish/</url>
         </repository>
     </distributionManagement>
     <dependencies>
