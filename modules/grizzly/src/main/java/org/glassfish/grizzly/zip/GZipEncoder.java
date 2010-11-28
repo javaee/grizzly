@@ -269,7 +269,7 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
         final Buffer buffer = memoryManager.allocate(bufferSize);
         final ByteBuffer byteBuffer = buffer.toByteBuffer();
         final byte[] array = byteBuffer.array();
-        final int offset = byteBuffer.arrayOffset();
+        final int offset = byteBuffer.arrayOffset() + byteBuffer.position();
 
 	int len = deflater.deflate(array, offset, bufferSize);
         if (len <= 0) {

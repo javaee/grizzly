@@ -40,10 +40,7 @@
 
 package org.glassfish.grizzly.ssl;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
 import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Grizzly;
@@ -69,21 +66,9 @@ public class SSLUtils {
             SSLEngine sslEngine) {
         sslEngineAttribute.set(storage, sslEngine);
     }
-    
-    public static SSLEngineResult unwrap(SSLEngine sslEngine,
-            Buffer securedInBuffer, Buffer plainBuffer) throws IOException {
-        return sslEngine.unwrap((ByteBuffer) securedInBuffer.underlying(),
-                (ByteBuffer) plainBuffer.underlying());
-    }
-
-    public static SSLEngineResult wrap(SSLEngine sslEngine, Buffer plainBuffer,
-            Buffer securedOutBuffer) throws IOException {
-        return sslEngine.wrap((ByteBuffer) plainBuffer.underlying(),
-                (ByteBuffer) securedOutBuffer.underlying());
-    }
 
     /**
-     * Complete hanshakes operations.
+     * Complete handshakes operations.
      * @param sslEngine The SSLEngine used to manage the SSL operations.
      */
     public static void executeDelegatedTask(SSLEngine sslEngine) {

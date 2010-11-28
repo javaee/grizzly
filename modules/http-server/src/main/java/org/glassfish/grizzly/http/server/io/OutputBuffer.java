@@ -419,8 +419,8 @@ public class OutputBuffer {
      * @throws IOException if an error occurs during the write
      */
     @SuppressWarnings({"unchecked"})
-    public void writeByteBuffer(ByteBuffer byteBuffer) throws IOException {
-        Buffer w = Buffers.wrap(memoryManager, byteBuffer);
+    public void writeByteBuffer(final ByteBuffer byteBuffer) throws IOException {
+        final Buffer w = Buffers.wrap(memoryManager, byteBuffer);
         w.allowBufferDispose(false);
         writeBuffer(w);
     }
@@ -621,19 +621,36 @@ public class OutputBuffer {
         // flush the buffer - need to take care of encoding at this point
         CharsetEncoder enc = getEncoder();
         checkCurrentBuffer();
+        ByteBuffer currentByteBuffer = currentBuffer.toByteBuffer();
+        int pos = currentByteBuffer.position();
+
         CoderResult res = enc.encode(charBuf,
-                                     (ByteBuffer) currentBuffer.underlying(),
+                                     currentByteBuffer,
                                      true);
+
+        updateBufferPosition(currentBuffer, currentByteBuffer, pos);
+        
         while (res == CoderResult.OVERFLOW) {
             commit();
             writeContentChunk(false);
             checkCurrentBuffer();
-            res = enc.encode(charBuf, (ByteBuffer) currentBuffer.underlying(), true);
+            currentByteBuffer = currentBuffer.toByteBuffer();
+            pos = currentByteBuffer.position();
+            
+            res = enc.encode(charBuf, currentByteBuffer, true);
+
+            updateBufferPosition(currentBuffer, currentByteBuffer, pos);
         }
 
         if (res != CoderResult.UNDERFLOW) {
             throw new IOException("Encoding error");
         }
 
+    }
+
+    private static void updateBufferPosition(final Buffer buffer,
+            final ByteBuffer byteBuffer, final int oldByteBufferPos) {
+        final int newPos = byteBuffer.position();
+        buffer.position(buffer.position() + newPos - oldByteBufferPos);
     }
 }

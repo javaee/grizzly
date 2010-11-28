@@ -90,7 +90,7 @@ import java.security.PrivilegedExceptionAction;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Enumeration;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -894,10 +894,10 @@ public class Response {
      */
     public String[] getHeaderValues(String name) {
         checkResponse();
-        final Enumeration<String> e = response.getHeaders().values(name);
+        final Iterator<String> e = response.getHeaders().values(name);
         final Collection<String> result = new LinkedList<String>();
-        while (e.hasMoreElements()) {
-            result.add(e.nextElement());
+        while (e.hasNext()) {
+            result.add(e.next());
         }
         
         return result.toArray(new String[result.size()]);

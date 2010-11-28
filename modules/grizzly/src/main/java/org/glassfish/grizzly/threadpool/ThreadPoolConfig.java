@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly.threadpool;
 
+import org.glassfish.grizzly.memory.MemoryManager;
+
 import java.util.Queue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
@@ -49,13 +51,17 @@ import java.util.concurrent.TimeUnit;
  * @author gustav trede
  */
 public class ThreadPoolConfig {
-    public static final ThreadPoolConfig DEFAULT = new ThreadPoolConfig(
+    private static final ThreadPoolConfig DEFAULT = new ThreadPoolConfig(
             "Grizzly", AbstractThreadPool.DEFAULT_MIN_THREAD_COUNT,
             AbstractThreadPool.DEFAULT_MAX_THREAD_COUNT,
             null, AbstractThreadPool.DEFAULT_MAX_TASKS_QUEUED,
             AbstractThreadPool.DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT,
             TimeUnit.MILLISECONDS,
-            null, Thread.MAX_PRIORITY);
+            null, Thread.MAX_PRIORITY, null);
+
+    public static ThreadPoolConfig defaultConfig() {
+        return DEFAULT.clone();
+    }
 
     protected String poolName;
     protected int corePoolSize;
@@ -65,13 +71,19 @@ public class ThreadPoolConfig {
     protected long keepAliveTimeMillis;
     protected ThreadFactory threadFactory;
     protected int priority = Thread.MAX_PRIORITY;
+    protected MemoryManager mm;
 
     public ThreadPoolConfig(
             String poolName,
-            int corePoolSize, int maxPoolSize,
-            Queue<Runnable> queue, int queueLimit,
-            long keepAliveTime, TimeUnit timeUnit,
-            ThreadFactory threadFactory, int priority) {
+            int corePoolSize,
+            int maxPoolSize,
+            Queue<Runnable> queue,
+            int queueLimit,
+            long keepAliveTime,
+            TimeUnit timeUnit,
+            ThreadFactory threadFactory,
+            int priority,
+            MemoryManager mm) {
         this.poolName        = poolName;
         this.corePoolSize    = corePoolSize;
         this.maxPoolSize     = maxPoolSize;
@@ -86,6 +98,7 @@ public class ThreadPoolConfig {
 
         this.threadFactory   = threadFactory;
         this.priority        = priority;
+        this.mm              = mm;
     }
 
     public ThreadPoolConfig(ThreadPoolConfig cfg) {
@@ -97,6 +110,7 @@ public class ThreadPoolConfig {
         this.queueLimit      = cfg.queueLimit;
         this.corePoolSize    = cfg.corePoolSize;
         this.keepAliveTimeMillis   = cfg.keepAliveTimeMillis;
+        this.mm              = cfg.mm;
     }
 
     @Override
@@ -230,6 +244,15 @@ public class ThreadPoolConfig {
      */
     public long getKeepAliveTime(TimeUnit timeUnit) {
         return timeUnit.convert(keepAliveTimeMillis, TimeUnit.MILLISECONDS);
+    }
+
+    public MemoryManager getMemoryManager() {
+        return mm;
+    }
+
+    public ThreadPoolConfig setMemoryManager(MemoryManager mm) {
+        this.mm = mm;
+        return this;
     }
 
     @Override

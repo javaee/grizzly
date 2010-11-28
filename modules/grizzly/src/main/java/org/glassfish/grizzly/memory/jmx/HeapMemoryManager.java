@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,46 +38,31 @@
  * holder.
  */
 
-package org.glassfish.grizzly.utils;
+package org.glassfish.grizzly.memory.jmx;
 
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.filterchain.BaseFilter;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.NextAction;
-import java.io.IOException;
-import java.util.logging.Filter;
-import java.util.logging.Logger;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Grizzly;
-import java.util.logging.Level;
+import org.glassfish.gmbal.Description;
+import org.glassfish.gmbal.InheritedAttribute;
+import org.glassfish.gmbal.InheritedAttributes;
+import org.glassfish.gmbal.ManagedAttribute;
+import org.glassfish.gmbal.ManagedObject;
 
 /**
- * Echo {@link Filter} implementation
- * 
+ * {@link org.glassfish.grizzly.memory.HeapMemoryManager} JMX object.
+ *
  * @author Alexey Stashok
  */
-public class EchoFilter extends BaseFilter {
+@ManagedObject
+@Description("Grizzly Heap Memory Manager, which uses thread local memory pool")
+@InheritedAttributes({@InheritedAttribute(id="is-direct", description="is-dirfff")})
+public class HeapMemoryManager extends MemoryManager {
 
-    private static final Logger logger = Grizzly.logger(EchoFilter.class);
+    public HeapMemoryManager(org.glassfish.grizzly.memory.HeapMemoryManager memoryManager) {
+        super(memoryManager);
+    }
 
-    @Override
-    public NextAction handleRead(final FilterChainContext ctx)
-            throws IOException {
-        final Object message = ctx.getMessage();
-        final Connection connection = ctx.getConnection();
-        final Object address = ctx.getAddress();
-
-        if (logger.isLoggable(Level.FINEST)) {
-            logger.log(Level.FINEST, "EchoFilter. connection={0} dstAddress={1} message={2}",
-                    new Object[]{connection, address, message});
-        }
-        
-        if (message instanceof Buffer) {
-            ((Buffer) message).allowBufferDispose(true);
-        }
-
-        ctx.write(address, message, null);
-
-        return ctx.getStopAction();
+    @ManagedAttribute(id="max-buffer-size")
+    @Description("The max buffer size, which could be associated with a thread")
+    public int getMaxThreadBufferSize() {
+        return ((org.glassfish.grizzly.memory.AbstractMemoryManager) memoryManager).getMaxBufferSize();
     }
 }

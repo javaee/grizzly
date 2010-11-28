@@ -412,7 +412,7 @@ public class GrizzlyServiceListener {
                 final int minThreads = Integer.parseInt(threadPool.getMinThreadPoolSize());
                 final int maxThreads = Integer.parseInt(threadPool.getMaxThreadPoolSize());
                 final int timeout = Integer.parseInt(threadPool.getIdleThreadTimeoutSeconds());
-                final ThreadPoolConfig poolConfig = ThreadPoolConfig.DEFAULT.clone();
+                final ThreadPoolConfig poolConfig = ThreadPoolConfig.defaultConfig();
                 poolConfig.setCorePoolSize(minThreads);
                 poolConfig.setMaxPoolSize(maxThreads);
                 poolConfig.setQueueLimit(maxQueueSize);

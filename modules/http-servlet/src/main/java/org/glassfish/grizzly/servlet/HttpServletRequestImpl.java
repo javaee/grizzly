@@ -80,6 +80,7 @@ import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.server.Constants;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Session;
+import org.glassfish.grizzly.http.server.util.Enumerator;
 import org.glassfish.grizzly.http.util.StringManager;
 import org.glassfish.grizzly.localization.LogMessages;
 
@@ -211,7 +212,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
             return (Enumeration)AccessController.doPrivileged(
                 new GetAttributePrivilegedAction());        
         } else {
-            return request.getAttributeNames();
+            return new Enumerator(request.getAttributeNames());
         }
     }
 
@@ -653,7 +654,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
             return (Enumeration)AccessController.doPrivileged(
                 new GetLocalesPrivilegedAction());
         } else {
-            return request.getLocales();
+            return new Enumerator(request.getLocales());
         }        
     }
 
@@ -788,7 +789,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
             return (Enumeration)AccessController.doPrivileged(
                 new GetHeadersPrivilegedAction(name));
         } else {
-            return request.getHeaders(name);
+            return new Enumerator(request.getHeaders(name));
         }         
     }
 
@@ -810,7 +811,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
             return (Enumeration)AccessController.doPrivileged(
                 new GetHeaderNamesPrivilegedAction());
         } else {
-            return request.getHeaderNames();
+            return new Enumerator(request.getHeaderNames());
         }             
     }
 

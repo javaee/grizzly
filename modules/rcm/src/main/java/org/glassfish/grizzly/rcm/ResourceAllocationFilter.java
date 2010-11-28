@@ -288,7 +288,7 @@ public class ResourceAllocationFilter extends BaseFilter {
         if (threadCount == 0){
             return null;
         }
-        final ThreadPoolConfig tpc = ThreadPoolConfig.DEFAULT
+        final ThreadPoolConfig tpc = ThreadPoolConfig.defaultConfig()
                 .setPoolName("RCM_" + threadCount)
                 .setCorePoolSize(1)
                 .setMaxPoolSize(threadCount);

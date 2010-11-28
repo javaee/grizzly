@@ -175,7 +175,7 @@ public class GZipTest extends TestCase {
                     ctx.write(messages[currentIdx + 1]);
                 }
             } else {
-                future.result(new IllegalStateException("Message #" +
+                future.failure(new IllegalStateException("Message #" +
                         currentIdx + " is incorrect. Expected: " +
                         messageToCompare + " received: " + echoedMessage));
             }

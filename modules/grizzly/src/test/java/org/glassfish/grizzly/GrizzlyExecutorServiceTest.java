@@ -58,7 +58,7 @@ public class GrizzlyExecutorServiceTest extends GrizzlyTestCase {
     public void testCreateInstance() throws Exception {
         int threads = 100;
         ThreadPoolConfig cfg = new ThreadPoolConfig("test", -1, threads,
-                null, -1, 0, null, null, Thread.NORM_PRIORITY);
+                null, -1, 0, null, null, Thread.NORM_PRIORITY, null);
         GrizzlyExecutorService r = GrizzlyExecutorService.createInstance(cfg);
         final int tasks = 2000000;
         doTest(r,tasks);

@@ -116,33 +116,33 @@ public final class SSLDecoderTransformer extends AbstractTransformer<Buffer, Buf
 
         try {
             if (logger.isLoggable(Level.FINE)) {
-                logger.fine("SSLDecoder engine: " + sslEngine + " input: "
-                        + originalMessage + " output: " + targetBuffer);
+                logger.log(Level.FINE, "SSLDecoder engine: {0} input: {1} output: {2}",
+                        new Object[]{sslEngine, originalMessage, targetBuffer});
             }
 
+            final int pos = originalMessage.position();
             final SSLEngineResult sslEngineResult;
             if (!originalMessage.isComposite()) {
                 sslEngineResult = sslEngine.unwrap(originalMessage.toByteBuffer(),
                         targetBuffer.toByteBuffer());
             } else {
-                final int pos = originalMessage.position();
                 final ByteBuffer originalByteBuffer =
                         originalMessage.toByteBuffer(pos,
                         pos + expectedLength);
 
                 sslEngineResult = sslEngine.unwrap(originalByteBuffer,
                         targetBuffer.toByteBuffer());
-
-                originalMessage.position(pos + sslEngineResult.bytesConsumed());
             }
+            
+            originalMessage.position(pos + sslEngineResult.bytesConsumed());
+            targetBuffer.position(sslEngineResult.bytesProduced());
+
 
             final SSLEngineResult.Status status = sslEngineResult.getStatus();
 
             if (logger.isLoggable(Level.FINE)) {
-                logger.fine("SSLDecoderr done engine: " + sslEngine
-                        + " result: " + sslEngineResult
-                        + " input: " + originalMessage
-                        + " output: " + targetBuffer);
+                logger.log(Level.FINE, "SSLDecoderr done engine: {0} result: {1} input: {2} output: {3}",
+                        new Object[]{sslEngine, sslEngineResult, originalMessage, targetBuffer});
             }
 
             if (status == SSLEngineResult.Status.OK) {

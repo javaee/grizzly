@@ -259,14 +259,14 @@ public abstract class HttpRequestProcessor {
         // TODO re-implement
         final ServerConfiguration c = server.getServerConfiguration();
         final String serverName = c.getHttpServerName() + '/' + c.getHttpServerVersion();
-        ByteBuffer bb = HtmlHelper.getErrorPage("Not Found",
+        final ByteBuffer bb = HtmlHelper.getErrorPage("Not Found",
                                                 "Resource identified by path '" + req.getRequestURI() + "', does not exist.",
                                                 serverName);
         res.setContentLength(bb.limit());
         res.setContentType("text/html");
         OutputBuffer out = res.getOutputBuffer();
         out.processingChars();
-        out.write(bb.array(), bb.position(), bb.remaining());
+        out.write(bb.array(), bb.arrayOffset() + bb.position(), bb.remaining());
         out.close();
     }
 

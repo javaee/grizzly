@@ -600,6 +600,7 @@ public class HttpServer {
                 final Thread newThread = new DefaultWorkerThread(
                         TransportFactory.getInstance().getDefaultAttributeBuilder(),
                         "HttpServer-" + threadCounter.getAndIncrement(),
+                        null,
                         r);
                 newThread.setDaemon(true);
                 return newThread;
@@ -628,6 +629,7 @@ public class HttpServer {
                 final Thread newThread = new DefaultWorkerThread(
                         TransportFactory.getInstance().getDefaultAttributeBuilder(),
                         "HttpServer-" + threadCounter.getAndIncrement(),
+                        null,
                         r);
                 newThread.setDaemon(true);
                 return newThread;

@@ -110,13 +110,13 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
                 array.restore();
             }
 
-            if (written > 0) {
-                buffer.position(buffer.position() + written);
-            }
-
         } else {
             written = ((TCPNIOTransport) transport).write(connection, buffer.toByteBuffer(),
                     currentResult);
+        }
+
+        if (written > 0) {
+            buffer.position(buffer.position() + written);
         }
 
         ((TCPNIOConnection) connection).onWrite(buffer, written);

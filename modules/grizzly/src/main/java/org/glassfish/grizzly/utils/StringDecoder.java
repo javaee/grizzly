@@ -128,8 +128,8 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
         Integer stringSize = lengthAttribute.get(storage);
 
         if (logger.isLoggable(Level.FINE)) {
-            logger.log(Level.FINE, "StringDecoder decode stringSize=" + stringSize +
-                    " buffer=" + input + " content=" + input.toStringContent());
+            logger.log(Level.FINE, "StringDecoder decode stringSize={0} buffer={1} content={2}",
+                    new Object[]{stringSize, input, input.toStringContent()});
         }
 
         if (stringSize == null) {

@@ -55,459 +55,342 @@ import java.util.Arrays;
  * @author Alexey Stashok
  */
 public final class DefaultMemoryManager extends ByteBufferManager {
-    private static final ThreadCache.CachedTypeIndex<TrimAwareWrapper> CACHE_IDX =
-            ThreadCache.obtainIndex(TrimAwareWrapper.class, 2);
-
-    private final ThreadCache.CachedTypeIndex<SmallBuffer> SMALL_BUFFER_CACHE_IDX =
-            ThreadCache.obtainIndex(SmallBuffer.class.getName() + "." +
-            System.identityHashCode(this), SmallBuffer.class, 16);
-
-    private static TrimAwareWrapper createTrimAwareBuffer(
-            ByteBufferManager memoryManager,
-            ByteBuffer underlyingByteBuffer) {
-
-        final TrimAwareWrapper buffer = ThreadCache.takeFromCache(CACHE_IDX);
-        if (buffer != null) {
-            buffer.visible = underlyingByteBuffer;
-            return buffer;
-        }
-
-        return new TrimAwareWrapper(memoryManager, underlyingByteBuffer);
-    }
-
-    public static final int DEFAULT_MAX_BUFFER_SIZE = 1024 * 128;
-    
-    public static final int DEFAULT_SMALL_BUFFER_SIZE = 32;
-
-    /**
-     * Max size of memory pool for one thread.
-     */
-    private final int maxThreadBufferSize;
-
-    private final int smallBufferSize;
-
-    public DefaultMemoryManager() {
-        this(DEFAULT_MAX_BUFFER_SIZE, DEFAULT_SMALL_BUFFER_SIZE);
-    }
-
-    public DefaultMemoryManager(final int maxThreadBufferSize, final int smallBufferSize) {
-        this.maxThreadBufferSize = maxThreadBufferSize;
-        this.smallBufferSize = smallBufferSize;
-    }
-
-    /**
-     * Get the maximum size of memory pool for one thread.
-     *
-     * @return the maximum size of memory pool for one thread.
-     */
-    public int getMaxThreadBufferSize() {
-        return maxThreadBufferSize;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public ByteBufferWrapper allocate(final int size) {
-        if (size <= smallBufferSize) {
-            final ByteBufferWrapper buffer = createSmallBuffer();
-            buffer.limit(size);
-            return buffer;
-        }
-        
-        return super.allocate(size);
-    }
-
-    /**
-     * Allocates {@link ByteBuffer} of required size.
-     * First of all <tt>DefaultMemoryManager</tt> tries to reuse thread local
-     * memory pool. If it's not possible - it delegates allocation to 
-     * {@link ByteBufferViewManager}.
-     * 
-     * @param size number of bytes to be allocated.
-     * 
-     * @return allocated {@link ByteBuffer}.
-     */
-    @Override
-    public ByteBuffer allocateByteBuffer(int size) {
-        if (size > maxThreadBufferSize) {
-            // Don't use pool
-            return super.allocateByteBuffer(size);
-        }
-
-        ThreadLocalPool threadLocalCache = getThreadLocalPool();
-        if (threadLocalCache != null) {
-
-            if (!threadLocalCache.hasRemaining()) {
-                threadLocalCache = reallocatePoolBuffer();
-                return allocateFromPool(threadLocalCache, size);
-            }
-
-            final ByteBuffer allocatedFromPool =
-                    allocateFromPool(threadLocalCache, size);
-
-            if (allocatedFromPool != null) {
-                return allocatedFromPool;
-            } else {
-                threadLocalCache = reallocatePoolBuffer();
-                return allocateFromPool(threadLocalCache, size);
-            }
-
-        } else {
-            return super.allocateByteBuffer(size);
-        }
-    }
-
-    private SmallBuffer createSmallBuffer() {
-
-        final SmallBuffer buffer = ThreadCache.takeFromCache(SMALL_BUFFER_CACHE_IDX);
-        if (buffer != null) {
-            ProbeNotifier.notifyBufferAllocatedFromPool(monitoringConfig,
-                    smallBufferSize);
-            return buffer;
-        }
-
-        return new SmallBuffer(allocateByteBuffer0(smallBufferSize));
-    }
-
-    private ThreadLocalPool reallocatePoolBuffer() {
-        final ByteBuffer byteBuffer =
-                super.allocateByteBuffer(maxThreadBufferSize);
-
-        final ThreadLocalPool threadLocalCache = getThreadLocalPool();
-        threadLocalCache.reset(byteBuffer);
-        
-        return threadLocalCache;
-    }
-
-    /**
-     * Reallocate {@link ByteBuffer} to a required size.
-     * First of all <tt>DefaultMemoryManager</tt> tries to reuse thread local
-     * memory pool. If it's not possible - it delegates reallocation to
-     * {@link ByteBufferViewManager}.
-     *
-     * @param oldByteBuffer old {@link ByteBuffer} we want to reallocate.
-     * @param newSize required size.
-     *
-     * @return reallocated {@link ByteBuffer}.
-     */
-    @Override
-    public ByteBuffer reallocateByteBuffer(ByteBuffer oldByteBuffer, int newSize) {
-        if (oldByteBuffer.capacity() >= newSize) return oldByteBuffer;
-
-        final ThreadLocalPool memoryPool = getThreadLocalPool();
-        if (memoryPool != null) {
-            final ByteBuffer newBuffer =
-                    memoryPool.reallocate(oldByteBuffer, newSize);
-            
-            if (newBuffer != null) {
-                ProbeNotifier.notifyBufferAllocatedFromPool(monitoringConfig,
-                        newSize - oldByteBuffer.capacity());
-
-                return newBuffer;
-            }
-        }
-
-        return super.reallocateByteBuffer(oldByteBuffer, newSize);
-    }
-
-
-    private ByteBuffer allocateFromPool(final ThreadLocalPool threadLocalCache,
-            final int size) {
-        if (threadLocalCache.remaining() >= size) {
-            ProbeNotifier.notifyBufferAllocatedFromPool(monitoringConfig, size);
-            
-            return threadLocalCache.allocate(size);
-        }
-
-        return null;
-    }
-
-
-    /**
-     * Release {@link ByteBuffer}.
-     * <tt>DefaultMemoryManager</tt> will checks if it's possible to return
-     * the buffer to thread local pool. If not - let's garbage collector utilize
-     * the memory.
-     *
-     * @param byteBuffer {@link ByteBuffer} to be released.
-     */
-    @Override
-    public void releaseByteBuffer(ByteBuffer byteBuffer) {
-        ThreadLocalPool memoryPool = getThreadLocalPool();
-        if (memoryPool != null) {
-
-            if (memoryPool.release((ByteBuffer) byteBuffer.clear())) {
-                ProbeNotifier.notifyBufferReleasedToPool(monitoringConfig,
-                        byteBuffer.capacity());
-
-                return;
-            }
-        }
-        
-        super.releaseByteBuffer(byteBuffer);
-    }
-
-
-
-    /**
-     * Get the size of local thread memory pool.
-     * 
-     * @return the size of local thread memory pool.
-     */
-    public int getReadyThreadBufferSize() {
-       ThreadLocalPool threadLocalPool = getThreadLocalPool();
-        if (threadLocalPool != null) {
-            return threadLocalPool.remaining();
-        }
-
-        return 0;
-    }
-
-
-    @Override
-    public ByteBufferWrapper wrap(ByteBuffer byteBuffer) {
-        return createTrimAwareBuffer(this, byteBuffer);
-    }
-
-    /**
-     * Create the Memory Manager JMX management object.
-     *
-     * @return the Memory Manager JMX management object.
-     */
-    @Override
-    protected JmxObject createJmxManagementObject() {
-        return new org.glassfish.grizzly.memory.jmx.DefaultMemoryManager(this);
-    }
-
-    /**
-     * Get thread associated buffer pool.
-     * 
-     * @return thread associated buffer pool.  This method may return
-     *  <code>null</code> if the current thread doesn't have a buffer pool
-     *  associated with it.
-     */
-    private static ThreadLocalPool getThreadLocalPool() {
-        final Thread t = Thread.currentThread();
-        if (t instanceof DefaultWorkerThread) {
-            return ((DefaultWorkerThread) t).getMemoryPool();
-        } else {
-            return null;
-        }
-    }
-
-    /**
-     * Information about thread associated memory pool.
-     */
-    public static final class ThreadLocalPool {
-        /**
-         * Memory pool
-         */
-        private ByteBuffer pool;
-
-        /**
-         * {@link ByteBuffer} allocation history.
-         */
-        private Object[] allocationHistory;
-        private int lastAllocatedIndex;
-
-        public ThreadLocalPool() {
-            allocationHistory = new Object[8];
-        }
-
-        public void reset(ByteBuffer pool) {
-            Arrays.fill(allocationHistory, 0, lastAllocatedIndex, null);
-            lastAllocatedIndex = 0;
-            this.pool = pool;
-        }
-
-        public ByteBuffer allocate(int size) {
-            final ByteBuffer allocated = Buffers.slice(pool, size);
-            return addHistory(allocated);
-        }
-
-        public ByteBuffer reallocate(ByteBuffer oldByteBuffer, int newSize) {
-            if (isLastAllocated(oldByteBuffer)
-                    && remaining() + oldByteBuffer.capacity() >= newSize) {
-
-                lastAllocatedIndex--;
-
-                pool.position(pool.position() - oldByteBuffer.capacity());
-                final ByteBuffer newByteBuffer = Buffers.slice(pool, newSize);
-                newByteBuffer.position(oldByteBuffer.position());
-
-                return addHistory(newByteBuffer);
-            }
-
-            return null;
-        }
-
-        public boolean release(ByteBuffer underlyingBuffer) {
-            if (isLastAllocated(underlyingBuffer)) {
-                pool.position(pool.position() - underlyingBuffer.capacity());
-                allocationHistory[--lastAllocatedIndex] = null;
-
-                return true;
-            } else if (tryReset(underlyingBuffer)) {
-                return true;
-            }
-
-            return false;
-        }
-
-        public boolean tryReset(ByteBuffer byteBuffer) {
-            if (wantReset(byteBuffer.remaining())) {
-                reset(byteBuffer);
-
-                return true;
-            }
-
-            return false;
-        }
-
-        private boolean wantReset(int size) {
-            return !hasRemaining() ||
-                    (lastAllocatedIndex == 0 && pool.remaining() < size);
-        }
-
-        public boolean isLastAllocated(ByteBuffer oldByteBuffer) {
-            return lastAllocatedIndex > 0 &&
-                    allocationHistory[lastAllocatedIndex - 1] == oldByteBuffer;
-        }
-
-        public ByteBuffer reduceLastAllocated(ByteBuffer byteBuffer) {
-            final ByteBuffer oldLastAllocated = 
-                    (ByteBuffer) allocationHistory[lastAllocatedIndex - 1];
-
-            pool.position(pool.position() - (oldLastAllocated.capacity() -
-                    byteBuffer.capacity()));
-            allocationHistory[lastAllocatedIndex - 1] = byteBuffer;
-
-            return oldLastAllocated;
-        }
-
-        public int remaining() {
-            if (!hasRemaining()) return 0;
-
-            return pool.remaining();
-        }
-
-        public boolean hasRemaining() {
-            return pool != null && pool.hasRemaining();
-        }
-
-        private ByteBuffer addHistory(ByteBuffer allocated) {
-            if (lastAllocatedIndex >= allocationHistory.length) {
-                allocationHistory =
-                        Arrays.copyOf(allocationHistory,
-                        (allocationHistory.length * 3) / 2 + 1);
-            }
-
-            allocationHistory[lastAllocatedIndex++] = allocated;
-            return allocated;
-        }
-
-        @Override
-        public String toString() {
-            return "(pool=" + pool +
-                    " last-allocated-index=" + (lastAllocatedIndex - 1) +
-                    " allocation-history=" + Arrays.toString(allocationHistory)
-                    + ")";
-        }
-    }
-
-    /**
-     * {@link ByteBufferWrapper} implementation, which supports trimming. In
-     * other words it's possible to return unused {@link org.glassfish.grizzly.Buffer} space to
-     * pool.
-     */
-    private static final class TrimAwareWrapper extends ByteBufferWrapper
-            implements Cacheable {
-
-        private TrimAwareWrapper(ByteBufferManager memoryManager,
-                ByteBuffer underlyingByteBuffer) {
-            super(memoryManager, underlyingByteBuffer);
-        }
-
-        @Override
-        public void trim() {
-            final int sizeToReturn = visible.capacity() - visible.position();
-
-
-            if (sizeToReturn > 0) {
-                final ThreadLocalPool threadLocalCache = getThreadLocalPool();
-                if (threadLocalCache != null) {
-
-                    if (threadLocalCache.isLastAllocated(visible)) {
-                        visible.flip();
-
-                        visible = visible.slice();
-                        threadLocalCache.reduceLastAllocated(visible);
-
-                        return;
-                    } else if (threadLocalCache.wantReset(sizeToReturn)) {
-                        visible.flip();
-
-                        final ByteBuffer originalByteBuffer = visible;
-                        visible = visible.slice();
-                        originalByteBuffer.position(originalByteBuffer.limit());
-                        originalByteBuffer.limit(originalByteBuffer.capacity());
-
-                        threadLocalCache.tryReset(originalByteBuffer);
-                        return;
-                    }
-                }
-            }
-
-            super.trim();
-        }
-
-        @Override
-        public void recycle() {
-            allowBufferDispose = false;
-            disposeStackTrace = null;
-
-            ThreadCache.putToCache(CACHE_IDX, this);
-        }
-
-        @Override
-        public void dispose() {
-            super.dispose();
-            recycle();
-        }
-    }
-
-    /**
-     * {@link ByteBufferWrapper} implementation, which supports trimming. In
-     * other words it's possible to return unused {@link org.glassfish.grizzly.Buffer} space to
-     * pool.
-     */
-    private final class SmallBuffer extends ByteBufferWrapper
-            implements Cacheable {
-
-        private SmallBuffer(ByteBuffer underlyingByteBuffer) {
-            super(DefaultMemoryManager.this, underlyingByteBuffer);
-        }
-
-        @Override
-        public void dispose() {
-            super.prepareDispose();
-            visible.clear();
-            recycle();
-        }
-
-        @Override
-        public void recycle() {
-            if (visible.remaining() == smallBufferSize) {
-                allowBufferDispose = false;
-                disposeStackTrace = null;
-
-                if (ThreadCache.putToCache(SMALL_BUFFER_CACHE_IDX, this)) {
-                    ProbeNotifier.notifyBufferReleasedToPool(monitoringConfig,
-                            smallBufferSize);
-                }
-            }
-        }
-    }
+//    private static final ThreadCache.CachedTypeIndex<   TrimAwareWrapper> CACHE_IDX =
+//            ThreadCache.obtainIndex(TrimAwareWrapper.class, 2);
+//
+//    private final ThreadCache.CachedTypeIndex<SmallBuffer> SMALL_BUFFER_CACHE_IDX =
+//            ThreadCache.obtainIndex(SmallBuffer.class.getName() + "." +
+//            System.identityHashCode(this), SmallBuffer.class, 16);
+//
+//    private static TrimAwareWrapper createTrimAwareBuffer(
+//            ByteBufferManager memoryManager,
+//            ByteBuffer underlyingByteBuffer) {
+//
+//        final TrimAwareWrapper buffer = ThreadCache.takeFromCache(CACHE_IDX);
+//        if (buffer != null) {
+//            buffer.visible = underlyingByteBuffer;
+//            return buffer;
+//        }
+//
+//        return new TrimAwareWrapper(memoryManager, underlyingByteBuffer);
+//    }
+//
+//    public static final int DEFAULT_MAX_BUFFER_SIZE = 1024 * 128;
+//
+//    public static final int DEFAULT_SMALL_BUFFER_SIZE = 32;
+//
+//    /**
+//     * Max size of memory pool for one thread.
+//     */
+//    private final int maxThreadBufferSize;
+//
+//    private final int smallBufferSize;
+//
+//    public DefaultMemoryManager() {
+//        this(DEFAULT_MAX_BUFFER_SIZE, DEFAULT_SMALL_BUFFER_SIZE);
+//    }
+//
+//    public DefaultMemoryManager(final int maxThreadBufferSize, final int smallBufferSize) {
+//        this.maxThreadBufferSize = maxThreadBufferSize;
+//        this.smallBufferSize = smallBufferSize;
+//    }
+//
+//    /**
+//     * Get the maximum size of memory pool for one thread.
+//     *
+//     * @return the maximum size of memory pool for one thread.
+//     */
+//    public int getMaxThreadBufferSize() {
+//        return maxThreadBufferSize;
+//    }
+//
+//    /**
+//     * {@inheritDoc}
+//     */
+//    @Override
+//    public ByteBufferWrapper allocate(final int size) {
+//        if (size <= smallBufferSize) {
+//            final ByteBufferWrapper buffer = createSmallBuffer();
+//            buffer.limit(size);
+//            return buffer;
+//        }
+//
+//        return super.allocate(size);
+//    }
+//
+//    /**
+//     * Allocates {@link ByteBuffer} of required size.
+//     * First of all <tt>DefaultMemoryManager</tt> tries to reuse thread local
+//     * memory pool. If it's not possible - it delegates allocation to
+//     * {@link ByteBufferViewManager}.
+//     *
+//     * @param size number of bytes to be allocated.
+//     *
+//     * @return allocated {@link ByteBuffer}.
+//     */
+//    @Override
+//    public ByteBuffer allocateByteBuffer(int size) {
+//        if (size > maxThreadBufferSize) {
+//            // Don't use pool
+//            return super.allocateByteBuffer(size);
+//        }
+//
+//        ThreadLocalPool threadLocalCache = getThreadLocalPool();
+//        if (threadLocalCache != null) {
+//
+//            if (!threadLocalCache.hasRemaining()) {
+//                threadLocalCache = reallocatePoolBuffer();
+//                return allocateFromPool(threadLocalCache, size);
+//            }
+//
+//            final ByteBuffer allocatedFromPool =
+//                    allocateFromPool(threadLocalCache, size);
+//
+//            if (allocatedFromPool != null) {
+//                return allocatedFromPool;
+//            } else {
+//                threadLocalCache = reallocatePoolBuffer();
+//                return allocateFromPool(threadLocalCache, size);
+//            }
+//
+//        } else {
+//            return super.allocateByteBuffer(size);
+//        }
+//    }
+//
+//    private SmallBuffer createSmallBuffer() {
+//
+//        final SmallBuffer buffer = ThreadCache.takeFromCache(SMALL_BUFFER_CACHE_IDX);
+//        if (buffer != null) {
+//            ProbeNotifier.notifyBufferAllocatedFromPool(monitoringConfig,
+//                    smallBufferSize);
+//            return buffer;
+//        }
+//
+//        return new SmallBuffer(allocateByteBuffer0(smallBufferSize));
+//    }
+//
+//    private ThreadLocalPool reallocatePoolBuffer() {
+//        final ByteBuffer byteBuffer =
+//                super.allocateByteBuffer(maxThreadBufferSize);
+//
+//        final ThreadLocalPool threadLocalCache = getThreadLocalPool();
+//        threadLocalCache.reset(byteBuffer);
+//
+//        return threadLocalCache;
+//    }
+//
+//    /**
+//     * Reallocate {@link ByteBuffer} to a required size.
+//     * First of all <tt>DefaultMemoryManager</tt> tries to reuse thread local
+//     * memory pool. If it's not possible - it delegates reallocation to
+//     * {@link ByteBufferViewManager}.
+//     *
+//     * @param oldByteBuffer old {@link ByteBuffer} we want to reallocate.
+//     * @param newSize required size.
+//     *
+//     * @return reallocated {@link ByteBuffer}.
+//     */
+//    @Override
+//    public ByteBuffer reallocateByteBuffer(ByteBuffer oldByteBuffer, int newSize) {
+//        if (oldByteBuffer.capacity() >= newSize) return oldByteBuffer;
+//
+//        final ThreadLocalPool<ByteBuffer> memoryPool = getThreadLocalPool();
+//        if (memoryPool != null) {
+//            final ByteBuffer newBuffer =
+//                    memoryPool.reallocate(oldByteBuffer, newSize);
+//
+//            if (newBuffer != null) {
+//                ProbeNotifier.notifyBufferAllocatedFromPool(monitoringConfig,
+//                        newSize - oldByteBuffer.capacity());
+//
+//                return newBuffer;
+//            }
+//        }
+//
+//        return super.reallocateByteBuffer(oldByteBuffer, newSize);
+//    }
+//
+//
+//    private ByteBuffer allocateFromPool(final ThreadLocalPool<ByteBuffer> threadLocalCache,
+//            final int size) {
+//        if (threadLocalCache.remaining() >= size) {
+//            ProbeNotifier.notifyBufferAllocatedFromPool(monitoringConfig, size);
+//
+//            return threadLocalCache.allocate(size);
+//        }
+//
+//        return null;
+//    }
+//
+//
+//    /**
+//     * Release {@link ByteBuffer}.
+//     * <tt>DefaultMemoryManager</tt> will checks if it's possible to return
+//     * the buffer to thread local pool. If not - let's garbage collector utilize
+//     * the memory.
+//     *
+//     * @param byteBuffer {@link ByteBuffer} to be released.
+//     */
+//    @Override
+//    public void releaseByteBuffer(ByteBuffer byteBuffer) {
+//        ThreadLocalPool memoryPool = getThreadLocalPool();
+//        if (memoryPool != null) {
+//
+//            if (memoryPool.release((ByteBuffer) byteBuffer.clear())) {
+//                ProbeNotifier.notifyBufferReleasedToPool(monitoringConfig,
+//                        byteBuffer.capacity());
+//
+//                return;
+//            }
+//        }
+//
+//        super.releaseByteBuffer(byteBuffer);
+//    }
+//
+//
+//
+//    /**
+//     * Get the size of local thread memory pool.
+//     *
+//     * @return the size of local thread memory pool.
+//     */
+//    public int getReadyThreadBufferSize() {
+//       ThreadLocalPool threadLocalPool = getThreadLocalPool();
+//        if (threadLocalPool != null) {
+//            return threadLocalPool.remaining();
+//        }
+//
+//        return 0;
+//    }
+//
+//
+//    @Override
+//    public ByteBufferWrapper wrap(ByteBuffer byteBuffer) {
+//        return createTrimAwareBuffer(this, byteBuffer);
+//    }
+//
+//
+//    /**
+//     * Create the Memory Manager JMX management object.
+//     *
+//     * @return the Memory Manager JMX management object.
+//     */
+//    @Override
+//    protected JmxObject createJmxManagementObject() {
+//        return new org.glassfish.grizzly.memory.jmx.DefaultMemoryManager(this);
+//    }
+//
+////    /**
+////     * Get thread associated buffer pool.
+////     *
+////     * @return thread associated buffer pool.  This method may return
+////     *  <code>null</code> if the current thread doesn't have a buffer pool
+////     *  associated with it.
+////     */
+////    private static ThreadLocalPool<ByteBuffer> getThreadLocalPool() {
+////        final Thread t = Thread.currentThread();
+////        if (t instanceof DefaultWorkerThread) {
+////            return (ThreadLocalPool<ByteBuffer>) ((DefaultWorkerThread) t).getMemoryPool();
+////        } else {
+////            return null;
+////        }
+////    }
+//
+//
+//
+//    /**
+//     * {@link ByteBufferWrapper} implementation, which supports trimming. In
+//     * other words it's possible to return unused {@link org.glassfish.grizzly.Buffer} space to
+//     * pool.
+//     */
+//    private static final class TrimAwareWrapper extends ByteBufferWrapper
+//            implements Cacheable {
+//
+//        private TrimAwareWrapper(ByteBufferManager memoryManager,
+//                ByteBuffer underlyingByteBuffer) {
+//            super(memoryManager, underlyingByteBuffer);
+//        }
+//
+//        @Override
+//        public void trim() {
+//            final int sizeToReturn = visible.capacity() - visible.position();
+//
+//
+//            if (sizeToReturn > 0) {
+//                final ThreadLocalPool threadLocalCache = getThreadLocalPool();
+//                if (threadLocalCache != null) {
+//
+//                    if (threadLocalCache.isLastAllocated(visible)) {
+//                        visible.flip();
+//
+//                        visible = visible.slice();
+//                        threadLocalCache.reduceLastAllocated(visible);
+//
+//                        return;
+//                    } else if (threadLocalCache.wantReset(sizeToReturn)) {
+//                        visible.flip();
+//
+//                        final ByteBuffer originalByteBuffer = visible;
+//                        visible = visible.slice();
+//                        originalByteBuffer.position(originalByteBuffer.limit());
+//                        originalByteBuffer.limit(originalByteBuffer.capacity());
+//
+//                        threadLocalCache.tryReset(originalByteBuffer);
+//                        return;
+//                    }
+//                }
+//            }
+//
+//            super.trim();
+//        }
+//
+//        @Override
+//        public void recycle() {
+//            allowBufferDispose = false;
+//            disposeStackTrace = null;
+//
+//            ThreadCache.putToCache(CACHE_IDX, this);
+//        }
+//
+//        @Override
+//        public void dispose() {
+//            super.dispose();
+//            recycle();
+//        }
+//    }
+//
+//    /**
+//     * {@link ByteBufferWrapper} implementation, which supports trimming. In
+//     * other words it's possible to return unused {@link org.glassfish.grizzly.Buffer} space to
+//     * pool.
+//     */
+//    private final class SmallBuffer extends ByteBufferWrapper
+//            implements Cacheable {
+//
+//        private SmallBuffer(ByteBuffer underlyingByteBuffer) {
+//            super(DefaultMemoryManager.this, underlyingByteBuffer);
+//        }
+//
+//        @Override
+//        public void dispose() {
+//            super.prepareDispose();
+//            visible.clear();
+//            recycle();
+//        }
+//
+//        @Override
+//        public void recycle() {
+//            if (visible.remaining() == smallBufferSize) {
+//                allowBufferDispose = false;
+//                disposeStackTrace = null;
+//
+//                if (ThreadCache.putToCache(SMALL_BUFFER_CACHE_IDX, this)) {
+//                    ProbeNotifier.notifyBufferReleasedToPool(monitoringConfig,
+//                            smallBufferSize);
+//                }
+//            }
+//        }
+//    }
 
 }

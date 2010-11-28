@@ -68,7 +68,7 @@ public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buf
     public static final int BUFFER_UNDERFLOW_ERROR = 2;
     public static final int BUFFER_OVERFLOW_ERROR = 3;
 
-    private Logger logger = Grizzly.logger(SSLEncoderTransformer.class);
+    private static final Logger LOGGER = Grizzly.logger(SSLEncoderTransformer.class);
     
     private static final TransformationResult<Buffer, Buffer> HANDSHAKE_NOT_EXECUTED_RESULT =
             TransformationResult.createErrorResult(
@@ -105,18 +105,18 @@ public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buf
         TransformationResult<Buffer, Buffer> transformationResult = null;
 
         try {
-            if (logger.isLoggable(Level.FINE)) {
-                logger.fine("SSLEncoder engine: " + sslEngine + " input: "
-                        + originalMessage + " output: " + targetBuffer);
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "SSLEncoder engine: {0} input: {1} output: {2}",
+                        new Object[]{sslEngine, originalMessage, targetBuffer});
             }
 
+            final int pos = originalMessage.position();
             final SSLEngineResult sslEngineResult;
             if (!originalMessage.isComposite()) {
                 sslEngineResult = sslEngine.wrap(originalMessage.toByteBuffer(),
                         targetBuffer.toByteBuffer());
             } else {
                 final int appBufferSize = sslEngine.getSession().getApplicationBufferSize();
-                final int pos = originalMessage.position();
                 final ByteBuffer originalByteBuffer =
                         originalMessage.toByteBuffer(pos,
                         pos + Math.min(appBufferSize, originalMessage.remaining()));
@@ -124,16 +124,16 @@ public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buf
                 sslEngineResult = sslEngine.wrap(originalByteBuffer,
                         targetBuffer.toByteBuffer());
 
-                originalMessage.position(pos + sslEngineResult.bytesConsumed());
             }
 
+            originalMessage.position(pos + sslEngineResult.bytesConsumed());
+            targetBuffer.position(sslEngineResult.bytesProduced());
+            
             final SSLEngineResult.Status status = sslEngineResult.getStatus();
 
-            if (logger.isLoggable(Level.FINE)) {
-                logger.fine("SSLEncoder done engine: " + sslEngine
-                        + " result: " + sslEngineResult
-                        + " input: " + originalMessage
-                        + " output: " + targetBuffer);
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "SSLEncoder done engine: {0} result: {1} input: {2} output: {3}",
+                        new Object[]{sslEngine, sslEngineResult, originalMessage, targetBuffer});
             }
             
             if (status == SSLEngineResult.Status.OK) {

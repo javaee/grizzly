@@ -59,8 +59,6 @@ import org.glassfish.grizzly.Buffer;
 public class ByteBufferWrapper implements Buffer {
     public static volatile boolean DEBUG_MODE = false;
 
-    protected final ByteBufferManager memoryManager;
-    
     protected ByteBuffer visible;
 
     // Dispose underlying Buffer flag
@@ -69,12 +67,10 @@ public class ByteBufferWrapper implements Buffer {
     protected Exception disposeStackTrace;
 
     protected ByteBufferWrapper() {
-        this(null, null);
+        this(null);
     }
 
-    public ByteBufferWrapper(ByteBufferManager memoryManager,
-            ByteBuffer underlyingByteBuffer) {
-        this.memoryManager = memoryManager;
+    public ByteBufferWrapper(final ByteBuffer underlyingByteBuffer) {
         visible = underlyingByteBuffer;
     }
 
@@ -124,7 +120,6 @@ public class ByteBufferWrapper implements Buffer {
     @Override
     public void dispose() {
         prepareDispose();
-        memoryManager.release(this);
         visible = null;
     }
 
@@ -244,7 +239,8 @@ public class ByteBufferWrapper implements Buffer {
 
         this.visible = slice1;
 
-        return memoryManager.wrap(slice2);
+        return wrapByteBuffer(slice2);
+//        return memoryManager.wrap(slice2);
     }
 
     @Override
@@ -261,7 +257,7 @@ public class ByteBufferWrapper implements Buffer {
             Buffers.setPositionLimit(visible, position, limit);
 
             final ByteBuffer slice = visible.slice();
-            return memoryManager.wrap(slice);
+            return wrapByteBuffer(slice);
         } finally {
             Buffers.setPositionLimit(visible, oldPosition, oldLimit);
         }
@@ -271,7 +267,7 @@ public class ByteBufferWrapper implements Buffer {
     @Override
     public ByteBufferWrapper duplicate() {
         final ByteBuffer duplicate = visible.duplicate();
-        return memoryManager.wrap(duplicate);
+        return wrapByteBuffer(duplicate);
     }
 
     @Override
@@ -634,6 +630,10 @@ public class ByteBufferWrapper implements Buffer {
         Buffers.setPositionLimit(this, position, limit);
 
         return array;
+    }
+
+    protected ByteBufferWrapper wrapByteBuffer(final ByteBuffer byteBuffer) {
+        return new ByteBufferWrapper(byteBuffer);
     }
 
     private static class DebugLogic {

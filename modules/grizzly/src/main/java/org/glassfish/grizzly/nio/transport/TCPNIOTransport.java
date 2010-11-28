@@ -226,9 +226,11 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
             if (threadPool == null) {
                 setThreadPool(GrizzlyExecutorService.createInstance(
-                        ThreadPoolConfig.DEFAULT.clone().
+                        ThreadPoolConfig.defaultConfig().
                         setCorePoolSize(selectorRunnersCount * 2).
-                        setMaxPoolSize(selectorRunnersCount * 2)));
+                        setMaxPoolSize(selectorRunnersCount * 2).
+                        setMemoryManager(getMemoryManager())));
+
             }
 
             if (strategy == null) {
@@ -820,7 +822,9 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
                         new Object[]{connection, read});
             }
             
-            if (read <= 0) {
+            if (read > 0) {
+                buffer.position(read);
+            } else {
                 buffer.dispose();
                 buffer = null;
                 
@@ -830,6 +834,8 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             }
         } else {
             if (buffer.hasRemaining()) {
+                final int oldPos = buffer.position();
+                
                 final SocketChannel socketChannel =
                         (SocketChannel) tcpConnection.getChannel();
                 
@@ -846,10 +852,6 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
                     array.restore();
                     array.recycle();
-
-                    if (read > 0) {
-                        buffer.position(buffer.position() + read);
-                    }                    
                 } else {
                     final ByteBuffer byteBuffer = buffer.toByteBuffer();
                     if (!isSelectorThread) {
@@ -858,6 +860,11 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
                         read = socketChannel.read(byteBuffer);
                     }
                 }
+
+                if (read > 0) {
+                    buffer.position(oldPos + read);
+                }
+
 
                 tcpConnection.onRead(buffer, read);
                 
@@ -927,6 +934,8 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             WriteResult currentResult) throws IOException {
 
         final TCPNIOConnection tcpConnection = (TCPNIOConnection) connection;
+        final int oldPos = buffer.position();
+        
         int written;
         if (buffer.isComposite()) {
             final ByteBufferArray array = buffer.toByteBufferArray();
@@ -941,10 +950,6 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
             array.restore();
             array.recycle();
-
-            if (written > 0) {
-                buffer.position(buffer.position() + written);
-            }
         } else {
             final ByteBuffer byteBuffer = buffer.toByteBuffer();
 
@@ -955,9 +960,14 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             }
         }
 
+        final boolean hasWritten = (written >= 0);
+        if (hasWritten) {
+            buffer.position(oldPos + written);
+        }
+
         tcpConnection.onWrite(buffer, written);
 
-        if (written >= 0) {
+        if (hasWritten) {
             if (currentResult != null) {
                 currentResult.setMessage(buffer);
                 currentResult.setWrittenSize(currentResult.getWrittenSize()

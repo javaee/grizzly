@@ -61,12 +61,12 @@ package org.glassfish.grizzly.http.util;
 import org.glassfish.grizzly.Buffer;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.Enumeration;
+import java.util.Iterator;
 
 /* XXX XXX XXX Need a major rewrite  !!!!
  */
 /**
- * This class is used to contain standard internet message headers,
+ * This class is used to contain standard Internet message headers,
  * used for SMTP (RFC822) and HTTP (RFC2068) messages as well as for
  * MIME (RFC 2045) applications such as transferring typed data and
  * grouping related items in multipart message bodies.
@@ -107,7 +107,7 @@ servlet needs direct access to headers).
  *  Memory-efficient repository for Mime Headers. When the object is recycled, it
  *  will keep the allocated headers[] and all the MimeHeaderField - no GC is generated.
  *
- *  For input headers it is possible to use the DataChunk for Fileds - so no GC
+ *  For input headers it is possible to use the DataChunk for Fields - so no GC
  *  will be generated.
  *
  *  The only garbage is generated when using the String for header names/values -
@@ -116,7 +116,7 @@ servlet needs direct access to headers).
  *  and reduce to 0 the memory overhead of tomcat.
  *
  *  TODO:
- *  XXX one-buffer parsing - for http ( other protocols don't need that )
+ *  XXX one-buffer parsing - for HTTP ( other protocols don't need that )
  *  XXX remove unused methods
  *  XXX External enumerations, with 0 GC.
  *  XXX use HeaderName ID
@@ -174,9 +174,10 @@ public class MimeHeaders {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
         pw.println("=== MimeHeaders ===");
-        Enumeration<String> e = names();
-        while (e.hasMoreElements()) {
-            String n = e.nextElement();
+
+        final Iterator<String> it = names();
+        while (it.hasNext()) {
+            String n = it.next();
             pw.println(n + " = " + getHeader(n));
         }
         return sw.toString();
@@ -251,12 +252,12 @@ public class MimeHeaders {
      * Field names may appear multiple times in this enumeration, indicating
      * that multiple fields with that name exist in this header.
      */
-    public Enumeration<String> names() {
-        return new NamesEnumerator(this);
+    public Iterator<String> names() {
+        return new NamesIterator(this);
     }
 
-    public Enumeration<String> values(String name) {
-        return new ValuesEnumerator(this, name);
+    public Iterator<String> values(String name) {
+        return new ValuesIterator(this, name);
     }
 
     // -------------------- Adding headers --------------------
@@ -381,7 +382,7 @@ public class MimeHeaders {
      * reset and swap with last header
      * @param idx the index of the header to remove.
      */
-    private void removeHeader(int idx) {
+    void removeHeader(int idx) {
         MimeHeaderField mh = headers[idx];
 
         mh.recycle();
@@ -398,14 +399,15 @@ done with all previous elements ).
 This is less frequesnt than add() -
 we want to keep add O(1).
  */
-class NamesEnumerator implements Enumeration<String> {
+class NamesIterator implements Iterator<String> {
 
     int pos;
     int size;
+    int currentPos;
     String next;
     MimeHeaders headers;
 
-    NamesEnumerator(MimeHeaders headers) {
+    NamesIterator(MimeHeaders headers) {
         this.headers = headers;
         pos = 0;
         size = headers.size();
@@ -434,30 +436,41 @@ class NamesEnumerator implements Enumeration<String> {
     }
 
     @Override
-    public boolean hasMoreElements() {
+    public boolean hasNext() {
         return next != null;
     }
 
     @Override
-    public String nextElement() {
-        String current = next;
+    public String next() {
+        currentPos = pos - 1;
+        final String current = next;
         findNext();
         return current;
+    }
+
+    @Override
+    public void remove() {
+        if (currentPos < 0) throw new IllegalStateException("No current element");
+        headers.removeHeader(currentPos);
+        pos = currentPos;
+        currentPos = -1;
+        findNext();
     }
 }
 
 /** Enumerate the values for a (possibly ) multiple
 value element.
  */
-class ValuesEnumerator implements Enumeration<String> {
+class ValuesIterator implements Iterator<String> {
 
     int pos;
     int size;
+    int currentPos;
     DataChunk next;
     MimeHeaders headers;
     String name;
 
-    ValuesEnumerator(MimeHeaders headers, String name) {
+    ValuesIterator(MimeHeaders headers, String name) {
         this.name = name;
         this.headers = headers;
         pos = 0;
@@ -468,7 +481,7 @@ class ValuesEnumerator implements Enumeration<String> {
     private void findNext() {
         next = null;
         for (; pos < size; pos++) {
-            DataChunk n1 = headers.getName(pos);
+            final DataChunk n1 = headers.getName(pos);
             if (n1.equalsIgnoreCase(name)) {
                 next = headers.getValue(pos);
                 break;
@@ -478,15 +491,25 @@ class ValuesEnumerator implements Enumeration<String> {
     }
 
     @Override
-    public boolean hasMoreElements() {
+    public boolean hasNext() {
         return next != null;
     }
 
     @Override
-    public String nextElement() {
-        DataChunk current = next;
+    public String next() {
+        currentPos = pos - 1;
+        final String current = next.toString();
         findNext();
-        return current.toString();
+        return current;
+    }
+
+    @Override
+    public void remove() {
+        if (currentPos < 0) throw new IllegalStateException("No current element");
+        headers.removeHeader(currentPos);
+        pos = currentPos;
+        currentPos = -1;
+        findNext();
     }
 }
 

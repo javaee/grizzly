@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,68 +40,30 @@
 
 package org.glassfish.grizzly.memory;
 
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-import org.glassfish.grizzly.Buffer;
 
 /**
- * {@link MemoryManager}s, which implement this interface, are able to convert
- * frequently used Java buffer types to Grizzly {@link Buffer}.
+ * TODO Documentation
  *
- * @see MemoryUtils
- * @see MemoryManager
- * 
- * @author Alexey Stashok
+ * @param <E>
  */
-public interface WrapperAware {
-    /**
-     * Returns {@link Buffer}, which wraps the byte array.
-     *
-     * @param data byte array to wrap
-     *
-     * @return {@link Buffer} wrapper on top of passed byte array.
-     */
-    public Buffer wrap(byte[] data);
+public interface ThreadLocalPool<E> {
+    void reset(E pool);
 
-    /**
-     * Returns {@link Buffer}, which wraps the part of byte array with
-     * specific offset and length.
-     *
-     * @param data byte array to wrap
-     * @param offset byte buffer offset
-     * @param length byte buffer length
-     *
-     * @return {@link Buffer} wrapper on top of passed byte array.
-     */
-    public Buffer wrap(byte[] data, int offset, int length);
-    
-    /**
-     * Returns {@link Buffer}, which wraps the {@link String}.
-     *
-     * @param s {@link String}
-     *
-     * @return {@link Buffer} wrapper on top of passed {@link String}.
-     */
-    public Buffer wrap(String s);
+    E allocate(int size);
 
-    /**
-     * Returns {@link Buffer}, which wraps the {@link String} with the specific
-     * {@link Charset}.
-     *
-     * @param s {@link String}
-     * @param charset {@link Charset}, which will be used, when converting
-     * {@link String} to byte array.
-     *
-     * @return {@link Buffer} wrapper on top of passed {@link String}.
-     */
-    public Buffer wrap(String s, Charset charset);
+    E reallocate(E oldBuffer, int newSize);
 
-    /**
-     * Returns {@link Buffer}, which wraps the {@link ByteBuffer}.
-     *
-     * @param byteBuffer {@link ByteBuffer} to wrap
-     *
-     * @return {@link Buffer} wrapper on top of passed {@link ByteBuffer}.
-     */
-    public Buffer wrap(ByteBuffer byteBuffer);
+    boolean release(E underlyingBuffer);
+
+    boolean tryReset(E buffer);
+
+    boolean isLastAllocated(E oldBuffer);
+
+    E reduceLastAllocated(E buffer);
+
+    boolean wantReset(int size);
+
+    int remaining();
+
+    boolean hasRemaining();
 }

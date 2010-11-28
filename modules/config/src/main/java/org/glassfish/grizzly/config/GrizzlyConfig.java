@@ -47,8 +47,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.config.dom.NetworkConfig;
 import org.glassfish.grizzly.config.dom.NetworkListener;
+import org.glassfish.grizzly.memory.AbstractMemoryManager;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
 
 /**
@@ -76,11 +79,18 @@ public class GrizzlyConfig {
     public void setupNetwork() throws IOException {
         validateConfig(config);
         synchronized (listeners) {
+            AbstractMemoryManager amm = null;
+            final MemoryManager mm = TransportFactory.getInstance().getDefaultMemoryManager();
+            if (mm instanceof AbstractMemoryManager) {
+                amm = (AbstractMemoryManager) mm;
+            }
             for (final NetworkListener listener : config.getNetworkListeners().getNetworkListener()) {
                 final GrizzlyServiceListener grizzlyListener = new GrizzlyServiceListener(listener);
                 listeners.add(grizzlyListener);
                 final Thread thread = new DefaultWorkerThread(Grizzly.DEFAULT_ATTRIBUTE_BUILDER,
-                    grizzlyListener.getName(), new ListenerRunnable(grizzlyListener));
+                                                              grizzlyListener.getName(),
+                                                              ((amm != null) ? amm.createThreadLocalPool() : null),
+                                                              new ListenerRunnable(grizzlyListener));
                 thread.setDaemon(true);
                 thread.start();
             }

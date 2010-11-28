@@ -42,8 +42,7 @@ package org.glassfish.grizzly;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.memory.DefaultMemoryManager;
-import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.memory.ByteBufferManager;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import java.util.Arrays;
 import java.util.List;
@@ -57,7 +56,7 @@ import org.glassfish.grizzly.memory.ByteBufferArray;
 public class CompositeBufferTest extends GrizzlyTestCase {
 
     public void testSingleBuffer() {
-        MemoryManager manager = new DefaultMemoryManager();
+        final ByteBufferManager manager = new ByteBufferManager();
 
         Buffer buffer = manager.allocate(1 + 2 + 2 + 4 + 8 + 4 + 8);
         CompositeBuffer compositeBuffer = createCompositeBuffer(buffer);
@@ -90,7 +89,7 @@ public class CompositeBufferTest extends GrizzlyTestCase {
     }
 
     public void testSingleBufferIndexedAccess() {
-        MemoryManager manager = new DefaultMemoryManager();
+        final ByteBufferManager manager = new ByteBufferManager();
 
         Buffer buffer = manager.allocate(1 + 2 + 2 + 4 + 8 + 4 + 8);
         CompositeBuffer compositeBuffer = createCompositeBuffer(buffer);
@@ -373,7 +372,7 @@ public class CompositeBufferTest extends GrizzlyTestCase {
     }
 
     public void testBuffers() {
-        MemoryManager manager = new DefaultMemoryManager();
+        final ByteBufferManager manager = new ByteBufferManager();
 
         Buffer sampleBuffer = Buffers.wrap(manager, new byte[]{-1, 0, 1, 1, 2, 3, 4});
 
@@ -391,7 +390,7 @@ public class CompositeBufferTest extends GrizzlyTestCase {
     }
 
     public void testEmptyBufferPrepend() {
-        MemoryManager manager = new DefaultMemoryManager();
+        final ByteBufferManager manager = new ByteBufferManager();
 
         Buffer buffer1 = Buffers.wrap(manager, "1234");
         buffer1.position(3);
@@ -411,7 +410,7 @@ public class CompositeBufferTest extends GrizzlyTestCase {
     }
 
     public void testToByteBufferArray() {
-        MemoryManager manager = new DefaultMemoryManager();
+        final ByteBufferManager manager = new ByteBufferManager();
 
         final byte[] bytes = new byte[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
@@ -448,7 +447,7 @@ public class CompositeBufferTest extends GrizzlyTestCase {
     }
 
     public void testToByteBuffer() {
-        MemoryManager manager = new DefaultMemoryManager();
+        final ByteBufferManager manager = new ByteBufferManager();
 
         final byte[] bytes = new byte[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
@@ -481,7 +480,7 @@ public class CompositeBufferTest extends GrizzlyTestCase {
     private <E> void doTest(E[] testData,
             int buffersNum, int bufferSize, Put<E> put, Get<E> get) {
 
-        MemoryManager manager = new DefaultMemoryManager();
+        final ByteBufferManager manager = new ByteBufferManager();
 
         Buffer[] buffers = new Buffer[buffersNum];
         for (int i = 0; i < buffers.length; i++) {
@@ -505,7 +504,7 @@ public class CompositeBufferTest extends GrizzlyTestCase {
             int buffersNum, int bufferSize, Put<E> put, Get<E> get,
             int eSizeInBytes) {
 
-        MemoryManager manager = new DefaultMemoryManager();
+        final ByteBufferManager manager = new ByteBufferManager();
 
         Buffer[] buffers = new Buffer[buffersNum];
         for (int i = 0; i < buffers.length; i++) {
@@ -525,7 +524,7 @@ public class CompositeBufferTest extends GrizzlyTestCase {
 
     private void doTestSplit(int size) {
 
-        MemoryManager manager = new DefaultMemoryManager();
+        final ByteBufferManager manager = new ByteBufferManager();
 
         for (int i = 1; i <= size; i++) {
             final int num = size / i;

@@ -434,9 +434,10 @@ public final class UDPNIOTransport extends AbstractNIOTransport
 
             if (threadPool == null) {
                 setThreadPool(GrizzlyExecutorService.createInstance(
-                        ThreadPoolConfig.DEFAULT.clone().
+                        ThreadPoolConfig.defaultConfig().
                         setCorePoolSize(selectorRunnersCount * 2).
-                        setMaxPoolSize(selectorRunnersCount * 2)));
+                        setMaxPoolSize(selectorRunnersCount * 2).
+                        setMemoryManager(getMemoryManager())));
             }
 
             if (strategy == null) {
@@ -660,6 +661,8 @@ public final class UDPNIOTransport extends AbstractNIOTransport
 
         final int read;
 
+        final int oldPos = buffer.position();
+
         if (buffer.isComposite()) {
             final ByteBufferArray array = buffer.toByteBufferArray();
             final ByteBuffer[] byteBuffers = array.getArray();
@@ -669,16 +672,18 @@ public final class UDPNIOTransport extends AbstractNIOTransport
 
             array.restore();
             array.recycle();
-            
-            if (read > 0) {
-                buffer.position(buffer.position() + read);
-            }
         } else {
             read = ((DatagramChannel) connection.getChannel()).read(
                     buffer.toByteBuffer());
         }
 
-        if (currentResult != null && read > 0) {
+        final boolean hasRead = (read > 0);
+
+        if (hasRead) {
+            buffer.position(oldPos + read);
+        }
+        
+        if (hasRead && currentResult != null) {
             currentResult.setMessage(buffer);
             currentResult.setReadSize(currentResult.getReadSize() + read);
             currentResult.setSrcAddress(peerAddress);
@@ -693,6 +698,8 @@ public final class UDPNIOTransport extends AbstractNIOTransport
 
         final int read;
 
+        final int oldPos = buffer.position();
+
         if (!buffer.isComposite()) {
             final ByteBuffer underlyingBB = buffer.toByteBuffer();
             final int initialBufferPos = underlyingBB.position();
@@ -704,7 +711,13 @@ public final class UDPNIOTransport extends AbstractNIOTransport
                     + "non-connection UDP connection into CompositeBuffer");
         }
 
-        if (currentResult != null && read > 0) {
+        final boolean hasRead = (read > 0);
+
+        if (hasRead) {
+            buffer.position(oldPos + read);
+        }
+        
+        if (hasRead && currentResult != null) {
             currentResult.setMessage(buffer);
             currentResult.setReadSize(currentResult.getReadSize() + read);
             currentResult.setSrcAddress(peerAddress);
@@ -760,6 +773,8 @@ public final class UDPNIOTransport extends AbstractNIOTransport
 
         final int written;
 
+        final int oldPos = buffer.position();
+
         if (dstAddress != null) {
             written = ((DatagramChannel) connection.getChannel()).send(
                     buffer.toByteBuffer(), dstAddress);
@@ -774,16 +789,16 @@ public final class UDPNIOTransport extends AbstractNIOTransport
 
                 array.restore();
                 array.recycle();
-
-                if (written > 0) {
-                    buffer.position(buffer.position() + written);
-                }
             } else {
                 written = ((DatagramChannel) connection.getChannel()).write(
                         buffer.toByteBuffer());
             }
         }
 
+        if (written > 0) {
+            buffer.position(oldPos + written);
+        }
+        
         connection.onWrite(buffer, written);
 
         if (currentResult != null) {

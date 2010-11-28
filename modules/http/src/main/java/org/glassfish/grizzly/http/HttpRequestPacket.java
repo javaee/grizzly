@@ -47,7 +47,7 @@ import org.glassfish.grizzly.http.util.RequestURIRef;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.Enumeration;
+import java.util.Iterator;
 
 /**
  * The {@link HttpHeader} object, which represents HTTP request message.
@@ -495,8 +495,8 @@ public abstract class HttpRequestPacket extends HttpHeader {
                 .append("\n   content-length=").append(getContentLength())
                 .append("\n   headers=[");
         MimeHeaders headersLocal = getHeaders();
-        for (Enumeration<String> e = headersLocal.names(); e.hasMoreElements(); ) {
-            String n = e.nextElement();
+        for (Iterator<String> it = headersLocal.names(); it.hasNext(); ) {
+            String n = it.next();
             sb.append("\n      ").append(n).append('=').append(headersLocal.getHeader(n));
         }
         sb.append("]\n)");

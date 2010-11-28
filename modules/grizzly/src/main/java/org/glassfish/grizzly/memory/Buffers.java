@@ -86,7 +86,7 @@ public class Buffers {
     public static final Buffer EMPTY_BUFFER;
 
     static {
-        EMPTY_BUFFER = TransportFactory.getInstance().getDefaultMemoryManager().allocate(0).asReadOnlyBuffer();
+        EMPTY_BUFFER = new ByteBufferWrapper(ByteBuffer.allocate(0).asReadOnlyBuffer());
         EMPTY_BUFFER.allowBufferDispose(false);
     }
 
@@ -99,7 +99,7 @@ public class Buffers {
      *
      * @return {@link Buffer} wrapper on top of passed {@link String}.
      */
-    public static <E extends Buffer> E wrap(MemoryManager<E> memoryManager,
+    public static Buffer wrap(MemoryManager memoryManager,
             String s) {
         return wrap(memoryManager, s, Charset.defaultCharset());
     }
@@ -116,7 +116,7 @@ public class Buffers {
      *
      * @return {@link Buffer} wrapper on top of passed {@link String}.
      */
-    public static <E extends Buffer> E wrap(MemoryManager<E> memoryManager,
+    public static Buffer wrap(MemoryManager memoryManager,
             String s, Charset charset) {
         try {
             byte[] byteRepresentation = s.getBytes(charset.name());
@@ -135,7 +135,7 @@ public class Buffers {
      *
      * @return {@link Buffer} wrapper on top of passed byte array.
      */
-    public static <E extends Buffer> E wrap(MemoryManager<E> memoryManager,
+    public static Buffer wrap(MemoryManager memoryManager,
             byte[] array) {
         return wrap(memoryManager, array, 0, array.length);
     }
@@ -152,17 +152,17 @@ public class Buffers {
      *
      * @return {@link Buffer} wrapper on top of passed byte array.
      */
-    public static <E extends Buffer> E wrap(MemoryManager<E> memoryManager,
+    public static Buffer wrap(MemoryManager memoryManager,
             byte[] array, int offset, int length) {
         if (memoryManager == null) {
             memoryManager = TransportFactory.getInstance().getDefaultMemoryManager();
         }
 
         if (memoryManager instanceof WrapperAware) {
-            return ((WrapperAware<E>) memoryManager).wrap(array, offset, length);
+            return ((WrapperAware) memoryManager).wrap(array, offset, length);
         }
 
-        E buffer = memoryManager.allocate(length);
+        Buffer buffer = memoryManager.allocate(length);
         buffer.put(array, offset, length);
         buffer.flip();
         return buffer;
@@ -177,10 +177,10 @@ public class Buffers {
      *
      * @return {@link Buffer} wrapper on top of passed {@link ByteBuffer}.
      */
-    public static <E extends Buffer> E wrap(MemoryManager<E> memoryManager,
+    public static Buffer wrap(MemoryManager memoryManager,
             ByteBuffer byteBuffer) {
         if (memoryManager instanceof WrapperAware) {
-            return ((WrapperAware<E>) memoryManager).wrap(byteBuffer);
+            return ((WrapperAware) memoryManager).wrap(byteBuffer);
         } else if (byteBuffer.hasArray()) {
             return wrap(memoryManager, byteBuffer.array(),
                     byteBuffer.arrayOffset() + byteBuffer.position(),

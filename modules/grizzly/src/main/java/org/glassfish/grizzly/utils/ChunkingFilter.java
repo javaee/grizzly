@@ -61,7 +61,7 @@ import java.util.logging.Logger;
  * @author Alexey Stashok
  */
 public class ChunkingFilter extends AbstractCodecFilter<Buffer, Buffer> {
-    private static final Logger logger = Grizzly.logger(ChunkingFilter.class);
+    private static final Logger LOGGER = Grizzly.logger(ChunkingFilter.class);
 
     private final int chunkSize;
 

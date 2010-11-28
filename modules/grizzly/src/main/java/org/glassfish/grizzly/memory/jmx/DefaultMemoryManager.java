@@ -63,6 +63,6 @@ public class DefaultMemoryManager extends ByteBufferManager {
     @ManagedAttribute(id="max-buffer-size")
     @Description("The max buffer size, which could be associated with a thread")
     public int getMaxThreadBufferSize() {
-        return ((org.glassfish.grizzly.memory.DefaultMemoryManager) memoryManager).getMaxThreadBufferSize();
+        return ((org.glassfish.grizzly.memory.AbstractMemoryManager) memoryManager).getMaxBufferSize();
     }
 }

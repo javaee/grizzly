@@ -41,13 +41,15 @@
 package org.glassfish.grizzly;
 
 import java.util.concurrent.ExecutorService;
+
+import org.glassfish.grizzly.memory.HeapMemoryManager;
 import org.glassfish.grizzly.nio.DefaultNIOTransportFactory;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
-import org.glassfish.grizzly.memory.DefaultMemoryManager;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
+import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
 /**
  * Factory, responsible for creating and initializing Grizzly {@link Transport}s.
@@ -178,8 +180,9 @@ public abstract class TransportFactory {
      */
     public void initialize() {
         defaultAttributeBuilder = Grizzly.DEFAULT_ATTRIBUTE_BUILDER;
-        defaultMemoryManager = new DefaultMemoryManager();
-        defaultWorkerThreadPool = GrizzlyExecutorService.createInstance();
+        defaultMemoryManager = new HeapMemoryManager();
+        defaultWorkerThreadPool = GrizzlyExecutorService.createInstance(
+                ThreadPoolConfig.defaultConfig().setMemoryManager(defaultMemoryManager));
     }
 
     /**

@@ -41,6 +41,8 @@
 package org.glassfish.grizzly.threadpool;
 
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.memory.AbstractMemoryManager;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
@@ -387,9 +389,14 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
         return new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
+                final AbstractMemoryManager mm = (AbstractMemoryManager) config.getMemoryManager();
                 return new DefaultWorkerThread(Grizzly.DEFAULT_ATTRIBUTE_BUILDER,
-                        config.getPoolName() + "-WorkerThread("
-                        + counter.getAndIncrement() + ")", r);
+                                               config.getPoolName()
+                                                       + "-WorkerThread("
+                                                       + counter.getAndIncrement()
+                                                       + ")",
+                                               ((mm != null) ? mm.createThreadLocalPool() : null),
+                                               r);
             }
         };
     }

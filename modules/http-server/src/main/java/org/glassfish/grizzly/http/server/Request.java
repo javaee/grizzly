@@ -67,7 +67,6 @@ import org.glassfish.grizzly.http.server.io.InputBuffer;
 import org.glassfish.grizzly.http.server.io.NIOReader;
 import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.Cookies;
-import org.glassfish.grizzly.http.server.util.Enumerator;
 import org.glassfish.grizzly.http.server.util.Globals;
 import org.glassfish.grizzly.http.server.util.ParameterMap;
 import org.glassfish.grizzly.http.server.util.StringParser;
@@ -810,10 +809,10 @@ public class Request {
 
     /**
      * Return the names of all request attributes for this Request, or an
-     * empty <code>Enumeration</code> if there are none.
+     * empty {@link Iterator} if there are none.
      */
-    public Enumeration<String> getAttributeNames() {
-        return new Enumerator<String>(attributes.keySet(), true);
+    public Iterator<String> getAttributeNames() {
+        return attributes.keySet().iterator();
     }
 
 
@@ -915,16 +914,17 @@ public class Request {
      * headers that were encountered.  If the request did not specify a
      * preferred language, the server's default Locale is returned.
      */
-    public Enumeration<Locale> getLocales() {
+    public Iterator<Locale> getLocales() {
 
         if (!localesParsed)
             parseLocales();
 
-        if (locales.size() > 0)
-            return (new Enumerator<Locale>(locales));
-        ArrayList<Locale> results = new ArrayList<Locale>();
+        if (!locales.isEmpty())
+            return locales.iterator();
+
+        final ArrayList<Locale> results = new ArrayList<Locale>();
         results.add(defaultLocale);
-        return (new Enumerator<Locale>(results));
+        return results.iterator();
 
     }
 
@@ -1536,7 +1536,7 @@ public class Request {
      *
      * @param name Name of the requested header
      */
-    public Enumeration getHeaders(String name) {
+    public Iterator<String> getHeaders(String name) {
         return request.getHeaders().values(name);
     }
 
@@ -1544,7 +1544,7 @@ public class Request {
     /**
      * Return the names of all headers received with this request.
      */
-    public Enumeration getHeaderNames() {
+    public Iterator<String> getHeaderNames() {
         return request.getHeaders().names();
     }
 
@@ -1937,10 +1937,10 @@ public class Request {
 
         localesParsed = true;
 
-        Enumeration values = getHeaders("accept-language");
+        final Iterator<String> values = getHeaders("accept-language");
 
-        while (values.hasMoreElements()) {
-            String value = values.nextElement().toString();
+        while (values.hasNext()) {
+            final String value = values.next();
             parseLocalesHeader(value);
         }
 

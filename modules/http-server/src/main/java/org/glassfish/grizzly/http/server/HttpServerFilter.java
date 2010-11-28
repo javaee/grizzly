@@ -153,13 +153,13 @@ public class HttpServerFilter extends BaseFilter
                     serviceRequest.getRequest().getProcessingState().setError(true);
                     
                     if (!response.isCommitted()) {
-                        ByteBuffer b = HtmlHelper.getExceptionErrorPage("Internal Server Error", "Grizzly/2.0", t);
+                        final ByteBuffer b = HtmlHelper.getExceptionErrorPage("Internal Server Error", "Grizzly/2.0", t);
                         serviceResponse.reset();
                         serviceResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
                         serviceResponse.setContentType("text/html");
                         serviceResponse.setCharacterEncoding("UTF-8");
-                        MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
-                        Buffer buf = Buffers.wrap(mm, b);
+                        final MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
+                        final Buffer buf = Buffers.wrap(mm, b);
                         serviceResponse.getOutputBuffer().writeBuffer(buf);
                     }
                 } finally {

@@ -113,7 +113,7 @@ public class HtmlHelper{
      * Prepare the HTTP body containing the error messages.
      */
     private static String prepareBody(String headerMessage, String message, String serverName){
-        StringBuilder sb = new StringBuilder();
+        final StringBuilder sb = new StringBuilder();
 
         sb.append("<html><head><title>");
         sb.append(serverName);

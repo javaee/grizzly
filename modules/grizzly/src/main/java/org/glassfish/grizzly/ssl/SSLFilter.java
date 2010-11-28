@@ -321,6 +321,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
 
                         final SSLEngineResult sslEngineResult;
 
+                        final int pos = inputBuffer.position();
                         if (!inputBuffer.isComposite()) {
                             final ByteBuffer inputBB = inputBuffer.toByteBuffer();
 
@@ -331,6 +332,8 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                                     outputBuffer.toByteBuffer());
                             outputBuffer.dispose();
 
+                            inputBuffer.position(pos + sslEngineResult.bytesConsumed());
+                            
                             if (inputBuffer.hasRemaining()) {
                                 // shift remainder to the buffer position 0
                                 inputBuffer.compact();
@@ -339,7 +342,6 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                             }
 
                         } else {
-                            final int pos = inputBuffer.position();
                             final ByteBuffer inputByteBuffer =
                                     inputBuffer.toByteBuffer(pos,
                                     pos + expectedLength);
@@ -377,9 +379,11 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                         buffer.allowBufferDispose(true);
 
                         try {
-                            sslEngine.wrap(Buffers.EMPTY_BYTE_BUFFER,
+                            final SSLEngineResult sslEngineResult =
+                                    sslEngine.wrap(Buffers.EMPTY_BYTE_BUFFER,
                                     buffer.toByteBuffer());
 
+                            buffer.position(sslEngineResult.bytesProduced());
                             buffer.trim();
 
                             context.write(dstAddress, buffer, null);

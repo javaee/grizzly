@@ -40,9 +40,6 @@
 
 package org.glassfish.grizzly.threadpool;
 
-import org.glassfish.grizzly.monitoring.MonitoringAware;
-import org.glassfish.grizzly.monitoring.MonitoringConfig;
-import org.glassfish.grizzly.monitoring.MonitoringConfigImpl;
 import org.glassfish.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
@@ -53,6 +50,7 @@ import java.util.Queue;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+import org.glassfish.grizzly.TransportFactory;
 
 /**
  *
@@ -83,7 +81,7 @@ public class GrizzlyExecutorService extends AbstractExecutorService
      * @return {@link GrizzlyExecutorService}
      */
     public static GrizzlyExecutorService createInstance() {
-        return createInstance(ThreadPoolConfig.DEFAULT);
+        return createInstance(ThreadPoolConfig.defaultConfig());
     }
 
     /**
@@ -105,6 +103,11 @@ public class GrizzlyExecutorService extends AbstractExecutorService
         }
 
         cfg = cfg.clone();
+
+        if (cfg.getMemoryManager() == null) {
+            cfg.setMemoryManager(TransportFactory.getInstance().getDefaultMemoryManager());
+        }
+        
         final Queue<Runnable> queue = cfg.getQueue();
         if ((queue == null || queue instanceof BlockingQueue) &&
                 (cfg.getCorePoolSize() < 0 || cfg.getCorePoolSize() == cfg.getMaxPoolSize())) {

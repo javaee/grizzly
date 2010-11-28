@@ -184,7 +184,7 @@ public class GZipDecoder extends AbstractTransformer<Buffer, Buffer> {
                 final Buffer decodedBuffer = memoryManager.allocate(bufferSize);
                 final ByteBuffer decodedBB = decodedBuffer.toByteBuffer();
                 final byte[] decodedArray = decodedBB.array();
-                final int decodedArrayOffs = decodedBB.arrayOffset();
+                final int decodedArrayOffs = decodedBB.arrayOffset() + decodedBB.position();
 
                 try {
                     lastInflated = inflater.inflate(decodedArray, decodedArrayOffs, bufferSize);
