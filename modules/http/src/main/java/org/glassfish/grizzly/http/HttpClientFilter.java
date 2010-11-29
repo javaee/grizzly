@@ -98,8 +98,11 @@ public class HttpClientFilter extends HttpCodecFilter {
         this.httpResponseInProcessAttr =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
                 "HttpServerFilter.httpRequest");
-        
-        contentEncodings.add(new GZipContentEncoding());
+
+        // TODO - need to investigate why contentEncodings.add(new GZipContentEncoding())
+        // fails to compile/run when running tests in Intellij
+        final ContentEncoding encoding = new GZipContentEncoding();
+        contentEncodings.add(encoding);
     }
 
     /**

@@ -95,7 +95,9 @@ public final class BuffersBuffer extends CompositeBuffer {
 
     private MemoryManager memoryManager;
 
-    private ByteOrder byteOrder = ByteOrder.nativeOrder();
+    private ByteOrder byteOrder = ByteOrder.BIG_ENDIAN; // parity with ByteBuffer
+
+    private boolean bigEndian = true;
 
     // Allow to dispose this BuffersBuffer
     private boolean allowBufferDispose = false;
@@ -609,6 +611,9 @@ public final class BuffersBuffer extends CompositeBuffer {
     public BuffersBuffer order(ByteOrder bo) {
         checkDispose();
         this.byteOrder = bo;
+        if (this.byteOrder != ByteOrder.BIG_ENDIAN) {
+            bigEndian = false;
+        }
         return this;
     }
 
@@ -802,7 +807,7 @@ public final class BuffersBuffer extends CompositeBuffer {
     }
 
     @Override
-    public char getChar(int index) {
+    public char getChar(final int index) {
         checkDispose();
 
         checkIndex(index);
@@ -810,12 +815,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         if (upperBound - index >= 2) {
             return activeBuffer.getChar(toActiveBufferPos(index));
         } else {
-            final int ch1 = activeBuffer.get(toActiveBufferPos(index)) & 0xFF;
-
-            checkIndex(++index);
-            final int ch2 = activeBuffer.get(toActiveBufferPos(index)) & 0xFF;
-
-            return (char) ((ch1 << 8) + (ch2));
+            return ((bigEndian) ? makeCharB(index) : makeCharL(index));
         }
     }
 
@@ -829,10 +829,11 @@ public final class BuffersBuffer extends CompositeBuffer {
         if (upperBound - index >= 2) {
             activeBuffer.putChar(toActiveBufferPos(index), value);
         } else {
-            activeBuffer.put(toActiveBufferPos(index), (byte) (value >>> 8));
-
-            checkIndex(++index);
-            activeBuffer.put(toActiveBufferPos(index), (byte) (value & 0xFF));
+            if (bigEndian) {
+                putCharB(index, value);
+            } else {
+                putCharL(index, value);
+            }
         }
 
         return this;
@@ -854,7 +855,7 @@ public final class BuffersBuffer extends CompositeBuffer {
     }
 
     @Override
-    public short getShort(int index) {
+    public short getShort(final int index) {
         checkDispose();
 
         checkIndex(index);
@@ -862,13 +863,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         if (upperBound - index >= 2) {
             return activeBuffer.getShort(toActiveBufferPos(index));
         } else {
-            final int ch1 = activeBuffer.get(toActiveBufferPos(index)) & 0xFF;
-
-            checkIndex(++index);
-
-            final int ch2 = activeBuffer.get(toActiveBufferPos(index)) & 0xFF;
-
-            return (short) ((ch1 << 8) + (ch2));
+            return ((bigEndian) ? makeShortB(index) : makeShortL(index));
         }
     }
 
@@ -882,11 +877,11 @@ public final class BuffersBuffer extends CompositeBuffer {
         if (upperBound - index >= 2) {
             activeBuffer.putShort(toActiveBufferPos(index), value);
         } else {
-            activeBuffer.put(toActiveBufferPos(index), (byte) (value >>> 8));
-
-            checkIndex(++index);
-
-            activeBuffer.put(toActiveBufferPos(index), (byte) (value & 0xFF));
+            if (bigEndian) {
+                putShortB(index, value);
+            } else {
+                putShortL(index, value);
+            }
         }
 
         return this;
@@ -907,7 +902,7 @@ public final class BuffersBuffer extends CompositeBuffer {
     }
 
     @Override
-    public int getInt(int index) {
+    public int getInt(final int index) {
         checkDispose();
 
         checkIndex(index);
@@ -915,22 +910,11 @@ public final class BuffersBuffer extends CompositeBuffer {
         if (upperBound - index >= 4) {
             return activeBuffer.getInt(toActiveBufferPos(index));
         } else {
-            final int ch1 = activeBuffer.get(toActiveBufferPos(index)) & 0xFF;
-
-            checkIndex(++index);
-            final int ch2 = activeBuffer.get(toActiveBufferPos(index)) & 0xFF;
-
-            checkIndex(++index);
-            final int ch3 = activeBuffer.get(toActiveBufferPos(index)) & 0xFF;
-
-            checkIndex(++index);
-            final int ch4 = activeBuffer.get(toActiveBufferPos(index)) & 0xFF;
-
-            return ((ch1 << 24) + (ch2 << 16) + (ch3 << 8) + (ch4));
+            return ((bigEndian) ? makeIntB(index) : makeIntL(index));
         }
     }
 
-    @Override
+
     public BuffersBuffer putInt(int index, final int value) {
         checkDispose();
         checkReadOnly();
@@ -940,16 +924,11 @@ public final class BuffersBuffer extends CompositeBuffer {
         if (upperBound - index >= 4) {
             activeBuffer.putInt(toActiveBufferPos(index), value);
         } else {
-            activeBuffer.put(toActiveBufferPos(index), (byte) ((value >>> 24) & 0xFF));
-
-            checkIndex(++index);
-            activeBuffer.put(toActiveBufferPos(index), (byte) ((value >>> 16) & 0xFF));
-
-            checkIndex(++index);
-            activeBuffer.put(toActiveBufferPos(index), (byte) ((value >>> 8) & 0xFF));
-
-            checkIndex(++index);
-            activeBuffer.put(toActiveBufferPos(index), (byte) ((value) & 0xFF));
+            if (bigEndian) {
+                putIntB(index, value);
+            } else {
+                putIntL(index, value);
+            }
         }
 
         return this;
@@ -972,7 +951,7 @@ public final class BuffersBuffer extends CompositeBuffer {
     }
 
     @Override
-    public long getLong(int index) {
+    public long getLong(final int index) {
         checkDispose();
 
         checkIndex(index);
@@ -980,42 +959,12 @@ public final class BuffersBuffer extends CompositeBuffer {
         if (upperBound - index >= 8) {
             return activeBuffer.getLong(toActiveBufferPos(index));
         } else {
-            final int ch1 = activeBuffer.get(toActiveBufferPos(index)) & 0xFF;
-
-            checkIndex(++index);
-            final int ch2 = activeBuffer.get(toActiveBufferPos(index)) & 0xFF;
-
-            checkIndex(++index);
-            final int ch3 = activeBuffer.get(toActiveBufferPos(index)) & 0xFF;
-
-            checkIndex(++index);
-            final int ch4 = activeBuffer.get(toActiveBufferPos(index)) & 0xFF;
-
-            checkIndex(++index);
-            final int ch5 = activeBuffer.get(toActiveBufferPos(index)) & 0xFF;
-
-            checkIndex(++index);
-            final int ch6 = activeBuffer.get(toActiveBufferPos(index)) & 0xFF;
-
-            checkIndex(++index);
-            final int ch7 = activeBuffer.get(toActiveBufferPos(index)) & 0xFF;
-
-            checkIndex(++index);
-            final int ch8 = activeBuffer.get(toActiveBufferPos(index)) & 0xFF;
-
-            return (((long) ch1 << 56) +
-                ((long) ch2 << 48) +
-		((long) ch3 << 40) +
-                ((long) ch4 << 32) +
-                ((long) ch5 << 24) +
-                (ch6 << 16) +
-                (ch7 <<  8) +
-                (ch8));
+            return ((bigEndian) ? makeLongB(index) : makeLongL(index));
         }
     }
 
     @Override
-    public BuffersBuffer putLong(int index, final long value) {
+    public BuffersBuffer putLong(final int index, final long value) {
         checkDispose();
         checkReadOnly();
 
@@ -1024,28 +973,11 @@ public final class BuffersBuffer extends CompositeBuffer {
         if (upperBound - index >= 8) {
             activeBuffer.putLong(toActiveBufferPos(index), value);
         } else {
-            activeBuffer.put(toActiveBufferPos(index), (byte) ((value >>> 56) & 0xFF));
-
-            checkIndex(++index);
-            activeBuffer.put(toActiveBufferPos(index), (byte) ((value >>> 48) & 0xFF));
-
-            checkIndex(++index);
-            activeBuffer.put(toActiveBufferPos(index), (byte) ((value >>> 40) & 0xFF));
-
-            checkIndex(++index);
-            activeBuffer.put(toActiveBufferPos(index), (byte) ((value >>> 32) & 0xFF));
-
-            checkIndex(++index);
-            activeBuffer.put(toActiveBufferPos(index), (byte) ((value >>> 24) & 0xFF));
-
-            checkIndex(++index);
-            activeBuffer.put(toActiveBufferPos(index), (byte) ((value >>> 16) & 0xFF));
-
-            checkIndex(++index);
-            activeBuffer.put(toActiveBufferPos(index), (byte) ((value >>> 8) & 0xFF));
-
-            checkIndex(++index);
-            activeBuffer.put(toActiveBufferPos(index), (byte) ((value) & 0xFF));
+            if (bigEndian) {
+                putLongB(index, value);
+            } else {
+                putLongL(index, value);
+            }
         }
 
         return this;
@@ -1095,17 +1027,17 @@ public final class BuffersBuffer extends CompositeBuffer {
     public int compareTo(Buffer that) {
         checkDispose();
 
-	int n = this.position() + Math.min(this.remaining(), that.remaining());
-	for (int i = this.position(), j = that.position(); i < n; i++, j++) {
-	    byte v1 = this.get(i);
-	    byte v2 = that.get(j);
-	    if (v1 == v2)
-		continue;
-	    if (v1 < v2)
-		return -1;
-	    return +1;
-	}
-	return this.remaining() - that.remaining();
+        int n = this.position() + Math.min(this.remaining(), that.remaining());
+        for (int i = this.position(), j = that.position(); i < n; i++, j++) {
+            byte v1 = this.get(i);
+            byte v2 = that.get(j);
+            if (v1 == v2)
+                continue;
+            if (v1 < v2)
+                return -1;
+            return +1;
+        }
+        return this.remaining() - that.remaining();
     }
 
     @Override
@@ -1204,15 +1136,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         return (ByteBuffer) resultByteBuffer.flip();
     }
 
-    private void fillByteBuffer(final ByteBuffer bb, final ByteBufferArray array) {
-        final ByteBuffer[] bbs = array.getArray();
-        final int size = array.size();
-        
-        for (int i = 0; i < size; i++) {
-            final ByteBuffer srcByteBuffer = bbs[i];
-            bb.put(srcByteBuffer);
-        }
-    }
+
 
     @Override
     public final ByteBufferArray toByteBufferArray() {
@@ -1298,75 +1222,6 @@ public final class BuffersBuffer extends CompositeBuffer {
         return array;
     }
         
-    private ByteBuffer[] ensureArrayCapacity(ByteBuffer[] originalArray, int newCapacity) {
-        if (originalArray.length >= newCapacity) {
-            return originalArray;
-        }
-
-        return Arrays.copyOf(originalArray,
-                Math.max(newCapacity,(originalArray.length * 3) / 2 + 1));
-    }
-
-    private void removeAndDisposeBuffers(boolean force) {
-        boolean isNulled = false;
-
-        if (force || allowInternalBuffersDispose) {
-            for (int i = buffersSize - 1; i >= 0; i--) {
-                final Buffer buffer = buffers[i];
-                buffer.tryDispose();
-                buffers[i] = null;
-            }
-
-            isNulled = true;
-        }
-
-        position = 0;
-        limit = 0;
-        capacity = 0;
-        if (!isNulled) {
-            Arrays.fill(buffers, 0, buffersSize, null);
-        }
-        
-        buffersSize = 0;
-        
-        resetLastLocation();
-    }
-
-    private void setPosLim(final int position, final int limit) {
-        if (position > limit) {
-            throw new IllegalArgumentException("Position exceeds a limit: " + position + ">" + limit);
-        }
-
-        this.position = position;
-        this.limit = limit;
-    }
-
-    private void checkDispose() {
-        if (isDisposed) {
-            throw new IllegalStateException(
-                    "CompositeBuffer has already been disposed");
-        }
-    }
-
-    private void checkReadOnly() {
-        if (isReadOnly) throw new IllegalStateException("Buffer is in read-only mode");
-    }
-
-    private void calcCapacity() {
-        int currentCapacity = 0;
-        for(int i = 0; i < buffersSize; i++) {
-            currentCapacity += buffers[i].remaining();
-            bufferBounds[i] = currentCapacity;
-        }
-
-        capacity = currentCapacity;
-    }
-
-    private void resetLastLocation() {
-        lowerBound = 0;
-        upperBound = 0;
-        activeBuffer = null;
-    }
 
     @Override
     public void removeAll() {
@@ -1415,10 +1270,263 @@ public final class BuffersBuffer extends CompositeBuffer {
      */
     @Override
     public int hashCode() {
-	int h = 1;
-	int p = position();
-	for (int i = limit() - 1; i >= p; i--)
-	    h = 31 * h + (int)get(i);
-	return h;
+        int h = 1;
+        int p = position();
+        for (int i = limit() - 1; i >= p; i--)
+            h = 31 * h + (int) get(i);
+        return h;
+    }
+
+
+    // --------------------------------------------------------- Private Methods
+
+
+    private void fillByteBuffer(final ByteBuffer bb, final ByteBufferArray array) {
+        final ByteBuffer[] bbs = array.getArray();
+        final int size = array.size();
+
+        for (int i = 0; i < size; i++) {
+            final ByteBuffer srcByteBuffer = bbs[i];
+            bb.put(srcByteBuffer);
+        }
+    }
+
+    private void removeAndDisposeBuffers(boolean force) {
+        boolean isNulled = false;
+
+        if (force || allowInternalBuffersDispose) {
+            for (int i = buffersSize - 1; i >= 0; i--) {
+                final Buffer buffer = buffers[i];
+                buffer.tryDispose();
+                buffers[i] = null;
+            }
+
+            isNulled = true;
+        }
+
+        position = 0;
+        limit = 0;
+        capacity = 0;
+        if (!isNulled) {
+            Arrays.fill(buffers, 0, buffersSize, null);
+        }
+
+        buffersSize = 0;
+
+        resetLastLocation();
+    }
+
+    private void setPosLim(final int position, final int limit) {
+        if (position > limit) {
+            throw new IllegalArgumentException("Position exceeds a limit: " + position + ">" + limit);
+        }
+
+        this.position = position;
+        this.limit = limit;
+    }
+
+    private void checkDispose() {
+        if (isDisposed) {
+            throw new IllegalStateException(
+                    "CompositeBuffer has already been disposed");
+        }
+    }
+
+    private void checkReadOnly() {
+        if (isReadOnly) throw new IllegalStateException("Buffer is in read-only mode");
+    }
+
+    private void calcCapacity() {
+        int currentCapacity = 0;
+        for(int i = 0; i < buffersSize; i++) {
+            currentCapacity += buffers[i].remaining();
+            bufferBounds[i] = currentCapacity;
+        }
+
+        capacity = currentCapacity;
+    }
+
+    private void resetLastLocation() {
+        lowerBound = 0;
+        upperBound = 0;
+        activeBuffer = null;
+    }
+
+    private long makeLongL(int index) {
+        index += 7;
+        checkIndex(index);
+        final byte b1 = activeBuffer.get(toActiveBufferPos(index));
+        checkIndex(--index);
+        final byte b2 = activeBuffer.get(toActiveBufferPos(index));
+        checkIndex(--index);
+        final byte b3 = activeBuffer.get(toActiveBufferPos(index));
+        checkIndex(--index);
+        final byte b4 = activeBuffer.get(toActiveBufferPos(index));
+        checkIndex(--index);
+        final byte b5 = activeBuffer.get(toActiveBufferPos(index));
+        checkIndex(--index);
+        final byte b6 = activeBuffer.get(toActiveBufferPos(index));
+        checkIndex(--index);
+        final byte b7 = activeBuffer.get(toActiveBufferPos(index));
+        checkIndex(--index);
+        final byte b8 = activeBuffer.get(toActiveBufferPos(index));
+        return Bits.makeLong(b1, b2, b3, b4, b5, b6, b7, b8);
+    }
+
+    private long makeLongB(int index) {
+        final byte b1 = activeBuffer.get(toActiveBufferPos(index));
+        checkIndex(++index);
+        final byte b2 = activeBuffer.get(toActiveBufferPos(index));
+        checkIndex(++index);
+        final byte b3 = activeBuffer.get(toActiveBufferPos(index));
+        checkIndex(++index);
+        final byte b4 = activeBuffer.get(toActiveBufferPos(index));
+        checkIndex(++index);
+        final byte b5 = activeBuffer.get(toActiveBufferPos(index));
+        checkIndex(++index);
+        final byte b6 = activeBuffer.get(toActiveBufferPos(index));
+        checkIndex(++index);
+        final byte b7 = activeBuffer.get(toActiveBufferPos(index));
+        checkIndex(++index);
+        final byte b8 = activeBuffer.get(toActiveBufferPos(index));
+        return Bits.makeLong(b1, b2, b3, b4, b5, b6, b7, b8);
+    }
+
+    private void putLongL(int index, long value) {
+        index += 7;
+        checkIndex(index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.long7(value));
+        checkIndex(--index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.long6(value));
+        checkIndex(--index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.long5(value));
+        checkIndex(--index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.long4(value));
+        checkIndex(--index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.long3(value));
+        checkIndex(--index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.long2(value));
+        checkIndex(--index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.long1(value));
+        checkIndex(--index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.long0(value));
+    }
+
+    private void putLongB(int index, long value) {
+        activeBuffer.put(toActiveBufferPos(index), Bits.long7(value));
+        checkIndex(++index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.long6(value));
+        checkIndex(++index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.long5(value));
+        checkIndex(++index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.long4(value));
+        checkIndex(++index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.long3(value));
+        checkIndex(++index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.long2(value));
+        checkIndex(++index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.long1(value));
+        checkIndex(++index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.long0(value));
+    }
+
+    private void putIntL(int index, int value) {
+        index += 3;
+        checkIndex(index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.int3(value));
+        checkIndex(--index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.int2(value));
+        checkIndex(--index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.int1(value));
+        checkIndex(--index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.int0(value));
+    }
+
+    private void putIntB(int index, int value) {
+        activeBuffer.put(toActiveBufferPos(index), Bits.int3(value));
+        checkIndex(++index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.int2(value));
+        checkIndex(++index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.int1(value));
+        checkIndex(++index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.int0(value));
+    }
+
+    private int makeIntL(int index) {
+        index += 3;
+        checkIndex(index);
+        final byte b1 = activeBuffer.get(toActiveBufferPos(index));
+        checkIndex(--index);
+        final byte b2 = activeBuffer.get(toActiveBufferPos(index));
+        checkIndex(--index);
+        final byte b3 = activeBuffer.get(toActiveBufferPos(index));
+        checkIndex(--index);
+        final byte b4 = activeBuffer.get(toActiveBufferPos(index));
+        return Bits.makeInt(b1, b2, b3, b4);
+    }
+
+    private int makeIntB(int index) {
+        final byte b1 = activeBuffer.get(toActiveBufferPos(index));
+        checkIndex(++index);
+        final byte b2 = activeBuffer.get(toActiveBufferPos(index));
+        checkIndex(++index);
+        final byte b3 = activeBuffer.get(toActiveBufferPos(index));
+        checkIndex(++index);
+        final byte b4 = activeBuffer.get(toActiveBufferPos(index));
+        return Bits.makeInt(b1, b2, b3, b4);
+    }
+
+    private void putShortL(int index, short value) {
+        checkIndex(++index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.short0(value));
+        checkIndex(--index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.short1(value));
+    }
+
+    private void putShortB(int index, short value) {
+        activeBuffer.put(toActiveBufferPos(index), Bits.short1(value));
+        checkIndex(++index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.short0(value));
+    }
+
+    private short makeShortL(int index) {
+        final byte b2 = activeBuffer.get(toActiveBufferPos(index));
+        checkIndex(++index);
+        final byte b1 = activeBuffer.get(toActiveBufferPos(index));
+        return Bits.makeShort(b2, b1);
+    }
+
+    private short makeShortB(int index) {
+        final byte b1 = activeBuffer.get(toActiveBufferPos(index));
+        checkIndex(++index);
+        final byte b2 = activeBuffer.get(toActiveBufferPos(index));
+        return Bits.makeShort(b1, b2);
+    }
+
+      private void putCharL(int index, char value) {
+        checkIndex(++index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.char0(value));
+        checkIndex(--index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.char1(value));
+    }
+
+    private void putCharB(int index, char value) {
+        activeBuffer.put(toActiveBufferPos(index), Bits.char1(value));
+        checkIndex(++index);
+        activeBuffer.put(toActiveBufferPos(index), Bits.char0(value));
+    }
+
+     private char makeCharL(int index) {
+        final byte b2 = activeBuffer.get(toActiveBufferPos(index));
+        checkIndex(++index);
+        final byte b1 = activeBuffer.get(toActiveBufferPos(index));
+        return Bits.makeChar(b2, b1);
+    }
+
+    private char makeCharB(int index) {
+        final byte b1 = activeBuffer.get(toActiveBufferPos(index));
+        checkIndex(++index);
+        final byte b2 = activeBuffer.get(toActiveBufferPos(index));
+        return Bits.makeChar(b1, b2);
     }
 }
