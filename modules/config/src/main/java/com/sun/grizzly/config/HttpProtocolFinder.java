@@ -76,8 +76,6 @@ public class HttpProtocolFinder extends com.sun.grizzly.http.portunif.HttpProtoc
     private volatile Ssl ssl;
     private volatile SSLConfigHolder sslConfigHolder;
 
-    private final int readTimeout = 5000;
-
     private final AtomicBoolean isConfigured = new AtomicBoolean();
 
     public void configure(ProtocolFinder configuration) {
@@ -207,18 +205,17 @@ public class HttpProtocolFinder extends com.sun.grizzly.http.portunif.HttpProtoc
                 // if we have data available, unwrap it and allow the
                 // initial call to super.fine() in the while loop to go through
                 // on the existing data.  Otherwise, try to read what we can
-                // and continue.  We use a small timeout here instead of using the
-                // inactivity timeout as we don't necessarily need to block
-                // at this point in time.
+                // and continue.
                 if (inputBB.position() > 0) {
                     byteBuffer = SSLUtils.unwrapAll(byteBuffer, inputBB, sslEngine);
                     protocolRequest.setByteBuffer(byteBuffer);
                     workerThread.setByteBuffer(byteBuffer);
                 }
+                final int timeout = sslConfigHolder.getSslInactivityTimeout();
                 while((protocol = super.find(context, protocolRequest)) == null &&
-                        System.currentTimeMillis() - startTime < readTimeout) {
+                        System.currentTimeMillis() - startTime < timeout) {
                     byteRead = SSLUtils.doRead(channel, inputBB, sslEngine,
-                            readTimeout).bytesRead;
+                            timeout).bytesRead;
                     if (byteRead == -1) {
                         logger.log(Level.FINE, "EOF");
                         throw new EOFException();
