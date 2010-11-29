@@ -500,20 +500,15 @@ public class HttpServer {
             if (listener.isSecure()) {
                 SSLEngineConfigurator sslConfig = listener.getSslEngineConfig();
                 if (sslConfig == null) {
-                    sslConfig =
-                          new SSLEngineConfigurator(
-                                SSLContextConfigurator.DEFAULT_CONFIG.createSSLContext(),
-                                false,
-                                false,
-                                false);
+                    sslConfig = new SSLEngineConfigurator(
+                            SSLContextConfigurator.DEFAULT_CONFIG,
+                            false,
+                            false,
+                            false);
                     listener.setSSLEngineConfig(sslConfig);
                 }
                 final SSLFilter filter = new SSLFilter(sslConfig, null);
-                if (sslConfig.isLazyInit()) {
-                    builder.add(new LazyInitSslFilter(filter));
-                } else {
-                    builder.add(filter);
-                }
+                builder.add(filter);
 
             }
             final int maxHeaderSize = listener.getMaxHttpHeaderSize() == -1

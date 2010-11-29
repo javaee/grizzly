@@ -85,7 +85,8 @@ public class GrizzlyConfig {
                 amm = (AbstractMemoryManager) mm;
             }
             for (final NetworkListener listener : config.getNetworkListeners().getNetworkListener()) {
-                final GrizzlyServiceListener grizzlyListener = new GrizzlyServiceListener(listener);
+                final GrizzlyServiceListener grizzlyListener = new GrizzlyServiceListener();
+                grizzlyListener.configure(listener);
                 listeners.add(grizzlyListener);
                 final Thread thread = new DefaultWorkerThread(Grizzly.DEFAULT_ATTRIBUTE_BUILDER,
                                                               grizzlyListener.getName(),

@@ -51,7 +51,9 @@ import javax.net.ssl.SSLEngine;
  * @author Alexey Stashok
  */
 public class SSLEngineConfigurator {
-    private SSLContext sslContext;
+    private final SSLContextConfigurator sslContextConfiguration;
+    
+    private volatile SSLContext sslContext;
 
     /**
      * The list of cipher suite
@@ -81,21 +83,73 @@ public class SSLEngineConfigurator {
      * Has the enabled Cipher configured.
      */
     private boolean isCipherConfigured = false;
-    private boolean lazyInit = false;
 
+    /**
+     * Create SSL Engine configuration basing on passed {@link SSLContext}.
+     * 
+     * @param sslContext {@link SSLContext}.
+     */
     public SSLEngineConfigurator(SSLContext sslContext) {
         this(sslContext, true, false, false);
     }
 
+    /**
+     * Create SSL Engine configuration basing on passed {@link SSLContext},
+     * using passed client mode, need/want client auth parameters.
+     *
+     * @param sslContext {@link SSLContext}.
+     * @param clientMode
+     * @param needClientAuth
+     * @param wantClientAuth
+     */
     public SSLEngineConfigurator(SSLContext sslContext, boolean clientMode,
             boolean needClientAuth, boolean wantClientAuth) {
+        if (sslContext == null)
+            throw new IllegalArgumentException("SSLContext can not be null");
+
+        this.sslContextConfiguration = null;
         this.sslContext = sslContext;
         this.clientMode = clientMode;
         this.needClientAuth = needClientAuth;
         this.wantClientAuth = wantClientAuth;
     }
 
+    /**
+     * Create SSL Engine configuration basing on passed {@link SSLContextConfigurator}.
+     * This constructor makes possible to initialize SSLEngine and SSLContext in lazy
+     * fashion on first {@link #createSSLEngine()} call.
+     *
+     * @param sslContextConfiguration {@link SSLContextConfigurator}.
+     */
+    public SSLEngineConfigurator(SSLContextConfigurator sslContextConfiguration) {
+        this(sslContextConfiguration, true, false, false);
+    }
+
+    /**
+     * Create SSL Engine configuration basing on passed {@link SSLContextConfigurator}.
+     * This constructor makes possible to initialize SSLEngine and SSLContext in lazy
+     * fashion on first {@link #createSSLEngine()} call.
+     *
+     * @param sslContextConfiguration {@link SSLContextConfigurator}.
+     * @param clientMode
+     * @param needClientAuth
+     * @param wantClientAuth
+     */
+    public SSLEngineConfigurator(SSLContextConfigurator sslContextConfiguration,
+            boolean clientMode,
+            boolean needClientAuth, boolean wantClientAuth) {
+        
+        if (sslContextConfiguration == null)
+            throw new IllegalArgumentException("SSLContextConfigurator can not be null");
+
+        this.sslContextConfiguration = sslContextConfiguration;
+        this.clientMode = clientMode;
+        this.needClientAuth = needClientAuth;
+        this.wantClientAuth = wantClientAuth;
+    }
+
     public SSLEngineConfigurator(SSLEngineConfigurator pattern) {
+        this.sslContextConfiguration = pattern.sslContextConfiguration;
         this.sslContext = pattern.sslContext;
         this.clientMode = pattern.clientMode;
         this.needClientAuth = pattern.needClientAuth;
@@ -114,7 +168,15 @@ public class SSLEngineConfigurator {
      * @return {@link SSLEngine}.
      */
     public SSLEngine createSSLEngine() {
-        SSLEngine sslEngine = sslContext.createSSLEngine();
+        if (sslContext == null) {
+            synchronized(sslContextConfiguration) {
+                if (sslContext == null) {
+                    sslContext = sslContextConfiguration.createSSLContext();
+                }
+            }
+        }
+        
+        final SSLEngine sslEngine = sslContext.createSSLEngine();
         configure(sslEngine);
 
         return sslEngine;
@@ -237,10 +299,6 @@ public class SSLEngineConfigurator {
         return sslContext;
     }
 
-    public void setSslContext(final SSLContext sslContext) {
-        this.sslContext = sslContext;
-    }
-
     /**
      * Return the list of allowed protocol.
      * @return String[] an array of supported protocols.
@@ -311,14 +369,6 @@ public class SSLEngineConfigurator {
         return ciphers;
     }
 
-    public boolean isLazyInit() {
-        return lazyInit;
-    }
-
-    public void setLazyInit(final boolean lazy) {
-        lazyInit = lazy;
-    }
-
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder();
@@ -332,7 +382,6 @@ public class SSLEngineConfigurator {
         sb.append(", wantClientAuth=").append(wantClientAuth);
         sb.append(", isProtocolConfigured=").append(isProtocolConfigured);
         sb.append(", isCipherConfigured=").append(isCipherConfigured);
-        sb.append(", lazyInit=").append(lazyInit);
         sb.append('}');
         return sb.toString();
     }

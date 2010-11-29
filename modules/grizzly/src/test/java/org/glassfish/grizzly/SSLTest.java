@@ -40,6 +40,12 @@
 
 package org.glassfish.grizzly;
 
+import org.junit.Test;
+import org.glassfish.grizzly.memory.ByteBufferWrapper;
+import org.junit.Before;
+import java.util.Arrays;
+import java.util.Collection;
+import org.junit.runners.Parameterized.Parameters;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.BaseFilter;
@@ -70,81 +76,122 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
 import org.glassfish.grizzly.memory.Buffers;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import static org.junit.Assert.*;
 
 /**
  * Set of SSL tests
  * 
  * @author Alexey Stashok
  */
-public class SSLTest extends GrizzlyTestCase {
+@RunWith(Parameterized.class)
+public class SSLTest {
     private final static Logger logger = Grizzly.logger(SSLTest.class);
     
     public static final int PORT = 7779;
 
+    private final boolean isLazySslInit;
+
+    public SSLTest(boolean isLazySslInit) {
+        this.isLazySslInit = isLazySslInit;
+    }
+
+    @Parameters
+    public static Collection<Object[]> getLazySslInit() {
+        return Arrays.asList(new Object[][]{
+                    {Boolean.FALSE},
+                    {Boolean.TRUE}
+                });
+    }
+
+    @Before
+    public void before() throws Exception {
+        Grizzly.setTrackingThreadCache(true);
+        ByteBufferWrapper.DEBUG_MODE = true;
+    }
+
+    @Test
     public void testSimpleSyncSSL() throws Exception {
         doTestSSL(true, 1, 1, 0);
     }
 
+    @Test
     public void testSimpleAsyncSSL() throws Exception {
         doTestSSL(false, 1, 1, 0);
     }
 
+    @Test
     public void test5PacketsOn1ConnectionSyncSSL() throws Exception {
         doTestSSL(true, 1, 5, 0);
     }
 
+    @Test
     public void test5PacketsOn1ConnectionAsyncSSL() throws Exception {
         doTestSSL(false, 1, 5, 0);
     }
 
+    @Test
     public void test5PacketsOn5ConnectionsSyncSSL() throws Exception {
         doTestSSL(true, 5, 5, 0);
     }
 
+    @Test
     public void test5PacketsOn5ConnectionsAsyncSSL() throws Exception {
         doTestSSL(false, 5, 5, 0);
     }
 
+    @Test
     public void testSimpleSyncSSLChunkedBefore() throws Exception {
         doTestSSL(true, 1, 1, 1, new ChunkingFilter(1));
     }
 
+    @Test
     public void testSimpleAsyncSSLChunkedBefore() throws Exception {
         doTestSSL(false, 1, 1, 1, new ChunkingFilter(1));
     }
 
+    @Test
     public void testSimpleSyncSSLChunkedAfter() throws Exception {
         doTestSSL(true, 1, 1, 2, new ChunkingFilter(1));
     }
 
+    @Test
     public void testSimpleAsyncSSLChunkedAfter() throws Exception {
         doTestSSL(false, 1, 1, 2, new ChunkingFilter(1));
     }
 
+    @Test
     public void testPingPongFilterChainSync() throws Exception {
         doTestPingPongFilterChain(true, 5, 0);
     }
 
+    @Test
     public void testPingPongFilterChainAsync() throws Exception {
         doTestPingPongFilterChain(false, 5, 0);
     }
 
+    @Test
     public void testPingPongFilterChainSyncChunked() throws Exception {
         doTestPingPongFilterChain(true, 5, 1, new ChunkingFilter(1));
     }
 
+    @Test
     public void testPingPongFilterChainAsyncChunked() throws Exception {
         doTestPingPongFilterChain(false, 5, 1, new ChunkingFilter(1));
     }
 
+    @Test
     public void testSimplePendingSSLClientWrites() throws Exception {
         doTestPendingSSLClientWrites(1, 1);
     }
 
+    @Test
     public void test20on1PendingSSLClientWrites() throws Exception {
         doTestPendingSSLClientWrites(1, 20);
     }
 
+    @Test
     public void test200On5PendingSSLClientWrites() throws Exception {
         doTestPendingSSLClientWrites(5, 200);
     }
@@ -229,11 +276,19 @@ public class SSLTest extends GrizzlyTestCase {
         SSLEngineConfigurator serverSSLEngineConfigurator = null;
 
         if (sslContextConfigurator.validateConfiguration(true)) {
-            clientSSLEngineConfigurator =
-                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContext());
-            serverSSLEngineConfigurator =
-                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
-                    false, false, false);
+            if (isLazySslInit) {
+                clientSSLEngineConfigurator =
+                        new SSLEngineConfigurator(sslContextConfigurator);
+                serverSSLEngineConfigurator =
+                        new SSLEngineConfigurator(sslContextConfigurator,
+                        false, false, false);
+            } else {
+                clientSSLEngineConfigurator =
+                        new SSLEngineConfigurator(sslContextConfigurator.createSSLContext());
+                serverSSLEngineConfigurator =
+                        new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
+                        false, false, false);
+            }
         } else {
             fail("Failed to validate SSLContextConfiguration.");
         }

@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.web;
 
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.SocketConnectorHandler;
@@ -87,7 +88,8 @@ import static org.junit.Assert.*;
 @RunWith(Parameterized.class)
 public class SuspendTest {
 
-    private static Logger logger = Logger.getLogger("grizzly.test");
+    private static final Logger LOGGER = Grizzly.logger(SuspendTest.class);
+    
     public static final int PORT = 18890;
     private ScheduledThreadPoolExecutor scheduledThreadPool;
     private final String testString = "blabla test.";

@@ -92,16 +92,9 @@ public class GrizzlyServiceListener {
      *
      * @param listener The listener to configure
      */
-    public GrizzlyServiceListener(NetworkListener listener) throws IOException {
-        final Protocol httpProtocol = listener.findHttpProtocol();
-        if (httpProtocol != null) {
-            isEmbeddedHttpSecured = Boolean.parseBoolean(
-                httpProtocol.getSecurityEnabled());
-        }
-        setName(listener.getName());
-        configureListener(listener);
+    public GrizzlyServiceListener() {
     }
-
+    
     public void start() throws IOException {
         System.out.println("Starting listener " + getName());
         server.start();
@@ -129,6 +122,28 @@ public class GrizzlyServiceListener {
 
     public int getPort() {
         return networkListener.getPort();
+    }
+
+    /*
+    * Configures the given grizzlyListener.
+    *
+    * @param grizzlyListener The grizzlyListener to configure
+    * @param httpProtocol The Protocol that corresponds to the given grizzlyListener
+    * @param isSecure true if the grizzlyListener is security-enabled, false otherwise
+    * @param httpServiceProps The httpProtocol-service properties
+    * @param isWebProfile if true - just HTTP protocol is supported on port,
+    *        false - port unification will be activated
+    */
+    // TODO: Must get the information from domain.xml Config objects.
+    // TODO: Pending Grizzly issue 54
+    public void configure(NetworkListener networkListener) {
+        final Protocol httpProtocol = networkListener.findHttpProtocol();
+        if (httpProtocol != null) {
+            isEmbeddedHttpSecured = Boolean.parseBoolean(
+                httpProtocol.getSecurityEnabled());
+        }
+        setName(networkListener.getName());
+        configureListener(networkListener);
     }
 
     public void configureListener(NetworkListener networkListener) {
@@ -314,7 +329,6 @@ public class GrizzlyServiceListener {
         engineConfigurator.setNeedClientAuth(holder.isNeedClientAuth());
         engineConfigurator.setWantClientAuth(holder.isWantClientAuth());
         engineConfigurator.setClientMode(holder.isClientMode());
-        engineConfigurator.setLazyInit(holder.isAllowLazyInit());
         networkListener.setSSLEngineConfig(engineConfigurator);
     }
 /*
