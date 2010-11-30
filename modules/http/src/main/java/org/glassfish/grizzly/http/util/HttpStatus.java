@@ -40,8 +40,6 @@
 
 package org.glassfish.grizzly.http.util;
 
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.memory.Buffers;
 
@@ -100,19 +98,14 @@ public enum HttpStatus {
     // ------------------------------------------------------------ Constructors
 
     private final int status;
-    private final String reasonPhrase;
     private final byte[] reasonPhraseBytes;
     private final byte[] statusBytes;
 
     HttpStatus(final int status, final String reasonPhrase) {
         this.status = status;
-        this.reasonPhrase = reasonPhrase;
         reasonPhraseBytes = reasonPhrase.getBytes(Charsets.ASCII_CHARSET);
         statusBytes = Integer.toString(status).getBytes(Charsets.ASCII_CHARSET);
     }
-
-    private static final ThreadCache.CachedTypeIndex<DataChunk> CACHE_IDX =
-            ThreadCache.obtainIndex(DataChunk.class, 10);
 
     // ---------------------------------------------------------- Public Methods
 
