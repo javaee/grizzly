@@ -208,7 +208,7 @@ public class KeepAliveTest extends TestCase {
             }
 
         }, "/path");
-        server.getListeners().next().getKeepAlive().setMaxRequestsCount(maxKeepAliveRequests);
+        server.getListener("grizzly").getKeepAlive().setMaxRequestsCount(maxKeepAliveRequests);
 
         final TCPNIOTransport clientTransport = TransportFactory.getInstance().createTCPTransport();
         final HttpClient client = new HttpClient(clientTransport);

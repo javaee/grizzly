@@ -53,6 +53,7 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.rcm.ResourceAllocationFilter;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -73,7 +74,6 @@ import org.glassfish.grizzly.websockets.WebSocketFilter;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -187,11 +187,11 @@ public class HttpServer {
 
 
     /**
-     * @return a <code>read only</code> {@link Iterator} over the listeners
+     * @return a <code>read only</code> {@link Collection} over the listeners
      *  associated with this <code>HttpServer</code> instance.
      */
-    public Iterator<NetworkListener> getListeners() {
-        return Collections.unmodifiableMap(listeners).values().iterator();
+    public Collection<NetworkListener> getListeners() {
+        return Collections.unmodifiableMap(listeners).values();
     }
 
 
@@ -282,8 +282,7 @@ public class HttpServer {
         setupService();
 
         if (serverConfig.isJmxEnabled()) {
-            for (Iterator<JmxEventListener> i = serverConfig.getJmxEventListeners(); i.hasNext(); ) {
-                final JmxEventListener l = i.next();
+            for (final JmxEventListener l : serverConfig.getJmxEventListeners()) {
                 l.jmxEnabled();
             }
         }
@@ -369,8 +368,7 @@ public class HttpServer {
         try {
 
             if (serverConfig.isJmxEnabled()) {
-                for (Iterator<JmxEventListener> i = serverConfig.getJmxEventListeners(); i.hasNext();) {
-                    final JmxEventListener l = i.next();
+                for (final JmxEventListener l : serverConfig.getJmxEventListeners()) {
                     l.jmxDisabled();
                 }
             }

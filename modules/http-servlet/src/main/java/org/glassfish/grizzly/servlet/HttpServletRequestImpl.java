@@ -789,7 +789,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
             return (Enumeration)AccessController.doPrivileged(
                 new GetHeadersPrivilegedAction(name));
         } else {
-            return new Enumerator(request.getHeaders(name));
+            return new Enumerator(request.getHeaders(name).iterator());
         }         
     }
 
@@ -811,7 +811,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
             return (Enumeration)AccessController.doPrivileged(
                 new GetHeaderNamesPrivilegedAction());
         } else {
-            return new Enumerator(request.getHeaderNames());
+            return new Enumerator(request.getHeaderNames().iterator());
         }             
     }
 

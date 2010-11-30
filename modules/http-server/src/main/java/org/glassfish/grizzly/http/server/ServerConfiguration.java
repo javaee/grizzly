@@ -271,9 +271,9 @@ public class ServerConfiguration {
     /**
      * @return an {@link Iterator} of all registered {@link JmxEventListener}s.
      */
-    public Iterator<JmxEventListener> getJmxEventListeners() {
+    public Set<JmxEventListener> getJmxEventListeners() {
 
-        return jmxEventListeners.iterator();
+        return jmxEventListeners;
         
     }
 

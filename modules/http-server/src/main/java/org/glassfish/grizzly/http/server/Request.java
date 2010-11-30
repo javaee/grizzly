@@ -96,6 +96,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.TreeMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -680,15 +681,15 @@ public class Request {
 
 
     /**
-     * Return an {@link Iterator} containing the String names of all note bindings
+     * Return a {@link Set} containing the String names of all note bindings
      * that exist for this request.
      * Use {@link #createNote(java.lang.String)} to create a new {@link Note}.
      *
-     * @return an {@link Iterator} containing the String names of all note bindings
+     * @return a {@link Set} containing the String names of all note bindings
      * that exist for this request.
      */
-    public Iterator<String> getNoteNames() {
-        return attributeHolder.getAttributeNames().iterator();
+    public Set<String> getNoteNames() {
+        return attributeHolder.getAttributeNames();
     }
 
 
@@ -809,10 +810,10 @@ public class Request {
 
     /**
      * Return the names of all request attributes for this Request, or an
-     * empty {@link Iterator} if there are none.
+     * empty {@link Set} if there are none.
      */
-    public Iterator<String> getAttributeNames() {
-        return attributes.keySet().iterator();
+    public Set<String> getAttributeNames() {
+        return attributes.keySet();
     }
 
 
@@ -914,17 +915,17 @@ public class Request {
      * headers that were encountered.  If the request did not specify a
      * preferred language, the server's default Locale is returned.
      */
-    public Iterator<Locale> getLocales() {
+    public List<Locale> getLocales() {
 
         if (!localesParsed)
             parseLocales();
 
         if (!locales.isEmpty())
-            return locales.iterator();
+            return locales;
 
         final ArrayList<Locale> results = new ArrayList<Locale>();
         results.add(defaultLocale);
-        return results.iterator();
+        return results;
 
     }
 
@@ -1536,7 +1537,7 @@ public class Request {
      *
      * @param name Name of the requested header
      */
-    public Iterator<String> getHeaders(String name) {
+    public Iterable<String> getHeaders(String name) {
         return request.getHeaders().values(name);
     }
 
@@ -1544,7 +1545,7 @@ public class Request {
     /**
      * Return the names of all headers received with this request.
      */
-    public Iterator<String> getHeaderNames() {
+    public Iterable<String> getHeaderNames() {
         return request.getHeaders().names();
     }
 
@@ -1937,10 +1938,9 @@ public class Request {
 
         localesParsed = true;
 
-        final Iterator<String> values = getHeaders("accept-language");
+        final Iterable<String> values = getHeaders("accept-language");
 
-        while (values.hasNext()) {
-            final String value = values.next();
+        for (String value : values) {
             parseLocalesHeader(value);
         }
 

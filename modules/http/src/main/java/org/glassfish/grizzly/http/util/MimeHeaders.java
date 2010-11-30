@@ -143,6 +143,17 @@ public class MimeHeaders {
     private int count;
 
     /**
+     * The header names {@link Iterable}.
+     */
+    private final Iterable<String> namesIterable = new Iterable<String>() {
+
+        @Override
+        public Iterator<String> iterator() {
+            return new NamesIterator(MimeHeaders.this);
+        }
+    };
+
+    /**
      * Creates a new MimeHeaders object using a default buffer size.
      */
     public MimeHeaders() {
@@ -175,10 +186,8 @@ public class MimeHeaders {
         PrintWriter pw = new PrintWriter(sw);
         pw.println("=== MimeHeaders ===");
 
-        final Iterator<String> it = names();
-        while (it.hasNext()) {
-            String n = it.next();
-            pw.println(n + " = " + getHeader(n));
+        for (String name : names()) {
+            pw.println(name + " = " + getHeader(name));
         }
         return sw.toString();
     }
@@ -252,12 +261,18 @@ public class MimeHeaders {
      * Field names may appear multiple times in this enumeration, indicating
      * that multiple fields with that name exist in this header.
      */
-    public Iterator<String> names() {
-        return new NamesIterator(this);
+    public Iterable<String> names() {
+        return namesIterable;
     }
 
-    public Iterator<String> values(String name) {
-        return new ValuesIterator(this, name);
+    public Iterable<String> values(final String name) {
+        return new Iterable<String>() {
+
+            @Override
+            public Iterator<String> iterator() {
+                return new ValuesIterator(MimeHeaders.this, name);
+            }
+        };
     }
 
     // -------------------- Adding headers --------------------
@@ -392,12 +407,11 @@ public class MimeHeaders {
     }
 }
 
-/** Enumerate the distinct header names.
-Each nextElement() is O(n) ( a comparation is
-done with all previous elements ).
-
-This is less frequesnt than add() -
-we want to keep add O(1).
+/**
+ * Enumerate the distinct header names.
+ * Each nextElement() is O(n) ( a comparation is
+ * done with all previous elements ).
+ * This is less frequesnt than add() - we want to keep add O(1).
  */
 class NamesIterator implements Iterator<String> {
 

@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.http.server.jmx;
 
-import java.util.Collection;
 import org.glassfish.grizzly.http.server.*;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.monitoring.jmx.GrizzlyJmxManager;
@@ -50,7 +49,6 @@ import org.glassfish.gmbal.GmbalMBean;
 import org.glassfish.gmbal.ManagedAttribute;
 import org.glassfish.gmbal.ManagedObject;
 
-import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -135,8 +133,7 @@ public class HttpServer extends JmxObject {
 
     protected void rebuildSubTree() {
 
-        for (Iterator<org.glassfish.grizzly.http.server.NetworkListener> i = gws.getListeners(); i.hasNext(); ) {
-            final NetworkListener l = i.next();
+        for (final NetworkListener l : gws.getListeners()) {
             final NetworkListener currentListener = currentListeners.get(l.getName());
             if (currentListener != l) {
                 if (currentListener != null) {
