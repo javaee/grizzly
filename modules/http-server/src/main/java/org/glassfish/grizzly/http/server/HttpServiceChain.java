@@ -152,7 +152,7 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
     public void service(final Request request, final Response response) throws Exception {
         // For backward compatibility.
         //Request req = request.getRequest();
-        MappingData mappingData;
+        MappingData mappingData = null;
         try {
             final RequestURIRef uriRef = request.getRequest().getRequestURIRef();
             final DataChunk decodedURI = uriRef.getDecodedRequestURIBC();
@@ -161,7 +161,7 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
             // TODO: cleanup notes (int version/string version)
             mappingData = request.getNote(MAPPING_DATA_NOTE);
             if (mappingData == null) {
-                mappingData = new MappingData();
+                mappingData = MappingData.create();
                 request.setNote(MAPPING_DATA_NOTE, mappingData);
             } else {
                 mappingData.recycle();
@@ -201,6 +201,10 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
                 if (LOGGER.isLoggable(Level.WARNING)) {
                     LOGGER.log(Level.WARNING, "Unable to error page", ex2);
                 }
+            }
+        } finally {
+            if (mappingData != null) {
+                mappingData.recycle();
             }
         }
     }

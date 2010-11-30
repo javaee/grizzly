@@ -58,6 +58,7 @@
 
 package org.glassfish.grizzly.http.server.util;
 
+import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.http.util.DataChunk;
 
 /**
@@ -66,6 +67,9 @@ import org.glassfish.grizzly.http.util.DataChunk;
  * @author Remy Maucherat
  */
 public class MappingData {
+
+     private static final ThreadCache.CachedTypeIndex<MappingData> CACHE_IDX =
+            ThreadCache.obtainIndex(MappingData.class, 2);
 
     public Object host = null;
     public Object context = null;
@@ -94,6 +98,7 @@ public class MappingData {
         jspWildCard = false;
         // START GlassFish 1024
         isDefaultContext = false;
+        ThreadCache.putToCache(CACHE_IDX, this);
     // END GlassFish 1024
     }
 
@@ -110,5 +115,15 @@ public class MappingData {
         sb.append("\npathInfo: ").append(pathInfo);
         sb.append("\nredirectPath: ").append(redirectPath);
         return sb.toString();
+    }
+
+    public static MappingData create() {
+        final MappingData mappingData =
+                ThreadCache.takeFromCache(CACHE_IDX);
+        if (mappingData != null) {
+            return mappingData;
+        }
+
+        return new MappingData();
     }
 }
