@@ -68,6 +68,7 @@ import org.glassfish.grizzly.http.server.io.NIOReader;
 import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.Cookies;
 import org.glassfish.grizzly.http.server.util.Globals;
+import org.glassfish.grizzly.http.server.util.MappingData;
 import org.glassfish.grizzly.http.server.util.ParameterMap;
 import org.glassfish.grizzly.http.server.util.StringParser;
 import org.glassfish.grizzly.http.util.DataChunk;
@@ -141,12 +142,6 @@ public class Request {
     private static final AttributeBuilder ATTR_BUILDER =
             new DefaultAttributeBuilder();
 
-    // ----------------------------------------------------------- Constructors
-
-
-    protected Request() {
-    }
-
 
     // ------------------------------------------------------------- Properties
     /**
@@ -159,9 +154,6 @@ public class Request {
      * The match string for identifying a session ID parameter.
      */
     private static final char[] SESSION_ID = match.toCharArray();
-
-
-    private Session session;
 
 
     // -------------------------------------------------------------------- //
@@ -185,19 +177,6 @@ public class Request {
             return new SchedulerThread(r, "Grizzly");
         }
     });
-
-
-    /**
-     * Simple daemon thread.
-     */
-    private static class SchedulerThread extends Thread {
-
-        public SchedulerThread(Runnable r, String name) {
-            super(r, name);
-            setDaemon(true);
-        }
-    }
-
 
     /**
      * That code is far from optimal and needs to be rewrite appropriately.
@@ -226,6 +205,26 @@ public class Request {
             }
         }, 5, 5, TimeUnit.SECONDS);
     }
+    
+    final MappingData obtainMappingData() {
+        if (cachedMappingData == null) {
+            cachedMappingData = new MappingData();
+        }
+
+        return cachedMappingData;
+    }
+
+
+    /**
+     * Simple daemon thread.
+     */
+    private static class SchedulerThread extends Thread {
+
+        public SchedulerThread(Runnable r, String name) {
+            super(r, name);
+            setDaemon(true);
+        }
+    }
 
 
     // --------------------------------------------------------------------- //
@@ -239,9 +238,19 @@ public class Request {
 
     protected HttpServerFilter httpServerFilter;
 
-    protected List<AfterServiceListener> afterServicesList = new ArrayList();
+    protected final List<AfterServiceListener> afterServicesList = new ArrayList();
+
+    private Session session;
 
     private String contextPath = "";
+
+    private MappingData cachedMappingData;
+    
+    // ----------------------------------------------------------- Constructors
+
+
+    protected Request() {
+    }
 
     public void initialize(final Response response,
                            final HttpRequestPacket request,
@@ -591,6 +600,10 @@ public class Request {
         afterServicesList.clear();
         
         attributeHolder.recycle();
+
+        if (cachedMappingData != null) {
+            cachedMappingData.recycle();
+        }
 //        if (System.getSecurityManager() != null) {
 //            if (inputStream != null) {
 //                inputStream.clear();

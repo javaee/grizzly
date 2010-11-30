@@ -53,7 +53,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.http.server.Request.Note;
 import org.glassfish.grizzly.http.util.CharChunk;
 
 /**
@@ -74,8 +73,8 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
     private static final Logger LOGGER = Grizzly.logger(HttpServiceChain.class);
 //    protected final static int MAPPING_DATA = 12;
 //    protected final static int MAPPED_SERVICE = 13;
-    private static final Note<MappingData> MAPPING_DATA_NOTE =
-            Request.<MappingData>createNote("MAPPING_DATA");
+//    private static final Note<MappingData> MAPPING_DATA_NOTE =
+//            Request.<MappingData>createNote("MAPPING_DATA");
     /**
      * The list of {@link HttpRequestProcessor} instance.
      */
@@ -152,20 +151,19 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
     public void service(final Request request, final Response response) throws Exception {
         // For backward compatibility.
         //Request req = request.getRequest();
-        MappingData mappingData = null;
+//        MappingData mappingData = null;
         try {
             final RequestURIRef uriRef = request.getRequest().getRequestURIRef();
             final DataChunk decodedURI = uriRef.getDecodedRequestURIBC();
             //MessageBytes decodedURI = req.decodedURI();
             //decodedURI.duplicate(req.requestURI());
             // TODO: cleanup notes (int version/string version)
-            mappingData = request.getNote(MAPPING_DATA_NOTE);
-            if (mappingData == null) {
-                mappingData = MappingData.create();
-                request.setNote(MAPPING_DATA_NOTE, mappingData);
-            } else {
-                mappingData.recycle();
-            }
+//            mappingData = request.getNote(MAPPING_DATA_NOTE);
+//            if (mappingData == null) {
+              final MappingData mappingData = request.obtainMappingData();
+//            } else {
+//                mappingData.recycle();
+//            }
 
             mapUriWithSemicolon(request.getRequest().serverName(),
                     decodedURI,
@@ -201,10 +199,6 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
                 if (LOGGER.isLoggable(Level.WARNING)) {
                     LOGGER.log(Level.WARNING, "Unable to error page", ex2);
                 }
-            }
-        } finally {
-            if (mappingData != null) {
-                mappingData.recycle();
             }
         }
     }
