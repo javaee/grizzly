@@ -136,7 +136,7 @@ final class EchoServer {
 
         int poolSize = (settings.getWorkerThreads());
 
-        final ThreadPoolConfig tpc = ThreadPoolConfig.DEFAULT.clone().
+        final ThreadPoolConfig tpc = ThreadPoolConfig.defaultConfig().clone().
                 setPoolName(POOL_NAME).
                 setCorePoolSize(poolSize).setMaxPoolSize(poolSize);
 
