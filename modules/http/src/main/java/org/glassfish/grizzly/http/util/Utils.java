@@ -41,10 +41,9 @@
 package org.glassfish.grizzly.http.util;
 
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.memory.Buffers;
 
-import java.nio.charset.Charset;
 import java.util.HashMap;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Utility class.
@@ -53,14 +52,14 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class Utils {
 
-    private static final HashMap<Integer, DataChunk> statusMessages =
-            new HashMap<Integer, DataChunk>(HttpStatus.values().length);
-    private static final HashMap<Integer, DataChunk> statusCodes =
-            new HashMap<Integer, DataChunk>(HttpStatus.values().length);
+    private static final HashMap<Integer, byte[]> statusMessages =
+            new HashMap<Integer, byte[]>(HttpStatus.values().length);
+    private static final HashMap<Integer, byte[]> statusCodes =
+            new HashMap<Integer, byte[]>(HttpStatus.values().length);
     static {
         for (final HttpStatus status : HttpStatus.values()) {
-            statusMessages.put(status.getStatusCode(), status.getReasonPhraseDC());
-            statusCodes.put(status.getStatusCode(), status.getStatusDC());
+            statusMessages.put(status.getStatusCode(), status.getReasonPhraseBytes());
+            statusCodes.put(status.getStatusCode(), status.getStatusBytes());
         }
     }
 
@@ -74,20 +73,20 @@ public class Utils {
      *  status code.  If there is no message for the specified <code>httpStatus</code>,
      *  <code>null</code> shall be returned.
      */
-    public static DataChunk getHttpStatusMessage(final int httpStatus) {
+    public static Buffer getHttpStatusMessage(final int httpStatus) {
 
-        return statusMessages.get(httpStatus);
+        return Buffers.wrap(null, statusMessages.get(httpStatus));
         
     }
 
 
     /**
      * @param httpStatus HTTP status code
-     * @return {@link DataChunk} representation of the status.
+     * @return {@link Buffer} representation of the status.
      */
-    public static DataChunk getHttpStatus(final int httpStatus) {
+    public static Buffer getHttpStatus(final int httpStatus) {
 
-        return statusCodes.get(httpStatus);
+        return Buffers.wrap(null, statusCodes.get(httpStatus));
 
     }
 
@@ -128,6 +127,17 @@ public class Utils {
         }
         buffer.position(position);
 
+    }
+
+
+    // --------------------------------------------------------- Private Methods
+
+
+    private static DataChunk newChunk(byte[] bytes) {
+        final DataChunk dc = DataChunk.newInstance();
+        final Buffer b = Buffers.wrap(null, bytes);
+        dc.setBuffer(b, 0, bytes.length);
+        return dc;
     }
 
 }

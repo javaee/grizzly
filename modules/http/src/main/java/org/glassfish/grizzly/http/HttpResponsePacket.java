@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.http;
 
+import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Utils;
 
@@ -144,14 +145,17 @@ public abstract class HttpResponsePacket extends HttpHeader {
      */
     public void setStatus(int status) {
         // the order is important here as statusDC.setXXX will reset the parsedIntStatus
-        statusC.set(Utils.getHttpStatus(status));
+        final Buffer b = Utils.getHttpStatus(status);
+        statusC.setBuffer(b, b.position(), b.limit());
         parsedStatusInt = status;
     }
 
 
-    public void setStatus(int status, DataChunk statusDC) {
+    public void setStatus(int status, Buffer statusBuffer) {
 
-        statusC.set(statusDC);
+        statusC.setBuffer(statusBuffer,
+                          statusBuffer.position(),
+                          statusBuffer.limit());
         parsedStatusInt = status;
 
     }
@@ -205,7 +209,9 @@ public abstract class HttpResponsePacket extends HttpHeader {
         if (allowCustomReasonPhrase && !reasonPhraseC.isNull()) {
             return reasonPhraseC;
         } else {
-            return Utils.getHttpStatusMessage(getStatus());
+            final Buffer b = Utils.getHttpStatusMessage(getStatus());
+            reasonPhraseC.setBuffer(b, b.position(), b.limit());
+            return reasonPhraseC;
         }
     }
 
@@ -227,8 +233,8 @@ public abstract class HttpResponsePacket extends HttpHeader {
         reasonPhraseC.setString(message);
     }
 
-    public void setReasonPhrase(DataChunk reason) {
-        reasonPhraseC.set(reason);
+    public void setReasonPhrase(Buffer reason) {
+        reasonPhraseC.setBuffer(reason, reason.position(), reason.limit());
     }
 
 

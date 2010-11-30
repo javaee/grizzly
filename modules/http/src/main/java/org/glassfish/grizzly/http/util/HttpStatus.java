@@ -41,14 +41,9 @@
 package org.glassfish.grizzly.http.util;
 
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.memory.MemoryManager;
-
-import java.nio.ByteBuffer;
-
-import static org.glassfish.grizzly.http.util.Charsets.ASCII_CHARSET;
 
 /**
  * This <code>enum</code> encapsulates the HTTP response status and
@@ -106,23 +101,18 @@ public enum HttpStatus {
 
     private final int status;
     private final String reasonPhrase;
-    private final DataChunk reasonPhraseDC;
-    private final DataChunk statusDC;
+    private final byte[] reasonPhraseBytes;
+    private final byte[] statusBytes;
 
     HttpStatus(final int status, final String reasonPhrase) {
         this.status = status;
         this.reasonPhrase = reasonPhrase;
-        final DataChunk dataChunk = DataChunk.newInstance();
-        final DataChunk statusChunk = DataChunk.newInstance();
-        final MemoryManager mm = TransportFactory.getInstance().getDefaultMemoryManager();
-        Buffer wrapper = Buffers.wrap(mm, ByteBuffer.wrap(reasonPhrase.getBytes(ASCII_CHARSET)));
-        Buffer wrapper2 = Buffers.wrap(mm, ByteBuffer.wrap(Integer.toString(status).getBytes(ASCII_CHARSET)));
-        dataChunk.setBuffer(wrapper, wrapper.position(), wrapper.limit());
-        statusChunk.setBuffer(wrapper2, wrapper2.position(), wrapper2.limit());
-        reasonPhraseDC = dataChunk.toImmutable();
-        statusDC = statusChunk.toImmutable();
+        reasonPhraseBytes = reasonPhrase.getBytes(Charsets.ASCII_CHARSET);
+        statusBytes = Integer.toString(status).getBytes(Charsets.ASCII_CHARSET);
     }
 
+    private static final ThreadCache.CachedTypeIndex<DataChunk> CACHE_IDX =
+            ThreadCache.obtainIndex(DataChunk.class, 10);
 
     // ---------------------------------------------------------- Public Methods
 
@@ -134,16 +124,16 @@ public enum HttpStatus {
         return status;
     }
 
-    public DataChunk getStatusDC() {
-        return statusDC;
+    public byte[] getStatusBytes() {
+        return statusBytes;
     }
 
     /**
-     * @return the {@link DataChunk} containing the reason phrase as
+     * @return the bytes containing the reason phrase as
      *  defined by <code>RFC 2616</code>.
      */
-    public DataChunk getReasonPhraseDC() {
-        return reasonPhraseDC;
+    public byte[] getReasonPhraseBytes() {
+        return reasonPhraseBytes;
     }
 
     /**
@@ -151,8 +141,8 @@ public enum HttpStatus {
      * @param response the response to set the status and reason phrase on.
      */
     public void setValues(HttpResponsePacket response) {
-        response.setStatus(status, statusDC);
-        response.setReasonPhrase(reasonPhraseDC);
+        response.setStatus(status, Buffers.wrap(null, statusBytes));
+        response.setReasonPhrase(Buffers.wrap(null, reasonPhraseBytes));
     }
 
 }
