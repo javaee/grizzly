@@ -65,6 +65,12 @@ public abstract class AbstractBufferArray<E> {
     }
 
     public void add(final E byteBuffer) {
+        add(byteBuffer, getPosition(byteBuffer), getLimit(byteBuffer));
+    }
+
+    public void add(final E byteBuffer, final int restorePosition,
+            final int restoreLimit) {
+        
         ensureCapacity(1);
         byteBufferArray[size] = byteBuffer;
         PosLim poslim = initStateArray[size];
@@ -73,8 +79,10 @@ public abstract class AbstractBufferArray<E> {
             initStateArray[size] = poslim;
         }
 
-        poslim.position = getPosition(byteBuffer);
-        poslim.limit = getLimit(byteBuffer);
+        poslim.initialPosition = getPosition(byteBuffer);
+        poslim.initialLimit = getLimit(byteBuffer);
+        poslim.restorePosition = restorePosition;
+        poslim.restoreLimit = restoreLimit;
 
         size++;
     }
@@ -87,8 +95,20 @@ public abstract class AbstractBufferArray<E> {
         for (int i = 0; i < size; i++) {
             final PosLim poslim = initStateArray[i];
             setPositionLimit(byteBufferArray[i],
-                    poslim.position, poslim.limit);
+                    poslim.restorePosition, poslim.restoreLimit);
         }
+    }
+
+    public final int getInitialPosition(final int idx) {
+        return initStateArray[idx].initialPosition;
+    }
+    
+    public int getInitialLimit(final int idx) {
+        return initStateArray[idx].initialLimit;
+    }
+
+    public final int getInitialBufferSize(final int idx) {
+        return getInitialLimit(idx) - getInitialPosition(idx);
     }
 
     public int size() {
@@ -116,7 +136,10 @@ public abstract class AbstractBufferArray<E> {
     }
 
     private final static class PosLim {
-        int position;
-        int limit;
+        int initialPosition;
+        int initialLimit;
+
+        int restorePosition;
+        int restoreLimit;
     }
 }

@@ -883,11 +883,13 @@ public class HeapBuffer implements Buffer {
     public final BufferArray toBufferArray(final BufferArray array,
             final int position, final int limit) {
 
-        array.add(this);
+        final int oldPos = pos;
+        final int oldLim = lim;
 
-        // array will hold the old pos/lim values, which will be restored on array.restore() call
-        Buffers.setPositionLimit(this, position, limit);
+        pos = position;
+        lim = limit;
 
+        array.add(this, oldPos, oldLim);
         return array;
     }
     

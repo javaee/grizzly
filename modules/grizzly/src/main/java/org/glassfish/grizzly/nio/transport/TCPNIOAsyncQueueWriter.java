@@ -95,6 +95,7 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
 
         final int written;
         
+        final int oldPos = buffer.position();
         if (buffer.isComposite()) {
             BufferArray array = record.bufferArray;
             if (array == null) {
@@ -102,7 +103,7 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
                 record.bufferArray = array;
             }
 
-            written = ((TCPNIOTransport) transport).write(connection,
+            written = ((TCPNIOTransport) transport).write0(connection,
                     array, currentResult);
 
 
@@ -111,12 +112,12 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             }
 
         } else {
-            written = ((TCPNIOTransport) transport).write(connection, buffer.toByteBuffer(),
+            written = ((TCPNIOTransport) transport).write0(connection, buffer,
                     currentResult);
         }
 
         if (written > 0) {
-            buffer.position(buffer.position() + written);
+            buffer.position(oldPos + written);
         }
 
         ((TCPNIOConnection) connection).onWrite(buffer, written);

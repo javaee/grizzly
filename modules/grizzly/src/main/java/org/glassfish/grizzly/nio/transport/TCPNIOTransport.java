@@ -93,6 +93,7 @@ import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.threadpool.WorkerThread;
 import java.io.EOFException;
+import java.lang.ref.SoftReference;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.ThreadCache;
@@ -941,10 +942,10 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         int written;
         if (buffer.isComposite()) {
             final BufferArray array = buffer.toBufferArray();
-            final Buffer[] buffers = array.getArray();
-            final int size = array.size();
+//            final Buffer[] buffers = array.getArray();
+//            final int size = array.size();
 
-            written = writeGathered(tcpConnection, buffers, 0, size);
+            written = writeGathered(tcpConnection, array);
 //            written = (int) ((SocketChannel) tcpConnection.getChannel()).write(byteBuffers, 0, size);
 
             if (LOGGER.isLoggable(Level.FINE)) {
@@ -955,9 +956,10 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             array.restore();
             array.recycle();
         } else {
-            final ByteBuffer byteBuffer = buffer.toByteBuffer();
-
-            written = ((SocketChannel) tcpConnection.getChannel()).write(byteBuffer);
+//            final ByteBuffer byteBuffer = buffer.toByteBuffer();
+//
+//            written = ((SocketChannel) tcpConnection.getChannel()).write(byteBuffer);
+            written = writeSimple(tcpConnection, buffer);
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (plain) write {1} bytes",
                         new Object[]{connection, written});
@@ -986,15 +988,15 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         return written;
     }
 
-    int write(final Connection connection, final BufferArray bufferArray,
+    int write0(final Connection connection, final BufferArray bufferArray,
             final WriteResult currentResult) throws IOException {
 
         final TCPNIOConnection tcpConnection = (TCPNIOConnection) connection;
-        final Buffer[] buffers = bufferArray.getArray();
-        final int size = bufferArray.size();
+//        final Buffer[] buffers = bufferArray.getArray();
+//        final int size = bufferArray.size();
 //        final int written = (int) ((SocketChannel) tcpConnection.getChannel()).write(
 //                byteBuffers, 0, size);
-        final int written = writeGathered(tcpConnection, buffers, 0, size);
+        final int written = writeGathered(tcpConnection, bufferArray);
 
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (composite) write {1} bytes",
@@ -1004,11 +1006,12 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         return written;
     }
 
-    int write(Connection connection, ByteBuffer byteBuffer,
-            WriteResult currentResult) throws IOException {
+    int write0(final Connection connection, final Buffer buffer,
+            final WriteResult currentResult) throws IOException {
 
         final TCPNIOConnection tcpConnection = (TCPNIOConnection) connection;
-        final int written = ((SocketChannel) tcpConnection.getChannel()).write(byteBuffer);
+        final int written = writeSimple(tcpConnection, buffer);
+//        final int written = ((SocketChannel) tcpConnection.getChannel()).write(buffer);
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (plain) write {1} bytes",
                     new Object[]{connection, written});
@@ -1017,9 +1020,48 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         return written;
     }
     
-    private int writeGathered(final TCPNIOConnection tcpConnection,
-            final Buffer[] buffers, final int position, final int length)
+    private static int writeSimple(final TCPNIOConnection tcpConnection,
+            final Buffer buffer) throws IOException {
+        final SocketChannel socketChannel = (SocketChannel) tcpConnection.getChannel();
+
+        if (!buffer.hasRemaining()) return 0;
+
+        if (!buffer.isDirect()) {
+            final int length = buffer.remaining();
+            final ByteBuffer directByteBuffer = obtainDirectByteBuffer(length);
+
+            try {
+
+                if (length < directByteBuffer.remaining()) {
+                    directByteBuffer.limit(directByteBuffer.position() + length);
+                }
+
+                buffer.get(directByteBuffer);
+
+                final int written = flushDirectByteBuffer(socketChannel, directByteBuffer);
+                final int remaining = directByteBuffer.remaining();
+                if (remaining > 0) {
+                    buffer.position(buffer.position() - remaining);
+                }
+
+                return written;
+            } finally {
+                releaseDirectByteBuffer(directByteBuffer);
+            }
+
+        } else {
+            return socketChannel.write(buffer.toByteBuffer());
+        }
+
+    }
+
+    private static int writeGathered(final TCPNIOConnection tcpConnection,
+            final BufferArray bufferArray)
             throws IOException {
+
+        final Buffer[] buffers = bufferArray.getArray();
+        final int position = 0;
+        final int length = bufferArray.size();
         
         final SocketChannel socketChannel = (SocketChannel) tcpConnection.getChannel();
 
@@ -1034,12 +1076,12 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             final Buffer buffer = buffers[i];
             next = findNextAvailBuffer(buffers, i, lastIdx);
 
-            final boolean isFlush = next >= lastIdx || buffers[next].isDirect();
+            final boolean isFlush = next == lastIdx || buffers[next].isDirect();
             
             // If Buffer is not direct - copy it to the direct buffer and write
             if (!buffer.isDirect()) {
                 if (directByteBuffer == null) {
-                    directByteBuffer = obtainDirectByteBuffer(tcpConnection);
+                    directByteBuffer = obtainDirectByteBuffer(tcpConnection.getWriteBufferSize());
                 }
 
                 final int currentBufferRemaining = buffer.remaining();
@@ -1060,10 +1102,17 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
                 if (!directByteBuffer.hasRemaining() || isFlush) {
                     written += flushDirectByteBuffer(socketChannel, directByteBuffer);
-                    final int remaining = directByteBuffer.remaining();
+                    int remaining = directByteBuffer.remaining();
                     if (remaining > 0) {
-                        directByteBuffer.limit(0);
-                        buffer.position(buffer.position() - remaining);
+                        while (remaining > 0) {
+                            final Buffer revertBuffer = buffers[i];
+                            final int shift = Math.min(remaining,
+                                    revertBuffer.position() - bufferArray.getInitialPosition(i));
+                            revertBuffer.position(revertBuffer.position() - shift);
+                            i--;
+                            remaining -= shift;
+                        }
+                        
                         break;
                     }
                     
@@ -1111,24 +1160,24 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         return written;
     }
 
-    private static final ThreadCache.CachedTypeIndex<ByteBuffer> CACHE_IDX =
-            ThreadCache.obtainIndex(ByteBuffer.class, 1);
+    private static final ThreadCache.CachedTypeIndex<SoftReference> CACHE_IDX =
+            ThreadCache.obtainIndex("direct-buffer-cache", SoftReference.class, 1);
     
-    private ByteBuffer obtainDirectByteBuffer(final TCPNIOConnection tcpConnection) {
-        final int connectionWriteBufferSize = tcpConnection.getWriteBufferSize();
-        final ByteBuffer byteBuffer = ThreadCache.takeFromCache(CACHE_IDX);
-        
-        if (byteBuffer != null) {
-            if (byteBuffer.remaining() >= connectionWriteBufferSize) {
+    private static ByteBuffer obtainDirectByteBuffer(final int size) {
+        final SoftReference<ByteBuffer> sr = ThreadCache.takeFromCache(CACHE_IDX);
+        final ByteBuffer byteBuffer;
+        if (sr != null && (byteBuffer = sr.get()) != null) {
+            if (byteBuffer.remaining() >= size) {
                 return byteBuffer;
             }
         }
 
-        return ByteBuffer.allocateDirect(connectionWriteBufferSize);
+        return ByteBuffer.allocateDirect(size);
     }
 
-    private void releaseDirectByteBuffer(final ByteBuffer directByteBuffer) {
-        ThreadCache.putToCache(CACHE_IDX, directByteBuffer.clear());
+    private static void releaseDirectByteBuffer(final ByteBuffer directByteBuffer) {
+        ThreadCache.putToCache(CACHE_IDX,
+                new SoftReference<ByteBuffer>((ByteBuffer) directByteBuffer.clear()));
     }
 
 

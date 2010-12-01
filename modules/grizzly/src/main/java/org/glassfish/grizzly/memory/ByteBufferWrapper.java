@@ -672,10 +672,11 @@ public class ByteBufferWrapper implements Buffer {
     public final ByteBufferArray toByteBufferArray(final ByteBufferArray array,
             final int position, final int limit) {
 
-        array.add(visible);
+        final int oldPos = visible.position();
+        final int oldLim = visible.limit();
 
-        // array will hold the old pos/lim values, which will be restored on array.restore() call
-        Buffers.setPositionLimit(this, position, limit);
+        Buffers.setPositionLimit(visible, position, limit);
+        array.add(visible, oldPos, oldLim);
 
         return array;
     }
@@ -704,10 +705,11 @@ public class ByteBufferWrapper implements Buffer {
     public final BufferArray toBufferArray(final BufferArray array,
             final int position, final int limit) {
 
-        array.add(this);
+        final int oldPos = visible.position();
+        final int oldLim = visible.limit();
 
-        // array will hold the old pos/lim values, which will be restored on array.restore() call
-        Buffers.setPositionLimit(this, position, limit);
+        Buffers.setPositionLimit(visible, position, limit);
+        array.add(this, oldPos, oldLim);
 
         return array;
     }
