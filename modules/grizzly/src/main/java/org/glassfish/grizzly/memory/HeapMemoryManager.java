@@ -63,7 +63,7 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
             System.identityHashCode(this), SmallHeapBuffer.class, 16);
 
     private static final ThreadCache.CachedTypeIndex<TrimmableHeapBuffer> CACHE_IDX =
-            ThreadCache.obtainIndex(TrimmableHeapBuffer.class, 2);
+            ThreadCache.obtainIndex(TrimmableHeapBuffer.class, 8);
 
     private static final ThreadCache.CachedTypeIndex<RecyclableByteBufferWrapper> BBW_CACHE_IDX =
             ThreadCache.obtainIndex(RecyclableByteBufferWrapper.class, 2);
