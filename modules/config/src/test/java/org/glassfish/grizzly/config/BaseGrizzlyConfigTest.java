@@ -79,7 +79,7 @@ public class BaseGrizzlyConfigTest {
         return "";
     }
 
-    protected void addStaticResourceService(GrizzlyServiceListener listener, int count) {
+    protected void addStaticResourceService(GrizzlyListener listener, int count) {
         final String name = System.getProperty("java.io.tmpdir", "/tmp") + "/"
             + Dom.convertName(getClass().getSimpleName()) + count;
         File dir = new File(name);

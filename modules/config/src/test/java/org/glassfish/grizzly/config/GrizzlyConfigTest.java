@@ -65,7 +65,7 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
             grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
             grizzlyConfig.setupNetwork();
             int count = 0;
-            for (GrizzlyServiceListener listener : grizzlyConfig.getListeners()) {
+            for (GrizzlyListener listener : grizzlyConfig.getListeners()) {
                 addStaticResourceService(listener, count++);
             }
             final String content = getContent(new URL("http://localhost:38082").openConnection());
@@ -124,7 +124,7 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
             grizzlyConfig = new GrizzlyConfig("grizzly-config-ssl.xml");
             grizzlyConfig.setupNetwork();
             int count = 0;
-            for (GrizzlyServiceListener listener : grizzlyConfig.getListeners()) {
+            for (GrizzlyListener listener : grizzlyConfig.getListeners()) {
                 addStaticResourceService(listener, count++);
             }
 //            Assert.assertEquals(getContent(new URL("https://localhost:38082").openConnection()),

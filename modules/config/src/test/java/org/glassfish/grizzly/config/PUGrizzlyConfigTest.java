@@ -69,7 +69,7 @@ public class PUGrizzlyConfigTest {
             grizzlyConfig = new GrizzlyConfig("grizzly-config-pu.xml");
             grizzlyConfig.setupNetwork();
             int count = 0;
-            for (GrizzlyServiceListener listener : grizzlyConfig.getListeners()) {
+            for (GrizzlyListener listener : grizzlyConfig.getListeners()) {
                 addStaticResourceService(listener, count++);
             }
             final String httpContent = getContent(new URL("http://localhost:38082").openConnection());
@@ -144,7 +144,7 @@ public class PUGrizzlyConfigTest {
         return builder.toString();
     }
 
-    private void addStaticResourceService(GrizzlyServiceListener listener, int count) throws IOException {
+    private void addStaticResourceService(GrizzlyListener listener, int count) throws IOException {
         final String name = System.getProperty("java.io.tmpdir", "/tmp") + "/grizzly-config-root" + count;
         File dir = new File(name);
         dir.mkdirs();

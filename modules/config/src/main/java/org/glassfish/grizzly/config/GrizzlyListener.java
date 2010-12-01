@@ -74,11 +74,11 @@ import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
  * @author Jeanfrancois Arcand
  * @author Justin Lee
  */
-public class GrizzlyServiceListener {
+public class GrizzlyListener {
     /**
      * The logger to use for logging messages.
      */
-    static final Logger logger = Logger.getLogger(GrizzlyServiceListener.class.getName());
+    static final Logger logger = Logger.getLogger(GrizzlyListener.class.getName());
     private boolean isEmbeddedHttpSecured;
     private String name;
     private int port;
@@ -92,7 +92,7 @@ public class GrizzlyServiceListener {
      *
      * @param listener The listener to configure
      */
-    public GrizzlyServiceListener() {
+    public GrizzlyListener() {
     }
     
     public void start() throws IOException {
@@ -146,7 +146,7 @@ public class GrizzlyServiceListener {
         configureListener(networkListener);
     }
 
-    public void configureListener(NetworkListener networkListener) {
+    protected void configureListener(NetworkListener networkListener) {
         configureTransport(networkListener);
         final boolean mayEnableComet = !"admin-listener".equalsIgnoreCase(networkListener.getName());
         configureProtocol(networkListener, mayEnableComet);

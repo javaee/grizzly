@@ -62,7 +62,7 @@ import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
 public class GrizzlyConfig {
     private static final Logger logger = Logger.getLogger(GrizzlyConfig.class.getName());
     private final NetworkConfig config;
-    private final List<GrizzlyServiceListener> listeners = new ArrayList<GrizzlyServiceListener>();
+    private final List<GrizzlyListener> listeners = new ArrayList<GrizzlyListener>();
 
     public GrizzlyConfig(String file) {
         config = Utils.getHabitat(file).getComponent(NetworkConfig.class);
@@ -72,7 +72,7 @@ public class GrizzlyConfig {
         return config;
     }
 
-    public List<GrizzlyServiceListener> getListeners() {
+    public List<GrizzlyListener> getListeners() {
         return listeners;
     }
 
@@ -85,7 +85,7 @@ public class GrizzlyConfig {
                 amm = (AbstractMemoryManager) mm;
             }
             for (final NetworkListener listener : config.getNetworkListeners().getNetworkListener()) {
-                final GrizzlyServiceListener grizzlyListener = new GrizzlyServiceListener();
+                final GrizzlyListener grizzlyListener = new GrizzlyListener();
                 grizzlyListener.configure(listener);
                 listeners.add(grizzlyListener);
                 final Thread thread = new DefaultWorkerThread(Grizzly.DEFAULT_ATTRIBUTE_BUILDER,
@@ -106,7 +106,7 @@ public class GrizzlyConfig {
 
     public void shutdownNetwork() {
         synchronized (listeners) {
-            for (GrizzlyServiceListener listener : listeners) {
+            for (GrizzlyListener listener : listeners) {
                 try {
                     listener.stop();
                 } catch (Exception e) {
@@ -125,7 +125,7 @@ public class GrizzlyConfig {
 
     public void shutdown() throws IOException {
         synchronized (listeners) {
-            for (GrizzlyServiceListener listener : listeners) {
+            for (GrizzlyListener listener : listeners) {
                 try {
                     listener.stop();
                 } catch (Exception e) {
@@ -142,9 +142,9 @@ public class GrizzlyConfig {
     }
 
     private static class ListenerRunnable implements Runnable {
-        private final GrizzlyServiceListener grizzlyListener;
+        private final GrizzlyListener grizzlyListener;
 
-        public ListenerRunnable(GrizzlyServiceListener grizzlyListener) {
+        public ListenerRunnable(GrizzlyListener grizzlyListener) {
             this.grizzlyListener = grizzlyListener;
         }
 
