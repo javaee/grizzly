@@ -43,6 +43,7 @@ import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.nio.NIOConnection;
 import java.io.IOException;
+import java.net.ServerSocket;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
@@ -249,6 +250,29 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
         notifyProbesAccept(this);
     }
 
+    @Override
+    public void setReadBufferSize(final int readBufferSize) {
+        final ServerSocket socket = ((ServerSocketChannel) channel).socket();
+
+        try {
+            final int socketReadBufferSize = socket.getReceiveBufferSize();
+            if (readBufferSize != -1) {
+                if (readBufferSize > socketReadBufferSize) {
+                    socket.setReceiveBufferSize(readBufferSize);
+                }
+            }
+
+            this.readBufferSize = readBufferSize;
+        } catch (IOException e) {
+            LOGGER.log(Level.WARNING, "Error setting read buffer size", e);
+        }
+    }
+
+    @Override
+    public void setWriteBufferSize(final int writeBufferSize) {
+            this.writeBufferSize = writeBufferSize;
+    }
+
     protected final class RegisterAcceptedChannelCompletionHandler
             extends EmptyCompletionHandler<RegisterChannelResult> {
 
@@ -277,7 +301,7 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
                 final TCPNIOConnection connection =
                         (TCPNIOConnection) selectionKeyHandler.getConnectionForKey(acceptedConnectionKey);
 
-                connection.resetAddresses();
+                connection.resetProperties();
                 if (listener != null) {
                     listener.result(connection);
                 }

@@ -253,6 +253,11 @@ public class HeapBuffer implements Buffer {
         return readOnly;
     }
 
+    @Override
+    public final boolean isDirect() {
+        return false;
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -395,6 +400,57 @@ public class HeapBuffer implements Buffer {
         return this;
     }
 
+    @Override
+    public Buffer get(ByteBuffer dst) {
+        final int length = dst.remaining();
+        
+        dst.put(heap, offset + pos, length);
+        pos += length;
+        
+        return this;
+    }
+
+    @Override
+    public Buffer get(ByteBuffer dst, int position, int length) {
+        final int oldPos = dst.position();
+        final int oldLim = dst.limit();
+
+        try {
+            Buffers.setPositionLimit(dst, position, position + length);
+            dst.put(heap, offset + pos, length);
+            pos += length;
+        } finally {
+            Buffers.setPositionLimit(dst, oldPos, oldLim);
+        }
+
+        return this;
+    }
+    
+    @Override
+    public Buffer put(ByteBuffer src) {
+        final int length = src.remaining();
+        
+        src.get(heap, offset + pos, length);
+        pos += length;
+        
+        return this;
+    }
+
+    @Override
+    public Buffer put(ByteBuffer src, int position, int length) {
+        final int oldPos = src.position();
+        final int oldLim = src.limit();
+
+        try {
+            Buffers.setPositionLimit(src, position, position + length);
+            src.get(heap, offset + pos, length);
+            pos += length;
+        } finally {
+            Buffers.setPositionLimit(src, oldPos, oldLim);
+        }
+
+        return this;
+    }
 
     public static HeapBuffer wrap(byte[] heap) {
         return wrap(heap, 0, heap.length);
@@ -803,6 +859,38 @@ public class HeapBuffer implements Buffer {
         return array;
     }
 
+    @Override
+    public final BufferArray toBufferArray() {
+        final BufferArray array = BufferArray.create();
+        array.add(this);
+
+        return array;
+    }
+
+    @Override
+    public final BufferArray toBufferArray(final int position,
+                                                   final int limit) {
+        return toBufferArray(BufferArray.create(), position, limit);
+    }
+
+    @Override
+    public final BufferArray toBufferArray(final BufferArray array) {
+        array.add(this);
+        return array;
+    }
+
+    @Override
+    public final BufferArray toBufferArray(final BufferArray array,
+            final int position, final int limit) {
+
+        array.add(this);
+
+        // array will hold the old pos/lim values, which will be restored on array.restore() call
+        Buffers.setPositionLimit(this, position, limit);
+
+        return array;
+    }
+    
     protected byte[] array() {
         return heap;
     }

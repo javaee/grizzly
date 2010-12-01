@@ -40,51 +40,83 @@
 
 package org.glassfish.grizzly.memory;
 
-import java.nio.ByteBuffer;
-import org.glassfish.grizzly.ThreadCache;
+import java.lang.reflect.Array;
+import java.util.Arrays;
 
 /**
  *
  * @author oleksiys
  */
-public final class ByteBufferArray extends AbstractBufferArray<ByteBuffer> {
+public abstract class AbstractBufferArray<E> {
+    protected final Class<E> clazz;
+    private E[] byteBufferArray;
+    private PosLim[] initStateArray;
+    
+    private int size;
 
-    private static final ThreadCache.CachedTypeIndex<ByteBufferArray> CACHE_IDX =
-            ThreadCache.obtainIndex(ByteBufferArray.class, 4);
+    protected abstract void setPositionLimit(E buffer, int position, int limit);
+    protected abstract int getPosition(E buffer);
+    protected abstract int getLimit(E buffer);
 
-    public static ByteBufferArray create() {
-        final ByteBufferArray array = ThreadCache.takeFromCache(CACHE_IDX);
-        if (array != null) {
-            return array;
+    protected AbstractBufferArray(Class<E> clazz) {
+        this.clazz = clazz;
+        byteBufferArray = (E[]) Array.newInstance(clazz, 4);
+        initStateArray = new PosLim[4];
+    }
+
+    public void add(final E byteBuffer) {
+        ensureCapacity(1);
+        byteBufferArray[size] = byteBuffer;
+        PosLim poslim = initStateArray[size];
+        if (poslim == null) {
+            poslim = new PosLim();
+            initStateArray[size] = poslim;
         }
 
-        return new ByteBufferArray();
+        poslim.position = getPosition(byteBuffer);
+        poslim.limit = getLimit(byteBuffer);
+
+        size++;
     }
 
-    private ByteBufferArray() {
-        super(ByteBuffer.class);
+    public E[] getArray() {
+        return byteBufferArray;
     }
 
-    @Override
+    public void restore() {
+        for (int i = 0; i < size; i++) {
+            final PosLim poslim = initStateArray[i];
+            setPositionLimit(byteBufferArray[i],
+                    poslim.position, poslim.limit);
+        }
+    }
+
+    public int size() {
+        return size;
+    }
+
+    private void ensureCapacity(final int grow) {
+        final int diff = byteBufferArray.length - size;
+        if (diff >= grow) {
+            return;
+        }
+
+        final int newSize = Math.max(diff + size, (byteBufferArray.length * 3) / 2 + 1);
+        byteBufferArray = Arrays.copyOf(byteBufferArray, newSize);
+        initStateArray = Arrays.copyOf(initStateArray, newSize);
+    }
+
+    protected void reset() {
+        Arrays.fill(byteBufferArray, 0, size, null);
+        size = 0;
+    }
+
     public void recycle() {
-        super.recycle();
-
-        ThreadCache.putToCache(CACHE_IDX, this);
+        reset();
     }
 
-    @Override
-    protected void setPositionLimit(final ByteBuffer buffer,
-            final int position, final int limit) {
-        Buffers.setPositionLimit(buffer, position, limit);
-    }
-
-    @Override
-    protected int getPosition(final ByteBuffer buffer) {
-        return buffer.position();
-    }
-
-    @Override
-    protected int getLimit(final ByteBuffer buffer) {
-        return buffer.limit();
+    private final static class PosLim {
+        int position;
+        int limit;
     }
 }

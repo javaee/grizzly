@@ -40,29 +40,29 @@
 
 package org.glassfish.grizzly.memory;
 
-import java.nio.ByteBuffer;
+import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ThreadCache;
 
 /**
  *
  * @author oleksiys
  */
-public final class ByteBufferArray extends AbstractBufferArray<ByteBuffer> {
+public final class BufferArray extends AbstractBufferArray<Buffer> {
 
-    private static final ThreadCache.CachedTypeIndex<ByteBufferArray> CACHE_IDX =
-            ThreadCache.obtainIndex(ByteBufferArray.class, 4);
+    private static final ThreadCache.CachedTypeIndex<BufferArray> CACHE_IDX =
+            ThreadCache.obtainIndex(BufferArray.class, 4);
 
-    public static ByteBufferArray create() {
-        final ByteBufferArray array = ThreadCache.takeFromCache(CACHE_IDX);
+    public static BufferArray create() {
+        final BufferArray array = ThreadCache.takeFromCache(CACHE_IDX);
         if (array != null) {
             return array;
         }
 
-        return new ByteBufferArray();
+        return new BufferArray();
     }
 
-    private ByteBufferArray() {
-        super(ByteBuffer.class);
+    private BufferArray() {
+        super(Buffer.class);
     }
 
     @Override
@@ -73,18 +73,18 @@ public final class ByteBufferArray extends AbstractBufferArray<ByteBuffer> {
     }
 
     @Override
-    protected void setPositionLimit(final ByteBuffer buffer,
+    protected void setPositionLimit(final Buffer buffer,
             final int position, final int limit) {
         Buffers.setPositionLimit(buffer, position, limit);
     }
 
     @Override
-    protected int getPosition(final ByteBuffer buffer) {
+    protected int getPosition(final Buffer buffer) {
         return buffer.position();
     }
 
     @Override
-    protected int getLimit(final ByteBuffer buffer) {
+    protected int getLimit(final Buffer buffer) {
         return buffer.limit();
     }
 }

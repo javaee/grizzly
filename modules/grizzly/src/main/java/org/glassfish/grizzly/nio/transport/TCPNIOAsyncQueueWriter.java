@@ -54,7 +54,7 @@ import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
-import org.glassfish.grizzly.memory.ByteBufferArray;
+import org.glassfish.grizzly.memory.BufferArray;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.utils.DebugPoint;
 
@@ -96,10 +96,10 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
         final int written;
         
         if (buffer.isComposite()) {
-            ByteBufferArray array = record.byteBufferArray;
+            BufferArray array = record.bufferArray;
             if (array == null) {
-                array = buffer.toByteBufferArray();
-                record.byteBufferArray = array;
+                array = buffer.toBufferArray();
+                record.bufferArray = array;
             }
 
             written = ((TCPNIOTransport) transport).write(connection,
@@ -170,7 +170,7 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
                     outputBuffer, isCloned);
         }
 
-        private ByteBufferArray byteBufferArray;
+        private BufferArray bufferArray;
         
         public TCPNIOQueueRecord(final Object message,
                 final Future future,
@@ -194,9 +194,9 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
                         Thread.currentThread().getName());
             }
 
-            if (byteBufferArray != null) {
-                byteBufferArray.recycle();
-                byteBufferArray = null;
+            if (bufferArray != null) {
+                bufferArray.recycle();
+                bufferArray = null;
             }
             
             ThreadCache.putToCache(CACHE_IDX, this);

@@ -43,6 +43,7 @@ package org.glassfish.grizzly;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
+import org.glassfish.grizzly.memory.BufferArray;
 import org.glassfish.grizzly.memory.ByteBufferArray;
 
 /**
@@ -96,6 +97,14 @@ public interface Buffer extends Comparable<Buffer> {
 
     public void allowBufferDispose(boolean allowBufferDispose);
 
+    /**
+     * Tells whether or not this buffer is
+     * <a href="ByteBuffer.html#direct"><i>direct</i></a>. </p>
+     *
+     * @return  <tt>true</tt> if, and only if, this buffer is direct
+     */
+    public boolean isDirect();
+    
     /**
      * Try to dispose <tt>Buffer</tt> if it's allowed.
      */
@@ -416,6 +425,25 @@ public interface Buffer extends Comparable<Buffer> {
     public Buffer put(int index, byte b);
 
     // -- Bulk get operations --
+
+    /**
+     * Relative bulk <i>get</i> method.
+     *
+     * <p> This method transfers bytes from this buffer into the given
+     * destination array.  An invocation of this method of the form
+     * <tt>src.get(a)</tt> behaves in exactly the same way as the invocation
+     *
+     * <pre>
+     *     src.get(a, 0, a.length) </pre>
+     *
+     * @return  This buffer
+     *
+     * @throws java.nio.BufferUnderflowException
+     *          If there are fewer than <tt>length</tt> bytes
+     *          remaining in this buffer
+     */
+    public Buffer get(byte[] dst);
+
     /**
      * Relative bulk <i>get</i> method.
      *
@@ -471,11 +499,11 @@ public interface Buffer extends Comparable<Buffer> {
      * Relative bulk <i>get</i> method.
      *
      * <p> This method transfers bytes from this buffer into the given
-     * destination array.  An invocation of this method of the form
+     * destination {@link ByteBuffer}.  An invocation of this method of the form
      * <tt>src.get(a)</tt> behaves in exactly the same way as the invocation
      *
      * <pre>
-     *     src.get(a, 0, a.length) </pre>
+     *     src.get(a, 0, a.remaining()) </pre>
      *
      * @return  This buffer
      *
@@ -483,8 +511,60 @@ public interface Buffer extends Comparable<Buffer> {
      *          If there are fewer than <tt>length</tt> bytes
      *          remaining in this buffer
      */
-    public Buffer get(byte[] dst);
+    public Buffer get(ByteBuffer dst);
 
+    /**
+     * Relative bulk <i>get</i> method.
+     *
+     * <p> This method transfers bytes from this buffer into the given
+     * destination {@link ByteBuffer}.  If there are fewer bytes remaining in the
+     * buffer than are required to satisfy the request, that is, if
+     * <tt>length</tt>&nbsp;<tt>&gt;</tt>&nbsp;<tt>remaining()</tt>, then no
+     * bytes are transferred and a {@link java.nio.BufferUnderflowException} is
+     * thrown.
+     *
+     * <p> Otherwise, this method copies <tt>length</tt> bytes from this
+     * buffer into the given {@link ByteBuffer}, starting at the current position of this
+     * buffer and at the given offset in the {@link ByteBuffer}.  The position of this
+     * buffer is then incremented by <tt>length</tt>.
+     *
+     * <p> In other words, an invocation of this method of the form
+     * <tt>src.get(dst,&nbsp;off,&nbsp;len)</tt> has exactly the same effect as
+     * the loop
+     *
+     * <pre>
+     *     for (int i = off; i < off + len; i++)
+     *         dst.put(i) = src.get(); </pre>
+     *
+     * except that it first checks that there are sufficient bytes in
+     * this buffer and it is potentially much more efficient. </p>
+     *
+     * @param  dst
+     *         The {@link ByteBuffer} into which bytes are to be written
+     *
+     * @param  offset
+     *         The offset within the {@link ByteBuffer} of the first byte to be
+     *         written; must be non-negative and no larger than
+     *         <tt>dst.remaining()</tt>
+     *
+     * @param  length
+     *         The maximum number of bytes to be written to the given
+     *         array; must be non-negative and no larger than
+     *         <tt>dst.remaining() - offset</tt>
+     *
+     * @return  This buffer
+     *
+     * @throws java.nio.BufferUnderflowException
+     *          If there are fewer than <tt>length</tt> bytes
+     *          remaining in this buffer
+     *
+     * @throws  IndexOutOfBoundsException
+     *          If the preconditions on the <tt>offset</tt> and <tt>length</tt>
+     *          parameters do not hold
+     */
+    public Buffer get(ByteBuffer dst, int offset, int length);
+
+    
     // -- Bulk put operations --
     /**
      * Relative bulk <i>put</i> method&nbsp;&nbsp;<i>(optional operation)</i>.
@@ -579,6 +659,121 @@ public interface Buffer extends Comparable<Buffer> {
      */
     public Buffer put(Buffer src, int position, int length);
 
+    // -- Bulk put operations --
+    /**
+     * Relative bulk <i>put</i> method&nbsp;&nbsp;<i>(optional operation)</i>.
+     *
+     * <p> This method transfers the bytes remaining in the given source
+     * buffer into this buffer.  If there are more bytes remaining in the
+     * source buffer than in this buffer, that is, if
+     * <tt>src.remaining()</tt>&nbsp;<tt>&gt;</tt>&nbsp;<tt>remaining()</tt>,
+     * then no bytes are transferred and a {@link
+     * java.nio.BufferOverflowException} is thrown.
+     *
+     * <p> Otherwise, this method copies
+     * <i>n</i>&nbsp;=&nbsp;<tt>src.remaining()</tt> bytes from the given
+     * buffer into this buffer, starting at each buffer's current position.
+     * The positions of both buffers are then incremented by <i>n</i>.
+     *
+     * <p> In other words, an invocation of this method of the form
+     * <tt>dst.put(src)</tt> has exactly the same effect as the loop
+     *
+     * <pre>
+     *     while (src.hasRemaining())
+     *         dst.put(src.get()); </pre>
+     *
+     * except that it first checks that there is sufficient space in this
+     * buffer and it is potentially much more efficient. </p>
+     *
+     * @param  src
+     *         The source buffer from which bytes are to be read;
+     *         must not be this buffer
+     *
+     * @return  This buffer
+     *
+     * @throws java.nio.BufferOverflowException
+     *          If there is insufficient space in this buffer
+     *          for the remaining bytes in the source buffer
+     *
+     * @throws  IllegalArgumentException
+     *          If the source buffer is this buffer
+     *
+     * @throws java.nio.ReadOnlyBufferException
+     *          If this buffer is read-only
+     */
+    public Buffer put(ByteBuffer src);
+
+    // -- Bulk put operations --
+    /**
+     * Relative bulk <i>put</i> method&nbsp;&nbsp;<i>(optional operation)</i>.
+     *
+     * <p> This method transfers the "length" bytes from the given source
+     * buffer into this buffer.  If this buffer has less bytes remaining than
+     * length, that is, if
+     * <tt>length</tt>&nbsp;<tt>&gt;</tt>&nbsp;<tt>remaining()</tt>,
+     * then no bytes are transferred and a {@link
+     * java.nio.BufferOverflowException} is thrown.
+     *
+     * <p> Otherwise, this method copies
+     * <i>n</i>&nbsp;=&nbsp;<tt>length</tt> bytes from the given
+     * <tt>postion</tt> in the source buffer into this buffer, starting from
+     * the current buffer position.
+     * The positions of this buffer is then incremented by <i>length</i>.
+     *
+     * <p> In other words, an invocation of this method of the form
+     * <tt>dst.put(src, position, length)</tt> has exactly the same effect
+     * as the loop
+     *
+     * <pre>
+     *     for (int i = 0; i < length; i++)
+     *         dst.put(src.get(i + position)); </pre>
+     *
+     * except that it first checks that there is sufficient space in this
+     * buffer and it is potentially much more efficient. </p>
+     *
+     * @param  src
+     *         The source buffer from which bytes are to be read;
+     *         must not be this buffer
+     *
+     * @param position starting position in the source buffer
+     *
+     * @param length number of bytes to be copied
+     *
+     * @return  This buffer
+     *
+     * @throws java.nio.BufferOverflowException
+     *          If there is insufficient space in this buffer
+     *          for the remaining bytes in the source buffer
+     *
+     * @throws  IllegalArgumentException
+     *          If the source buffer is this buffer
+     *
+     * @throws java.nio.ReadOnlyBufferException
+     *          If this buffer is read-only
+     */
+    public Buffer put(ByteBuffer src, int position, int length);
+
+    /**
+     * Relative bulk <i>put</i> method&nbsp;&nbsp;<i>(optional operation)</i>.
+     *
+     * <p> This method transfers the entire content of the given source
+     * byte array into this buffer.  An invocation of this method of the
+     * form <tt>dst.put(a)</tt> behaves in exactly the same way as the
+     * invocation
+     *
+     * <pre>
+     *     dst.put(a, 0, a.length) </pre>
+     *
+     * @return  This buffer
+     *
+     * @throws java.nio.BufferOverflowException
+     *          If there is insufficient space in this buffer
+     *
+     * @throws java.nio.ReadOnlyBufferException
+     *          If this buffer is read-only
+     */
+    public Buffer put(byte[] src);
+    
     /**
      * Relative bulk <i>put</i> method&nbsp;&nbsp;<i>(optional operation)</i>.
      *
@@ -630,27 +825,6 @@ public interface Buffer extends Comparable<Buffer> {
      *          If this buffer is read-only
      */
     public Buffer put(byte[] src, int offset, int length);
-
-    /**
-     * Relative bulk <i>put</i> method&nbsp;&nbsp;<i>(optional operation)</i>.
-     *
-     * <p> This method transfers the entire content of the given source
-     * byte array into this buffer.  An invocation of this method of the
-     * form <tt>dst.put(a)</tt> behaves in exactly the same way as the
-     * invocation
-     *
-     * <pre>
-     *     dst.put(a, 0, a.length) </pre>
-     *
-     * @return  This buffer
-     *
-     * @throws java.nio.BufferOverflowException
-     *          If there is insufficient space in this buffer
-     *
-     * @throws java.nio.ReadOnlyBufferException
-     *          If this buffer is read-only
-     */
-    public Buffer put(byte[] src);
 
     /**
      * Compacts this buffer&nbsp;&nbsp;<i>(optional operation)</i>.
@@ -1237,4 +1411,13 @@ public interface Buffer extends Comparable<Buffer> {
     public ByteBufferArray toByteBufferArray(int position, int limit);
 
     public ByteBufferArray toByteBufferArray(ByteBufferArray array, int position, int limit);
+
+    public BufferArray toBufferArray();
+
+    public BufferArray toBufferArray(BufferArray array);
+
+    public BufferArray toBufferArray(int position, int limit);
+
+    public BufferArray toBufferArray(BufferArray array, int position, int limit);
+
 }

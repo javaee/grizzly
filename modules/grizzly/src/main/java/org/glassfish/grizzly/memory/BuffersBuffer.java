@@ -293,6 +293,11 @@ public final class BuffersBuffer extends CompositeBuffer {
     }
 
     @Override
+    public boolean isDirect() {
+        throw new UnsupportedOperationException("Not supported in CompositeBuffers.");
+    }
+
+    @Override
     public BuffersBuffer clear() {
         checkDispose();
         calcCapacity();
@@ -775,6 +780,92 @@ public final class BuffersBuffer extends CompositeBuffer {
     }
 
     @Override
+    public BuffersBuffer get(final ByteBuffer dst) {
+        get(dst, 0, dst.remaining());
+        dst.position(dst.limit());
+
+        return this;
+    }
+
+    @Override
+    public BuffersBuffer get(final ByteBuffer dst, int offset, int length) {
+        checkDispose();
+        checkReadOnly();
+
+        if (remaining() < length) throw new BufferOverflowException();
+
+        checkIndex(position);
+
+        int bufferIdx = lastSegmentIndex;
+        Buffer buffer = activeBuffer;
+        int bufferPosition = toActiveBufferPos(position);
+
+        while(true) {
+            int oldPos = buffer.position();
+            buffer.position(bufferPosition);
+            int bytesToCopy = Math.min(buffer.remaining(), length);
+            buffer.get(dst, offset, bytesToCopy);
+            buffer.position(oldPos);
+            bufferPosition += (bytesToCopy - 1);
+
+            length -= bytesToCopy;
+            offset += bytesToCopy;
+            position += bytesToCopy;
+
+            if (length == 0) break;
+
+            bufferIdx++;
+            buffer = buffers[bufferIdx];
+            bufferPosition = buffer.position();
+        }
+
+        return this;
+    }
+    
+    @Override
+    public BuffersBuffer put(final ByteBuffer src) {
+        put(src, 0, src.remaining());
+        src.position(src.limit());
+
+        return this;
+    }
+
+    @Override
+    public BuffersBuffer put(final ByteBuffer src, int offset, int length) {
+        checkDispose();
+        checkReadOnly();
+
+        if (remaining() < length) throw new BufferOverflowException();
+
+        checkIndex(position);
+
+        int bufferIdx = lastSegmentIndex;
+        Buffer buffer = activeBuffer;
+        int bufferPosition = toActiveBufferPos(position);
+
+        while(true) {
+            int oldPos = buffer.position();
+            buffer.position(bufferPosition);
+            int bytesToCopy = Math.min(buffer.remaining(), length);
+            buffer.put(src, offset, bytesToCopy);
+            buffer.position(oldPos);
+            bufferPosition += (bytesToCopy - 1);
+
+            length -= bytesToCopy;
+            offset += bytesToCopy;
+            position += bytesToCopy;
+
+            if (length == 0) break;
+
+            bufferIdx++;
+            buffer = buffers[bufferIdx];
+            bufferPosition = buffer.position();
+        }
+
+        return this;
+    }
+    
+    @Override
     public BuffersBuffer put(Buffer src) {
         put(src, src.position(), src.remaining());
         src.position(src.limit());
@@ -1136,8 +1227,6 @@ public final class BuffersBuffer extends CompositeBuffer {
         return (ByteBuffer) resultByteBuffer.flip();
     }
 
-
-
     @Override
     public final ByteBufferArray toByteBufferArray() {
         return toByteBufferArray(position, limit);
@@ -1221,7 +1310,90 @@ public final class BuffersBuffer extends CompositeBuffer {
 
         return array;
     }
-        
+
+    @Override
+    public final BufferArray toBufferArray() {
+        return toBufferArray(position, limit);
+    }
+
+    @Override
+    public final BufferArray toBufferArray(final BufferArray array) {
+        if (position == 0 && limit == capacity) {
+            for (int i = 0; i < buffersSize; i++) {
+                buffers[i].toBufferArray(array);
+            }
+
+            return array;
+        } else {
+            return toBufferArray(array, position, limit);
+        }
+    }
+
+    @Override
+    public final BufferArray toBufferArray(final int position, final int limit) {
+        final BufferArray array = BufferArray.create();
+
+        if (position == 0 && limit == capacity) {
+            for (int i = 0; i < buffersSize; i++) {
+                buffers[i].toBufferArray(array);
+            }
+
+            return array;
+        } else {
+            return toBufferArray(array, position, limit);
+        }
+    }
+
+    @Override
+    public final BufferArray toBufferArray(final BufferArray array,
+            final int position, final int limit) {
+
+        if (position < 0 || position > capacity || limit < 0 || limit > capacity)
+            throw new IndexOutOfBoundsException("position=" + position + " limit=" + limit + "on " + toString());
+
+        if (buffersSize == 0 || (position == limit)) {
+            return array;
+        } else if (buffersSize == 1) {
+            final Buffer b = buffers[0];
+            final int startPos = b.position();
+            return b.toBufferArray(array, position + startPos,
+                    limit + startPos);
+        } else if (position == 0 && limit == capacity) {
+            for (int i = 0; i < buffersSize; i++) {
+                buffers[i].toBufferArray(array);
+            }
+
+            return array;
+        }
+
+        checkIndex(position);
+        final int pos1 = lastSegmentIndex;
+        final int bufPosition = toActiveBufferPos(position);
+
+        checkIndex(limit - 1);
+        final int pos2 = lastSegmentIndex;
+        final int bufLimit = toActiveBufferPos(limit);
+
+        if (pos1 == pos2) {
+            final Buffer buffer = buffers[pos1];
+            return buffer.toBufferArray(array, bufPosition, bufLimit);
+        }
+
+        final Buffer startBuffer = buffers[pos1];
+        startBuffer.toBufferArray(array,
+                bufPosition, startBuffer.limit());
+
+        for(int i = pos1 + 1; i < pos2; i++) {
+            final Buffer srcBuffer = buffers[i];
+            srcBuffer.toBufferArray(array);
+        }
+
+        final Buffer endBuffer = buffers[pos2];
+        endBuffer.toBufferArray(array,
+                endBuffer.position(), bufLimit);
+
+        return array;
+    }
 
     @Override
     public void removeAll() {

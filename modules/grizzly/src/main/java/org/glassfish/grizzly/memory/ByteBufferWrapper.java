@@ -97,6 +97,12 @@ public class ByteBufferWrapper implements Buffer {
     }
 
     @Override
+    public boolean isDirect() {
+        checkDispose();
+        return visible.isDirect();
+    }
+
+    @Override
     public final boolean allowBufferDispose() {
         return allowBufferDispose;
     }
@@ -340,6 +346,48 @@ public class ByteBufferWrapper implements Buffer {
         return this;
     }
 
+    @Override
+    public Buffer get(final ByteBuffer dst) {
+        dst.put(visible);
+
+        return this;
+    }
+
+    @Override
+    public Buffer get(final ByteBuffer dst, final int position, final int length) {
+        final int oldPos = dst.position();
+        final int oldLim = dst.limit();
+
+        try {
+            Buffers.setPositionLimit(dst, position, position + length);
+            dst.put(visible);
+        } finally {
+            Buffers.setPositionLimit(dst, oldPos, oldLim);
+        }
+
+        return this;    }
+
+
+    @Override
+    public Buffer put(final ByteBuffer src) {
+        visible.put(src);
+        return this;
+    }
+
+    @Override
+    public Buffer put(final ByteBuffer src, final int position, final int length) {
+        final int oldPos = src.position();
+        final int oldLim = src.limit();
+
+        try {
+            Buffers.setPositionLimit(src, position, position + length);
+            visible.put(src);
+        } finally {
+            Buffers.setPositionLimit(src, oldPos, oldLim);
+        }
+
+        return this;
+    }
 
     @Override
     public ByteBufferWrapper put(byte[] src) {
@@ -625,6 +673,38 @@ public class ByteBufferWrapper implements Buffer {
             final int position, final int limit) {
 
         array.add(visible);
+
+        // array will hold the old pos/lim values, which will be restored on array.restore() call
+        Buffers.setPositionLimit(this, position, limit);
+
+        return array;
+    }
+
+    @Override
+    public final BufferArray toBufferArray() {
+        final BufferArray array = BufferArray.create();
+        array.add(this);
+
+        return array;
+    }
+
+    @Override
+    public final BufferArray toBufferArray(final int position,
+            final int limit) {
+        return toBufferArray(BufferArray.create(), position, limit);
+    }
+
+    @Override
+    public final BufferArray toBufferArray(final BufferArray array) {
+        array.add(this);
+        return array;
+    }
+
+    @Override
+    public final BufferArray toBufferArray(final BufferArray array,
+            final int position, final int limit) {
+
+        array.add(this);
 
         // array will hold the old pos/lim values, which will be restored on array.restore() call
         Buffers.setPositionLimit(this, position, limit);
