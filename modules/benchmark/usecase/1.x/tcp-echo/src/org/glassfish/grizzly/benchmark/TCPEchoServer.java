@@ -40,17 +40,17 @@
 
 package org.glassfish.grizzly.benchmark;
 
-import org.glassfish.grizzly.BaseSelectionKeyHandler;
-import org.glassfish.grizzly.Controller;
-import org.glassfish.grizzly.ControllerStateListenerAdapter;
-import org.glassfish.grizzly.DefaultProtocolChain;
-import org.glassfish.grizzly.ProtocolChain;
-import org.glassfish.grizzly.ProtocolChainInstanceHandler;
-import org.glassfish.grizzly.TCPSelectorHandler;
-import org.glassfish.grizzly.filter.EchoFilter;
-import org.glassfish.grizzly.filter.ReadFilter;
-import org.glassfish.grizzly.util.GrizzlyExecutorService;
-import org.glassfish.grizzly.util.ThreadPoolConfig;
+import com.sun.grizzly.BaseSelectionKeyHandler;
+import com.sun.grizzly.Controller;
+import com.sun.grizzly.ControllerStateListenerAdapter;
+import com.sun.grizzly.DefaultProtocolChain;
+import com.sun.grizzly.ProtocolChain;
+import com.sun.grizzly.ProtocolChainInstanceHandler;
+import com.sun.grizzly.TCPSelectorHandler;
+import com.sun.grizzly.filter.EchoFilter;
+import com.sun.grizzly.filter.ReadFilter;
+import com.sun.grizzly.util.GrizzlyExecutorService;
+import com.sun.grizzly.util.ThreadPoolConfig;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 
