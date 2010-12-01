@@ -236,6 +236,8 @@ public class HttpServerFilter extends HttpCodecFilter {
                 }
             }
             keepAliveContext.request = null;
+
+            return ctx.getStopAction();
         }
 
         return ctx.getInvokeAction();
