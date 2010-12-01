@@ -103,8 +103,7 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
                 record.bufferArray = array;
             }
 
-            written = ((TCPNIOTransport) transport).write0(connection,
-                    array, currentResult);
+            written = ((TCPNIOTransport) transport).write0(connection, array);
 
 
             if (!buffer.hasRemaining()) {
@@ -112,8 +111,7 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             }
 
         } else {
-            written = ((TCPNIOTransport) transport).write0(connection, buffer,
-                    currentResult);
+            written = ((TCPNIOTransport) transport).write0(connection, buffer);
         }
 
         if (written > 0) {

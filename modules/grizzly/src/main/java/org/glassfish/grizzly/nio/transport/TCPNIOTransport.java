@@ -646,6 +646,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         return isKeepAlive;
     }
 
+    @SuppressWarnings({"UnusedDeclaration"})
     public void setKeepAlive(boolean isKeepAlive) {
         this.isKeepAlive = isKeepAlive;
         notifyProbesConfigChanged(this);
@@ -664,6 +665,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         return clientSocketSoTimeout;
     }
 
+    @SuppressWarnings({"UnusedDeclaration"})
     public void setClientSocketSoTimeout(int socketTimeout) {
         this.clientSocketSoTimeout = socketTimeout;
         notifyProbesConfigChanged(this);
@@ -673,6 +675,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         return connectionTimeout;
     }
 
+    @SuppressWarnings({"UnusedDeclaration"})
     public void setConnectionTimeout(int connectionTimeout) {
         this.connectionTimeout = connectionTimeout;
         notifyProbesConfigChanged(this);
@@ -691,6 +694,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         return serverSocketSoTimeout;
     }
 
+    @SuppressWarnings({"UnusedDeclaration"})
     public void setServerSocketSoTimeout(int serverSocketSoTimeout) {
         this.serverSocketSoTimeout = serverSocketSoTimeout;
         notifyProbesConfigChanged(this);
@@ -988,8 +992,8 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         return written;
     }
 
-    int write0(final Connection connection, final BufferArray bufferArray,
-            final WriteResult currentResult) throws IOException {
+    int write0(final Connection connection, final BufferArray bufferArray)
+    throws IOException {
 
         final TCPNIOConnection tcpConnection = (TCPNIOConnection) connection;
 //        final Buffer[] buffers = bufferArray.getArray();
@@ -1006,8 +1010,8 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         return written;
     }
 
-    int write0(final Connection connection, final Buffer buffer,
-            final WriteResult currentResult) throws IOException {
+    int write0(final Connection connection, final Buffer buffer)
+    throws IOException {
 
         final TCPNIOConnection tcpConnection = (TCPNIOConnection) connection;
         final int written = writeSimple(tcpConnection, buffer);
@@ -1060,7 +1064,6 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             throws IOException {
 
         final Buffer[] buffers = bufferArray.getArray();
-        final int position = 0;
         final int length = bufferArray.size();
         
         final SocketChannel socketChannel = (SocketChannel) tcpConnection.getChannel();
@@ -1068,15 +1071,14 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         int written = 0;
         ByteBuffer directByteBuffer = null;
 
-        int lastIdx = position + length;
         int next;
 
-        for (int i = findNextAvailBuffer(buffers, -1, lastIdx); i < lastIdx; i = next) {
+        for (int i = findNextAvailBuffer(buffers, -1, length); i < length; i = next) {
 
             final Buffer buffer = buffers[i];
-            next = findNextAvailBuffer(buffers, i, lastIdx);
+            next = findNextAvailBuffer(buffers, i, length);
 
-            final boolean isFlush = next == lastIdx || buffers[next].isDirect();
+            final boolean isFlush = next == length || buffers[next].isDirect();
             
             // If Buffer is not direct - copy it to the direct buffer and write
             if (!buffer.isDirect()) {
@@ -1152,12 +1154,12 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
 
     private static int flushDirectByteBuffer(final SocketChannel channel,
-            final ByteBuffer directByteBuffer) throws IOException {
+                                             final ByteBuffer directByteBuffer)
+    throws IOException {
         
         directByteBuffer.flip();
-        final int written = channel.write(directByteBuffer);
 
-        return written;
+        return channel.write(directByteBuffer);
     }
 
     private static final ThreadCache.CachedTypeIndex<SoftReference> CACHE_IDX =
