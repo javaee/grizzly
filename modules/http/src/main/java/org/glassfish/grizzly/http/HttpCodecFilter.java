@@ -64,7 +64,6 @@ import java.util.Arrays;
 import java.util.List;
 import org.glassfish.grizzly.http.util.BufferChunk;
 import org.glassfish.grizzly.http.util.Constants;
-import org.omg.PortableServer.REQUEST_PROCESSING_POLICY_ID;
 
 /**
  * The {@link org.glassfish.grizzly.filterchain.Filter}, responsible for transforming {@link Buffer} into
@@ -1256,8 +1255,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         final HttpHeader httpHeader = httpContent.getHttpHeader();
         final List<ContentEncoding> encodings = httpHeader.getContentEncodings(true);
 
-        final int encodingsNum = encodings.size();
-        for (int i = 0; i < encodingsNum; i++) {
+        for (int i = 0, len = encodings.size(); i < len; i++) {
             // Encode
             final ContentEncoding encoding = encodings.get(i);
 
