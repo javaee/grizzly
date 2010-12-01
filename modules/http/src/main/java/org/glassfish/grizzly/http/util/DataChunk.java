@@ -341,8 +341,11 @@ public class DataChunk {
     
     protected void reset() {
         stringValue = null;
-        charChunk.recycle();
-        bufferChunk.recycle();
+        if (type == Type.Chars) {
+            charChunk.recycle();
+        } else if (type == Type.Buffer) {
+            bufferChunk.recycle();
+        }
         type = Type.None;
     }
 
