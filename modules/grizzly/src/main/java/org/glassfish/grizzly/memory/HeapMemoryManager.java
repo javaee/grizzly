@@ -543,10 +543,10 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
             return mm.createTrimAwareBuffer(heap, offset, capacity);
         }
 
-        private void initialize(final HeapMemoryManager mm,
-                                final byte[] heap,
-                                final int offset,
-                                final int length) {
+        void initialize(final HeapMemoryManager mm,
+                        final byte[] heap,
+                        final int offset,
+                        final int length) {
 
             this.mm = mm;
             this.heap = heap;
