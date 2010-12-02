@@ -449,6 +449,7 @@ public abstract class HttpRequestPacket extends HttpHeader {
     protected void reset() {
         requestURIRef.recycle();
         queryC.recycle();
+        protocolC.recycle();
         methodC.recycle();
         remoteAddressC.recycle();
         remoteHostC.recycle();
@@ -465,10 +466,6 @@ public abstract class HttpRequestPacket extends HttpHeader {
         connection = null;
         localHost = null;
         response = null;
-
-        // XXX Do we need such defaults ?
-        methodC.setString("GET");
-        protocolC.setString("HTTP/1.0");
 
         super.reset();
     }
