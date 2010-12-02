@@ -601,8 +601,6 @@ public class OutputBuffer {
         handleAsyncErrors();
         if (!committed) {
             committed = true;
-            // flush the message header to the client
-            ctx.write(response);
         }
 
     }
