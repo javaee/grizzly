@@ -464,7 +464,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
 
         boolean entityBody = true;
-        int statusCode = response.getStatus();
+        final int statusCode = response.getStatus();
 
         if ((statusCode == 204) || (statusCode == 205)
                 || (statusCode == 304)) {
@@ -477,7 +477,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         final boolean isHttp11 = protocol == Protocol.HTTP_1_1;
         final MimeHeaders headers = response.getHeaders();
 
-        long contentLength = response.getContentLength();
+        final long contentLength = response.getContentLength();
         if (contentLength != -1L) {
             state.contentDelimitation = true;
         } else {
@@ -487,7 +487,7 @@ public class HttpServerFilter extends HttpCodecFilter {
             }
         }
 
-        DataChunk methodBC = request.getMethodDC();
+        final DataChunk methodBC = request.getMethodDC();
         if (methodBC.equals("HEAD")) {
             // No entity body
             state.contentDelimitation = true;
@@ -503,7 +503,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
 
         if (!response.containsHeader("Date")) {
-            String date = FastHttpDateFormat.getCurrentDate();
+            final String date = FastHttpDateFormat.getCurrentDate();
             response.addHeader("Date", date);
         }
 

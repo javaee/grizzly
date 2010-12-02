@@ -386,9 +386,14 @@ public class OutputBuffer {
         }
         closed = true;
 
+        // commit the response (mark it as commited)
         final boolean isJustCommited = doCommit();
-        if (!writeContentChunk(true) && isJustCommited) {
-            forceCommitHeaders();
+        // Try to commit the content chunk together with headers (if there were not commited before)
+        if (!writeContentChunk(true) && (isJustCommited || response.isChunked())) {
+            // If there is no ready content chunk to commit,
+            // but headers were not commited yet, or this is chunked encoding
+            // and we need to send trailer
+            forceCommitHeaders(true);
         }
     }
 
@@ -404,7 +409,7 @@ public class OutputBuffer {
 
         final boolean isJustCommited = doCommit();
         if (!writeContentChunk(false) && isJustCommited) {
-            forceCommitHeaders();
+            forceCommitHeaders(false);
         }
 
     }
@@ -531,12 +536,10 @@ public class OutputBuffer {
         }
     }
 
-
-    private boolean writeContentChunk(boolean includeTrailer) throws IOException {
+    
+    private boolean writeContentChunk(final boolean isLast) throws IOException {
         handleAsyncErrors();
 
-        boolean wasWritten = false;
-        
         final Buffer bufferToFlush;
         final boolean isFlushComposite = compositeBuffer.hasRemaining();
 
@@ -552,26 +555,23 @@ public class OutputBuffer {
         }
 
         if (bufferToFlush != null) {
-            HttpContent.Builder builder = response.httpContentBuilder();
-            builder.content(bufferToFlush);
+            final HttpContent.Builder builder = response.httpContentBuilder();
+
+            builder.content(bufferToFlush).last(isLast);
             ctx.write(builder.build(), asyncCompletionHandler);
-            wasWritten = true;
 
             if (isFlushComposite) { // recreate composite if needed
-                if (!includeTrailer) {
+                if (!isLast) {
                     compositeBuffer = createCompositeBuffer();
                 } else {
                     compositeBuffer = null;
                 }
             }
+
+            return true;
         }
         
-        if (response.isChunked() && includeTrailer) {
-            ctx.write(response.httpTrailerBuilder().build());
-            wasWritten = true;
-        }
-
-        return wasWritten;
+        return false;
     }
 
     private void checkCurrentBuffer() {
@@ -616,8 +616,14 @@ public class OutputBuffer {
         return false;
     }
 
-    private void forceCommitHeaders() throws IOException {
-        ctx.write(response);
+    private void forceCommitHeaders(final boolean isLast) throws IOException {
+        if (isLast) {
+            final HttpContent.Builder builder = response.httpContentBuilder();
+            builder.last(true);
+            ctx.write(builder.build());
+        } else {
+            ctx.write(response);
+        }
     }
 
     private CompositeBuffer createCompositeBuffer() {
