@@ -141,7 +141,7 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      * {@inheritDoc}
      */
     @Override
-    public Filter get(int index) {
+    public final Filter get(final int index) {
         return filters.get(index);
     }
 

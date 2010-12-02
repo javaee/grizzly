@@ -199,12 +199,12 @@ public abstract class TaskQueue<E> {
         }
 
         @Override
-        public int reserveSpace(int amount) {
+        public int reserveSpace(final int amount) {
             return spaceInBytes.addAndGet(amount);
         }
 
         @Override
-        public int releaseSpace(int amount, boolean notify) {
+        public int releaseSpace(final int amount, final boolean notify) {
             final int space = spaceInBytes.addAndGet(-amount);
             if (notify) {
                 doNotify();

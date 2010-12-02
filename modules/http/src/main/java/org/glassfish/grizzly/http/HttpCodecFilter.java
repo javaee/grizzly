@@ -560,7 +560,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         }
     }
 
-    protected Buffer encodeHttpPacket(Connection connection, HttpPacket input) {
+    protected Buffer encodeHttpPacket(final Connection connection, final HttpPacket input) {
         final MemoryManager memoryManager = connection.getTransport().getMemoryManager();
         final boolean isHeader = input.isHeader();
         final HttpContent httpContent;
