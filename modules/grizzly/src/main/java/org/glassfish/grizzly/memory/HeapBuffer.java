@@ -490,7 +490,6 @@ public class HeapBuffer implements Buffer {
 
     @Override
     public ByteOrder order() {
-        // TODO
         return ByteOrder.BIG_ENDIAN;
     }
 
