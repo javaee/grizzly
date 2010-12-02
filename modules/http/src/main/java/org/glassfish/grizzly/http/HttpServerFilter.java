@@ -290,7 +290,7 @@ public class HttpServerFilter extends HttpCodecFilter {
             header = ((HttpContent) input).getHttpHeader();
         }
         HttpResponsePacketImpl response = (HttpResponsePacketImpl) header;
-        if (response.getUpgrade() == null && !response.isCommitted()) {
+        if (!response.isCommitted() && response.getUpgrade() == null) {
             prepareResponse(response.getRequest(), response);
         }
 
