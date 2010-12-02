@@ -385,10 +385,11 @@ public class OutputBuffer {
             return;
         }
         closed = true;
-        doCommit();
 
-        writeContentChunk(true);
-
+        final boolean isJustCommited = doCommit();
+        if (!writeContentChunk(true) && isJustCommited) {
+            forceCommitHeaders();
+        }
     }
 
 
@@ -401,8 +402,10 @@ public class OutputBuffer {
      */
     public void flush() throws IOException {
 
-        doCommit();
-        writeContentChunk(false);
+        final boolean isJustCommited = doCommit();
+        if (!writeContentChunk(false) && isJustCommited) {
+            forceCommitHeaders();
+        }
 
     }
 
@@ -529,9 +532,11 @@ public class OutputBuffer {
     }
 
 
-    private void writeContentChunk(boolean includeTrailer) throws IOException {
+    private boolean writeContentChunk(boolean includeTrailer) throws IOException {
         handleAsyncErrors();
 
+        boolean wasWritten = false;
+        
         final Buffer bufferToFlush;
         final boolean isFlushComposite = compositeBuffer.hasRemaining();
 
@@ -550,6 +555,8 @@ public class OutputBuffer {
             HttpContent.Builder builder = response.httpContentBuilder();
             builder.content(bufferToFlush);
             ctx.write(builder.build(), asyncCompletionHandler);
+            wasWritten = true;
+
             if (isFlushComposite) { // recreate composite if needed
                 if (!includeTrailer) {
                     compositeBuffer = createCompositeBuffer();
@@ -561,7 +568,10 @@ public class OutputBuffer {
         
         if (response.isChunked() && includeTrailer) {
             ctx.write(response.httpTrailerBuilder().build());
+            wasWritten = true;
         }
+
+        return wasWritten;
     }
 
     private void checkCurrentBuffer() {
@@ -596,13 +606,19 @@ public class OutputBuffer {
     }
 
     
-    private void doCommit() throws IOException {
+    private boolean doCommit() throws IOException {
 
         handleAsyncErrors();
         if (!committed) {
             committed = true;
+            return true;
         }
 
+        return false;
+    }
+
+    private void forceCommitHeaders() throws IOException {
+        ctx.write(response);
     }
 
     private CompositeBuffer createCompositeBuffer() {
