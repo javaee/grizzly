@@ -579,6 +579,8 @@ public class Request {
         localPort = -1;
         localAddr = null;
         localName = null;
+        inputStream = null;
+        reader = null;
 
         request.recycle();
 
