@@ -1032,7 +1032,8 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
         if (!buffer.isDirect()) {
             final int length = buffer.remaining();
-            final ByteBuffer directByteBuffer = obtainDirectByteBuffer(length);
+            final DirectByteBufferRecord record = obtainDirectByteBuffer(length);
+            final ByteBuffer directByteBuffer = record.strongRef;
 
             try {
 
@@ -1050,7 +1051,8 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
                 return written;
             } finally {
-                releaseDirectByteBuffer(directByteBuffer);
+                directByteBuffer.clear();
+                releaseDirectByteBuffer(record);
             }
 
         } else {
@@ -1069,6 +1071,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         final SocketChannel socketChannel = (SocketChannel) tcpConnection.getChannel();
 
         int written = 0;
+        DirectByteBufferRecord record = null;
         ByteBuffer directByteBuffer = null;
 
         int next;
@@ -1082,8 +1085,9 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             
             // If Buffer is not direct - copy it to the direct buffer and write
             if (!buffer.isDirect()) {
-                if (directByteBuffer == null) {
-                    directByteBuffer = obtainDirectByteBuffer(tcpConnection.getWriteBufferSize());
+                if (record == null) {
+                    record = obtainDirectByteBuffer(tcpConnection.getWriteBufferSize());
+                    directByteBuffer = record.strongRef;
                 }
 
                 final int currentBufferRemaining = buffer.remaining();
@@ -1135,8 +1139,9 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             }
         }
 
-        if (directByteBuffer != null) {
-            releaseDirectByteBuffer(directByteBuffer);
+        if (record != null) {
+            directByteBuffer.clear();
+            releaseDirectByteBuffer(record);
         }
 
         return written;
@@ -1162,26 +1167,57 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         return channel.write(directByteBuffer);
     }
 
-    private static final ThreadCache.CachedTypeIndex<SoftReference> CACHE_IDX =
-            ThreadCache.obtainIndex("direct-buffer-cache", SoftReference.class, 1);
+    private static final ThreadCache.CachedTypeIndex<DirectByteBufferRecord> CACHE_IDX =
+            ThreadCache.obtainIndex("direct-buffer-cache", DirectByteBufferRecord.class, 1);
     
-    private static ByteBuffer obtainDirectByteBuffer(final int size) {
-        final SoftReference<ByteBuffer> sr = ThreadCache.takeFromCache(CACHE_IDX);
+    private static DirectByteBufferRecord obtainDirectByteBuffer(final int size) {
+        DirectByteBufferRecord record = ThreadCache.takeFromCache(CACHE_IDX);
         final ByteBuffer byteBuffer;
-        if (sr != null && (byteBuffer = sr.get()) != null) {
-            if (byteBuffer.remaining() >= size) {
-                return byteBuffer;
+        if (record != null) {
+            if ((byteBuffer = record.switchToStrong()) != null) {
+                if (byteBuffer.remaining() >= size) {
+                    return record;
+                }
             }
+        } else {
+            record = new DirectByteBufferRecord();
         }
 
-        return ByteBuffer.allocateDirect(size);
+        record.reset(ByteBuffer.allocateDirect(size));
+        return record;
     }
 
-    private static void releaseDirectByteBuffer(final ByteBuffer directByteBuffer) {
-        ThreadCache.putToCache(CACHE_IDX,
-                new SoftReference<ByteBuffer>((ByteBuffer) directByteBuffer.clear()));
+    private static void releaseDirectByteBuffer(
+            final DirectByteBufferRecord directByteBufferRecord) {
+        directByteBufferRecord.switchToSoft();
+        ThreadCache.putToCache(CACHE_IDX, directByteBufferRecord);
     }
 
+    static final class DirectByteBufferRecord {
+        private ByteBuffer strongRef;
+        private SoftReference<ByteBuffer> softRef;
+
+        void reset(ByteBuffer byteBuffer) {
+            strongRef = byteBuffer;
+            softRef = null;
+        }
+
+        ByteBuffer switchToStrong() {
+            if (strongRef == null && softRef != null) {
+                strongRef = softRef.get();
+            }
+
+            return strongRef;
+        }
+
+        void switchToSoft() {
+            if (strongRef != null && softRef == null) {
+                softRef = new SoftReference<ByteBuffer>(strongRef);
+            }
+
+            strongRef = null;
+        }
+    }
 
     /**
      * {@inheritDoc}
