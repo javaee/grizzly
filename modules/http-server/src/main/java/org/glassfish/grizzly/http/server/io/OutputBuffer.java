@@ -608,7 +608,6 @@ public class OutputBuffer {
     
     private boolean doCommit() throws IOException {
 
-        handleAsyncErrors();
         if (!committed) {
             committed = true;
             return true;
