@@ -103,7 +103,7 @@ public final class Attribute<T> {
      * @param attributeHolder {@link AttributeHolder}.
      * @return attribute value
      */
-    public T peek(AttributeHolder attributeHolder) {
+    public T peek(final AttributeHolder attributeHolder) {
         return weakGet(attributeHolder);
     }
 
@@ -115,7 +115,7 @@ public final class Attribute<T> {
      * @param storage {@link AttributeStorage}.
      * @return attribute value
      */
-    public T peek(AttributeStorage storage) {
+    public T peek(final AttributeStorage storage) {
         final AttributeHolder holder = storage.getAttributes();
         if (holder != null) {
             return peek(holder);
@@ -130,7 +130,7 @@ public final class Attribute<T> {
      * @param attributeHolder {@link AttributeHolder}.
      * @return attribute value
      */
-    public T get(AttributeHolder attributeHolder) {
+    public T get(final AttributeHolder attributeHolder) {
         T result = weakGet(attributeHolder);
         
         if (result == null) {
@@ -154,7 +154,7 @@ public final class Attribute<T> {
      * @param storage {@link AttributeStorage}.
      * @return attribute value
      */
-    public T get(AttributeStorage storage) {
+    public T get(final AttributeStorage storage) {
         final AttributeHolder holder = storage.getAttributes();
         if (holder != null) {
             return get(holder);
@@ -180,8 +180,8 @@ public final class Attribute<T> {
      * @param attributeHolder {@link AttributeHolder}.
      * @param value attribute value to set.
      */
-    public void set(AttributeHolder attributeHolder, T value) {
-        IndexedAttributeAccessor indexedAccessor = 
+    public void set(final AttributeHolder attributeHolder, final T value) {
+        final IndexedAttributeAccessor indexedAccessor =
                 attributeHolder.getIndexedAttributeAccessor();
         
         if (indexedAccessor != null) {
@@ -197,7 +197,7 @@ public final class Attribute<T> {
      * @param storage {@link AttributeStorage}.
      * @param value attribute value to set.
      */
-    public void set(AttributeStorage storage, T value) {
+    public void set(final AttributeStorage storage, final T value) {
         set(storage.getAttributes(), value);
     }
 
@@ -279,7 +279,7 @@ public final class Attribute<T> {
         return attributeIndex;
     }
     
-    private T weakGet(AttributeHolder attributeHolder) {
+    private T weakGet(final AttributeHolder attributeHolder) {
         final IndexedAttributeAccessor indexedAccessor =
                 attributeHolder.getIndexedAttributeAccessor();
         

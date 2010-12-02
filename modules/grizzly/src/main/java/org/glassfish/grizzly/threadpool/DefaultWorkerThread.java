@@ -94,11 +94,12 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
         return memoryPool;
     }
 
-    public final <E> E takeFromCache(ThreadCache.CachedTypeIndex<E> index) {
+    public final <E> E takeFromCache(final ThreadCache.CachedTypeIndex<E> index) {
         return objectCache.get(index);
     }
 
-    public final <E> boolean putToCache(ThreadCache.CachedTypeIndex<E> index, E o) {
+    public final <E> boolean putToCache(final ThreadCache.CachedTypeIndex<E> index,
+            final E o) {
         return objectCache.put(index, o);
     }
 

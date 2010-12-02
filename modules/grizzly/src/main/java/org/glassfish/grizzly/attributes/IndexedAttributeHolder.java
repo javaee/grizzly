@@ -43,7 +43,6 @@ package org.glassfish.grizzly.attributes;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * {@link AttributeHolder}, which supports indexed access to stored
@@ -58,17 +57,25 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public final class IndexedAttributeHolder implements AttributeHolder {
     // dummy volatile
     private volatile int count;
+    
+    // number of values mapped
+    private int size;
 
     private Object[] attributeValues;
+
+    // Attribute index -> value index map. Maps attribute index to
+    // the index in the attributeValues array
+    private int[] i2v;
 
     protected final DefaultAttributeBuilder attributeBuilder;
     protected final IndexedAttributeAccessor indexedAttributeAccessor;
 
-    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+//    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
     public IndexedAttributeHolder(AttributeBuilder attributeBuilder) {
         this.attributeBuilder = (DefaultAttributeBuilder) attributeBuilder;
-        attributeValues = new Object[16];
+        attributeValues = new Object[4];
+        i2v = ensureSize(new int[0], 16);
         indexedAttributeAccessor = new IndexedAttributeAccessorImpl();
     }
     
@@ -76,8 +83,8 @@ public final class IndexedAttributeHolder implements AttributeHolder {
      * {@inheritDoc}
      */
     @Override
-    public Object getAttribute(String name) {
-        Attribute attribute = attributeBuilder.getAttributeByName(name);
+    public Object getAttribute(final String name) {
+        final Attribute attribute = attributeBuilder.getAttributeByName(name);
         if (attribute != null) {
             return indexedAttributeAccessor.getAttribute(attribute.index());
         }
@@ -89,7 +96,7 @@ public final class IndexedAttributeHolder implements AttributeHolder {
      * {@inheritDoc}
      */
     @Override
-    public void setAttribute(String name, Object value) {
+    public void setAttribute(final String name, final Object value) {
         Attribute attribute = attributeBuilder.getAttributeByName(name);
         if (attribute == null) {
             attribute = attributeBuilder.createAttribute(name);
@@ -102,12 +109,12 @@ public final class IndexedAttributeHolder implements AttributeHolder {
      * {@inheritDoc}
      */
     @Override
-    public Object removeAttribute(String name) {
-        Attribute attribute = attributeBuilder.getAttributeByName(name);
+    public Object removeAttribute(final String name) {
+        final Attribute attribute = attributeBuilder.getAttributeByName(name);
         if (attribute != null) {
-            int index = attribute.index();
+            final int index = attribute.index();
 
-            Object value = indexedAttributeAccessor.getAttribute(index);
+            final Object value = indexedAttributeAccessor.getAttribute(index);
             if (value != null) {
                 indexedAttributeAccessor.setAttribute(index, null);
             }
@@ -125,14 +132,14 @@ public final class IndexedAttributeHolder implements AttributeHolder {
     public Set<String> getAttributeNames() {
         final Set<String> result = new HashSet<String>();
 
-        if (count != 0) {
-            final Object[] localAttributeValues = attributeValues;
-            for (int i = 0; i < localAttributeValues.length; i++) {
-                Object value = localAttributeValues[i];
-                if (value != null) {
-                    Attribute attribute = attributeBuilder.getAttributeByIndex(i);
-                    result.add(attribute.name());
-                }
+        final int localSize = size;
+
+        final Object[] localAttributeValues = attributeValues;
+        for (int i = 0; i < localSize; i++) {
+            final Object value = localAttributeValues[i];
+            if (value != null) {
+                Attribute attribute = attributeBuilder.getAttributeByIndex(i);
+                result.add(attribute.name());
             }
         }
 
@@ -145,7 +152,7 @@ public final class IndexedAttributeHolder implements AttributeHolder {
     @Override
     public void recycle() {
         // Recycle is not synchronized
-        Arrays.fill(attributeValues, null);
+        Arrays.fill(attributeValues, 0, size, null);
     }
 
     /**
@@ -153,13 +160,8 @@ public final class IndexedAttributeHolder implements AttributeHolder {
      */
     @Override
     public void clear() {
-        lock.writeLock().lock();
-
-        try {
-            Arrays.fill(attributeValues, null);
-        } finally {
-            lock.writeLock().unlock();
-        }
+        attributeValues = new Object[attributeValues.length];
+        count++;
     }
 
     /**
@@ -190,11 +192,14 @@ public final class IndexedAttributeHolder implements AttributeHolder {
          * {@inheritDoc}
          */
         @Override
-        public Object getAttribute(int index) {
+        public Object getAttribute(final int index) {
             if (count != 0) {
-                final Object[] localAttrValues = attributeValues;
-                if (index < localAttrValues.length) {
-                    return localAttrValues[index];
+                final int[] i2vLocal = i2v;
+                if (index < i2vLocal.length) {
+                    final int idx = i2vLocal[index];
+                    if (idx != -1) {
+                        return attributeValues[idx];
+                    }
                 }
             }
 
@@ -205,36 +210,61 @@ public final class IndexedAttributeHolder implements AttributeHolder {
          * {@inheritDoc}
          */
         @Override
-        public void setAttribute(int index, Object value) {
-            lock.readLock().lock();
+        public void setAttribute(final int index, final Object value) {
+            final int[] localI2v = i2v;
 
-            try {
-                ensureSize(index + 1);
-                attributeValues[index] = value;
-                count++;
-            } finally {
-                lock.readLock().unlock();
+            int mappedIdx;
+            if (index >= localI2v.length || (mappedIdx = localI2v[index]) == -1) {
+                mappedIdx = mapIndex(index);
             }
+
+            attributeValues[mappedIdx] = value;
+            count++;
         }
 
-        private void ensureSize(int size) {
-            int delta = size - attributeValues.length;
-            if (delta > 0) {
-                lock.readLock().unlock();
-                lock.writeLock().lock();
-                try {
-                    delta = size - attributeValues.length;
-                    if (delta > 0) {
-                        final int newLength = Math.max(attributeValues.length + delta,
-                                (attributeValues.length * 3) / 2 + 1);
-
-                        attributeValues = Arrays.copyOf(attributeValues, newLength);
-                    }
-                } finally {
-                    lock.readLock().lock();
-                    lock.writeLock().unlock();
-                }
+        private synchronized int mapIndex(final int index) {
+            if (index >= i2v.length) {
+                i2v = ensureSize(i2v, index + 1);
             }
+
+            int mappedIdx = i2v[index];
+            if (mappedIdx == -1) {
+                if (size == attributeValues.length) {
+                    attributeValues = ensureSize(attributeValues, size + 1);
+                }
+
+                i2v[index] = mappedIdx = size++;
+            }
+
+
+            return mappedIdx;
         }
     }
+    
+    private static Object[] ensureSize(final Object[] array, final int size) {
+
+        final int arrayLength = array.length;
+        final int delta = size - arrayLength;
+
+        final int newLength = Math.max(arrayLength + delta,
+                (arrayLength * 3) / 2 + 1);
+
+        return Arrays.copyOf(array, newLength);
+    }
+
+    private static int[] ensureSize(final int[] array, final int size) {
+
+        final int arrayLength = array.length;
+        final int delta = size - arrayLength;
+
+        final int newLength = Math.max(arrayLength + delta,
+                (arrayLength * 3) / 2 + 1);
+
+        final int[] newArray = Arrays.copyOf(array, newLength);
+        Arrays.fill(newArray, array.length, newLength, -1);
+
+        return newArray;
+    }
+
+
 }

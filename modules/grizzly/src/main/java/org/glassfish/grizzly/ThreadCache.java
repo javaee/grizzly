@@ -110,7 +110,7 @@ public final class ThreadCache {
     public static final class ObjectCache {
         private ObjectCacheElement[] objectCacheElements;
 
-        public boolean put(CachedTypeIndex index, Object o) {
+        public boolean put(final CachedTypeIndex index, final Object o) {
             if (objectCacheElements != null &&
                     index.getIndex() < objectCacheElements.length) {
                 ObjectCacheElement objectCache = objectCacheElements[index.getIndex()];
@@ -182,13 +182,14 @@ public final class ThreadCache {
         }
     }
     
-    public static class CachedTypeIndex<E> {
+    public static final class CachedTypeIndex<E> {
         private final int index;
         private final Class clazz;
         private final int size;
         private final String name;
 
-        public CachedTypeIndex(int index, String name, Class<E> clazz, int size) {
+        public CachedTypeIndex(final int index, final String name,
+                final Class<E> clazz, final int size) {
             this.index = index;
             this.name = name;
             this.clazz = clazz;
