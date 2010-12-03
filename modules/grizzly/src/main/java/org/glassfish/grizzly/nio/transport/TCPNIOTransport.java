@@ -805,16 +805,9 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         final boolean isAllocate = (buffer == null);
         if (isAllocate) {
             buffer = memoryManager.allocateAtLeast(connection.getReadBufferSize());
-            final ByteBuffer byteBuffer = buffer.toByteBuffer();
-            
+
             try {
-                final SocketChannel socketChannel =
-                        (SocketChannel) tcpConnection.getChannel();
-                if (!isSelectorThread) {
-                    read = doReadInLoop(socketChannel, byteBuffer);
-                } else {
-                    read = socketChannel.read(byteBuffer);
-                }
+                read = readSimple(tcpConnection, buffer, isSelectorThread);
 
                 tcpConnection.onRead(buffer, read);
             } catch (Exception e) {
@@ -860,12 +853,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
                     array.restore();
                     array.recycle();
                 } else {
-                    final ByteBuffer byteBuffer = buffer.toByteBuffer();
-                    if (!isSelectorThread) {
-                        read = doReadInLoop(socketChannel, byteBuffer);
-                    } else {
-                        read = socketChannel.read(byteBuffer);
-                    }
+                    read = readSimple(tcpConnection, buffer, isSelectorThread);
                 }
 
                 if (read > 0) {
@@ -888,8 +876,49 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         return buffer;
     }
 
-    private int doReadInLoop(SocketChannel socketChannel,
-            ByteBuffer byteBuffer) throws IOException {
+    private int readSimple(final TCPNIOConnection tcpConnection,
+            final Buffer buffer, final boolean isSelectorThread) throws IOException {
+
+        final SocketChannel socketChannel = (SocketChannel) tcpConnection.getChannel();
+
+        final int read;
+        if (!buffer.isDirect()) {
+            final int length = buffer.remaining();
+            final DirectByteBufferRecord record = obtainDirectByteBuffer(length);
+            final ByteBuffer directByteBuffer = record.strongRef;
+
+            try {
+                // make sure we won't read more than buffer allows
+                directByteBuffer.limit(directByteBuffer.position() + length);
+
+                if (!isSelectorThread) {
+                    read = doReadInLoop(socketChannel, directByteBuffer);
+                } else {
+                    read = socketChannel.read(directByteBuffer);
+                }
+
+                if (read > 0) {
+                    directByteBuffer.flip();
+                    buffer.put(directByteBuffer);
+                }
+            } finally {
+                directByteBuffer.clear();
+                releaseDirectByteBuffer(record);
+            }
+
+        } else {
+            if (!isSelectorThread) {
+                read = doReadInLoop(socketChannel, buffer.toByteBuffer());
+            } else {
+                read = socketChannel.read(buffer.toByteBuffer());
+            }
+        }
+
+        return read;
+    }
+    
+    private int doReadInLoop(final SocketChannel socketChannel,
+            final ByteBuffer byteBuffer) throws IOException {
         int read = 0;
         int readAttempt = 0;
         int readNow;
@@ -946,11 +975,8 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         int written;
         if (buffer.isComposite()) {
             final BufferArray array = buffer.toBufferArray();
-//            final Buffer[] buffers = array.getArray();
-//            final int size = array.size();
 
             written = writeGathered(tcpConnection, array);
-//            written = (int) ((SocketChannel) tcpConnection.getChannel()).write(byteBuffers, 0, size);
 
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (composite) write {1} bytes",
@@ -960,9 +986,6 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             array.restore();
             array.recycle();
         } else {
-//            final ByteBuffer byteBuffer = buffer.toByteBuffer();
-//
-//            written = ((SocketChannel) tcpConnection.getChannel()).write(byteBuffer);
             written = writeSimple(tcpConnection, buffer);
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (plain) write {1} bytes",
@@ -996,10 +1019,6 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
     throws IOException {
 
         final TCPNIOConnection tcpConnection = (TCPNIOConnection) connection;
-//        final Buffer[] buffers = bufferArray.getArray();
-//        final int size = bufferArray.size();
-//        final int written = (int) ((SocketChannel) tcpConnection.getChannel()).write(
-//                byteBuffers, 0, size);
         final int written = writeGathered(tcpConnection, bufferArray);
 
         if (LOGGER.isLoggable(Level.FINE)) {
@@ -1015,7 +1034,6 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
         final TCPNIOConnection tcpConnection = (TCPNIOConnection) connection;
         final int written = writeSimple(tcpConnection, buffer);
-//        final int written = ((SocketChannel) tcpConnection.getChannel()).write(buffer);
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (plain) write {1} bytes",
                     new Object[]{connection, written});

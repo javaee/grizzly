@@ -425,7 +425,7 @@ public class HeapBuffer implements Buffer {
     }
     
     @Override
-    public Buffer put(ByteBuffer src) {
+    public Buffer put(final ByteBuffer src) {
         final int length = src.remaining();
         
         src.get(heap, offset + pos, length);
@@ -435,7 +435,7 @@ public class HeapBuffer implements Buffer {
     }
 
     @Override
-    public Buffer put(ByteBuffer src, int position, int length) {
+    public Buffer put(final ByteBuffer src, final int position, final int length) {
         final int oldPos = src.position();
         final int oldLim = src.limit();
 
