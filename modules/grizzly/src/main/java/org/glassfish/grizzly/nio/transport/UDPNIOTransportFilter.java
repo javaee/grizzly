@@ -102,7 +102,8 @@ public final class UDPNIOTransportFilter extends BaseFilter {
         }
 
         if (readResult.getReadSize() > 0) {
-            final Buffer buffer = readResult.getMessage().flip();
+            final Buffer buffer = readResult.getMessage();
+            buffer.trim();
             final SocketAddress address = readResult.getSrcAddress();
             readResult.recycle();
 

@@ -62,4 +62,10 @@ public class ByteBufferManager extends MemoryManager {
     public boolean isDirect() {
         return ((org.glassfish.grizzly.memory.ByteBufferManager) memoryManager).isDirect();
     }
+
+    @ManagedAttribute(id="max-buffer-size")
+    @Description("The max buffer size, which could be associated with a thread")
+    public int getMaxThreadBufferSize() {
+        return ((org.glassfish.grizzly.memory.ByteBufferManager) memoryManager).getMaxBufferSize();
+    }
 }

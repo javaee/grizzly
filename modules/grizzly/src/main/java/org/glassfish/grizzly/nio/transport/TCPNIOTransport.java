@@ -804,7 +804,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
         final boolean isAllocate = (buffer == null);
         if (isAllocate) {
-            buffer = memoryManager.allocate(connection.getReadBufferSize());
+            buffer = memoryManager.allocateAtLeast(connection.getReadBufferSize());
             final ByteBuffer byteBuffer = buffer.toByteBuffer();
             
             try {

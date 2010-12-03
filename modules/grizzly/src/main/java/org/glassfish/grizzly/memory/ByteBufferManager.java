@@ -95,6 +95,14 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
      * {@inheritDoc}
      */
     @Override
+    public ByteBufferWrapper allocateAtLeast(int size) {
+        return wrap(allocateByteBufferAtLeast(size));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public ByteBufferWrapper reallocate(ByteBufferWrapper oldBuffer,
             int newSize) {
         return wrap(reallocateByteBuffer(oldBuffer.underlying(), newSize));
@@ -187,36 +195,55 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
      * @return allocated {@link ByteBuffer}.
      */
     @Override
-    public ByteBuffer allocateByteBuffer(int size) {
+    public ByteBuffer allocateByteBuffer(final int size) {
           if (size > maxBufferSize) {
             // Don't use pool
             return allocateByteBuffer0(size);
         }
 
-        ThreadLocalPool<ByteBuffer> threadLocalCache = getThreadLocalPool();
+        final ThreadLocalPool<ByteBuffer> threadLocalCache = getThreadLocalPool();
         if (threadLocalCache != null) {
+            final int remaining = threadLocalCache.remaining();
 
-            if (!threadLocalCache.hasRemaining()) {
-                threadLocalCache = reallocatePoolBuffer();
-                return (ByteBuffer) allocateFromPool(threadLocalCache, size);
+            if (remaining == 0 || remaining < size) {
+                reallocatePoolBuffer();
             }
 
-            final ByteBuffer allocatedFromPool =
-                    (ByteBuffer) allocateFromPool(threadLocalCache, size);
-
-            if (allocatedFromPool != null) {
-                return allocatedFromPool;
-            } else {
-                threadLocalCache = reallocatePoolBuffer();
-                return (ByteBuffer) allocateFromPool(threadLocalCache, size);
-            }
-
+            return (ByteBuffer) allocateFromPool(threadLocalCache, size);
         } else {
             return allocateByteBuffer0(size);
         }
 
     }
 
+    /**
+     * Allocates {@link ByteBuffer} of required size.
+     *
+     * @param size {@link ByteBuffer} size.
+     * @return allocated {@link ByteBuffer}.
+     */
+    @Override
+    public ByteBuffer allocateByteBufferAtLeast(final int size) {
+          if (size > maxBufferSize) {
+            // Don't use pool
+            return allocateByteBuffer0(size);
+        }
+
+        final ThreadLocalPool<ByteBuffer> threadLocalCache = getThreadLocalPool();
+        if (threadLocalCache != null) {
+            int remaining = threadLocalCache.remaining();
+
+            if (remaining == 0 || remaining < size) {
+                reallocatePoolBuffer();
+                remaining = threadLocalCache.remaining();
+            }
+
+            return (ByteBuffer) allocateFromPool(threadLocalCache, remaining);
+        } else {
+            return allocateByteBuffer0(size);
+        }
+    }
+    
     @Override
     public ByteBuffer reallocateByteBuffer(ByteBuffer oldByteBuffer, int newSize) {
         if (oldByteBuffer.capacity() >= newSize) return oldByteBuffer;
@@ -304,14 +331,12 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
     }
 
     @SuppressWarnings({"unchecked"})
-    private ThreadLocalPool reallocatePoolBuffer() {
+    private void reallocatePoolBuffer() {
         final ByteBuffer byteBuffer =
                 allocateByteBuffer0(maxBufferSize);
 
         final ThreadLocalPool<ByteBuffer> threadLocalCache = getThreadLocalPool();
         threadLocalCache.reset(byteBuffer);
-
-        return threadLocalCache;
     }
 
     // ---------------------------------------------------------- Nested Classes
@@ -391,6 +416,7 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
             return false;
         }
 
+        @Override
         public boolean wantReset(int size) {
             return !hasRemaining() ||
                     (lastAllocatedIndex == 0 && pool.remaining() < size);
@@ -416,14 +442,12 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
 
         @Override
         public int remaining() {
-            if (!hasRemaining()) return 0;
-
-            return pool.remaining();
+            return pool != null ? pool.remaining() : 0;
         }
 
         @Override
         public boolean hasRemaining() {
-            return pool != null && pool.hasRemaining();
+            return remaining() > 0;
         }
 
         private ByteBuffer addHistory(ByteBuffer allocated) {

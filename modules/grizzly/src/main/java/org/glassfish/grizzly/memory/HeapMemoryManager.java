@@ -73,17 +73,22 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
 
 
     @Override
-    public HeapBuffer allocate(int size) {
+    public HeapBuffer allocate(final int size) {
         return allocateHeapBuffer(size);
     }
 
     @Override
-    public HeapBuffer reallocate(HeapBuffer oldBuffer, int newSize) {
+    public HeapBuffer allocateAtLeast(final int size) {
+        return allocateHeapBufferAtLeast(size);
+    }
+
+    @Override
+    public HeapBuffer reallocate(final HeapBuffer oldBuffer, final int newSize) {
         return reallocateHeapBuffer(oldBuffer, newSize);
     }
 
     @Override
-    public void release(HeapBuffer buffer) {
+    public void release(final HeapBuffer buffer) {
         releaseHeapBuffer(buffer);
     }
 
@@ -119,27 +124,27 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
 
 
     @Override
-    public HeapBuffer wrap(byte[] data) {
+    public HeapBuffer wrap(final byte[] data) {
         return createTrimAwareBuffer(data, 0, data.length);
     }
 
     @Override
-    public HeapBuffer wrap(byte[] data, int offset, int length) {
+    public HeapBuffer wrap(final byte[] data, final int offset, final int length) {
         return createTrimAwareBuffer(data, offset, length);
     }
 
     @Override
-    public HeapBuffer wrap(String s) {
+    public HeapBuffer wrap(final String s) {
         return wrap(s, Charset.defaultCharset());
     }
 
     @Override
-    public HeapBuffer wrap(String s, Charset charset) {
+    public HeapBuffer wrap(final String s, final Charset charset) {
         return wrap(s.getBytes(charset));
     }
 
     @Override
-    public Buffer wrap(ByteBuffer byteBuffer) {
+    public Buffer wrap(final ByteBuffer byteBuffer) {
         if (byteBuffer.hasArray()) {
             return wrap(byteBuffer.array(),
                     byteBuffer.arrayOffset() + byteBuffer.position(),
@@ -152,35 +157,47 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
     // ------------------------------------------------------- Protected Methods
 
 
-    protected HeapBuffer allocateHeapBuffer(final int length) {
-        if (length > maxBufferSize) {
+    protected HeapBuffer allocateHeapBuffer(final int size) {
+        if (size > maxBufferSize) {
             // Don't use pool
-            return createTrimAwareBuffer(length);
+            return createTrimAwareBuffer(size);
         }
 
         final ThreadLocalPool<ByteBuffer> threadLocalCache = getThreadLocalPool();
         if (threadLocalCache != null) {
+            final int remaining = threadLocalCache.remaining();
 
-            if (!threadLocalCache.hasRemaining()) {
+            if (remaining == 0 || remaining < size) {
                 reallocatePoolBuffer();
-                return (HeapBuffer) allocateFromPool(threadLocalCache, length);
             }
 
-            final HeapBuffer allocatedFromPool =
-                    (HeapBuffer) allocateFromPool(threadLocalCache, length);
-
-            if (allocatedFromPool != null) {
-                return allocatedFromPool;
-            } else {
-                reallocatePoolBuffer();
-                return (HeapBuffer) allocateFromPool(threadLocalCache, length);
-            }
-
+            return (HeapBuffer) allocateFromPool(threadLocalCache, size);
         } else {
-            return createTrimAwareBuffer(length);
+            return createTrimAwareBuffer(size);
         }
     }
 
+    protected HeapBuffer allocateHeapBufferAtLeast(final int size) {
+        if (size > maxBufferSize) {
+            // Don't use pool
+            return createTrimAwareBuffer(size);
+        }
+
+        final ThreadLocalPool<ByteBuffer> threadLocalCache = getThreadLocalPool();
+        if (threadLocalCache != null) {
+            int remaining = threadLocalCache.remaining();
+
+            if (remaining == 0 || remaining < size) {
+                reallocatePoolBuffer();
+                remaining = threadLocalCache.remaining();
+            }
+
+            return (HeapBuffer) allocateFromPool(threadLocalCache, remaining);
+        } else {
+            return createTrimAwareBuffer(size);
+        }
+    }
+    
     protected HeapBuffer reallocateHeapBuffer(HeapBuffer oldHeapBuffer, int newSize) {
         if (oldHeapBuffer.capacity() >= newSize) return oldHeapBuffer;
 
@@ -246,7 +263,7 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
     }
 
     private ByteBufferWrapper createByteBufferWrapper(
-            ByteBuffer underlyingByteBuffer) {
+            final ByteBuffer underlyingByteBuffer) {
 
         final RecyclableByteBufferWrapper buffer = ThreadCache.takeFromCache(BBW_CACHE_IDX);
         if (buffer != null) {
@@ -376,19 +393,19 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
         }
 
         @Override
-        public boolean wantReset(int size) {
+        public boolean wantReset(final int size) {
             return !hasRemaining() ||
                     remaining() < size;
         }
 
         @Override
-        public boolean isLastAllocated(HeapBuffer oldHeapBuffer) {
+        public boolean isLastAllocated(final HeapBuffer oldHeapBuffer) {
             return oldHeapBuffer.heap == pool &&
                     (oldHeapBuffer.offset + oldHeapBuffer.cap == pos);
         }
 
         @Override
-        public HeapBuffer reduceLastAllocated(HeapBuffer heapBuffer) {
+        public HeapBuffer reduceLastAllocated(final HeapBuffer heapBuffer) {
             pos = heapBuffer.offset + heapBuffer.cap;
 
             return null;
@@ -578,13 +595,10 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
         @Override
         public void dispose() {
             super.dispose();
-//            prepareDispose();
-//            ByteBufferManager.this.release(this);
-//            visible = null;
             recycle();
         }
 
-        private void initialize(ByteBuffer underlyingByteBuffer) {
+        private void initialize(final ByteBuffer underlyingByteBuffer) {
             visible = underlyingByteBuffer;
             disposeStackTrace = null;
         }

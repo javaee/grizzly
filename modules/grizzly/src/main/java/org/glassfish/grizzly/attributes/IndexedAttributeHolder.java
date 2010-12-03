@@ -233,6 +233,7 @@ public final class IndexedAttributeHolder implements AttributeHolder {
                     attributeValues = ensureSize(attributeValues, size + 1);
                 }
 
+                count++;
                 i2v[index] = mappedIdx = size++;
             }
 

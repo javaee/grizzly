@@ -739,7 +739,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         final boolean isAllocate = (buffer == null && currentResult != null);
 
         if (isAllocate) {
-            buffer = memoryManager.allocate(connection.getReadBufferSize());
+            buffer = memoryManager.allocateAtLeast(connection.getReadBufferSize());
         }
 
         try {

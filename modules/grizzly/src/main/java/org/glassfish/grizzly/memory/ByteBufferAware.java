@@ -48,6 +48,7 @@ import java.nio.ByteBuffer;
  */
 public interface ByteBufferAware {
     public ByteBuffer allocateByteBuffer(int size);
+    public ByteBuffer allocateByteBufferAtLeast(int size);
     public ByteBuffer reallocateByteBuffer(ByteBuffer oldByteBuffer, int newSize);
     public void releaseByteBuffer(ByteBuffer byteBuffer);
 }

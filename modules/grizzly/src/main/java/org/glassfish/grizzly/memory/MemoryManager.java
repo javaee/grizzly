@@ -63,6 +63,17 @@ public interface MemoryManager<E extends Buffer>
     public E allocate(int size);
 
     /**
+     * Allocated {@link Buffer} at least of the provided size.
+     * This could be useful for usecases like Socket.read(...), where
+     * we're not sure how many bytes are available, but want to read as
+     * much as possible.
+     *
+     * @param size the min {@link Buffer} size to be allocated.
+     * @return allocated {@link Buffer}.
+     */
+    public E allocateAtLeast(int size);
+    
+    /**
      * Reallocate {@link Buffer} to a required size.
      * Implementation may choose the way, how reallocation could be done, either
      * by allocating new {@link Buffer} of required size and copying old
