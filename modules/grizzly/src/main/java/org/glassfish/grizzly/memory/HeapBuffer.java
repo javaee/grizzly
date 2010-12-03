@@ -270,9 +270,6 @@ public class HeapBuffer implements Buffer {
                                heap,
                                offset + splitPosition,
                                cap - splitPosition);
-//        this.end = splitPosition;
-//        pos = 0;
-//        lim = cap;
 
         cap = splitPosition;
 
@@ -317,9 +314,10 @@ public class HeapBuffer implements Buffer {
 
     @Override
     public HeapBuffer asReadOnlyBuffer() {
-        // TODO
-        //visible.asReadOnlyBuffer();
-        return this;
+        final HeapBuffer b = new ReadOnlyHeapBuffer(heap, offset, cap);
+        b.pos = pos;
+        b.lim = lim;
+        return b;
     }
 
     @Override
@@ -762,16 +760,16 @@ public class HeapBuffer implements Buffer {
     @Override
     public int compareTo(Buffer o) {
         // taken from ByteBuffer#compareTo(...)
-	int n = position() + Math.min(remaining(), o.remaining());
-	for (int i = this.position(), j = o.position(); i < n; i++, j++) {
-	    byte v1 = this.get(i);
-	    byte v2 = o.get(j);
-	    if (v1 == v2)
-		continue;
-	    if (v1 < v2)
-		return -1;
-	    return +1;
-	}
+        int n = position() + Math.min(remaining(), o.remaining());
+        for (int i = this.position(), j = o.position(); i < n; i++, j++) {
+            byte v1 = this.get(i);
+            byte v2 = o.get(j);
+            if (v1 == v2)
+                continue;
+            if (v1 < v2)
+                return -1;
+            return +1;
+        }
 
         return remaining() - o.remaining();
     }
@@ -789,11 +787,11 @@ public class HeapBuffer implements Buffer {
         final StringBuilder sb = new StringBuilder("GrizzlyHeapBuffer (" +
                 System.identityHashCode(this) + ") ");
         sb.append("[pos=");
-        sb.append(position());
+        sb.append(pos);
         sb.append(" lim=");
-        sb.append(limit());
+        sb.append(lim);
         sb.append(" cap=");
-        sb.append(capacity());
+        sb.append(cap);
         sb.append(']');
         return sb.toString();
     }
@@ -815,12 +813,12 @@ public class HeapBuffer implements Buffer {
     }
 
     @Override
-    public final ByteBuffer toByteBuffer() {
+    public ByteBuffer toByteBuffer() {
         return toByteBuffer(pos, lim);
     }
 
     @Override
-    public final ByteBuffer toByteBuffer(final int position, final int limit) {
+    public ByteBuffer toByteBuffer(final int position, final int limit) {
         if (byteBuffer == null) {
             byteBuffer = ByteBuffer.wrap(heap);
         }
