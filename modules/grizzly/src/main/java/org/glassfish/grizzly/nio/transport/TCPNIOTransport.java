@@ -883,9 +883,10 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
         final int read;
         if (!buffer.isDirect()) {
-            final int length = buffer.remaining();
-            final DirectByteBufferRecord record = obtainDirectByteBuffer(length);
+            final DirectByteBufferRecord record = obtainDirectByteBuffer(
+                    tcpConnection.getReadBufferSize());
             final ByteBuffer directByteBuffer = record.strongRef;
+            final int length = Math.min(buffer.remaining(), directByteBuffer.remaining());
 
             try {
                 // make sure we won't read more than buffer allows
