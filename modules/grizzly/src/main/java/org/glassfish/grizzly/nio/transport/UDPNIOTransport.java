@@ -438,6 +438,15 @@ public final class UDPNIOTransport extends AbstractNIOTransport
                         setCorePoolSize(selectorRunnersCount * 2).
                         setMaxPoolSize(selectorRunnersCount * 2).
                         setMemoryManager(getMemoryManager())));
+            } else {
+                if (threadPool instanceof GrizzlyExecutorService) {
+                    final ThreadPoolConfig config =
+                            ((GrizzlyExecutorService) threadPool).getConfiguration();
+                    final int maxSize = config.getMaxPoolSize();
+                    if (selectorRunnersCount >= maxSize) {
+                        selectorRunnersCount = maxSize / 2;
+                    }
+                }
             }
 
             if (strategy == null) {

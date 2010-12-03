@@ -234,6 +234,14 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
                         setMaxPoolSize(selectorRunnersCount * 2).
                         setMemoryManager(getMemoryManager())));
 
+            } else {
+                if (threadPool instanceof GrizzlyExecutorService) {
+                    final ThreadPoolConfig config =
+                            ((GrizzlyExecutorService) threadPool).getConfiguration();
+                    if (selectorRunnersCount >= config.getMaxPoolSize()) {
+                        selectorRunnersCount = config.getMaxPoolSize() / 2;
+                    }
+                }
             }
 
             if (strategy == null) {
