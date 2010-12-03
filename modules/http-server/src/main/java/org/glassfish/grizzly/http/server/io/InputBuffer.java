@@ -203,12 +203,12 @@ public class InputBuffer {
         compositeBuffer.allowInternalBuffersDispose(true);
         Object message = ctx.getMessage();
         if (message instanceof HttpContent) {
-            HttpContent content = (HttpContent) ctx.getMessage();
+            HttpContent content = (HttpContent) message;
             if (content.getContent().hasRemaining()) {
                 compositeBuffer.append(content.getContent());
             }
-            content.recycle();
             contentRead = content.isLast();
+            content.recycle();
         }
 
     }
