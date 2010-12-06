@@ -93,8 +93,10 @@ import org.glassfish.grizzly.websockets.WebSocketFilter;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 
 /**
- *
- * @author oleksiys
+ * Generic {@link GrizzlyListener} implementation, which is not HTTP dependent,
+ * and can support any Transport configuration, based on {@link FilterChain}.
+ * 
+ * @author Alexey Stashok
  */
 public class GenericGrizzlyListener implements GrizzlyListener {
 
