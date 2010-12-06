@@ -542,8 +542,9 @@ public class HttpServer implements HttpServiceProvider {
                     serverConfig.getMonitoringConfig().getFileCacheConfig().getProbes());
             builder.add(fileCacheFilter);
 
-            final HttpServerFilter webServerFilter = new HttpServerFilter(serverConfig,
-                    this, delayedExecutor);
+            final HttpServerFilter webServerFilter = new HttpServerFilter(serverConfig, delayedExecutor);
+            webServerFilter.setHttpService(httpServiceChain);
+            
             webServerFilter.getMonitoringConfig().addProbes(
                     serverConfig.getMonitoringConfig().getWebServerConfig().getProbes());
             builder.add(webServerFilter);
@@ -623,7 +624,7 @@ public class HttpServer implements HttpServiceProvider {
             public Thread newThread(Runnable r) {
                 final Thread newThread = new DefaultWorkerThread(
                         TransportFactory.getInstance().getDefaultAttributeBuilder(),
-                        "HttpServer-" + threadCounter.getAndIncrement(),
+                        serverConfig.getName() + "-" + threadCounter.getAndIncrement(),
                         null,
                         r);
                 newThread.setDaemon(true);

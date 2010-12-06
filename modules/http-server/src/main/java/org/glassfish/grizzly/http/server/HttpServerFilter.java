@@ -75,7 +75,7 @@ public class HttpServerFilter extends BaseFilter
     private final Attribute<Request> httpRequestInProcessAttr;
     private final DelayedExecutor.DelayQueue<Response> suspendedResponseQueue;
 
-    private final HttpServiceProvider serviceProvider;
+    private volatile HttpRequestProcessor httpService;
 
     private final ServerFilterConfiguration config;
     
@@ -97,16 +97,21 @@ public class HttpServerFilter extends BaseFilter
 
 
     public HttpServerFilter(final ServerFilterConfiguration config,
-            final HttpServiceProvider serviceProvider,
             final DelayedExecutor delayedExecutor) {
         this.config = config;
-        this.serviceProvider = serviceProvider;
         suspendedResponseQueue = Response.createDelayQueue(delayedExecutor);
         httpRequestInProcessAttr = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.
                 createAttribute("HttpServerFilter.Request");
 
     }
 
+    public HttpRequestProcessor getHttpService() {
+        return httpService;
+    }
+
+    public void setHttpService(HttpRequestProcessor httpService) {
+        this.httpService = httpService;
+    }
 
     public ServerFilterConfiguration getConfiguration() {
         return config;
@@ -149,9 +154,9 @@ public class HttpServerFilter extends BaseFilter
                 try {
                     ctx.setMessage(serviceResponse);
 
-                    final HttpRequestProcessor httpService = serviceProvider.getHttpService();
-                    if (httpService != null) {
-                        httpService.doService(serviceRequest, serviceResponse);
+                    final HttpRequestProcessor httpServiceLocal = httpService;
+                    if (httpServiceLocal != null) {
+                        httpServiceLocal.doService(serviceRequest, serviceResponse);
                     }
                 } catch (Throwable t) {
                     serviceRequest.getRequest().getProcessingState().setError(true);
