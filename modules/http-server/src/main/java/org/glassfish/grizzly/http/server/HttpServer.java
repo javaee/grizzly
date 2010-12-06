@@ -86,7 +86,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  *
  */
-public class HttpServer implements HttpServiceProvider {
+public class HttpServer {
 
     private static final Logger LOGGER = Grizzly.logger(HttpServer.class);
 
@@ -319,7 +319,6 @@ public class HttpServer implements HttpServiceProvider {
      * @return the {@link HttpRequestProcessor} used by this <code>HttpServer</code>
      *  instance.
      */
-    @Override
     public HttpRequestProcessor getHttpService() {
         return httpServiceChain;
     }
