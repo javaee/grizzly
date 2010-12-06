@@ -57,7 +57,7 @@ public class GZipContentEncoding implements ContentEncoding {
     public static final int DEFAULT_IN_BUFFER_SIZE = 512;
     public static final int DEFAULT_OUT_BUFFER_SIZE = 512;
 
-    private static final String[] ALIASES = {"gzip", "deflate"};
+    public static final String[] ALIASES = {"gzip", "deflate"};
 
     private final String name = "gzip";
     

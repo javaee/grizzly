@@ -186,7 +186,7 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
                 httpService.doService(request, response);
             } else {
                 response.setStatus(HttpStatus.NOT_FOUND_404);
-                customizedErrorPage(httpServer, request, response);
+                customizedErrorPage(httpServer.getServerConfiguration(), request, response);
             }
         } catch (Throwable t) {
             try {
@@ -194,7 +194,7 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
                 if (LOGGER.isLoggable(Level.FINE)) {
                     LOGGER.log(Level.FINE, "Invalid URL: " + request.getRequestURI(), t);
                 }
-                customizedErrorPage(httpServer, request, response);
+                customizedErrorPage(httpServer.getServerConfiguration(), request, response);
             } catch (Exception ex2) {
                 if (LOGGER.isLoggable(Level.WARNING)) {
                     LOGGER.log(Level.WARNING, "Unable to error page", ex2);
@@ -235,7 +235,8 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
                             @Override
                             public void service(Request request, Response response) {
                                 try {
-                                    customizedErrorPage(httpServer, request, response);
+                                    customizedErrorPage(httpServer.getServerConfiguration(),
+                                            request, response);
                                 } catch (Exception ex) {
                                 }
                             }

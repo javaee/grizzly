@@ -75,8 +75,10 @@ public class HttpServerFilter extends BaseFilter
     private final Attribute<Request> httpRequestInProcessAttr;
     private final DelayedExecutor.DelayQueue<Response> suspendedResponseQueue;
 
-    private final HttpServer httpServer;
+    private final HttpServiceProvider serviceProvider;
 
+    private final ServerFilterConfiguration config;
+    
     /**
      * Web server probes
      */
@@ -94,9 +96,11 @@ public class HttpServerFilter extends BaseFilter
     // ------------------------------------------------------------ Constructors
 
 
-    public HttpServerFilter(final HttpServer httpServer) {
-        this.httpServer = httpServer;
-        DelayedExecutor delayedExecutor = httpServer.getDelayedExecutor();
+    public HttpServerFilter(final ServerFilterConfiguration config,
+            final HttpServiceProvider serviceProvider,
+            final DelayedExecutor delayedExecutor) {
+        this.config = config;
+        this.serviceProvider = serviceProvider;
         suspendedResponseQueue = Response.createDelayQueue(delayedExecutor);
         httpRequestInProcessAttr = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.
                 createAttribute("HttpServerFilter.Request");
@@ -104,8 +108,8 @@ public class HttpServerFilter extends BaseFilter
     }
 
 
-    final HttpServer getHttpServer() {
-        return httpServer;
+    public ServerFilterConfiguration getConfiguration() {
+        return config;
     }
     
     // ----------------------------------------------------- Methods from Filter
@@ -118,7 +122,7 @@ public class HttpServerFilter extends BaseFilter
         final Object message = ctx.getMessage();
         final Connection connection = ctx.getConnection();
 
-        if (message instanceof HttpPacket) {
+        if (HttpPacket.isHttp(message)) {
             // Otherwise cast message to a HttpContent
 
             final HttpContent httpContent = (HttpContent) message;
@@ -145,7 +149,7 @@ public class HttpServerFilter extends BaseFilter
                 try {
                     ctx.setMessage(serviceResponse);
 
-                    final HttpRequestProcessor httpService = httpServer.getHttpService();
+                    final HttpRequestProcessor httpService = serviceProvider.getHttpService();
                     if (httpService != null) {
                         httpService.doService(serviceRequest, serviceResponse);
                     }

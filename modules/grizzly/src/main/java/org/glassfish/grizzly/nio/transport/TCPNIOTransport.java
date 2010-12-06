@@ -125,7 +125,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
      */
     AsyncQueueIO asyncQueueIO;
     /**
-     * Server socket backlog.
+     * Transport TemporarySelectorIO, used for blocking I/O simulation
      */
     TemporarySelectorIO temporarySelectorIO;
     /**
@@ -154,6 +154,10 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
      * The socket time out
      */
     int clientSocketSoTimeout = -1;
+    /**
+     * The default server connection backlog size
+     */
+    int serverConnectionBackLog = 4096;
     /**
      * Default channel connection timeout
      */
@@ -346,7 +350,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
      * {@inheritDoc}
      */
     @Override
-    public TCPNIOServerConnection bind(int port) throws IOException {
+    public TCPNIOServerConnection bind(final int port) throws IOException {
         return bind(new InetSocketAddress(port));
     }
 
@@ -354,17 +358,17 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
      * {@inheritDoc}
      */
     @Override
-    public TCPNIOServerConnection bind(String host, int port)
+    public TCPNIOServerConnection bind(final String host, final int port)
             throws IOException {
-        return bind(host, port, 50);
+        return bind(host, port, serverConnectionBackLog);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public TCPNIOServerConnection bind(String host, int port, int backlog)
-            throws IOException {
+    public TCPNIOServerConnection bind(final String host, final int port,
+            final int backlog) throws IOException {
         return bind(new InetSocketAddress(host, port), backlog);
     }
 
@@ -372,16 +376,17 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
      * {@inheritDoc}
      */
     @Override
-    public TCPNIOServerConnection bind(SocketAddress socketAddress)
+    public TCPNIOServerConnection bind(final SocketAddress socketAddress)
             throws IOException {
-        return bind(socketAddress, 4096);
+        return bind(socketAddress, serverConnectionBackLog);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public TCPNIOServerConnection bind(SocketAddress socketAddress, int backlog)
+    public TCPNIOServerConnection bind(final SocketAddress socketAddress,
+            final int backlog)
             throws IOException {
         state.getStateLocker().writeLock().lock();
 
@@ -648,6 +653,22 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
     public void setLinger(int linger) {
         this.linger = linger;
         notifyProbesConfigChanged(this);
+    }
+
+    /**
+     * Get the default server connection backlog size.
+     * @return the default server connection backlog size.
+     */
+    public int getServerConnectionBackLog() {
+        return serverConnectionBackLog;
+    }
+
+    /**
+     * Set the default server connection backlog size.
+     * @serverConnectionBackLog the default server connection backlog size.
+     */
+    public void setServerConnectionBackLog(final int serverConnectionBackLog) {
+        this.serverConnectionBackLog = serverConnectionBackLog;
     }
 
     public boolean isKeepAlive() {

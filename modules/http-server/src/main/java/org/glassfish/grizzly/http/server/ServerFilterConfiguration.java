@@ -38,37 +38,71 @@
  * holder.
  */
 
-package org.glassfish.grizzly.http;
-
-import org.glassfish.grizzly.Cacheable;
+package org.glassfish.grizzly.http.server;
 
 /**
- * Abstraction, which represents any type of HTTP message: {@link HttpRequestPacket},
- * {@link HttpResponsePacket}, {@link HttpContent}.
+ * {@link HttpServerFilter} configuration.
  *
- * @see HttpRequestPacket
- * @see HttpResponsePacket
- * @see HttpContent
- * 
  * @author Alexey Stashok
  */
-public abstract class HttpPacket implements Cacheable {
-    /**
-     * Returns <tt>true</tt> if passed {@link Object} is a <tt>HttpPacket</tt>.
-     *
-     * @param packet
-     * @return <tt>true</tt> if passed {@link Object} is a <tt>HttpPacket</tt>.
-     */
-    public static boolean isHttp(final Object packet) {
-        return HttpPacket.class.isAssignableFrom(packet.getClass());
+public class ServerFilterConfiguration {
+    private String httpServerName;
+
+    private String httpServerVersion;
+
+    public ServerFilterConfiguration() {
+        this("Grizzly", "2.0");
+    }
+
+    public ServerFilterConfiguration(final String serverName,
+            final String serverVersion) {
+        this.httpServerName = serverName;
+        this.httpServerVersion = serverVersion;
     }
     
     /**
-     * Returns <tt>true</tt>, if this HTTP message represents HTTP message header,
-     * or <tt>false</tt> otherwise.
-     * 
-     * @return <tt>true</tt>, if this HTTP message represents HTTP message header,
-     * or <tt>false</tt> otherwise.
+     * @return the server name used for headers and default error pages.
      */
-    public abstract boolean isHeader();
+    public String getHttpServerName() {
+
+        return httpServerName;
+
+    }
+
+
+    /**
+     * Sets the server name used for HTTP response headers and default generated
+     * error pages.  If not value is explicitly set, this value defaults to
+     * <code>Grizzly</code>.
+     *
+     * @param httpServerName server name
+     */
+    public void setHttpServerName(String httpServerName) {
+        this.httpServerName = httpServerName;
+    }
+
+
+    /**
+     * @return the version of this server used for headers and default error
+     *  pages.
+     */
+    public String getHttpServerVersion() {
+
+        return httpServerVersion;
+
+    }
+
+
+    /**
+     * Sets the version of the server info sent in HTTP response headers and the
+     *  default generated error pages.  If not value is explicitly set, this
+     *  value defaults to the current version of the Grizzly runtime.
+     *
+     * @param httpServerVersion server version
+     */
+    public void setHttpServerVersion(String httpServerVersion) {
+
+        this.httpServerVersion = httpServerVersion;
+
+    }
 }

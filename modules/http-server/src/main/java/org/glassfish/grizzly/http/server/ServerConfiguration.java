@@ -56,7 +56,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Configuration options for a particular {@link HttpServer} instance.
  */
-public class ServerConfiguration {
+public class ServerConfiguration extends ServerFilterConfiguration {
 
     private static final AtomicInteger INSTANCE_COUNT = new AtomicInteger(-1);
 
@@ -76,10 +76,6 @@ public class ServerConfiguration {
     private final HttpServerMonitoringConfig monitoringConfig = new HttpServerMonitoringConfig();
 
     private String name;
-
-    private String httpServerName = "Grizzly";
-
-    private String httpServerVersion = "2.0";
 
     final HttpServer instance;
 
@@ -275,53 +271,6 @@ public class ServerConfiguration {
 
         return jmxEventListeners;
         
-    }
-
-
-    /**
-     * @return the server name used for headers and default error pages.
-     */
-    public String getHttpServerName() {
-
-        return httpServerName;
-
-    }
-
-
-    /**
-     * Sets the server name used for HTTP response headers and default generated
-     * error pages.  If not value is explicitly set, this value defaults to
-     * <code>Grizzly</code>.
-     *
-     * @param httpServerName server name
-     */
-    public void setHttpServerName(String httpServerName) {
-        this.httpServerName = httpServerName;
-    }
-
-
-    /**
-     * @return the version of this server used for headers and default error
-     *  pages.
-     */
-    public String getHttpServerVersion() {
-
-        return httpServerVersion;
-
-    }
-
-
-    /**
-     * Sets the version of the server info sent in HTTP response headers and the
-     *  default generated error pages.  If not value is explicitly set, this
-     *  value defaults to the current version of the Grizzly runtime.
-     *
-     * @param httpServerVersion server version
-     */
-    public void setHttpServerVersion(String httpServerVersion) {
-
-        this.httpServerVersion = httpServerVersion;
-
     }
 
 } // END ServerConfiguration

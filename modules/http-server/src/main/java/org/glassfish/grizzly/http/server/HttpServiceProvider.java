@@ -38,37 +38,13 @@
  * holder.
  */
 
-package org.glassfish.grizzly.http;
-
-import org.glassfish.grizzly.Cacheable;
+package org.glassfish.grizzly.http.server;
 
 /**
- * Abstraction, which represents any type of HTTP message: {@link HttpRequestPacket},
- * {@link HttpResponsePacket}, {@link HttpContent}.
- *
- * @see HttpRequestPacket
- * @see HttpResponsePacket
- * @see HttpContent
- * 
+ * Provider, which is responsible for returning {@link HttpRequestProcessor} instance,
+ * which will process HTTP requests coming on {@link HttpServerFilter}.
  * @author Alexey Stashok
  */
-public abstract class HttpPacket implements Cacheable {
-    /**
-     * Returns <tt>true</tt> if passed {@link Object} is a <tt>HttpPacket</tt>.
-     *
-     * @param packet
-     * @return <tt>true</tt> if passed {@link Object} is a <tt>HttpPacket</tt>.
-     */
-    public static boolean isHttp(final Object packet) {
-        return HttpPacket.class.isAssignableFrom(packet.getClass());
-    }
-    
-    /**
-     * Returns <tt>true</tt>, if this HTTP message represents HTTP message header,
-     * or <tt>false</tt> otherwise.
-     * 
-     * @return <tt>true</tt>, if this HTTP message represents HTTP message header,
-     * or <tt>false</tt> otherwise.
-     */
-    public abstract boolean isHeader();
+public interface HttpServiceProvider {
+    public HttpRequestProcessor getHttpService();
 }
