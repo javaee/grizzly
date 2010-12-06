@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2006-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,45 +37,17 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.config;
 
-import java.io.IOException;
-
-import org.glassfish.grizzly.config.dom.NetworkListener;
+import org.jvnet.hk2.config.ConfigBeanProxy;
 
 /**
- * <p>The GrizzlyServiceListener is responsible of mapping incoming requests to the proper Container or Grizzly
- * extensions. Registered Containers can be notified by Grizzly using three mode:</p>
- *
- * <ul> <li>At the transport level: Containers can be notified when TCP, TLS or UDP requests are mapped to them.</li>
- * <li>At the protocol level: Containers can be notified when protocols (ex: SIP, HTTP) requests are mapped to
- * them.</li> </li>At the requests level: Containers can be notified when specific patterns requests are mapped to
- * them.</li> <ul>
- *
- * @author Jeanfrancois Arcand
- * @author Justin Lee
+ * Grizzly config elements like protocols, filters, which implement this
+ * interface, will get correspondent dom configuration element.
+ * 
+ * @author Alexey Stashok
  */
-public interface GrizzlyListener {
-    
-    public void start() throws IOException;
-
-    public void stop() throws IOException;
-
-    public String getName();
-
-    public int getPort();
-
-    /*
-    * Configures the given grizzlyListener.
-    *
-    * @param grizzlyListener The grizzlyListener to configure
-    * @param httpProtocol The Protocol that corresponds to the given grizzlyListener
-    * @param isSecure true if the grizzlyListener is security-enabled, false otherwise
-    * @param httpServiceProps The httpProtocol-service properties
-    * @param isWebProfile if true - just HTTP protocol is supported on port,
-    *        false - port unification will be activated
-    */
-    // TODO: Must get the information from domain.xml Config objects.
-    // TODO: Pending Grizzly issue 54
-    public void configure(NetworkListener networkListener);
+public interface ConfigAwareElement<E extends ConfigBeanProxy> {
+    public void configure(E configuration);
 }

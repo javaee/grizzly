@@ -46,6 +46,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URLConnection;
+import java.util.List;
+import org.glassfish.grizzly.http.server.HttpServerFilter;
 
 import org.glassfish.grizzly.http.server.StaticResourcesService;
 import org.jvnet.hk2.config.Dom;
@@ -79,7 +81,7 @@ public class BaseGrizzlyConfigTest {
         return "";
     }
 
-    protected void addStaticResourceService(GrizzlyListener listener, int count) {
+    protected void addStaticResourceService(GenericGrizzlyListener listener, int count) {
         final String name = System.getProperty("java.io.tmpdir", "/tmp") + "/"
             + Dom.convertName(getClass().getSimpleName()) + count;
         File dir = new File(name);
@@ -99,6 +101,10 @@ public class BaseGrizzlyConfigTest {
             Assert.fail(e.getMessage(), e);
         }
         
-        listener.getHttpServer().getServerConfiguration().addHttpService(new StaticResourcesService(name), "/");
+        final List<HttpServerFilter> httpServerFilters = listener.getFilters(HttpServerFilter.class);
+
+        for (HttpServerFilter httpServerFilter : httpServerFilters) {
+            httpServerFilter.setHttpService(new StaticResourcesService(name));
+        }
     }
 }
