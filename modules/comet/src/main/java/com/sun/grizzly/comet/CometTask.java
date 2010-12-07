@@ -37,7 +37,6 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package com.sun.grizzly.comet;
 
 import com.sun.grizzly.Controller;
@@ -64,46 +63,39 @@ import java.util.logging.Logger;
  * @author Jeanfrancois Arcand
  * @author Gustav Trede
  */
-public class CometTask extends SelectedKeyAttachmentLogic implements Runnable{
+public class CometTask extends SelectedKeyAttachmentLogic implements Runnable {
 
     private static final Logger logger = SelectorThread.logger();
-
     /**
      * The {@link CometContext} associated with this instance.
      */
     protected final CometContext cometContext;
-
     /**
      * The {@link CometHandler} associated with this task.
      */
     protected final CometHandler cometHandler;
-
     /**
      * The {@link AsyncProcessorTask}
      */
     protected AsyncProcessorTask asyncProcessorTask;
-    
     /**
-     * true if comethandler is registered for async IO in cometcontext.
-     * used to optmize:
-     * dont give simple read == -1 operations to thread pool
+     * true if comet handler is registered for async IO in comet context.
+     * used to optimize:
+     * don't give simple read == -1 operations to thread pool
      */
     protected volatile boolean cometHandlerIsAsyncRegistered;
-
     /**
      * The current non blocking operation.
      */
     protected boolean upcoming_op_isread;
-
     /**
-     *  true if run() should call cometcontext.interrupt0
+     *  true if run() should call comet context.interrupt0
      */
     protected boolean callInterrupt;
-    
-    public CometTask() {
-        this(null,null);
-    }
 
+    public CometTask() {
+        this(null, null);
+    }
 
     /**
      * New {@link CometTask}.
@@ -116,15 +108,15 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable{
     /**
      * Performs doTask() or cometContext.interrupt0
      */
-    public void run(){        
-        if (callInterrupt){
+    public void run() {
+        if (callInterrupt) {
             CometEngine.getEngine().interrupt0(this, true);
-        }else{
-            try{
+        } else {
+            try {
                 doTask();
-            } catch (IOException ex){
+            } catch (IOException ex) {
                 throw new RuntimeException(ex);
-            }                
+            }
         }
     }
 
@@ -139,7 +131,7 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable{
     /**
      * This should never be called for for comet, due to we are nulling the attachment
      * and completely overriding the selector.select logic.<br>
-     * called by grizzly when the selectionkey is canceled and its socket closed.<br>     
+     * called by grizzly when the selection key is canceled and its socket closed.<br>
      *
      * @param selectionKey
      */
@@ -151,7 +143,7 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable{
      * {@inheritDoc}
      */
     @Override
-    public boolean timedOut(SelectionKey key){
+    public boolean timedOut(SelectionKey key) {
         CometEngine.getEngine().interrupt(this, true);
         return false;
     }
@@ -161,53 +153,50 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable{
      */
     @Override
     public void handleSelectedKey(SelectionKey selectionKey) {
-        if (!selectionKey.isValid()){
+        if (!selectionKey.isValid()) {
             CometEngine.getEngine().interrupt(this, true);
             return;
         }
-        if (cometHandlerIsAsyncRegistered){
-            if (selectionKey.isReadable()){
+        if (cometHandlerIsAsyncRegistered) {
+            if (selectionKey.isReadable()) {
                 selectionKey.interestOps(selectionKey.interestOps() & ~SelectionKey.OP_READ);
                 upcoming_op_isread = true;
             }
-            if (selectionKey.isWritable()){
+            if (selectionKey.isWritable()) {
                 selectionKey.interestOps(selectionKey.interestOps() & ~SelectionKey.OP_WRITE);
                 upcoming_op_isread = false;
             }
             asyncProcessorTask.getThreadPool().execute(this);
-        }            
-        else{
-           checkIfClientClosedConnection(selectionKey);
+        } else {
+            checkIfClientClosedConnection(selectionKey);
         }
     }
 
     /**
      * checks if client has closed the connection.
-     * the check is done by trying to read 1 byte that is trown away.
-     * only used for non async registered comethandler.
+     * the check is done by trying to read 1 byte that is thrown away.
+     * only used for non async registered comet handler.
      * @param mainKey
      */
     private void checkIfClientClosedConnection(SelectionKey mainKey) {
         boolean isClosed = true;
         try {
-            isClosed = ((SocketChannel)mainKey.channel()).
-                read(ByteBuffer.allocate(1)) == -1;
+            isClosed = ((SocketChannel) mainKey.channel()).read(ByteBuffer.allocate(1)) == -1;
         } catch (IOException ignored) {
-        } finally{
-            if (isClosed){
-               CometEngine.getEngine().interrupt(this, true);
+        } finally {
+            if (isClosed) {
+                CometEngine.getEngine().interrupt(this, true);
             }
         }
     }
-
 
     /**
      * Notify the {@link CometHandler} that bytes are available for read.
      * The notification will invoke all {@link CometContext}
      */
-    public void doTask() throws IOException{
+    public void doTask() throws IOException {
         // The CometHandler has been resumed.
-        if (!cometContext.isActive(cometHandler) ){
+        if (!cometContext.isActive(cometHandler)) {
             return;
         }
         /**
@@ -217,23 +206,23 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable{
         ByteBuffer byteBuffer = null;
         boolean connectionClosed = false;
         boolean clearBuffer = true;
-        final SelectionKey key =  getSelectionKey();
-        try{
-            byteBuffer = ((WorkerThread)Thread.currentThread()).getByteBuffer();
-            if (byteBuffer == null){
+        final SelectionKey key = getSelectionKey();
+        try {
+            byteBuffer = ((WorkerThread) Thread.currentThread()).getByteBuffer();
+            if (byteBuffer == null) {
                 byteBuffer = ByteBuffer.allocate(asyncProcessorTask.getSelectorThread().getBufferSize());
-                ((WorkerThread)Thread.currentThread()).setByteBuffer(byteBuffer);
+                ((WorkerThread) Thread.currentThread()).setByteBuffer(byteBuffer);
             } else {
                 byteBuffer.clear();
             }
 
-            SocketChannel socketChannel = (SocketChannel)key.channel();
-            if (upcoming_op_isread){
+            SocketChannel socketChannel = (SocketChannel) key.channel();
+            if (upcoming_op_isread) {
                 /*
                  * We must execute the first read to prevent client abort.
                  */
                 int nRead = socketChannel.read(byteBuffer);
-                if (nRead == -1 ){
+                if (nRead == -1) {
                     connectionClosed = true;
                 } else {
                     /*
@@ -241,12 +230,12 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable{
                      * the continuation and invoke the http parsing
                      * request code.
                      */
-                    if (!cometHandlerIsAsyncRegistered){
+                    if (!cometHandlerIsAsyncRegistered) {
                         /**
                          * Something when wrong, most probably the CometHandler
                          * has been resumed or removed by the Comet implementation.
                          */
-                        if (!cometContext.isActive(cometHandler)){
+                        if (!cometContext.isActive(cometHandler)) {
                             return;
                         }
 
@@ -255,22 +244,23 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable{
                         // is not a cleaner way fo handling the browser closing
                         // the connection.
                         nRead = socketChannel.read(byteBuffer);
-                        if (nRead == -1){
-                           connectionClosed = true;
-                           return;
+                        if (nRead == -1) {
+                            connectionClosed = true;
+                            return;
                         }
                         //resume without remove:
-                        try{
+                        try {
                             cometHandler.onInterrupt(cometContext.eventInterrupt);
-                        }catch(IOException e) { }
-                        CometEngine.cometEngine.flushPostExecute(this,false);
+                        } catch (IOException e) {
+                        }
+                        CometEngine.cometEngine.flushPostExecute(this, false);
 
                         clearBuffer = false;
 
                         Controller controller = getSelectorThread().getController();
                         ProtocolChain protocolChain =
                                 controller.getProtocolChainInstanceHandler().poll();
-                        NIOContext ctx = (NIOContext)controller.pollContext();
+                        NIOContext ctx = (NIOContext) controller.pollContext();
                         ctx.setController(controller);
                         ctx.setSelectionKey(key);
                         ctx.setProtocolChain(protocolChain);
@@ -281,9 +271,9 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable{
                         CometReader reader = new CometReader();
                         reader.setNRead(nRead);
                         reader.setByteBuffer(byteBuffer);
-                        CometEvent event = new CometEvent(CometEvent.READ,cometContext);
+                        CometEvent event = new CometEvent(CometEvent.READ, cometContext);
                         event.attach(reader);
-                        cometContext.invokeCometHandler(event,cometHandler);
+                        cometContext.invokeCometHandler(event, cometHandler);
                         reader.setByteBuffer(null);
 
                         // This Reader is now invalid. Any attempt to use
@@ -292,41 +282,41 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable{
                     }
                 }
             } else {
-                CometEvent event = new CometEvent(CometEvent.WRITE,cometContext);
+                CometEvent event = new CometEvent(CometEvent.WRITE, cometContext);
                 CometWriter writer = new CometWriter();
                 writer.setChannel(socketChannel);
                 event.attach(writer);
-                cometContext.invokeCometHandler(event,cometHandler);
+                cometContext.invokeCometHandler(event, cometHandler);
 
                 // This Writer is now invalid. Any attempt to use
                 // it will results in an IllegalStateException.
                 writer.setReady(false);
-           }
-        } catch (IOException ex){
+            }
+        } catch (IOException ex) {
             connectionClosed = true;
             // Bug 6403933 & GlassFish 2013
-            if (SelectorThread.logger().isLoggable(Level.FINEST)){
-                SelectorThread.logger().log(Level.FINEST,"Comet exception",ex);
+            if (SelectorThread.logger().isLoggable(Level.FINEST)) {
+                SelectorThread.logger().log(Level.FINEST, "Comet exception", ex);
             }
-        } catch (Throwable t){
+        } catch (Throwable t) {
             connectionClosed = true;
-            SelectorThread.logger().log(Level.SEVERE,"Comet exception",t);
+            SelectorThread.logger().log(Level.SEVERE, "Comet exception", t);
         } finally {
             cometHandlerIsAsyncRegistered = false;
 
             // Bug 6403933
-            if (connectionClosed){
+            if (connectionClosed) {
                 asyncProcessorTask.getSelectorThread().cancelKey(key);
             }
 
-            if (clearBuffer && byteBuffer != null){
+            if (clearBuffer && byteBuffer != null) {
                 byteBuffer.clear();
             }
         }
     }
 
     /**
-     * sets the comettask async interest flag in the comettask
+     * sets the comet task async interest flag in the comet task
      * @param 
      */
     public void setComethandlerIsAsyncRegistered(boolean cometHandlerIsAsyncRegistered) {
@@ -334,7 +324,7 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable{
     }
 
     /**
-     * returns true if the comethandler is registered for async io
+     * returns true if the comet handler is registered for async io
      * @return
      */
     public boolean isComethandlerAsyncRegistered() {
@@ -367,7 +357,7 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable{
     }
 
     /**
-     * returns selectionkey
+     * returns selection key
      * @return
      */
     public SelectionKey getSelectionKey() {
@@ -378,7 +368,7 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable{
      * returns the {@link AsyncProcessorTask }
      * @return {@link AsyncProcessorTask }
      */
-    private SelectorThread getSelectorThread(){
+    private SelectorThread getSelectorThread() {
         return asyncProcessorTask.getSelectorThread();
     }
 
@@ -389,5 +379,4 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable{
     public CometHandler getCometHandler() {
         return cometHandler;
     }
-
 }
