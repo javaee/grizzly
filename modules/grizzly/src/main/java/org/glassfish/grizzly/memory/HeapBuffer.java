@@ -802,13 +802,18 @@ public class HeapBuffer implements Buffer {
     }
 
     @Override
-    public String toStringContent(Charset charset) {
+    public String toStringContent(final Charset charset) {
         return toStringContent(charset, position(), limit());
     }
 
     @Override
-    public String toStringContent(Charset charset, int position, int limit) {
+    public String toStringContent(Charset charset, final int position,
+            final int limit) {
         checkDispose();
+        if (charset == null) {
+            charset = Charset.defaultCharset();
+        }
+
         return new String(heap, offset + position, limit - position, charset);
     }
 
