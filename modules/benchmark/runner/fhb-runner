@@ -50,7 +50,7 @@ use strict;
 my $FABAN_FILE = "faban-kit-101509.tar.gz";
 my $FABAN_URL = "http://faban.sunsource.net/nightly/$FABAN_FILE";
 my $PORT = 5000;
-my $HOST = "localhost";
+my $HOST = "0.0.0.0";
 
 # --------------------------------- MAIN EXECUTION
 
