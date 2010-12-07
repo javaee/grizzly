@@ -82,8 +82,8 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.rcm.ResourceAllocationFilter;
-import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
+import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
@@ -236,7 +236,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         final Http http = protocol.getHttp();
         if (http != null) {
             if (Boolean.valueOf(protocol.getSecurityEnabled())) {
-                configureSsl(protocol.getSsl());
+                configureSsl(protocol.getSsl(), filterChain);
             }
 
             configureHttpListener(http, filterChain);
@@ -344,17 +344,14 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         }
     }
 
-    protected SSLEngineConfigurator configureSsl(final Ssl ssl) {
-        final SSLConfigHolder holder = new SSLConfigHolder(ssl);
+    protected static void configureSsl(final Ssl ssl,
+            final FilterChain filterChain) {
+        final SSLEngineConfigurator serverConfig = new SSLConfigurator(ssl);
+        
+        final SSLEngineConfigurator clientConfig = new SSLConfigurator(ssl);
+        clientConfig.setClientMode(true);
 
-        final SSLEngineConfigurator sslEngineConfigurator = new SSLEngineConfigurator(SSLContextConfigurator.DEFAULT_CONFIG);
-        sslEngineConfigurator.setEnabledCipherSuites(holder.getEnabledCipherSuites());
-        sslEngineConfigurator.setEnabledProtocols(holder.getEnabledProtocols());
-        sslEngineConfigurator.setNeedClientAuth(holder.isNeedClientAuth());
-        sslEngineConfigurator.setWantClientAuth(holder.isWantClientAuth());
-        sslEngineConfigurator.setClientMode(holder.isClientMode());
-
-        return sslEngineConfigurator;
+        filterChain.add(new SSLFilter(serverConfig, clientConfig));
     }
 
     @SuppressWarnings({"unchecked"})
