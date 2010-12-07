@@ -40,6 +40,8 @@
 package org.glassfish.grizzly.config;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -105,10 +107,10 @@ public class GenericGrizzlyListener implements GrizzlyListener {
      */
     static final Logger logger = Logger.getLogger(GrizzlyListener.class.getName());
     private volatile String name;
-    private volatile String address;
+    private volatile InetAddress address;
     private volatile int port;
-    private NIOTransport transport;
-    private FilterChain rootFilterChain;
+    protected NIOTransport transport;
+    protected FilterChain rootFilterChain;
 
     private volatile ExecutorService auxExecutorService;
     private volatile DelayedExecutor delayedExecutor;
@@ -122,12 +124,13 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         this.name = name;
     }
 
-    public String getAddress() {
+    @Override
+    public InetAddress getAddress() {
         return address;
     }
 
-    protected void setAddress(final String address) {
-        this.address = address;
+    protected final void setAddress(final InetAddress inetAddress) {
+        this.address = inetAddress;
     }
 
     @Override
@@ -143,7 +146,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     public void start() throws IOException {
         delayedExecutor.start();
 
-        ((SocketBinder) transport).bind(address, port);
+        ((SocketBinder) transport).bind(new InetSocketAddress(address, port));
         transport.start();
     }
 
@@ -181,18 +184,14 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     // TODO: Must get the information from domain.xml Config objects.
     // TODO: Pending Grizzly issue 54
     @Override
-    public void configure(final NetworkListener networkListener) {
-        configureListener(networkListener);
-    }
-
-    protected void configureListener(final NetworkListener networkListener) {
+    public void configure(final NetworkListener networkListener) throws IOException {
         setName(networkListener.getName());
-        setAddress(networkListener.getAddress());
+        setAddress(InetAddress.getByName(networkListener.getAddress()));
         setPort(Integer.parseInt(networkListener.getPort()));
 
         configureDelayedExecutor();
         configureTransport(networkListener.findTransport());
-        configureProtocol(networkListener.findHttpProtocol(), rootFilterChain);
+        configureProtocol(networkListener.findProtocol(), rootFilterChain);
         configureThreadPool(networkListener.findThreadPool());
     }
 
@@ -228,11 +227,9 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         return TransportFactory.getInstance().createUDPTransport();
     }
 
-    private void configureProtocol(final Protocol protocol,
+    protected void configureProtocol(final Protocol protocol,
             final FilterChain filterChain) {
         
-//        final Protocol protocol = networkListener.findProtocol();
-
         final Http http = protocol.getHttp();
         if (http != null) {
             if (Boolean.valueOf(protocol.getSecurityEnabled())) {
@@ -314,19 +311,6 @@ public class GenericGrizzlyListener implements GrizzlyListener {
             }
 
             org.glassfish.grizzly.config.dom.ProtocolChain filterChainConfig = pcihConfig.getProtocolChain();
-//            final String protocolChainClassname = protocolChainConfig.getClassname();
-//            if (protocolChainClassname != null) {
-//                try {
-//                    filterChain = (ProtocolChain) newInstance(protocolChainClassname);
-//                    configureElement(filterChain, protocolChainConfig);
-//                } catch (Exception e) {
-//                    logger.log(Level.WARNING, "Can not initialize protocol chain: "
-//                            + protocolChainClassname + ". Default one will be used", e);
-//                }
-//            }
-//            if (filterChain == null) {
-//                filterChain = new DefaultProtocolChain();
-//            }
             
             for (org.glassfish.grizzly.config.dom.ProtocolFilter filterConfig : filterChainConfig.getProtocolFilter()) {
                 final String filterClassname = filterConfig.getClassname();

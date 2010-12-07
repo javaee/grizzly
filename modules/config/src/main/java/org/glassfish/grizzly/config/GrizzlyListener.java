@@ -40,6 +40,7 @@
 package org.glassfish.grizzly.config;
 
 import java.io.IOException;
+import java.net.InetAddress;
 
 import org.glassfish.grizzly.config.dom.NetworkListener;
 
@@ -62,6 +63,8 @@ public interface GrizzlyListener {
     public void stop() throws IOException;
 
     public String getName();
+    
+    public InetAddress getAddress();
 
     public int getPort();
 
@@ -77,5 +80,5 @@ public interface GrizzlyListener {
     */
     // TODO: Must get the information from domain.xml Config objects.
     // TODO: Pending Grizzly issue 54
-    public void configure(NetworkListener networkListener);
+    public void configure(NetworkListener networkListener) throws IOException;
 }
