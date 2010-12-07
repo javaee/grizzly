@@ -51,30 +51,32 @@ import javax.net.ssl.SSLEngine;
  * @author Alexey Stashok
  */
 public class SSLEngineConfigurator {
-    private final SSLContextConfigurator sslContextConfiguration;
+    private final Object sync = new Object();
     
-    private volatile SSLContext sslContext;
+    protected volatile SSLContextConfigurator sslContextConfiguration;
+    
+    protected volatile SSLContext sslContext;
 
     /**
      * The list of cipher suite
      */
-    private String[] enabledCipherSuites = null;
+    protected String[] enabledCipherSuites = null;
     /**
      * the list of protocols
      */
-    private String[] enabledProtocols = null;
+    protected String[] enabledProtocols = null;
     /**
      * Client mode when handshaking.
      */
-    private boolean clientMode;
+    protected boolean clientMode;
     /**
      * Require client Authentication.
      */
-    private boolean needClientAuth;
+    protected boolean needClientAuth;
     /**
      * True when requesting authentication.
      */
-    private boolean wantClientAuth;
+    protected boolean wantClientAuth;
     /**
      * Has the enabled protocol configured.
      */
@@ -102,8 +104,9 @@ public class SSLEngineConfigurator {
      * @param needClientAuth
      * @param wantClientAuth
      */
-    public SSLEngineConfigurator(SSLContext sslContext, boolean clientMode,
-            boolean needClientAuth, boolean wantClientAuth) {
+    public SSLEngineConfigurator(final SSLContext sslContext,
+            final boolean clientMode, final boolean needClientAuth,
+            final boolean wantClientAuth) {
         if (sslContext == null)
             throw new IllegalArgumentException("SSLContext can not be null");
 
@@ -162,6 +165,9 @@ public class SSLEngineConfigurator {
         this.isProtocolConfigured = pattern.isProtocolConfigured;
     }
 
+    protected SSLEngineConfigurator() {
+    }
+
     /**
      * Create and configure {@link SSLEngine}, basing on current settings.
      * 
@@ -169,7 +175,7 @@ public class SSLEngineConfigurator {
      */
     public SSLEngine createSSLEngine() {
         if (sslContext == null) {
-            synchronized(sslContextConfiguration) {
+            synchronized(sync) {
                 if (sslContext == null) {
                     sslContext = sslContextConfiguration.createSSLContext();
                 }
@@ -188,7 +194,7 @@ public class SSLEngineConfigurator {
      * @param sslEngine {@link SSLEngine} to configure.
      * @return configured {@link SSLEngine}.
      */
-    public SSLEngine configure(SSLEngine sslEngine) {
+    public SSLEngine configure(final SSLEngine sslEngine) {
         if (enabledCipherSuites != null) {
             if (!isCipherConfigured) {
                 enabledCipherSuites = configureEnabledCiphers(sslEngine,

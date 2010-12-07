@@ -90,7 +90,7 @@ public class SSLContextConfigurator {
     /**
      * Default Logger.
      */
-    private static Logger logger = Grizzly.logger(SSLContextConfigurator.class);
+    private static final Logger LOGGER = Grizzly.logger(SSLContextConfigurator.class);
 
     /**
      * Default SSL configuration. If you have changed any of
@@ -116,12 +116,6 @@ public class SSLContextConfigurator {
     private String keyManagerFactoryAlgorithm;
 
     private String securityProtocol = "TLS";
-
-    private boolean clientMode = false;
-
-    private boolean needClientAuth = false;
-
-    private boolean wantClientAuth = false;
 
     /**
      * Default constructor. Reads configuration properties from
@@ -238,7 +232,7 @@ public class SSLContextConfigurator {
 
     /**
      * Sets trust store file name, also makes sute that if other trust store
-     * configutation parameters are not set to set them to default values.
+     * configuration parameters are not set to set them to default values.
      *
      * @param trustStoreFile
      *            File name of trust store.
@@ -280,7 +274,7 @@ public class SSLContextConfigurator {
     }
 
     /**
-     * Sets the SSLContext protocole. The default value is <code>TLS</code> if
+     * Sets the SSLContext protocol. The default value is <code>TLS</code> if
      * this is null.
      *
      * @param securityProtocol Protocol for {@link javax.net.ssl.SSLContext#getProtocol()}.
@@ -289,34 +283,10 @@ public class SSLContextConfigurator {
         this.securityProtocol = securityProtocol;
     }
 
-    public boolean isNeedClientAuth() {
-        return needClientAuth;
-    }
-
-    public void setNeedClientAuth(boolean needClientAuth) {
-        this.needClientAuth = needClientAuth;
-    }
-
-    public boolean isWantClientAuth() {
-        return wantClientAuth;
-    }
-
-    public void setWantClientAuth(boolean wantClientAuth) {
-        this.wantClientAuth = wantClientAuth;
-    }
-
-    public boolean isClientMode() {
-        return clientMode;
-    }
-
-    public void setClientMode(boolean clientMode) {
-        this.clientMode = clientMode;
-    }
-
     /**
      * Validates {@link SSLContextConfigurator} configuration.
      *
-     * @return <code>true</code> iff configuration is valid, else
+     * @return <code>true</code> if configuration is valid, else
      *         <code>false</code>.
      */
     public boolean validateConfiguration() {
@@ -328,7 +298,7 @@ public class SSLContextConfigurator {
      *
      * @param needsKeyStore
      *            forces failure if no keystore is specified.
-     * @return <code>true</code> iff configuration is valid, else
+     * @return <code>true</code> if configuration is valid, else
      *         <code>false</code>.
      */
     public boolean validateConfiguration(boolean needsKeyStore) {
@@ -366,28 +336,28 @@ public class SSLContextConfigurator {
                 keyManagerFactory.init(keyStore, keyPass != null ? keyPass
                         : keyStorePass);
             } catch (KeyStoreException e) {
-                logger.log(Level.FINE, "Error initializing key store", e);
+                LOGGER.log(Level.FINE, "Error initializing key store", e);
                 valid = false;
             } catch (CertificateException e) {
-                logger.log(Level.FINE, "Key store certificate exception.", e);
+                LOGGER.log(Level.FINE, "Key store certificate exception.", e);
                 valid = false;
             } catch (UnrecoverableKeyException e) {
-                logger.log(Level.FINE, "Key store unrecoverable exception.", e);
+                LOGGER.log(Level.FINE, "Key store unrecoverable exception.", e);
                 valid = false;
             } catch (FileNotFoundException e) {
-                logger.log(Level.FINE, "Can't find key store file: "
+                LOGGER.log(Level.FINE, "Can't find key store file: "
                         + keyStoreFile, e);
                 valid = false;
             } catch (IOException e) {
-                logger.log(Level.FINE, "Error loading key store from file: "
+                LOGGER.log(Level.FINE, "Error loading key store from file: "
                         + keyStoreFile, e);
                 valid = false;
             } catch (NoSuchAlgorithmException e) {
-                logger.log(Level.FINE,
+                LOGGER.log(Level.FINE,
                         "Error initializing key manager factory (no such algorithm)", e);
                 valid = false;
             } catch (NoSuchProviderException e) {
-                logger.log(Level.FINE,
+                LOGGER.log(Level.FINE,
                         "Error initializing key store (no such provider)", e);
                 valid = false;
             }
@@ -427,28 +397,28 @@ public class SSLContextConfigurator {
                         .getInstance(tmfAlgorithm);
                 trustManagerFactory.init(trustStore);
             } catch (KeyStoreException e) {
-                logger.log(Level.FINE, "Error initializing trust store", e);
+                LOGGER.log(Level.FINE, "Error initializing trust store", e);
                 valid = false;
             } catch (CertificateException e) {
-                logger.log(Level.FINE, "Trust store certificate exception.", e);
+                LOGGER.log(Level.FINE, "Trust store certificate exception.", e);
                 valid = false;
             } catch (FileNotFoundException e) {
-                logger.log(Level.FINE, "Can't find trust store file: "
+                LOGGER.log(Level.FINE, "Can't find trust store file: "
                         + trustStoreFile, e);
                 valid = false;
             } catch (IOException e) {
-                logger.log(Level.FINE, "Error loading trust store from file: "
+                LOGGER.log(Level.FINE, "Error loading trust store from file: "
                         + trustStoreFile, e);
                 valid = false;
             } catch (NoSuchAlgorithmException e) {
-                logger
+                LOGGER
                         .log(
                                 Level.FINE,
                                 "Error initializing trust manager factory (no such algorithm)",
                                 e);
                 valid = false;
             } catch (NoSuchProviderException e) {
-                logger.log(Level.FINE,
+                LOGGER.log(Level.FINE,
                         "Error initializing trust store (no such provider)", e);
                 valid = false;
             }
@@ -495,28 +465,28 @@ public class SSLContextConfigurator {
                     keyManagerFactory.init(keyStore, keyPass != null ? keyPass
                             : keyStorePass);
                 } catch (KeyStoreException e) {
-                    logger.log(Level.FINE, "Error initializing key store", e);
+                    LOGGER.log(Level.FINE, "Error initializing key store", e);
                 } catch (CertificateException e) {
-                    logger.log(Level.FINE, "Key store certificate exception.",
+                    LOGGER.log(Level.FINE, "Key store certificate exception.",
                             e);
                 } catch (UnrecoverableKeyException e) {
-                    logger.log(Level.FINE,
+                    LOGGER.log(Level.FINE,
                             "Key store unrecoverable exception.", e);
                 } catch (FileNotFoundException e) {
-                    logger.log(Level.FINE, "Can't find key store file: "
+                    LOGGER.log(Level.FINE, "Can't find key store file: "
                             + keyStoreFile, e);
                 } catch (IOException e) {
-                    logger.log(Level.FINE,
+                    LOGGER.log(Level.FINE,
                             "Error loading key store from file: "
                                     + keyStoreFile, e);
                 } catch (NoSuchAlgorithmException e) {
-                    logger
+                    LOGGER
                             .log(
                                     Level.FINE,
                                     "Error initializing key manager factory (no such algorithm)",
                                     e);
                 } catch (NoSuchProviderException e) {
-                    logger.log(Level.FINE,
+                    LOGGER.log(Level.FINE,
                             "Error initializing key store (no such provider)",
                             e);
                 }
@@ -556,25 +526,25 @@ public class SSLContextConfigurator {
                             .getInstance(tmfAlgorithm);
                     trustManagerFactory.init(trustStore);
                 } catch (KeyStoreException e) {
-                    logger.log(Level.FINE, "Error initializing trust store", e);
+                    LOGGER.log(Level.FINE, "Error initializing trust store", e);
                 } catch (CertificateException e) {
-                    logger.log(Level.FINE,
+                    LOGGER.log(Level.FINE,
                             "Trust store certificate exception.", e);
                 } catch (FileNotFoundException e) {
-                    logger.log(Level.FINE, "Can't find trust store file: "
+                    LOGGER.log(Level.FINE, "Can't find trust store file: "
                             + trustStoreFile, e);
                 } catch (IOException e) {
-                    logger.log(Level.FINE,
+                    LOGGER.log(Level.FINE,
                             "Error loading trust store from file: "
                                     + trustStoreFile, e);
                 } catch (NoSuchAlgorithmException e) {
-                    logger
+                    LOGGER
                             .log(
                                     Level.FINE,
                                     "Error initializing trust manager factory (no such algorithm)",
                                     e);
                 } catch (NoSuchProviderException e) {
-                    logger
+                    LOGGER
                             .log(
                                     Level.FINE,
                                     "Error initializing trust store (no such provider)",
@@ -592,9 +562,9 @@ public class SSLContextConfigurator {
                     trustManagerFactory != null ? trustManagerFactory
                             .getTrustManagers() : null, null);
         } catch (KeyManagementException e) {
-            logger.log(Level.FINE, "Key management error.", e);
+            LOGGER.log(Level.FINE, "Key management error.", e);
         } catch (NoSuchAlgorithmException e) {
-            logger.log(Level.FINE, "Error initializing algorithm.", e);
+            LOGGER.log(Level.FINE, "Error initializing algorithm.", e);
         }
 
         return sslContext;
