@@ -135,12 +135,12 @@ public class DefaultSelectorHandler implements SelectorHandler {
     }
 
     @Override
-    public void postSelect(SelectorRunner selectorRunner) throws IOException {
+    public void postSelect(final SelectorRunner selectorRunner) throws IOException {
     }
 
     @Override
-    public void registerKey(SelectorRunner selectorRunner, SelectionKey key,
-            int interest) throws IOException {
+    public void registerKeyInterest(final SelectorRunner selectorRunner,
+            final SelectionKey key, final int interest) throws IOException {
         if (Thread.currentThread() == selectorRunner.getRunnerThread()) {
             registerKey0(key, interest);
         } else {
@@ -150,8 +150,8 @@ public class DefaultSelectorHandler implements SelectorHandler {
     }
 
     @Override
-    public void unregisterKey(SelectorRunner selectorRunner, SelectionKey key,
-            int interest) throws IOException {
+    public void unregisterKeyInterest(final SelectorRunner selectorRunner,
+            final SelectionKey key, final int interest) throws IOException {
         if (Thread.currentThread() == selectorRunner.getRunnerThread()) {
             unregisterKey0(key, interest);
         } else {
@@ -161,9 +161,9 @@ public class DefaultSelectorHandler implements SelectorHandler {
     }
 
     @Override
-    public void registerChannel(SelectorRunner selectorRunner,
-            SelectableChannel channel, int interest, Object attachment)
-            throws IOException {
+    public void registerChannel(final SelectorRunner selectorRunner,
+            final SelectableChannel channel, final int interest,
+            final Object attachment) throws IOException {
         
         final Future<RegisterChannelResult> future =
                 registerChannelAsync(selectorRunner, channel, interest,
@@ -191,6 +191,42 @@ public class DefaultSelectorHandler implements SelectorHandler {
         } else {
             final SelectorHandlerTask task = new RegisterChannelOperation(
                     channel, interest, attachment, future, completionHandler);
+
+            addPendingTask(selectorRunner, task);
+        }
+
+        return future;
+    }
+
+    @Override
+    public void unregisterChannel(final SelectorRunner selectorRunner,
+            final SelectableChannel channel)
+            throws IOException {
+
+        final Future<RegisterChannelResult> future =
+                unregisterChannelAsync(selectorRunner, channel, null);
+        try {
+            future.get(selectTimeout, TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+            throw new IOException(e.getMessage());
+        }
+    }
+
+    @Override
+    public GrizzlyFuture<RegisterChannelResult> unregisterChannelAsync(
+            final SelectorRunner selectorRunner, final SelectableChannel channel,
+            final CompletionHandler<RegisterChannelResult> completionHandler)
+            throws IOException {
+
+        final FutureImpl<RegisterChannelResult> future =
+                SafeFutureImpl.create();
+
+        if (Thread.currentThread() == selectorRunner.getRunnerThread()) {
+            unregisterChannel0(selectorRunner, channel,
+                    completionHandler, future);
+        } else {
+            final SelectorHandlerTask task = new UnregisterChannelOperation(
+                    channel, future, completionHandler);
 
             addPendingTask(selectorRunner, task);
         }
@@ -252,7 +288,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
         }
     }
 
-    private void registerKey0(SelectionKey selectionKey, int interest) {
+    private void registerKey0(final SelectionKey selectionKey, final int interest) {
         if (selectionKey.isValid()) {
             int currentOps = selectionKey.interestOps();
             if ((currentOps & interest) != interest) {
@@ -261,7 +297,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
         }
     }
 
-    private void unregisterKey0(SelectionKey selectionKey, int interest) {
+    private void unregisterKey0(final SelectionKey selectionKey, final int interest) {
         if (selectionKey.isValid()) {
             int currentOps = selectionKey.interestOps();
             if ((currentOps & interest) != 0) {
@@ -270,10 +306,11 @@ public class DefaultSelectorHandler implements SelectorHandler {
         }
     }
 
-    private void registerChannel0(SelectorRunner selectorRunner,
-            SelectableChannel channel, int interest, Object attachment,
-            CompletionHandler completionHandler,
-            FutureImpl<RegisterChannelResult> future) throws IOException {
+    private void registerChannel0(final SelectorRunner selectorRunner,
+            final SelectableChannel channel, final int interest,
+            final Object attachment,
+            final CompletionHandler completionHandler,
+            final FutureImpl<RegisterChannelResult> future) throws IOException {
 
         if (future == null || !future.isCancelled()) {
             try {
@@ -334,8 +371,59 @@ public class DefaultSelectorHandler implements SelectorHandler {
         }
     }
 
+    private void unregisterChannel0(final SelectorRunner selectorRunner,
+            final SelectableChannel channel,
+            final CompletionHandler completionHandler,
+            final FutureImpl<RegisterChannelResult> future) throws IOException {
+
+        if (future == null || !future.isCancelled()) {
+            final Throwable error;
+            if (channel.isOpen()) {
+
+                final Selector selector = selectorRunner.getSelector();
+
+                final SelectionKey key = channel.keyFor(selector);
+
+                // Check whether the channel has been registered on a selector
+                if (key != null) {
+                    // If channel is registered
+                    selectorRunner.getTransport().getSelectionKeyHandler().cancel(key);
+
+                    selectorRunner.getTransport().
+                            getSelectionKeyHandler().
+                            onKeyUnregistered(key);
+
+                    final RegisterChannelResult result =
+                            new RegisterChannelResult(selectorRunner,
+                            key, channel);
+
+                    if (completionHandler != null) {
+                        completionHandler.completed(result);
+                    }
+                    if (future != null) {
+                        future.result(result);
+                    }
+                    return;
+                }
+
+                error = new IllegalStateException("Channel is not registered");
+            } else {
+                error = new ClosedChannelException();
+            }
+            
+            if (completionHandler != null) {
+                completionHandler.failed(error);
+            }
+
+            if (future != null) {
+                future.failure(error);
+            }
+
+        }
+    }
+    
     @Override
-    public boolean onSelectorClosed(SelectorRunner selectorRunner) {
+    public boolean onSelectorClosed(final SelectorRunner selectorRunner) {
         try {
             workaroundSelectorSpin(selectorRunner);
             return true;
@@ -386,7 +474,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
         private final SelectionKey selectionKey;
         private final int interest;
 
-        public RegisterKeyTask(SelectionKey selectionKey, int interest) {
+        public RegisterKeyTask(final SelectionKey selectionKey, final int interest) {
             this.selectionKey = selectionKey;
             this.interest = interest;
         }
@@ -429,10 +517,10 @@ public class DefaultSelectorHandler implements SelectorHandler {
         private final FutureImpl<RegisterChannelResult> future;
         private final CompletionHandler<RegisterChannelResult> completionHandler;
 
-        private RegisterChannelOperation(SelectableChannel channel,
-                int interest, Object attachment,
-                FutureImpl<RegisterChannelResult> future,
-                CompletionHandler<RegisterChannelResult> completionHandler) {
+        private RegisterChannelOperation(final SelectableChannel channel,
+                final int interest, final Object attachment,
+                final FutureImpl<RegisterChannelResult> future,
+                final CompletionHandler<RegisterChannelResult> completionHandler) {
             this.channel = channel;
             this.interest = interest;
             this.attachment = attachment;
@@ -447,13 +535,32 @@ public class DefaultSelectorHandler implements SelectorHandler {
         }
     }
 
+    protected final class UnregisterChannelOperation implements SelectorHandlerTask {
+        private final SelectableChannel channel;
+        private final FutureImpl<RegisterChannelResult> future;
+        private final CompletionHandler<RegisterChannelResult> completionHandler;
+
+        private UnregisterChannelOperation(final SelectableChannel channel,
+                final FutureImpl<RegisterChannelResult> future,
+                final CompletionHandler<RegisterChannelResult> completionHandler) {
+            this.channel = channel;
+            this.future = future;
+            this.completionHandler = completionHandler;
+        }
+
+        @Override
+        public void run(final SelectorRunner selectorRunner) throws IOException {
+            unregisterChannel0(selectorRunner, channel, completionHandler, future);
+        }
+    }
+    
     protected final class RunnableTask implements SelectorHandlerTask {
         private final Runnable task;
         private final FutureImpl<Runnable> future;
         private final CompletionHandler<Runnable> completionHandler;
 
-        private RunnableTask(Runnable task, FutureImpl<Runnable> future,
-                CompletionHandler<Runnable> completionHandler) {
+        private RunnableTask(final Runnable task, final FutureImpl<Runnable> future,
+                final CompletionHandler<Runnable> completionHandler) {
             this.task = task;
             this.future = future;
             this.completionHandler = completionHandler;

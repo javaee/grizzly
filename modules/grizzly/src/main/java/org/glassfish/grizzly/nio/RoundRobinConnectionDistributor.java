@@ -57,15 +57,15 @@ public final class RoundRobinConnectionDistributor
         extends AbstractNIOConnectionDistributor {
     private final AtomicInteger counter;
     
-    public RoundRobinConnectionDistributor(AbstractNIOTransport transport) {
+    public RoundRobinConnectionDistributor(final AbstractNIOTransport transport) {
         super(transport);
         counter = new AtomicInteger();
     }
 
     @Override
-    public void registerChannel(SelectableChannel channel, int interestOps,
-            Object attachment) throws IOException {
-        SelectorRunner runner = getSelectorRunner(interestOps);
+    public void registerChannel(final SelectableChannel channel,
+            final int interestOps, final Object attachment) throws IOException {
+        final SelectorRunner runner = getSelectorRunner(interestOps);
 
         transport.getSelectorHandler().registerChannel(runner, 
                 channel, interestOps, attachment);
@@ -73,16 +73,17 @@ public final class RoundRobinConnectionDistributor
 
     @Override
     public GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
-            SelectableChannel channel, int interestOps, Object attachment,
-            CompletionHandler completionHandler) 
+            final SelectableChannel channel, final int interestOps,
+            final Object attachment,
+            final CompletionHandler completionHandler)
             throws IOException {
-        SelectorRunner runner = getSelectorRunner(interestOps);
+        final SelectorRunner runner = getSelectorRunner(interestOps);
         
         return transport.getSelectorHandler().registerChannelAsync(
                 runner, channel, interestOps, attachment, completionHandler);
     }
     
-    private SelectorRunner getSelectorRunner(int interestOps) {
+    private SelectorRunner getSelectorRunner(final int interestOps) {
         final SelectorRunner[] runners = getTransportSelectorRunners();
         final int index = counter.getAndIncrement() % runners.length;
         

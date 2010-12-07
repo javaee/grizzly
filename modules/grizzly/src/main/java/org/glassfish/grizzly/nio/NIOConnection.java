@@ -52,6 +52,10 @@ import org.glassfish.grizzly.IOEvent;
  * @author oleksiys
  */
 public interface NIOConnection extends Connection<SocketAddress> {
+    public void attachToSelectorRunner(SelectorRunner selectorRunner) throws IOException;
+    
+    public void detachSelectorRunner() throws IOException;
+
     public SelectorRunner getSelectorRunner();
 
     public SelectionKey getSelectionKey();

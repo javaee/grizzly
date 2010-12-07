@@ -43,7 +43,6 @@ package org.glassfish.grizzly.nio;
 import org.glassfish.grizzly.AbstractTransport;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.TransportProbe;
-import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 import java.io.IOException;
 import java.nio.channels.Selector;
 
@@ -62,7 +61,7 @@ public abstract class AbstractNIOTransport extends AbstractTransport
     
     protected NIOChannelDistributor nioChannelDistributor;
 
-    public AbstractNIOTransport(String name) {
+    public AbstractNIOTransport(final String name) {
         super(name);
     }
 
@@ -72,7 +71,7 @@ public abstract class AbstractNIOTransport extends AbstractTransport
     }
 
     @Override
-    public void setSelectionKeyHandler(SelectionKeyHandler selectionKeyHandler) {
+    public void setSelectionKeyHandler(final SelectionKeyHandler selectionKeyHandler) {
         this.selectionKeyHandler = selectionKeyHandler;
         notifyProbesConfigChanged(this);
     }
@@ -83,7 +82,7 @@ public abstract class AbstractNIOTransport extends AbstractTransport
     }
 
     @Override
-    public void setSelectorHandler(SelectorHandler selectorHandler) {
+    public void setSelectorHandler(final SelectorHandler selectorHandler) {
         this.selectorHandler = selectorHandler;
         notifyProbesConfigChanged(this);
     }
@@ -94,7 +93,7 @@ public abstract class AbstractNIOTransport extends AbstractTransport
     }
 
     @Override
-    public void setSelectorRunnersCount(int selectorRunnersCount) {
+    public void setSelectorRunnersCount(final int selectorRunnersCount) {
         this.selectorRunnersCount = selectorRunnersCount;
         notifyProbesConfigChanged(this);
     }
@@ -141,7 +140,7 @@ public abstract class AbstractNIOTransport extends AbstractTransport
     }
 
     @Override
-    public void setNioChannelDistributor(NIOChannelDistributor
+    public void setNioChannelDistributor(final NIOChannelDistributor
             nioChannelDistributor) {
         this.nioChannelDistributor = nioChannelDistributor;
         notifyProbesConfigChanged(this);
@@ -151,7 +150,7 @@ public abstract class AbstractNIOTransport extends AbstractTransport
      * {@inheritDoc}
      */
     @Override
-    public void notifyTransportError(Throwable error) {
+    public void notifyTransportError(final Throwable error) {
         notifyProbesError(this, error);
     }
 

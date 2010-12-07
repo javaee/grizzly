@@ -179,7 +179,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         this(DEFAULT_TRANSPORT_NAME);
     }
 
-    TCPNIOTransport(String name) {
+    TCPNIOTransport(final String name) {
         super(name);
         
         readBufferSize = DEFAULT_READ_BUFFER_SIZE;
@@ -473,7 +473,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
      *
      * @throws java.io.IOException
      */
-    public GrizzlyFuture<Connection> connect(String host, int port)
+    public GrizzlyFuture<Connection> connect(final String host, final int port)
             throws IOException {
         return connectorHandler.connect(host, port);
     }
@@ -488,7 +488,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
      *
      * @throws java.io.IOException
      */
-    public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress)
+    public GrizzlyFuture<Connection> connect(final SocketAddress remoteAddress)
             throws IOException {
         return connectorHandler.connect(remoteAddress);
     }
@@ -504,8 +504,8 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
      *
      * @throws java.io.IOException
      */
-    public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
-            CompletionHandler<Connection> completionHandler)
+    public GrizzlyFuture<Connection> connect(final SocketAddress remoteAddress,
+            final CompletionHandler<Connection> completionHandler)
             throws IOException {
         return connectorHandler.connect(remoteAddress, completionHandler);
     }
@@ -521,8 +521,8 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
      *
      * @throws java.io.IOException
      */
-    public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
-            SocketAddress localAddress) throws IOException {
+    public GrizzlyFuture<Connection> connect(final SocketAddress remoteAddress,
+            final SocketAddress localAddress) throws IOException {
         return connectorHandler.connect(remoteAddress, localAddress);
     }
 
@@ -538,17 +538,17 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
      *
      * @throws java.io.IOException
      */
-    public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
-            SocketAddress localAddress,
-            CompletionHandler<Connection> completionHandler)
+    public GrizzlyFuture<Connection> connect(final SocketAddress remoteAddress,
+            final SocketAddress localAddress,
+            final CompletionHandler<Connection> completionHandler)
             throws IOException {
         return connectorHandler.connect(remoteAddress, localAddress,
                 completionHandler);
     }
 
     @Override
-    protected void closeConnection(Connection connection) throws IOException {
-        SelectableChannel nioChannel = ((NIOConnection) connection).getChannel();
+    protected void closeConnection(final Connection connection) throws IOException {
+        final SelectableChannel nioChannel = ((NIOConnection) connection).getChannel();
 
         if (nioChannel != null) {
             try {
@@ -560,12 +560,12 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         }
 
         if (asyncQueueIO != null) {
-            AsyncQueueReader reader = asyncQueueIO.getReader();
+            final AsyncQueueReader reader = asyncQueueIO.getReader();
             if (reader != null) {
                 reader.onClose(connection);
             }
 
-            AsyncQueueWriter writer = asyncQueueIO.getWriter();
+            final AsyncQueueWriter writer = asyncQueueIO.getWriter();
             if (writer != null) {
                 writer.onClose(connection);
             }
@@ -573,21 +573,21 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         }
     }
 
-    TCPNIOConnection obtainNIOConnection(SocketChannel channel) {
-        TCPNIOConnection connection = new TCPNIOConnection(this, channel);
+    TCPNIOConnection obtainNIOConnection(final SocketChannel channel) {
+        final TCPNIOConnection connection = new TCPNIOConnection(this, channel);
         configureNIOConnection(connection);
         
         return connection;
     }
 
-    TCPNIOServerConnection obtainServerNIOConnection(ServerSocketChannel channel) {
-        TCPNIOServerConnection connection = new TCPNIOServerConnection(this, channel);
+    TCPNIOServerConnection obtainServerNIOConnection(final ServerSocketChannel channel) {
+        final TCPNIOServerConnection connection = new TCPNIOServerConnection(this, channel);
         configureNIOConnection(connection);
 
         return connection;
     }
 
-    void configureNIOConnection(TCPNIOConnection connection) {
+    void configureNIOConnection(final TCPNIOConnection connection) {
         connection.configureBlocking(isBlocking);
         connection.configureStandalone(isStandalone);
         connection.setProcessor(processor);
@@ -600,8 +600,8 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
      * @param channel <code>SocketChannel</code> to configure
      * @throws java.io.IOException
      */
-    void configureChannel(SocketChannel channel) throws IOException {
-        Socket socket = channel.socket();
+    void configureChannel(final SocketChannel channel) throws IOException {
+        final Socket socket = channel.socket();
 
         channel.configureBlocking(false);
 
@@ -633,7 +633,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
     }
 
     @Override
-    public synchronized void configureStandalone(boolean isStandalone) {
+    public synchronized void configureStandalone(final boolean isStandalone) {
         if (this.isStandalone != isStandalone) {
             this.isStandalone = isStandalone;
             if (isStandalone) {
@@ -650,7 +650,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         return linger;
     }
 
-    public void setLinger(int linger) {
+    public void setLinger(final int linger) {
         this.linger = linger;
         notifyProbesConfigChanged(this);
     }
@@ -676,7 +676,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
     }
 
     @SuppressWarnings({"UnusedDeclaration"})
-    public void setKeepAlive(boolean isKeepAlive) {
+    public void setKeepAlive(final boolean isKeepAlive) {
         this.isKeepAlive = isKeepAlive;
         notifyProbesConfigChanged(this);
     }
@@ -685,7 +685,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         return reuseAddress;
     }
 
-    public void setReuseAddress(boolean reuseAddress) {
+    public void setReuseAddress(final boolean reuseAddress) {
         this.reuseAddress = reuseAddress;
         notifyProbesConfigChanged(this);
     }
@@ -695,7 +695,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
     }
 
     @SuppressWarnings({"UnusedDeclaration"})
-    public void setClientSocketSoTimeout(int socketTimeout) {
+    public void setClientSocketSoTimeout(final int socketTimeout) {
         this.clientSocketSoTimeout = socketTimeout;
         notifyProbesConfigChanged(this);
     }
@@ -705,7 +705,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
     }
 
     @SuppressWarnings({"UnusedDeclaration"})
-    public void setConnectionTimeout(int connectionTimeout) {
+    public void setConnectionTimeout(final int connectionTimeout) {
         this.connectionTimeout = connectionTimeout;
         notifyProbesConfigChanged(this);
     }
@@ -714,7 +714,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         return tcpNoDelay;
     }
 
-    public void setTcpNoDelay(boolean tcpNoDelay) {
+    public void setTcpNoDelay(final boolean tcpNoDelay) {
         this.tcpNoDelay = tcpNoDelay;
         notifyProbesConfigChanged(this);
     }
@@ -724,7 +724,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
     }
 
     @SuppressWarnings({"UnusedDeclaration"})
-    public void setServerSocketSoTimeout(int serverSocketSoTimeout) {
+    public void setServerSocketSoTimeout(final int serverSocketSoTimeout) {
         this.serverSocketSoTimeout = serverSocketSoTimeout;
         notifyProbesConfigChanged(this);
     }
@@ -740,7 +740,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
     }
 
     @Override
-    public void setTemporarySelectorIO(TemporarySelectorIO temporarySelectorIO) {
+    public void setTemporarySelectorIO(final TemporarySelectorIO temporarySelectorIO) {
         this.temporarySelectorIO = temporarySelectorIO;
         notifyProbesConfigChanged(this);
     }

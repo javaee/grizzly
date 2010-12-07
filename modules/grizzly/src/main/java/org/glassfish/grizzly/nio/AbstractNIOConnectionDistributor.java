@@ -53,36 +53,38 @@ public abstract class AbstractNIOConnectionDistributor
     
     protected final AbstractNIOTransport transport;
 
-    public AbstractNIOConnectionDistributor(AbstractNIOTransport transport) {
+    public AbstractNIOConnectionDistributor(final AbstractNIOTransport transport) {
         this.transport = transport;
     }
 
     @Override
-    public final void registerChannel(SelectableChannel channel) throws IOException {
+    public final void registerChannel(final SelectableChannel channel) throws IOException {
         registerChannel(channel, 0, null);
     }
 
     @Override
-    public final void registerChannel(SelectableChannel channel, int interestOps)
-            throws IOException {
+    public final void registerChannel(final SelectableChannel channel,
+            final int interestOps) throws IOException {
         registerChannel(channel, interestOps, null);
     }
     
     @Override
     public final GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
-            SelectableChannel channel) throws IOException {
+            final SelectableChannel channel) throws IOException {
         return registerChannelAsync(channel, 0, null, null);
     }
 
     @Override
     public final GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
-            SelectableChannel channel, int interestOps) throws IOException {
+            final SelectableChannel channel, final int interestOps)
+            throws IOException {
         return registerChannelAsync(channel, interestOps, null, null);
     }
 
     @Override
     public final GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
-            SelectableChannel channel, int interestOps, Object attachment)
+            final SelectableChannel channel, final int interestOps,
+            final Object attachment)
             throws IOException {
         return registerChannelAsync(channel, interestOps, attachment, null);
     }

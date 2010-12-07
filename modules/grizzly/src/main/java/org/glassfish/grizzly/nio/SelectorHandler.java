@@ -65,10 +65,10 @@ public interface SelectorHandler {
     public void postSelect(SelectorRunner selectorRunner)
             throws IOException;
     
-    public void registerKey(SelectorRunner selectorRunner,
+    public void registerKeyInterest(SelectorRunner selectorRunner,
             SelectionKey key, int interest) throws IOException;
     
-    public void unregisterKey(SelectorRunner selectorRunner,
+    public void unregisterKeyInterest(SelectorRunner selectorRunner,
             SelectionKey key, int interest) throws IOException;
 
     public void registerChannel(SelectorRunner selectorRunner,
@@ -80,6 +80,29 @@ public interface SelectorHandler {
             int interest, Object attachment, 
             CompletionHandler<RegisterChannelResult> completionHandler)
             throws IOException;
+
+    /**
+     * Unregister the channel from the {@link SelectorRunnaer}'s Selector.
+     * @param selectorRunner {@link SelectorRunner}
+     * @param channel {@link SelectableChannel} channel to unregister
+     * @throws IOException
+     */
+    public void unregisterChannel(SelectorRunner selectorRunner,
+            SelectableChannel channel) throws IOException;
+
+    /**
+     * Unregister the channel from the {@link SelectorRunnaer}'s Selector.
+     * @param selectorRunner {@link SelectorRunner}
+     * @param channel {@link SelectableChannel} channel to unregister
+     * @param completionHandler {@link CompletionHandler}
+     * @throws IOException
+     */
+    public GrizzlyFuture<RegisterChannelResult> unregisterChannelAsync(
+            SelectorRunner selectorRunner,
+            SelectableChannel channel,
+            CompletionHandler<RegisterChannelResult> completionHandler)
+            throws IOException;
+
 
     public GrizzlyFuture<Runnable> executeInSelectorThread(
             final SelectorRunner selectorRunner, final Runnable runnableTask,

@@ -70,6 +70,8 @@ import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringConfigImpl;
 import org.glassfish.grizzly.utils.LinkedTransferQueue;
 import java.util.Queue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -89,9 +91,9 @@ public abstract class AbstractNIOConnection implements NIOConnection {
     protected volatile long readTimeoutMillis = 30000;
     protected volatile long writeTimeoutMillis = 30000;
 
-    protected SelectorRunner selectorRunner;
-    protected SelectableChannel channel;
-    protected SelectionKey selectionKey;
+    protected volatile SelectorRunner selectorRunner;
+    protected volatile SelectableChannel channel;
+    protected volatile SelectionKey selectionKey;
     
     protected volatile Processor processor;
     protected volatile ProcessorSelector processorSelector;
@@ -206,6 +208,47 @@ public abstract class AbstractNIOConnection implements NIOConnection {
     protected void setSelectorRunner(SelectorRunner selectorRunner) {
         this.selectorRunner = selectorRunner;
     }
+
+    @Override
+    public void attachToSelectorRunner(final SelectorRunner selectorRunner)
+            throws IOException {
+        
+        detachSelectorRunner();
+        
+        final SelectorHandler selectorHandler = transport.getSelectorHandler();
+
+        final GrizzlyFuture<RegisterChannelResult> future = selectorHandler.registerChannelAsync(
+                selectorRunner, channel, 0, this, null);
+
+        try {
+            final RegisterChannelResult result =
+                    future.get(readTimeoutMillis, TimeUnit.MILLISECONDS);
+            this.selectorRunner = selectorRunner;
+            this.selectionKey = result.getSelectionKey();
+        } catch (InterruptedException e) {
+            throw new IOException("", e);
+        } catch (ExecutionException e) {
+            throw new IOException("", e.getCause());
+        } catch (TimeoutException e) {
+            throw new IOException("", e);
+        }
+
+
+    }
+
+    @Override
+    public void detachSelectorRunner() throws IOException {
+        final SelectorRunner selectorRunnerLocal = this.selectorRunner;
+
+        this.selectionKey = null;
+        this.selectorRunner = null;
+
+        if (selectorRunnerLocal != null) {
+            transport.getSelectorHandler().unregisterChannel(selectorRunnerLocal,
+                    channel);
+        }
+    }
+
 
     @Override
     public SelectableChannel getChannel() {
@@ -580,7 +623,7 @@ public abstract class AbstractNIOConnection implements NIOConnection {
 
         final SelectorHandler selectorHandler = transport.getSelectorHandler();
 
-        selectorHandler.registerKey(selectorRunner, selectionKey,
+        selectorHandler.registerKeyInterest(selectorRunner, selectionKey,
                 selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent));
     }
 
@@ -597,6 +640,6 @@ public abstract class AbstractNIOConnection implements NIOConnection {
         
         final SelectorHandler selectorHandler = transport.getSelectorHandler();
 
-        selectorHandler.unregisterKey(selectorRunner, selectionKey, interest);
+        selectorHandler.unregisterKeyInterest(selectorRunner, selectionKey, interest);
     }
 }

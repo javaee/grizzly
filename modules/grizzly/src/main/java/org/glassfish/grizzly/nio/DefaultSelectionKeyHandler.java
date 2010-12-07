@@ -96,7 +96,15 @@ public final class DefaultSelectionKeyHandler implements SelectionKeyHandler {
     }
 
     @Override
+    public void onKeyUnregistered(SelectionKey key) {
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "KEY IS UNREGISTERED: {0}", key);
+        }
+    }
+
+    @Override
     public void cancel(SelectionKey key) throws IOException {
+        onKeyUnregistered(key);
         key.cancel();
     }
 

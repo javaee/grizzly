@@ -40,8 +40,11 @@
 
 package org.glassfish.grizzly;
 
+import java.nio.channels.SelectableChannel;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.nio.AbstractNIOTransport;
+import org.glassfish.grizzly.nio.RegisterChannelResult;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import java.io.IOException;
@@ -62,6 +65,12 @@ import org.glassfish.grizzly.utils.EchoFilter;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.nio.AbstractNIOConnectionDistributor;
+import org.glassfish.grizzly.nio.NIOChannelDistributor;
+import org.glassfish.grizzly.nio.NIOConnection;
+import org.glassfish.grizzly.nio.NIOTransport;
+import org.glassfish.grizzly.nio.RoundRobinConnectionDistributor;
+import org.glassfish.grizzly.nio.SelectorRunner;
 
 /**
  * Unit test for {@link TCPNIOTransport}
@@ -555,6 +564,110 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
             transport.stop();
             TransportFactory.getInstance().close();
+        }
+    }
+
+    public void testSelectorSwitch() throws Exception {
+        Connection connection = null;
+        StreamReader reader = null;
+        StreamWriter writer = null;
+
+        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+
+        final CustomChannelDistributor distributor = new CustomChannelDistributor(transport);
+        transport.setNioChannelDistributor(distributor);
+
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new BaseFilter() {
+
+            @Override
+            public NextAction handleAccept(final FilterChainContext ctx) throws IOException {
+                final NIOConnection connection = (NIOConnection) ctx.getConnection();
+
+                connection.attachToSelectorRunner(distributor.getSelectorRunner(0));
+
+                return ctx.getInvokeAction();
+            }
+        });
+        filterChainBuilder.add(new EchoFilter());
+
+        transport.setProcessor(filterChainBuilder.build());
+
+        transport.setSelectorRunnersCount(4);
+        
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            Future<Connection> future = transport.connect("localhost", PORT);
+            connection = (TCPNIOConnection) future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
+
+            connection.configureBlocking(true);
+            connection.configureStandalone(true);
+
+            byte[] originalMessage = "Hello".getBytes();
+            writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
+            writer.writeByteArray(originalMessage);
+            Future<Integer> writeFuture = writer.flush();
+
+            assertTrue("Write timeout", writeFuture.isDone());
+            assertEquals(originalMessage.length, (int) writeFuture.get());
+
+
+            reader = StandaloneProcessor.INSTANCE.getStreamReader(connection);
+            Future readFuture = reader.notifyAvailable(originalMessage.length);
+            assertTrue("Read timeout", readFuture.get(10, TimeUnit.SECONDS) != null);
+
+            byte[] echoMessage = new byte[originalMessage.length];
+            reader.readByteArray(echoMessage);
+            assertTrue(Arrays.equals(echoMessage, originalMessage));
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+
+            transport.stop();
+            TransportFactory.getInstance().close();
+        }
+    }
+
+    public static class CustomChannelDistributor extends AbstractNIOConnectionDistributor {
+
+        private final AtomicInteger counter;
+
+        public CustomChannelDistributor(final AbstractNIOTransport transport) {
+            super(transport);
+            counter = new AtomicInteger();
+        }
+
+        @Override
+        public void registerChannel(final SelectableChannel channel,
+                final int interestOps, final Object attachment) throws IOException {
+            final SelectorRunner runner = getSelectorRunner(interestOps);
+
+            transport.getSelectorHandler().registerChannel(runner,
+                    channel, interestOps, attachment);
+        }
+
+        @Override
+        public GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
+                final SelectableChannel channel, final int interestOps,
+                final Object attachment,
+                final CompletionHandler completionHandler)
+                throws IOException {
+            final SelectorRunner runner = getSelectorRunner(interestOps);
+
+            return transport.getSelectorHandler().registerChannelAsync(
+                    runner, channel, interestOps, attachment, completionHandler);
+        }
+
+        public SelectorRunner getSelectorRunner(final int interestOps) {
+            final SelectorRunner[] runners = getTransportSelectorRunners();
+            final int index = counter.getAndIncrement() % runners.length;
+
+            return runners[index];
         }
     }
 }
