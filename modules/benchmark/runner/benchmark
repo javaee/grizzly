@@ -221,6 +221,11 @@ sub logresults {
         $avg /= $len;
         $max /= $len;
         $nth /= $len;
+        @ops = sort @ops;
+        @errors = sort @errors;
+        @avg = sort @avg;
+        @max = sort @max;
+        @nth = sort @nth;
         print $filehandle "\nMean:\n";
         print $filehandle "-------------------------------------------------------------------------\n";
         print $filehandle "|   ops/sec   |   % Errors   |   avg. time   |   max time   |   90th%   |\n";
@@ -243,7 +248,6 @@ sub logresults {
 
 sub median {
     my $data = shift;
-    sort $data;
     my $median = @$data % 2 ? $data->[(@$data-1)/2] : ($data->[@$data/2-1]+$data->[@$data/2])/2;
 }
 
