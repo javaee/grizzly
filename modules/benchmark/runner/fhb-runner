@@ -51,6 +51,7 @@ my $FABAN_FILE = "faban-kit-101509.tar.gz";
 my $FABAN_URL = "http://faban.sunsource.net/nightly/$FABAN_FILE";
 my $PORT = 5000;
 my $HOST = "0.0.0.0";
+my $FABAN = "faban/bin/fhb";
 
 # --------------------------------- MAIN EXECUTION
 
@@ -107,9 +108,9 @@ sub processRequest {
             print FILE "i=\@\@faban.getRandomString(" . (@params[4] - 3) . ", " . (@params[4] - 3) . ")\@\@";
         }
         close FILE;
-        $command = "faban/bin/fhb -r @params[1]/@params[2]/@params[3] -c @params[0] -S -p data.txt @params[5] 2>&1 |"
+        $command = "$FABAN -r @params[1]/@params[2]/@params[3] -c @params[0] -S -p data.txt @params[5] 2>&1 |"
     } else {
-        $command = "faban/bin/fhb -r @params[1]/@params[2]/@params[3] -c @params[0] @params[5] 2>&1 |";
+        $command = "$FABAN -r @params[1]/@params[2]/@params[3] -c @params[0] @params[5] 2>&1 |";
     }
     open(BM, $command);
     my @results;
@@ -157,13 +158,19 @@ sub parseCommandLine {
 # caller.
 #
 sub initializeFaban {
+    if (defined $ENV{"FABAN_HOME"}) {
+        $FABAN = "$ENV{'FABAN_HOME'}/bin/fhb";
+        return;
+    }
     if ((-e "faban") && !(-d "faban")) {
         die "faban exists in current directory, but is not a directory itself."
     }
     if (!(-e $FABAN_FILE)) {
         getFaban();
-        extractFaban();
     } 
+    if (!(-e "faban")) {
+        extractFaban();
+    }
 }
 
 #

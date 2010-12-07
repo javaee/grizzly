@@ -26,8 +26,9 @@ Running
    however, the network interface and port that this script will bind to can be
    custimized by passing in --port and/or --host arguments.  If these arguments
    aren't specified, the defaults of "0.0.0.0" (all interfaces) and 5000 will be assumed.
-   
-   This script will attempt to download and extract faban using wget if 
+  
+   If faban isn't available (as reference by the environment variable
+   FABAN_HOME), this script will attempt to download and extract faban using wget if 
    the faban directory isn't present relative the the script location at
    invocation time (this will likely be enhanced in the future).
    
