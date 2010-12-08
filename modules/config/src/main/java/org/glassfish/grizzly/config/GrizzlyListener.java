@@ -39,6 +39,7 @@
  */
 package org.glassfish.grizzly.config;
 
+import java.beans.PropertyChangeEvent;
 import java.io.IOException;
 import java.net.InetAddress;
 
@@ -62,6 +63,8 @@ public interface GrizzlyListener {
 
     public void stop() throws IOException;
 
+    public void destroy();
+
     public String getName();
     
     public InetAddress getAddress();
@@ -81,4 +84,8 @@ public interface GrizzlyListener {
     // TODO: Must get the information from domain.xml Config objects.
     // TODO: Pending Grizzly issue 54
     public void configure(NetworkListener networkListener) throws IOException;
+
+    public void processDynamicConfigurationChange(PropertyChangeEvent[] events);
+
+    public <T> T getAdapter(Class<T> adapterClass);
 }

@@ -39,6 +39,7 @@
  */
 package org.glassfish.grizzly.config;
 
+import java.beans.PropertyChangeEvent;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -106,9 +107,9 @@ public class GenericGrizzlyListener implements GrizzlyListener {
      * The logger to use for logging messages.
      */
     static final Logger logger = Logger.getLogger(GrizzlyListener.class.getName());
-    private volatile String name;
-    private volatile InetAddress address;
-    private volatile int port;
+    protected volatile String name;
+    protected volatile InetAddress address;
+    protected volatile int port;
     protected NIOTransport transport;
     protected FilterChain rootFilterChain;
 
@@ -156,6 +157,19 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         transport.stop();
         transport = null;
         rootFilterChain = null;
+    }
+
+    @Override
+    public void destroy() {
+    }
+
+    @Override
+    public void processDynamicConfigurationChange(PropertyChangeEvent[] events) {
+    }
+
+    @Override
+    public <T> T getAdapter(Class<T> adapterClass) {
+        return null;
     }
 
     public <E> List<E> getFilters(Class<E> clazz) {
@@ -236,7 +250,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
                 configureSsl(protocol.getSsl(), filterChain);
             }
 
-            configureHttpListener(http, filterChain);
+            configureHttpProtocol(http, filterChain);
 
             // Only HTTP protocol defined
 //            configureHttpListenerProperty(http);
@@ -447,7 +461,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         }
     }
 
-    protected void configureHttpListener(final Http http, final FilterChain filterChain) {
+    protected void configureHttpProtocol(final Http http, final FilterChain filterChain) {
         final int idleTimeoutSeconds = Integer.parseInt(http.getTimeoutSeconds());
         filterChain.add(new SilentConnectionFilter(delayedExecutor, idleTimeoutSeconds,
                 TimeUnit.SECONDS));
