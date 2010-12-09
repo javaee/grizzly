@@ -302,6 +302,14 @@ public class SSLEngineConfigurator {
     }
 
     public SSLContext getSslContext() {
+        if (sslContext == null) {
+            synchronized(sync) {
+                if (sslContext == null) {
+                    sslContext = sslContextConfiguration.createSSLContext();
+                }
+            }
+        }
+
         return sslContext;
     }
 
