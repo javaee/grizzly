@@ -214,7 +214,7 @@ public class HttpServerFilter extends HttpCodecFilter {
 
 
     @Override
-    public NextAction handleEvent(FilterChainContext ctx, Object event)
+    public NextAction handleEvent(final FilterChainContext ctx, final Object event)
     throws IOException {
 
         final Connection c = ctx.getConnection();
@@ -755,8 +755,8 @@ public class HttpServerFilter extends HttpCodecFilter {
         final KeepAliveContext keepAliveContext;
         
         return !(processKeepAlive && (keepAliveContext =
-            keepAliveContextAttr.get(connection)) != null) || ++keepAliveContext.requestsProcessed <= keepAlive
-            .getMaxRequestsCount();
+            keepAliveContextAttr.get(connection)) != null) ||
+            ++keepAliveContext.requestsProcessed <= keepAlive.getMaxRequestsCount();
 
     }
 
@@ -814,12 +814,12 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         private final KeepAlive keepAlive;
 
-        public KeepAliveWorker(KeepAlive keepAlive) {
+        public KeepAliveWorker(final KeepAlive keepAlive) {
             this.keepAlive = keepAlive;
         }
 
         @Override
-        public void doWork(KeepAliveContext context) {
+        public void doWork(final KeepAliveContext context) {
             try {
                 KeepAlive.notifyProbesTimeout(keepAlive, context.connection);
                 context.connection.close().markForRecycle(false);
