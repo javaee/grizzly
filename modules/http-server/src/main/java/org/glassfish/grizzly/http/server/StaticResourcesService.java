@@ -180,8 +180,7 @@ public class StaticResourcesService extends HttpRequestProcessor {
      */
     protected void onMissingResource(final Request request, final Response response)
             throws Exception {
-        customizedErrorPage(request.getServerFilter().getConfiguration(),
-                request, response);
+        customizedErrorPage(request, response);
     }
 
     /**

@@ -247,9 +247,8 @@ public abstract class HttpRequestProcessor {
      * @param res The {@link Response} object
      * @throws Exception
      */
-    protected void customizedErrorPage(ServerFilterConfiguration serverFilterConfig,
-                                       Request req,
-                                       Response res)
+    protected void customizedErrorPage(final Request req,
+                                       final Response res)
             throws Exception {
 
         /**
@@ -257,8 +256,10 @@ public abstract class HttpRequestProcessor {
          */
         res.setStatus(HttpStatus.NOT_FOUND_404);
         // TODO re-implement
-        final String serverName = serverFilterConfig.getHttpServerName() + '/' +
-                serverFilterConfig.getHttpServerVersion();
+        final ServerFilterConfiguration config = req.getServerFilter().getConfiguration();
+        
+        final String serverName = config.getHttpServerName() + '/' +
+                config.getHttpServerVersion();
         
         final ByteBuffer bb = HtmlHelper.getErrorPage("Not Found",
                                                 "Resource identified by path '" + req.getRequestURI() + "', does not exist.",
