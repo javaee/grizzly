@@ -64,19 +64,6 @@ public class GrizzlyExecutorService extends AbstractExecutorService
     protected volatile ThreadPoolConfig config;
 
     /**
-     * ThreadPool probes
-     */
-    protected final AbstractJmxMonitoringConfig<ThreadPoolProbe> monitoringConfig =
-            new AbstractJmxMonitoringConfig<ThreadPoolProbe>(ThreadPoolProbe.class) {
-
-        @Override
-        public JmxObject createManagementObject() {
-            return pool.createJmxManagementObject();
-        }
-
-    };
-    
-    /**
      *
      * @return {@link GrizzlyExecutorService}
      */
@@ -187,6 +174,6 @@ public class GrizzlyExecutorService extends AbstractExecutorService
      */
     @Override
     public JmxMonitoringConfig<ThreadPoolProbe> getMonitoringConfig() {
-        return monitoringConfig;
+        return pool.getMonitoringConfig();
     }
 }

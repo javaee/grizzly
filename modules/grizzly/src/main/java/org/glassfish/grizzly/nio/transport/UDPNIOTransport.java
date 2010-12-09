@@ -433,11 +433,14 @@ public final class UDPNIOTransport extends AbstractNIOTransport
             }
 
             if (threadPool == null) {
-                setThreadPool(GrizzlyExecutorService.createInstance(
-                        ThreadPoolConfig.defaultConfig().
-                        setCorePoolSize(selectorRunnersCount * 2).
-                        setMaxPoolSize(selectorRunnersCount * 2).
-                        setMemoryManager(getMemoryManager())));
+                final ThreadPoolConfig config = ThreadPoolConfig.defaultConfig()
+                        .setCorePoolSize(selectorRunnersCount * 2)
+                        .setMaxPoolSize(selectorRunnersCount * 2)
+                        .setMemoryManager(getMemoryManager());
+                config.getInitialMonitoringConfig().addProbes(
+                        getThreadPoolMonitoringConfig().getProbes());
+
+                setThreadPool0(GrizzlyExecutorService.createInstance(config));
             } else {
                 if (threadPool instanceof GrizzlyExecutorService) {
                     final ThreadPoolConfig config =

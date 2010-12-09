@@ -45,6 +45,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
 import java.util.Queue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import org.glassfish.grizzly.monitoring.MonitoringConfigImpl;
 
 /**
  * @author Oleksiy Stashok
@@ -73,6 +74,12 @@ public class ThreadPoolConfig {
     protected int priority = Thread.MAX_PRIORITY;
     protected MemoryManager mm;
 
+    /**
+     * Thread pool probes
+     */
+    protected MonitoringConfigImpl<ThreadPoolProbe> threadPoolMonitoringConfig;
+            
+    
     public ThreadPoolConfig(
             String poolName,
             int corePoolSize,
@@ -99,6 +106,8 @@ public class ThreadPoolConfig {
         this.threadFactory   = threadFactory;
         this.priority        = priority;
         this.mm              = mm;
+        threadPoolMonitoringConfig = new MonitoringConfigImpl<ThreadPoolProbe>(
+                ThreadPoolProbe.class);
     }
 
     public ThreadPoolConfig(ThreadPoolConfig cfg) {
@@ -111,6 +120,7 @@ public class ThreadPoolConfig {
         this.corePoolSize    = cfg.corePoolSize;
         this.keepAliveTimeMillis   = cfg.keepAliveTimeMillis;
         this.mm              = cfg.mm;
+        this.threadPoolMonitoringConfig = cfg.threadPoolMonitoringConfig;
     }
 
     @Override
@@ -253,6 +263,10 @@ public class ThreadPoolConfig {
     public ThreadPoolConfig setMemoryManager(MemoryManager mm) {
         this.mm = mm;
         return this;
+    }
+
+    public MonitoringConfigImpl<ThreadPoolProbe> getInitialMonitoringConfig() {
+        return threadPoolMonitoringConfig;
     }
 
     @Override

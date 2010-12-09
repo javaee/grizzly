@@ -339,12 +339,16 @@ public abstract class AbstractTransport implements Transport {
      * {@inheritDoc}
      */
     @Override
-    public void setThreadPool(ExecutorService threadPool) {
+    public void setThreadPool(final ExecutorService threadPool) {
         if (threadPool instanceof MonitoringAware) {
             ((MonitoringAware<ThreadPoolProbe>) threadPool).getMonitoringConfig()
                     .addProbes(threadPoolMonitoringConfig.getProbes());
         }
 
+        setThreadPool0(threadPool);
+    }
+
+    protected void setThreadPool0(final ExecutorService threadPool) {
         this.threadPool = threadPool;
         notifyProbesConfigChanged(this);
     }

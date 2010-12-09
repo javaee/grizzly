@@ -42,7 +42,6 @@ package org.glassfish.grizzly.threadpool;
 
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.memory.AbstractMemoryManager;
-import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
@@ -120,6 +119,8 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
         }
 
         this.config = config;
+        monitoringConfig.addProbes(config.getInitialMonitoringConfig().getProbes());
+        
         if (config.getThreadFactory() == null) {
             config.setThreadFactory(getDefaultThreadFactory());
         }
