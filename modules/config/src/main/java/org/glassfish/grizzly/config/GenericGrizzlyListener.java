@@ -390,19 +390,27 @@ public class GenericGrizzlyListener implements GrizzlyListener {
 
     protected void configureThreadPool(final ThreadPool threadPool) {
         try {
+            transport.setThreadPool(GrizzlyExecutorService.createInstance(
+                    configureThreadPoolConfig(threadPool)));
+        } catch (NumberFormatException ex) {
+            logger.log(Level.WARNING, " Invalid thread-pool attribute", ex);
+        }
+    }
+
+    protected ThreadPoolConfig configureThreadPoolConfig(final ThreadPool threadPool) {
 //            Http http = listener.findHttpProtocol().getHttp();
 //            int keepAlive = http == null ? 0 : Integer.parseInt(http.getTimeoutSeconds());
-            final int maxQueueSize = threadPool.getMaxQueueSize() != null ? Integer.MAX_VALUE
-                    : Integer.parseInt(threadPool.getMaxQueueSize());
-            final int minThreads = Integer.parseInt(threadPool.getMinThreadPoolSize());
-            final int maxThreads = Integer.parseInt(threadPool.getMaxThreadPoolSize());
-            final int timeout = Integer.parseInt(threadPool.getIdleThreadTimeoutSeconds());
-            final ThreadPoolConfig poolConfig = ThreadPoolConfig.defaultConfig();
-            poolConfig.setCorePoolSize(minThreads);
-            poolConfig.setMaxPoolSize(maxThreads);
-            poolConfig.setQueueLimit(maxQueueSize);
-            poolConfig.setKeepAliveTime(timeout < 0 ? Long.MAX_VALUE : timeout, TimeUnit.SECONDS);
-            transport.setThreadPool(GrizzlyExecutorService.createInstance(poolConfig));
+        final int maxQueueSize = threadPool.getMaxQueueSize() != null ? Integer.MAX_VALUE
+                : Integer.parseInt(threadPool.getMaxQueueSize());
+        final int minThreads = Integer.parseInt(threadPool.getMinThreadPoolSize());
+        final int maxThreads = Integer.parseInt(threadPool.getMaxThreadPoolSize());
+        final int timeout = Integer.parseInt(threadPool.getIdleThreadTimeoutSeconds());
+        final ThreadPoolConfig poolConfig = ThreadPoolConfig.defaultConfig();
+        poolConfig.setCorePoolSize(minThreads);
+        poolConfig.setMaxPoolSize(maxThreads);
+        poolConfig.setQueueLimit(maxQueueSize);
+        poolConfig.setKeepAliveTime(timeout < 0 ? Long.MAX_VALUE : timeout, TimeUnit.SECONDS);
+
 //            List<String> l = ManagementFactory.getRuntimeMXBean().getInputArguments();
 //            boolean debugMode = false;
 //            for (String s : l) {
@@ -418,11 +426,10 @@ public class GenericGrizzlyListener implements GrizzlyListener {
 //                // Disable the mechanism
 //                httpListener.setTransactionTimeout(-1);
 //            }
-        } catch (NumberFormatException ex) {
-            logger.log(Level.WARNING, " Invalid thread-pool attribute", ex);
-        }
-    }
 
+        return poolConfig;
+    }
+    
     protected void configureDelayedExecutor() {
         final AtomicInteger threadCounter = new AtomicInteger();
 
