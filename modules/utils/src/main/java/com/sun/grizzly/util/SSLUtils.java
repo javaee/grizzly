@@ -127,7 +127,7 @@ public class SSLUtils {
         
         // We need to make sure the unwrap worked properly and we have all
         // the packets properly read. If the SSLEngine fail to unwrap all the 
-        // bytes, the byteBuffer will be empty event if some encrypted bytes
+        // bytes, the byteBuffer will be empty even if some encrypted bytes
         // are available. 
         while (byteBuffer.position() == initialPosition){
             if (isFirstTime && inputBB.position() > 0) {
@@ -171,7 +171,7 @@ public class SSLUtils {
      * @param sslEngine The{@link SSLEngine} uses to manage the 
      *                  SSL operations.
      * @param timeout The Selector.select() timeout value. A value of 0 will
-     *                be exectuted as a Selector.selectNow();
+     *                be executed as a Selector.selectNow();
      * @return the bytes read.
      */
     public static Utils.Result doRead(SelectableChannel channel, ByteBuffer inputBB, 
@@ -333,9 +333,9 @@ public class SSLUtils {
     
     
     /**
-     * Resize a ByteBuffer.
+     * Re-size a ByteBuffer.
      * @param byteBuffer  {@link ByteBuffer} to re-allocate
-     * @return  {@link ByteBuffer} reallocted
+     * @return  {@link ByteBuffer} reallocated
      * @throws java.io.IOException 
      */
     private static ByteBuffer reallocate(ByteBuffer byteBuffer) 
@@ -353,7 +353,7 @@ public class SSLUtils {
     
      
     /**
-     * Complete hanshakes operations.
+     * Complete handshake operations.
      * @param sslEngine The SSLEngine used to manage the SSL operations.
      * @return SSLEngineResult.HandshakeStatus
      */
@@ -548,9 +548,13 @@ public class SSLUtils {
                 logger.log(Level.FINE,"Error getting client certs",t);
         }
  
-        if (certs == null
-                && needClientAuth
-                && (sslEngine.getNeedClientAuth() || sslEngine.getWantClientAuth())) {
+        if (certs == null && needClientAuth) {
+            boolean authConfigured =
+                    (sslEngine.getWantClientAuth()
+                            || sslEngine.getNeedClientAuth());
+            if (!authConfigured) {
+                sslEngine.setNeedClientAuth(true);
+            }
             sslEngine.getSession().invalidate();
             sslEngine.beginHandshake();
                       
@@ -575,6 +579,9 @@ public class SSLUtils {
             } finally {
                 byteBuffer = origBB;
                 byteBuffer.clear();
+                if (!authConfigured) {
+                    sslEngine.setNeedClientAuth(false);
+                }
             }            
             
             try {
@@ -618,8 +625,8 @@ public class SSLUtils {
     
     
     /**
-     * Allocate themandatory {@link ByteBuffer}s. Since the ByteBuffer
-     * are maintaned on the {@link WorkerThread} lazily, this method
+     * Allocate the mandatory {@link ByteBuffer}s. Since the ByteBuffer
+     * are maintained on the {@link WorkerThread} lazily, this method
      * makes sure the ByteBuffers are properly allocated and configured.
      */    
     public static void allocateThreadBuffers(int defaultBufferSize) {
