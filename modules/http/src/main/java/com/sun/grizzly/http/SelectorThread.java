@@ -1480,7 +1480,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         } catch (SocketException ex){
             if (logger.isLoggable(Level.WARNING)) {
                 logger.log(Level.WARNING,
-                           LogMessages.WARNING_GRIZZLY_HTTP_SELECTOR_THREAD_SOCKET_OPTION_ERROR("setSoLonger"),
+                           LogMessages.WARNING_GRIZZLY_HTTP_SELECTOR_THREAD_SOCKET_OPTION_ERROR("setSoLinger"),
                            ex);
             }
         }
@@ -1491,7 +1491,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         } catch (SocketException ex){
              if (logger.isLoggable(Level.WARNING)) {
                 logger.log(Level.WARNING,
-                           LogMessages.WARNING_GRIZZLY_HTTP_SELECTOR_THREAD_SOCKET_OPTION_ERROR("setSoLonger"),
+                           LogMessages.WARNING_GRIZZLY_HTTP_SELECTOR_THREAD_SOCKET_OPTION_ERROR("setTcpNoDelay"),
                            ex);
             }
         }
@@ -1501,7 +1501,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         } catch (SocketException ex){
              if (logger.isLoggable(Level.WARNING)) {
                 logger.log(Level.WARNING,
-                           LogMessages.WARNING_GRIZZLY_HTTP_SELECTOR_THREAD_SOCKET_OPTION_ERROR("setSoLonger"),
+                           LogMessages.WARNING_GRIZZLY_HTTP_SELECTOR_THREAD_SOCKET_OPTION_ERROR("setReuseAddress"),
                            ex);
             }
         }    
@@ -1513,7 +1513,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         } catch (SocketException ex){
              if (logger.isLoggable(Level.WARNING)) {
                 logger.log(Level.WARNING,
-                           LogMessages.WARNING_GRIZZLY_HTTP_SELECTOR_THREAD_SOCKET_OPTION_ERROR("setSoLonger"),
+                           LogMessages.WARNING_GRIZZLY_HTTP_SELECTOR_THREAD_SOCKET_OPTION_ERROR("setOOBInline"),
                            ex);
             }
         }   
