@@ -58,13 +58,14 @@
 
 package org.glassfish.grizzly.http.util;
 
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.Grizzly;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.logging.Logger;
+
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Grizzly;
 
 /**
  * The general set of Cookie utility methods.
@@ -91,8 +92,7 @@ public class CookieUtils {
      * If set to false, we don't use the IE6/7 Max-Age/Expires work around
      */
     public static final boolean ALWAYS_ADD_EXPIRES =
-            Boolean.valueOf(System.getProperty(
-            "org.glassfish.grizzly.util.http.ServerCookie.ALWAYS_ADD_EXPIRES", "true")).booleanValue();
+        Boolean.valueOf(System.getProperty("org.glassfish.grizzly.util.http.ServerCookie.ALWAYS_ADD_EXPIRES", "true"));
 
     /*
     List of Separator Characters (see isSeparator())
@@ -110,8 +110,8 @@ public class CookieUtils {
         for (int i = 0; i < 128; i++) {
             separators[i] = false;
         }
-        for (int i = 0; i < SEPARATORS.length; i++) {
-            separators[SEPARATORS[i]] = true;
+        for (char SEPARATOR : SEPARATORS) {
+            separators[SEPARATOR] = true;
         }
     }
 

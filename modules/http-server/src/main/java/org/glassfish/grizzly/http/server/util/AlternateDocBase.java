@@ -63,7 +63,7 @@ import javax.naming.directory.DirContext;
 
 public class AlternateDocBase {
 
-    enum UrlPatternType { EXACT, WILDCARD, EXTENSION };
+    enum UrlPatternType { EXACT, WILDCARD, EXTENSION }
 
     private String pattern;
     private UrlPatternType patternType;

@@ -238,7 +238,7 @@ public class Request {
 
     protected HttpServerFilter httpServerFilter;
 
-    protected final List<AfterServiceListener> afterServicesList = new ArrayList();
+    protected final List<AfterServiceListener> afterServicesList = new ArrayList<AfterServiceListener>();
 
     private Session session;
 
@@ -995,7 +995,7 @@ public class Request {
     /**
      * Return the names of all defined request parameters for this request.
      */
-    public Enumeration getParameterNames() {
+    public Enumeration<String> getParameterNames() {
 
         if (!requestParametersParsed)
             parseRequestParameters();
