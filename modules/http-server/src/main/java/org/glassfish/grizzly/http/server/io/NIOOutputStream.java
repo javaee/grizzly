@@ -59,7 +59,7 @@ public class NIOOutputStream extends OutputStream implements BinaryNIOOutputSink
     // ------------------------------------------------------------ Constructors
 
 
-    public NIOOutputStream(OutputBuffer outputBuffer) {
+    public NIOOutputStream(final OutputBuffer outputBuffer) {
         this.outputBuffer = outputBuffer;
     }
 
@@ -69,21 +69,22 @@ public class NIOOutputStream extends OutputStream implements BinaryNIOOutputSink
     /**
      * {@inheritDoc}
      */
-    @Override public void write(int b) throws IOException {
+    @Override public void write(final int b) throws IOException {
         outputBuffer.writeByte(b);
     }
 
     /**
      * {@inheritDoc}
      */
-    @Override public void write(byte[] b) throws IOException {
+    @Override public void write(final byte[] b) throws IOException {
         outputBuffer.write(b);
     }
 
     /**
      * {@inheritDoc}
      */
-    @Override public void write(byte[] b, int off, int len) throws IOException {
+    @Override public void write(final byte[] b, final int off, final int len)
+    throws IOException {
         outputBuffer.write(b, off, len);
     }
 

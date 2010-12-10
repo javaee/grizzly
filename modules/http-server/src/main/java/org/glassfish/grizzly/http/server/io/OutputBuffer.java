@@ -445,7 +445,7 @@ public class OutputBuffer {
      * @param buffer the {@link ByteBuffer} to write
      * @throws IOException if an error occurs during the write
      */
-    public void writeBuffer(Buffer buffer) throws IOException {
+    public void writeBuffer(final Buffer buffer) throws IOException {
         finishCurrentBuffer();
         compositeBuffer.append(buffer);
     }

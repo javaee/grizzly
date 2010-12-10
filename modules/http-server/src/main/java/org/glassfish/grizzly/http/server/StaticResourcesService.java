@@ -195,77 +195,81 @@ public class StaticResourcesService extends HttpRequestProcessor {
             final Request req,
             final Response res) throws Exception {
 
-        FileInputStream fis = null;
-        try {
+        boolean found = false;
 
-            boolean found = false;
+        final File[] fileFolders = docRoots.getArray();
+        if (fileFolders == null) {
+            return false;
+        }
 
-            final File[] fileFolders = docRoots.getArray();
-            if (fileFolders == null) return false;
+        File resource = null;
 
-            File resource = null;
+        for (int i = 0; i < fileFolders.length; i++) {
+            final File webDir = fileFolders[i];
+            // local file
+            resource = new File(webDir, uri);
+            final boolean exists = resource.exists();
+            final boolean isDirectory = resource.isDirectory();
 
-            for (int i = 0; i < fileFolders.length; i++) {
-                final File webDir = fileFolders[i];
-                // local file
-                resource = new File(webDir, uri);
-                final boolean exists = resource.exists();
-                final boolean isDirectory = resource.isDirectory();
-
-                if (exists && isDirectory) {
-                    final File f = new File(resource, "/index.html");
-                    if (f.exists()) {
-                        resource = f;
-                        found = true;
-                        break;
-                    }
-                }
-
-                if (isDirectory || !exists) {
-                    found = false;
-                } else {
+            if (exists && isDirectory) {
+                final File f = new File(resource, "/index.html");
+                if (f.exists()) {
+                    resource = f;
                     found = true;
                     break;
                 }
             }
 
-            if (!found) {
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, "File not found  {0}", resource);
-                }
-                return false;
+            if (isDirectory || !exists) {
+                found = false;
+            } else {
+                found = true;
+                break;
             }
+        }
 
-            res.setStatus(HttpStatus.OK_200);
+        if (!found) {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "File not found  {0}", resource);
+            }
+            return false;
+        }
+
+        addToFileCache(req, resource);
+        sendFile(res, resource);
+
+        return true;
+    }
+
+    public static void sendFile(final Response response, final File file)
+            throws IOException {
+        final String path = file.getPath();
+        final FileInputStream fis = new FileInputStream(file);
+
+        try {
+            response.setStatus(HttpStatus.OK_200);
             String substr;
-            int dot = uri.lastIndexOf(".");
+            int dot = path.lastIndexOf(".");
             if (dot < 0) {
-                substr = resource.toString();
+                substr = file.toString();
                 dot = substr.lastIndexOf(".");
             } else {
-                substr = uri;
+                substr = path;
             }
             if (dot > 0) {
                 String ext = substr.substring(dot + 1);
                 String ct = MimeType.get(ext);
                 if (ct != null) {
-                    res.setContentType(ct);
+                    response.setContentType(ct);
                 }
             } else {
-                res.setContentType(MimeType.get("html"));
+                response.setContentType(MimeType.get("html"));
             }
 
-            final long length = resource.length();
-            res.setContentLengthLong(length);
+            final long length = file.length();
+            response.setContentLengthLong(length);
 
-            addToFileCache(req, resource);
-            // Send the header, and flush the bytes as we will now move to use
-            // send file.
-            res.flush();
-            //res.sendHeaders();
-
-            fis = new FileInputStream(resource);
-            OutputBuffer outputBuffer = res.getOutputBuffer();
+            final OutputBuffer outputBuffer = response.getOutputBuffer();
 
             byte b[] = new byte[8192];
             int rd;
@@ -273,14 +277,10 @@ public class StaticResourcesService extends HttpRequestProcessor {
                 //chunk.setBytes(b, 0, rd);
                 outputBuffer.write(b, 0, rd);
             }
-
-            return true;
         } finally {
-            if (fis != null) {
-                try {
-                    fis.close();
-                } catch (IOException ignore) {
-                }
+            try {
+                fis.close();
+            } catch (IOException ignore) {
             }
         }
     }
