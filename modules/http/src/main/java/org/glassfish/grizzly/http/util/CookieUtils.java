@@ -84,7 +84,7 @@ public class CookieUtils {
      * By default, cookies are parsed as v0 cookies, in order to maintain backward
      * compatibility with GlassFish v2.x
      */
-    static final boolean COOKIE_VERSION_ONE_STRICT_COMPLIANCE =
+    public static final boolean COOKIE_VERSION_ONE_STRICT_COMPLIANCE =
             Boolean.getBoolean("org.glassfish.web.rfc2109_cookie_names_enforced");
 
     /**
