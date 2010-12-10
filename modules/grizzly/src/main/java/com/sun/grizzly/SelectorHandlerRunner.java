@@ -276,8 +276,9 @@ public class SelectorHandlerRunner implements Runnable {
 
             Object attachment = key.attachment();
             if (attachment instanceof SelectedKeyAttachmentLogic) {
-                ((SelectedKeyAttachmentLogic) attachment).handleSelectedKey(key);
-                return true;
+                if (!((SelectedKeyAttachmentLogic) attachment).handleSelectedKey(key)) {
+                    return true;
+                }
             }
 
             if (!key.isValid()) {

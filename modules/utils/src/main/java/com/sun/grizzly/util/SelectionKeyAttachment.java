@@ -137,12 +137,16 @@ public abstract class SelectionKeyAttachment {
      * Used for completely custom selector.select logic.
      *
      * @param selectionKey
+     * @return <tt>true</tt>, if we want to continue the default interest
+     * processing, or <tt>false</tt> otherwise.
      */
-    public void handleSelectedKey(SelectionKey selectionKey) {
+    public boolean handleSelectedKey(SelectionKey selectionKey) {
         final KeySelectionListener listener = keySelectionListener;
         if (listener != null) {
             listener.onKeySelected(selectionKey);
         }
+
+        return false;
     }
 
     public void release(SelectionKey selectionKey) {

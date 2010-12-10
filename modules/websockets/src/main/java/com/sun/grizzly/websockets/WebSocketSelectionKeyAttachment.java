@@ -66,11 +66,13 @@ public class WebSocketSelectionKeyAttachment extends SelectedKeyAttachmentLogic 
     }
 
     @Override
-    public void handleSelectedKey(SelectionKey key) {
+    public boolean handleSelectedKey(SelectionKey key) {
         if (key.isReadable()) {
             key.interestOps(key.interestOps() & ~SelectionKey.OP_READ);
             asyncProcessorTask.getThreadPool().execute(this);
         }
+
+        return false;
     }
 
     public void run() {

@@ -152,10 +152,10 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable {
      * {@inheritDoc}
      */
     @Override
-    public void handleSelectedKey(SelectionKey selectionKey) {
+    public boolean handleSelectedKey(SelectionKey selectionKey) {
         if (!selectionKey.isValid()) {
             CometEngine.getEngine().interrupt(this, true);
-            return;
+            return false;
         }
         if (cometHandlerIsAsyncRegistered) {
             if (selectionKey.isReadable()) {
@@ -168,8 +168,10 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable {
             }
             asyncProcessorTask.getThreadPool().execute(this);
         } else {
-            checkIfClientClosedConnection(selectionKey);
+            return !checkIfClientClosedConnection(selectionKey);
         }
+
+        return false;
     }
 
     /**
@@ -178,7 +180,7 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable {
      * only used for non async registered comet handler.
      * @param mainKey
      */
-    private void checkIfClientClosedConnection(SelectionKey mainKey) {
+    private boolean checkIfClientClosedConnection(SelectionKey mainKey) {
         boolean isClosed = true;
         try {
             isClosed = ((SocketChannel) mainKey.channel()).read(ByteBuffer.allocate(1)) == -1;
@@ -188,6 +190,8 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable {
                 CometEngine.getEngine().interrupt(this, true);
             }
         }
+        
+        return isClosed;
     }
 
     /**

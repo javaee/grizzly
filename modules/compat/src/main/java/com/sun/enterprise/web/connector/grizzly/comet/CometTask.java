@@ -72,7 +72,7 @@ public class CometTask extends com.sun.grizzly.comet.CometTask{
     protected final CometHandler cometHandler;
 
     /**
-     *  true if run() should call cometcontext.interrupt0
+     *  true if run() should call comet context.interrupt0
      */
     protected boolean callInterrupt;
 
@@ -116,7 +116,7 @@ public class CometTask extends com.sun.grizzly.comet.CometTask{
     /**
      * this should never be called for for comet, due to we are nulling the attachment
      * and completely overriding the selector.select logic.<br>
-     * called by grizzly when the selectionkey is canceled and its socket closed.<br>     
+     * called by grizzly when the selection key is canceled and its socket closed.<br>
      *
      * @param selectionKey
      */
@@ -140,10 +140,10 @@ public class CometTask extends com.sun.grizzly.comet.CometTask{
      * {@inheritDoc}
      */
     @Override
-    public void handleSelectedKey(SelectionKey selectionKey) {
+    public boolean handleSelectedKey(SelectionKey selectionKey) {
         if (!selectionKey.isValid()){
             CometEngine.getEngine().interrupt(this, true);
-            return;
+            return false;
         }
         if (cometHandlerIsAsyncRegistered){
             if (selectionKey.isReadable()){
@@ -157,17 +157,19 @@ public class CometTask extends com.sun.grizzly.comet.CometTask{
             asyncProcessorTask.getThreadPool().execute(this);
         }            
         else{
-           checkIfClientClosedConnection(selectionKey);
+           return !checkIfClientClosedConnection(selectionKey);
         }
+
+        return false;
     }
 
     /**
      * checks if client has closed the connection.
-     * the check is done by trying to read 1 byte that is trown away.
-     * only used for non async registered comethandler.
+     * the check is done by trying to read 1 byte that is thrown away.
+     * only used for non async registered comet handler.
      * @param mainKey
      */
-    private void checkIfClientClosedConnection(SelectionKey mainKey) {
+    private boolean checkIfClientClosedConnection(SelectionKey mainKey) {
         boolean connectionclosed = true;
         try {
             connectionclosed = ((SocketChannel)mainKey.channel()).
@@ -183,6 +185,8 @@ public class CometTask extends com.sun.grizzly.comet.CometTask{
                //System.err.println("**** ready key detected : "+mainKey.attachment() +" isactive:"+cometContext.isActive(cometHandler));
            }
         }
+
+        return connectionclosed;
     }
 
 
