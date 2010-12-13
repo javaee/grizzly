@@ -48,7 +48,6 @@ import com.sun.grizzly.ProtocolChainInstanceHandler;
 import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.arp.AsyncFilter;
 import com.sun.grizzly.arp.DefaultAsyncHandler;
-import com.sun.grizzly.comet.CometAsyncFilter;
 import com.sun.grizzly.config.dom.FileCache;
 import com.sun.grizzly.config.dom.Http;
 import com.sun.grizzly.config.dom.NetworkListener;
@@ -72,8 +71,6 @@ import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.ExtendedThreadPool;
 import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.buf.UDecoder;
-import com.sun.grizzly.websockets.WebSocketAsyncFilter;
-import com.sun.grizzly.websockets.WebSocketEngine;
 import org.jvnet.hk2.component.Habitat;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 
@@ -317,11 +314,11 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             configureFileCache(http.getFileCache());
             defaultVirtualServer = http.getDefaultVirtualServer();
             if (mayEnableAsync && GrizzlyConfig.toBoolean(http.getWebsocketsSupportEnabled())) {
-                configureWebSockets(habitat);
+                enableWebSockets(habitat);
             }
             if (mayEnableAsync && (GrizzlyConfig.toBoolean(http.getCometSupportEnabled()) ||
                     Boolean.getBoolean("v3.grizzly.cometSupport"))) {
-                configureComet(habitat);
+                enableComet(habitat);
             }
         } else if (protocol.getPortUnification() != null) {
             // Port unification
@@ -429,8 +426,11 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
      *
      * @param habitat
      */
-    private void configureComet(Habitat habitat) {
-        enableAsyncHandler(habitat, "comet", CometAsyncFilter.class);
+    private void enableComet(Habitat habitat) {
+        final AsyncFilter asyncFilter = loadCometAsyncFilter(habitat);
+        if (asyncFilter != null) {
+            addAsyncFilter(asyncFilter);
+        }
     }
 
     /**
@@ -438,29 +438,68 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
      *
      * @param habitat
      */
-    private void configureWebSockets(Habitat habitat) {
-        enableAsyncHandler(habitat, "websockets", WebSocketAsyncFilter.class);
-        WebSocketEngine.setWebSocketEnabled(true);
+    private void enableWebSockets(Habitat habitat) {
+        final AsyncFilter asyncFilter = loadWebSocketsAsyncFilter(habitat);
+        if (asyncFilter != null) {
+            addAsyncFilter(asyncFilter);
+        }
     }
 
-    private void enableAsyncHandler(Habitat habitat, final String name,
-            final Class<? extends AsyncFilter> asyncFilterClass) {
+    /**
+     * Load and initializes Comet {@link AsyncFilter}.
+     */
+    public static AsyncFilter loadCometAsyncFilter(final Habitat habitat) {
+        return loadAsyncFilter(habitat, "comet",
+                "com.sun.grizzly.comet.CometAsyncFilter");
+    }
+
+    /**
+     * Load and initializes WebSockets {@link AsyncFilter}.
+     */
+    public static AsyncFilter loadWebSocketsAsyncFilter(final Habitat habitat) {
+        return loadAsyncFilter(habitat, "websockets",
+                "com.sun.grizzly.websockets.WebSocketAsyncFilter");
+    }
+
+    /**
+     * Load {@link AsyncFilter} with the specific service name and classname.
+     * 
+     * @param habitat
+     * @param name
+     * @param asyncFilterClassName
+     * @return
+     */
+    private static AsyncFilter loadAsyncFilter(Habitat habitat, final String name,
+            final String asyncFilterClassName) {
+        boolean isInitialized = false;
+
         AsyncFilter filter = habitat.getComponent(AsyncFilter.class, name);
         if (filter == null) {
             try {
-                filter = asyncFilterClass.newInstance();
-            } catch (InstantiationException e) {
-                throw new GrizzlyConfigException(e.getMessage(), e);
-            } catch (IllegalAccessException e) {
-                throw new GrizzlyConfigException(e.getMessage(), e);
+                filter = (AsyncFilter) newInstance(asyncFilterClassName);
+                isInitialized = true;
+            } catch (Exception e) {
             }
+        } else {
+            isInitialized = true;
         }
+
+        if (!isInitialized) {
+            logger.log(Level.WARNING, "AsyncFilter \"{0}\" was not initialized",
+                    asyncFilterClassName);
+            return null;
+        }
+
+        return filter;
+    }
+
+    private void addAsyncFilter(final AsyncFilter asyncFilter) {
         setEnableAsyncExecution(true);
         if (getAsyncHandler() == null) {
             asyncHandler = new DefaultAsyncHandler();
             setAsyncHandler(asyncHandler);
         }
-        getAsyncHandler().addAsyncFilter(filter);
+        getAsyncHandler().addAsyncFilter(asyncFilter);
     }
 
 
@@ -640,11 +679,11 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         return defaultVirtualServer;
     }
 
-    protected Object newInstance(String classname) throws Exception {
+    protected static Object newInstance(String classname) throws Exception {
         return Utils.newInstance(classname);
     }
 
-    protected Class loadClass(String classname) throws ClassNotFoundException {
+    protected static Class loadClass(String classname) throws ClassNotFoundException {
         return Utils.loadClass(classname);
     }
 

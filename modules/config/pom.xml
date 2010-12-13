@@ -148,6 +148,12 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>com.sun.grizzly</groupId>
+            <artifactId>grizzly-comet</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>servlet-api</artifactId>
             <scope>test</scope>
@@ -176,15 +182,14 @@
         </dependency>
         <dependency>
             <groupId>com.sun.grizzly</groupId>
-            <artifactId>grizzly-comet</artifactId>
+            <artifactId>grizzly-http</artifactId>
             <version>${project.version}</version>
-				<scope>provided</scope>
         </dependency>
-        <dependency>
+<!--        <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-websockets</artifactId>
             <version>${project.version}</version>
-				<scope>provided</scope>
-        </dependency>
+            <scope>provided</scope>
+        </dependency>-->
     </dependencies>
 </project>
