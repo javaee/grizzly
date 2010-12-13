@@ -71,7 +71,7 @@ public class WebSocketEngine {
     public static final int DEFAULT_TIMEOUT;
 
     private static final WebSocketEngine engine = new WebSocketEngine();
-    private static volatile boolean isWebSocketEnabled;
+    private static volatile boolean isWebSocketEnabled = true;
     static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     private final List<WebSocketApplication> applications = new ArrayList<WebSocketApplication>();
     private final Map<WebSocketApplication, StackTraceElement[]> map = new HashMap<WebSocketApplication, StackTraceElement[]>();
