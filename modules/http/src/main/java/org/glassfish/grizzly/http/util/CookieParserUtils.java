@@ -61,6 +61,8 @@ package org.glassfish.grizzly.http.util;
 import org.glassfish.grizzly.http.LazyCookie;
 import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.LazyCookieState;
+
+import java.nio.charset.Charset;
 import java.text.ParseException;
 import java.util.Date;
 import org.glassfish.grizzly.Grizzly;
@@ -734,7 +736,9 @@ public class CookieParserUtils {
                         pos = valueEnd + 1;
 
                         final String expiresDate =
-                                buffer.toStringContent(null, valueStart, valueEnd);
+                                buffer.toStringContent(Charsets.ASCII_CHARSET,
+                                                       valueStart,
+                                                       valueEnd);
                         final Date date = OLD_COOKIE_FORMAT.get().parse(expiresDate);
                         cookie.setMaxAge((int) (date.getTime() - System.currentTimeMillis()));
                     } catch (ParseException ignore) {

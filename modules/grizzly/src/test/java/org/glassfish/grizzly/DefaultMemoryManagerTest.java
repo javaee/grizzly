@@ -74,7 +74,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
                 final int allocSize = 16384;
 
                 // Initialize memory manager
-                mm.allocate(AbstractMemoryManager.DEFAULT_SMALL_BUFFER_SIZE + 1);
+                mm.allocate(33);
 
                 final int initialSize = mm.getReadyThreadBufferSize();
 
@@ -105,7 +105,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
                 final int allocSize = 16384;
 
                 // Initialize memory manager
-                mm.allocate(AbstractMemoryManager.DEFAULT_SMALL_BUFFER_SIZE + 1);
+                mm.allocate(33);
 
                 final int initialSize = mm.getReadyThreadBufferSize();
 
@@ -141,7 +141,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
                 final int allocSize = 16384;
 
                 // Initialize memory manager
-                mm.allocate(AbstractMemoryManager.DEFAULT_SMALL_BUFFER_SIZE + 1);
+                mm.allocate(33);
 
                 final int initialSize = mm.getReadyThreadBufferSize();
 
@@ -190,7 +190,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
                 final int allocSize = 16384;
 
                 // Initialize memory manager
-                mm.allocate(AbstractMemoryManager.DEFAULT_SMALL_BUFFER_SIZE + 1);
+                mm.allocate(33);
 
                 final int initialSize = mm.getReadyThreadBufferSize();
 
@@ -252,7 +252,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
                 final int allocSize = 16384;
 
                 // Initialize memory manager
-                mm.allocate(AbstractMemoryManager.DEFAULT_SMALL_BUFFER_SIZE + 1);
+                mm.allocate(33);
 
                 final int initialSize = mm.getReadyThreadBufferSize();
 
@@ -304,7 +304,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
             @Override
             public void run() {
                 // Initialize memory manager
-                mm.allocate(AbstractMemoryManager.DEFAULT_SMALL_BUFFER_SIZE + 1);
+                mm.allocate(33);
 
                 final int initialSize = mm.getReadyThreadBufferSize();
 
@@ -345,7 +345,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
             public void run() {
                 // Initialize memory manager
 
-                mm.allocate(AbstractMemoryManager.DEFAULT_SMALL_BUFFER_SIZE + 1);
+                mm.allocate(33);
 
                 final int initialSize = mm.getReadyThreadBufferSize();
 

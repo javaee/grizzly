@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.memory;
 
+import org.glassfish.grizzly.Cacheable;
 import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
@@ -47,7 +48,6 @@ import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
-import org.glassfish.grizzly.Buffer;
 
 /**
  * The simple Buffer manager implementation, which works as wrapper above
@@ -63,24 +63,41 @@ import org.glassfish.grizzly.Buffer;
 public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> implements
         WrapperAware, ByteBufferAware {
 
+    /**
+     * TODO: Document
+     */
+    public static final int DEFAULT_SMALL_BUFFER_SIZE = 32;
+
     private static final ThreadCache.CachedTypeIndex<TrimAwareWrapper> CACHE_IDX =
             ThreadCache.obtainIndex(TrimAwareWrapper.class, 2);
 
-    private final ThreadCache.CachedTypeIndex<SmallBuffer> SMALL_BUFFER_CACHE_IDX =
-            ThreadCache.obtainIndex(SmallBuffer.class.getName() + "." +
-            System.identityHashCode(this), SmallBuffer.class, 16);
+    private final ThreadCache.CachedTypeIndex<SmallByteBufferWrapper> SMALL_BUFFER_CACHE_IDX =
+            ThreadCache.obtainIndex(SmallByteBufferWrapper.class.getName() + "." +
+            System.identityHashCode(this), SmallByteBufferWrapper.class, 16);
 
     /**
      * Is direct ByteBuffer should be used?
      */
     protected boolean isDirect;
 
+    protected int maxSmallBufferSize;
+
     public ByteBufferManager() {
-        this(false);
+        this(false,
+             AbstractMemoryManager.DEFAULT_MAX_BUFFER_SIZE,
+             DEFAULT_SMALL_BUFFER_SIZE);
     }
 
-    public ByteBufferManager(boolean isDirect) {
+    public ByteBufferManager(final boolean isDirect,
+                             final int maxBufferSize,
+                             final int maxSmallBufferSize) {
+        super(maxBufferSize);
+        this.maxSmallBufferSize = maxSmallBufferSize;
         this.isDirect = isDirect;
+    }
+
+    public int getMaxSmallBufferSize() {
+        return maxSmallBufferSize;
     }
 
     /**
@@ -88,6 +105,11 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
      */
     @Override
     public ByteBufferWrapper allocate(final int size) {
+        if (size <= maxSmallBufferSize) {
+            final SmallByteBufferWrapper buffer = createSmallBuffer();
+            buffer.limit(size);
+            return buffer;
+        }
         return wrap(allocateByteBuffer(size));
     }
 
@@ -96,6 +118,11 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
      */
     @Override
     public ByteBufferWrapper allocateAtLeast(int size) {
+        if (size <= maxSmallBufferSize) {
+            final SmallByteBufferWrapper buffer = createSmallBuffer();
+            buffer.limit(size);
+            return buffer;
+        }
         return wrap(allocateByteBufferAtLeast(size));
     }
 
@@ -278,16 +305,16 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
 
     }
 
-    @Override
-    protected SmallBuffer createSmallBuffer() {
-        final SmallBuffer buffer = ThreadCache.takeFromCache(SMALL_BUFFER_CACHE_IDX);
+
+    protected SmallByteBufferWrapper createSmallBuffer() {
+        final SmallByteBufferWrapper buffer = ThreadCache.takeFromCache(SMALL_BUFFER_CACHE_IDX);
         if (buffer != null) {
             ProbeNotifier.notifyBufferAllocatedFromPool(monitoringConfig,
-                    smallBufferSize);
+                    maxSmallBufferSize);
             return buffer;
         }
 
-        return new SmallByteBufferWrapper(allocateByteBuffer0(smallBufferSize));
+        return new SmallByteBufferWrapper(allocateByteBuffer0(maxSmallBufferSize));
     }
 
     // ------- Monitoring section ----------------------
@@ -547,7 +574,7 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
      * other words it's possible to return unused {@link org.glassfish.grizzly.Buffer} space to
      * pool.
      */
-    private final class SmallByteBufferWrapper extends ByteBufferWrapper implements SmallBuffer {
+    private final class SmallByteBufferWrapper extends ByteBufferWrapper implements Cacheable {
 
         private SmallByteBufferWrapper(ByteBuffer underlyingByteBuffer) {
             super(underlyingByteBuffer);
@@ -562,13 +589,13 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
 
         @Override
         public void recycle() {
-            if (visible.remaining() == smallBufferSize) {
+            if (visible.remaining() == maxSmallBufferSize) {
                 allowBufferDispose = false;
                 disposeStackTrace = null;
 
                 if (ThreadCache.putToCache(SMALL_BUFFER_CACHE_IDX, this)) {
                     ProbeNotifier.notifyBufferReleasedToPool(monitoringConfig,
-                            smallBufferSize);
+                            maxSmallBufferSize);
                 }
             }
         }
@@ -577,5 +604,7 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
         protected ByteBufferWrapper wrapByteBuffer(ByteBuffer byteBuffer) {
             return ByteBufferManager.this.wrap(byteBuffer);
         }
+
     } // END SmallByteBufferWrapper
+
 }

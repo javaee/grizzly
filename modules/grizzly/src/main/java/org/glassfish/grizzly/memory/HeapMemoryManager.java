@@ -57,11 +57,6 @@ import org.glassfish.grizzly.Cacheable;
  */
 public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> implements WrapperAware {
 
-
-    private final ThreadCache.CachedTypeIndex<SmallHeapBuffer> SMALL_BUFFER_CACHE_IDX =
-            ThreadCache.obtainIndex(SmallHeapBuffer.class.getName() + "." +
-            System.identityHashCode(this), SmallHeapBuffer.class, 16);
-
     private static final ThreadCache.CachedTypeIndex<TrimmableHeapBuffer> CACHE_IDX =
             ThreadCache.obtainIndex(TrimmableHeapBuffer.class, 8);
 
@@ -107,18 +102,6 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
         return new org.glassfish.grizzly.memory.jmx.HeapMemoryManager(this);
     }
 
-    @Override
-    protected SmallBuffer createSmallBuffer() {
-        final SmallHeapBuffer buffer = ThreadCache.takeFromCache(SMALL_BUFFER_CACHE_IDX);
-        if (buffer != null) {
-            buffer.initialize();
-            ProbeNotifier.notifyBufferAllocatedFromPool(monitoringConfig,
-                                                        smallBufferSize);
-            return buffer;
-        }
-
-        return new SmallHeapBuffer(this, new byte[smallBufferSize]);
-    }
 
     // ----------------------------------------------- Methods from WrapperAware
 
@@ -436,49 +419,6 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
 
 
     } // END ByteBufferThreadLocalPool
-
-
-    /**
-     * {@link ByteBufferWrapper} implementation, which supports trimming. In
-     * other words it's possible to return unused {@link org.glassfish.grizzly.Buffer} space to
-     * pool.
-     */
-    private static final class SmallHeapBuffer extends HeapBuffer implements SmallBuffer {
-
-        private HeapMemoryManager mm;
-
-        private SmallHeapBuffer(final HeapMemoryManager mm, final byte[] heap) {
-
-            super(heap, 0, heap.length);
-            this.mm = mm;
-
-        }
-
-        @Override
-        public void dispose() {
-            super.prepareDispose();
-            clear();
-            recycle();
-        }
-
-        @Override
-        public void recycle() {
-            if (remaining() == mm.smallBufferSize) {
-                allowBufferDispose = false;
-
-                if (ThreadCache.putToCache(mm.SMALL_BUFFER_CACHE_IDX, this)) {
-                    ProbeNotifier.notifyBufferReleasedToPool(mm.monitoringConfig,
-                            mm.smallBufferSize);
-                }
-            }
-            mm = null;
-        }
-
-        private void initialize() {
-            disposeStackTrace = null;
-        }
-
-    } // END SmallHeapBuffer
 
 
     /**

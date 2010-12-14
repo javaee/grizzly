@@ -59,11 +59,6 @@ public abstract class AbstractMemoryManager<E extends Buffer> implements MemoryM
      */
     public static final int DEFAULT_MAX_BUFFER_SIZE = 1024 * 128;
 
-    /**
-     * TODO: Document
-     */
-    public static final int DEFAULT_SMALL_BUFFER_SIZE = 32;
-
 
     /**
      * TODO: Document
@@ -80,8 +75,6 @@ public abstract class AbstractMemoryManager<E extends Buffer> implements MemoryM
 
     protected final int maxBufferSize;
 
-    protected final int smallBufferSize;
-
 
     // ------------------------------------------------------------ Constructors
 
@@ -91,20 +84,17 @@ public abstract class AbstractMemoryManager<E extends Buffer> implements MemoryM
      */
     public AbstractMemoryManager() {
 
-        this(DEFAULT_MAX_BUFFER_SIZE, DEFAULT_SMALL_BUFFER_SIZE);
+        this(DEFAULT_MAX_BUFFER_SIZE);
 
     }
 
     /**
      * TODO: Document
      * @param maxBufferSize
-     * @param smallBufferSize
      */
-    public AbstractMemoryManager(final int maxBufferSize,
-                                 final int smallBufferSize) {
+    public AbstractMemoryManager(final int maxBufferSize) {
 
         this.maxBufferSize = maxBufferSize;
-        this.smallBufferSize = smallBufferSize;
 
     }
 
@@ -133,15 +123,6 @@ public abstract class AbstractMemoryManager<E extends Buffer> implements MemoryM
      */
     public int getMaxBufferSize() {
         return maxBufferSize;
-    }
-
-
-    /**
-     * TODO Documentation
-     * @return
-     */
-    public int getSmallBufferSize() {
-        return smallBufferSize;
     }
 
 
@@ -190,19 +171,7 @@ public abstract class AbstractMemoryManager<E extends Buffer> implements MemoryM
     }
 
 
-    /**
-     * TODO: Documentation
-     * @return
-     */
-    protected abstract SmallBuffer createSmallBuffer();
-
-
     // ---------------------------------------------------------- Nested Classes
-
-    /**
-     * TODO: Documentation
-     */
-    protected static interface SmallBuffer extends Cacheable { }
 
     /**
      * TODO: Documentation
