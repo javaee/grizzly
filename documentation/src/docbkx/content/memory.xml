@@ -10,13 +10,5 @@
 
   <para>Content</para>
 
-  <figure>
-    <title>Memory Manager Allocation Request</title>
 
-    <mediaobject>
-      <imageobject>
-        <imagedata fileref="../images/coreframework/mmflow.svgz"></imagedata>
-      </imageobject>
-    </mediaobject>
-  </figure>
 </section>
