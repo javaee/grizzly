@@ -50,11 +50,8 @@
   <title>The Core Framework</title>
 
   <xi:include href="memory.xml" xpointer="element(/1)" />
-  <section>
-    <title>I/O Strategies</title>
 
-    <para></para>
-  </section>
+  <xi:include href="iostrategies.xml" xpointer="element(/1)" />
 
   <section>
     <title>Transports and Connections</title>
