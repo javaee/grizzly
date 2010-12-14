@@ -93,9 +93,8 @@ final class EchoServer {
         try {
             server.run();
             System.out.println(settings.toString());
-            System.out.println("\nPress any key to stop the server...");
-            System.in.read();
-        } catch (IOException ioe) {
+            Thread.currentThread().join();
+        } catch (Exception ioe) {
             System.err.println(ioe);
             System.exit(1);
         } finally {
