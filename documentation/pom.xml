@@ -78,7 +78,7 @@
                         </goals>
                         <configuration>
                             <!-- Any parameters specific to the PDF version go here -->
-                            <imgSrcPath>file:///${basedir}/src/docbkx/images</imgSrcPath>
+                            <imgSrcPath>file:///${basedir}/src/docbkx/</imgSrcPath>
                         </configuration>
                         <phase>install</phase>
                     </execution>
@@ -94,6 +94,7 @@
                                     <fileset dir="src/docbkx/images" excludes="**/*.svg"/>
                                 </copy>
                             </preProcess>
+                            <imgSrcPath>images/</imgSrcPath>
                             <!-- Any parameters specific to HTML version go here -->
                         </configuration>
                         <phase>install</phase>
