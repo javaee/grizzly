@@ -46,27 +46,26 @@ import java.util.*;
 /**
  * An internationalization / localization helper class which reduces
  * the bother of handling ResourceBundles and takes care of the
- * common cases of message formating which otherwise require the
+ * common cases of message formatting which otherwise require the
  * creation of Object arrays and such.
- *
+ * <p/>
  * <p>The StringManager operates on a package basis. One StringManager
  * per package can be created and accessed via the getManager method
  * call.
- *
+ * <p/>
  * <p>The StringManager will look for a ResourceBundle named by
  * the package name given plus the suffix of "LocalStrings". In
  * practice, this means that the localized information will be contained
  * in a LocalStrings.properties file located in the package
  * directory of the classpath.
- *
+ * <p/>
  * <p>Please see the documentation for java.util.ResourceBundle for
  * more information.
- *
- * @version $Revision: 1.2 $ $Date: 2005/12/08 01:29:37 $
  *
  * @author James Duncan Davidson [duncan@eng.sun.com]
  * @author James Todd [gonzo@eng.sun.com]
  * @author Mel Martinez [mmartinez@g1440.com]
+ * @version $Revision: 1.2 $ $Date: 2005/12/08 01:29:37 $
  * @see java.util.ResourceBundle
  */
 
@@ -88,56 +87,55 @@ public class StringManager {
      */
 
     private StringManager(String packageName) {
-	this( packageName, Locale.getDefault() );
+        this(packageName, Locale.getDefault());
     }
 
-    private StringManager(String packageName,Locale loc) {
+    private StringManager(String packageName, Locale loc) {
         String bundleName = packageName + ".LocalStrings";
         try {
-            bundle = ResourceBundle.getBundle(bundleName,loc);
-        } catch( MissingResourceException ex ) {
-            bundle= ResourceBundle.getBundle( bundleName, Locale.US, Thread.currentThread().getContextClassLoader()); 
+            bundle = ResourceBundle.getBundle(bundleName, loc);
+        } catch (MissingResourceException ex) {
+            bundle = ResourceBundle.getBundle(bundleName, Locale.US, Thread.currentThread().getContextClassLoader());
         }
     }
 
-    private StringManager(ResourceBundle bundle )
-    {
-	this.bundle=bundle;
+    private StringManager(ResourceBundle bundle) {
+        this.bundle = bundle;
     }
 
     /**
-        Get a string from the underlying resource bundle or return
-        null if the String is not found.
-     
-        @param key to desired resource String
-        @return resource String matching <i>key</i> from underlying
-                bundle or null if not found.
-        @throws IllegalArgumentException if <i>key</i> is null.        
+     * Get a string from the underlying resource bundle or return
+     * null if the String is not found.
+     *
+     * @param key to desired resource String
+     * @return resource String matching <i>key</i> from underlying
+     *         bundle or null if not found.
+     * @throws IllegalArgumentException if <i>key</i> is null.
      */
 
     public String getString(String key) {
-        if(key == null){
+        if (key == null) {
             String msg = "key may not have a null value";
 
             throw new IllegalArgumentException(msg);
         }
 
-        String str = null;
+        String str;
 
-        try{
-	        str = bundle.getString(key);
-        }catch(MissingResourceException mre){
+        try {
+            str = bundle.getString(key);
+        } catch (MissingResourceException mre) {
             //bad: shouldn't mask an exception the following way:
             //   str = "[cannot find message associated with key '" + key + "' due to " + mre + "]";
-	        //     because it hides the fact that the String was missing
-	        //     from the calling code.
-	        //good: could just throw the exception (or wrap it in another)
-	        //      but that would probably cause much havoc on existing
-	        //      code.
-	        //better: consistent with container pattern to
-	        //      simply return null.  Calling code can then do
-	        //      a null check.
-	        str = null;
+            //     because it hides the fact that the String was missing
+            //     from the calling code.
+            //good: could just throw the exception (or wrap it in another)
+            //      but that would probably cause much havoc on existing
+            //      code.
+            //better: consistent with container pattern to
+            //      simply return null.  Calling code can then do
+            //      a null check.
+            str = null;
         }
 
         return str;
@@ -152,7 +150,7 @@ public class StringManager {
      */
 
     public String getString(String key, Object[] args) {
-        String iString = null;
+        String iString;
         String value = getString(key);
 
         // this check for the runtime exception is some pre 1.1.6
@@ -161,20 +159,20 @@ public class StringManager {
 
         try {
             // ensure the arguments are not null so pre 1.2 VM's don't barf
-            if(args==null){
+            if (args == null) {
                 args = new Object[1];
             }
-            
+
             Object[] nonNullArgs = args;
-            for (int i=0; i<args.length; i++) {
+            for (int i = 0; i < args.length; i++) {
                 if (args[i] == null) {
-                    if (nonNullArgs==args){
-                        nonNullArgs=(Object[])args.clone();
+                    if (nonNullArgs == args) {
+                        nonNullArgs = args.clone();
                     }
                     nonNullArgs[i] = "null";
                 }
             }
-            if( value==null ) value=key;
+            if (value == null) value = key;
             iString = MessageFormat.format(value, nonNullArgs);
         } catch (IllegalArgumentException iae) {
             StringBuilder buf = new StringBuilder();
@@ -197,8 +195,8 @@ public class StringManager {
      */
 
     public String getString(String key, Object arg) {
-	Object[] args = new Object[] {arg};
-	return getString(key, args);
+        Object[] args = new Object[]{arg};
+        return getString(key, args);
     }
 
     /**
@@ -212,10 +210,10 @@ public class StringManager {
      */
 
     public String getString(String key, Object arg1, Object arg2) {
-	Object[] args = new Object[] {arg1, arg2};
-	return getString(key, args);
+        Object[] args = new Object[]{arg1, arg2};
+        return getString(key, args);
     }
-    
+
     /**
      * Get a string from the underlying resource bundle and format it
      * with the given object arguments. These arguments can of course
@@ -228,9 +226,9 @@ public class StringManager {
      */
 
     public String getString(String key, Object arg1, Object arg2,
-			    Object arg3) {
-	Object[] args = new Object[] {arg1, arg2, arg3};
-	return getString(key, args);
+                            Object arg3) {
+        Object[] args = new Object[]{arg1, arg2, arg3};
+        return getString(key, args);
     }
 
     /**
@@ -246,15 +244,16 @@ public class StringManager {
      */
 
     public String getString(String key, Object arg1, Object arg2,
-			    Object arg3, Object arg4) {
-	Object[] args = new Object[] {arg1, arg2, arg3, arg4};
-	return getString(key, args);
+                            Object arg3, Object arg4) {
+        Object[] args = new Object[]{arg1, arg2, arg3, arg4};
+        return getString(key, args);
     }
     // --------------------------------------------------------------
     // STATIC SUPPORT METHODS
     // --------------------------------------------------------------
 
-    private static Hashtable managers = new Hashtable();
+    private static Hashtable<String,StringManager> managers =
+            new Hashtable<String,StringManager>();
 
     /**
      * Get the StringManager for a particular package. If a manager for
@@ -265,12 +264,12 @@ public class StringManager {
      */
 
     public synchronized static StringManager getManager(String packageName) {
-      StringManager mgr = (StringManager)managers.get(packageName);
-      if (mgr == null) {
-          mgr = new StringManager(packageName);
-          managers.put(packageName, mgr);
-      }
-      return mgr;
+        StringManager mgr = managers.get(packageName);
+        if (mgr == null) {
+            mgr = new StringManager(packageName);
+            managers.put(packageName, mgr);
+        }
+        return mgr;
     }
 
     /**
@@ -281,7 +280,7 @@ public class StringManager {
      * @param bundle
      */
     public synchronized static StringManager getManager(ResourceBundle bundle) {
-      return new StringManager( bundle );
+        return new StringManager(bundle);
     }
 
     /**
@@ -289,17 +288,16 @@ public class StringManager {
      * a package already exists, it will be reused, else a new
      * StringManager will be created for that Locale and returned.
      *
-     *
      * @param packageName
      */
 
-   public synchronized static StringManager getManager(String packageName,Locale loc) {
-      StringManager mgr = (StringManager)managers.get(packageName+"_"+loc.toString());
-      if (mgr == null) {
-          mgr = new StringManager(packageName,loc);
-          managers.put(packageName+"_"+loc.toString(), mgr);
-      }
-      return mgr;
+    public synchronized static StringManager getManager(String packageName, Locale loc) {
+        StringManager mgr = managers.get(packageName + "_" + loc.toString());
+        if (mgr == null) {
+            mgr = new StringManager(packageName, loc);
+            managers.put(packageName + "_" + loc.toString(), mgr);
+        }
+        return mgr;
     }
 
 }
