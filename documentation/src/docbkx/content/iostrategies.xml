@@ -1,103 +1,138 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
-"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
-<section version="5.0" xmlns="http://docbook.org/ns/docbook">
+<section version="5.0" xmlns="http://docbook.org/ns/docbook"
+         xmlns:xlink="http://www.w3.org/1999/xlink"
+         xmlns:xi="http://www.w3.org/2001/XInclude"
+         xmlns:svg="http://www.w3.org/2000/svg"
+         xmlns:m="http://www.w3.org/1998/Math/MathML"
+         xmlns:html="http://www.w3.org/1999/xhtml"
+         xmlns:db="http://docbook.org/ns/docbook">
   <title>I/O Strategies</title>
 
-  <para>When working with NIO, the natural question we ask is how we're going to process particullar
-    NIO event, which occur on NIO channel. Usually we have two options: process NIO event in the
-    current (Selector) thread or pass it to the worker thread for processing.</para>
-  <para>
-    <orderedlist>
+  <para>When working with NIO, the natural question we ask is how we're going
+  to process particullar NIO event, which occur on NIO channel. Usually we
+  have two options: process NIO event in the current (Selector) thread or pass
+  it to the worker thread for processing.</para>
+
+  <para><orderedlist>
       <listitem>
         <para><emphasis role="bold">Worker-thread strategy</emphasis>.</para>
-        <para>The most useful strategy, where Selector thread delegates NIO events processing to a
-          worker threads.</para>
+
+        <para>The most useful strategy, where Selector thread delegates NIO
+        events processing to a worker threads.</para>
+
         <para><inlinemediaobject>
             <imageobject>
-              <imagedata fileref="../images/coreframework/workerthread-strategy.gif"/>
+              <imagedata fileref="../images/coreframework/workerthread-strategy.gif"></imagedata>
             </imageobject>
           </inlinemediaobject></para>
-        <para>This strategy is very scalable and safe. We can change the size of selector and worker
-          thread pool as required and there is no risk, that some problem, which occur during the
-          specific NIO event processing will impact other Channels, registered on the same
-          Selector.</para>
+
+        <para>This strategy is very scalable and safe. We can change the size
+        of selector and worker thread pool as required and there is no risk,
+        that some problem, which occur during the specific NIO event
+        processing will impact other Channels, registered on the same
+        Selector.</para>
       </listitem>
+
       <listitem>
         <para><emphasis role="bold">Same-thread strategy</emphasis>.</para>
-        <para>Potentially most efficient strategy. Unlike worker-thread strategy, same-thread
-          strategy processes the NIO events in the current thread, avoiding expensive* thread
-          context switch.</para>
+
+        <para>Potentially most efficient strategy. Unlike worker-thread
+        strategy, same-thread strategy processes the NIO events in the current
+        thread, avoiding expensive* thread context switch.</para>
+
         <para><inlinemediaobject>
             <imageobject>
-              <imagedata fileref="../images/coreframework/samethread-strategy.gif"/>
+              <imagedata fileref="../images/coreframework/samethread-strategy.gif"></imagedata>
             </imageobject>
           </inlinemediaobject></para>
-        <para>This strategy is still pretty scalable, because we can tune the selector thread pool
-          size, but is not so safe. We need to take care about every channel NIO event processing
-          and make sure we won't block or execute any long lasting operation, because we may block
-          the processing of other NIO events occurred on the same Selector.</para>
+
+        <para>This strategy is still pretty scalable, because we can tune the
+        selector thread pool size, but is not so safe. We need to take care
+        about every channel NIO event processing and make sure we won't block
+        or execute any long lasting operation, because we may block the
+        processing of other NIO events occurred on the same Selector.</para>
       </listitem>
+
       <listitem>
         <para><emphasis role="bold">Dynamic strategy</emphasis>.</para>
-        <para>As we've mentioned worker-thread and same-thread strategies have own advantages and
-          disadvantages. What if we will try to swap them smartly during runtime depending on the
-          current conditions (load, gathered statistics... etc)?</para>
+
+        <para>As we've mentioned worker-thread and same-thread strategies have
+        own advantages and disadvantages. What if we will try to swap them
+        smartly during runtime depending on the current conditions (load,
+        gathered statistics... etc)?</para>
+
         <para><inlinemediaobject>
             <imageobject>
-              <imagedata fileref="../images/coreframework/dynamic-strategy.gif"/>
+              <imagedata fileref="../images/coreframework/dynamic-strategy.gif"></imagedata>
             </imageobject>
           </inlinemediaobject></para>
-        <para>Potentially this strategy could bring a lot of benefit and let us control the
-          resources finer. Good point here is to not overload the condition evaluation logic, so its
-          complexity will make this strategy inefficient comparing to previous two
-          strategies.</para>
+
+        <para>Potentially this strategy could bring a lot of benefit and let
+        us control the resources finer. Good point here is to not overload the
+        condition evaluation logic, so its complexity will make this strategy
+        inefficient comparing to previous two strategies.</para>
       </listitem>
+
       <listitem>
-        <para><emphasis role="bold">Leader-follower strategy</emphasis>.</para>
-        <para>This strategy is mentioned here as one more possible option, when processing NIO
-          events. Besides that, as far as we know, this strategy is used by Tomcat.</para>
+        <para><emphasis role="bold">Leader-follower
+        strategy</emphasis>.</para>
+
+        <para>This strategy is mentioned here as one more possible option,
+        when processing NIO events. Besides that, as far as we know, this
+        strategy is used by Tomcat.</para>
+
         <para><inlinemediaobject>
             <imageobject>
-              <imagedata fileref="../images/coreframework/leaderfollower-strategy.gif"/>
+              <imagedata fileref="../images/coreframework/leaderfollower-strategy.gif"></imagedata>
             </imageobject>
           </inlinemediaobject></para>
-        <para>This strategy is similar to worker-thread strategy, but instead of passing NIO event
-          processing to a worker thread, it changes worker thread to a selector thread by passing it
-          the control over Selector and the actual NIO event processing takes place in the current
-          thread.</para>
+
+        <para>This strategy is similar to worker-thread strategy, but instead
+        of passing NIO event processing to a worker thread, it changes worker
+        thread to a selector thread by passing it the control over Selector
+        and the actual NIO event processing takes place in the current
+        thread.</para>
       </listitem>
-    </orderedlist>
-  </para>
-  <para>Grizzly 2.0 provides general interface <emphasis role="italic"
-      >org.glassfish.grizzly,Strategy</emphasis><literallayout xmlns=""><emphasis xmlns="http://docbook.org/ns/docbook" role="bold"><emphasis xmlns="http://docbook.org/ns/docbook" role="italic">public interface Strategy {
-    boolean executeIoEvent(Connection connection, IOEvent ioEvent) throws IOException;
-}</emphasis></emphasis></literallayout></para>
-  <para>And the strategy implementation may decide what to do with the specific NIO event
-    processing.</para>
-  <para>Grizzly 2.0 has four predefined strategy implementations, as per list above:</para>
-  <para>
-    <orderedlist>
+    </orderedlist></para>
+
+  <para>Grizzly 2.0 provides general interface <emphasis
+  role="italic">org.glassfish.grizzly,Strategy:</emphasis></para>
+
+  <programlisting>public interface Strategy { 
+    boolean executeIoEvent(Connection connection, IOEvent ioEvent) throws IOException; 
+}</programlisting>
+
+  <para>And the strategy implementation may decide what to do with the
+  specific NIO event processing.</para>
+
+  <para>Grizzly 2.0 has four predefined strategy implementations, as per list
+  above:</para>
+
+  <para><orderedlist>
       <listitem>
-        <para><emphasis role="italic"
-            >org.glassfish.grizzly.strategies.WorkerThreadStrategy</emphasis></para>
+        <para><emphasis
+        role="italic">org.glassfish.grizzly.strategies.WorkerThreadStrategy</emphasis></para>
       </listitem>
+
       <listitem>
-        <para><emphasis role="italic"
-          >org.glassfish.grizzly.strategies.SameThreadStrategy</emphasis></para>
+        <para><emphasis
+        role="italic">org.glassfish.grizzly.strategies.SameThreadStrategy</emphasis></para>
       </listitem>
+
       <listitem>
-        <para><emphasis role="italic"
-            >org.glassfish.grizzly.strategies.SimpleDynamicThreadStrategy</emphasis></para>
+        <para><emphasis
+        role="italic">org.glassfish.grizzly.strategies.SimpleDynamicThreadStrategy</emphasis></para>
       </listitem>
+
       <listitem>
-        <para><emphasis role="italic"
-            >org.glassfish.grizzly.strategies.LeaderFollowerStrategy</emphasis></para>
+        <para><emphasis
+        role="italic">org.glassfish.grizzly.strategies.LeaderFollowerStrategy</emphasis></para>
       </listitem>
-    </orderedlist>
-  </para>
-  <para>The strategies are assigned per Transport, so it's possible to get/set the strategy using
-    Transport's <emphasis role="italic">get/setStrategy</emphasis> methods. By default we TCP and
-    UDP transports use worker-thread strategy, but in our performance tests we tend to use
-    same-thread strategy, which shows better results.</para>
+    </orderedlist></para>
+
+  <para>The strategies are assigned per Transport, so it's possible to get/set
+  the strategy using Transport's <emphasis
+  role="italic">get/setStrategy</emphasis> methods. By default we TCP and UDP
+  transports use worker-thread strategy, but in our performance tests we tend
+  to use same-thread strategy, which shows better results.</para>
 </section>
