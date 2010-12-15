@@ -89,7 +89,8 @@ public class GrizzlyInputBuffer extends Reader
      * The string manager for this package.
      */
     protected static StringManager sm =
-        StringManager.getManager("com.sun.grizzly.util.buf.res");
+        StringManager.getManager("com.sun.grizzly.util.buf.res",
+                                 GrizzlyInputBuffer.class.getClassLoader());
 
 
     // -------------------------------------------------------------- Constants

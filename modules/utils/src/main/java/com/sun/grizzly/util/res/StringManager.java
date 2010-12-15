@@ -86,16 +86,16 @@ public class StringManager {
      * @param packageName Name of package to create StringManager for.
      */
 
-    private StringManager(String packageName) {
-        this(packageName, Locale.getDefault());
+    private StringManager(String packageName, ClassLoader loader) {
+        this(packageName, Locale.getDefault(), loader);
     }
 
-    private StringManager(String packageName, Locale loc) {
+    private StringManager(String packageName, Locale loc, ClassLoader loader) {
         String bundleName = packageName + ".LocalStrings";
         try {
-            bundle = ResourceBundle.getBundle(bundleName, loc);
+            bundle = ResourceBundle.getBundle(bundleName, loc, loader);
         } catch (MissingResourceException ex) {
-            bundle = ResourceBundle.getBundle(bundleName, Locale.US, Thread.currentThread().getContextClassLoader());
+            bundle = ResourceBundle.getBundle(bundleName, Locale.US, loader);
         }
     }
 
@@ -263,10 +263,11 @@ public class StringManager {
      * @param packageName
      */
 
-    public synchronized static StringManager getManager(String packageName) {
+    public synchronized static StringManager getManager(String packageName,
+                                                        ClassLoader loader) {
         StringManager mgr = managers.get(packageName);
         if (mgr == null) {
-            mgr = new StringManager(packageName);
+            mgr = new StringManager(packageName, loader);
             managers.put(packageName, mgr);
         }
         return mgr;
@@ -291,10 +292,12 @@ public class StringManager {
      * @param packageName
      */
 
-    public synchronized static StringManager getManager(String packageName, Locale loc) {
+    public synchronized static StringManager getManager(String packageName,
+                                                        Locale loc,
+                                                        ClassLoader loader) {
         StringManager mgr = managers.get(packageName + "_" + loc.toString());
         if (mgr == null) {
-            mgr = new StringManager(packageName, loc);
+            mgr = new StringManager(packageName, loc, loader);
             managers.put(packageName + "_" + loc.toString(), mgr);
         }
         return mgr;

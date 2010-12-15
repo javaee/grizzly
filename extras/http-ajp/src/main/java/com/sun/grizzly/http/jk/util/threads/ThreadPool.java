@@ -76,7 +76,8 @@ public class ThreadPool {
 
     private static Logger log = Logger.getLogger(ThreadPool.class.getName());
     private static StringManager sm =
-            StringManager.getManager("com.sun.grizzly.http.jk.util.threads.res");
+            StringManager.getManager("com.sun.grizzly.http.jk.util.threads.res",
+                                     ThreadPool.class.getClassLoader());
     private static boolean logfull = true;
 
     /*

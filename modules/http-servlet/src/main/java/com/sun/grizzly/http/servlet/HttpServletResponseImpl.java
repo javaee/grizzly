@@ -127,7 +127,8 @@ public class HttpServletResponseImpl implements HttpServletResponse {
      * The string manager for this package.
      */
     protected static final StringManager sm =
-        StringManager.getManager(Constants.Package);
+        StringManager.getManager(Constants.Package,
+                                 Constants.class.getClassLoader());
 
 
     /**

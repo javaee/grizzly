@@ -420,7 +420,8 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * The string manager for this package.
      */
     protected static final StringManager sm =
-        StringManager.getManager(Constants.Package);
+        StringManager.getManager(Constants.Package,
+                                 Constants.class.getClassLoader());
     
     
     /**

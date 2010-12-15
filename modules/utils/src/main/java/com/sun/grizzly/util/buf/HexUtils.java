@@ -111,7 +111,8 @@ public final class HexUtils {
      * The string manager for this package.
      */
     private static StringManager sm =
-	StringManager.getManager("com.sun.grizzly.util.buf.res");
+	StringManager.getManager("com.sun.grizzly.util.buf.res",
+                             HexUtils.class.getClassLoader());
 
 
     // --------------------------------------------------------- Static Methods

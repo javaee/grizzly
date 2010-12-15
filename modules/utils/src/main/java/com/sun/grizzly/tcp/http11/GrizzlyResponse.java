@@ -143,7 +143,8 @@ public class GrizzlyResponse<A> {
      * The string manager for this package.
      */
     protected static StringManager sm =
-        StringManager.getManager(Constants.Package);
+        StringManager.getManager(Constants.Package,
+                                 Constants.class.getClassLoader());
 
 
     // ------------------------------------------------------------- Properties

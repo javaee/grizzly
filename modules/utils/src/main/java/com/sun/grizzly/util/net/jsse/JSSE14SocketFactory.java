@@ -112,7 +112,8 @@ import com.sun.grizzly.util.res.StringManager;
 public class JSSE14SocketFactory  extends JSSESocketFactory {
 
     private static StringManager sm =
-        StringManager.getManager("com.sun.grizzly.util.net.jsse.res");
+        StringManager.getManager("com.sun.grizzly.util.net.jsse.res",
+                                 JSSE14SocketFactory.class.getClassLoader());
 
     public JSSE14SocketFactory () {
     }

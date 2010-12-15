@@ -99,7 +99,8 @@ public abstract class JSSESocketFactory
     extends com.sun.grizzly.util.net.ServerSocketFactory
 {
     private static StringManager sm =
-        StringManager.getManager("com.sun.grizzly.util.net.jsse.res");
+        StringManager.getManager("com.sun.grizzly.util.net.jsse.res",
+                                 JSSESocketFactory.class.getClassLoader());
 
     // defaults
     static String defaultProtocol = "TLS";
