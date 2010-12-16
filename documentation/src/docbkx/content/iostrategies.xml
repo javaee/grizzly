@@ -130,9 +130,10 @@
       </listitem>
     </orderedlist></para>
 
-  <para>The strategies are assigned per Transport, so it's possible to get/set
-  the strategy using Transport's <emphasis
-  role="italic">get/setStrategy</emphasis> methods. By default we TCP and UDP
-  transports use worker-thread strategy, but in our performance tests we tend
-  to use same-thread strategy, which shows better results.</para>
+  <para>The strategies are assigned per Transport, so it's possible to get/set the strategy using
+    Transport's <emphasis role="italic">get/setStrategy</emphasis> methods. By default TCP and UDP
+    transports use worker-thread strategy, but in our performance tests we tend to use same-thread
+    strategy, which shows better results.</para>
+  <para><emphasis role="italic">*some OSes do a great job optimizing the thread context switches,
+      but we still suppose it as relatively expensive operation.</emphasis></para>
 </section>

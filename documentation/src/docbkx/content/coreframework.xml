@@ -53,11 +53,7 @@
 
   <xi:include href="iostrategies.xml" xpointer="element(/1)" />
 
-  <section>
-    <title>Transports and Connections</title>
-
-    <para></para>
-  </section>
+  <xi:include href="transports-connections.xml" xpointer="element(/1)" />
 
   <section>
     <title>FilterChain and Filters</title>
