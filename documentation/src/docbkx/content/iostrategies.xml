@@ -38,7 +38,11 @@
 
         <para>Potentially most efficient strategy. Unlike worker-thread
         strategy, same-thread strategy processes the NIO events in the current
-        thread, avoiding expensive* thread context switch.</para>
+        thread, avoiding expensive <footnote>
+            <para>some OSes do a great job optimizing the thread context
+            switches, but we still suppose it as relatively expensive
+            operation.</para>
+          </footnote> thread context switch.</para>
 
         <para><inlinemediaobject>
             <imageobject>
@@ -98,8 +102,9 @@
   <para>Grizzly 2.0 provides general interface <emphasis
   role="italic">org.glassfish.grizzly,Strategy:</emphasis></para>
 
-  <programlisting>public interface Strategy { 
-    boolean executeIoEvent(Connection connection, IOEvent ioEvent) throws IOException; 
+  <programlisting language="java">public interface Strategy { 
+    boolean executeIoEvent(Connection connection, IOEvent ioEvent) 
+    throws IOException; 
 }</programlisting>
 
   <para>And the strategy implementation may decide what to do with the
@@ -130,10 +135,9 @@
       </listitem>
     </orderedlist></para>
 
-  <para>The strategies are assigned per Transport, so it's possible to get/set the strategy using
-    Transport's <emphasis role="italic">get/setStrategy</emphasis> methods. By default TCP and UDP
-    transports use worker-thread strategy, but in our performance tests we tend to use same-thread
-    strategy, which shows better results.</para>
-  <para><emphasis role="italic">*some OSes do a great job optimizing the thread context switches,
-      but we still suppose it as relatively expensive operation.</emphasis></para>
+  <para>The strategies are assigned per Transport, so it's possible to get/set
+  the strategy using Transport's <emphasis
+  role="italic">get/setStrategy</emphasis> methods. By default TCP and UDP
+  transports use worker-thread strategy, but in our performance tests we tend
+  to use same-thread strategy, which shows better results.</para>
 </section>
