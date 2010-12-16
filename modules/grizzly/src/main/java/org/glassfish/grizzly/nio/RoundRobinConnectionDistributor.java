@@ -57,7 +57,7 @@ public final class RoundRobinConnectionDistributor
         extends AbstractNIOConnectionDistributor {
     private final AtomicInteger counter;
     
-    public RoundRobinConnectionDistributor(final AbstractNIOTransport transport) {
+    public RoundRobinConnectionDistributor(final NIOTransport transport) {
         super(transport);
         counter = new AtomicInteger();
     }

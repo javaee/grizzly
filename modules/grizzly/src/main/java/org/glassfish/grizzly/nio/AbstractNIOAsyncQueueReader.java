@@ -102,7 +102,7 @@ public abstract class AbstractNIOAsyncQueueReader
 
         // Get connection async read queue
         final TaskQueue<AsyncReadQueueRecord> connectionQueue =
-                ((AbstractNIOConnection) connection).getAsyncReadQueue();
+                ((NIOConnection) connection).getAsyncReadQueue();
 
 
         final ReadResult currentResult = ReadResult.create(connection,
@@ -206,7 +206,7 @@ public abstract class AbstractNIOAsyncQueueReader
     @Override
     public final boolean isReady(final Connection connection) {
         final TaskQueue connectionQueue =
-                ((AbstractNIOConnection) connection).getAsyncReadQueue();
+                ((NIOConnection) connection).getAsyncReadQueue();
 
         return connectionQueue != null
                 && (connectionQueue.getCurrentElement() != null
@@ -220,7 +220,7 @@ public abstract class AbstractNIOAsyncQueueReader
     @Override
     public void processAsync(final Connection connection) throws IOException {
         final TaskQueue<AsyncReadQueueRecord> connectionQueue =
-                ((AbstractNIOConnection) connection).getAsyncReadQueue();
+                ((NIOConnection) connection).getAsyncReadQueue();
 
         final Queue<AsyncReadQueueRecord> queue = connectionQueue.getQueue();
         final AtomicReference<AsyncReadQueueRecord> currentElement =
@@ -296,8 +296,8 @@ public abstract class AbstractNIOAsyncQueueReader
      */
     @Override
     public void onClose(Connection connection) {
-        final AbstractNIOConnection nioConnection =
-                (AbstractNIOConnection) connection;
+        final NIOConnection nioConnection =
+                (NIOConnection) connection;
         final TaskQueue<AsyncReadQueueRecord> readQueue =
                 nioConnection.getAsyncReadQueue();
 

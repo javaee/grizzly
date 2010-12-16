@@ -40,27 +40,192 @@
 
 package org.glassfish.grizzly.nio;
 
-import org.glassfish.grizzly.Transport;
-
+import org.glassfish.grizzly.AbstractTransport;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.TransportProbe;
+import java.io.IOException;
+import java.nio.channels.Selector;
 
 /**
  *
  * @author oleksiys
  */
-public interface NIOTransport extends Transport {
-    public SelectionKeyHandler getSelectionKeyHandler();
+public abstract class NIOTransport extends AbstractTransport {
+    protected SelectorHandler selectorHandler;
+    protected SelectionKeyHandler selectionKeyHandler;
 
-    public void setSelectionKeyHandler(SelectionKeyHandler selectionKeyHandler);
+    protected int selectorRunnersCount;
+    
+    protected SelectorRunner[] selectorRunners;
+    
+    protected NIOChannelDistributor nioChannelDistributor;
 
-    public SelectorHandler getSelectorHandler();
+    public NIOTransport(final String name) {
+        super(name);
+    }
 
-    public void setSelectorHandler(SelectorHandler selectorHandler);
+    public SelectionKeyHandler getSelectionKeyHandler() {
+        return selectionKeyHandler;
+    }
 
-    public int getSelectorRunnersCount();
+    public void setSelectionKeyHandler(final SelectionKeyHandler selectionKeyHandler) {
+        this.selectionKeyHandler = selectionKeyHandler;
+        notifyProbesConfigChanged(this);
+    }
 
-    public void setSelectorRunnersCount(int selectorRunnersCount);
+    public SelectorHandler getSelectorHandler() {
+        return selectorHandler;
+    }
 
-    public NIOChannelDistributor getNioChannelDistributor();
+    public void setSelectorHandler(final SelectorHandler selectorHandler) {
+        this.selectorHandler = selectorHandler;
+        notifyProbesConfigChanged(this);
+    }
 
-    public void setNioChannelDistributor(NIOChannelDistributor nioChannelDistributor);
+    public int getSelectorRunnersCount() {
+        return selectorRunnersCount;
+    }
+
+    public void setSelectorRunnersCount(final int selectorRunnersCount) {
+        this.selectorRunnersCount = selectorRunnersCount;
+        notifyProbesConfigChanged(this);
+    }
+
+    
+    protected synchronized void startSelectorRunners() throws IOException {
+        selectorRunners = new SelectorRunner[selectorRunnersCount];
+        
+        for (int i = 0; i < selectorRunnersCount; i++) {
+            SelectorRunner runner =
+                    new SelectorRunner(this, SelectorFactory.instance().create());
+            runner.start();
+            selectorRunners[i] = runner;
+        }
+    }
+    
+    protected synchronized void stopSelectorRunners() throws IOException {
+        if (selectorRunners == null) {
+            return;
+        }
+
+        for (int i = 0; i < selectorRunners.length; i++) {
+            SelectorRunner runner = selectorRunners[i];
+            if (runner != null) {
+                runner.stop();
+                selectorRunners[i] = null;
+
+                Selector selector = runner.getSelector();
+                if (selector != null) {
+                    try {
+                        selector.close();
+                    } catch (IOException ignored) {
+                    }
+                }
+            }
+        }
+
+        selectorRunners = null;
+    }
+
+    public NIOChannelDistributor getNioChannelDistributor() {
+        return nioChannelDistributor;
+    }
+
+    public void setNioChannelDistributor(final NIOChannelDistributor
+            nioChannelDistributor) {
+        this.nioChannelDistributor = nioChannelDistributor;
+        notifyProbesConfigChanged(this);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void notifyTransportError(final Throwable error) {
+        notifyProbesError(this, error);
+    }
+
+    protected SelectorRunner[] getSelectorRunners() {
+        return selectorRunners;
+    }
+
+    /**
+     * Notify registered {@link TransportProbe}s about the error.
+     *
+     * @param transport the <tt>Transport</tt> event occurred on.
+     */
+    protected static void notifyProbesError(final NIOTransport transport,
+            final Throwable error) {
+        final TransportProbe[] probes =
+                transport.transportMonitoringConfig.getProbesUnsafe();
+        if (probes != null) {
+            for (TransportProbe probe : probes) {
+                probe.onErrorEvent(transport, error);
+            }
+        }
+    }
+
+    /**
+     * Notify registered {@link TransportProbe}s about the start event.
+     *
+     * @param transport the <tt>Transport</tt> event occurred on.
+     */
+    protected static void notifyProbesStart(final NIOTransport transport) {
+        final TransportProbe[] probes =
+                transport.transportMonitoringConfig.getProbesUnsafe();
+        if (probes != null) {
+            for (TransportProbe probe : probes) {
+                probe.onStartEvent(transport);
+            }
+        }
+    }
+    
+    /**
+     * Notify registered {@link TransportProbe}s about the stop event.
+     *
+     * @param transport the <tt>Transport</tt> event occurred on.
+     */
+    protected static void notifyProbesStop(final NIOTransport transport) {
+        final TransportProbe[] probes =
+                transport.transportMonitoringConfig.getProbesUnsafe();
+        if (probes != null) {
+            for (TransportProbe probe : probes) {
+                probe.onStopEvent(transport);
+            }
+        }
+    }
+
+    /**
+     * Notify registered {@link TransportProbe}s about the pause event.
+     *
+     * @param transport the <tt>Transport</tt> event occurred on.
+     */
+    protected static void notifyProbesPause(final NIOTransport transport) {
+        final TransportProbe[] probes =
+                transport.transportMonitoringConfig.getProbesUnsafe();
+        if (probes != null) {
+            for (TransportProbe probe : probes) {
+                probe.onPauseEvent(transport);
+            }
+        }
+    }
+
+    /**
+     * Notify registered {@link TransportProbe}s about the resume event.
+     *
+     * @param transport the <tt>Transport</tt> event occurred on.
+     */
+    protected static void notifyProbesResume(final NIOTransport transport) {
+        final TransportProbe[] probes =
+                transport.transportMonitoringConfig.getProbesUnsafe();
+        if (probes != null) {
+            for (TransportProbe probe : probes) {
+                probe.onResumeEvent(transport);
+            }
+        }
+    }
+
+    @Override
+    protected abstract void closeConnection(Connection connection)
+            throws IOException;
 }

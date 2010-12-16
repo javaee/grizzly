@@ -42,7 +42,7 @@ package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ConnectionProbe;
-import org.glassfish.grizzly.nio.AbstractNIOConnection;
+import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.nio.SelectorRunner;
 import java.io.IOException;
@@ -64,7 +64,7 @@ import java.util.concurrent.Callable;
  *
  * @author Alexey Stashok
  */
-public class TCPNIOConnection extends AbstractNIOConnection {
+public class TCPNIOConnection extends NIOConnection {
     private static final Logger LOGGER = Grizzly.logger(TCPNIOConnection.class);
 
     private SocketAddress localSocketAddress;

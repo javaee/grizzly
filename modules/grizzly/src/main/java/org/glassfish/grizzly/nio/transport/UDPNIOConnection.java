@@ -40,7 +40,7 @@
 package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.nio.AbstractNIOConnection;
+import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.nio.SelectorRunner;
 import java.io.IOException;
@@ -62,7 +62,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author Alexey Stashok
  */
-public class UDPNIOConnection extends AbstractNIOConnection {
+public class UDPNIOConnection extends NIOConnection {
 
     private static final Logger LOGGER = Grizzly.logger(UDPNIOConnection.class);
     private SocketAddress localSocketAddress;

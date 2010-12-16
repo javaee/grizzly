@@ -47,7 +47,7 @@ import org.glassfish.grizzly.nio.RegisterChannelResult;
 import org.glassfish.grizzly.nio.RoundRobinConnectionDistributor;
 import org.glassfish.grizzly.nio.DefaultSelectorHandler;
 import org.glassfish.grizzly.nio.DefaultSelectionKeyHandler;
-import org.glassfish.grizzly.nio.AbstractNIOTransport;
+import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueEnabledTransport;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
@@ -106,7 +106,7 @@ import org.glassfish.grizzly.memory.ByteBufferArray;
  * @author Alexey Stashok
  * @author Jean-Francois Arcand
  */
-public final class TCPNIOTransport extends AbstractNIOTransport implements
+public final class TCPNIOTransport extends NIOTransport implements
         SocketBinder, AsyncQueueEnabledTransport, FilterChainEnabledTransport,
         TemporarySelectorsEnabledTransport {
 

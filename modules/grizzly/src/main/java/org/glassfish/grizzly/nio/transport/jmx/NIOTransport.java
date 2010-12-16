@@ -49,7 +49,6 @@ import org.glassfish.grizzly.TransportProbe;
 import org.glassfish.grizzly.monitoring.jmx.GrizzlyJmxManager;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.nio.AbstractNIOTransport;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.utils.LinkedTransferQueue;
 import java.util.Date;
@@ -72,7 +71,7 @@ import org.glassfish.gmbal.NameValue;
 @ManagedObject
 @Description("Grizzly NIO Transport")
 public class NIOTransport extends JmxObject {
-    protected final AbstractNIOTransport transport;
+    protected final org.glassfish.grizzly.nio.NIOTransport transport;
     private final JmxTransportProbe probe;
     private final JmxConnectionProbe connectionProbe;
 
@@ -101,7 +100,7 @@ public class NIOTransport extends JmxObject {
 
     private final Object subtreeLock = new Object();
 
-    public NIOTransport(AbstractNIOTransport transport) {
+    public NIOTransport(org.glassfish.grizzly.nio.NIOTransport transport) {
         this.transport = transport;
         probe = new JmxTransportProbe();
         connectionProbe = new JmxConnectionProbe();

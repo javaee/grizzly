@@ -51,9 +51,9 @@ import java.nio.channels.SelectableChannel;
 public abstract class AbstractNIOConnectionDistributor 
         implements NIOChannelDistributor {
     
-    protected final AbstractNIOTransport transport;
+    protected final NIOTransport transport;
 
-    public AbstractNIOConnectionDistributor(final AbstractNIOTransport transport) {
+    public AbstractNIOConnectionDistributor(final NIOTransport transport) {
         this.transport = transport;
     }
 

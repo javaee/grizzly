@@ -40,7 +40,7 @@
 package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.nio.AbstractNIOTransport;
+import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.Connection;
 import java.io.IOException;
 import java.net.DatagramSocket;
@@ -98,7 +98,7 @@ import org.glassfish.grizzly.memory.ByteBufferArray;
  * 
  * @author Alexey Stashok
  */
-public final class UDPNIOTransport extends AbstractNIOTransport
+public final class UDPNIOTransport extends NIOTransport
         implements SocketBinder, AsyncQueueEnabledTransport,
         FilterChainEnabledTransport, TemporarySelectorsEnabledTransport {
 

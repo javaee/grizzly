@@ -95,7 +95,7 @@ public abstract class AbstractNIOAsyncQueueWriter
     @Override
     public boolean canWrite(Connection connection, int size) {
         final TaskQueue<AsyncWriteQueueRecord> connectionQueue =
-                ((AbstractNIOConnection) connection).getAsyncWriteQueue();
+                ((NIOConnection) connection).getAsyncWriteQueue();
         return connectionQueue.spaceInBytes() + size < maxPendingBytes;
     }
 
@@ -146,7 +146,7 @@ public abstract class AbstractNIOAsyncQueueWriter
 
         // Get connection async write queue
         final TaskQueue<AsyncWriteQueueRecord> connectionQueue =
-                ((AbstractNIOConnection) connection).getAsyncWriteQueue();
+                ((NIOConnection) connection).getAsyncWriteQueue();
 
 
         final WriteResult currentResult = WriteResult.create(connection,
@@ -307,7 +307,7 @@ public abstract class AbstractNIOAsyncQueueWriter
     @Override
     public final boolean isReady(Connection connection) {
         TaskQueue connectionQueue =
-                ((AbstractNIOConnection) connection).getAsyncWriteQueue();
+                ((NIOConnection) connection).getAsyncWriteQueue();
 
         return connectionQueue != null &&
                 (connectionQueue.getCurrentElement() != null ||
@@ -323,7 +323,7 @@ public abstract class AbstractNIOAsyncQueueWriter
         final boolean isLogFine = logger.isLoggable(Level.FINEST);
         
         final TaskQueue<AsyncWriteQueueRecord> connectionQueue =
-                ((AbstractNIOConnection) connection).getAsyncWriteQueue();
+                ((NIOConnection) connection).getAsyncWriteQueue();
 
         final Queue<AsyncWriteQueueRecord> queue = connectionQueue.getQueue();
         final AtomicReference<AsyncWriteQueueRecord> currentElement =
@@ -410,8 +410,8 @@ public abstract class AbstractNIOAsyncQueueWriter
      */
     @Override
     public void onClose(Connection connection) {
-        final AbstractNIOConnection nioConnection =
-                (AbstractNIOConnection) connection;
+        final NIOConnection nioConnection =
+                (NIOConnection) connection;
         final TaskQueue<AsyncWriteQueueRecord> writeQueue =
                 nioConnection.getAsyncWriteQueue();
         if (writeQueue != null) {
