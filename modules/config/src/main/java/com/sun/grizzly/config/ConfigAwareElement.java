@@ -40,6 +40,7 @@
 
 package com.sun.grizzly.config;
 
+import org.jvnet.hk2.component.Habitat;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 
 /**
@@ -49,5 +50,5 @@ import org.jvnet.hk2.config.ConfigBeanProxy;
  * @author Alexey Stashok
  */
 public interface ConfigAwareElement<E extends ConfigBeanProxy> {
-    public void configure(E configuration);
+    public void configure(Habitat habitat, E configuration);
 }

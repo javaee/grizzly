@@ -54,6 +54,8 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Enumeration;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Created Dec 18, 2008
@@ -143,6 +145,39 @@ public class Utils {
         return networkListener.getThreadPool() + "-" + networkListener.getPort();
     }
 
+    /**
+     * Load {@link AsyncFilter} with the specific service name and classname.
+     * 
+     * @param habitat
+     * @param name
+     * @param realClassName
+     * @return
+     */
+    public static <E> E newInstance(Habitat habitat, Class<E> clazz,
+            final String name, final String realClassName) {
+        boolean isInitialized = false;
+
+        E instance = habitat.getComponent(clazz, name);
+        if (instance == null) {
+            try {
+                instance = (E) newInstance(realClassName);
+                isInitialized = true;
+            } catch (Exception e) {
+            }
+        } else {
+            isInitialized = true;
+        }
+
+        if (!isInitialized) {
+            GrizzlyEmbeddedHttp.logger().log(Level.WARNING, "Instance could not be initialized. "
+                    + "Class={0}, name={1}, realClassName={2}",
+                    new Object[]{clazz, name, realClassName});
+            return null;
+        }
+
+        return instance;
+    }
+    
     public static Object newInstance(String classname) throws Exception {
         return loadClass(classname).newInstance();
     }

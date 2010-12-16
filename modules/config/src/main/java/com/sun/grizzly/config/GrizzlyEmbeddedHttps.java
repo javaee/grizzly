@@ -86,7 +86,7 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
                 ssl = (Ssl) DefaultProxy.createDummyProxy(protocol, Ssl.class);
             }
             try {
-                sslConfigHolder = new SSLConfigHolder(ssl);
+                sslConfigHolder = new SSLConfigHolder(habitat, ssl);
             } catch (SSLException e) {
                 throw new IllegalStateException(e);
             }

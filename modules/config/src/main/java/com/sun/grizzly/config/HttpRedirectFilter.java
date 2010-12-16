@@ -50,6 +50,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
 import javax.net.ssl.SSLEngine;
+import org.jvnet.hk2.component.Habitat;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 
 /**
@@ -129,7 +130,7 @@ public class HttpRedirectFilter implements ProtocolFilter,
      *
      * @param configuration filter configuration
      */
-    public void configure(ConfigBeanProxy configuration) {
+    public void configure(Habitat habitat, ConfigBeanProxy configuration) {
         if (configuration instanceof HttpRedirect) {
             final HttpRedirect httpRedirectConfig = (HttpRedirect) configuration;
             int port = Integer.parseInt(httpRedirectConfig.getPort());

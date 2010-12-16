@@ -327,7 +327,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             if (puFilterClassname != null) {
                 try {
                     puFilter = (PUReadFilter) newInstance(puFilterClassname);
-                    configureElement(puFilter, pu);
+                    configureElement(habitat, puFilter, pu);
                 } catch (Exception e) {
                     logger.log(Level.WARNING, "Can not initialize port unification filter: " +
                             puFilterClassname + " default filter will be used instead", e);
@@ -337,7 +337,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                 String finderClassname = finderConfig.getClassname();
                 try {
                     ProtocolFinder protocolFinder = (ProtocolFinder) newInstance(finderClassname);
-                    configureElement(protocolFinder, finderConfig);
+                    configureElement(habitat, protocolFinder, finderConfig);
                     Protocol subProtocol = finderConfig.findProtocol();
                     ProtocolChainInstanceHandler protocolChain = configureProtocol(networkListener, subProtocol,
                             habitat, mayEnableAsync);
@@ -370,8 +370,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             configurePortUnification();
         } else if (protocol.getHttpRedirect() != null) {
             HttpRedirectFilter filter = new HttpRedirectFilter();
-            filter.configure(protocol.getHttpRedirect());
-            ProtocolChain protocolChain = createProtocolChain(null);
+            filter.configure(habitat, protocol.getHttpRedirect());
+            ProtocolChain protocolChain = createProtocolChain(habitat, null);
             protocolChain.addFilter(filter);
             return createProtocolChainInstanceHandler(protocolChain);
         } else {
@@ -383,13 +383,13 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             }
 
             com.sun.grizzly.config.dom.ProtocolChain protocolChainConfig = pcihConfig.getProtocolChain();
-            ProtocolChain protocolChain = createProtocolChain(protocolChainConfig);
+            ProtocolChain protocolChain = createProtocolChain(habitat, protocolChainConfig);
             for (com.sun.grizzly.config.dom.ProtocolFilter protocolFilterConfig : protocolChainConfig
                     .getProtocolFilter()) {
                 String filterClassname = protocolFilterConfig.getClassname();
                 try {
                     ProtocolFilter filter = (ProtocolFilter) newInstance(filterClassname);
-                    configureElement(filter, protocolFilterConfig);
+                    configureElement(habitat, filter, protocolFilterConfig);
                     protocolChain.addFilter(filter);
                 } catch (Exception e) {
                     logger.log(Level.WARNING, "Can not initialize protocol filter: " +
@@ -471,26 +471,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
      */
     private static AsyncFilter loadAsyncFilter(Habitat habitat, final String name,
             final String asyncFilterClassName) {
-        boolean isInitialized = false;
 
-        AsyncFilter filter = habitat.getComponent(AsyncFilter.class, name);
-        if (filter == null) {
-            try {
-                filter = (AsyncFilter) newInstance(asyncFilterClassName);
-                isInitialized = true;
-            } catch (Exception e) {
-            }
-        } else {
-            isInitialized = true;
-        }
-
-        if (!isInitialized) {
-            logger.log(Level.WARNING, "AsyncFilter \"{0}\" was not initialized",
-                    asyncFilterClassName);
-            return null;
-        }
-
-        return filter;
+        return Utils.newInstance(habitat, AsyncFilter.class, name, asyncFilterClassName);
     }
 
     private void addAsyncFilter(final AsyncFilter asyncFilter) {
@@ -508,7 +490,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
      * @return a new {@link ProtocolChain} based on the provided
      *         <code>protocolChainConfig</code> data
      */
-    private ProtocolChain createProtocolChain(com.sun.grizzly.config.dom.ProtocolChain protocolChainConfig) {
+    private ProtocolChain createProtocolChain(Habitat habitat,
+            com.sun.grizzly.config.dom.ProtocolChain protocolChainConfig) {
         if (protocolChainConfig == null) {
             return new DefaultProtocolChain();
         }
@@ -517,7 +500,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         if (protocolChainClassname != null) {
             try {
                 protocolChain = (ProtocolChain) newInstance(protocolChainClassname);
-                configureElement(protocolChain, protocolChainConfig);
+                configureElement(habitat, protocolChain, protocolChainConfig);
             } catch (Exception e) {
                 logger.log(Level.WARNING, "Can not initialize protocol chain: " +
                         protocolChainClassname + ". Default one will be used", e);
@@ -688,10 +671,10 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     }
 
     @SuppressWarnings({"unchecked"})
-    private static void configureElement(Object instance,
+    private static void configureElement(Habitat habitat, Object instance,
             ConfigBeanProxy configuration) {
         if (instance instanceof ConfigAwareElement) {
-            ((ConfigAwareElement) instance).configure(configuration);
+            ((ConfigAwareElement) instance).configure(habitat, configuration);
         }
     }
 }

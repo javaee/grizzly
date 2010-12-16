@@ -60,6 +60,7 @@ import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLException;
+import org.jvnet.hk2.component.Habitat;
 
 /**
  *
@@ -78,7 +79,7 @@ public class HttpProtocolFinder extends com.sun.grizzly.http.portunif.HttpProtoc
 
     private final AtomicBoolean isConfigured = new AtomicBoolean();
 
-    public void configure(ProtocolFinder configuration) {
+    public void configure(Habitat habitat, ProtocolFinder configuration) {
         Protocol protocol = configuration.findProtocol();
         isSecured = Boolean.parseBoolean(protocol.getSecurityEnabled());
 
@@ -86,7 +87,7 @@ public class HttpProtocolFinder extends com.sun.grizzly.http.portunif.HttpProtoc
             ssl = protocol.getSsl();
 
             try {
-                sslConfigHolder = new SSLConfigHolder(ssl);
+                sslConfigHolder = new SSLConfigHolder(habitat, ssl);
             } catch (SSLException e) {
                 throw new IllegalStateException(e);
             }

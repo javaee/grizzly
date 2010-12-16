@@ -62,6 +62,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLServerSocketFactory;
+import org.jvnet.hk2.component.Habitat;
 
 /**
  *
@@ -111,9 +112,9 @@ public class SSLConfigHolder {
      */
     private final Ssl ssl;
 
-    public SSLConfigHolder(final Ssl ssl) throws SSLException {
+    public SSLConfigHolder(final Habitat habitat, final Ssl ssl) throws SSLException {
         this.ssl = ssl;
-        sslImplementation = lookupSSLImplementation(ssl);
+        sslImplementation = lookupSSLImplementation(habitat, ssl);
 
         if (sslImplementation == null) {
             throw new SSLException("Can not configure SSLImplementation");
@@ -399,38 +400,21 @@ public class SSLConfigHolder {
         return null;
     }
 
-    private static SSLImplementation lookupSSLImplementation(Ssl ssl) {
+    private static SSLImplementation lookupSSLImplementation(
+            final Habitat habitat, final Ssl ssl) {
+        
         try {
             final String sslImplClassName = ssl.getClassname();
             if (sslImplClassName != null) {
-                try {
-                    Class clazz;
-                    ClassLoader cl = getContextClassLoader();
-                    if (cl != null) {
-                        try {
-                            clazz = Class.forName(sslImplClassName, false, cl);
-                        } catch (ClassNotFoundException ex) {
-                            clazz = Class.forName(sslImplClassName);
-                        }
-                    } else {
-                        clazz = Class.forName(sslImplClassName);
-                    }
+                final SSLImplementation impl = Utils.newInstance(habitat,
+                        SSLImplementation.class,
+                        sslImplClassName, sslImplClassName);
 
-                    SSLImplementation impl = (SSLImplementation) clazz.newInstance();
-
-                    if (impl != null) {
-                        return impl;
-                    } else {
-                        if (LOGGER.isLoggable(Level.WARNING)) {
-                            LOGGER.warning(LogMessages.WARNING_GRIZZLY_CONFIG_SSL_SSL_IMPLEMENTATION_LOAD_ERROR(sslImplClassName));
-                        }
-                        return SSLImplementation.getInstance();
-                    }
-                } catch (Exception e) {
-                    if (LOGGER.isLoggable(Level.SEVERE)) {
-                        LOGGER.log(Level.SEVERE,
-                                   LogMessages.SEVERE_GRIZZLY_CONFIG_SSL_CLASS_LOAD_FAILED_ERROR(sslImplClassName),
-                                   e);
+                if (impl != null) {
+                    return impl;
+                } else {
+                    if (LOGGER.isLoggable(Level.WARNING)) {
+                        LOGGER.warning(LogMessages.WARNING_GRIZZLY_CONFIG_SSL_SSL_IMPLEMENTATION_LOAD_ERROR(sslImplClassName));
                     }
                     return SSLImplementation.getInstance();
                 }
