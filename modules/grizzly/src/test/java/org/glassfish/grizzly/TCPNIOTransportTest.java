@@ -43,7 +43,6 @@ package org.glassfish.grizzly;
 import java.nio.channels.SelectableChannel;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.nio.AbstractNIOTransport;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -66,10 +65,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.nio.AbstractNIOConnectionDistributor;
-import org.glassfish.grizzly.nio.NIOChannelDistributor;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.NIOTransport;
-import org.glassfish.grizzly.nio.RoundRobinConnectionDistributor;
 import org.glassfish.grizzly.nio.SelectorRunner;
 
 /**
@@ -637,7 +634,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
         private final AtomicInteger counter;
 
-        public CustomChannelDistributor(final AbstractNIOTransport transport) {
+        public CustomChannelDistributor(final NIOTransport transport) {
             super(transport);
             counter = new AtomicInteger();
         }

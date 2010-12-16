@@ -53,7 +53,7 @@ import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.http.server.Constants;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.nio.AbstractNIOConnection;
+import org.glassfish.grizzly.nio.NIOConnection;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -216,7 +216,7 @@ public class OutputBuffer {
 
         if (monitor != null) {
             final Connection c = ctx.getConnection();
-            final TaskQueue tqueue = ((AbstractNIOConnection) c).getAsyncWriteQueue();
+            final TaskQueue tqueue = ((NIOConnection) c).getAsyncWriteQueue();
             tqueue.removeQueueMonitor(monitor);
             monitor = null;
         }
@@ -486,7 +486,7 @@ public class OutputBuffer {
         }
         this.handler = handler;
         final Connection c = ctx.getConnection();
-        final TaskQueue taskQueue = ((AbstractNIOConnection) c).getAsyncWriteQueue();
+        final TaskQueue taskQueue = ((NIOConnection) c).getAsyncWriteQueue();
 
         final int maxBytes = asyncWriter.getMaxPendingBytesPerConnection();
         if (length > maxBytes) {

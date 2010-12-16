@@ -61,7 +61,7 @@ import org.glassfish.grizzly.http.server.io.NIOWriter;
 import org.glassfish.grizzly.http.server.io.WriteHandler;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.nio.AbstractNIOConnection;
+import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.PendingWriteQueueLimitExceededException;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import junit.framework.TestCase;
@@ -159,7 +159,7 @@ public class NIOOutputSinksTest extends TestCase {
                 }
 
                 Connection c = request.getContext().getConnection();
-                final TaskQueue tqueue = ((AbstractNIOConnection) c).getAsyncWriteQueue();
+                final TaskQueue tqueue = ((NIOConnection) c).getAsyncWriteQueue();
 
                 out.notifyCanWrite(new WriteHandler() {
                     @Override
@@ -313,7 +313,7 @@ public class NIOOutputSinksTest extends TestCase {
                 response.setContentType("text/plain");
                 final NIOWriter out = response.getWriter();
                 Connection c = request.getContext().getConnection();
-                final TaskQueue tqueue = ((AbstractNIOConnection) c).getAsyncWriteQueue();
+                final TaskQueue tqueue = ((NIOConnection) c).getAsyncWriteQueue();
 
 
                 while (!notifyCanWrite(out, tqueue, response)) {

@@ -57,7 +57,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.nio.AbstractNIOConnection;
+import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.PendingWriteQueueLimitExceededException;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.streams.StreamReader;
@@ -265,7 +265,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
                                             if (throwable instanceof PendingWriteQueueLimitExceededException) {
                                                 exceptionThrown.compareAndSet(false, true);
                                                 exceptionAtLoopCount.set(lc);
-                                                assertTrue(((AbstractNIOConnection) con).getAsyncWriteQueue().spaceInBytes() + packetSize > queueLimit);
+                                                assertTrue(((NIOConnection) con).getAsyncWriteQueue().spaceInBytes() + packetSize > queueLimit);
                                             }
                                             failed.compareAndSet(false, true);
                                         }
@@ -334,7 +334,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
             final Connection con = connection;
 
             transport.pause();
-            final TaskQueue tqueue = ((AbstractNIOConnection) connection).getAsyncWriteQueue();
+            final TaskQueue tqueue = ((NIOConnection) connection).getAsyncWriteQueue();
 
             do {
                 byte[] originalMessage = new byte[packetSize];
@@ -398,7 +398,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
         public WriteQueueFreeSpaceMonitor(final Connection c,
                                           final int freeSpaceAvailable) {
             this.freeSpaceAvailable = freeSpaceAvailable;
-            writeQueue = ((AbstractNIOConnection) c).getAsyncWriteQueue();
+            writeQueue = ((NIOConnection) c).getAsyncWriteQueue();
             transport = c.getTransport();
             maxSpace = (((TCPNIOTransport) transport).getAsyncQueueIO().getWriter().getMaxPendingBytesPerConnection());
             current = Thread.currentThread();

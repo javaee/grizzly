@@ -57,7 +57,7 @@ import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.nio.AbstractNIOConnection;
+import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.utils.ChunkingFilter;
@@ -281,7 +281,7 @@ public class HttpRequestParseTest extends TestCase {
         }
     }
 
-    protected static final class StandaloneConnection extends AbstractNIOConnection {
+    protected static final class StandaloneConnection extends NIOConnection {
 
         private final SocketAddress localAddress;
         private final SocketAddress peerAddress;

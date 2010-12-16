@@ -57,7 +57,7 @@ import org.glassfish.grizzly.http.HttpClientFilter;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.nio.AbstractNIOConnection;
+import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.streams.StreamWriter;
@@ -283,7 +283,7 @@ public class HttpResponseParseTest extends TestCase {
         }
     }
 
-    protected static final class StandaloneConnection extends AbstractNIOConnection {
+    protected static final class StandaloneConnection extends NIOConnection {
         public StandaloneConnection() {
             super(TransportFactory.getInstance().createTCPTransport());
         }
