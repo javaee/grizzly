@@ -4,8 +4,77 @@
          xmlns:xi="http://www.w3.org/2001/XInclude"
          xmlns:svg="http://www.w3.org/2000/svg"
          xmlns:m="http://www.w3.org/1998/Math/MathML"
-         xmlns:html="http://www.w3.org/1999/xhtml"
-         xmlns:db="http://docbook.org/ns/docbook">
+         xmlns:html="http://www.w3.org/1999/xhtml">
   <title>Transports and Connections</title>
-  <para></para>
+  <para>Transport and Connection represent core network API in Grizzly 2.0.</para>
+    <para>Transport defines a network transport such as TCP or UDP including associated resources
+        (thread-pool, memory manager etc) and default configuration for nested Connections.</para>
+    <para>Connection in Grizzly 2.0 is a unit, which represents a single network connection (very
+        similar to socket), depending on type of Transport it could be TCP or UDP connection or any
+        custom connection type.</para>
+    <para>The relationship between Transport and Connection is 1-to-many.</para>
+    <para>
+        <itemizedlist>
+            <listitem>
+                <para>Transports</para>
+                <para><inlinemediaobject>
+                        <imageobject>
+                            <imagedata fileref="../images/coreframework/transport-diagram.svg"/>
+                        </imageobject>
+                    </inlinemediaobject></para>
+                <para>As we see on the class diagram above, Grizzly 2.0 has two Transport
+                    implementations: NIO TCP and NIO UDP, which is based on Java NIO, though in
+                    perspective we're planning to add NIO.2 based transports and add SCTP support,
+                    which will come in JDK 7.</para>
+                <para>Let's briefly go throw the auxiliary components mentioned on the diagram<itemizedlist>
+                        <listitem>
+                            <para>MemoryManager implements the memory allocation/release logic (see
+                                the <link linkend="memory">Memory managment</link> section);</para>
+                        </listitem>
+                        <listitem>
+                            <para>ExecutorService represents the Transport associated
+                                thread-pool</para>
+                        </listitem>
+                        <listitem>
+                            <para>Processor implements the logic, which is responsible for
+                                processing NIO events</para>
+                        </listitem>
+                        <listitem>
+                            <para>Strategy implements the Strategy (see <link linkend="iostrategies">I/O Strategies</link>
+                                section)</para>
+                        </listitem>
+                        <listitem>
+                            <para>NIOChannelDistributor is responsible for distributing newly
+                                created Connections among Transport NIO Selector threads</para>
+                        </listitem>
+                        <listitem>
+                            <para>SelectorRunner implements single Selector thread logic, which
+                                selects ready NIO events and passes them to the Processor, which
+                                will process it according to the Strategy logic</para>
+                        </listitem>
+                        <listitem>
+                            <para>SelectionKeyHandler is a wrapper over SelectionKey operations, also<itemizedlist>
+                                    <listitem>
+                                        <para>maps Java NIO operations (OP_READ, OP_WRITE etc)
+                                            mapping to Grizzly IOEvent</para>
+                                    </listitem>
+                                    <listitem>
+                                        <para>maps Java NIO SelectionKey to Grizzly
+                                            Connection</para>
+                                    </listitem>
+                                </itemizedlist></para>
+                        </listitem>
+                        <listitem>
+                            <para>SelectorHandler implements thread-safe logic for
+                                registering/deregistering SelectableChannels on Selectors, changing
+                                SelectionKey interests, executing custom tasks in Selector threads
+                                (to avoid unexpected locks)</para>
+                        </listitem>
+                    </itemizedlist></para>
+            </listitem>
+            <listitem>
+                <para>Connections</para>
+            </listitem>
+        </itemizedlist>
+    </para>
 </section>
