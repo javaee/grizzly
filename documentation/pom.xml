@@ -92,7 +92,7 @@
                             <!-- This copies content (images, etc) for the HTML version -->
                             <preProcess>
                                 <copy todir="target/docbkx/html/images">
-                                    <fileset dir="src/docbkx/images" excludes="**/*.svg"/>
+                                    <fileset dir="src/docbkx/images" />
                                 </copy>
                             </preProcess>
                             <imgSrcPath>images/</imgSrcPath>
