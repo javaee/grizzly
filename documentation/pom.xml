@@ -96,6 +96,7 @@
                                 </copy>
                             </preProcess>
                             <imgSrcPath>images/</imgSrcPath>
+                            <chunkedOutput>true</chunkedOutput>
                             <!-- Any parameters specific to HTML version go here -->
                         </configuration>
                         <phase>install</phase>
