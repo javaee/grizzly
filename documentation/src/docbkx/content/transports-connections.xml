@@ -121,6 +121,20 @@
                                 fileref="../images/coreframework/connectorhandler-diagram.svg"/>
                         </imageobject>
                     </inlinemediaobject></para>
+                <para>As we see from the diagram above, TCPNIOTransport and UDPNIOTransport
+                    implement interface SocketConnectorHandler, so it's possible to create a new
+                    client Connection using Transport instance directly
+                    like:<programlisting>Future&lt;Connection> clientConnectionFuture = tcpNioTransport.connect("grizzly.java.net", 80);
+Connection clientConnection = clientConnectionFuture.get();</programlisting></para>
+                <para>In this case newly create client Connection will derive Transport's Processor.
+                    Or it's possible to create customized ConnectorHandler (similar for UDP and TCP
+                    transports)
+                    like:<programlisting>SocketConnectorHandler customUdpConnectorHandler = UDPNIOConnectorHandler.builder(udpNioTransport)
+                             .processor(customFilterChain)
+                             .build();
+Future&lt;Connection> clientConnectionFuture = customUdpConnectorHandler.connect("timeserver.com", 3333);
+Connection clientConnection = clientConnectionFuture.get();</programlisting></para>
+                <para/>
             </listitem>
         </itemizedlist>
     </para>
