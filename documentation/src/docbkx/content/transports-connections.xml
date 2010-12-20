@@ -36,8 +36,10 @@
                                 thread-pool</para>
                         </listitem>
                         <listitem>
-                            <para>Processor implements the logic, which is responsible for
-                                processing NIO events</para>
+                            <para>Processor transport default Processor logic, which is responsible
+                                for processing NIO events. Processors are assigned per Connection,
+                                so this one will be taken as the default one, but each Connection
+                                may have own customized Processor</para>
                         </listitem>
                         <listitem>
                             <para>Strategy implements the Strategy (see <link linkend="iostrategies">I/O Strategies</link>
@@ -74,6 +76,11 @@
             </listitem>
             <listitem>
                 <para>Connections</para>
+                <para><inlinemediaobject>
+                        <imageobject>
+                            <imagedata fileref="../images/coreframework/connection-diagram.svg"/>
+                        </imageobject>
+                    </inlinemediaobject></para>
             </listitem>
         </itemizedlist>
     </para>
