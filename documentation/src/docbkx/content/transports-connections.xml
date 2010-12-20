@@ -81,6 +81,35 @@
                             <imagedata fileref="../images/coreframework/connection-diagram.svg"/>
                         </imageobject>
                     </inlinemediaobject></para>
+                <para>On the diagram above we see how Connections are related to Transports and
+                    basic Connection abstractions. In Grizzly 2.0 we have TCP and UDP Connection
+                    realization, besides that we have special server-Connections for both TCP and UDP.<itemizedlist>
+                        <listitem>
+                            <para>TCPNIOServerConnection works similar way as TCP ServerSocket. It
+                                is bound to the specific TCP host:port and listens for the incoming
+                                client side TCP connections. When new TCP connection is ready to be
+                                accepted, TCPNIOServerConnection accepts it and taking into account
+                                Transport settings it configures new connection accordingly.</para>
+                        </listitem>
+                        <listitem>
+                            <para>UDPNIOServerConnection represents just UDP connection, which is
+                                not bound to any specific peer address, so it's able to receive all
+                                the UDP packets targeted to its UDP host:port. In other words the
+                                only difference between UDPNIOConnection and UDPNIOServerConnection
+                                is that the later is not bound to any peer address.</para>
+                        </listitem>
+                    </itemizedlist></para>
+                <para> Let's briefly describe the rest of the components on the diagram above:<itemizedlist>
+                        <listitem>
+                            <para>Processor. The logic, which is responsible for processing
+                                Connection NIO events (ACCEPT, CONNECT, READ, WRITE, CLOSE)</para>
+                        </listitem>
+                        <listitem>
+                            <para>SelectionKey. The Connection underyling
+                                java.nio.channels.SelectionKey, which defines the NIO
+                                SelectableChannel &lt;-> Selector registration.</para>
+                        </listitem>
+                    </itemizedlist></para>
             </listitem>
         </itemizedlist>
     </para>
