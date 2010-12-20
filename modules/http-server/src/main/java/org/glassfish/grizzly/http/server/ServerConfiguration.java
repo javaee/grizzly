@@ -64,12 +64,12 @@ public class ServerConfiguration extends ServerFilterConfiguration {
 
     // Non-exposed
 
-    final Map<HttpRequestProcessor, String[]> services =
-            new ConcurrentHashMap<HttpRequestProcessor, String[]>();
-    private final Map<HttpRequestProcessor, String[]> unmodifiableServices =
+    final Map<HttpHandler, String[]> services =
+            new ConcurrentHashMap<HttpHandler, String[]>();
+    private final Map<HttpHandler, String[]> unmodifiableServices =
             Collections.unmodifiableMap(services);
-    final List<HttpRequestProcessor> orderedServices =
-            new LinkedList<HttpRequestProcessor>();
+    final List<HttpHandler> orderedServices =
+            new LinkedList<HttpHandler>();
 
     private Set<JmxEventListener> jmxEventListeners = new CopyOnWriteArraySet<JmxEventListener>();
 
@@ -95,15 +95,15 @@ public class ServerConfiguration extends ServerFilterConfiguration {
 
 
     /**
-     * Adds the specified {@link HttpRequestProcessor}
+     * Adds the specified {@link HttpHandler}
      * with its associated mapping(s). Requests will be dispatched to a
-     * {@link HttpRequestProcessor} based on these mapping
+     * {@link HttpHandler} based on these mapping
      * values.
      *
-     * @param httpService a {@link HttpRequestProcessor}
+     * @param httpService a {@link HttpHandler}
      * @param mapping        context path mapping information.
      */
-    public void addHttpService(final HttpRequestProcessor httpService, String... mapping) {
+    public void addHttpService(final HttpHandler httpService, String... mapping) {
         synchronized (servicesSync) {
             if (mapping == null) {
                 mapping = ROOT_MAPPING;
@@ -120,12 +120,12 @@ public class ServerConfiguration extends ServerFilterConfiguration {
 
     /**
      *
-     * Removes the specified {@link HttpRequestProcessor}.
+     * Removes the specified {@link HttpHandler}.
      *
      * @return <tt>true</tt>, if the operation was successful, otherwise
      *  <tt>false</tt>
      */
-    public synchronized boolean removeHttpService(HttpRequestProcessor httpService) {
+    public synchronized boolean removeHttpService(HttpHandler httpService) {
         synchronized (servicesSync) {
             final boolean result = services.remove(httpService) != null;
             if (result) {
@@ -139,12 +139,12 @@ public class ServerConfiguration extends ServerFilterConfiguration {
 
     /**
      *
-     * Returns the {@link HttpRequestProcessor} map.
+     * Returns the {@link HttpHandler} map.
      * Please note, the returned map is read-only.
      *
-     * @return the {@link HttpRequestProcessor} map.
+     * @return the {@link HttpHandler} map.
      */
-    public Map<HttpRequestProcessor, String[]> getHttpServices() {
+    public Map<HttpHandler, String[]> getHttpServices() {
         return unmodifiableServices;
     }
 

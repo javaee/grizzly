@@ -56,7 +56,7 @@ import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.server.*;
-import org.glassfish.grizzly.http.server.HttpRequestProcessor;
+import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
 import org.glassfish.grizzly.http.server.io.NIOReader;
 import org.glassfish.grizzly.http.server.io.ReadHandler;
@@ -359,7 +359,7 @@ public class NIOInputSourcesTest extends TestCase {
     // --------------------------------------------------------- Private Methods
 
 
-    private HttpServer createWebServer(final HttpRequestProcessor httpService) {
+    private HttpServer createWebServer(final HttpHandler httpService) {
 
         final HttpServer server = new HttpServer();
         final NetworkListener listener =
@@ -713,7 +713,7 @@ public class NIOInputSourcesTest extends TestCase {
 
     } // END CharacterEchoHttpService
 
-    private static abstract class EchoService extends HttpRequestProcessor {
+    private static abstract class EchoService extends HttpHandler {
         public abstract String getEchoedString();
     }
 

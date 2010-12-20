@@ -60,16 +60,16 @@ import org.glassfish.grizzly.http.util.RequestURIRef;
  * are needed to implement a customized HTTP container/extension to the
  * HTTP module.
  *
- * The {@link HttpRequestProcessor} provides developers
+ * The {@link HttpHandler} provides developers
  * with a simple and consistent mechanism for extending the functionality of the
  * HTTP WebServer and for bridging existing HTTP based technology like
  * JRuby-on-Rail, Servlet, Bayeux Protocol or any HTTP based protocol.
  *
  * @author Jeanfrancois Arcand
  */
-public abstract class HttpRequestProcessor {
+public abstract class HttpHandler {
     
-    private final static Logger LOGGER = Grizzly.logger(HttpRequestProcessor.class);
+    private final static Logger LOGGER = Grizzly.logger(HttpHandler.class);
     
     /**
      * Allow request that uses encoded slash.
@@ -95,7 +95,7 @@ public abstract class HttpRequestProcessor {
     /**
      * Create <tt>HttpService</tt>.
      */
-    public HttpRequestProcessor() {
+    public HttpHandler() {
     }
 
 
@@ -157,7 +157,7 @@ public abstract class HttpRequestProcessor {
 
 
     /**
-     * Called when the {@link HttpRequestProcessor}'s
+     * Called when the {@link HttpHandler}'s
      * container is started by invoking {@link HttpServer#start}.
      *
      * By default, it does nothing.

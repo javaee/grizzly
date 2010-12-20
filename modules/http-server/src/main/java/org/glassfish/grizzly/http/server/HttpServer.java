@@ -298,7 +298,7 @@ public class HttpServer {
         serverConfig.addJmxEventListener(httpServiceChain);
 
         synchronized (serverConfig.servicesSync) {
-            for (final HttpRequestProcessor httpService : serverConfig.orderedServices) {
+            for (final HttpHandler httpService : serverConfig.orderedServices) {
                 final String[] mappings = serverConfig.services.get(httpService);
                 httpServiceChain.addService(httpService, mappings);
             }
@@ -316,10 +316,10 @@ public class HttpServer {
 
 
     /**
-     * @return the {@link HttpRequestProcessor} used by this <code>HttpServer</code>
+     * @return the {@link HttpHandler} used by this <code>HttpServer</code>
      *  instance.
      */
-    public HttpRequestProcessor getHttpService() {
+    public HttpHandler getHttpService() {
         return httpServiceChain;
     }
 
@@ -647,7 +647,7 @@ public class HttpServer {
     /**
      * Modifies services mapping during runtime.
      */
-    synchronized void onAddHttpService(HttpRequestProcessor httpService, String[] mapping) {
+    synchronized void onAddHttpService(HttpHandler httpService, String[] mapping) {
         if (isStarted()) {
             httpServiceChain.addService(httpService, mapping);
         }
@@ -656,7 +656,7 @@ public class HttpServer {
     /**
      * Modifies services mapping during runtime.
      */
-    synchronized void onRemoveHttpService(HttpRequestProcessor httpService) {
+    synchronized void onRemoveHttpService(HttpHandler httpService) {
         if (isStarted()) {
             httpServiceChain.removeHttpService(httpService);
         }

@@ -37,62 +37,55 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.http.util;
+
+import java.util.HashMap;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.memory.Buffers;
 
-import java.util.HashMap;
-
 /**
  * Utility class.
- * 
+ *
  * @author Alexey Stashok
  */
 public class Utils {
-
     private static final HashMap<Integer, byte[]> statusMessages =
-            new HashMap<Integer, byte[]>(HttpStatus.values().length);
+        new HashMap<Integer, byte[]>(HttpStatus.values().length);
     private static final HashMap<Integer, byte[]> statusCodes =
-            new HashMap<Integer, byte[]>(HttpStatus.values().length);
+        new HashMap<Integer, byte[]>(HttpStatus.values().length);
+
     static {
         for (final HttpStatus status : HttpStatus.values()) {
             statusMessages.put(status.getStatusCode(), status.getReasonPhraseBytes());
             statusCodes.put(status.getStatusCode(), status.getStatusBytes());
         }
     }
-
-
     // ---------------------------------------------------------- Public Methods
 
-
     /**
      * @param httpStatus HTTP status code
-     * @return the standard HTTP message associated with the specified
-     *  status code.  If there is no message for the specified <code>httpStatus</code>,
-     *  <code>null</code> shall be returned.
+     *
+     * @return the standard HTTP message associated with the specified status code.  If there is no message for the
+     *         specified <code>httpStatus</code>, <code>null</code> shall be returned.
      */
     public static Buffer getHttpStatusMessage(final int httpStatus) {
-
         return Buffers.wrap(null, statusMessages.get(httpStatus));
-        
-    }
 
+    }
 
     /**
      * @param httpStatus HTTP status code
+     *
      * @return {@link Buffer} representation of the status.
      */
     public static Buffer getHttpStatus(final int httpStatus) {
-
         return Buffers.wrap(null, statusCodes.get(httpStatus));
 
     }
 
     /**
-     * Converts the specified long as a string representation to the provided
-     * buffer.
+     * Converts the specified long as a string representation to the provided buffer.
      *
      * This code is based off {@link Long#toString()}
      *
@@ -105,7 +98,6 @@ public class Utils {
             buffer.limit(1);
             return;
         }
-
         final int radix = 10;
         final boolean negative;
         if (value < 0) {
@@ -114,30 +106,58 @@ public class Utils {
         } else {
             negative = false;
         }
-
         int position = buffer.limit();
-
         do {
             final int ch = '0' + (int) (value % radix);
             buffer.put(--position, (byte) ch);
         } while ((value /= radix) != 0);
-
         if (negative) {
             buffer.put(--position, (byte) '-');
         }
         buffer.position(position);
 
     }
-
-
     // --------------------------------------------------------- Private Methods
-
 
     private static DataChunk newChunk(byte[] bytes) {
         final DataChunk dc = DataChunk.newInstance();
         final Buffer b = Buffers.wrap(null, bytes);
         dc.setBuffer(b, 0, bytes.length);
         return dc;
+    }
+
+    /**
+     * Filter the specified message string for characters that are sensitive in HTML.  This avoids potential attacks
+     * caused by including JavaScript codes in the request URL that is often reported in error messages.
+     *
+     * @param message The message string to be filtered
+     */
+    public static String filter(String message) {
+        if (message == null) {
+            return null;
+        }
+        char content[] = new char[message.length()];
+        message.getChars(0, message.length(), content, 0);
+        StringBuilder result = new StringBuilder(content.length + 50);
+        for (char aContent : content) {
+            switch (aContent) {
+                case '<':
+                    result.append("&lt;");
+                    break;
+                case '>':
+                    result.append("&gt;");
+                    break;
+                case '&':
+                    result.append("&amp;");
+                    break;
+                case '"':
+                    result.append("&quot;");
+                    break;
+                default:
+                    result.append(aContent);
+            }
+        }
+        return result.toString();
     }
 
 }

@@ -22,12 +22,12 @@ import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.utils.ArraySet;
 
 /**
- * {@link HttpRequestProcessor}, which processes requests to a static resources.
+ * {@link HttpHandler}, which processes requests to a static resources.
  *
  * @author Jeanfrancois Arcand
  * @author Alexey Stashok
  */
-public class StaticResourcesService extends HttpRequestProcessor {
+public class StaticResourcesService extends HttpHandler {
     private static final Logger LOGGER = Grizzly.logger(StaticResourcesService.class);
 
     protected final ArraySet<File> docRoots = new ArraySet<File>(File.class);

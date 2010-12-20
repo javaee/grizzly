@@ -55,7 +55,7 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.server.*;
-import org.glassfish.grizzly.http.server.HttpRequestProcessor;
+import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
@@ -80,7 +80,7 @@ public class KeepAliveTest extends TestCase {
     public void testHttp11KeepAlive() throws Exception {
         final String msg = "Hello world #";
         
-        HttpServer server = createServer(new HttpRequestProcessor() {
+        HttpServer server = createServer(new HttpHandler() {
             private final AtomicInteger ai = new AtomicInteger();
             
             @Override
@@ -132,7 +132,7 @@ public class KeepAliveTest extends TestCase {
     public void testHttp11KeepAliveHeaderClose() throws Exception {
         final String msg = "Hello world #";
 
-        HttpServer server = createServer(new HttpRequestProcessor() {
+        HttpServer server = createServer(new HttpHandler() {
             private final AtomicInteger ai = new AtomicInteger();
 
             @Override
@@ -197,7 +197,7 @@ public class KeepAliveTest extends TestCase {
 
         final int maxKeepAliveRequests = 5;
 
-        HttpServer server = createServer(new HttpRequestProcessor() {
+        HttpServer server = createServer(new HttpHandler() {
             private final AtomicInteger ai = new AtomicInteger();
 
             @Override
@@ -341,7 +341,7 @@ public class KeepAliveTest extends TestCase {
 
     }
 
-    private HttpServer createServer(final HttpRequestProcessor httpService,
+    private HttpServer createServer(final HttpHandler httpService,
                                           final String... mappings) {
 
         HttpServer server = new HttpServer();

@@ -50,11 +50,9 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.servlet.Filter;
 import javax.ws.rs.core.UriBuilder;
-import org.glassfish.grizzly.http.server.HttpRequestProcessor;
+import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
-import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
-import org.glassfish.grizzly.http.server.StaticResourcesService;
 
 public class Main {
 
@@ -132,7 +130,7 @@ public class Main {
         }
     }
 
-    private static HttpServer create(URI u, HttpRequestProcessor service, String path)
+    private static HttpServer create(URI u, HttpHandler service, String path)
             throws IOException, IllegalArgumentException {
         if (u == null) {
             throw new IllegalArgumentException("The URI must not be null");

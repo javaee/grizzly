@@ -75,7 +75,7 @@ public class HttpServerFilter extends BaseFilter
     private final Attribute<Request> httpRequestInProcessAttr;
     private final DelayedExecutor.DelayQueue<Response> suspendedResponseQueue;
 
-    private volatile HttpRequestProcessor httpService;
+    private volatile HttpHandler httpService;
 
     private final ServerFilterConfiguration config;
     
@@ -105,11 +105,11 @@ public class HttpServerFilter extends BaseFilter
 
     }
 
-    public HttpRequestProcessor getHttpService() {
+    public HttpHandler getHttpService() {
         return httpService;
     }
 
-    public void setHttpService(HttpRequestProcessor httpService) {
+    public void setHttpService(HttpHandler httpService) {
         this.httpService = httpService;
     }
 
@@ -154,7 +154,7 @@ public class HttpServerFilter extends BaseFilter
                 try {
                     ctx.setMessage(serviceResponse);
 
-                    final HttpRequestProcessor httpServiceLocal = httpService;
+                    final HttpHandler httpServiceLocal = httpService;
                     if (httpServiceLocal != null) {
                         httpServiceLocal.doService(serviceRequest, serviceResponse);
                     }

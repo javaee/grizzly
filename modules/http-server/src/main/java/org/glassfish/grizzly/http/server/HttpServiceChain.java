@@ -56,19 +56,19 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.http.util.CharChunk;
 
 /**
- * The HttpServiceChain class allows the invocation of multiple {@link HttpRequestProcessor}s
+ * The HttpServiceChain class allows the invocation of multiple {@link HttpHandler}s
  * every time a new HTTP request is ready to be handled. Requests are mapped
- * to their associated {@link HttpRequestProcessor} at runtime using the mapping
+ * to their associated {@link HttpHandler} at runtime using the mapping
  * information configured when invoking the {@link HttpServiceChain#addService
  * (org.glassfish.grizzly.http.server.HttpService, java.lang.String[])}
  *
  *
  * Note: This class is <strong>NOT</strong> thread-safe, so make sure synchronization
- *  is performed when dynamically adding and removing {@link HttpRequestProcessor}
+ *  is performed when dynamically adding and removing {@link HttpHandler}
  *
  * @author Jeanfrancois Arcand
  */
-public class HttpServiceChain extends HttpRequestProcessor implements JmxEventListener {
+public class HttpServiceChain extends HttpHandler implements JmxEventListener {
 
     private static final Logger LOGGER = Grizzly.logger(HttpServiceChain.class);
 //    protected final static int MAPPING_DATA = 12;
@@ -76,14 +76,14 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
 //    private static final Note<MappingData> MAPPING_DATA_NOTE =
 //            Request.<MappingData>createNote("MAPPING_DATA");
     /**
-     * The list of {@link HttpRequestProcessor} instance.
+     * The list of {@link HttpHandler} instance.
      */
-    private ConcurrentHashMap<HttpRequestProcessor, String[]> services =
-            new ConcurrentHashMap<HttpRequestProcessor, String[]>();
-    private ConcurrentHashMap<HttpRequestProcessor, JmxObject> monitors =
-            new ConcurrentHashMap<HttpRequestProcessor, JmxObject>();
+    private ConcurrentHashMap<HttpHandler, String[]> services =
+            new ConcurrentHashMap<HttpHandler, String[]>();
+    private ConcurrentHashMap<HttpHandler, JmxObject> monitors =
+            new ConcurrentHashMap<HttpHandler, JmxObject>();
     /**
-     * Internal {@link Mapper} used to Map request to their associated {@link HttpRequestProcessor}
+     * Internal {@link Mapper} used to Map request to their associated {@link HttpHandler}
      */
     private Mapper mapper;
     /**
@@ -114,8 +114,8 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
     // ------------------------------------------- Methods from JmxEventListener
     @Override
     public void jmxEnabled() {
-        for (Entry<HttpRequestProcessor, String[]> entry : services.entrySet()) {
-            final HttpRequestProcessor httpService = entry.getKey();
+        for (Entry<HttpHandler, String[]> entry : services.entrySet()) {
+            final HttpHandler httpService = entry.getKey();
             if (httpService instanceof Monitorable) {
                 registerJmxForService(httpService);
             }
@@ -124,8 +124,8 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
 
     @Override
     public void jmxDisabled() {
-        for (Entry<HttpRequestProcessor, String[]> entry : services.entrySet()) {
-            final HttpRequestProcessor httpService = entry.getKey();
+        for (Entry<HttpHandler, String[]> entry : services.entrySet()) {
+            final HttpHandler httpService = entry.getKey();
             if (httpService instanceof Monitorable) {
                 deregisterJmxForService(httpService);
             }
@@ -135,15 +135,15 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
     // ---------------------------------------------------------- Public Methods
     @Override
     public void start() {
-        for (Entry<HttpRequestProcessor, String[]> entry : services.entrySet()) {
-            final HttpRequestProcessor httpService = entry.getKey();
+        for (Entry<HttpHandler, String[]> entry : services.entrySet()) {
+            final HttpHandler httpService = entry.getKey();
             httpService.start();
         }
         started = true;
     }
 
     /**
-     * Map the {@link Request} to the proper {@link HttpRequestProcessor}
+     * Map the {@link Request} to the proper {@link HttpHandler}
      * @param request The {@link Request}
      * @param response The {@link Response}
      */
@@ -171,12 +171,12 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
                     mappingData);
 
 
-            HttpRequestProcessor httpService;
-            if (mappingData.context != null && mappingData.context instanceof HttpRequestProcessor) {
+            HttpHandler httpService;
+            if (mappingData.context != null && mappingData.context instanceof HttpHandler) {
                 if (mappingData.wrapper != null) {
-                    httpService = (HttpRequestProcessor) mappingData.wrapper;
+                    httpService = (HttpHandler) mappingData.wrapper;
                 } else {
-                    httpService = (HttpRequestProcessor) mappingData.context;
+                    httpService = (HttpHandler) mappingData.context;
                 }
 
                 request.setContextPath(mappingData.contextPath.toString());
@@ -204,12 +204,12 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
     }
 
     /**
-     * Add a {@link HttpRequestProcessor} and its associated array of mapping. The mapping
-     * data will be used to map incoming request to its associated {@link HttpRequestProcessor}.
-     * @param httpService {@link HttpRequestProcessor} instance
+     * Add a {@link HttpHandler} and its associated array of mapping. The mapping
+     * data will be used to map incoming request to its associated {@link HttpHandler}.
+     * @param httpService {@link HttpHandler} instance
      * @param mappings an array of mapping.
      */
-    public void addService(HttpRequestProcessor httpService, String[] mappings) {
+    public void addService(HttpHandler httpService, String[] mappings) {
         if (mappings.length == 0) {
             addService(httpService, new String[]{""});
         } else {
@@ -230,7 +230,7 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
                 } else {
                     if (!isRootConfigured && wrapper.startsWith("*.")) {
                         isRootConfigured = true;
-                        final HttpRequestProcessor a = new HttpRequestProcessor() {
+                        final HttpHandler a = new HttpHandler() {
 
                             @Override
                             public void service(Request request, Response response) {
@@ -259,14 +259,14 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
 
     }
 
-    private void registerJmxForService(final HttpRequestProcessor httpService) {
+    private void registerJmxForService(final HttpHandler httpService) {
         final Monitorable monitorable = (Monitorable) httpService;
         final JmxObject jmx = monitorable.createManagementObject();
         monitors.putIfAbsent(httpService, jmx);
         httpServer.jmxManager.register(httpServer.managementObject, jmx, jmx.getJmxName());
     }
 
-    private void deregisterJmxForService(final HttpRequestProcessor httpService) {
+    private void deregisterJmxForService(final HttpHandler httpService) {
 
         JmxObject jmx = monitors.get(httpService);
         if (jmx != null) {
@@ -318,18 +318,18 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
 
     @Override
     public void destroy() {
-        for (Entry<HttpRequestProcessor, String[]> service : services.entrySet()) {
-            final HttpRequestProcessor a = service.getKey();
+        for (Entry<HttpHandler, String[]> service : services.entrySet()) {
+            final HttpHandler a = service.getKey();
             a.destroy();
         }
         started = false;
     }
 
     /**
-     * Remove a {@link HttpRequestProcessor}
+     * Remove a {@link HttpHandler}
      * @return <tt>true</tt> if removed
      */
-    public boolean removeHttpService(HttpRequestProcessor httpService) {
+    public boolean removeHttpService(HttpHandler httpService) {
         if (httpService == null) {
             throw new IllegalStateException();
         }
@@ -388,7 +388,7 @@ public class HttpServiceChain extends HttpRequestProcessor implements JmxEventLi
     }
 
     public void removeAllHttpServices() {
-        for (final HttpRequestProcessor service : services.keySet()) {
+        for (final HttpHandler service : services.keySet()) {
             removeHttpService(service);
         }
     }

@@ -64,7 +64,7 @@ import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.server.*;
-import org.glassfish.grizzly.http.server.HttpRequestProcessor;
+import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.io.NIOWriter;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
@@ -362,7 +362,7 @@ public class FileCacheTest {
         httpServer.addListener(listener);
     }
 
-    private void startHttpServer(HttpRequestProcessor httpService) throws Exception {
+    private void startHttpServer(HttpHandler httpService) throws Exception {
         httpServer.getServerConfiguration().addHttpService(httpService);
         httpServer.start();
     }

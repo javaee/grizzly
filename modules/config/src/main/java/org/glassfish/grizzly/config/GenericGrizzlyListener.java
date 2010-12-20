@@ -75,7 +75,7 @@ import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.KeepAlive;
 import org.glassfish.grizzly.http.server.FileCacheFilter;
-import org.glassfish.grizzly.http.server.HttpRequestProcessor;
+import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServerFilter;
 import org.glassfish.grizzly.http.server.ServerFilterConfiguration;
 import org.glassfish.grizzly.http.server.StaticResourcesService;
@@ -527,7 +527,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         return new ServerFilterConfiguration();
     }
 
-    protected HttpRequestProcessor getHttpService(final Http http) {
+    protected HttpHandler getHttpService(final Http http) {
         return new StaticResourcesService(".");
     }
 

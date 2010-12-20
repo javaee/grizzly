@@ -71,7 +71,7 @@ import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * <p>
- * This example demonstrates the use of a {@link HttpRequestProcessor} to echo
+ * This example demonstrates the use of a {@link HttpHandler} to echo
  * <code>HTTP</code> <code>POST</code> data sent by the client, back to the client using
  * non-blocking streams introduced in Grizzly 2.0.
  * </p>
@@ -89,7 +89,7 @@ import org.glassfish.grizzly.memory.Buffers;
  *
  *    </li>
  *    <li>
- *       NoneBlockingEchoService: This {@link HttpRequestProcessor} is installed to the
+ *       NoneBlockingEchoService: This {@link HttpHandler} is installed to the
  *                                {@link org.glassfish.grizzly.http.server.HttpServer} instance and associated
  *                                with the path <code>/echo</code>.  The service uses the {@link org.glassfish.grizzly.http.server.io.NIOReader}
  *                                returned by {@link org.glassfish.grizzly.http.server.Request#getReader(boolean)} in non-blocking
@@ -306,7 +306,7 @@ public class NonBlockingHttpServiceSample {
      * This service using non-blocking streams to read POST data and echo it
      * back to the client.
      */
-    private static class NonBlockingEchoService extends HttpRequestProcessor {
+    private static class NonBlockingEchoService extends HttpHandler {
 
 
         // -------------------------------------------- Methods from HttpService

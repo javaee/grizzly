@@ -55,7 +55,7 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
-import org.glassfish.grizzly.http.server.HttpRequestProcessor;
+import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.StaticResourcesService;
@@ -70,7 +70,7 @@ import static org.junit.Assert.*;
 
 
 /**
- * Testing {@link HttpRequestProcessor} context-path
+ * Testing {@link HttpHandler} context-path
  * 
  * @author Alexey Stashok
  */
@@ -132,7 +132,7 @@ public class ContextPathTest {
         httpServer.addListener(listener);
     }
 
-    private void startHttpServer(HttpRequestProcessor httpService, String... mappings) throws Exception {
+    private void startHttpServer(HttpHandler httpService, String... mappings) throws Exception {
         httpServer.getServerConfiguration().addHttpService(httpService, mappings);
         httpServer.start();
     }

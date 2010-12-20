@@ -47,7 +47,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import org.glassfish.grizzly.http.server.HttpRequestProcessor;
+
+import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
 
 /**
@@ -89,7 +90,7 @@ public abstract class HttpServerAbstractTest extends TestCase {
         httpServer = HttpServer.createSimpleServer("./", port);
     }
 
-    protected void addHttpService(String alias, HttpRequestProcessor service) {
+    protected void addHttpService(String alias, HttpHandler service) {
         httpServer.getServerConfiguration().addHttpService(service, new String[]{alias});
     }
 }

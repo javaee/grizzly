@@ -40,28 +40,28 @@
 
 package org.glassfish.grizzly.config;
 
-import org.glassfish.grizzly.http.server.HttpRequestProcessor;
+import org.glassfish.grizzly.http.server.HttpHandler;
 
 /**
  * Class represents context-root associated information
  */
 public class ContextRootInfo {
-    protected HttpRequestProcessor adapter;
+    protected HttpHandler adapter;
     protected Object container;
 
     public ContextRootInfo() {
     }
 
-    public ContextRootInfo(final HttpRequestProcessor adapter, final Object container) {
+    public ContextRootInfo(final HttpHandler adapter, final Object container) {
         this.adapter = adapter;
         this.container = container;
     }
 
-    public HttpRequestProcessor getHttpRequestProcessor() {
+    public HttpHandler getHttpRequestProcessor() {
         return adapter;
     }
 
-    public void setHttpRequestProcessor(final HttpRequestProcessor adapter) {
+    public void setHttpRequestProcessor(final HttpHandler adapter) {
         this.adapter = adapter;
     }
 

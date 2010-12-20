@@ -63,7 +63,7 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.server.AfterServiceListener;
 import org.glassfish.grizzly.http.server.Constants;
-import org.glassfish.grizzly.http.server.HttpRequestProcessor;
+import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Request.Note;
 import org.glassfish.grizzly.http.server.Response;
@@ -119,7 +119,7 @@ ws.start();
  * 
  * @author Jeanfrancois Arcand
  */
-public class ServletService extends HttpRequestProcessor {
+public class ServletService extends HttpHandler {
 
     private static final Logger LOGGER = Grizzly.logger(ServletService.class);
 

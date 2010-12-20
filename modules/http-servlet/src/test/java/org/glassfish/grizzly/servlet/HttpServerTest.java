@@ -55,7 +55,7 @@ import java.security.GeneralSecurityException;
 import java.util.HashMap;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.http.server.HttpRequestProcessor;
+import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
@@ -221,7 +221,7 @@ public class HttpServerTest extends HttpServerAbstractTest {
         
 //        gws.setSSLConfig(cfg);
         final String encMsg = "Secured.";
-        httpServer.getServerConfiguration().addHttpService(new HttpRequestProcessor() {
+        httpServer.getServerConfiguration().addHttpService(new HttpHandler() {
             @Override
             public void service(Request request, Response response) {
                 response.setStatus(200);

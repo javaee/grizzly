@@ -755,7 +755,7 @@ public class Request {
      * Returns the portion of the request URI that indicates the context of the request.
      * The context path always comes first in a request URI.
      * The path starts with a "/" character but does not end with a "/" character.
-     * For {@link HttpRequestProcessor}s in the default (root) context, this method returns "".
+     * For {@link HttpHandler}s in the default (root) context, this method returns "".
      * The container does not decode this string.
      *
      * @return a String specifying the portion of the request URI that indicates the context of the request
