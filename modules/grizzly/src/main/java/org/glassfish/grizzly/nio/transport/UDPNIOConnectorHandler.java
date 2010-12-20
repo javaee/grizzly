@@ -78,11 +78,11 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
     protected static final int DEFAULT_CONNECTION_TIMEOUT = 30000;
     protected boolean isReuseAddress;
-    protected int connectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
+    protected volatile long connectionTimeoutMillis = DEFAULT_CONNECTION_TIMEOUT;
 
-    public UDPNIOConnectorHandler(UDPNIOTransport transport) {
+    protected UDPNIOConnectorHandler(UDPNIOTransport transport) {
         super(transport);
-        connectionTimeout = transport.getConnectionTimeout();
+        connectionTimeoutMillis = transport.getConnectionTimeout();
         isReuseAddress = transport.isReuseAddress();
     }
 
@@ -170,17 +170,17 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         this.isReuseAddress = isReuseAddress;
     }
 
-    public int getConnectionTimeout() {
-        return connectionTimeout;
+    public long getSyncConnectTimeout(final TimeUnit timeUnit) {
+        return timeUnit.convert(connectionTimeoutMillis, TimeUnit.MILLISECONDS);
     }
 
-    public void setConnectionTimeout(int connectionTimeout) {
-        this.connectionTimeout = connectionTimeout;
+    public void setSyncConnectTimeout(final long timeout, final TimeUnit timeUnit) {
+        this.connectionTimeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeUnit);
     }
 
     protected <E> E waitNIOFuture(Future<E> future) throws IOException {
         try {
-            return future.get(connectionTimeout, TimeUnit.MILLISECONDS);
+            return future.get(connectionTimeoutMillis, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             throw new IOException("Connection was interrupted!");
         } catch (TimeoutException e) {
@@ -286,6 +286,36 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
                     connection.enableIOEvent(IOEvent.READ);
                 }
             }
+        }
+    }
+
+    /**
+     * Return the {@link UDPNIOConnectorHandler} builder.
+     *
+     * @param transport {@link UDPNIOTransport}.
+     * @return the {@link UDPNIOConnectorHandler} builder.
+     */
+    public static Builder builder(final UDPNIOTransport transport) {
+        return new UDPNIOConnectorHandler.Builder(transport);
+    }
+
+    public static class Builder extends AbstractSocketConnectorHandler.Builder<Builder> {
+        protected Builder(final UDPNIOTransport transport) {
+            super(new UDPNIOConnectorHandler(transport));
+        }
+
+        public UDPNIOConnectorHandler build() {
+            return (UDPNIOConnectorHandler) connectorHandler;
+        }
+
+        public Builder setReuseAddress(final boolean isReuseAddress) {
+            ((UDPNIOConnectorHandler) connectorHandler).setReuseAddress(isReuseAddress);
+            return this;
+        }
+
+        public Builder setSyncConnectTimeout(final long timeout, final TimeUnit timeunit) {
+            ((UDPNIOConnectorHandler) connectorHandler).setSyncConnectTimeout(timeout, timeunit);
+            return this;
         }
     }
 }

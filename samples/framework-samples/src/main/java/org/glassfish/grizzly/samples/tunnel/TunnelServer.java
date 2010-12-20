@@ -72,7 +72,7 @@ public class TunnelServer {
         // for reading and writing data to the connection
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new TunnelFilter(
-                new TCPNIOConnectorHandler(transport),
+                TCPNIOConnectorHandler.builder(transport).build(),
                 REDIRECT_HOST, REDIRECT_PORT));
         
         transport.setProcessor(filterChainBuilder.build());

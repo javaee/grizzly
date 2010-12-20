@@ -91,6 +91,7 @@ import org.glassfish.grizzly.threadpool.AbstractThreadPool;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import java.util.concurrent.TimeUnit;
+import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.memory.ByteBufferArray;
 
 /**
@@ -98,8 +99,8 @@ import org.glassfish.grizzly.memory.ByteBufferArray;
  * 
  * @author Alexey Stashok
  */
-public final class UDPNIOTransport extends NIOTransport
-        implements SocketBinder, AsyncQueueEnabledTransport,
+public final class UDPNIOTransport extends NIOTransport implements
+        SocketBinder, SocketConnectorHandler, AsyncQueueEnabledTransport,
         FilterChainEnabledTransport, TemporarySelectorsEnabledTransport {
 
     private static final Logger LOGGER = Grizzly.logger(UDPNIOTransport.class);
@@ -294,6 +295,7 @@ public final class UDPNIOTransport extends NIOTransport
      *
      * @throws java.io.IOException
      */
+    @Override
     public GrizzlyFuture<Connection> connect(String host, int port)
             throws IOException {
         return connectorHandler.connect(host, port);
@@ -309,6 +311,7 @@ public final class UDPNIOTransport extends NIOTransport
      *
      * @throws java.io.IOException
      */
+    @Override
     public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress)
             throws IOException {
         return connectorHandler.connect(remoteAddress);
@@ -325,6 +328,7 @@ public final class UDPNIOTransport extends NIOTransport
      *
      * @throws java.io.IOException
      */
+    @Override
     public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
             CompletionHandler<Connection> completionHandler)
             throws IOException {
@@ -342,6 +346,7 @@ public final class UDPNIOTransport extends NIOTransport
      *
      * @throws java.io.IOException
      */
+    @Override
     public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
             SocketAddress localAddress) throws IOException {
         return connectorHandler.connect(remoteAddress, localAddress);
@@ -359,6 +364,7 @@ public final class UDPNIOTransport extends NIOTransport
      *
      * @throws java.io.IOException
      */
+    @Override
     public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
             SocketAddress localAddress,
             CompletionHandler<Connection> completionHandler)

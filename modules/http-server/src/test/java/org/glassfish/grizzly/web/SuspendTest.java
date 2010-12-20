@@ -554,8 +554,10 @@ public class SuspendTest {
         builder.add(new HttpClientFilter());
         builder.add(new ClientFilter(testString, checkResponse, resultFuture));
 
-        SocketConnectorHandler connectorHandler = new TCPNIOConnectorHandler(gws.getListener("grizzly").getTransport());
-        connectorHandler.setProcessor(builder.build());
+        SocketConnectorHandler connectorHandler = TCPNIOConnectorHandler.builder(
+                gws.getListener("grizzly").getTransport())
+                .processor(builder.build())
+                .build();
 
         Future<Connection> connectFuture = connectorHandler.connect("localhost", PORT);
         return connectFuture.get(10, TimeUnit.SECONDS);

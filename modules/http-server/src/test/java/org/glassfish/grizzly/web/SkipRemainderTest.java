@@ -198,10 +198,11 @@ public class SkipRemainderTest {
         builder.add(new HttpClientFilter());
         builder.add(new HttpMessageFilter(transferQueue));
         
-        SocketConnectorHandler connectorHandler = new TCPNIOConnectorHandler(
-                gws.getListener("grizzly").getTransport());
-
-        connectorHandler.setProcessor(builder.build());
+        SocketConnectorHandler connectorHandler = TCPNIOConnectorHandler.builder(
+                gws.getListener("grizzly").getTransport())
+                .processor(builder.build())
+                .build();
+        
         return connectorHandler.connect(host, port);
     }
 

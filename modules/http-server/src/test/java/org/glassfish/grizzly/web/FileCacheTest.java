@@ -382,9 +382,10 @@ public class FileCacheTest {
         builder.add(new HttpClientFilter());
         builder.add(new HttpMessageFilter(future));
 
-        SocketConnectorHandler connectorHandler = new TCPNIOConnectorHandler(
-                httpServer.getListener("grizzly").getTransport());
-        connectorHandler.setProcessor(builder.build());
+        SocketConnectorHandler connectorHandler = TCPNIOConnectorHandler.builder(
+                httpServer.getListener("grizzly").getTransport())
+                .processor(builder.build())
+                .build();
 
         Future<Connection> connectFuture = connectorHandler.connect(host, port);
         final Connection connection = connectFuture.get(10, TimeUnit.SECONDS);

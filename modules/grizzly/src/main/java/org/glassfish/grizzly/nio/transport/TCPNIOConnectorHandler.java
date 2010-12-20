@@ -75,16 +75,16 @@ import org.glassfish.grizzly.nio.SelectionKeyHandler;
  * @author Alexey Stashok
  */
 public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
-
+    
     private static final Logger LOGGER = Grizzly.logger(TCPNIOConnectorHandler.class);
     protected static final int DEFAULT_CONNECTION_TIMEOUT = 30000;
     private final InstantConnectHandler instantConnectHandler;
     protected boolean isReuseAddress;
-    protected int connectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
+    protected volatile long connectionTimeoutMillis = DEFAULT_CONNECTION_TIMEOUT;
 
-    public TCPNIOConnectorHandler(TCPNIOTransport transport) {
+    protected TCPNIOConnectorHandler(TCPNIOTransport transport) {
         super(transport);
-        connectionTimeout = transport.getConnectionTimeout();
+        connectionTimeoutMillis = transport.getConnectionTimeout();
         isReuseAddress = transport.isReuseAddress();
         instantConnectHandler = new InstantConnectHandler();
     }
@@ -219,17 +219,17 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         this.isReuseAddress = isReuseAddress;
     }
 
-    public int getConnectionTimeout() {
-        return connectionTimeout;
+    public long getSyncConnectTimeout(final TimeUnit timeUnit) {
+        return timeUnit.convert(connectionTimeoutMillis, TimeUnit.MILLISECONDS);
     }
 
-    public void setConnectionTimeout(int connectionTimeout) {
-        this.connectionTimeout = connectionTimeout;
+    public void setSyncConnectTimeout(final long timeout, final TimeUnit timeUnit) {
+        this.connectionTimeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeUnit);
     }
 
     protected <E> E waitNIOFuture(Future<E> future) throws IOException {
         try {
-            return future.get(connectionTimeout, TimeUnit.MILLISECONDS);
+            return future.get(connectionTimeoutMillis, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             throw new IOException("Connection was interrupted!");
         } catch (TimeoutException e) {
@@ -303,6 +303,36 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
                     connection.enableIOEvent(IOEvent.READ);
                 }
             }
+        }
+    }
+
+    /**
+     * Return the {@link TCPNIOConnectorHandler} builder.
+     * 
+     * @param transport {@link TCPNIOTransport}.
+     * @return the {@link TCPNIOConnectorHandler} builder.
+     */
+    public static Builder builder(final TCPNIOTransport transport) {
+        return new TCPNIOConnectorHandler.Builder(transport);
+    }
+
+    public static class Builder extends AbstractSocketConnectorHandler.Builder<Builder> {
+        protected Builder(final TCPNIOTransport transport) {
+            super(new TCPNIOConnectorHandler(transport));
+        }
+
+        public TCPNIOConnectorHandler build() {
+            return (TCPNIOConnectorHandler) connectorHandler;
+        }
+
+        public Builder setReuseAddress(final boolean isReuseAddress) {
+            ((TCPNIOConnectorHandler) connectorHandler).setReuseAddress(isReuseAddress);
+            return this;
+        }
+
+        public Builder setSyncConnectTimeout(final long timeout, final TimeUnit timeunit) {
+            ((TCPNIOConnectorHandler) connectorHandler).setSyncConnectTimeout(timeout, timeunit);
+            return this;
         }
     }
 }

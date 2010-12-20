@@ -96,6 +96,7 @@ import java.io.EOFException;
 import java.lang.ref.SoftReference;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
+import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.memory.BufferArray;
 import org.glassfish.grizzly.memory.ByteBufferArray;
@@ -107,8 +108,8 @@ import org.glassfish.grizzly.memory.ByteBufferArray;
  * @author Jean-Francois Arcand
  */
 public final class TCPNIOTransport extends NIOTransport implements
-        SocketBinder, AsyncQueueEnabledTransport, FilterChainEnabledTransport,
-        TemporarySelectorsEnabledTransport {
+        SocketBinder, SocketConnectorHandler, AsyncQueueEnabledTransport,
+        FilterChainEnabledTransport, TemporarySelectorsEnabledTransport {
 
     private static final Logger LOGGER = Grizzly.logger(TCPNIOTransport.class);
 
@@ -476,6 +477,7 @@ public final class TCPNIOTransport extends NIOTransport implements
      *
      * @throws java.io.IOException
      */
+    @Override
     public GrizzlyFuture<Connection> connect(final String host, final int port)
             throws IOException {
         return connectorHandler.connect(host, port);
@@ -491,6 +493,7 @@ public final class TCPNIOTransport extends NIOTransport implements
      *
      * @throws java.io.IOException
      */
+    @Override
     public GrizzlyFuture<Connection> connect(final SocketAddress remoteAddress)
             throws IOException {
         return connectorHandler.connect(remoteAddress);
@@ -507,6 +510,7 @@ public final class TCPNIOTransport extends NIOTransport implements
      *
      * @throws java.io.IOException
      */
+    @Override
     public GrizzlyFuture<Connection> connect(final SocketAddress remoteAddress,
             final CompletionHandler<Connection> completionHandler)
             throws IOException {
@@ -524,6 +528,7 @@ public final class TCPNIOTransport extends NIOTransport implements
      *
      * @throws java.io.IOException
      */
+    @Override
     public GrizzlyFuture<Connection> connect(final SocketAddress remoteAddress,
             final SocketAddress localAddress) throws IOException {
         return connectorHandler.connect(remoteAddress, localAddress);
@@ -541,6 +546,7 @@ public final class TCPNIOTransport extends NIOTransport implements
      *
      * @throws java.io.IOException
      */
+    @Override
     public GrizzlyFuture<Connection> connect(final SocketAddress remoteAddress,
             final SocketAddress localAddress,
             final CompletionHandler<Connection> completionHandler)

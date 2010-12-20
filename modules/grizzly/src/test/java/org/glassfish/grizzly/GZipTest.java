@@ -128,8 +128,9 @@ public class GZipTest extends TestCase {
             clientChainBuilder.add(new StringFilter());
             clientChainBuilder.add(new ClientEchoCheckFilter(completeFuture, messages));
 
-            SocketConnectorHandler connectorHandler = new TCPNIOConnectorHandler(transport);
-            connectorHandler.setProcessor(clientChainBuilder.build());
+            SocketConnectorHandler connectorHandler = TCPNIOConnectorHandler.builder(transport)
+                .processor(clientChainBuilder.build()).build();
+            
             Future<Connection> future = connectorHandler.connect("localhost", PORT);
 
             connection = (TCPNIOConnection) future.get(10, TimeUnit.SECONDS);

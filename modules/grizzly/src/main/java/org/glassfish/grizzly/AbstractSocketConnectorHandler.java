@@ -37,31 +37,29 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.util.Collection;
 import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Abstract class simplifies the implementation of
  * {@link SocketConnectorHandler}
- * interface by preimplementing some of its methods.
+ * interface by pre-implementing some of its methods.
  * 
  * @author Alexey Stashok
  */
 public abstract class AbstractSocketConnectorHandler
         implements SocketConnectorHandler {
-    
-    protected Transport transport;
 
+    protected final Transport transport;
     private Processor processor;
     private ProcessorSelector processorSelector;
 
-    protected final Collection<ConnectionProbe> probes =
+    protected final List<ConnectionProbe> probes =
             new LinkedList<ConnectionProbe>();
 
     public AbstractSocketConnectorHandler(Transport transport) {
@@ -69,13 +67,13 @@ public abstract class AbstractSocketConnectorHandler
         this.processor = transport.getProcessor();
         this.processorSelector = transport.getProcessorSelector();
     }
-    
+
     @Override
     public GrizzlyFuture<Connection> connect(String host, int port)
             throws IOException {
         return connect(new InetSocketAddress(host, port));
     }
-    
+
     @Override
     public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress)
             throws IOException {
@@ -100,48 +98,116 @@ public abstract class AbstractSocketConnectorHandler
             SocketAddress localAddress,
             CompletionHandler<Connection> completionHandler) throws IOException;
 
-
-    @Override
+    /**
+     * Get the default {@link Processor} to process {@link IOEvent}, occurring
+     * on connection phase.
+     *
+     * @return the default {@link Processor} to process {@link IOEvent},
+     * occurring on connection phase.
+     */
     public Processor getProcessor() {
         return processor;
     }
 
-    @Override
+    /**
+     * Set the default {@link Processor} to process {@link IOEvent}, occurring
+     * on connection phase.
+     *
+     * @param defaultProcessor the default {@link Processor} to process
+     * {@link IOEvent}, occurring on connection phase.
+     */
     public void setProcessor(Processor processor) {
         this.processor = processor;
     }
 
-    @Override
+    /**
+     * Gets the default {@link ProcessorSelector}, which will be used to get
+     * {@link Processor} to process I/O events, occurring on connection phase.
+     *
+     * @return the default {@link ProcessorSelector}, which will be used to get
+     * {@link Processor} to process I/O events, occurring on connection phase.
+     */
     public ProcessorSelector getProcessorSelector() {
         return processorSelector;
     }
 
-    @Override
+    /**
+     * Sets the default {@link ProcessorSelector}, which will be used to get
+     * {@link Processor} to process I/O events, occurring on connection phase.
+     *
+     * @param defaultProcessorSelector the default {@link ProcessorSelector},
+     * which will be used to get {@link Processor} to process I/O events,
+     * occurring on connection phase.
+     */
     public void setProcessorSelector(ProcessorSelector processorSelector) {
         this.processorSelector = processorSelector;
     }
 
-    @Override
+    /**
+     * Add the {@link ConnectionProbe}, which will be notified about
+     * <tt>Connection</tt> life-cycle events.
+     *
+     * @param probe the {@link ConnectionProbe}.
+     */
     public void addMonitoringProbe(ConnectionProbe probe) {
         probes.add(probe);
     }
 
-    @Override
+    /**
+     * Remove the {@link ConnectionProbe}.
+     *
+     * @param probe the {@link ConnectionProbe}.
+     */
     public boolean removeMonitoringProbe(ConnectionProbe probe) {
         return probes.remove(probe);
     }
 
-    @Override
+    /**
+     * Get the {@link ConnectionProbe}, which are registered on the <tt>Connection</tt>.
+     * Please note, it's not appropriate to modify the returned array's content.
+     * Please use {@link #addMonitoringProbe(org.glassfish.grizzly.ConnectionProbe)} and
+     * {@link #removeMonitoringProbe(org.glassfish.grizzly.ConnectionProbe)} instead.
+     *
+     * @return the {@link ConnectionProbe}, which are registered on the <tt>Connection</tt>.
+     */
     public ConnectionProbe[] getMonitoringProbes() {
         return probes.toArray(new ConnectionProbe[probes.size()]);
     }
 
     /**
-     * Preconfigures {@link Connection} object before actual connecting phase
+     * Pre-configures {@link Connection} object before actual connecting phase
      * will be started.
      * 
-     * @param connection {@link Connection} to preconfigure.
+     * @param connection {@link Connection} to pre-configure.
      */
     protected void preConfigure(Connection connection) {
+    }
+
+    /**
+     * Builder
+     *
+     * @param <E>
+     */
+    public abstract static class Builder<E extends Builder> {
+        protected final AbstractSocketConnectorHandler connectorHandler;
+
+        public Builder(AbstractSocketConnectorHandler connectorHandler) {
+            this.connectorHandler = connectorHandler;
+        }
+
+        public E processor(final Processor processor) {
+            connectorHandler.setProcessor(processor);
+            return (E) this;
+        }
+
+        public E processorSelector(final ProcessorSelector processorSelector) {
+            connectorHandler.setProcessorSelector(processorSelector);
+            return (E) this;
+        }
+
+        public E probe(ConnectionProbe connectionProbe) {
+            connectorHandler.addMonitoringProbe(connectionProbe);
+            return (E) this;
+        }
     }
 }

@@ -277,9 +277,9 @@ public class KeepAliveTest extends TestCase {
             filterChainBuilder.add(new HttpResponseFilter());
 
             final SocketConnectorHandler connector =
-                    new TCPNIOConnectorHandler(transport);
-
-            connector.setProcessor(filterChainBuilder.build());
+                    TCPNIOConnectorHandler.builder(transport)
+                    .processor(filterChainBuilder.build())
+                    .build();
 
             return connector.connect(new InetSocketAddress(host, port), new EmptyCompletionHandler<Connection>() {
                 @Override
