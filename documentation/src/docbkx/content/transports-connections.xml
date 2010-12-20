@@ -134,7 +134,52 @@ Connection clientConnection = clientConnectionFuture.get();</programlisting></pa
                              .build();
 Future&lt;Connection> clientConnectionFuture = customUdpConnectorHandler.connect("timeserver.com", 3333);
 Connection clientConnection = clientConnectionFuture.get();</programlisting></para>
-                <para/>
+                <para>We can describe the asynchronous connect operation as the sequence diagram,
+                    actually two sequence diagrams :)</para>
+                <para>The first one shows the steps passed in the current thread, where we call
+                        <emphasis role="italic">ConnectorHandler.connect(...)</emphasis> operation
+                    and get <emphasis role="italic">Future&lt;Connection></emphasis> as the
+                    result:</para>
+                <para><inlinemediaobject>
+                        <imageobject>
+                            <imagedata fileref="../images/coreframework/connectorhandler-seq1.svg"/>
+                        </imageobject>
+                    </inlinemediaobject></para>
+                <para>So the above code just adds the connection object on the <emphasis
+                        role="italic">SelectorRunner</emphasis>'s queue, which is being processed
+                    from selector-thread. Within the selector-thread the connection will be actually
+                    registered on the <emphasis role="italic">SelectorRunner</emphasis>'s associated
+                    Selector and, once it happened, the <emphasis role="italic"
+                        >SelectorRunner</emphasis> notifies <emphasis role="italic"
+                        >ConnectorHandler</emphasis> about the registration completion and<itemizedlist>
+                        <listitem>
+                            <para>for UDP transport - <emphasis role="italic"
+                                    >UDPNIOConnection</emphasis> is getting initilized, the
+                                    <emphasis role="italic">Processor</emphasis> gets notified about
+                                CONNECT operation completion and finally the Future&lt;Connection>
+                                result becomes available in the custom-thread;</para>
+                        </listitem>
+                        <listitem>
+                            <para>for TCP transport - we still wait until underlying OS network
+                                framework will notify us that the connection was actually connected
+                                to the destination address (UDP doesn't have this) and only then
+                                Processor gets notified about CONNECT operation completion and
+                                finally the Future&lt;Connection> result becomes available in the
+                                custom-thread;</para>
+                        </listitem>
+                    </itemizedlist></para>
+                <para>In general the logic looks like:</para>
+                <para><inlinemediaobject>
+                        <imageobject>
+                            <imagedata fileref="../images/coreframework/connectorhandler-seq2.svg"/>
+                        </imageobject>
+                    </inlinemediaobject></para>
+                <para>Talking about TCP transport, we have to mention the usecase, when we're on the
+                    server side and <emphasis role="italic">TCPNIOServerConnection</emphasis>
+                    accepts new client connection. In this case the processing logic looks pretty
+                    much like on the diagram above, but instead of "CONNECT", we notify <emphasis
+                        role="italic">Processor</emphasis> about "ACCEPT" event occurred on the
+                        <emphasis role="italic">TCPNIOConnection</emphasis>.</para>
             </listitem>
         </itemizedlist>
     </para>
