@@ -63,21 +63,30 @@
         <path d="M0 0 L170 0 L170 14 L0 14 L0 0 Z" />
       </clipPath>
       <clipPath clipPathUnits="userSpaceOnUse" id="clipPath20">
-        <path d="M0 0 L104 0 L104 163 L0 163 L0 0 Z" />
+        <path d="M-3 -3 L37 -3 L37 27 L-3 27 L-3 -3 Z" />
       </clipPath>
       <clipPath clipPathUnits="userSpaceOnUse" id="clipPath21">
-        <path d="M0 0 L153 0 L153 104 L0 104 L0 0 Z" />
+        <path d="M-30 -20 L60 -20 L60 40 L-30 40 L-30 -20 Z" />
       </clipPath>
       <clipPath clipPathUnits="userSpaceOnUse" id="clipPath22">
-        <path d="M0 0 L104 0 L104 143 L0 143 L0 0 Z" />
+        <path d="M0 0 L174 0 L174 163 L0 163 L0 0 Z" />
       </clipPath>
       <clipPath clipPathUnits="userSpaceOnUse" id="clipPath23">
-        <path d="M-39 -14 L78 -14 L78 28 L-39 28 L-39 -14 Z" />
+        <path d="M0 0 L153 0 L153 104 L0 104 L0 0 Z" />
       </clipPath>
       <clipPath clipPathUnits="userSpaceOnUse" id="clipPath24">
-        <path d="M-28 -14 L56 -14 L56 28 L-28 28 L-28 -14 Z" />
+        <path d="M0 0 L104 0 L104 163 L0 163 L0 0 Z" />
       </clipPath>
       <clipPath clipPathUnits="userSpaceOnUse" id="clipPath25">
+        <path d="M0 0 L104 0 L104 143 L0 143 L0 0 Z" />
+      </clipPath>
+      <clipPath clipPathUnits="userSpaceOnUse" id="clipPath26">
+        <path d="M-39 -14 L78 -14 L78 28 L-39 28 L-39 -14 Z" />
+      </clipPath>
+      <clipPath clipPathUnits="userSpaceOnUse" id="clipPath27">
+        <path d="M-28 -14 L56 -14 L56 28 L-28 28 L-28 -14 Z" />
+      </clipPath>
+      <clipPath clipPathUnits="userSpaceOnUse" id="clipPath28">
         <path d="M-27 -14 L54 -14 L54 28 L-27 28 L-27 -14 Z" />
       </clipPath>
     </defs>
@@ -182,7 +191,7 @@
       <rect x="0" y="0" width="170" style="clip-path:url(#clipPath17); fill:none;" height="40" />
       <line x1="0" x2="170" y1="14" style="clip-path:url(#clipPath17); fill:none;" y2="14" />
     </g>
-    <g transform="translate(86,386)" style="font-size:11; stroke-linecap:butt; text-rendering:geometricPrecision; font-family:sans-serif; stroke-linejoin:round; font-weight:bold; stroke-miterlimit:0;">
+    <g transform="translate(86,386)" style="text-rendering:geometricPrecision; font-size:11; font-weight:bold; font-family:sans-serif;">
       <text x="13" y="11" style="clip-path:url(#clipPath19); stroke:none;" xml:space="preserve">TCPNIOServerConnection</text>
     </g>
     <g transform="translate(276,386)" style="font-size:11; fill:rgb(122,207,245); text-rendering:geometricPrecision; font-family:sans-serif; stroke:rgb(122,207,245); font-weight:bold;">
@@ -192,7 +201,7 @@
       <rect x="0" y="0" width="170" style="clip-path:url(#clipPath17); fill:none;" height="40" />
       <line x1="0" x2="170" y1="14" style="clip-path:url(#clipPath17); fill:none;" y2="14" />
     </g>
-    <g transform="translate(276,386)" style="font-size:11; stroke-linecap:butt; text-rendering:geometricPrecision; font-family:sans-serif; stroke-linejoin:round; font-weight:bold; stroke-miterlimit:0;">
+    <g transform="translate(276,386)" style="text-rendering:geometricPrecision; font-size:11; font-weight:bold; font-family:sans-serif;">
       <text x="12" y="11" style="clip-path:url(#clipPath19); stroke:none;" xml:space="preserve">UDPNIOServerConnection</text>
     </g>
     <g transform="translate(46,126)" style="font-size:11; fill:rgb(122,207,245); text-rendering:geometricPrecision; font-family:sans-serif; stroke:rgb(122,207,245); font-weight:bold;">
@@ -205,71 +214,75 @@
     <g transform="translate(46,126)" style="text-rendering:geometricPrecision; font-size:11; font-weight:bold; font-family:sans-serif;">
       <text x="20" y="11" style="clip-path:url(#clipPath10); stroke:none;" xml:space="preserve">NIOTransport</text>
     </g>
-    <g transform="translate(266,196)" style="font-size:11; stroke-linecap:butt; text-rendering:geometricPrecision; font-family:sans-serif; stroke-linejoin:round;">
-      <line x1="50" x2="50" y1="50" style="clip-path:url(#clipPath20); fill:none;" y2="109" />
-      <polygon style="fill:white; clip-path:url(#clipPath20); stroke:none;" points=" 50 50 44 62 56 62" />
-      <polygon style="fill:none; clip-path:url(#clipPath20);" points=" 50 50 44 62 56 62" />
+    <g transform="translate(216,196)" style="font-size:11; stroke-linecap:butt; text-rendering:geometricPrecision; font-family:sans-serif; stroke-linejoin:round;">
+      <line x1="50" x2="50" y1="50" style="clip-path:url(#clipPath22); fill:none;" y2="90" />
+      <line x1="50" x2="120" y1="90" style="clip-path:url(#clipPath22); fill:none;" y2="90" />
+      <line x1="120" x2="120" y1="90" style="clip-path:url(#clipPath22); fill:none;" y2="109" />
+      <polygon style="fill:white; clip-path:url(#clipPath22); stroke:none;" points=" 50 50 44 62 56 62" />
+      <polygon style="fill:none; clip-path:url(#clipPath22);" points=" 50 50 44 62 56 62" />
     </g>
     <g transform="translate(116,176)" style="font-size:11; stroke-linecap:butt; text-rendering:geometricPrecision; font-family:sans-serif; stroke-linejoin:round;">
-      <line x1="50" x2="99" y1="50" style="clip-path:url(#clipPath21); fill:none;" y2="50" />
+      <line x1="50" x2="99" y1="50" style="clip-path:url(#clipPath23); fill:none;" y2="50" />
     </g>
     <g transform="translate(266,6)" style="font-size:11; stroke-linecap:butt; text-rendering:geometricPrecision; font-family:sans-serif; stroke-linejoin:round;">
-      <line x1="99" x2="50" y1="50" style="clip-path:url(#clipPath21); fill:none;" y2="50" />
+      <line x1="99" x2="50" y1="50" style="clip-path:url(#clipPath23); fill:none;" y2="50" />
     </g>
     <g transform="translate(266,176)" style="font-size:11; stroke-linecap:butt; text-rendering:geometricPrecision; font-family:sans-serif; stroke-linejoin:round;">
-      <line x1="75" x2="50" y1="50" style="clip-path:url(#clipPath21); fill:none;" y2="50" />
-      <polygon style="clip-path:url(#clipPath21); stroke:none;" points=" 99 50 87 44 75 50 87 56" />
-      <polygon style="fill:none; clip-path:url(#clipPath21);" points=" 99 50 87 44 75 50 87 56" />
+      <line x1="75" x2="50" y1="50" style="clip-path:url(#clipPath23); fill:none;" y2="50" />
+      <polygon style="clip-path:url(#clipPath23); stroke:none;" points=" 99 50 87 44 75 50 87 56" />
+      <polygon style="fill:none; clip-path:url(#clipPath23);" points=" 99 50 87 44 75 50 87 56" />
     </g>
-    <g transform="translate(166,196)" style="font-size:11; stroke-linecap:butt; text-rendering:geometricPrecision; font-family:sans-serif; stroke-linejoin:round;">
-      <line x1="50" x2="50" y1="50" style="clip-path:url(#clipPath20); fill:none;" y2="109" />
-      <polygon style="fill:white; clip-path:url(#clipPath20); stroke:none;" points=" 50 50 44 62 56 62" />
-      <polygon style="fill:none; clip-path:url(#clipPath20);" points=" 50 50 44 62 56 62" />
+    <g transform="translate(146,196)" style="font-size:11; stroke-linecap:butt; text-rendering:geometricPrecision; font-family:sans-serif; stroke-linejoin:round;">
+      <line x1="120" x2="120" y1="50" style="clip-path:url(#clipPath22); fill:none;" y2="90" />
+      <line x1="120" x2="50" y1="90" style="clip-path:url(#clipPath22); fill:none;" y2="90" />
+      <line x1="50" x2="50" y1="90" style="clip-path:url(#clipPath22); fill:none;" y2="109" />
+      <polygon style="fill:white; clip-path:url(#clipPath22); stroke:none;" points=" 120 50 114 62 126 62" />
+      <polygon style="fill:none; clip-path:url(#clipPath22);" points=" 120 50 114 62 126 62" />
     </g>
     <g transform="translate(116,6)" style="font-size:11; stroke-linecap:butt; text-rendering:geometricPrecision; font-family:sans-serif; stroke-linejoin:round;">
-      <line x1="50" x2="75" y1="50" style="clip-path:url(#clipPath21); fill:none;" y2="50" />
-      <polygon style="clip-path:url(#clipPath21); stroke:none;" points=" 99 50 87 44 75 50 87 56" />
-      <polygon style="fill:none; clip-path:url(#clipPath21);" points=" 99 50 87 44 75 50 87 56" />
+      <line x1="50" x2="75" y1="50" style="clip-path:url(#clipPath23); fill:none;" y2="50" />
+      <polygon style="clip-path:url(#clipPath23); stroke:none;" points=" 99 50 87 44 75 50 87 56" />
+      <polygon style="fill:none; clip-path:url(#clipPath23);" points=" 99 50 87 44 75 50 87 56" />
     </g>
     <g transform="translate(216,66)" style="font-size:11; stroke-linecap:butt; text-rendering:geometricPrecision; font-family:sans-serif; stroke-linejoin:round;">
-      <line x1="50" x2="50" y1="50" style="clip-path:url(#clipPath20); fill:none;" y2="109" />
-      <polygon style="fill:white; clip-path:url(#clipPath20); stroke:none;" points=" 50 50 44 62 56 62" />
-      <polygon style="fill:none; clip-path:url(#clipPath20);" points=" 50 50 44 62 56 62" />
+      <line x1="50" x2="50" y1="50" style="clip-path:url(#clipPath24); fill:none;" y2="109" />
+      <polygon style="fill:white; clip-path:url(#clipPath24); stroke:none;" points=" 50 50 44 62 56 62" />
+      <polygon style="fill:none; clip-path:url(#clipPath24);" points=" 50 50 44 62 56 62" />
     </g>
     <g transform="translate(146,296)" style="font-size:11; stroke-linecap:butt; text-rendering:geometricPrecision; font-family:sans-serif; stroke-linejoin:round;">
-      <line x1="50" x2="50" y1="50" style="clip-path:url(#clipPath22); fill:none;" y2="89" />
-      <polygon style="fill:white; clip-path:url(#clipPath22); stroke:none;" points=" 50 50 44 62 56 62" />
-      <polygon style="fill:none; clip-path:url(#clipPath22);" points=" 50 50 44 62 56 62" />
+      <line x1="50" x2="50" y1="50" style="clip-path:url(#clipPath25); fill:none;" y2="89" />
+      <polygon style="fill:white; clip-path:url(#clipPath25); stroke:none;" points=" 50 50 44 62 56 62" />
+      <polygon style="fill:none; clip-path:url(#clipPath25);" points=" 50 50 44 62 56 62" />
     </g>
     <g transform="translate(291,296)" style="font-size:11; stroke-linecap:butt; text-rendering:geometricPrecision; font-family:sans-serif; stroke-linejoin:round;">
-      <line x1="50" x2="50" y1="50" style="clip-path:url(#clipPath22); fill:none;" y2="89" />
-      <polygon style="fill:white; clip-path:url(#clipPath22); stroke:none;" points=" 50 50 44 62 56 62" />
-      <polygon style="fill:none; clip-path:url(#clipPath22);" points=" 50 50 44 62 56 62" />
+      <line x1="50" x2="50" y1="50" style="clip-path:url(#clipPath25); fill:none;" y2="89" />
+      <polygon style="fill:white; clip-path:url(#clipPath25); stroke:none;" points=" 50 50 44 62 56 62" />
+      <polygon style="fill:none; clip-path:url(#clipPath25);" points=" 50 50 44 62 56 62" />
     </g>
     <g transform="translate(56,36)" style="font-size:11; stroke-linecap:butt; text-rendering:geometricPrecision; font-family:sans-serif; stroke-linejoin:round;">
-      <line x1="50" x2="50" y1="50" style="clip-path:url(#clipPath22); fill:none;" y2="89" />
-      <polygon style="fill:white; clip-path:url(#clipPath22); stroke:none;" points=" 50 50 44 62 56 62" />
-      <polygon style="fill:none; clip-path:url(#clipPath22);" points=" 50 50 44 62 56 62" />
+      <line x1="50" x2="50" y1="50" style="clip-path:url(#clipPath25); fill:none;" y2="89" />
+      <polygon style="fill:white; clip-path:url(#clipPath25); stroke:none;" points=" 50 50 44 62 56 62" />
+      <polygon style="fill:none; clip-path:url(#clipPath25);" points=" 50 50 44 62 56 62" />
     </g>
     <g transform="translate(56,116)" style="font-size:11; stroke-linecap:butt; text-rendering:geometricPrecision; font-family:sans-serif; stroke-linejoin:round;">
-      <line x1="50" x2="50" y1="74" style="clip-path:url(#clipPath22); fill:none;" y2="89" />
-      <polygon style="clip-path:url(#clipPath22); stroke:none;" points=" 50 50 44 62 50 74 56 62" />
-      <polygon style="fill:none; clip-path:url(#clipPath22);" points=" 50 50 44 62 50 74 56 62" />
+      <line x1="50" x2="50" y1="74" style="clip-path:url(#clipPath25); fill:none;" y2="89" />
+      <polygon style="clip-path:url(#clipPath25); stroke:none;" points=" 50 50 44 62 50 74 56 62" />
+      <polygon style="fill:none; clip-path:url(#clipPath25);" points=" 50 50 44 62 50 74 56 62" />
     </g>
     <g style="text-rendering:geometricPrecision; font-size:11; font-family:sans-serif;" transform="translate(106,169)">
-      <text x="10" y="11" style="clip-path:url(#clipPath23); stroke:none;" xml:space="preserve">1..*</text>
+      <text x="10" y="11" style="clip-path:url(#clipPath26); stroke:none;" xml:space="preserve">1..*</text>
     </g>
     <g style="text-rendering:geometricPrecision; font-size:11; font-family:sans-serif;" transform="translate(336,36)">
-      <text x="10" y="11" style="clip-path:url(#clipPath24); stroke:none;" xml:space="preserve">1</text>
+      <text x="10" y="11" style="clip-path:url(#clipPath27); stroke:none;" xml:space="preserve">1</text>
     </g>
     <g style="text-rendering:geometricPrecision; font-size:11; font-family:sans-serif;" transform="translate(156,36)">
-      <text x="10" y="11" style="clip-path:url(#clipPath23); stroke:none;" xml:space="preserve">1..*</text>
+      <text x="10" y="11" style="clip-path:url(#clipPath26); stroke:none;" xml:space="preserve">1..*</text>
     </g>
     <g style="text-rendering:geometricPrecision; font-size:11; font-family:sans-serif;" transform="translate(336,206)">
-      <text x="10" y="11" style="clip-path:url(#clipPath24); stroke:none;" xml:space="preserve">1</text>
+      <text x="10" y="11" style="clip-path:url(#clipPath27); stroke:none;" xml:space="preserve">1</text>
     </g>
     <g style="text-rendering:geometricPrecision; font-size:11; font-family:sans-serif;" transform="translate(176,206)">
-      <text x="10" y="11" style="clip-path:url(#clipPath25); stroke:none;" xml:space="preserve">1</text>
+      <text x="10" y="11" style="clip-path:url(#clipPath28); stroke:none;" xml:space="preserve">1</text>
     </g>
   </g>
 </svg>

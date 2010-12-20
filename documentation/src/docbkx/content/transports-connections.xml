@@ -111,6 +111,17 @@
                         </listitem>
                     </itemizedlist></para>
             </listitem>
+            <listitem>
+                <para>Establishing client connections</para>
+                <para>The ConnectorHandler API is reponsible for establishing and initializing
+                    client connections.</para>
+                <para><inlinemediaobject>
+                        <imageobject>
+                            <imagedata
+                                fileref="../images/coreframework/connectorhandler-diagram.svg"/>
+                        </imageobject>
+                    </inlinemediaobject></para>
+            </listitem>
         </itemizedlist>
     </para>
 </section>
