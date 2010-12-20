@@ -41,12 +41,14 @@
 package org.glassfish.grizzly.samples.udpecho;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
 import org.glassfish.grizzly.samples.echo.EchoFilter;
+import org.glassfish.grizzly.utils.StringFilter;
 
 /**
  * Class initializes and starts the UDP echo server, based on Grizzly 2.0
@@ -65,6 +67,7 @@ public class EchoServer {
         // Add TransportFilter, which will be responsible for reading and
         // writing data to the connection
         filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new StringFilter(Charset.forName("UTF-8")));
         filterChainBuilder.add(new EchoFilter());
 
         // Create UDP transport

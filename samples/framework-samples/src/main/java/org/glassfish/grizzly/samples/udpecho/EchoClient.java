@@ -41,18 +41,21 @@
 package org.glassfish.grizzly.samples.udpecho;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.nio.charset.Charset;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.StandaloneProcessor;
 import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
-import org.glassfish.grizzly.streams.StreamReader;
-import org.glassfish.grizzly.streams.StreamWriter;
+import org.glassfish.grizzly.utils.StringFilter;
 
 /**
  * The simple client, which sends a message to the echo server
@@ -65,63 +68,89 @@ public class EchoClient {
     public static void main(String[] args) throws IOException,
             ExecutionException, InterruptedException, TimeoutException {
 
-        Connection connection = null;
-        StreamReader reader = null;
-        StreamWriter writer = null;
-        
+        final FutureImpl<Boolean> future = SafeFutureImpl.<Boolean>create();
+
+        // Create a FilterChain using FilterChainBuilder
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        // Add TransportFilter, which will be responsible for reading and
+        // writing data to the connection
+        filterChainBuilder.add(new TransportFilter());
+        // Add string filter, which will transform Buffer <-> String
+        filterChainBuilder.add(new StringFilter(Charset.forName("UTF-8")));
+        // Add the client filter, responsible for the client logic
+        filterChainBuilder.add(new ClientFilter("Echo test", future));
+
         // Create the UDP transport
         UDPNIOTransport transport = TransportFactory.getInstance().
                 createUDPTransport();
+        transport.setProcessor(filterChainBuilder.build());
 
         try {
             // start the transport
             transport.start();
 
             // perform async. connect to the server
-            Future<Connection> future = transport.connect(EchoServer.HOST,
+            transport.connect(EchoServer.HOST,
                     EchoServer.PORT);
             // wait for connect operation to complete
-            connection = future.get(10, TimeUnit.SECONDS);
-
-            assert connection != null;
-
-            connection.configureStandalone(true);
-            
-            writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
-            String message = "Echo test";
-            byte[] sendBytes = message.getBytes();
-
-            // sync. write the complete message using
-            // temporary selectors if required
-            writer.writeByteArray(sendBytes);
-            Future<Integer> writeFuture = writer.flush();
-            writeFuture.get();
-
-            assert writeFuture.isDone();
-
-            reader = StandaloneProcessor.INSTANCE.getStreamReader(connection);
-            // allocate the buffer for receiving bytes
-            byte[] receiveBytes = new byte[sendBytes.length];
-            Future readFuture = reader.notifyAvailable(receiveBytes.length);
-
-            readFuture.get();
-
-            reader.readByteArray(receiveBytes);
 
             // check the result
-            final boolean isEqual = Arrays.equals(sendBytes, receiveBytes);
+            final boolean isEqual = future.get(10, TimeUnit.SECONDS);
             assert isEqual;
             logger.info("Echo came successfully");
         } finally {
-            // close the client connection
-            if (connection != null) {
-                connection.close();
-            }
-
             // stop the transport
             transport.stop();
             // release TransportManager resources like ThreadPool etc.
             TransportFactory.getInstance().close();
         }
+    }
+
+    /**
+     * ClientFilter, which sends a message, when UDP connection gets bound to the target address,
+     * and checks the server echo.
+     */
+    static class ClientFilter extends BaseFilter {
+        // initial message to be sent to the server
+        private final String message;
+        // the resulting future
+        private final FutureImpl<Boolean> future;
+
+        private ClientFilter(String message, FutureImpl<Boolean> future) {
+            this.message = message;
+            this.future = future;
+        }
+
+        /**
+         * Method is called, when UDP connection is getting bound to the server address.
+         * 
+         * @param ctx the {@link FilterChainContext}.
+         * @return
+         * @throws IOException
+         */
+        @Override
+        public NextAction handleConnect(final FilterChainContext ctx) throws IOException {
+            // We have StringFilter down on the filterchain - so we can write String directly
+            ctx.write(message);
+            return ctx.getInvokeAction();
+        }
+
+        /**
+         * Method is called, when UDP message came from the server.
+         *
+         * @param ctx the {@link FilterChainContext}.
+         * @return
+         * @throws IOException
+         */
+        @Override
+        public NextAction handleRead(final FilterChainContext ctx) throws IOException {
+            // We have StringFilter down on the filterchain - so we can get String directly
+            final String messageFromServer = ctx.getMessage();
+
+            // check the echo
+            future.result(message.equals(messageFromServer));
+            return ctx.getInvokeAction();
+        }
+
     }
 }
