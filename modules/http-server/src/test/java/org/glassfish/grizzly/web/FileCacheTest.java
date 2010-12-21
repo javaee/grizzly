@@ -140,7 +140,7 @@ public class FileCacheTest {
         httpServer.getServerConfiguration().getMonitoringConfig().getHttpConfig().addProbes(httpProbe);
         httpServer.getServerConfiguration().getMonitoringConfig().getConnectionConfig().addProbes(connectionProbe);
 
-        startHttpServer(new StaticResourcesService() {
+        startHttpServer(new StaticHttpHandler() {
 
             @Override
             protected void onMissingResource(final Request req, final Response res) {
@@ -215,7 +215,7 @@ public class FileCacheTest {
         final StatsCacheProbe probe = new StatsCacheProbe();
         httpServer.getServerConfiguration().getMonitoringConfig().getFileCacheConfig().addProbes(probe);
 
-        startHttpServer(new StaticResourcesService() {
+        startHttpServer(new StaticHttpHandler() {
 
             @Override
             public void onMissingResource(final Request req, final Response res) {
@@ -287,7 +287,7 @@ public class FileCacheTest {
     @Test
     public void testIfModified() throws Exception {
         final String fileName = "./pom.xml";
-        startHttpServer(new StaticResourcesService(".") {
+        startHttpServer(new StaticHttpHandler(".") {
         });
 
         final HttpRequestPacket request1 = HttpRequestPacket.builder()
@@ -362,8 +362,8 @@ public class FileCacheTest {
         httpServer.addListener(listener);
     }
 
-    private void startHttpServer(HttpHandler httpService) throws Exception {
-        httpServer.getServerConfiguration().addHttpService(httpService);
+    private void startHttpServer(final HttpHandler httpHandler) throws Exception {
+        httpServer.getServerConfiguration().addHttpHandler(httpHandler);
         httpServer.start();
     }
 

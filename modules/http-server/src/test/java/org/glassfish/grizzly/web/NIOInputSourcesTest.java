@@ -101,25 +101,25 @@ public class NIOInputSourcesTest extends TestCase {
     public void testBasicAsyncRead() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final EchoService httpService = new EchoHttpService(testResult, 0);
+        final EchoHandler httpHandler = new EchoHttpHandler(testResult, 0);
         final String expected = buildString(5000);
         final HttpPacket request = createRequest("POST", expected, null);
-        doTest(httpService, request, expected, testResult, null, 10);
+        doTest(httpHandler, request, expected, testResult, null, 10);
         
     }
 
 
     /*
      * <em>POST</em> a message body with a length of 5000 bytes.
-     * HttpService calls {@link AsyncStreamReader#
+     * HttpHandler calls {@link AsyncStreamReader#
      */
     public void testBasicAsyncReadSpecifiedSize() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final EchoService httpService = new EchoHttpService(testResult, 1000);
+        final EchoHandler httpHandler = new EchoHttpHandler(testResult, 1000);
         final String expected = buildString(5000);
         final HttpPacket request = createRequest("POST", expected, null);
-        doTest(httpService, request, expected, testResult, null, 10);
+        doTest(httpHandler, request, expected, testResult, null, 10);
 
     }
 
@@ -127,7 +127,7 @@ public class NIOInputSourcesTest extends TestCase {
     public void testBasicAsyncReadSlowClient() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final EchoService httpService = new EchoHttpService(testResult, 0);
+        final EchoHandler httpHandler = new EchoHttpHandler(testResult, 0);
         final String expected = buildString(5000);
 
         final HttpRequestPacket.Builder b = HttpRequestPacket.builder();
@@ -166,14 +166,14 @@ public class NIOInputSourcesTest extends TestCase {
                 }
             }
         };
-        doTest(httpService, request, expected, testResult, strategy, 30);
+        doTest(httpHandler, request, expected, testResult, strategy, 30);
         
     }
 
     public void testBasicAsyncReadSpecifiedSizeSlowClient() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final EchoService httpService = new EchoHttpService(testResult, 2000);
+        final EchoHandler httpHandler = new EchoHttpHandler(testResult, 2000);
         final String expected = buildString(5000);
 
         final HttpRequestPacket.Builder b = HttpRequestPacket.builder();
@@ -212,7 +212,7 @@ public class NIOInputSourcesTest extends TestCase {
                 }
             }
         };
-        doTest(httpService, request, expected, testResult, strategy, 30);
+        doTest(httpHandler, request, expected, testResult, strategy, 30);
 
     }
 
@@ -223,10 +223,10 @@ public class NIOInputSourcesTest extends TestCase {
     public void testBasicAsyncReadChar() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final EchoService httpService = new CharacterEchoHttpService(testResult, 0, null);
+        final EchoHandler httpHandler = new CharacterEchoHttpHandler(testResult, 0, null);
         final String expected = buildString(5000);
         final HttpPacket request = createRequest("POST", expected, null);
-        doTest(httpService, request, expected, testResult, null, 30);
+        doTest(httpHandler, request, expected, testResult, null, 30);
 
     }
 
@@ -238,26 +238,26 @@ public class NIOInputSourcesTest extends TestCase {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
         final String encoding = "UTF-16";
-        final EchoService httpService = new CharacterEchoHttpService(testResult, 0, encoding);
+        final EchoHandler httpHandler = new CharacterEchoHttpHandler(testResult, 0, encoding);
         final String expected = buildString(5000);
         final HttpPacket request = createRequest("POST", expected, encoding);
         ClientFilter filter = new ClientFilter(testResult, request, null, encoding);
-        doTest(httpService, expected, testResult, filter, 30);
+        doTest(httpHandler, expected, testResult, filter, 30);
 
     }
 
 
     /*
      * <em>POST</em> a message body with a length of 5000 bytes.
-     * HttpService calls {@link AsyncStreamReader#
+     * HttpHandler calls {@link AsyncStreamReader#
      */
     public void testBasicAsyncReadCharSpecifiedSize() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final EchoService httpService = new CharacterEchoHttpService(testResult, 1000, null);
+        final EchoHandler httpHandler = new CharacterEchoHttpHandler(testResult, 1000, null);
         final String expected = buildString(5000);
         final HttpPacket request = createRequest("POST", expected, null);
-        doTest(httpService, request, expected, testResult, null, 10);
+        doTest(httpHandler, request, expected, testResult, null, 10);
 
     }
 
@@ -265,7 +265,7 @@ public class NIOInputSourcesTest extends TestCase {
     public void testBasicAsyncReadCharSlowClient() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final EchoService httpService = new CharacterEchoHttpService(testResult, 0, null);
+        final EchoHandler httpHandler = new CharacterEchoHttpHandler(testResult, 0, null);
         final String expected = buildString(5000);
 
         final HttpRequestPacket.Builder b = HttpRequestPacket.builder();
@@ -305,14 +305,14 @@ public class NIOInputSourcesTest extends TestCase {
                 }
             }
         };
-        doTest(httpService, request, expected, testResult, strategy, 30);
+        doTest(httpHandler, request, expected, testResult, strategy, 30);
 
     }
 
     public void testBasicAsyncReadCharSpecifiedSizeSlowClient() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final EchoService httpService = new CharacterEchoHttpService(testResult, 2000, null);
+        final EchoHandler httpHandler = new CharacterEchoHttpHandler(testResult, 2000, null);
         final String expected = buildString(5000);
 
         final HttpRequestPacket.Builder b = HttpRequestPacket.builder();
@@ -351,7 +351,7 @@ public class NIOInputSourcesTest extends TestCase {
                 }
             }
         };
-        doTest(httpService, request, expected, testResult, strategy, 30);
+        doTest(httpHandler, request, expected, testResult, strategy, 30);
 
     }
 
@@ -359,7 +359,7 @@ public class NIOInputSourcesTest extends TestCase {
     // --------------------------------------------------------- Private Methods
 
 
-    private HttpServer createWebServer(final HttpHandler httpService) {
+    private HttpServer createWebServer(final HttpHandler httpHandler) {
 
         final HttpServer server = new HttpServer();
         final NetworkListener listener =
@@ -368,13 +368,13 @@ public class NIOInputSourcesTest extends TestCase {
                         PORT);
         listener.getKeepAlive().setIdleTimeoutInSeconds(-1);
         server.addListener(listener);
-        server.getServerConfiguration().addHttpService(httpService, "/path/*");
+        server.getServerConfiguration().addHttpHandler(httpHandler, "/path/*");
 
         return server;
 
     }
 
-    private void doTest(final EchoService httpService,
+    private void doTest(final EchoHandler httpHandler,
                         final HttpPacket request,
                         final String expectedResult,
                         final FutureImpl<String> testResult,
@@ -382,7 +382,7 @@ public class NIOInputSourcesTest extends TestCase {
                         final int timeout)
     throws Exception {
 
-        doTest(httpService,
+        doTest(httpHandler,
                expectedResult,
                testResult,
                new ClientFilter(testResult, request, strategy, null),
@@ -392,7 +392,7 @@ public class NIOInputSourcesTest extends TestCase {
 
 
 
-    private void doTest(final EchoService httpService,
+    private void doTest(final EchoHandler httpHandler,
                         final String expectedResult,
                         final FutureImpl<String> testResult,
                         final ClientFilter filter,
@@ -401,7 +401,7 @@ public class NIOInputSourcesTest extends TestCase {
 
         final TCPNIOTransport clientTransport =
                 TransportFactory.getInstance().createTCPTransport();
-        final HttpServer server = createWebServer(httpService);
+        final HttpServer server = createWebServer(httpHandler);
         try {
             server.start();
             FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
@@ -422,7 +422,7 @@ public class NIOInputSourcesTest extends TestCase {
                     assertEquals("Expected a return content length of " + expectedResult.length() + ", received: " + res.length(),
                             expectedResult.length(),
                             res.length());
-                    assertEquals("Server echoed string=" + httpService.getEchoedString(), expectedResult, res);
+                    assertEquals("Server echoed string=" + httpHandler.getEchoedString(), expectedResult, res);
                 } else {
                     fail("No response content available.");
                 }
@@ -500,7 +500,7 @@ public class NIOInputSourcesTest extends TestCase {
     } // END WriteStrategy
 
 
-    private static class EchoHttpService extends EchoService {
+    private static class EchoHttpHandler extends EchoHandler {
 
         private final FutureImpl<String> testResult;
         private final int readSize;
@@ -510,7 +510,7 @@ public class NIOInputSourcesTest extends TestCase {
         // -------------------------------------------------------- Constructors
 
 
-        EchoHttpService(final FutureImpl<String> testResult, final int readSize) {
+        EchoHttpHandler(final FutureImpl<String> testResult, final int readSize) {
 
             this.testResult = testResult;
             this.readSize = readSize;
@@ -518,7 +518,7 @@ public class NIOInputSourcesTest extends TestCase {
         }
 
 
-        // ----------------------------------------- Methods from HttpService
+        // ----------------------------------------- Methods from HttpHandler
 
         @Override
         public void service(final Request req,
@@ -601,10 +601,10 @@ public class NIOInputSourcesTest extends TestCase {
         }
 
 
-    } // END EchoHttpService
+    } // END EchoHttpHandler
 
 
-    private static class CharacterEchoHttpService extends EchoService {
+    private static class CharacterEchoHttpHandler extends EchoHandler {
 
         private final FutureImpl<String> testResult;
         private final int readSize;
@@ -616,7 +616,7 @@ public class NIOInputSourcesTest extends TestCase {
         // -------------------------------------------------------- Constructors
 
 
-        CharacterEchoHttpService(final FutureImpl<String> testResult,
+        CharacterEchoHttpHandler(final FutureImpl<String> testResult,
                              final int readSize,
                              final String encoding) {
 
@@ -627,7 +627,7 @@ public class NIOInputSourcesTest extends TestCase {
         }
 
 
-        // ----------------------------------------- Methods from HttpService
+        // ----------------------------------------- Methods from HttpHandler
 
         @Override
         public void service(final Request req,
@@ -711,9 +711,9 @@ public class NIOInputSourcesTest extends TestCase {
             return echoedString.toString();
         }
 
-    } // END CharacterEchoHttpService
+    } // END CharacterEchoHttpHandler
 
-    private static abstract class EchoService extends HttpHandler {
+    private static abstract class EchoHandler extends HttpHandler {
         public abstract String getEchoedString();
     }
 

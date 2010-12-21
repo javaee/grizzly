@@ -52,13 +52,13 @@ import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
 import java.lang.reflect.Constructor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
+import org.glassfish.grizzly.http.server.io.NIOOutputStream;
 
 final class EchoServer {
     private static final String LISTENER_NAME = "NetworkListenerBM";
@@ -123,9 +123,9 @@ final class EchoServer {
     @SuppressWarnings({"unchecked"})
     private void configureServer(final Settings settings) {
         final ServerConfiguration config = httpServer.getServerConfiguration();
-        config.addHttpService(((settings.isBlocking())
-                                      ? new BlockingEchoService()
-                                      : new NonBlockingEchoService()),
+        config.addHttpHandler(((settings.isBlocking())
+                                      ? new BlockingEchoHandler()
+                                      : new NonBlockingEchoHandler()),
                                 PATH);
         final Transport transport = httpServer.getListener(LISTENER_NAME).getTransport();
         if (settings.isMonitoringMemory()) {
@@ -172,10 +172,10 @@ final class EchoServer {
     // ----------------------------------------------------------- Inner Classes
 
 
-    private final class BlockingEchoService extends HttpRequestProcessor {
+    private final class BlockingEchoHandler extends HttpHandler {
 
 
-        // ---------------------------------------- Methods from HttpService
+        // ---------------------------------------- Methods from HttpHandler
 
         @Override
         public void service(Request request, Response response)
@@ -185,8 +185,8 @@ final class EchoServer {
                 response.setContentLength(request.getContentLength());
             }
             if (settings.isBinary()) {
-                InputStream in = request.getInputStream(true);
-                OutputStream out = response.getOutputStream();
+                NIOInputStream in = request.getInputStream(true);
+                NIOOutputStream out = response.getOutputStream();
                 byte[] buf = new byte[1024];
                 int read;
                 int total = 0;
@@ -225,13 +225,13 @@ final class EchoServer {
             }
         }
 
-    } // END BlockingEchoService
+    } // END BlockingEchoHandler
 
 
-    public final class NonBlockingEchoService extends HttpRequestProcessor {
+    public final class NonBlockingEchoHandler extends HttpHandler {
 
 
-        // ---------------------------------------- Methods from HttpService
+        // ---------------------------------------- Methods from HttpHandler
 
         @Override
         public void service(final Request request, final Response response)
@@ -400,7 +400,7 @@ final class EchoServer {
             }
         }
 
-    } // END NonBlockingEchoService
+    } // END NonBlockingEchoHandler
 
 
     // ---------------------------------------------------------- Nested Classes

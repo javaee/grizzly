@@ -55,31 +55,31 @@ public class LoadOnStartupTest {
 	@Test
 	public void loadOnStartupTest() throws Exception {
 		
-		ServletService sa = new ServletService();
+		ServletHandler sa = new ServletHandler();
 		Assert.assertTrue(!sa.isLoadOnStartup());
 		
-		sa = new ServletService();
+		sa = new ServletHandler();
 		sa.setProperty("empty", Boolean.TRUE);
 		Assert.assertTrue(!sa.isLoadOnStartup());
 		
-		sa = new ServletService();
-		sa.setProperty(ServletService.LOAD_ON_STARTUP, Boolean.TRUE);
+		sa = new ServletHandler();
+		sa.setProperty(ServletHandler.LOAD_ON_STARTUP, Boolean.TRUE);
 		Assert.assertTrue(sa.isLoadOnStartup());
 		
-		sa = new ServletService();
-		sa.setProperty(ServletService.LOAD_ON_STARTUP, Boolean.FALSE);
+		sa = new ServletHandler();
+		sa.setProperty(ServletHandler.LOAD_ON_STARTUP, Boolean.FALSE);
 		Assert.assertTrue(!sa.isLoadOnStartup());
 		
-		sa = new ServletService();
-		sa.setProperty(ServletService.LOAD_ON_STARTUP, "-1");
+		sa = new ServletHandler();
+		sa.setProperty(ServletHandler.LOAD_ON_STARTUP, "-1");
 		Assert.assertTrue(!sa.isLoadOnStartup());
 		
-		sa = new ServletService();
-		sa.setProperty(ServletService.LOAD_ON_STARTUP, "0");
+		sa = new ServletHandler();
+		sa.setProperty(ServletHandler.LOAD_ON_STARTUP, "0");
 		Assert.assertTrue(sa.isLoadOnStartup());
 		
-		sa = new ServletService();
-		sa.setProperty(ServletService.LOAD_ON_STARTUP, "15");
+		sa = new ServletHandler();
+		sa.setProperty(ServletHandler.LOAD_ON_STARTUP, "15");
 		Assert.assertTrue(sa.isLoadOnStartup());
 		
 	}

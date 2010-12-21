@@ -102,9 +102,9 @@ public class HttpServer {
     private boolean started;
 
     /**
-     * HttpService, which processes HTTP requests
+     * HttpHandler, which processes HTTP requests
      */
-    private final HttpServiceChain httpServiceChain = new HttpServiceChain(this);
+    private final HttpHandlerChain httpHandlerChain = new HttpHandlerChain(this);
 
     /**
      * Mapping of {@link NetworkListener}s, by name, used by this server
@@ -279,7 +279,7 @@ public class HttpServer {
             enableJMX();
         }
 
-        setupService();
+        setupHttpHandler();
 
         if (serverConfig.isJmxEnabled()) {
             for (final JmxEventListener l : serverConfig.getJmxEventListeners()) {
@@ -293,24 +293,24 @@ public class HttpServer {
 
     }
 
-    private void setupService() {
+    private void setupHttpHandler() {
 
-        serverConfig.addJmxEventListener(httpServiceChain);
+        serverConfig.addJmxEventListener(httpHandlerChain);
 
-        synchronized (serverConfig.servicesSync) {
-            for (final HttpHandler httpService : serverConfig.orderedServices) {
-                final String[] mappings = serverConfig.services.get(httpService);
-                httpServiceChain.addService(httpService, mappings);
+        synchronized (serverConfig.handlersSync) {
+            for (final HttpHandler httpHandler : serverConfig.orderedHandlers) {
+                final String[] mappings = serverConfig.handlers.get(httpHandler);
+                httpHandlerChain.addHandler(httpHandler, mappings);
             }
         }
-        httpServiceChain.start();
+        httpHandlerChain.start();
 
     }
 
 
-    private void tearDownService() {
+    private void tearDownHttpHandler() {
 
-        httpServiceChain.destroy();
+        httpHandlerChain.destroy();
 
     }
 
@@ -319,8 +319,8 @@ public class HttpServer {
      * @return the {@link HttpHandler} used by this <code>HttpServer</code>
      *  instance.
      */
-    public HttpHandler getHttpService() {
-        return httpServiceChain;
+    public HttpHandler getHttpHandler() {
+        return httpHandlerChain;
     }
 
 
@@ -373,7 +373,7 @@ public class HttpServer {
                 }
             }
 
-            tearDownService();
+            tearDownHttpHandler();
 
             final String[] names = listeners.keySet().toArray(new String[listeners.size()]);
             for (final String name : names) {
@@ -445,7 +445,7 @@ public class HttpServer {
         final HttpServer server = new HttpServer();
         final ServerConfiguration config = server.getServerConfiguration();
         if (path != null) {
-            config.addHttpService(new StaticResourcesService(path), "/");
+            config.addHttpHandler(new StaticHttpHandler(path), "/");
         }
         final NetworkListener listener =
                 new NetworkListener("grizzly",
@@ -542,7 +542,7 @@ public class HttpServer {
             builder.add(fileCacheFilter);
 
             final HttpServerFilter webServerFilter = new HttpServerFilter(serverConfig, delayedExecutor);
-            webServerFilter.setHttpService(httpServiceChain);
+            webServerFilter.setHttpHandler(httpHandlerChain);
             
             webServerFilter.getMonitoringConfig().addProbes(
                     serverConfig.getMonitoringConfig().getWebServerConfig().getProbes());
@@ -645,20 +645,20 @@ public class HttpServer {
     //************ Runtime config change listeners ******************
 
     /**
-     * Modifies services mapping during runtime.
+     * Modifies handlers mapping during runtime.
      */
-    synchronized void onAddHttpService(HttpHandler httpService, String[] mapping) {
+    synchronized void onAddHttpHandler(HttpHandler httpHandler, String[] mapping) {
         if (isStarted()) {
-            httpServiceChain.addService(httpService, mapping);
+            httpHandlerChain.addHandler(httpHandler, mapping);
         }
     }
 
     /**
-     * Modifies services mapping during runtime.
+     * Modifies handlers mapping during runtime.
      */
-    synchronized void onRemoveHttpService(HttpHandler httpService) {
+    synchronized void onRemoveHttpHandler(HttpHandler httpHandler) {
         if (isStarted()) {
-            httpServiceChain.removeHttpService(httpService);
+            httpHandlerChain.removeHttpHandler(httpHandler);
         }
     }
 }

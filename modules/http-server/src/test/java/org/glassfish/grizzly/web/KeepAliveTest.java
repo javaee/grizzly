@@ -341,7 +341,7 @@ public class KeepAliveTest extends TestCase {
 
     }
 
-    private HttpServer createServer(final HttpHandler httpService,
+    private HttpServer createServer(final HttpHandler httpHandler,
                                           final String... mappings) {
 
         HttpServer server = new HttpServer();
@@ -350,8 +350,8 @@ public class KeepAliveTest extends TestCase {
                                     NetworkListener.DEFAULT_NETWORK_HOST,
                                     PORT);
         server.addListener(listener);
-        if (httpService != null) {
-            server.getServerConfiguration().addHttpService(httpService, mappings);
+        if (httpHandler != null) {
+            server.getServerConfiguration().addHttpHandler(httpHandler, mappings);
         }
         return server;
 

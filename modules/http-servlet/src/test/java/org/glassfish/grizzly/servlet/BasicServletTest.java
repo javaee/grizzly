@@ -69,10 +69,10 @@ public class BasicServletTest extends HttpServerAbstractTest {
         try {
             newHttpServer(PORT);
             String alias = "/contextPath/servletPath/";
-            ServletService servletService = addHttpService(alias);
-            servletService.setContextPath("/contextPath");
-            servletService.setServletPath("/servletPath");
-            servletService.setProperty("servlet-name", "foobar");
+            ServletHandler servletHandler = addHttpHandler(alias);
+            servletHandler.setContextPath("/contextPath");
+            servletHandler.setServletPath("/servletPath");
+            servletHandler.setProperty("servlet-name", "foobar");
             httpServer.start();
             HttpURLConnection conn = getConnection("/contextPath/servletPath/pathInfo", PORT);
             String s = conn.getHeaderField("Servlet-Name");
@@ -87,7 +87,7 @@ public class BasicServletTest extends HttpServerAbstractTest {
         try {
             startHttpServer(PORT);
             String alias = "/1";
-            addHttpService(alias);
+            addHttpHandler(alias);
             
             HttpURLConnection conn = getConnection(alias, PORT);
             String s = conn.getHeaderField("Content-Type");
@@ -102,9 +102,9 @@ public class BasicServletTest extends HttpServerAbstractTest {
         try {
             newHttpServer(PORT);
             String alias = "/contextPath/servletPath/";
-            ServletService servletService = addHttpService(alias);
-            servletService.setContextPath("/contextPath");
-            servletService.setServletPath("/servletPath");
+            ServletHandler servletHandler = addHttpHandler(alias);
+            servletHandler.setContextPath("/contextPath");
+            servletHandler.setServletPath("/servletPath");
             httpServer.start();
             HttpURLConnection conn = getConnection("/contextPath/servletPath/pathInfo", PORT);
             String s = conn.getHeaderField("Path-Info");
@@ -119,9 +119,9 @@ public class BasicServletTest extends HttpServerAbstractTest {
         try {
             newHttpServer(PORT);
             String alias = "/contextPath/servletPath/";
-            ServletService servletService = addHttpService(alias);
-            servletService.setContextPath("/contextPath");
-            servletService.setServletPath("/servletPath");
+            ServletHandler servletHandler = addHttpHandler(alias);
+            servletHandler.setContextPath("/contextPath");
+            servletHandler.setServletPath("/servletPath");
             httpServer.start();
             HttpURLConnection conn = getConnection("/contextPath/servletPath%5FpathInfo", PORT);
             String s = conn.getHeaderField("Path-Info");
@@ -136,10 +136,10 @@ public class BasicServletTest extends HttpServerAbstractTest {
         try {
             newHttpServer(PORT);
             String alias = "/contextPath/servletPath/";
-            ServletService servletService = addHttpService(alias);
-            servletService.setAllowEncodedSlash(true);
-            servletService.setContextPath("/contextPath");
-            servletService.setServletPath("/servletPath");
+            ServletHandler servletHandler = addHttpHandler(alias);
+            servletHandler.setAllowEncodedSlash(true);
+            servletHandler.setContextPath("/contextPath");
+            servletHandler.setServletPath("/servletPath");
             httpServer.start();
             HttpURLConnection conn = getConnection("/contextPath/servletPath%5FpathInfo", PORT);
             String s = conn.getHeaderField("Path-Info");
@@ -154,9 +154,9 @@ public class BasicServletTest extends HttpServerAbstractTest {
         try {
             newHttpServer(PORT);
             String alias = "/*.html";
-            ServletService servletService = addHttpService(alias);
-            servletService.setContextPath("/");
-            servletService.setServletPath("/");
+            ServletHandler servletHandler = addHttpHandler(alias);
+            servletHandler.setContextPath("/");
+            servletHandler.setServletPath("/");
             httpServer.start();
             HttpURLConnection conn = getConnection("/index.html", PORT);
             assertEquals(HttpServletResponse.SC_OK,
@@ -173,7 +173,7 @@ public class BasicServletTest extends HttpServerAbstractTest {
         Utils.dumpOut("testContextParameters");
         try {
             newHttpServer(PORT);
-            ServletService sa1 = new ServletService(new HttpServlet() {
+            ServletHandler sa1 = new ServletHandler(new HttpServlet() {
                 private ServletConfig config;
                 @Override public void init(ServletConfig config) throws ServletException {
                     super.init(config);
@@ -188,7 +188,7 @@ public class BasicServletTest extends HttpServerAbstractTest {
             });
             sa1.addInitParameter("servlet", "sa1");
             sa1.addContextParameter("ctx", "something");
-            ServletService sa2 = sa1.newServletService(new HttpServlet() {
+            ServletHandler sa2 = sa1.newServletHandler(new HttpServlet() {
                 private ServletConfig config;
                 @Override public void init(ServletConfig config) throws ServletException {
                     super.init(config);
@@ -202,8 +202,8 @@ public class BasicServletTest extends HttpServerAbstractTest {
                 }
             });
             sa2.addInitParameter("servlet", "sa2");
-            httpServer.getServerConfiguration().addHttpService(sa1, new String[]{"/1"});
-            httpServer.getServerConfiguration().addHttpService(sa2, new String[]{"/2"});
+            httpServer.getServerConfiguration().addHttpHandler(sa1, new String[]{"/1"});
+            httpServer.getServerConfiguration().addHttpHandler(sa2, new String[]{"/2"});
             httpServer.start();
 
             assertEquals(200, getConnection("/1", PORT).getResponseCode());
@@ -222,12 +222,12 @@ public class BasicServletTest extends HttpServerAbstractTest {
     public void testNoContentServlet() throws IOException {
         try {
             startHttpServer(PORT);
-            ServletService noContent = new ServletService(new HttpServlet() {
+            ServletHandler noContent = new ServletHandler(new HttpServlet() {
                 @Override protected void service(HttpServletRequest req, HttpServletResponse resp) {
                     resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
                 }
             });
-            httpServer.getServerConfiguration().addHttpService(noContent, new String[]{"/NoContent"});
+            httpServer.getServerConfiguration().addHttpHandler(noContent, new String[]{"/NoContent"});
 
             assertEquals(HttpServletResponse.SC_NO_CONTENT, getConnection("/NoContent", PORT).getResponseCode());
         } finally {
@@ -235,8 +235,8 @@ public class BasicServletTest extends HttpServerAbstractTest {
         }
     }
 
-    private ServletService addHttpService(final String alias) {
-        ServletService service = new ServletService(new HttpServlet() {
+    private ServletHandler addHttpHandler(final String alias) {
+        ServletHandler handler = new ServletHandler(new HttpServlet() {
 
             @Override
             protected void doGet(
@@ -251,7 +251,7 @@ public class BasicServletTest extends HttpServerAbstractTest {
                 resp.getWriter().write(alias);
             }
         });
-        addHttpService(alias, service);
-        return service;
+        addHttpHandler(alias, handler);
+        return handler;
     }
 }

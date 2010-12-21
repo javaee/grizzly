@@ -90,7 +90,7 @@ public abstract class HttpServerAbstractTest extends TestCase {
         httpServer = HttpServer.createSimpleServer("./", port);
     }
 
-    protected void addHttpService(String alias, HttpHandler service) {
-        httpServer.getServerConfiguration().addHttpService(service, new String[]{alias});
+    protected void addHttpHandler(String alias, HttpHandler handler) {
+        httpServer.getServerConfiguration().addHttpHandler(handler, new String[]{alias});
     }
 }

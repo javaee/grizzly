@@ -83,14 +83,14 @@ public class HelloHttpServerTest extends TestCase {
             String servletPath = "war_autodeploy/php_test";
 //            String rootFolder = ".";
            
-            ServletService adapter = new ServletService();
+            ServletHandler adapter = new ServletHandler();
             adapter.setServletInstance(new HelloServlet());
 
             adapter.setContextPath(context);
             adapter.setServletPath(servletPath);
 //            adapter.addDocRoot(rootFolder);
 
-            httpServer.getServerConfiguration().addHttpService(adapter, aliases);
+            httpServer.getServerConfiguration().addHttpHandler(adapter, aliases);
 
             httpServer.start();
            
@@ -116,14 +116,14 @@ public class HelloHttpServerTest extends TestCase {
             String servletPath = "notvalid/php_test";
 //            String rootFolder = ".";
            
-            ServletService adapter = new ServletService();
+            ServletHandler adapter = new ServletHandler();
             adapter.setServletInstance(new HelloServlet());
 
             adapter.setContextPath(context);
             adapter.setServletPath(servletPath);
 //            adapter.addDocRoot(rootFolder);
 
-            httpServer.getServerConfiguration().addHttpService(adapter, aliases);
+            httpServer.getServerConfiguration().addHttpHandler(adapter, aliases);
 
             httpServer.start();
            
@@ -169,10 +169,10 @@ public class HelloHttpServerTest extends TestCase {
         try {
             String[] aliases = new String[] { "*.foo" };
 
-            ServletService adapter = new ServletService();
+            ServletHandler adapter = new ServletHandler();
             adapter.setServletInstance(new HelloServlet());
             httpServer = HttpServer.createSimpleServer(".", PORT);
-            httpServer.getServerConfiguration().addHttpService(adapter, aliases);
+            httpServer.getServerConfiguration().addHttpHandler(adapter, aliases);
             httpServer.start();
 
             Processor pc = httpServer.getListener("grizzly").getTransport().getProcessor();

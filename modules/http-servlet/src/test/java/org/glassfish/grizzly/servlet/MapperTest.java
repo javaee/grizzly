@@ -51,7 +51,7 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.servlet.utils.Utils;
 
 /**
- * Test {@link HttpServiceChain} use of the {@link MapperTest}
+ * Test {@link HttpHandlerChain} use of the {@link MapperTest}
  *
  * @author Jeanfrancois Arcand
  */
@@ -66,7 +66,7 @@ public class MapperTest extends HttpServerAbstractTest {
             startHttpServer(PORT);
             String[] aliases = new String[]{"/aaa/bbb", "/aaa/ccc"};
             for (String alias : aliases) {
-                addHttpService(alias);
+                addHttpHandler(alias);
             }
 
             for (String alias : aliases) {
@@ -88,19 +88,19 @@ public class MapperTest extends HttpServerAbstractTest {
             
             String[] alias = new String[]{"/*.jsp", "/jsp/.xyz"};
             
-            ServletService s1 = getServletService(alias[0]);
+            ServletHandler s1 = getServletHandler(alias[0]);
             s1.setContextPath("/");
             s1.setServletPath("");
 //            s1.addDocRoot(".");
                 
-            httpServer.getServerConfiguration().addHttpService(s1, new String[]{alias[0]});
+            httpServer.getServerConfiguration().addHttpHandler(s1, new String[]{alias[0]});
 
-            ServletService s2 = getServletService(alias[1]);
+            ServletHandler s2 = getServletHandler(alias[1]);
             s2.setContextPath("/jsp");
             s2.setServletPath("");
 //            s2.addDocRoot(".");
                 
-            httpServer.getServerConfiguration().addHttpService(s2, new String[]{alias[1]});
+            httpServer.getServerConfiguration().addHttpHandler(s2, new String[]{alias[1]});
             
             HttpURLConnection conn = null;
             
@@ -121,7 +121,7 @@ public class MapperTest extends HttpServerAbstractTest {
         try {
             startHttpServer(PORT);
             String alias = "/";
-            addHttpService(alias);
+            addHttpHandler(alias);
             HttpURLConnection conn = getConnection("/index.html", PORT);
             assertEquals(HttpServletResponse.SC_OK,
                     getResponseCodeFromAlias(conn));
@@ -136,7 +136,7 @@ public class MapperTest extends HttpServerAbstractTest {
         try {
             startHttpServer(PORT);
             String alias = "/a/b/c";
-            addHttpService(alias);
+            addHttpHandler(alias);
             HttpURLConnection conn = getConnection("/aaa.html", PORT);
             assertEquals(HttpServletResponse.SC_NOT_FOUND,
                     getResponseCodeFromAlias(conn));
@@ -150,7 +150,7 @@ public class MapperTest extends HttpServerAbstractTest {
         try {
             startHttpServer(PORT);
             String alias = "/a/b/c/*.html";
-            addHttpService(alias);
+            addHttpHandler(alias);
             HttpURLConnection conn = getConnection("/a/b/c/index.html", PORT);
             assertEquals(HttpServletResponse.SC_OK,
                     getResponseCodeFromAlias(conn));
@@ -165,7 +165,7 @@ public class MapperTest extends HttpServerAbstractTest {
         try {
             startHttpServer(PORT);
             String alias = "/*.html";
-            addHttpService(alias);
+            addHttpHandler(alias);
             HttpURLConnection conn = getConnection("/index.html", PORT);
             assertEquals(HttpServletResponse.SC_OK,
                     getResponseCodeFromAlias(conn));
@@ -180,7 +180,7 @@ public class MapperTest extends HttpServerAbstractTest {
         try {
             startHttpServer(PORT);
             String alias = "/*.a";
-            addHttpService(alias);
+            addHttpHandler(alias);
             HttpURLConnection conn = getConnection("/aaa.html", PORT);
             assertEquals(HttpServletResponse.SC_NOT_FOUND, getResponseCodeFromAlias(conn));
         } finally {
@@ -189,8 +189,8 @@ public class MapperTest extends HttpServerAbstractTest {
     }
 
 
-    private ServletService addHttpService(final String alias) {
-        ServletService httpService = new ServletService(new HttpServlet() {
+    private ServletHandler addHttpHandler(final String alias) {
+        ServletHandler httpHandler = new ServletHandler(new HttpServlet() {
 
             @Override
             protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -199,12 +199,12 @@ public class MapperTest extends HttpServerAbstractTest {
                 resp.getWriter().write(alias);
             }
         });
-        httpServer.getServerConfiguration().addHttpService(httpService, new String[]{alias});
-        return httpService;
+        httpServer.getServerConfiguration().addHttpHandler(httpHandler, new String[]{alias});
+        return httpHandler;
     }
     
-    private ServletService getServletService(final String alias) {
-        ServletService servletService = new ServletService(new HttpServlet() {
+    private ServletHandler getServletHandler(final String alias) {
+        ServletHandler servletHandler = new ServletHandler(new HttpServlet() {
 
             @Override
             protected void doGet(
@@ -215,7 +215,7 @@ public class MapperTest extends HttpServerAbstractTest {
                 resp.getWriter().write(alias);
             }
         });
-        return servletService;
+        return servletHandler;
     }
 
 }

@@ -75,7 +75,7 @@ public class HttpServerFilter extends BaseFilter
     private final Attribute<Request> httpRequestInProcessAttr;
     private final DelayedExecutor.DelayQueue<Response> suspendedResponseQueue;
 
-    private volatile HttpHandler httpService;
+    private volatile HttpHandler httpHandler;
 
     private final ServerFilterConfiguration config;
     
@@ -105,12 +105,12 @@ public class HttpServerFilter extends BaseFilter
 
     }
 
-    public HttpHandler getHttpService() {
-        return httpService;
+    public HttpHandler getHttpHandler() {
+        return httpHandler;
     }
 
-    public void setHttpService(HttpHandler httpService) {
-        this.httpService = httpService;
+    public void setHttpHandler(final HttpHandler httpHandler) {
+        this.httpHandler = httpHandler;
     }
 
     public ServerFilterConfiguration getConfiguration() {
@@ -122,7 +122,7 @@ public class HttpServerFilter extends BaseFilter
 
     @SuppressWarnings({"unchecked", "ReturnInsideFinallyBlock"})
     @Override
-    public NextAction handleRead(FilterChainContext ctx)
+    public NextAction handleRead(final FilterChainContext ctx)
           throws IOException {
         final Object message = ctx.getMessage();
         final Connection connection = ctx.getConnection();
@@ -132,50 +132,50 @@ public class HttpServerFilter extends BaseFilter
 
             final HttpContent httpContent = (HttpContent) message;
 
-            Request serviceRequest = httpRequestInProcessAttr.get(connection);
+            Request handlerRequest = httpRequestInProcessAttr.get(connection);
 
-            if (serviceRequest == null) {
+            if (handlerRequest == null) {
                 // It's a new HTTP request
                 HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
                 HttpResponsePacket response = request.getResponse();
-                serviceRequest = Request.create();
-                httpRequestInProcessAttr.set(connection, serviceRequest);
-                final Response serviceResponse = Response.create();
+                handlerRequest = Request.create();
+                httpRequestInProcessAttr.set(connection, handlerRequest);
+                final Response handlerResponse = Response.create();
 
-                serviceRequest.initialize(serviceResponse, request, ctx, this);
+                handlerRequest.initialize(handlerResponse, request, ctx, this);
                 final SuspendStatus suspendStatus = new SuspendStatus();
 
-                serviceResponse.initialize(serviceRequest, response, ctx,
+                handlerResponse.initialize(handlerRequest, response, ctx,
                         suspendedResponseQueue, suspendStatus);
 
                 HttpServerProbeNotifier.notifyRequestReceive(this, connection,
-                        serviceRequest);
+                        handlerRequest);
 
                 try {
-                    ctx.setMessage(serviceResponse);
+                    ctx.setMessage(handlerResponse);
 
-                    final HttpHandler httpServiceLocal = httpService;
-                    if (httpServiceLocal != null) {
-                        httpServiceLocal.doService(serviceRequest, serviceResponse);
+                    final HttpHandler httpHandlerLocal = httpHandler;
+                    if (httpHandlerLocal != null) {
+                        httpHandlerLocal.doHandle(handlerRequest, handlerResponse);
                     }
                 } catch (Throwable t) {
-                    serviceRequest.getRequest().getProcessingState().setError(true);
+                    handlerRequest.getRequest().getProcessingState().setError(true);
                     
                     if (!response.isCommitted()) {
                         final ByteBuffer b = HtmlHelper.getExceptionErrorPage("Internal Server Error", "Grizzly/2.0", t);
-                        serviceResponse.reset();
-                        serviceResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
-                        serviceResponse.setContentType("text/html");
-                        serviceResponse.setCharacterEncoding("UTF-8");
+                        handlerResponse.reset();
+                        handlerResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
+                        handlerResponse.setContentType("text/html");
+                        handlerResponse.setCharacterEncoding("UTF-8");
                         final MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
                         final Buffer buf = Buffers.wrap(mm, b);
-                        serviceResponse.getOutputBuffer().writeBuffer(buf);
+                        handlerResponse.getOutputBuffer().writeBuffer(buf);
                     }
                 } finally {
                     if (!suspendStatus.get()) {
-                        afterService(connection, serviceRequest, serviceResponse);
+                        afterService(connection, handlerRequest, handlerResponse);
                     } else {
-                        if (serviceRequest.asyncInput()) {
+                        if (handlerRequest.asyncInput()) {
                             return ctx.getSuspendingStopAction();
                         } else {
                             return ctx.getSuspendAction();
@@ -184,12 +184,12 @@ public class HttpServerFilter extends BaseFilter
                 }
             } else {
                 // We're working with suspended HTTP request
-                if (serviceRequest.asyncInput()) {
-                    if (!serviceRequest.getInputBuffer().isFinished()) {
+                if (handlerRequest.asyncInput()) {
+                    if (!handlerRequest.getInputBuffer().isFinished()) {
 
                         final Buffer content = httpContent.getContent();
 
-                        if (!content.hasRemaining() || !serviceRequest.getInputBuffer().append(content)) {
+                        if (!content.hasRemaining() || !handlerRequest.getInputBuffer().append(content)) {
                             if (!httpContent.isLast()) {
                                 // need more data?
                                 return ctx.getStopAction();
@@ -197,7 +197,7 @@ public class HttpServerFilter extends BaseFilter
 
                         }
                         if (httpContent.isLast()) {
-                            serviceRequest.getInputBuffer().finished();
+                            handlerRequest.getInputBuffer().finished();
                             // we have enough data? - terminate filter chain execution
                             final NextAction action = ctx.getSuspendAction();
                             ctx.recycle();

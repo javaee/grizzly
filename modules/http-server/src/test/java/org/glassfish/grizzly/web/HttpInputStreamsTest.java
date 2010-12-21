@@ -974,7 +974,7 @@ public class HttpInputStreamsTest extends TestCase {
 
         HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
         ServerConfiguration sconfig = server.getServerConfiguration();
-        sconfig.addHttpService(new SimpleResponseHttpService(strategy, testResult), "/*");
+        sconfig.addHttpHandler(new SimpleResponseHttpHandler(strategy, testResult), "/*");
 
         TCPNIOTransport ctransport = TransportFactory.getInstance().createTCPTransport();
         try {
@@ -1018,7 +1018,7 @@ public class HttpInputStreamsTest extends TestCase {
     }
 
 
-    private static final class SimpleResponseHttpService extends HttpHandler {
+    private static final class SimpleResponseHttpHandler extends HttpHandler {
         private final FutureImpl<Boolean> testResult;
         private final ReadStrategy strategy;
 
@@ -1026,13 +1026,13 @@ public class HttpInputStreamsTest extends TestCase {
         // -------------------------------------------------------- Constructors
 
 
-        public SimpleResponseHttpService(ReadStrategy strategy, FutureImpl<Boolean> testResult) {
+        public SimpleResponseHttpHandler(ReadStrategy strategy, FutureImpl<Boolean> testResult) {
             this.strategy = strategy;
             this.testResult = testResult;
         }
 
 
-        // ----------------------------------------- Methods from HttpService
+        // ----------------------------------------- Methods from HttpHandler
 
 
         @Override
@@ -1055,7 +1055,7 @@ public class HttpInputStreamsTest extends TestCase {
             res.addHeader("Status", "Failed");
         }
 
-    } // END SimpleResponseHttpService
+    } // END SimpleResponseHttpHandler
 
 
 

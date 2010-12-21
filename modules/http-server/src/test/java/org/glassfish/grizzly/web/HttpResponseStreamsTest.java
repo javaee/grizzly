@@ -570,7 +570,7 @@ public class HttpResponseStreamsTest extends TestCase {
 
         HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
         ServerConfiguration sconfig = server.getServerConfiguration();
-        sconfig.addHttpService(new TestHttpService(strategy), new String[] { "/*" });
+        sconfig.addHttpHandler(new TestHttpHandler(strategy), new String[] { "/*" });
 
         final FutureImpl<String> parseResult = SafeFutureImpl.create();
         TCPNIOTransport ctransport = TransportFactory.getInstance().createTCPTransport();
@@ -615,14 +615,14 @@ public class HttpResponseStreamsTest extends TestCase {
     }
 
 
-    private static final class TestHttpService extends HttpHandler {
+    private static final class TestHttpHandler extends HttpHandler {
 
         private final WriteStrategy strategy;
 
         // -------------------------------------------------------- Constructors
 
 
-        public TestHttpService(WriteStrategy strategy) {
+        public TestHttpHandler(WriteStrategy strategy) {
             this.strategy = strategy;
         }
 

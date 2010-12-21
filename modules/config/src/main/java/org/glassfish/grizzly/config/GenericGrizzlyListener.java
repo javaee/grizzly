@@ -78,7 +78,7 @@ import org.glassfish.grizzly.http.server.FileCacheFilter;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServerFilter;
 import org.glassfish.grizzly.http.server.ServerFilterConfiguration;
-import org.glassfish.grizzly.http.server.StaticResourcesService;
+import org.glassfish.grizzly.http.server.StaticHttpHandler;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.MimeHeaders;
@@ -188,12 +188,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     /*
      * Configures the given grizzlyListener.
      *
-     * @param grizzlyListener The grizzlyListener to configure
-     * @param httpProtocol The Protocol that corresponds to the given grizzlyListener
-     * @param isSecure true if the grizzlyListener is security-enabled, false otherwise
-     * @param httpServiceProps The httpProtocol-service properties
-     * @param isWebProfile if true - just HTTP protocol is supported on port,
-     *        false - port unification will be activated
+     * @param networkListener The NetworkListener to configure
      */
     // TODO: Must get the information from domain.xml Config objects.
     // TODO: Pending Grizzly issue 54
@@ -516,7 +511,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         final HttpServerFilter webServerFilter = new HttpServerFilter(
                 getHttpServerFilterConfiguration(http),
                 delayedExecutor);
-        webServerFilter.setHttpService(getHttpService(http));
+        webServerFilter.setHttpHandler(getHttpHandler(http));
 
 //        webServerFilter.getMonitoringConfig().addProbes(
 //                serverConfig.getMonitoringConfig().getWebServerConfig().getProbes());
@@ -527,8 +522,8 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         return new ServerFilterConfiguration();
     }
 
-    protected HttpHandler getHttpService(final Http http) {
-        return new StaticResourcesService(".");
+    protected HttpHandler getHttpHandler(final Http http) {
+        return new StaticHttpHandler(".");
     }
 
     /**

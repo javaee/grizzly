@@ -64,11 +64,11 @@ public class ServerConfiguration extends ServerFilterConfiguration {
 
     // Non-exposed
 
-    final Map<HttpHandler, String[]> services =
+    final Map<HttpHandler, String[]> handlers =
             new ConcurrentHashMap<HttpHandler, String[]>();
-    private final Map<HttpHandler, String[]> unmodifiableServices =
-            Collections.unmodifiableMap(services);
-    final List<HttpHandler> orderedServices =
+    private final Map<HttpHandler, String[]> unmodifiableHandlers =
+            Collections.unmodifiableMap(handlers);
+    final List<HttpHandler> orderedHandlers =
             new LinkedList<HttpHandler>();
 
     private Set<JmxEventListener> jmxEventListeners = new CopyOnWriteArraySet<JmxEventListener>();
@@ -81,7 +81,7 @@ public class ServerConfiguration extends ServerFilterConfiguration {
 
     private boolean jmxEnabled;
 
-    final Object servicesSync = new Object();
+    final Object handlersSync = new Object();
     
     // ------------------------------------------------------------ Constructors
 
@@ -100,21 +100,21 @@ public class ServerConfiguration extends ServerFilterConfiguration {
      * {@link HttpHandler} based on these mapping
      * values.
      *
-     * @param httpService a {@link HttpHandler}
+     * @param httpHandler a {@link HttpHandler}
      * @param mapping        context path mapping information.
      */
-    public void addHttpService(final HttpHandler httpService, String... mapping) {
-        synchronized (servicesSync) {
+    public void addHttpHandler(final HttpHandler httpHandler, String... mapping) {
+        synchronized (handlersSync) {
             if (mapping == null) {
                 mapping = ROOT_MAPPING;
             }
 
-            if (services.put(httpService, mapping) != null) {
-                orderedServices.remove(httpService);
+            if (handlers.put(httpHandler, mapping) != null) {
+                orderedHandlers.remove(httpHandler);
             }
 
-            orderedServices.add(httpService);
-            instance.onAddHttpService(httpService, mapping);
+            orderedHandlers.add(httpHandler);
+            instance.onAddHttpHandler(httpHandler, mapping);
         }
     }
 
@@ -125,12 +125,12 @@ public class ServerConfiguration extends ServerFilterConfiguration {
      * @return <tt>true</tt>, if the operation was successful, otherwise
      *  <tt>false</tt>
      */
-    public synchronized boolean removeHttpService(HttpHandler httpService) {
-        synchronized (servicesSync) {
-            final boolean result = services.remove(httpService) != null;
+    public synchronized boolean removeHttpHandler(final HttpHandler httpHandler) {
+        synchronized (handlersSync) {
+            final boolean result = handlers.remove(httpHandler) != null;
             if (result) {
-                orderedServices.remove(httpService);
-                instance.onRemoveHttpService(httpService);
+                orderedHandlers.remove(httpHandler);
+                instance.onRemoveHttpHandler(httpHandler);
             }
 
             return result;
@@ -144,8 +144,8 @@ public class ServerConfiguration extends ServerFilterConfiguration {
      *
      * @return the {@link HttpHandler} map.
      */
-    public Map<HttpHandler, String[]> getHttpServices() {
-        return unmodifiableServices;
+    public Map<HttpHandler, String[]> getHttpHandlers() {
+        return unmodifiableHandlers;
     }
 
     /**

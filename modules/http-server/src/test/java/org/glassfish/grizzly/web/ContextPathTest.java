@@ -58,7 +58,7 @@ import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
-import org.glassfish.grizzly.http.server.StaticResourcesService;
+import org.glassfish.grizzly.http.server.StaticHttpHandler;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
@@ -94,7 +94,7 @@ public class ContextPathTest {
 
     @Test
     public void testRuntimeContextPathResolving() throws Exception {
-        startHttpServer(new StaticResourcesService() {
+        startHttpServer(new StaticHttpHandler() {
 
         }, "/context-path");
 
@@ -132,8 +132,8 @@ public class ContextPathTest {
         httpServer.addListener(listener);
     }
 
-    private void startHttpServer(HttpHandler httpService, String... mappings) throws Exception {
-        httpServer.getServerConfiguration().addHttpService(httpService, mappings);
+    private void startHttpServer(HttpHandler httpHandler, String... mappings) throws Exception {
+        httpServer.getServerConfiguration().addHttpHandler(httpHandler, mappings);
         httpServer.start();
     }
 

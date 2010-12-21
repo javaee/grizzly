@@ -266,7 +266,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     void setUriEncoding(String encoding);
 
     /**
-     * The version of the HTTP protocol used by the HTTP Service
+     * The version of the HTTP protocol used by the HTTP Handler
      */
     @Attribute(defaultValue = "HTTP/1.1")
     String getVersion();

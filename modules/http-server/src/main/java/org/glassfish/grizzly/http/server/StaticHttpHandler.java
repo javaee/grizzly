@@ -27,8 +27,8 @@ import org.glassfish.grizzly.utils.ArraySet;
  * @author Jeanfrancois Arcand
  * @author Alexey Stashok
  */
-public class StaticResourcesService extends HttpHandler {
-    private static final Logger LOGGER = Grizzly.logger(StaticResourcesService.class);
+public class StaticHttpHandler extends HttpHandler {
+    private static final Logger LOGGER = Grizzly.logger(StaticHttpHandler.class);
 
     protected final ArraySet<File> docRoots = new ArraySet<File>(File.class);
 
@@ -36,10 +36,10 @@ public class StaticResourcesService extends HttpHandler {
 
 
    /**
-     * Create <tt>HttpService</tt>, which, by default, will handle requests
+     * Create <tt>HttpHandler</tt>, which, by default, will handle requests
      * to the static resources located in the current directory.
      */
-    public StaticResourcesService() {
+    public StaticHttpHandler() {
         addDocRoot(".");
     }
 
@@ -47,13 +47,13 @@ public class StaticResourcesService extends HttpHandler {
     /**
      * Create a new instance which will look for static pages located
      * under the <tt>docRoot</tt>. If the <tt>docRoot</tt> is <tt>null</tt> -
-     * static pages won't be served by this <tt>HttpService</tt>
+     * static pages won't be served by this <tt>HttpHandler</tt>
      *
      * @param docRoot the folder where the static resource are located.
      * If the <tt>docRoot</tt> is <tt>null</tt> - static pages won't be served
-     * by this <tt>HttpService</tt>
+     * by this <tt>HttpHandler</tt>
      */
-    public StaticResourcesService(String... docRoots) {
+    public StaticHttpHandler(String... docRoots) {
         if (docRoots != null) {
             for (String docRoot : docRoots) {
                 addDocRoot(docRoot);
@@ -64,13 +64,13 @@ public class StaticResourcesService extends HttpHandler {
     /**
      * Create a new instance which will look for static pages located
      * under the <tt>docRoot</tt>. If the <tt>docRoot</tt> is <tt>null</tt> -
-     * static pages won't be served by this <tt>HttpService</tt>
+     * static pages won't be served by this <tt>HttpHandler</tt>
      *
      * @param docRoots the folders where the static resource are located.
      * If the <tt>docRoot</tt> is empty - static pages won't be served
-     * by this <tt>HttpService</tt>
+     * by this <tt>HttpHandler</tt>
      */
-    public StaticResourcesService(Set<String> docRoots) {
+    public StaticHttpHandler(Set<String> docRoots) {
         if (docRoots != null) {
             for (String docRoot : docRoots) {
                 addDocRoot(docRoot);
@@ -170,7 +170,7 @@ public class StaticResourcesService extends HttpHandler {
 
     /**
      * The method will be called, if the static resource requested by the {@link Request}
-     * wasn't found, so {@link StaticResourcesService} implementation may try to
+     * wasn't found, so {@link StaticHttpHandler} implementation may try to
      * workaround this situation.
      * The default implementation - sends a 404 response page by calling {@link #customizedErrorPage(org.glassfish.grizzly.http.server.HttpServer, org.glassfish.grizzly.http.server.Request, org.glassfish.grizzly.http.server.Response)}.
      *

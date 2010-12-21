@@ -74,13 +74,13 @@ public class HttpServerTest extends HttpServerAbstractTest {
     public static final int PORT = 18890+10;
     private static final Logger logger = Grizzly.logger(HttpServerTest.class);
 
-    public void testAddHttpServiceAfterStart() throws IOException {
-        Utils.dumpOut("testAddHttpServiceAfterStart");
+    public void testAddHttpHandlerAfterStart() throws IOException {
+        Utils.dumpOut("testAddHttpHandlerAfterStart");
         try {
             final int port = PORT + 1;
             startHttpServer(port);
             String alias = "/1";
-            addHttpService(alias);
+            addHttpHandler(alias);
             HttpURLConnection conn = getConnection(alias, port);
             assertEquals(HttpServletResponse.SC_OK,
                     getResponseCodeFromAlias(conn));
@@ -90,14 +90,14 @@ public class HttpServerTest extends HttpServerAbstractTest {
         }
     }
 
-    public void testMultipleAddHttpServiceAfterStart() throws IOException {
-        Utils.dumpOut("testMultipleAddHttpServiceAfterStart");
+    public void testMultipleAddHttpHandlerAfterStart() throws IOException {
+        Utils.dumpOut("testMultipleAddHttpHandlerAfterStart");
         try {
             final int port = PORT + 2;
             startHttpServer(port);
             String[] aliases = new String[]{"/1", "/2", "/3"};
             for (String alias : aliases) {
-                addHttpService(alias);
+                addHttpHandler(alias);
             }
 
             for (String alias : aliases) {
@@ -111,14 +111,14 @@ public class HttpServerTest extends HttpServerAbstractTest {
         }
     }
 
-    public void testOverlapingAddHttpServiceAfterStart() throws IOException {
-        Utils.dumpOut("testOverlapingAddHttpServiceAfterStart");
+    public void testOverlapingAddHttpHandlerAfterStart() throws IOException {
+        Utils.dumpOut("testOverlapingAddHttpHandlerAfterStart");
         try {
             final int port = PORT + 3;
             startHttpServer(port);
             String[] aliases = new String[]{"/1", "/2", "/2/1", "/1/2/3/4/5"};
             for (String alias : aliases) {
-                addHttpService(alias);
+                addHttpHandler(alias);
             }
 
             for (String alias : aliases) {
@@ -142,11 +142,11 @@ public class HttpServerTest extends HttpServerAbstractTest {
             final int port = PORT + 4;
             startHttpServer(port);
             String[] aliases = new String[]{"/1", "/2", "/3"};
-            ServletService servletService = addHttpService("/0");
+            ServletHandler servletHandler = addHttpHandler("/0");
             for (String alias : aliases) {
-                addHttpService(alias);
+                addHttpHandler(alias);
             }
-            httpServer.getServerConfiguration().removeHttpService(servletService);
+            httpServer.getServerConfiguration().removeHttpHandler(servletHandler);
 
             for (String alias : aliases) {
                 HttpURLConnection conn = getConnection(alias, port);
@@ -221,7 +221,7 @@ public class HttpServerTest extends HttpServerAbstractTest {
         
 //        gws.setSSLConfig(cfg);
         final String encMsg = "Secured.";
-        httpServer.getServerConfiguration().addHttpService(new HttpHandler() {
+        httpServer.getServerConfiguration().addHttpHandler(new HttpHandler() {
             @Override
             public void service(Request request, Response response) {
                 response.setStatus(200);
@@ -283,8 +283,8 @@ public class HttpServerTest extends HttpServerAbstractTest {
         final boolean filter[] = new boolean[]{false};
         final boolean destroy[] = new boolean[]{false};
 
-        ServletService servletService = new ServletService();
-        servletService.addFilter(new Filter() {
+        ServletHandler servletHandler = new ServletHandler();
+        servletHandler.addFilter(new Filter() {
             @Override
             public void init(final FilterConfig filterConfig) {
                 init[0] = true;
@@ -304,7 +304,7 @@ public class HttpServerTest extends HttpServerAbstractTest {
             }
         }, "filter", new HashMap(0));
 
-        httpServer.getServerConfiguration().addHttpService(servletService, new String[]{"/"});
+        httpServer.getServerConfiguration().addHttpHandler(servletHandler, new String[]{"/"});
         httpServer.start();
 
         httpServer.stop();
@@ -316,14 +316,14 @@ public class HttpServerTest extends HttpServerAbstractTest {
      *
      * @throws IOException Fail.
      */
-    public void testAddHttpServiceBeforeAndAfterStart() throws IOException {
-        Utils.dumpOut("testAddHttpServiceBeforeAndAfterStart");
+    public void testAddHttpHandlerBeforeAndAfterStart() throws IOException {
+        Utils.dumpOut("testAddHttpHandlerBeforeAndAfterStart");
         try {
             final int port = PORT + 9;
             httpServer = HttpServer.createSimpleServer(".", port);
             String[] aliases = new String[]{"/1"};
             for (String alias : aliases) {
-                addHttpService(alias);
+                addHttpHandler(alias);
             }
             httpServer.start();
             for (String alias : aliases) {
@@ -333,7 +333,7 @@ public class HttpServerTest extends HttpServerAbstractTest {
                 assertEquals(alias, readResponse(conn));
             }
             String alias = "/2";
-            addHttpService(alias);
+            addHttpHandler(alias);
 
             HttpURLConnection conn = getConnection(alias, port);
             assertEquals(HttpServletResponse.SC_OK,
@@ -344,14 +344,14 @@ public class HttpServerTest extends HttpServerAbstractTest {
         }
     }
 
-    public void testMultipleAddHttpServiceBeforeStartAndOneAfter() throws IOException {
-        Utils.dumpOut("testMultipleAddHttpServiceBeforeStartAndOneAfter");
+    public void testMultipleAddHttpHandlerBeforeStartAndOneAfter() throws IOException {
+        Utils.dumpOut("testMultipleAddHttpHandlerBeforeStartAndOneAfter");
         try {
             final int port = PORT + 10;
             httpServer = HttpServer.createSimpleServer(".", port);
             String[] aliases = new String[]{"/1", "/2", "/3"};
             for (String alias : aliases) {
-                addHttpService(alias);
+                addHttpHandler(alias);
             }
             httpServer.start();
             for (String alias : aliases) {
@@ -361,7 +361,7 @@ public class HttpServerTest extends HttpServerAbstractTest {
                 assertEquals(alias, readResponse(conn));
             }            
             String alias = "/4";
-            addHttpService(alias);
+            addHttpHandler(alias);
 
             HttpURLConnection conn = getConnection(alias, port);
             assertEquals(HttpServletResponse.SC_OK,
@@ -372,8 +372,8 @@ public class HttpServerTest extends HttpServerAbstractTest {
         }
     }
 
-    private ServletService addHttpService(final String alias) {
-        ServletService servletService = new ServletService(new HttpServlet() {
+    private ServletHandler addHttpHandler(final String alias) {
+        ServletHandler servletHandler = new ServletHandler(new HttpServlet() {
 
             @Override
             protected void doGet(
@@ -384,7 +384,7 @@ public class HttpServerTest extends HttpServerAbstractTest {
                 resp.getWriter().write(alias);
             }
         });
-        httpServer.getServerConfiguration().addHttpService(servletService, new String[]{alias});
-        return servletService;
+        httpServer.getServerConfiguration().addHttpHandler(servletHandler, new String[]{alias});
+        return servletHandler;
     }
 }

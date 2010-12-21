@@ -74,13 +74,9 @@ public interface GrizzlyListener {
     /*
     * Configures the given grizzlyListener.
     *
-    * @param grizzlyListener The grizzlyListener to configure
-    * @param httpProtocol The Protocol that corresponds to the given grizzlyListener
-    * @param isSecure true if the grizzlyListener is security-enabled, false otherwise
-    * @param httpServiceProps The httpProtocol-service properties
-    * @param isWebProfile if true - just HTTP protocol is supported on port,
-    *        false - port unification will be activated
+    * @param networkListener The NetworkListener to configure
     */
+    
     // TODO: Must get the information from domain.xml Config objects.
     // TODO: Pending Grizzly issue 54
     public void configure(NetworkListener networkListener) throws IOException;

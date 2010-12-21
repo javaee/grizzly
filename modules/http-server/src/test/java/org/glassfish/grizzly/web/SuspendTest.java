@@ -160,14 +160,14 @@ public class SuspendTest {
                 !isServer, false, false);
     }
 
-    private void startWebServer(HttpHandler httpService) throws Exception {
-        gws.getServerConfiguration().addHttpService(httpService);
+    private void startWebServer(HttpHandler httpHandler) throws Exception {
+        gws.getServerConfiguration().addHttpHandler(httpHandler);
         gws.start();
     }
 
     @Test
     public void testSuspendResumeSameTransaction() throws Exception {
-        startWebServer(new TestStaticResourcesHttpService() {
+        startWebServer(new TestStaticHttpHandler() {
 
             @Override
             public void service(final Request req, final Response res) {
@@ -186,7 +186,7 @@ public class SuspendTest {
 
     @Test
     public void testSuspendResumeOneTransaction() throws Exception {
-        startWebServer(new TestStaticResourcesHttpService() {
+        startWebServer(new TestStaticHttpHandler() {
 
             @Override
             public void service(final Request req, final Response res) {
@@ -206,7 +206,7 @@ public class SuspendTest {
 
     @Test
     public void testSuspendResumeNoArgs() throws Exception {
-        startWebServer(new TestStaticResourcesHttpService() {
+        startWebServer(new TestStaticHttpHandler() {
 
             @Override
             public void service(final Request req, final Response res) {
@@ -224,7 +224,7 @@ public class SuspendTest {
 
     @Test
     public void testSuspendNoArgs() throws Exception {
-        startWebServer(new TestStaticResourcesHttpService() {
+        startWebServer(new TestStaticHttpHandler() {
 
             @Override
             public void service(final Request req, final Response res) {
@@ -244,7 +244,7 @@ public class SuspendTest {
 
     @Test
     public void testSuspendResumedCompletionHandler() throws Exception {
-        startWebServer(new TestStaticResourcesHttpService() {
+        startWebServer(new TestStaticHttpHandler() {
 
             @Override
             public void dologic(final Request req, final Response res) throws Throwable {
@@ -269,7 +269,7 @@ public class SuspendTest {
 
     @Test
     public void testSuspendCancelledCompletionHandler() throws Exception {
-        startWebServer(new TestStaticResourcesHttpService() {
+        startWebServer(new TestStaticHttpHandler() {
 
             @Override
             public void dologic(final Request req, final Response res) throws Throwable {
@@ -293,7 +293,7 @@ public class SuspendTest {
 
     @Test
     public void testSuspendSuspendedExceptionCompletionHandler() throws Exception {
-        startWebServer(new TestStaticResourcesHttpService() {
+        startWebServer(new TestStaticHttpHandler() {
 
             @Override
             public void dologic(final Request req, final Response res) throws Throwable {
@@ -322,7 +322,7 @@ public class SuspendTest {
 
     @Test
     public void testSuspendTimeoutCompletionHandler() throws Exception {
-        startWebServer(new TestStaticResourcesHttpService() {
+        startWebServer(new TestStaticHttpHandler() {
 
             @Override
             public void dologic(final Request req, final Response res) throws Throwable {
@@ -344,7 +344,7 @@ public class SuspendTest {
 
     @Test
     public void testSuspendDoubleSuspendInvokation() throws Exception {
-        startWebServer(new TestStaticResourcesHttpService() {
+        startWebServer(new TestStaticHttpHandler() {
 
             @Override
             public void dologic(final Request req, final Response res) throws Throwable {
@@ -382,7 +382,7 @@ public class SuspendTest {
 
     @Test
     public void testSuspendDoubleResumeInvokation() throws Exception {
-        startWebServer(new TestStaticResourcesHttpService() {
+        startWebServer(new TestStaticHttpHandler() {
 
             @Override
             public void dologic(final Request req, final Response res) throws Throwable {
@@ -406,7 +406,7 @@ public class SuspendTest {
     }
 
     @Test
-    public void testSuspendResumedCompletionHandlerHttpService() throws Exception {
+    public void testSuspendResumedCompletionHandlerHttpHandler() throws Exception {
         startWebServer(new HttpHandler() {
 
             @Override
@@ -440,7 +440,7 @@ public class SuspendTest {
     }
 
     @Test
-    public void testSuspendTimeoutCompletionHandlerHttpService() throws Exception {
+    public void testSuspendTimeoutCompletionHandlerHttpHandler() throws Exception {
         startWebServer(new HttpHandler() {
 
             @Override
@@ -468,7 +468,7 @@ public class SuspendTest {
     }
 
     @Test
-    public void testFastSuspendResumeHttpService() throws Exception {
+    public void testFastSuspendResumeHttpHandler() throws Exception {
         startWebServer(new HttpHandler() {
 
             @Override
@@ -601,7 +601,7 @@ public class SuspendTest {
         }, 2, TimeUnit.SECONDS);
     }
 
-    private class TestStaticResourcesHttpService extends HttpHandler {
+    private class TestStaticHttpHandler extends HttpHandler {
 
         @Override
         public void service(Request req, Response res) {

@@ -92,7 +92,7 @@ import org.glassfish.grizzly.localization.LogMessages;
  * <pre><code>
  *      GrizzlyWebServer ws = new GrizzlyWebServer("/var/www");
 try{
-ServletService sa = new ServletService();
+ServletHandler sa = new ServletHandler();
 sa.setRootFolder("/Path/To/Exploded/War/File");
 sa.setServlet(new MyServlet());
 
@@ -119,9 +119,9 @@ ws.start();
  * 
  * @author Jeanfrancois Arcand
  */
-public class ServletService extends HttpHandler {
+public class ServletHandler extends HttpHandler {
 
-    private static final Logger LOGGER = Grizzly.logger(ServletService.class);
+    private static final Logger LOGGER = Grizzly.logger(ServletHandler.class);
 
     static final Note<HttpServletRequestImpl> SERVLET_REQUEST_NOTE =
             Request.createNote(HttpServletRequestImpl.class.getName());
@@ -179,7 +179,7 @@ public class ServletService extends HttpHandler {
      */
     private int n = 0;
 
-    public ServletService() {
+    public ServletHandler() {
         this(new ServletContextImpl(),
                 new HashMap<String, String>(), new HashMap<String, String>(),
                 new ArrayList<String>());
@@ -190,7 +190,7 @@ public class ServletService extends HttpHandler {
      *
      * @param servlet Instance to be used by this adapter.
      */
-    public ServletService(Servlet servlet) {
+    public ServletHandler(Servlet servlet) {
         this();
         this.servletInstance = servlet;
     }
@@ -203,7 +203,7 @@ public class ServletService extends HttpHandler {
      * @param servletInitParameters servlet initialization parameters.
      * @param listeners Listeners.
      */
-    protected ServletService(ServletContextImpl servletCtx,
+    protected ServletHandler(ServletContextImpl servletCtx,
             Map<String, String> contextParameters, Map<String, String> servletInitParameters,
             List<String> listeners) {
         this(servletCtx, contextParameters, servletInitParameters, listeners, true);
@@ -218,7 +218,7 @@ public class ServletService extends HttpHandler {
      * @param listeners Listeners.
      * @param initialize false only when the {@link #newServletAdapter()} is invoked.
      */
-    protected ServletService(ServletContextImpl servletCtx,
+    protected ServletHandler(ServletContextImpl servletCtx,
             Map<String, String> contextParameters, Map<String, String> servletInitParameters,
             List<String> listeners, boolean initialize) {
         this.servletCtx = servletCtx;
@@ -237,7 +237,7 @@ public class ServletService extends HttpHandler {
      * @param servletInitParameters servlet initialization parameters.
      * @param initialize false only when the {@link #newServletAdapter()} is invoked.
      */
-    protected ServletService(ServletContextImpl servletCtx,
+    protected ServletHandler(ServletContextImpl servletCtx,
             Map<String, String> contextParameters, Map<String, String> servletInitParameters,
             boolean initialize) {
         this.servletCtx = servletCtx;
@@ -247,7 +247,7 @@ public class ServletService extends HttpHandler {
         this.initialize = initialize;
     }
 
-    public ServletService(Servlet servlet, ServletContextImpl servletContext) {
+    public ServletHandler(Servlet servlet, ServletContextImpl servletContext) {
         servletInstance = servlet;
         servletCtx = servletContext;
     }
@@ -761,8 +761,8 @@ public class ServletService extends HttpHandler {
      * @param servlet - The Servlet associated with the {@link ServletAdapter}
      * @return a new {@link ServletAdapter}
      */
-    public ServletService newServletService(Servlet servlet) {
-        ServletService sa = new ServletService(servletCtx, contextParameters,
+    public ServletHandler newServletHandler(Servlet servlet) {
+        ServletHandler sa = new ServletHandler(servletCtx, contextParameters,
                 new HashMap<String, String>(), listeners,
                 false);
         if (classLoader != null) {

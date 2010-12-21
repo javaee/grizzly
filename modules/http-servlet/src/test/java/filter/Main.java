@@ -40,7 +40,7 @@
 
 package filter;
 
-import org.glassfish.grizzly.servlet.ServletService;
+import org.glassfish.grizzly.servlet.ServletHandler;
 import com.sun.jersey.api.core.ClasspathResourceConfig;
 import com.sun.jersey.spi.container.servlet.ServletContainer;
 import java.io.File;
@@ -87,17 +87,17 @@ public class Main {
             throw new IllegalArgumentException("The URI must not be null");
         }
 
-        ServletService servletService = new ServletService();
+        ServletHandler servletHandler = new ServletHandler();
         if (initParams == null) {
-            servletService.addInitParameter(ClasspathResourceConfig.PROPERTY_CLASSPATH,
+            servletHandler.addInitParameter(ClasspathResourceConfig.PROPERTY_CLASSPATH,
                     System.getProperty("java.class.path").replace(File.pathSeparatorChar, ';'));
         } else {
             for (Map.Entry<String, String> e : initParams.entrySet()) {
-                servletService.addInitParameter(e.getKey(), e.getValue());
+                servletHandler.addInitParameter(e.getKey(), e.getValue());
             }
         }
 
-        servletService.addFilter(getInstance(c), "filter", initParams);
+        servletHandler.addFilter(getInstance(c), "filter", initParams);
 
         String path = u.getPath();
         if (path == null) {
@@ -115,11 +115,11 @@ public class Main {
             if (path.endsWith("/")) {
                 path = path.substring(0, path.length() - 1);
             }
-            servletService.setContextPath(path);
+            servletHandler.setContextPath(path);
         }
 
 //        System.out.println("createServletService @ " + path);
-        return create(u, servletService, path);
+        return create(u, servletHandler, path);
     }
 
     private static Filter getInstance(Class<? extends Filter> c) {
@@ -130,7 +130,7 @@ public class Main {
         }
     }
 
-    private static HttpServer create(URI u, HttpHandler service, String path)
+    private static HttpServer create(URI u, HttpHandler handler, String path)
             throws IOException, IllegalArgumentException {
         if (u == null) {
             throw new IllegalArgumentException("The URI must not be null");
@@ -157,8 +157,8 @@ public class Main {
         final HttpServer server = HttpServer.createSimpleServer("./tmp", port);
 
         final ServerConfiguration sconfig = server.getServerConfiguration();
-//        sconfig.addHttpService(new StaticResourcesService("./tmp"), path);
-        sconfig.addHttpService(service, path);
+//        sconfig.addHttpHandler(new StaticResourcesHandler("./tmp"), path);
+        sconfig.addHttpHandler(handler, path);
 
         server.start();
 

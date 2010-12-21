@@ -53,7 +53,7 @@
     <artifactId>grizzly-http-echo-benchmark</artifactId>
     <packaging>bundle</packaging>
     <version>${grizzly-version}</version>
-    <name>grizzly-http-samples</name>
+    <name>grizzly-http-echo-benchmark</name>
     <url>https://grizzly.dev.java.net</url>
     <build>
         <defaultGoal>install</defaultGoal>

@@ -75,7 +75,7 @@ import static org.junit.Assert.*;
 
 
 /**
- * Test how HttpServer skips HTTP packet remainder, if HttpService didn't read
+ * Test how HttpServer skips HTTP packet remainder, if HttpHandler didn't read
  * the complete message.
  * 
  * @author Alexey Stashok
@@ -215,8 +215,8 @@ public class SkipRemainderTest {
         gws.addListener(listener);
     }
 
-    private void startWebServer(HttpHandler httpService) throws Exception {
-        gws.getServerConfiguration().addHttpService(httpService);
+    private void startWebServer(final HttpHandler httpHandler) throws Exception {
+        gws.getServerConfiguration().addHttpHandler(httpHandler);
         gws.start();
     }
 

@@ -93,15 +93,16 @@ public abstract class HttpHandler {
     private boolean allowCustomStatusMessage = true;
 
     /**
-     * Create <tt>HttpService</tt>.
+     * Create <tt>HttpHandler</tt>.
      */
     public HttpHandler() {
     }
 
 
     /**
-     * Handles static resources if this service is configured to do so, otherwise
-     * invokes {@link #service(Request, Response)}.
+     * Pre-processes <tt>HttpHandler</tt> {@link Request} and {@link Response},
+     * checks the HTTP acknowledgment and decodes URL if required. Then passes
+     * control to {@link #service(Request, Response)}.
      *
      * @param request the {@link Request}
      * @param response the {@link Response}
@@ -109,7 +110,7 @@ public abstract class HttpHandler {
      * @throws Exception if an error occurs serving a static resource or
      *  from the invocation of {@link #service(Request, Response)}
      */
-    public final void doService(Request request, Response response) throws Exception {
+    public final void doHandle(Request request, Response response) throws Exception {
 
         if (request.requiresAcknowledgement()) {
             if (!sendAcknowledgment(request, response)) {
@@ -217,24 +218,24 @@ public abstract class HttpHandler {
     }
 
     /**
-     * Get the request URI encoding used by this <tt>HttpService</tt>.
-     * @return the request URI encoding used by this <tt>HttpService</tt>.
+     * Get the request URI encoding used by this <tt>HttpHandler</tt>.
+     * @return the request URI encoding used by this <tt>HttpHandler</tt>.
      */
     public Charset getRequestURIEncoding() {
         return requestURIEncoding;
     }
 
     /**
-     * Set the request URI encoding used by this <tt>HttpService</tt>.
-     * @param requestURIEncoding the request URI encoding used by this <tt>HttpService</tt>.
+     * Set the request URI encoding used by this <tt>HttpHandler</tt>.
+     * @param requestURIEncoding the request URI encoding used by this <tt>HttpHandler</tt>.
      */
     public void setRequestURIEncoding(final Charset requestURIEncoding) {
         this.requestURIEncoding = requestURIEncoding;
     }
 
     /**
-     * Set the request URI encoding used by this <tt>HttpService</tt>.
-     * @param requestURIEncoding the request URI encoding used by this <tt>HttpService</tt>.
+     * Set the request URI encoding used by this <tt>HttpHandler</tt>.
+     * @param requestURIEncoding the request URI encoding used by this <tt>HttpHandler</tt>.
      */
     public void setRequestURIEncoding(final String requestURIEncoding) {
         this.requestURIEncoding = Charsets.lookupCharset(requestURIEncoding);

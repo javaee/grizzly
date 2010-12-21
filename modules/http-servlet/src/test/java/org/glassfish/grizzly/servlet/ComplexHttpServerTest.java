@@ -87,7 +87,7 @@ public class ComplexHttpServerTest extends HttpServerAbstractTest {
 //            String rootFolder = ".";
            
             for (String alias : aliases) {
-                addHttpService(context + servletPath + alias, context, servletPath);
+                addHttpHandler(context + servletPath + alias, context, servletPath);
             }
 
             for (String alias : aliases) {
@@ -107,10 +107,10 @@ public class ComplexHttpServerTest extends HttpServerAbstractTest {
         }
     }
 
-    private ServletService addHttpService(final String alias, final String context,
+    private ServletHandler addHttpHandler(final String alias, final String context,
             final String servletPath) {
         
-        ServletService service = new ServletService(new HttpServlet() {
+        ServletHandler handler = new ServletHandler(new HttpServlet() {
 
             @Override
             protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -120,12 +120,12 @@ public class ComplexHttpServerTest extends HttpServerAbstractTest {
             }
         });
        
-        service.setContextPath(context);
-        service.setServletPath(servletPath);
-//        service.addDocRoot(rootFolder);
+        handler.setContextPath(context);
+        handler.setServletPath(servletPath);
+//        handler.addDocRoot(rootFolder);
        
        
-        httpServer.getServerConfiguration().addHttpService(service, new String[] { alias });
-        return service;
+        httpServer.getServerConfiguration().addHttpHandler(handler, new String[] { alias });
+        return handler;
     }
 }

@@ -206,7 +206,7 @@ public class NIOOutputSinksTest extends TestCase {
         };
 
 
-        server.getServerConfiguration().addHttpService(ga, "/path");
+        server.getServerConfiguration().addHttpHandler(ga, "/path");
 
         try {
             server.start();
@@ -370,7 +370,7 @@ public class NIOOutputSinksTest extends TestCase {
         };
 
 
-        server.getServerConfiguration().addHttpService(ga, "/path");
+        server.getServerConfiguration().addHttpHandler(ga, "/path");
 
         try {
             server.start();
@@ -476,7 +476,7 @@ public class NIOOutputSinksTest extends TestCase {
         };
 
 
-        server.getServerConfiguration().addHttpService(ga, "/path");
+        server.getServerConfiguration().addHttpHandler(ga, "/path");
 
         try {
             server.start();
