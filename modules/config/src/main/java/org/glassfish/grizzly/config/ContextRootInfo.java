@@ -46,23 +46,23 @@ import org.glassfish.grizzly.http.server.HttpHandler;
  * Class represents context-root associated information
  */
 public class ContextRootInfo {
-    protected HttpHandler adapter;
+    protected HttpHandler handler;
     protected Object container;
 
     public ContextRootInfo() {
     }
 
-    public ContextRootInfo(final HttpHandler adapter, final Object container) {
-        this.adapter = adapter;
+    public ContextRootInfo(final HttpHandler handler, final Object container) {
+        this.handler = handler;
         this.container = container;
     }
 
-    public HttpHandler getHttpRequestProcessor() {
-        return adapter;
+    public HttpHandler getHttpHandler() {
+        return handler;
     }
 
-    public void setHttpRequestProcessor(final HttpHandler adapter) {
-        this.adapter = adapter;
+    public void setHttpHandler(final HttpHandler adapter) {
+        this.handler = adapter;
     }
 
     public Object getContainer() {

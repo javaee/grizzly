@@ -50,24 +50,24 @@ public interface CompletionHandler<E> {
     /**
      * The operation was cancelled.
      */
-    public void cancelled();
+    void cancelled();
 
     /**
      * The operation was failed.
      * @param throwable error, which occurred during operation execution
      */
-    public void failed(Throwable throwable);
+    void failed(Throwable throwable);
 
     /**
      * The operation was completed.
      * @param result the operation result
      */
-    public void completed(E result);
+    void completed(E result);
 
     /**
      * The callback method may be called, when there is some progress in
      * operation execution, but it is still not completed
      * @param result the current result
      */
-    public void updated(E result);
+    void updated(E result);
 }
