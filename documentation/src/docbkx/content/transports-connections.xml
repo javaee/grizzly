@@ -156,16 +156,18 @@ Connection clientConnection = clientConnectionFuture.get();</programlisting></pa
                             <para>for UDP transport - <emphasis role="italic"
                                     >UDPNIOConnection</emphasis> is getting initilized, the
                                     <emphasis role="italic">Processor</emphasis> gets notified about
-                                CONNECT operation completion and finally the Future&lt;Connection>
-                                result becomes available in the custom-thread;</para>
+                                CONNECT operation completion and finally the <emphasis role="italic"
+                                    >Future&lt;Connection></emphasis> result becomes available in
+                                the custom-thread;</para>
                         </listitem>
                         <listitem>
                             <para>for TCP transport - we still wait until underlying OS network
                                 framework will notify us that the connection was actually connected
                                 to the destination address (UDP doesn't have this) and only then
-                                Processor gets notified about CONNECT operation completion and
-                                finally the Future&lt;Connection> result becomes available in the
-                                custom-thread;</para>
+                                    <emphasis role="italic">Processor</emphasis> gets notified about
+                                CONNECT operation completion and finally the <emphasis role="italic"
+                                    >Future&lt;Connection></emphasis> result becomes available in
+                                the custom-thread;</para>
                         </listitem>
                     </itemizedlist></para>
                 <para>In general the logic looks like:</para>
