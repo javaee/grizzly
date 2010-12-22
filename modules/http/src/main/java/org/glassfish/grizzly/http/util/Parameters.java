@@ -58,9 +58,8 @@
 package org.glassfish.grizzly.http.util;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Enumeration;
 import java.util.LinkedHashMap;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -228,7 +227,7 @@ public final class Parameters extends MultiMap {
         return paramHashStringArray.get(name);
     }
 
-    public Enumeration<String> getParameterNames() {
+    public Set<String> getParameterNames() {
         handleQueryParameters();
         // Slow - the original code
         if (currentChild != null) {
@@ -237,8 +236,7 @@ public final class Parameters extends MultiMap {
             return currentChild.paramHashStringArray.keys();
             */
             // START PWC 6057385
-            return Collections.enumeration(
-                currentChild.paramHashStringArray.keySet());
+            currentChild.paramHashStringArray.keySet();
             // END PWC 6057385
         }
         // merge in child
@@ -246,7 +244,7 @@ public final class Parameters extends MultiMap {
         return paramHashStringArray.keys();
         */
         // START PWC 6057385
-        return Collections.enumeration(paramHashStringArray.keySet());
+        return paramHashStringArray.keySet();
         // END PWC 6057385
     }
 

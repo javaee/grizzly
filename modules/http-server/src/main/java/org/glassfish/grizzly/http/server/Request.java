@@ -90,7 +90,6 @@ import java.security.PrivilegedExceptionAction;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -322,7 +321,7 @@ public class Request {
      */
 //    private transient HashMap<String,Object> notes = new HashMap<String,Object>();
 
-    private final transient AttributeHolder attributeHolder =
+    private final transient AttributeHolder notesHolder =
             new IndexedAttributeHolder(ATTR_BUILDER);
 
 
@@ -601,7 +600,8 @@ public class Request {
 
         afterServicesList.clear();
         
-        attributeHolder.recycle();
+        // Notes holder shouldn't be recycled.
+        //        notesHolder.recycle();
 
         if (cachedMappingData != null) {
             cachedMappingData.recycle();
@@ -691,7 +691,7 @@ public class Request {
      * @param note {@link Note} value to be returned
      */
     public <E> E getNote(final Note<E> note) {
-        return note.attribute.get(attributeHolder);
+        return note.attribute.get(notesHolder);
     }
 
 
@@ -704,7 +704,7 @@ public class Request {
      * that exist for this request.
      */
     public Set<String> getNoteNames() {
-        return attributeHolder.getAttributeNames();
+        return notesHolder.getAttributeNames();
     }
 
 
@@ -715,7 +715,7 @@ public class Request {
      * @param note {@link Note} value to be removed
      */
     public <E> E removeNote(final Note<E> note) {
-        return note.attribute.remove(attributeHolder);
+        return note.attribute.remove(notesHolder);
     }
 
 
@@ -728,7 +728,7 @@ public class Request {
      * @param value the {@link Note} value be bound to the specified {@link Note}.
      */
     public <E> void setNote(final Note<E> note, final E value) {
-        note.attribute.set(attributeHolder, value);
+        note.attribute.set(notesHolder, value);
     }
 
 
@@ -978,10 +978,8 @@ public class Request {
         if (parameterMap.isLocked())
             return parameterMap;
 
-        Enumeration e = getParameterNames();
-        while (e.hasMoreElements()) {
-            String name = e.nextElement().toString();
-            String[] values = getParameterValues(name);
+        for (final String name : getParameterNames()) {
+            final String[] values = getParameterValues(name);
             parameterMap.put(name, values);
         }
 
@@ -995,7 +993,7 @@ public class Request {
     /**
      * Return the names of all defined request parameters for this request.
      */
-    public Enumeration<String> getParameterNames() {
+    public Set<String> getParameterNames() {
 
         if (!requestParametersParsed)
             parseRequestParameters();

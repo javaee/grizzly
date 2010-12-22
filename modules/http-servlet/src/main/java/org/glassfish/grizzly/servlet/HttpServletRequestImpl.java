@@ -66,6 +66,7 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 import java.util.Locale;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.ServletInputStream;
@@ -348,10 +349,10 @@ public class HttpServletRequestImpl implements HttpServletRequest {
         }
 
         if (System.getSecurityManager() != null){
-            return (Enumeration)AccessController.doPrivileged(
-                new GetParameterNamesPrivilegedAction());
+            return new Enumerator((Set) AccessController.doPrivileged(
+                new GetParameterNamesPrivilegedAction()));
         } else {
-            return request.getParameterNames();
+            return new Enumerator(request.getParameterNames());
         }
     }
 
