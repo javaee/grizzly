@@ -73,10 +73,28 @@ import org.glassfish.grizzly.attributes.Attribute;
  * @author Alexey Stashok
  */
 public interface Filter {
+    /**
+     * Method is called, when the <tt>Filter</tt> has been added to the
+     * passed {@link FilterChain}.
+     *
+     * @param filterChain the {@link FilterChain} this <tt>Filter</tt> was added to.
+     */
     public void onAdded(FilterChain filterChain);
     
+    /**
+     * Method is called, when the <tt>Filter</tt> has been removed from the
+     * passed {@link FilterChain}.
+     *
+     * @param filterChain the {@link FilterChain} this <tt>Filter</tt> was removed from.
+     */
     public void onRemoved(FilterChain filterChain);
 
+    /**
+     * Method is called, when the {@link FilterChain} this <tt>Filter</tt> is part of,
+     * has been changed.
+     *
+     * @param filterChain the {@link FilterChain}.
+     */
     public void onFilterChainChanged(FilterChain filterChain);
     
     /**
