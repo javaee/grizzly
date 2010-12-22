@@ -46,12 +46,12 @@
     <parent>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>1.9.27-SNAPSHOT</version>
+        <version>1.9.28-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <groupId>com.sun.grizzly</groupId>
     <artifactId>httpclient</artifactId>
-    <version>1.9.27-SNAPSHOT</version>
+    <version>1.9.28-SNAPSHOT</version>
     <name>Grizzly HTTP Client</name>
     <url>https://grizzly.dev.java.net</url>
     <!-- Devs -->
