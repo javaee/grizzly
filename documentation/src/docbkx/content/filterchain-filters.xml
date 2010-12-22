@@ -24,4 +24,57 @@
     <para>To give an idea how <emphasis role="italic">FilterChain</emphasis> may look like, here is
         example of <emphasis role="italic">FilterChain</emphasis>, which implements HTTP server
         logic:</para>
+    <para><inlinemediaobject>
+            <imageobject>
+                <imagedata fileref="../images/coreframework/http-filterchain.svg"/>
+            </imageobject>
+        </inlinemediaobject></para>
+    <para>
+        <itemizedlist>
+            <listitem>
+                <para>TransportFilter is responsible to read data from network <emphasis
+                        role="italic">Connection</emphasis> to a <emphasis role="italic"
+                        >Buffer</emphasis>, and to write data from <emphasis role="italic"
+                        >Buffer</emphasis> to a nework <emphasis role="italic"
+                    >Connection</emphasis></para>
+            </listitem>
+            <listitem>
+                <para>HttpFilter is responsible for <emphasis role="italic">Buffer</emphasis> &lt;->
+                        <emphasis role="italic">HttpPacket</emphasis> transformation (both
+                    directions)</para>
+            </listitem>
+            <listitem>
+                <para>HttpServerFilter is responsible for processing request <emphasis role="italic"
+                        >HttpPacket</emphasis>s and generating response <emphasis role="italic"
+                        >HttpPacket</emphasis>s and send them back over <emphasis role="italic"
+                        >FilterChain</emphasis> in opposite direction
+                    (HttpServerFilter->HttpFilter->TransportFilter).</para>
+            </listitem>
+        </itemizedlist>
+    </para>
+    <para>So, what if we want to implement HTTPS server? It's simple:</para>
+    <para><inlinemediaobject>
+            <imageobject>
+                <imagedata fileref="../images/coreframework/https-filterchain.svg"/>
+            </imageobject>
+        </inlinemediaobject></para>
+    <para>we add just one SSLFilter, responsible for encoding/decoding SSL secured data.</para>
+    <para>As we see, during the processing of any I/O Event, Filters in a FilterChain will be
+        executed in the certain order. <emphasis role="bold">It's important to remember that the
+            most of I/O Events are processed starting from first filter to last (from left to right
+            on the schema above), except WRITE event, whose processing is starts from last Filter in
+            chain to first (from right to left a the schema above).</emphasis></para>
+    <para>Let's take a look which I/O events could be processed by a <emphasis role="italic"
+            >FilterChain</emphasis>, for that purpose we can just take a look at the <emphasis
+            role="italic">Filter</emphasis> interface
+        methods:<programlisting>    public NextAction handleRead(FilterChainContext ctx) throws IOException;
+
+    public NextAction handleWrite(FilterChainContext ctx) throws IOException;
+
+    public NextAction handleConnect(FilterChainContext ctx) throws IOException;
+
+    public NextAction handleAccept(FilterChainContext ctx) throws IOException;
+
+    public NextAction handleClose(FilterChainContext ctx) throws IOException;</programlisting></para>
+    <para/>
 </section>
