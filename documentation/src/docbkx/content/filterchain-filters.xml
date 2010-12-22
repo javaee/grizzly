@@ -46,7 +46,7 @@
             <listitem>
                 <para>HttpServerFilter is responsible for processing request <emphasis role="italic"
                         >HttpPacket</emphasis>s and generating response <emphasis role="italic"
-                        >HttpPacket</emphasis>s and send them back over <emphasis role="italic"
+                        >HttpPacket</emphasis>s and send them back on <emphasis role="italic"
                         >FilterChain</emphasis> in opposite direction
                     (HttpServerFilter->HttpFilter->TransportFilter).</para>
             </listitem>
@@ -76,5 +76,29 @@
     public NextAction handleAccept(FilterChainContext ctx) throws IOException;
 
     public NextAction handleClose(FilterChainContext ctx) throws IOException;</programlisting></para>
-    <para/>
+    <para>so I/O events are<itemizedlist>
+            <listitem>
+                <para>READ: some data has come on a Connection, which could be read and
+                    processed;</para>
+            </listitem>
+            <listitem>
+                <para>WRITE: some data is going to be written to Connection, and Filter might be
+                    responsible to transform data representation form, like <emphasis role="italic"
+                        >HttpPacket</emphasis> -> <emphasis role="italic">Buffer</emphasis> on
+                    schema above;</para>
+            </listitem>
+            <listitem>
+                <para>CONNECT: new client <emphasis role="italic">Connection</emphasis> has been
+                    connected;</para>
+            </listitem>
+            <listitem>
+                <para>ACCEPT (TCP only): new client <emphasis role="italic">Connection</emphasis>
+                    has been accepted by server <emphasis role="italic">Connection</emphasis>
+                        (<emphasis role="italic">TCPNIOServerConnection</emphasis>);</para>
+            </listitem>
+            <listitem>
+                <para>CLOSE: the Connection has been closed (either we closed the Connection or it
+                    was closed by peer);</para>
+            </listitem>
+        </itemizedlist></para>
 </section>
