@@ -51,6 +51,7 @@ import org.glassfish.grizzly.Buffer;
  * @author Alexey Stashok
  */
 public class DataChunk {
+
     public enum Type {None, Buffer, Chars, String};
     
     public static DataChunk newInstance() {
@@ -217,7 +218,19 @@ public class DataChunk {
                 return -1;
         }
     }
-    
+
+    public void delete(final int from, final int to) {
+        switch (type) {
+            case Buffer:
+                bufferChunk.delete(from, to);
+            case String:
+                stringValue = stringValue.substring(0, from) +
+                        stringValue.substring(to, stringValue.length());
+            case Chars:
+                charChunk.delete(from, to);
+        }
+    }
+
     /**
      * Compares the message bytes to the specified String object.
      * @param s the String to compare
