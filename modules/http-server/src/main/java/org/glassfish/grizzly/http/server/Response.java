@@ -1486,7 +1486,7 @@ public class Response {
      * times out will throw an {@link IllegalStateException}.
      *
      */
-    public void suspend(long timeout, TimeUnit timeunit) {
+    public void suspend(final long timeout, final TimeUnit timeunit) {
         suspend(timeout, timeunit, null);
     }
 
@@ -1511,7 +1511,9 @@ public class Response {
      * times out will throw an {@link IllegalStateException}.
      * @param competionHandler a {@link org.glassfish.grizzly.CompletionHandler}
      */
-    public void suspend(long timeout, TimeUnit timeunit, CompletionHandler competionHandler) {
+    public void suspend(final long timeout, final TimeUnit timeunit,
+            final CompletionHandler<Response> competionHandler) {
+
         checkResponse();
 
         synchronized(suspendSync) {
@@ -1552,7 +1554,9 @@ public class Response {
 
             connection.removeCloseListener(suspendedRunnable);
 
-            final CompletionHandler completionHandler = suspendedRunnable.completionHandler;
+            final CompletionHandler<Response> completionHandler =
+                    suspendedRunnable.completionHandler;
+            
             suspendedRunnable.isResuming = true;
 
             if (completionHandler != null) {
@@ -1587,7 +1591,9 @@ public class Response {
 
             connection.removeCloseListener(suspendedRunnable);
 
-            final CompletionHandler completionHandler = suspendedRunnable.completionHandler;
+            final CompletionHandler<Response> completionHandler =
+                    suspendedRunnable.completionHandler;
+            
             suspendedRunnable.isResuming = true;
 
             if (completionHandler != null) {
@@ -1618,7 +1624,7 @@ public class Response {
     protected final class SuspendedRunnable implements Runnable,
             Connection.CloseListener {
 
-        public CompletionHandler completionHandler;
+        public CompletionHandler<Response> completionHandler;
         public boolean isResuming;
         public volatile long timeoutTimeMillis;
 
