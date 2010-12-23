@@ -69,16 +69,32 @@ import java.io.IOException;
  */
 public interface SSLSupport {
     /**
+     * The Request attribute key for the cipher suite.
+     */
+    public static final String CIPHER_SUITE_KEY = "javax.servlet.request.cipher_suite";
+
+    /**
      * The Request attribute key for the key size.
      */
-    String KEY_SIZE_KEY = "javax.servlet.request.key_size";
+    public static final String KEY_SIZE_KEY = "javax.servlet.request.key_size";
+
+    /**
+     * The Request attribute key for the client certificate chain.
+     */
+    public static final String CERTIFICATE_KEY = "javax.servlet.request.X509Certificate";
+
+    /**
+     * The Request attribute key for the session id.
+     * This one is a Tomcat extension to the Servlet spec.
+     */
+    public static final String SESSION_ID_KEY = "javax.servlet.request.ssl_session";
 
     /**
      * A mapping table to determine the number of effective bits in the key
      * when using a cipher suite containing the specified cipher name.  The
      * underlying data came from the TLS Specification (RFC 2246), Appendix C.
      */
-    CipherData ciphers[] = {
+     static final CipherData ciphers[] = {
         new CipherData("_WITH_NULL_", 0),
         new CipherData("_WITH_IDEA_CBC_", 128),
         new CipherData("_WITH_RC2_CBC_40_", 40),
@@ -92,12 +108,12 @@ public interface SSLSupport {
     /**
      * The cipher suite being used on this connection.
      */
-    String getCipherSuite() throws IOException;
+    public String getCipherSuite() throws IOException;
 
     /**
      * The client certificate chain (if any).
      */
-    Object[] getPeerCertificateChain()
+    public Object[] getPeerCertificateChain()
         throws IOException;
 
     /**
@@ -105,7 +121,7 @@ public interface SSLSupport {
      * @param force If <tt>true</tt>, then re-negotiate the
      *              connection if necessary.
      */
-    Object[] getPeerCertificateChain(boolean force)
+    public Object[] getPeerCertificateChain(boolean force)
         throws IOException;
 
     /**
@@ -121,13 +137,15 @@ public interface SSLSupport {
      * (d) The size of the signature key used by the server
      *
      * Unfortunately, all of these values are nonsensical.
-     */
-    Integer getKeySize() throws IOException;
+     **/
+    public Integer getKeySize()
+        throws IOException;
 
     /**
      * The current session Id.
      */
-    String getSessionId() throws IOException;
+    public String getSessionId()
+        throws IOException;
     /**
      * Simple data class that represents the cipher being used, along with the
      * corresponding effective key size.  The specified phrase must appear in the
