@@ -254,7 +254,7 @@ public class Response {
 
     protected DelayedExecutor.DelayQueue<Response> delayQueue;
     protected boolean isSuspended;
-    private final SuspendedRunnable suspendedRunnable = new SuspendedRunnable();
+    private final SuspendedContext suspendedContext = new SuspendedContext();
     private final Object suspendSync = new Object();
 
     private SuspendStatus suspendStatus;
@@ -297,7 +297,7 @@ public class Response {
     protected final void recycle() {
         suspendStatus = null;
         delayQueue = null;
-        suspendedRunnable.reset();
+        suspendedContext.reset();
         outputBuffer.recycle();
         usingOutputStream = false;
         usingWriter = false;
@@ -1478,12 +1478,13 @@ public class Response {
      * tell the underlying container to avoid recycling objects associated with
      * the current instance, and also to avoid commiting response.
      *
-     * @param timeout The maximum amount of time, in milliseconds,
+     * @param timeout The maximum amount of time,
      * a {@link Response} can be suspended. When the timeout expires (because
      * nothing has been written or because the {@link Response#resume()}
      * or {@link Response#cancel()}), the {@link Response} will be automatically
      * resumed and commited. Usage of any methods of a {@link Response} that
      * times out will throw an {@link IllegalStateException}.
+     * @param timeunit timeout units
      *
      */
     public void suspend(final long timeout, final TimeUnit timeunit) {
@@ -1503,16 +1504,44 @@ public class Response {
      * {@link org.glassfish.grizzly.CompletionHandler#cancelled()} is invoked with the original <tt>attachment</tt> and
      * the {@link Response} committed.
      *
-     * @param timeout The maximum amount of time, in milliseconds,
-     * a {@link Response} can be suspended. When the timeout expires (because
-     * nothing has been written or because the {@link Response#resume()}
-     * or {@link Response#cancel()}), the {@link Response} will be automatically
-     * resumed and committed. Usage of any methods of a {@link Response} that
-     * times out will throw an {@link IllegalStateException}.
+     * @param timeout The maximum amount of time the {@link Response} can be suspended.
+     * When the timeout expires (because nothing has been written or because the
+     * {@link Response#resume()} or {@link Response#cancel()}), the {@link Response}
+     * will be automatically resumed and committed. Usage of any methods of a
+     * {@link Response} that times out will throw an {@link IllegalStateException}.
+     * @param timeunit timeout units
      * @param competionHandler a {@link org.glassfish.grizzly.CompletionHandler}
      */
     public void suspend(final long timeout, final TimeUnit timeunit,
             final CompletionHandler<Response> competionHandler) {
+        suspend(timeout, timeunit, competionHandler, null);
+    }
+
+    /**
+     * Suspend the {@link Response}. Suspending a {@link Response} will
+     * tell the underlying container to avoid recycling objects associated with
+     * the current instance, and also to avoid committing response. When the
+     * {@link Response#resume()} is invoked, the container will
+     * make sure {@link CompletionHandler#completed(Object)}
+     * is invoked with the original <tt>attachment</tt>. When the
+     * {@link Response#cancel()} is invoked, the container will
+     * make sure {@link org.glassfish.grizzly.CompletionHandler#cancelled()}
+     * is invoked with the original <tt>attachment</tt>. If the timeout expires, the
+     * {@link org.glassfish.grizzly.CompletionHandler#cancelled()} is invoked with the original <tt>attachment</tt> and
+     * the {@link Response} committed.
+     *
+     * @param timeout The maximum amount of time the {@link Response} can be suspended.
+     * When the timeout expires (because nothing has been written or because the
+     * {@link Response#resume()} or {@link Response#cancel()}), the {@link Response}
+     * will be automatically resumed and committed. Usage of any methods of a
+     * {@link Response} that times out will throw an {@link IllegalStateException}.
+     * @param timeunit timeout units
+     * @param competionHandler a {@link org.glassfish.grizzly.CompletionHandler}
+     * @param timeoutHandler {@link TimeoutHandler} to customize the suspended <tt>Response</tt> timeout logic.
+     */
+    public void suspend(final long timeout, final TimeUnit timeunit,
+            final CompletionHandler<Response> competionHandler,
+            final TimeoutHandler timeoutHandler) {
 
         checkResponse();
 
@@ -1521,15 +1550,24 @@ public class Response {
                 throw new IllegalStateException("Already Suspended");
             }
 
-            suspendedRunnable.completionHandler = competionHandler;
-            delayQueue.add(this, timeout, timeunit);
+            suspendedContext.completionHandler = competionHandler;
+            suspendedContext.timeoutHandler = timeoutHandler;
+
+            if (timeout > 0) {
+                final long timeoutMillis =
+                        TimeUnit.MILLISECONDS.convert(timeout, timeunit);
+                suspendedContext.delayMillis = timeoutMillis;
+                        
+                
+                delayQueue.add(this, timeoutMillis, TimeUnit.MILLISECONDS);
+            }
 
             final Connection connection = ctx.getConnection();
 
             HttpServerProbeNotifier.notifyRequestSuspend(
                     request.httpServerFilter, connection, request);
             
-            connection.addCloseListener(suspendedRunnable);
+            connection.addCloseListener(suspendedContext);
             
             suspendStatus.set();
             
@@ -1547,23 +1585,23 @@ public class Response {
     public void resume() {
         checkResponse();
         synchronized(suspendSync) {
-            if (!isSuspended || suspendedRunnable.isResuming) {
+            if (!isSuspended || suspendedContext.isResuming) {
                 throw new IllegalStateException("Not Suspended");
             }
             final Connection connection = ctx.getConnection();
 
-            connection.removeCloseListener(suspendedRunnable);
+            connection.removeCloseListener(suspendedContext);
 
             final CompletionHandler<Response> completionHandler =
-                    suspendedRunnable.completionHandler;
+                    suspendedContext.completionHandler;
             
-            suspendedRunnable.isResuming = true;
+            suspendedContext.isResuming = true;
 
             if (completionHandler != null) {
                 completionHandler.completed(this);
             }
 
-            suspendedRunnable.reset();
+            suspendedContext.reset();
 
             isSuspended = false;
 
@@ -1584,17 +1622,17 @@ public class Response {
         checkResponse();
 
         synchronized (suspendSync) {
-            if (!isSuspended || suspendedRunnable.isResuming) {
+            if (!isSuspended || suspendedContext.isResuming) {
                 throw new IllegalStateException("Not Suspended");
             }
             final Connection connection = ctx.getConnection();
 
-            connection.removeCloseListener(suspendedRunnable);
+            connection.removeCloseListener(suspendedContext);
 
             final CompletionHandler<Response> completionHandler =
-                    suspendedRunnable.completionHandler;
+                    suspendedContext.completionHandler;
             
-            suspendedRunnable.isResuming = true;
+            suspendedContext.isResuming = true;
 
             if (completionHandler != null) {
                 completionHandler.cancelled();
@@ -1602,7 +1640,7 @@ public class Response {
 
             isSuspended = false;
 
-            suspendedRunnable.reset();
+            suspendedContext.reset();
 
             HttpServerProbeNotifier.notifyRequestCancel(
                     request.httpServerFilter, connection, request);
@@ -1621,20 +1659,27 @@ public class Response {
         }
     }
 
-    protected final class SuspendedRunnable implements Runnable,
-            Connection.CloseListener {
+    protected final class SuspendedContext implements Connection.CloseListener {
 
         public CompletionHandler<Response> completionHandler;
+        public TimeoutHandler timeoutHandler;
+        public long delayMillis;
         public boolean isResuming;
         public volatile long timeoutTimeMillis;
 
-        @Override
-        public void run() {
+        public boolean onTimeout() {
             synchronized (suspendSync) {
-                HttpServerProbeNotifier.notifyRequestTimeout(
-                        request.httpServerFilter, ctx.getConnection(), request);
+                if (timeoutHandler == null || timeoutHandler.onTimeout(Response.this)) {
+                    HttpServerProbeNotifier.notifyRequestTimeout(
+                            request.httpServerFilter, ctx.getConnection(), request);
 
-                cancel();
+                    cancel();
+
+                    return true;
+                } else {
+                    timeoutTimeMillis += delayMillis;
+                    return false;
+                }
             }
         }
 
@@ -1645,7 +1690,7 @@ public class Response {
         }
 
         @Override
-        public void onClosed(Connection connection) throws IOException {
+        public void onClosed(final Connection connection) throws IOException {
             cancel();
         }
     }
@@ -1654,8 +1699,8 @@ public class Response {
             DelayedExecutor.Worker<Response> {
 
         @Override
-        public void doWork(Response element) {
-            element.suspendedRunnable.run();
+        public boolean doWork(final Response element) {
+            return element.suspendedContext.onTimeout();
         }
         
     }
@@ -1664,9 +1709,9 @@ public class Response {
             DelayedExecutor.Resolver<Response> {
 
         @Override
-        public boolean removeTimeout(Response element) {
-            if (element.suspendedRunnable.timeoutTimeMillis != DelayedExecutor.UNSET_TIMEOUT) {
-                element.suspendedRunnable.timeoutTimeMillis = DelayedExecutor.UNSET_TIMEOUT;
+        public boolean removeTimeout(final Response element) {
+            if (element.suspendedContext.timeoutTimeMillis != DelayedExecutor.UNSET_TIMEOUT) {
+                element.suspendedContext.timeoutTimeMillis = DelayedExecutor.UNSET_TIMEOUT;
                 return true;
             }
 
@@ -1674,13 +1719,13 @@ public class Response {
         }
 
         @Override
-        public Long getTimeoutMillis(Response element) {
-            return element.suspendedRunnable.timeoutTimeMillis;
+        public Long getTimeoutMillis(final Response element) {
+            return element.suspendedContext.timeoutTimeMillis;
         }
 
         @Override
-        public void setTimeoutMillis(Response element, long timeoutMillis) {
-            element.suspendedRunnable.timeoutTimeMillis = timeoutMillis;
+        public void setTimeoutMillis(final Response element, final long timeoutMillis) {
+            element.suspendedContext.timeoutTimeMillis = timeoutMillis;
         }
 
     }

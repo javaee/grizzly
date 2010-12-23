@@ -106,14 +106,17 @@ public class IdleTimeoutFilter extends BaseFilter {
                 new DelayedExecutor.Worker<Connection>() {
 
             @Override
-            public void doWork(Connection connection) {
+            public boolean doWork(final Connection connection) {
                 try {
                     connection.close().markForRecycle(true);
                 } catch (IOException e) {
                     LOGGER.log(Level.FINE, "SilentConnectionFilter:" +
                             "unexpected exception, when trying " +
                             "to close connection", e);
-                }            }
+                }
+
+                return true;
+            }
         }, new Resolver());
 
         isHandleAccepted = true;

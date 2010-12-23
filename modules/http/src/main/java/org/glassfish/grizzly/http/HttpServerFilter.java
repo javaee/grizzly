@@ -819,12 +819,14 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
 
         @Override
-        public void doWork(final KeepAliveContext context) {
+        public boolean doWork(final KeepAliveContext context) {
             try {
                 KeepAlive.notifyProbesTimeout(keepAlive, context.connection);
                 context.connection.close().markForRecycle(false);
             } catch (IOException ignored) {
             }
+
+            return true;
         }
 
     } // END KeepAliveWorker

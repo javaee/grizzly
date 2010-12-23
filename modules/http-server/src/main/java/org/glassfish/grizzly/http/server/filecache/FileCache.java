@@ -834,8 +834,9 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
 
     private class EntryWorker implements DelayedExecutor.Worker<FileCacheEntry> {
         @Override
-        public void doWork(FileCacheEntry element) {
+        public boolean doWork(final FileCacheEntry element) {
             element.run();
+            return true;
         }        
     }
 

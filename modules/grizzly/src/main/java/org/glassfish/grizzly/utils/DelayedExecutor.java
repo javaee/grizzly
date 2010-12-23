@@ -140,7 +140,9 @@ public class DelayedExecutor {
                                 delayQueue.queue.put(element, delayQueue);
                             } else {
                                 try {
-                                    delayQueue.worker.doWork(element);
+                                    if (!delayQueue.worker.doWork(element)) {
+                                        delayQueue.queue.put(element, delayQueue);
+                                    }
                                 } catch (Exception ignored) {
                                 }
                             }
@@ -190,7 +192,7 @@ public class DelayedExecutor {
     }
 
     public interface Worker<E> {
-        public void doWork(E element);
+        public boolean doWork(E element);
     }
 
     public interface Resolver<E> {

@@ -60,7 +60,6 @@ import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.ssl.SSLFilter;
-import org.glassfish.grizzly.http.util.ByteChunk;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Arrays;
@@ -69,6 +68,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 import org.junit.After;
 import org.junit.Before;
@@ -343,6 +343,45 @@ public class SuspendTest {
     }
 
     @Test
+    public void testSuspendTimeoutTimeoutHandler() throws Exception {
+        final AtomicReference<byte[]> responseData = new AtomicReference<byte[]>();
+        responseData.set("bad response".getBytes());
+
+        startWebServer(new TestStaticHttpHandler() {
+
+            @Override
+            public void dologic(final Request req, final Response res) throws Throwable {
+                res.suspend(5, TimeUnit.SECONDS, new TestCompletionHandler() {
+
+                    @Override
+                    public void cancelled() {
+                        try {
+                            write(res, responseData.get());
+                        } catch (Throwable ex) {
+                            ex.printStackTrace();
+                        }
+                    }
+                }, new TimeoutHandler() {
+                    int counter = 0;
+
+                    @Override
+                    public boolean onTimeout(final Response response) {
+                        if (++counter == 1) {
+                            return false;
+                        } else if (counter == 2) {
+                            responseData.set(testData);
+                            return true;
+                        }
+
+                        throw new IllegalStateException();
+                    }
+                });
+            }
+        });
+        runTest();
+    }
+
+    @Test
     public void testSuspendDoubleSuspendInvokation() throws Exception {
         startWebServer(new TestStaticHttpHandler() {
 
@@ -517,9 +556,6 @@ public class SuspendTest {
     }
 
     private void write(Response response, byte[] data) throws IOException {
-        ByteChunk bc = new ByteChunk();
-        bc.setBytes(data, 0, data.length);
-
         response.setContentType("custom/response");
         response.getOutputBuffer().write(data);
         response.flush();
