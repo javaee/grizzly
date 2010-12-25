@@ -81,7 +81,7 @@
                             *,
                         </Import-Package>
                         <Export-Package>
-                            org.glassfish.grizzly.localization;version=${project.version},
+                            org.glassfish.grizzly.localization.*;version=${project.version},
                         </Export-Package>
                    </instructions>
                     <unpackBundle>true</unpackBundle>
