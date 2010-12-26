@@ -631,7 +631,7 @@ public class Response {
      */
     public boolean isCommitted() {
         checkResponse();
-        return (response.isCommitted());
+        return response.isCommitted();
     }
 
 
@@ -1054,8 +1054,7 @@ public class Response {
      * @exception java.io.IOException if an input/output error occurs
      */
     public void sendAcknowledgement() throws IOException {
-        checkResponse();
-        if (isCommitted())
+        if (isCommitted() || !request.requiresAcknowledgement())
             return;
 
         response.setAcknowledgement(true);
