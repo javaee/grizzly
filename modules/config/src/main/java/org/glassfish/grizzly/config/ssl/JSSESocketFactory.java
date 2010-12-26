@@ -87,7 +87,7 @@ import org.glassfish.grizzly.http.util.StringManager;
  * @author EKR -- renamed to JSSESocketFactory
  */
 public abstract class JSSESocketFactory extends ServerSocketFactory {
-    private static final StringManager sm = StringManager.getManager("com.sun.grizzly.util.net.jsse.res");
+    private static final StringManager sm = StringManager.getManager(JSSESocketFactory.class.getPackage().getName());
     public final static String defaultProtocol = "TLS";
     public final static String defaultAlgorithm = "SunX509";
     final static boolean defaultClientAuth = false;

@@ -70,7 +70,7 @@ import org.glassfish.grizzly.ssl.SSLSupport;
  * @author EKR
  */
 public class JSSEImplementation extends SSLImplementation {
-    static final String JSSE14Factory = "com.sun.grizzly.util.net.jsse.JSSE14Factory";
+    static final String JSSE14Factory = "org.glassfish.grizzly.config.ssl.JSSE14Factory";
     static final String SSLSocketClass = "javax.net.ssl.SSLSocket";
     private JSSEFactory factory;
 
