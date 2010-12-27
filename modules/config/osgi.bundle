@@ -40,7 +40,8 @@
 
 -exportcontents: \
                         org.glassfish.grizzly.config; \
-                        org.glassfish.grizzly.config.dom; version=${grizzly-version}
+                        org.glassfish.grizzly.config.dom; \
+                        org.glassfish.grizzly.config.ssl; version=${grizzly-version}
 
 Import-Package: \
                         *
