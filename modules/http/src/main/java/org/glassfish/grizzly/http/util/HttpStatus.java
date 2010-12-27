@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly.http.util;
 
+import java.util.HashMap;
+import java.util.Map;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.memory.Buffers;
 
@@ -50,49 +52,75 @@ import org.glassfish.grizzly.memory.Buffers;
  * @since 2.0
  */
 @SuppressWarnings({"UnusedDeclaration"})
-public enum HttpStatus {
+public class HttpStatus {
+    private static final Map<Integer, HttpStatus> statusMessages =
+        new HashMap<Integer, HttpStatus>();
+
+    public static final HttpStatus CONINTUE_100 = register(100, "Continue");
+    public static final HttpStatus SWITCHING_PROTOCOLS_101 = register(101, "Switching Protocols");
+    public static final HttpStatus WEB_SOCKET_PROTOCOL_HANDSHAKE_101 = register(101, "Web Socket Protocol Handshake");
+    public static final HttpStatus OK_200 = register(200, "OK");
+    public static final HttpStatus CREATED_201 = register(201, "Created");
+    public static final HttpStatus ACCEPTED_202 = register(202, "Accepted");
+    public static final HttpStatus NON_AUTHORATIVE_INFORMATION_203 = register(203, "Not-Authoritative Information");
+    public static final HttpStatus NO_CONTENT_204 = register(204, "No Content");
+    public static final HttpStatus RESET_CONTENT_205 = register(205, "Reset Content");
+    public static final HttpStatus PARTIAL_CONTENT_206 = register(206, "Partial Content");
+    public static final HttpStatus MULTIPLE_CHOICES_300 = register(300, "Multiple Choices");
+    public static final HttpStatus MOVED_PERMANENTLY_301 = register(301, "Moved Permanently");
+    public static final HttpStatus FOUND_302 = register(302, "Found");
+    public static final HttpStatus SEE_OTHER_303 = register(303, "See Other");
+    public static final HttpStatus NOT_MODIFIED_304 = register(304, "Not Modified");
+    public static final HttpStatus USE_PROXY_305 = register(305, "Use Proxy");
+    public static final HttpStatus TEMPORARY_REDIRECT_307 = register(307, "Temporary Redirect");
+    public static final HttpStatus BAD_REQUEST_400 = register(400, "Bad Request");
+    public static final HttpStatus UNAUTHORIZED_401 = register(401, "Unauthorized");
+    public static final HttpStatus PAYMENT_REQUIRED_402 = register(402, "Payment Required");
+    public static final HttpStatus FORBIDDEN_403 = register(403, "Forbidden");
+    public static final HttpStatus NOT_FOUND_404 = register(404, "Not Found");
+    public static final HttpStatus METHOD_NOT_ALLOWED_405 = register(405, "Method Not Allowed");
+    public static final HttpStatus NOT_ACCEPTABLE_406 = register(406, "Not Acceptable");
+    public static final HttpStatus PROXY_AUTHENTICATION_REQUIRED_407 = register(407, "Proxy Authentication Required");
+    public static final HttpStatus REQUEST_TIMEOUT_408 = register(408, "Request Timeout");
+    public static final HttpStatus CONFLICT_409 = register(409, "Conflict");
+    public static final HttpStatus GONE_410 = register(410, "Gone");
+    public static final HttpStatus LENGTH_REQUIRED_411 = register(411, "Length Required");
+    public static final HttpStatus PRECONDITION_FAILED_412 = register(412, "Precondition Failed");
+    public static final HttpStatus REQUEST_ENTITY_TOO_LARGE_413 = register(413, "Request Entity Too Large");
+    public static final HttpStatus REQUEST_URI_TOO_LONG_414 = register(414, "Request-URI Too Long");
+    public static final HttpStatus UNSUPPORTED_MEDIA_TYPE_415 = register(415, "Unsupported Media Type");
+    public static final HttpStatus REQUEST_RANGE_NOT_SATISFIABLE_416 = register(416, "Request Range Not Satisfiable");
+    public static final HttpStatus EXPECTATION_FAILED_417 = register(417, "Expectation Failed");
+    public static final HttpStatus INTERNAL_SERVER_ERROR_500 = register(500, "Internal Server Error");
+    public static final HttpStatus NOT_IMPLEMENTED_501 = register(501, "Not Implemented");
+    public static final HttpStatus BAD_GATEWAY_502 = register(502, "Bad Gateway");
+    public static final HttpStatus SERVICE_UNAVAILABLE_503 = register(503, "Service Unavailable");
+    public static final HttpStatus GATEWAY_TIMEOUT_504 = register(504, "Gateway Timeout");
+    public static final HttpStatus HTTP_VERSION_NOT_SUPPORTED_505 = register(505, "HTTP Version Not Supported");
+
+    private static HttpStatus register(final int statusCode, final String reasonPhrase) {
+        final HttpStatus httpStatus = newHttpStatus(statusCode, reasonPhrase);
+        statusMessages.put(statusCode, httpStatus);
+        return httpStatus;
+    }
+
+    public static HttpStatus newHttpStatus(final int statusCode, final String reasonPhrase) {
+        return new HttpStatus(statusCode, reasonPhrase);
+    }
     
-    CONINTUE_100(100, "Continue"),
-    SWITCHING_PROTOCOLS_101(101, "Switching Protocols"),
-    WEB_SOCKET_PROTOCOL_HANDSHAKE_101(101, "Web Socket Protocol Handshake"),
-    OK_200(200, "OK"),
-    CREATED_201(201, "Created"),
-    ACCEPTED_202(202, "Accepted"),
-    NON_AUTHORATIVE_INFORMATION_203(203, "Not-Authoritative Information"),
-    NO_CONTENT_204(204, "No Content"),
-    RESET_CONTENT_205(205, "Reset Content"),
-    PARTIAL_CONTENT_206(206, "Partial Content"),
-    MULTIPLE_CHOICES_300(300, "Multiple Choices"),
-    MOVED_PERMANENTLY_301(301, "Moved Permanently"),
-    FOUND_302(302, "Found"),
-    SEE_OTHER_303(303, "See Other"),
-    NOT_MODIFIED_304(304, "Not Modified"),
-    USE_PROXY_305(305, "Use Proxy"),
-    TEMPORARY_REDIRECT_307(307, "Temporary Redirect"),
-    BAD_REQUEST_400(400, "Bad Request"),
-    UNAUTHORIZED_401(401, "Unauthorized"),
-    PAYMENT_REQUIRED_402(402, "Payment Required"),
-    FORBIDDEN_403(403, "Forbidden"),
-    NOT_FOUND_404(404, "Not Found"),
-    METHOD_NOT_ALLOWED_405(405, "Method Not Allowed"),
-    NOT_ACCEPTABLE_406(406, "Not Acceptable"),
-    PROXY_AUTHENTICATION_REQUIRED_407(407, "Proxy Authentication Required"),
-    REQUEST_TIMEOUT_408(408, "Request Timeout"),
-    CONFLICT_409(409, "Conflict"),
-    GONE_410(410, "Gone"),
-    LENGTH_REQUIRED_411(411, "Length Required"),
-    PRECONDITION_FAILED_412(412, "Precondition Failed"),
-    REQUEST_ENTITY_TOO_LARGE_413(413, "Request Entity Too Large"),
-    REQUEST_URI_TOO_LONG_414(414, "Request-URI Too Long"),
-    UNSUPPORTED_MEDIA_TYPE_415(415, "Unsupported Media Type"),
-    REQUEST_RANGE_NOT_SATISFIABLE_416(416, "Request Range Not Satisfiable"),
-    EXPECTATION_FAILED_417(417, "Expectation Failed"),
-    INTERNAL_SERVER_ERROR_500(500, "Internal Server Error"),
-    NOT_IMPLEMENTED_501(501, "Not Implemented"),
-    BAD_GATEWAY_502(502, "Bad Gateway"),
-    SERVICE_UNAVAILABLE_503(503, "Service Unavailable"),
-    GATEWAY_TIMEOUT_504(504, "Gateway Timeout"),
-    HTTP_VERSION_NOT_SUPPORTED_505(505, "HTTP Version Not Supported");
+    /**
+     * @param statusCode HTTP status code
+     *
+     * @return {@link Buffer} representation of the status.
+     */
+    public static HttpStatus getHttpStatus(final int statusCode) {
+        HttpStatus status = statusMessages.get(statusCode);
+        if (status == null) {
+            status = new HttpStatus(statusCode, "CUSTOM");
+        }
+
+        return status;
+    }
 
 
     // ------------------------------------------------------------ Constructors
@@ -101,7 +129,7 @@ public enum HttpStatus {
     private final byte[] reasonPhraseBytes;
     private final byte[] statusBytes;
 
-    HttpStatus(final int status, final String reasonPhrase) {
+    private HttpStatus(final int status, final String reasonPhrase) {
         this.status = status;
         reasonPhraseBytes = reasonPhrase.getBytes(Charsets.ASCII_CHARSET);
         statusBytes = Integer.toString(status).getBytes(Charsets.ASCII_CHARSET);
@@ -133,8 +161,8 @@ public enum HttpStatus {
      * Sets the status and reason phrase on the specified response.
      * @param response the response to set the status and reason phrase on.
      */
-    public void setValues(HttpResponsePacket response) {
-        response.setStatus(status, Buffers.wrap(null, statusBytes));
+    public void setValues(final HttpResponsePacket response) {
+        response.setStatus(this);
         response.setReasonPhrase(Buffers.wrap(null, reasonPhraseBytes));
     }
 

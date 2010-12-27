@@ -42,9 +42,10 @@ package org.glassfish.grizzly.http;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.util.DataChunk;
-import org.glassfish.grizzly.http.util.Utils;
 
 import java.util.Locale;
+import org.glassfish.grizzly.http.util.HttpStatus;
+import org.glassfish.grizzly.memory.Buffers;
 
 
 /**
@@ -56,8 +57,7 @@ import java.util.Locale;
  * @author Alexey Stashok
  */
 public abstract class HttpResponsePacket extends HttpHeader {
-    public static final int NON_PARSED_STATUS = Integer.MIN_VALUE;
-    
+
     // ----------------------------------------------------- Instance Variables
 
     /**
@@ -79,8 +79,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
     /**
      * Status code.
      */
-    protected int parsedStatusInt = NON_PARSED_STATUS;
-    protected final DataChunk statusC = new StatusDataChunk();
+    protected HttpStatus httpStatus;
 
     /**
      * Status message.
@@ -114,16 +113,6 @@ public abstract class HttpResponsePacket extends HttpHeader {
     }
 
     // -------------------- State --------------------
-    /**
-     * Gets the status code for this response as {@link DataChunk} (avoid
-     * the status code parsing}.
-     *
-     * @return the status code for this response as {@link DataChunk} (avoid
-     * the status code parsing}.
-     */
-    public DataChunk getStatusDC() {
-        return statusC;
-    }
 
     /**
      * Gets the status code for this response.
@@ -131,33 +120,39 @@ public abstract class HttpResponsePacket extends HttpHeader {
      * @return the status code for this response.
      */
     public int getStatus() {
-        if (parsedStatusInt == NON_PARSED_STATUS) {
-            parsedStatusInt = Integer.parseInt(statusC.toString());
-        }
-
-        return parsedStatusInt;
+        return getHttpStatus().getStatusCode();
     }
     
+    /**
+     * Gets the HTTP status for this response.
+     *
+     * @return the HTTP status for this response.
+     */
+    public HttpStatus getHttpStatus() {
+        if (httpStatus == null) {
+            httpStatus = HttpStatus.OK_200;
+        }
+        
+        return httpStatus;
+    }
+
     /**
      * Sets the status code for this response.
      *
      * @param status the status code for this response.
      */
-    public void setStatus(int status) {
+    public void setStatus(final int status) {
         // the order is important here as statusDC.setXXX will reset the parsedIntStatus
-        final Buffer b = Utils.getHttpStatus(status);
-        statusC.setBuffer(b, b.position(), b.limit());
-        parsedStatusInt = status;
+        httpStatus = HttpStatus.getHttpStatus(status);
     }
 
-
-    public void setStatus(int status, Buffer statusBuffer) {
-
-        statusC.setBuffer(statusBuffer,
-                          statusBuffer.position(),
-                          statusBuffer.limit());
-        parsedStatusInt = status;
-
+    /**
+     * Sets the status code for this response.
+     *
+     * @param status the status for this response.
+     */
+    public void setStatus(final HttpStatus status) {
+        this.httpStatus = status;
     }
 
     /**
@@ -209,7 +204,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
         if (allowCustomReasonPhrase && !reasonPhraseC.isNull()) {
             return reasonPhraseC;
         } else {
-            final Buffer b = Utils.getHttpStatusMessage(getStatus());
+            final Buffer b = Buffers.wrap(null, httpStatus.getReasonPhraseBytes());
             reasonPhraseC.setBuffer(b, b.position(), b.limit());
             return reasonPhraseC;
         }
@@ -272,7 +267,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
     public void acknowledged() {
         request.requiresAcknowledgement(false);
         acknowledgment = false;
-        parsedStatusInt = NON_PARSED_STATUS;
+        httpStatus = null;
         reasonPhraseC.recycle();
     }
 
@@ -285,8 +280,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
      */
     @Override
     protected void reset() {
-        statusC.recycle();
-        parsedStatusInt = NON_PARSED_STATUS;
+        httpStatus = null;
         acknowledgment = false;
         allowCustomReasonPhrase = true;
         reasonPhraseC.recycle();
@@ -448,16 +442,6 @@ public abstract class HttpResponsePacket extends HttpHeader {
 
 
     // ---------------------------------------------------------- Nested Classes
-
-    /**
-     * {@link DataChunk} implementation which resets parsedStatusInt on change.
-     */
-    private class StatusDataChunk extends DataChunk {
-        @Override
-        protected void onContentChanged() {
-            parsedStatusInt = NON_PARSED_STATUS;
-        }
-    }
 
     /**
      * <tt>HttpResponsePacket</tt> message builder.

@@ -50,39 +50,7 @@ import org.glassfish.grizzly.memory.Buffers;
  * @author Alexey Stashok
  */
 public class Utils {
-    private static final HashMap<Integer, byte[]> statusMessages =
-        new HashMap<Integer, byte[]>(HttpStatus.values().length);
-    private static final HashMap<Integer, byte[]> statusCodes =
-        new HashMap<Integer, byte[]>(HttpStatus.values().length);
-
-    static {
-        for (final HttpStatus status : HttpStatus.values()) {
-            statusMessages.put(status.getStatusCode(), status.getReasonPhraseBytes());
-            statusCodes.put(status.getStatusCode(), status.getStatusBytes());
-        }
-    }
     // ---------------------------------------------------------- Public Methods
-
-    /**
-     * @param httpStatus HTTP status code
-     *
-     * @return the standard HTTP message associated with the specified status code.  If there is no message for the
-     *         specified <code>httpStatus</code>, <code>null</code> shall be returned.
-     */
-    public static Buffer getHttpStatusMessage(final int httpStatus) {
-        return Buffers.wrap(null, statusMessages.get(httpStatus));
-
-    }
-
-    /**
-     * @param httpStatus HTTP status code
-     *
-     * @return {@link Buffer} representation of the status.
-     */
-    public static Buffer getHttpStatus(final int httpStatus) {
-        return Buffers.wrap(null, statusCodes.get(httpStatus));
-
-    }
 
     /**
      * Converts the specified long as a string representation to the provided buffer.

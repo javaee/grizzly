@@ -48,6 +48,7 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.memory.MemoryManager;
 import java.io.IOException;
+import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.Constants;
 
 /**
@@ -213,8 +214,8 @@ public class HttpClientFilter extends HttpCodecFilter {
                         return false;
                     }
 
-                    httpResponse.getStatusDC().setBuffer(input,
-                            parsingState.start, spaceIdx);
+                    httpResponse.setStatus(Ascii.parseInt(input,
+                            parsingState.start, spaceIdx - parsingState.start));
 
                     parsingState.start = -1;
                     parsingState.offset = spaceIdx;

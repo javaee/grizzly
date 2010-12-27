@@ -63,8 +63,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
-import static org.glassfish.grizzly.http.HttpResponsePacket.NON_PARSED_STATUS;
-
 /**
  * Server side {@link HttpCodecFilter} implementation, which is responsible for
  * decoding {@link HttpRequestPacket} and encoding {@link HttpResponsePacket} messages.
@@ -394,7 +392,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         final HttpResponsePacket httpResponse = (HttpResponsePacket) httpPacket;
         output = put(memoryManager, output, httpResponse.getProtocol().getProtocolBytes());
         output = put(memoryManager, output, Constants.SP);
-        output = put(memoryManager, output, httpResponse.getStatusDC());
+        output = put(memoryManager, output, httpResponse.getHttpStatus().getStatusBytes());
         output = put(memoryManager, output, Constants.SP);
         output = put(memoryManager, output, httpResponse.getReasonPhraseDC());
 
@@ -454,9 +452,6 @@ public class HttpServerFilter extends HttpCodecFilter {
         final Protocol protocol = request.getProtocol();
 
         response.setProtocol(protocol);
-        if (response.parsedStatusInt == NON_PARSED_STATUS) {
-            HttpStatus.OK_200.setValues(response);
-        }
         final ProcessingState state = response.getProcessingState();
 
         if (protocol == Protocol.HTTP_0_9) {
