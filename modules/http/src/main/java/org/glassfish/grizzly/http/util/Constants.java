@@ -304,9 +304,9 @@ public final class Constants {
 
     public final static String CONTENT_LENGTH_HEADER = "content-length";
 
-    public final static String CONTENT_TYPE_HEADER = "content-type";
-
     public final static byte[] CONTENT_LENGTH_HEADER_BYTES = CONTENT_LENGTH_HEADER.getBytes(ASCII_CHARSET);
+
+    public final static String CONTENT_TYPE_HEADER = "content-type";
 
     public final static String TRANSFER_ENCODING_HEADER = "transfer-encoding";
 
@@ -331,6 +331,10 @@ public final class Constants {
     public static final String EXPECT_100_CONTINUE_VALUE = "100-Continue";
 
     public static final byte[] EXPECT_100_CONTINUE_VALUE_BYTES = EXPECT_100_CONTINUE_VALUE.getBytes(ASCII_CHARSET);
+
+    public static final String FORM_POST_CONTENT_TYPE = "application/x-www-form-urlencoded";
+
+    public static final byte[] FORM_POST_CONTENT_TYPE_BYTES = FORM_POST_CONTENT_TYPE.getBytes(ASCII_CHARSET);
 
     public static final int KEEP_ALIVE_TIMEOUT_IN_SECONDS = 30;
     /**

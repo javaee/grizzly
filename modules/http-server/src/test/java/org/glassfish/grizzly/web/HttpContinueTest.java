@@ -74,6 +74,8 @@ public class HttpContinueTest extends TestCase {
         try {
             server.start();
             s = SocketFactory.getDefault().createSocket("localhost", PORT);
+            s.setSoTimeout(10 * 1000);
+            
             OutputStream out = s.getOutputStream();
             InputStream in = s.getInputStream();
 

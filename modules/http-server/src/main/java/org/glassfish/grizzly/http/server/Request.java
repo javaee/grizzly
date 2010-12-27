@@ -83,10 +83,8 @@ import javax.security.auth.Subject;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.security.AccessController;
+import java.nio.charset.Charset;
 import java.security.Principal;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -104,12 +102,15 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.DefaultAttributeBuilder;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
+import org.glassfish.grizzly.http.Method;
+import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.http.util.Chunk;
 
 /**
@@ -260,6 +261,9 @@ public class Request {
         this.ctx = ctx;
         this.httpServerFilter = httpServerFilter;
         inputBuffer.initialize(request, ctx);
+        
+        parameters.setHeaders(request.getHeaders());
+        parameters.setQuery(request.getQueryStringDC());
     }
 
     final HttpServerFilter getServerFilter() {
@@ -415,10 +419,10 @@ public class Request {
     /**
      * Hash map used in the getParametersMap method.
      */
-    protected ParameterMap parameterMap = new ParameterMap();
+    protected final ParameterMap parameterMap = new ParameterMap();
 
 
-    protected Parameters parameters = new Parameters();
+    protected final Parameters parameters = new Parameters();
 
 
     /**
@@ -628,9 +632,8 @@ public class Request {
      * Return the authorization credentials sent with this request.
      */
     public String getAuthorization() {
-        return (request.getHeader(Constants.AUTHORIZATION_HEADER));
+        return request.getHeader(Constants.AUTHORIZATION_HEADER);
     }
-
 
     /**
      * Return the input stream associated with this Request.
@@ -836,7 +839,7 @@ public class Request {
      * Return the character encoding for this Request.
      */
     public String getCharacterEncoding() {
-      return (request.getCharacterEncoding());
+      return request.getCharacterEncoding();
     }
 
 
@@ -952,7 +955,7 @@ public class Request {
      *
      * @param name Name of the desired request parameter
      */
-    public String getParameter(String name) {
+    public String getParameter(final String name) {
 
         if (!requestParametersParsed) {
             parseRequestParameters();
@@ -1205,7 +1208,7 @@ public class Request {
      * reading input using <code>getReader()</code>. Otherwise, it has no
      * effect.
      *
-     * @param enc      <code>String</code> containing the name of
+     * @param encoding      <code>String</code> containing the name of
      *                 the character encoding.
      * @throws         java.io.UnsupportedEncodingException if this
      *                 ServletRequest is still in a state where a
@@ -1215,7 +1218,7 @@ public class Request {
      * @since Servlet 2.3
      */
     @SuppressWarnings({"unchecked"})
-    public void setCharacterEncoding(String enc)
+    public void setCharacterEncoding(final String encoding)
         throws UnsupportedEncodingException {
 
         // START SJSAS 4936855
@@ -1224,38 +1227,10 @@ public class Request {
         }
         // END SJSAS 4936855
 
-        // Ensure that the specified encoding is valid
-        byte buffer[] = new byte[1];
-        buffer[0] = (byte) 'a';
-
-        // START S1AS 6179607: Workaround for 6181598. Workaround should be
-        // removed once the underlying issue in J2SE has been fixed.
-        /*
-         * String dummy = new String(buffer, enc);
-         */
-        // END S1AS 6179607
-        // START S1AS 6179607
-        final byte[] finalBuffer = buffer;
-        final String finalEnc = enc;
-        if (System.getSecurityManager() != null) {
-            try {
-                AccessController.doPrivileged(
-                        new PrivilegedExceptionAction() {
-                            @Override
-                            public Object run() throws UnsupportedEncodingException {
-                                return new String(finalBuffer, finalEnc);
-                            }
-                        });
-            } catch (PrivilegedActionException pae) {
-                throw (UnsupportedEncodingException) pae.getCause();
-            }
-        } else {
-            new String(buffer, enc);
-        }
-        // END S1AS 6179607
+        Charsets.lookupCharset(encoding);
 
         // Save the validated encoding
-        request.setCharacterEncoding(enc);
+        request.setCharacterEncoding(encoding);
 
     }
 
@@ -1587,7 +1562,7 @@ public class Request {
     /**
      * Return the HTTP request method used in this Request.
      */
-    public String getMethod() {
+    public Method getMethod() {
         return request.getMethod();
     }
 
@@ -1841,7 +1816,7 @@ public class Request {
 
         // getCharacterEncoding() may have been overridden to search for
         // hidden form field containing request encoding
-        String enc = getCharacterEncoding();
+        final String enc = getCharacterEncoding();
         // START SJSAS 4936855
         // Delay updating requestParametersParsed to TRUE until
         // after getCharacterEncoding() has been called, because
@@ -1850,13 +1825,21 @@ public class Request {
         // requestParametersParsed is TRUE
         requestParametersParsed = true;
         // END SJSAS 4936855
+
+        Charset charset;
+
         if (enc != null) {
-            parameters.setEncoding(enc);
-            parameters.setQueryStringEncoding(enc);
+            try {
+                charset = Charsets.lookupCharset(enc);
+            } catch (Exception e) {
+                charset = Charsets.DEFAULT_CHARSET;
+            }
         } else {
-            parameters.setEncoding(Constants.DEFAULT_CHARACTER_ENCODING);
-            parameters.setQueryStringEncoding(Constants.DEFAULT_CHARACTER_ENCODING);
+            charset = Charsets.DEFAULT_CHARSET;
         }
+        
+        parameters.setEncoding(charset);
+        parameters.setQueryStringEncoding(charset);
 
         parameters.handleQueryParameters();
 
@@ -1864,38 +1847,38 @@ public class Request {
             return;
         }
 
-        if (!getMethod().equalsIgnoreCase("POST")) {
+        if (!Method.POST.equals(getMethod())) {
             return;
         }
 
-        String contentType = getContentType();
-        if (contentType == null) {
-            contentType = "";
-        }
-        int semicolon = contentType.indexOf(';');
-        if (semicolon >= 0) {
-            contentType = contentType.substring(0, semicolon).trim();
-        } else {
-            contentType = contentType.trim();
-        }
-        if (!("application/x-www-form-urlencoded".equals(contentType))) {
-            return;
-        }
-
-        int len = getContentLength();
+        final int len = getContentLength();
 
         if (len > 0) {
+            
+            if (!checkPostContentType(getContentType())) return;
+
             try {
-                byte[] formData = getPostBody();
-                if (formData != null) {
-                    parameters.processParameters(formData, 0, len);
-                }
+                final Buffer formData = getPostBody(len);
+                parameters.processParameters(formData, 0, len);
             } catch (Exception ignored) {
+            } finally {
+                try {
+                    skipPostBody(len);
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "Exception occurred during body skip", e);
+                }
             }
         }
 
     }
 
+    private boolean checkPostContentType(final String contentType) {
+        if (contentType == null) {
+            return false;
+        }
+
+        return contentType.trim().startsWith(org.glassfish.grizzly.http.util.Constants.FORM_POST_CONTENT_TYPE);
+    }
 
     // START SJSAS 6346738
     /**
@@ -1903,46 +1886,20 @@ public class Request {
      *
      * @return The POST body of this request
      */
-    protected byte[] getPostBody() throws IOException {
-
-        int len = getContentLength();
-        byte[] formData;
-
-        if (len < CACHED_POST_LEN) {
-            if (postData == null)
-                postData = new byte[CACHED_POST_LEN];
-            formData = postData;
-        } else {
-            formData = new byte[len];
-        }
-        int actualLen = readPostBody(formData, len);
-        if (actualLen == len) {
-            return formData;
-        }
-
-        return null;
+    protected Buffer getPostBody(final int len) throws IOException {
+        inputBuffer.fillFully(len);
+        return inputBuffer.getBuffer();
     }
     // END SJSAS 6346738
 
-
     /**
-     * Read post body in an array.
+     * Skips the POST body of this request.
+     *
+     * @return The POST body of this request
      */
-    protected int readPostBody(byte body[], int len)
-        throws IOException {
-
-        int offset = 0;
-        do {
-            int inputLen = getStream().read(body, offset, len - offset);
-            if (inputLen <= 0) {
-                return offset;
-            }
-            offset += inputLen;
-        } while ((len - offset) > 0);
-        return len;
-
+    protected void skipPostBody(final int len) throws IOException {
+        inputBuffer.skip(len, false);
     }
-
 
     /**
      * Parse request locales.

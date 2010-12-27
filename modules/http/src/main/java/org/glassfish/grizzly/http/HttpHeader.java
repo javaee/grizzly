@@ -512,6 +512,8 @@ public abstract class HttpHeader extends HttpPacket
      * (avoiding creation of a String object). The result format is "HTTP/1.x".
      */
     public DataChunk getProtocolDC() {
+        // potentially the value might be changed, so we need to parse it again
+        parsedProtocol = null;
         return protocolC;
     }
 
@@ -537,17 +539,7 @@ public abstract class HttpHeader extends HttpPacket
             return parsedProtocol;
         }
 
-        if (protocolC.isNull() || protocolC.getLength() == 0) {
-            parsedProtocol = Protocol.HTTP_0_9;
-        } else if (protocolC.equals(Protocol.HTTP_1_1.getProtocolString())) {
-            parsedProtocol = Protocol.HTTP_1_1;
-        } else if (protocolC.equals(Protocol.HTTP_1_0.getProtocolString())) {
-            parsedProtocol = Protocol.HTTP_1_0;
-        } else if (protocolC.equals(Protocol.HTTP_0_9.getProtocolString())) {
-            parsedProtocol = Protocol.HTTP_0_9;
-        } else {
-            throw new IllegalStateException("Unknown protocol " + protocolC.toString());
-        }
+        parsedProtocol = Protocol.parseDataChunk(protocolC);
 
         return parsedProtocol;
     }

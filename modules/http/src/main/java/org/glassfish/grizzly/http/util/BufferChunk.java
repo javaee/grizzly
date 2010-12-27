@@ -281,10 +281,10 @@ public class BufferChunk implements Chunk {
     }
 
 
-    private static int indexOf(Buffer buffer, int off, int end, char qq) {
+    public static int indexOf(final Buffer buffer, int off, final int end, final char qq) {
         // Works only for UTF
         while (off < end) {
-            byte b = buffer.get(off);
+            final byte b = buffer.get(off);
             if (b == qq) {
                 return off;
             }
@@ -294,7 +294,7 @@ public class BufferChunk implements Chunk {
         return -1;
     }
 
-    private static int indexOf(Buffer buffer, int off, final int end, final CharSequence s) {
+    public static int indexOf(final Buffer buffer, int off, final int end, final CharSequence s) {
         // Works only for UTF
         final int strLen = s.length();
         if (strLen == 0) {

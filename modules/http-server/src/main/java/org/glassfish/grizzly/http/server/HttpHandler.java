@@ -147,7 +147,7 @@ public abstract class HttpHandler {
         }
     }
     
-
+    
     /**
      * This method should contain the logic for any HTTP extension to the
      * Grizzly HTTP web server.

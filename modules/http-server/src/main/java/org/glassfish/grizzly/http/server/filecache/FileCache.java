@@ -68,6 +68,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.memory.Buffers;
 
 /**
@@ -629,8 +630,8 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
                 // 304 Not Modified.
                 // For every other method, 412 Precondition Failed is sent
                 // back.
-                final DataChunk methodC = request.getMethodDC();
-                if (methodC.equals("GET") || methodC.equals("HEAD")) {
+                final Method method = request.getMethod();
+                if (Method.GET.equals(method) || Method.HEAD.equals(method)) {
                     HttpStatus.NOT_MODIFIED_304.setValues(response);
                     response.setHeader("ETag", eTag);
                     return false;

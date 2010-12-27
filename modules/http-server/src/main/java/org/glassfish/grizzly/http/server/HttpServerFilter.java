@@ -136,8 +136,8 @@ public class HttpServerFilter extends BaseFilter
 
             if (handlerRequest == null) {
                 // It's a new HTTP request
-                HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
-                HttpResponsePacket response = request.getResponse();
+                final HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
+                final HttpResponsePacket response = request.getResponse();
                 handlerRequest = Request.create();
                 httpRequestInProcessAttr.set(connection, handlerRequest);
                 final Response handlerResponse = Response.create();

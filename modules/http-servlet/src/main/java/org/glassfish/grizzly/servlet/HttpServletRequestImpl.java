@@ -845,7 +845,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
                             sm.getString("requestFacade.nullRequest"));
         }
 
-        return request.getMethod();
+        return request.getMethod().getMethodString();
     }
 
 

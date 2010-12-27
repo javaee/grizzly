@@ -57,11 +57,14 @@
  */
 package org.glassfish.grizzly.http.util;
 
+import java.io.CharConversionException;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.LinkedHashMap;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.Buffer;
 
 import org.glassfish.grizzly.Grizzly;
 
@@ -86,8 +89,8 @@ public final class Parameters extends MultiMap {
     private boolean didQueryParameters = false;
     private boolean didMerge = false;
     MimeHeaders headers;
-    DataChunk queryBC;
-    UDecoder urlDec;
+    DataChunk queryDC;
+//    UDecoder urlDec;
     public static final int INITIAL_SIZE = 4;
     // Garbage-less parameter merging.
     // In a sub-request with parameters, the new parameters
@@ -98,8 +101,8 @@ public final class Parameters extends MultiMap {
     private Parameters child = null;
     private Parameters parent = null;
     private Parameters currentChild = null;
-    String encoding = null;
-    String queryStringEncoding = null;
+    Charset encoding = null;
+    Charset queryStringEncoding = null;
 
     /**
      *
@@ -108,25 +111,25 @@ public final class Parameters extends MultiMap {
         super(INITIAL_SIZE);
     }
 
-    public void setQuery(DataChunk queryBC) {
-        this.queryBC = queryBC;
+    public void setQuery(final DataChunk queryBC) {
+        this.queryDC = queryBC;
     }
 
-    public void setHeaders(MimeHeaders headers) {
+    public void setHeaders(final MimeHeaders headers) {
         this.headers = headers;
     }
 
-    public void setEncoding(String s) {
-        encoding = s;
+    public void setEncoding(final Charset encoding) {
+        this.encoding = encoding;
         if (debug > 0) {
-            log("Set encoding to " + s);
+            log("Set encoding to " + encoding);
         }
     }
 
-    public void setQueryStringEncoding(String s) {
-        queryStringEncoding = s;
+    public void setQueryStringEncoding(final Charset queryStringEncoding) {
+        this.queryStringEncoding = queryStringEncoding;
         if (debug > 0) {
-            log("Set query string encoding to " + s);
+            log("Set query string encoding to " + queryStringEncoding);
         }
     }
 
@@ -138,9 +141,6 @@ public final class Parameters extends MultiMap {
         currentChild = null;
         didMerge = false;
         encoding = null;
-        if (queryBC != null) {
-            queryBC.recycle();
-        }
     }
     // -------------------- Sub-request support --------------------
 
@@ -169,13 +169,13 @@ public final class Parameters extends MultiMap {
         // set child to null !
         if (currentChild == null) {
             currentChild = new Parameters();
-            currentChild.setURLDecoder(urlDec);
+//            currentChild.setURLDecoder(urlDec);
             currentChild.parent = this;
             return;
         }
         if (currentChild.child == null) {
             currentChild.child = new Parameters();
-            currentChild.setURLDecoder(urlDec);
+//            currentChild.setURLDecoder(urlDec);
             currentChild.child.parent = currentChild;
         } // it is not null if this object already had a child
         // i.e. a deeper include() ( we keep it )
@@ -283,8 +283,8 @@ public final class Parameters extends MultiMap {
     }
 
     // Shortcut.
-    public String getParameter(String name) {
-        String[] values = getParameterValues(name);
+    public String getParameter(final String name) {
+        final String[] values = getParameterValues(name);
         if (values != null) {
             if (values.length == 0) {
                 return "";
@@ -304,17 +304,17 @@ public final class Parameters extends MultiMap {
             return;
         }
         didQueryParameters = true;
-        if (queryBC == null || queryBC.isNull()) {
+        if (queryDC == null || queryDC.isNull()) {
             return;
         }
         if (debug > 0) {
-            log("Decoding query " + queryBC + " " + queryStringEncoding);
+            log("Decoding query " + queryDC + " " + queryStringEncoding);
         }
         // TODO obtain the bytes instead of converter to string
         //      then call processParameters(byte[], int, int, String) directly
-        MessageBytes decodedQuery = MessageBytes.newInstance();
-        decodedQuery.setString(queryBC.toString());
-        processParameters(decodedQuery, queryStringEncoding);
+//        MessageBytes decodedQuery = MessageBytes.newInstance();
+//        decodedQuery.setString(queryBC.toString());
+        processParameters(queryDC, queryStringEncoding);
 
     }
     // --------------------
@@ -359,11 +359,11 @@ public final class Parameters extends MultiMap {
 
     // incredibly inefficient data representation for parameters,
     // until we test the new one
-    private void addParam(String key, String value) {
+    private void addParam(final String key, final String value) {
         if (key == null) {
             return;
         }
-        String values[];
+        final String values[];
         if (paramHashStringArray.containsKey(key)) {
             String oldValues[] = paramHashStringArray.get(key);
             values = new String[oldValues.length + 1];
@@ -376,38 +376,39 @@ public final class Parameters extends MultiMap {
         paramHashStringArray.put(key, values);
     }
 
-    public void setURLDecoder(UDecoder u) {
-        urlDec = u;
-    }
+//    public void setURLDecoder(UDecoder u) {
+//        urlDec = u;
+//    }
     // -------------------- Parameter parsing --------------------
     // This code is not used right now - it's the optimized version
     // of the above.
     // we are called from a single thread - we can do it the hard way
     // if needed
-    ByteChunk tmpName = new ByteChunk();
-    ByteChunk tmpValue = new ByteChunk();
-    CharChunk tmpNameC = new CharChunk(1024);
-    CharChunk tmpValueC = new CharChunk(1024);
+    final BufferChunk tmpName = new BufferChunk();
+    final BufferChunk tmpValue = new BufferChunk();
+    final CharChunk tmpNameC = new CharChunk(1024);
+    final CharChunk tmpValueC = new CharChunk(1024);
 
-    public void processParameters(byte bytes[], int start, int len) {
-        processParameters(bytes, start, len, encoding);
+    public void processParameters(final Buffer buffer, final int start, final int len) {
+        processParameters(buffer, start, len, encoding);
     }
 
-    public void processParameters(byte bytes[], int start, int len,
-        String enc) {
+    public void processParameters(final Buffer buffer, final int start, final int len,
+        final Charset enc) {
         int end = start + len;
         int pos = start;
         if (debug > 0) {
-            log("Bytes: " + new String(bytes, start, len));
+            log("Bytes: " + buffer.toStringContent(null, start, start + len));
         }
+        
         do {
             boolean noEq = false;
             int valStart = -1;
             int valEnd = -1;
-            int nameStart = pos;
-            int nameEnd = ByteChunk.indexOf(bytes, nameStart, end, '=');
+            final int nameStart = pos;
+            int nameEnd = BufferChunk.indexOf(buffer, nameStart, end, '=');
             // Workaround for a&b&c encoding
-            int nameEnd2 = ByteChunk.indexOf(bytes, nameStart, end, '&');
+            int nameEnd2 = BufferChunk.indexOf(buffer, nameStart, end, '&');
             if ((nameEnd2 != -1) &&
                 (nameEnd == -1 || nameEnd > nameEnd2)) {
                 nameEnd = nameEnd2;
@@ -415,8 +416,8 @@ public final class Parameters extends MultiMap {
                 valStart = nameEnd;
                 valEnd = nameEnd;
                 if (debug > 0) {
-                    log("no equal " + nameStart + " " + nameEnd + " " + new String(bytes, nameStart,
-                        nameEnd - nameStart));
+                    log("no equal " + nameStart + " " + nameEnd + " " +
+                            buffer.toStringContent(null, nameStart, nameEnd));
                 }
             }
             if (nameEnd == -1) {
@@ -424,7 +425,7 @@ public final class Parameters extends MultiMap {
             }
             if (!noEq) {
                 valStart = (nameEnd < end) ? nameEnd + 1 : end;
-                valEnd = ByteChunk.indexOf(bytes, valStart, end, '&');
+                valEnd = BufferChunk.indexOf(buffer, valStart, end, '&');
                 if (valEnd == -1) {
                     valEnd = (valStart < end) ? end : valStart;
                 }
@@ -435,8 +436,9 @@ public final class Parameters extends MultiMap {
                 // invalid chunk - it's better to ignore
                 // XXX log it ?
             }
-            tmpName.setBytes(bytes, nameStart, nameEnd - nameStart);
-            tmpValue.setBytes(bytes, valStart, valEnd - valStart);
+            tmpName.setBufferChunk(buffer, nameStart, nameEnd);
+            tmpValue.setBufferChunk(buffer, valStart, valEnd);
+
             try {
                 addParam(urlDecode(tmpName, enc), urlDecode(tmpValue, enc));
             } catch (IOException e) {
@@ -448,27 +450,27 @@ public final class Parameters extends MultiMap {
         } while (pos < end);
     }
 
-    private String urlDecode(ByteChunk bc, String enc)
+    private String urlDecode(final BufferChunk bc, final Charset enc)
         throws IOException {
-        if (urlDec == null) {
-            urlDec = new UDecoder();
-        }
-        urlDec.convert(bc);
+//        if (urlDec == null) {
+//            urlDec = new UDecoder();
+//        }
+        URLDecoder.decode(bc, true);
         String result;
         if (enc != null) {
-            bc.setEncoding(enc);
-            result = bc.toString();
+            result = bc.toString(enc);
         } else {
-            CharChunk cc = tmpNameC;
-            int length = bc.getLength();
+            final CharChunk cc = tmpNameC;
+            final int length = bc.getLength();
             cc.allocate(length, -1);
             // Default encoding: fast conversion
-            byte[] bbuf = bc.getBuffer();
-            char[] cbuf = cc.getBuffer();
-            int start = bc.getStart();
+            final Buffer bbuf = bc.getBuffer();
+            final char[] cbuf = cc.getBuffer();
+            final int start = bc.getStart();
             for (int i = 0; i < length; i++) {
-                cbuf[i] = (char) (bbuf[i + start] & 0xff);
+                cbuf[i] = (char) (bbuf.get(i + start) & 0xff);
             }
+
             cc.setChars(cbuf, 0, length);
             result = cc.toString();
             cc.recycle();
@@ -522,11 +524,11 @@ public final class Parameters extends MultiMap {
                 if (debug > 0) {
                     log(tmpNameC + "= " + tmpValueC);
                 }
-                if (urlDec == null) {
-                    urlDec = new UDecoder();
-                }
-                urlDec.convert(tmpNameC);
-                urlDec.convert(tmpValueC);
+//                if (urlDec == null) {
+//                    urlDec = new UDecoder();
+//                }
+                URLDecoder.decode(tmpNameC, true);
+                URLDecoder.decode(tmpValueC, true);
                 if (debug > 0) {
                     log(tmpNameC + "= " + tmpValueC);
                 }
@@ -540,25 +542,31 @@ public final class Parameters extends MultiMap {
         } while (pos < end);
     }
 
-    public void processParameters(MessageBytes data) {
+    public void processParameters(final DataChunk data) {
         processParameters(data, encoding);
     }
 
-    public void processParameters(MessageBytes data, String encoding) {
+    public void processParameters(final DataChunk data, final Charset encoding) {
         if (data == null || data.isNull() || data.getLength() <= 0) {
             return;
         }
-        if (data.getType() == MessageBytes.T_BYTES) {
-            ByteChunk bc = data.getByteChunk();
-            processParameters(bc.getBytes(), bc.getOffset(),
-                bc.getLength(), encoding);
-        } else {
-            if (data.getType() != MessageBytes.T_CHARS) {
-                data.toChars();
+
+        try {
+            if (data.getType() == DataChunk.Type.Buffer) {
+                final BufferChunk bc = data.getBufferChunk();
+                processParameters(bc.getBuffer(), bc.getStart(),
+                        bc.getLength(), encoding);
+            } else {
+                if (data.getType() != DataChunk.Type.Chars) {
+                    data.toChars(encoding);
+                }
+
+                final CharChunk cc = data.getCharChunk();
+                processParameters(cc.getChars(), cc.getStart(),
+                        cc.getLength());
             }
-            CharChunk cc = data.getCharChunk();
-            processParameters(cc.getChars(), cc.getStart(),
-                cc.getLength());
+        } catch (CharConversionException e) {
+            throw new IllegalStateException(e);
         }
     }
 
@@ -583,7 +591,7 @@ public final class Parameters extends MultiMap {
 
     private void log(String s) {
         if (logger.isLoggable(Level.FINEST)) {
-            logger.log(Level.FINEST, "Parameters: " + s);
+            logger.log(Level.FINEST, "Parameters: {0}", s);
         }
     }
     // -------------------- Old code, needs rewrite --------------------
@@ -591,7 +599,7 @@ public final class Parameters extends MultiMap {
     /**
      * Used by RequestDispatcher
      */
-    public void processSingleParameters(String str) {
+    public void processSingleParameters(final String str) {
         int end = str.length();
         int pos = 0;
         if (debug > 0) {
@@ -641,11 +649,11 @@ public final class Parameters extends MultiMap {
                 if (debug > 0) {
                     log(tmpNameC + "= " + tmpValueC);
                 }
-                if (urlDec == null) {
-                    urlDec = new UDecoder();
-                }
-                urlDec.convert(tmpNameC);
-                urlDec.convert(tmpValueC);
+//                if (urlDec == null) {
+//                    urlDec = new UDecoder();
+//                }
+                URLDecoder.decode(tmpNameC, true);
+                URLDecoder.decode(tmpValueC, true);
                 if (debug > 0) {
                     log(tmpNameC + "= " + tmpValueC);
                 }
@@ -711,11 +719,11 @@ public final class Parameters extends MultiMap {
                 if (debug > 0) {
                     log(tmpNameC + "= " + tmpValueC);
                 }
-                if (urlDec == null) {
-                    urlDec = new UDecoder();
-                }
-                urlDec.convert(tmpNameC);
-                urlDec.convert(tmpValueC);
+//                if (urlDec == null) {
+//                    urlDec = new UDecoder();
+//                }
+                URLDecoder.decode(tmpNameC, true);
+                URLDecoder.decode(tmpValueC, true);
                 if (debug > 0) {
                     log(tmpNameC + "= " + tmpValueC);
                 }

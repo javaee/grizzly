@@ -44,46 +44,59 @@ import java.io.UnsupportedEncodingException;
 import org.glassfish.grizzly.http.util.DataChunk;
 
 /**
- * Predefined HTTP protocol versions
+ * Predefined HTTP methods
  * 
  * @author Alexey Stashok
  */
-public enum Protocol {
-    HTTP_0_9 ("HTTP/0.9"),
-    HTTP_1_0 ("HTTP/1.0"),
-    HTTP_1_1 ("HTTP/1.1");
+public enum Method {
+    OPTIONS ("OPTIONS"),
+    GET ("GET"),
+    HEAD ("HEAD"),
+    POST ("POST"),
+    PUT ("PUT"),
+    DELETE ("DELETE"),
+    TRACE ("TRACE"),
+    CONNECT ("CONNECT");
 
-    public static Protocol parseDataChunk(final DataChunk protocolC) {
-        if (protocolC.isNull() || protocolC.getLength() == 0) {
-            return Protocol.HTTP_0_9;
-        } else if (protocolC.equals(Protocol.HTTP_1_1.getProtocolString())) {
-            return Protocol.HTTP_1_1;
-        } else if (protocolC.equals(Protocol.HTTP_1_0.getProtocolString())) {
-            return Protocol.HTTP_1_0;
-        } else if (protocolC.equals(Protocol.HTTP_0_9.getProtocolString())) {
-            return Protocol.HTTP_0_9;
+    public static Method parseDataChunk(final DataChunk methodC) {
+        if (methodC.equals(Method.GET.getMethodString())) {
+            return Method.GET;
+        } else if (methodC.equals(Method.POST.getMethodString())) {
+            return Method.POST;
+        } else if (methodC.equals(Method.HEAD.getMethodString())) {
+            return Method.HEAD;
+        } else if (methodC.equals(Method.PUT.getMethodString())) {
+            return Method.PUT;
+        } else if (methodC.equals(Method.DELETE.getMethodString())) {
+            return Method.DELETE;
+        } else if (methodC.equals(Method.TRACE.getMethodString())) {
+            return Method.TRACE;
+        } else if (methodC.equals(Method.CONNECT.getMethodString())) {
+            return Method.CONNECT;
+        } else if (methodC.equals(Method.OPTIONS.getMethodString())) {
+            return Method.OPTIONS;
         } else {
-            throw new IllegalStateException("Unknown protocol " + protocolC.toString());
+            throw new IllegalStateException("Unknown method " + methodC.toString());
         }
     }
 
-    private final String protocolString;
-    private byte[] protocolBytes;
+    private final String methodString;
+    private byte[] methodBytes;
 
-    private Protocol(String protocolString) {
-        this.protocolString = protocolString;
+    private Method(String protocolString) {
+        this.methodString = protocolString;
         try {
-            this.protocolBytes = protocolString.getBytes("US-ASCII");
+            this.methodBytes = protocolString.getBytes("US-ASCII");
         } catch (UnsupportedEncodingException ignored) {
-            this.protocolBytes = protocolString.getBytes();
+            this.methodBytes = protocolString.getBytes();
         }
     }
 
-    public String getProtocolString() {
-        return protocolString;
+    public String getMethodString() {
+        return methodString;
     }
 
-    public byte[] getProtocolBytes() {
-        return protocolBytes;
+    public byte[] getMethodBytes() {
+        return methodBytes;
     }
 }

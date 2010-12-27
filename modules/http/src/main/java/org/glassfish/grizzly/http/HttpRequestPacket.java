@@ -73,6 +73,8 @@ public abstract class HttpRequestPacket extends HttpHeader {
     private String localHost;
 
     private final DataChunk methodC = DataChunk.newInstance();
+    protected Method parsedMethod;
+
     private final DataChunk queryC = DataChunk.newInstance();
     private final DataChunk remoteAddressC = DataChunk.newInstance();
     private final DataChunk remoteHostC = DataChunk.newInstance();
@@ -95,7 +97,7 @@ public abstract class HttpRequestPacket extends HttpHeader {
 
 
     protected HttpRequestPacket() {
-        methodC.setString("GET");
+        setMethod(Method.GET);
     }
 
 
@@ -125,24 +127,42 @@ public abstract class HttpRequestPacket extends HttpHeader {
      * (avoiding creation of a String object). The result format is "GET|POST...".
      */
     public DataChunk getMethodDC() {
+        // potentially the value might be changed, so we need to parse it again
+        parsedMethod = null;
         return methodC;
     }
 
     /**
-     * Get the HTTP request method. The result format is "GET|POST...".
+     * Get the HTTP request method.
      *
-     * @return the HTTP request method. The result format is "GET|POST...".
+     * @return the HTTP request method.
      */
-    public String getMethod() {
-        return methodC.toString();
+    public Method getMethod() {
+        if (parsedMethod != null) {
+            return parsedMethod;
+        }
+
+        parsedMethod = Method.parseDataChunk(methodC);
+
+        return parsedMethod;
     }
 
     /**
      * Set the HTTP request method.
      * @param method the HTTP request method. Format is "GET|POST...".
      */
-    public void setMethod(String method) {
+    public void setMethod(final String method) {
         this.methodC.setString(method);
+        parsedMethod = null;
+    }
+
+    /**
+     * Set the HTTP request method.
+     * @param method the HTTP request method. Format is "GET|POST...".
+     */
+    public void setMethod(final Method method) {
+        this.methodC.setString(method.getMethodString());
+        parsedMethod = method;
     }
 
     /**
@@ -449,8 +469,10 @@ public abstract class HttpRequestPacket extends HttpHeader {
     protected void reset() {
         requestURIRef.recycle();
         queryC.recycle();
-        protocolC.recycle();
+
         methodC.recycle();
+        parsedMethod = null;
+
         remoteAddressC.recycle();
         remoteHostC.recycle();
         localAddressC.recycle();
@@ -522,9 +544,18 @@ public abstract class HttpRequestPacket extends HttpHeader {
 
         /**
          * Set the HTTP request method.
+         * @param method the HTTP request method..
+         */
+        public Builder method(final Method method) {
+            ((HttpRequestPacket) packet).setMethod(method);
+            return this;
+        }
+
+        /**
+         * Set the HTTP request method.
          * @param method the HTTP request method. Format is "GET|POST...".
          */
-        public Builder method(String method) {
+        public Builder method(final String method) {
             ((HttpRequestPacket) packet).setMethod(method);
             return this;
         }
@@ -534,7 +565,7 @@ public abstract class HttpRequestPacket extends HttpHeader {
          *
          * @param uri the request URI.
          */
-        public Builder uri(String uri) {
+        public Builder uri(final String uri) {
             ((HttpRequestPacket) packet).setRequestURI(uri);
             return this;
         }
@@ -546,7 +577,7 @@ public abstract class HttpRequestPacket extends HttpHeader {
          *
          * @return the current <code>Builder</code>
          */
-        public Builder query(String query) {
+        public Builder query(final String query) {
             ((HttpRequestPacket) packet).setQueryString(query);
             return this;
         }

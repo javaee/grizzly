@@ -487,8 +487,8 @@ public class HttpServerFilter extends HttpCodecFilter {
             }
         }
 
-        final DataChunk methodBC = request.getMethodDC();
-        if (methodBC.equals("HEAD")) {
+        final Method method = request.getMethod();
+        if (Method.HEAD.equals(method)) {
             // No entity body
             state.contentDelimitation = true;
         }
@@ -544,9 +544,9 @@ public class HttpServerFilter extends HttpCodecFilter {
         final ProcessingState state = request.getProcessingState();
         final HttpResponsePacket response = request.getResponse();
 
-        final DataChunk methodBC = request.getMethodDC();
+        final Method method = request.getMethod();
 
-        if (methodBC.equals("GET")) {
+        if (Method.GET.equals(method)) {
             request.setExpectContent(false);
         }
 
@@ -561,8 +561,10 @@ public class HttpServerFilter extends HttpCodecFilter {
             request.setProtocol(protocol);
         }
 
-        MimeHeaders headers = request.getHeaders();
+        final MimeHeaders headers = request.getHeaders();
 
+        DataChunk hostDC = null;
+        
         // Check for a full URI (including protocol://host:port/)
         // Check for a full URI (including protocol://host:port/)
         final BufferChunk uriBC =
@@ -573,7 +575,7 @@ public class HttpServerFilter extends HttpCodecFilter {
             int uriBCStart = uriBC.getStart();
             int slashPos;
             if (pos != -1) {
-                Buffer uriB = uriBC.getBuffer();
+                final Buffer uriB = uriBC.getBuffer();
                 slashPos = uriBC.indexOf('/', pos + 3);
                 if (slashPos == -1) {
                     slashPos = uriBC.getLength();
@@ -584,7 +586,7 @@ public class HttpServerFilter extends HttpCodecFilter {
                                     uriBCStart + slashPos,
                                     uriBC.getLength() - slashPos);
                 }
-                DataChunk hostDC = headers.setValue("host");
+                hostDC = headers.setValue("host");
                 hostDC.setBuffer(uriB,
                                  uriBCStart + pos + 3,
                                  slashPos - pos - 3);
@@ -606,16 +608,18 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
         // --------------------------
 
-        long contentLength = request.getContentLength();
+        final long contentLength = request.getContentLength();
         if (contentLength >= 0) {
             state.contentDelimitation = true;
         }
 
-        final DataChunk hostBC = headers.getValue("host");
+        if (hostDC == null) {
+            hostDC = headers.getValue("host");
+        }
 
         // Check host header
-        if (hostBC != null) {
-            parseHost(hostBC.getBufferChunk(), request, response, state);
+        if (hostDC != null) {
+            parseHost(hostDC.getBufferChunk(), request, response, state);
         } else if (isHttp11) {
             state.error = true;
             // 400 - Bad request

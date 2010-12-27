@@ -263,7 +263,7 @@ public class HttpRequestParseTest extends TestCase {
             HttpRequestPacket httpRequest = (HttpRequestPacket) httpContent.getHttpHeader();
             
             try {
-                assertEquals(method, httpRequest.getMethod());
+                assertEquals(method, httpRequest.getMethod().getMethodString());
                 assertEquals(requestURI, httpRequest.getRequestURI());
                 assertEquals(protocol, httpRequest.getProtocol().getProtocolString());
 

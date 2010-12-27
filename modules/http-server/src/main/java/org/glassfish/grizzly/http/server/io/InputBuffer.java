@@ -187,7 +187,8 @@ public class InputBuffer {
      * @param request the current request
      * @param ctx the FilterChainContext for the chain processing this request
      */
-    public void initialize(HttpRequestPacket request, FilterChainContext ctx) {
+    public void initialize(final HttpRequestPacket request,
+            final FilterChainContext ctx) {
 
         if (request == null) {
             throw new IllegalArgumentException("request cannot be null.");
@@ -201,7 +202,7 @@ public class InputBuffer {
         compositeBuffer = CompositeBuffer.newBuffer(connection.getTransport().getMemoryManager());
         compositeBuffer.allowBufferDispose(true);
         compositeBuffer.allowInternalBuffersDispose(true);
-        Object message = ctx.getMessage();
+        final Object message = ctx.getMessage();
         if (message instanceof HttpContent) {
             HttpContent content = (HttpContent) message;
             if (content.getContent().hasRemaining()) {
@@ -313,9 +314,6 @@ public class InputBuffer {
         if (!asyncEnabled && !compositeBuffer.hasRemaining()) {
             if (fill(len) == -1) {
                 return -1;
-            }
-            if (compositeBuffer.remaining() < len) {
-                fill(len);
             }
         }
 
@@ -448,6 +446,19 @@ public class InputBuffer {
 
     }
 
+    /**
+     * Fill the buffer (blocking) up to the requested length.
+     * 
+     * @param length
+     * @throws IOException
+     */
+    public void fillFully(final int length) throws IOException {
+        int remaining = length - compositeBuffer.remaining();
+
+        if (remaining > 0) {
+            fill(remaining);
+        }
+    }
 
     public int availableChar() {
         final float available = compositeBuffer.remaining() * averageCharsPerByte;
@@ -545,7 +556,7 @@ public class InputBuffer {
      *  is configured for asynchronous communication and the number of bytes/characters
      *  being skipped exceeds the number of bytes available in the buffer.
      */
-    public long skip(long n, boolean block) throws IOException {
+    public long skip(final long n, final boolean block) throws IOException {
 
         if (closed) {
             throw new IOException();

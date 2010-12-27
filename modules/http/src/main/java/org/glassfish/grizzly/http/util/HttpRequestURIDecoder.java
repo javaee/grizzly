@@ -180,12 +180,11 @@ public class HttpRequestURIDecoder {
      * @param b2cConverter the Bytes to Char Converter.
      * @throws java.lang.Exception
      */
-    private static void convertURI(MessageBytes uri, String encoding,
-            B2CConverter b2cConverter)
-            throws Exception {
+    private static void convertURI(final MessageBytes uri, final String encoding,
+            B2CConverter b2cConverter) throws Exception {
 
-        ByteChunk bc = uri.getByteChunk();
-        CharChunk cc = uri.getCharChunk();
+        final ByteChunk bc = uri.getByteChunk();
+        final CharChunk cc = uri.getCharChunk();
         cc.allocate(bc.getLength(), -1);
 
         if (encoding != null && encoding.trim().length() != 0
@@ -212,8 +211,8 @@ public class HttpRequestURIDecoder {
         }
 
         // Default encoding: fast conversion
-        byte[] bbuf = bc.getBuffer();
-        char[] cbuf = cc.getBuffer();
+        final byte[] bbuf = bc.getBuffer();
+        final char[] cbuf = cc.getBuffer();
         int start = bc.getStart();
         for (int i = 0; i < bc.getLength(); i++) {
             cbuf[i] = (char) (bbuf[i + start] & 0xff);
