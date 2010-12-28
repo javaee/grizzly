@@ -367,6 +367,7 @@ public class SuspendTest {
                     @Override
                     public boolean onTimeout(final Response response) {
                         if (++counter == 1) {
+                            response.getSuspendContext().setTimeout(5, TimeUnit.SECONDS);
                             return false;
                         } else if (counter == 2) {
                             responseData.set(testData);
