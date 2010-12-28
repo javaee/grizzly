@@ -189,7 +189,7 @@ public class Response {
     /**
      * The associated output buffer.
      */
-    protected OutputBuffer outputBuffer = new OutputBuffer();
+    protected final OutputBuffer outputBuffer = new OutputBuffer();
 
 
     /**
@@ -243,18 +243,18 @@ public class Response {
     /**
      * URL encoder.
      */
-    protected UEncoder urlEncoder = new UEncoder();
+    protected final UEncoder urlEncoder = new UEncoder();
 
 
     /**
      * Recyclable buffer to hold the redirect URL.
      */
-    protected MessageBytes redirectURLCC = MessageBytes.newInstance();
+    protected final MessageBytes redirectURLCC = MessageBytes.newInstance();
 
 
     protected DelayedExecutor.DelayQueue<Response> delayQueue;
     protected boolean isSuspended;
-    private final SuspendedContext suspendedContext = new SuspendedContext();
+    private final SuspendedContextImpl suspendedContext = new SuspendedContextImpl();
     private final Object suspendSync = new Object();
 
     private SuspendStatus suspendStatus;
@@ -1448,7 +1448,15 @@ public class Response {
         return cacheEnabled;
     }
 
-
+    /**
+     * Get the context of the suspended <tt>Response</tt>.
+     *
+     * @return the context of the suspended <tt>Response</tt>.
+     */
+    public SuspendContext getSuspendContext() {
+        return suspendedContext;
+    }
+    
     /**
      * Return <tt>true<//tt> if that {@link Response#suspend()} has been
      * invoked and set to <tt>true</tt>
@@ -1658,16 +1666,18 @@ public class Response {
         }
     }
 
-    protected final class SuspendedContext implements Connection.CloseListener {
+    public final class SuspendedContextImpl implements SuspendContext,
+            Connection.CloseListener {
 
-        public CompletionHandler<Response> completionHandler;
-        public TimeoutHandler timeoutHandler;
-        public long delayMillis;
-        public boolean isResuming;
-        public volatile long timeoutTimeMillis;
+        CompletionHandler<Response> completionHandler;
+        TimeoutHandler timeoutHandler;
+        long delayMillis;
+        boolean isResuming;
+        volatile long timeoutTimeMillis;
 
-        public boolean onTimeout() {
+        boolean onTimeout() {
             synchronized (suspendSync) {
+                timeoutTimeMillis = DelayedExecutor.UNSET_TIMEOUT;
                 if (timeoutHandler == null || timeoutHandler.onTimeout(Response.this)) {
                     HttpServerProbeNotifier.notifyRequestTimeout(
                             request.httpServerFilter, ctx.getConnection(), request);
@@ -1676,7 +1686,6 @@ public class Response {
 
                     return true;
                 } else {
-                    timeoutTimeMillis += delayMillis;
                     return false;
                 }
             }
@@ -1691,6 +1700,41 @@ public class Response {
         @Override
         public void onClosed(final Connection connection) throws IOException {
             cancel();
+        }
+
+        @Override
+        public CompletionHandler<Response> getCompletionHandler() {
+            return completionHandler;
+        }
+
+        @Override
+        public TimeoutHandler getTimeoutHandler() {
+            return timeoutHandler;
+        }
+
+        @Override
+        public long getTimeout(final TimeUnit timeunit) {
+            if (delayMillis > 0) {
+                return timeunit.convert(delayMillis, TimeUnit.MILLISECONDS);
+            } else {
+                return delayMillis;
+            }
+        }
+
+        @Override
+        public void setTimeout(final long timeout, final TimeUnit timeunit) {
+            if (timeout > 0) {
+                delayMillis = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
+            } else {
+                delayMillis = DelayedExecutor.UNSET_TIMEOUT;
+            }
+
+            delayQueue.add(Response.this, delayMillis, TimeUnit.MILLISECONDS);
+        }
+
+        @Override
+        public boolean isSuspended() {
+            return isSuspended;
         }
     }
 
