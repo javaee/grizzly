@@ -1032,7 +1032,7 @@ public class Mapper {
                 } else {
                     // See Bugzilla 27704
                     mappingData.wrapperPath.setChars(buf, path.getStart(),
-                                                     path.getLength());
+                                                     path.getEnd());
                     mappingData.pathInfo.recycle();
                 }
             }
@@ -1138,10 +1138,10 @@ public class Mapper {
                                     context.defaultWrapper.servletName;
                                 mappingData.requestPath.setChars
                                     (path.getBuffer(), path.getStart(),
-                                     path.getLength());
+                                     path.getEnd());
                                 mappingData.wrapperPath.setChars
                                     (path.getBuffer(), path.getStart(),
-                                     path.getLength());
+                                     path.getEnd());
                                 mappingData.requestPath.setString(pathStr);
                                 mappingData.wrapperPath.setString(pathStr);
                             }
@@ -1195,9 +1195,9 @@ public class Mapper {
                 mappingData.wrapper = context.defaultWrapper.object;
                 mappingData.servletName = context.defaultWrapper.servletName;
                 mappingData.requestPath.setChars
-                    (path.getBuffer(), path.getStart(), path.getLength());
+                    (path.getBuffer(), path.getStart(), path.getEnd());
                 mappingData.wrapperPath.setChars
-                    (path.getBuffer(), path.getStart(), path.getLength());
+                    (path.getBuffer(), path.getStart(), path.getEnd());
             }
             // Redirection to a folder
             char[] buf = path.getBuffer();
@@ -1240,7 +1240,7 @@ public class Mapper {
                     path.setStart(pathOffset);
                     path.append('/');
                     mappingData.redirectPath.setChars
-                        (path.getBuffer(), path.getStart(), path.getLength());
+                        (path.getBuffer(), path.getStart(), path.getEnd());
                 } else {
                     mappingData.requestPath.setString(pathStr);
                     mappingData.wrapperPath.setString(pathStr);
@@ -1309,10 +1309,10 @@ public class Mapper {
                     mappingData.pathInfo.setChars
                         (path.getBuffer(),
                          path.getStart() + length,
-                         path.getLength() - length);
+                         path.getEnd());
                 }
                 mappingData.requestPath.setChars
-                    (path.getBuffer(), path.getStart(), path.getLength());
+                    (path.getBuffer(), path.getStart(), path.getEnd());
                 mappingData.wrapper = wrappers[pos].object;
                 mappingData.servletName = wrappers[pos].servletName;
                 mappingData.jspWildCard = wrappers[pos].jspWildCard;
@@ -1351,9 +1351,9 @@ public class Mapper {
                 if (pos != -1
                     && path.equals(wrappers[pos].name)) {
                     mappingData.wrapperPath.setChars
-                        (buf, servletPath, pathEnd - servletPath);
+                        (buf, servletPath, pathEnd);
                     mappingData.requestPath.setChars
-                        (buf, servletPath, pathEnd - servletPath);
+                        (buf, servletPath, pathEnd);
                     mappingData.wrapper = wrappers[pos].object;
                     mappingData.servletName = wrappers[pos].servletName;
                 }
