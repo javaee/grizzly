@@ -1051,7 +1051,7 @@ public class HttpInputStreamsTest extends TestCase {
             }
 
             //noinspection ThrowableInstanceNeverThrown
-            testResult.failure(t != null ? t : new IllegalStateException("Strategy returned false"));
+            testResult.failure(t != null ? t : new IllegalStateException("IOStrategy returned false"));
             res.addHeader("Status", "Failed");
         }
 

@@ -43,7 +43,7 @@ package org.glassfish.grizzly.nio;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.Strategy;
+import org.glassfish.grizzly.IOStrategy;
 import org.glassfish.grizzly.Transport.State;
 import org.glassfish.grizzly.threadpool.WorkerThread;
 import org.glassfish.grizzly.utils.StateHolder;
@@ -350,7 +350,7 @@ public final class SelectorRunner implements Runnable {
             throws IOException {
 
         final SelectionKeyHandler selectionKeyHandler = transport.getSelectionKeyHandler();
-        final Strategy strategy = transport.getStrategy();
+        final IOStrategy IOStrategy = transport.getIOStrategy();
         final IOEvent[] ioEvents = selectionKeyHandler.getIOEvents(keyReadyOps);
         final NIOConnection connection =
                 (NIOConnection) selectionKeyHandler.getConnectionForKey(key);
@@ -361,7 +361,7 @@ public final class SelectorRunner implements Runnable {
             final int interest = selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent);
             keyReadyOps &= (~interest);
             if (selectionKeyHandler.onProcessInterest(key, interest)) {
-                if (!strategy.executeIoEvent(connection, ioEvent)) {
+                if (!IOStrategy.executeIoEvent(connection, ioEvent)) {
                     return false;
                 }
             }

@@ -44,15 +44,14 @@ import java.io.IOException;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.PostProcessor;
-import org.glassfish.grizzly.Strategy;
 import org.glassfish.grizzly.nio.NIOConnection;
 
 /**
- * {@link Strategy}, which executes {@link org.glassfish.grizzly.Processor}s in a current thread.
+ * {@link org.glassfish.grizzly.IOStrategy}, which executes {@link org.glassfish.grizzly.Processor}s in a current thread.
  *
  * @author Alexey Stashok
  */
-public final class SameThreadStrategy extends AbstractStrategy {
+public final class SameThreadIOStrategy extends AbstractIOStrategy {
 
 
     @Override

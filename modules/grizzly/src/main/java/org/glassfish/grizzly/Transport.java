@@ -221,28 +221,28 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
     void setMemoryManager(MemoryManager memoryManager);
 
     /**
-     * Get the {@link Strategy} implementation, which will be used by
+     * Get the {@link IOStrategy} implementation, which will be used by
      * {@link Transport} to process {@link IOEvent}.
-     * {@link Strategy} is responsible for choosing the way, how I/O event
+     * {@link IOStrategy} is responsible for choosing the way, how I/O event
      * will be processed: using current {@link Thread}, worker {@link Thread};
      * or make any other decisions.
      * 
-     * @return the {@link Strategy} implementation, which will be used by
+     * @return the {@link IOStrategy} implementation, which will be used by
      * {@link Transport} to process {@link IOEvent}.
      */
-    Strategy getStrategy();
+    IOStrategy getIOStrategy();
 
     /**
-     * Set the {@link Strategy} implementation, which will be used by
+     * Set the {@link IOStrategy} implementation, which will be used by
      * {@link Transport} to process {@link IOEvent}.
-     * {@link Strategy} is responsible for choosing the way, how I/O event
+     * {@link IOStrategy} is responsible for choosing the way, how I/O event
      * will be processed: using current {@link Thread}, worker {@link Thread};
      * or make any other decisions.
      *
-     * @param strategy the {@link Strategy} implementation, which will be used
+     * @param IOStrategy the {@link IOStrategy} implementation, which will be used
      * by {@link Transport} to process {@link IOEvent}.
      */
-    void setStrategy(Strategy strategy);
+    void setIOStrategy(IOStrategy IOStrategy);
 
     /**
      * Get the default size of {@link Buffer}s, which will be allocated for

@@ -39,7 +39,7 @@
  */
 package org.glassfish.grizzly.http.echo;
 
-import org.glassfish.grizzly.Strategy;
+import org.glassfish.grizzly.IOStrategy;
 import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.http.server.*;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
@@ -142,14 +142,14 @@ final class EchoServer {
         transport.setThreadPool(GrizzlyExecutorService.createInstance(tpc));
         ((NIOTransport) transport).setSelectorRunnersCount(settings.getSelectorThreads());
 
-        Strategy strategy = loadStrategy(settings.getStrategyClass(), transport);
+        IOStrategy IOStrategy = loadStrategy(settings.getStrategyClass(), transport);
 
-        transport.setStrategy(strategy);
+        transport.setIOStrategy(IOStrategy);
 
     }
 
 
-    private static Strategy loadStrategy(Class<? extends Strategy> strategy, Transport transport) {
+    private static IOStrategy loadStrategy(Class<? extends IOStrategy> strategy, Transport transport) {
         try {
             return strategy.newInstance();
         } catch (Exception e) {
@@ -157,13 +157,13 @@ final class EchoServer {
                 Constructor[] cs = strategy.getConstructors();
                 for (Constructor c : cs) {
                     if (c.getParameterTypes().length == 1 && c.getParameterTypes()[0].isAssignableFrom(ExecutorService.class)) {
-                        return (Strategy) c.newInstance(transport.getThreadPool());
+                        return (IOStrategy) c.newInstance(transport.getThreadPool());
                     }
                 }
 
-                throw new IllegalStateException("Can not initialize strategy: " + strategy);
+                throw new IllegalStateException("Can not initialize IOStrategy: " + strategy);
             } catch (Exception ee) {
-                throw new IllegalStateException("Can not initialize strategy: " + strategy + ". Error: " + ee.getClass() + ": " + ee.getMessage());
+                throw new IllegalStateException("Can not initialize IOStrategy: " + strategy + ". Error: " + ee.getClass() + ": " + ee.getMessage());
             }
         }
     }

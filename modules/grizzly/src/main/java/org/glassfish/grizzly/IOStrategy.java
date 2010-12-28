@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,41 +38,31 @@
  * holder.
  */
 
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
+package org.glassfish.grizzly;
 
-package org.glassfish.grizzly.strategies;
-
-import org.glassfish.grizzly.Context;
-import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.PostProcessor;
-import org.glassfish.grizzly.ProcessorResult.Status;
-import org.glassfish.grizzly.Strategy;
-import org.glassfish.grizzly.nio.NIOConnection;
 import java.io.IOException;
 
 /**
+ * <tt>IOStrategy</tt> is responsible for making decision how
+ * {@link Runnable} task will be run: in current thread, worker thread.
  *
- * @author oleksiys
+ * <tt>IOStrategy</tt> can make any other processing decisions.
+ * 
+ * @author Alexey Stashok
  */
-public abstract class AbstractStrategy implements Strategy {
-    // COMPLETE, COMPLETE_LEAVE, REREGISTER, RERUN, ERROR, TERMINATE, NOT_RUN
-    private final static boolean[] isRegisterMap = {true, false, true, false, false, false, false};
+public interface IOStrategy {
 
-    protected final static PostProcessor enableInterestPostProcessor =
-            new EnableInterestPostProcessor();
+    /**
+     *
+     * @param connection the {@link Connection} upon which the provided
+     *  {@link IOEvent} occurred.
+     * @param ioEvent the {@link IOEvent} that triggered execution of this
+     *  <code>IOStrategy</code>
+     *
+     * @return
+     *
+     * @throws IOException if an error occurs processing the {@link IOEvent}.
+     */
+    boolean executeIoEvent(Connection connection, IOEvent ioEvent) throws IOException;
 
-
-    private static class EnableInterestPostProcessor implements PostProcessor {
-        @Override
-        public void process(Context context, Status status) throws IOException {
-            if (isRegisterMap[status.ordinal()]) {
-                final IOEvent ioEvent = context.getIoEvent();
-                final NIOConnection nioConnection = (NIOConnection) context.getConnection();
-                nioConnection.enableIOEvent(ioEvent);
-            }
-        }
-    }
 }

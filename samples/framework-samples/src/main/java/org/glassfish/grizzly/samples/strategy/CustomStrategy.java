@@ -41,31 +41,28 @@
 package org.glassfish.grizzly.samples.strategy;
 
 import java.io.IOException;
-import org.glassfish.grizzly.Strategy;
+
 import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.samples.echo.EchoFilter;
-import org.glassfish.grizzly.strategies.LeaderFollowerStrategy;
-import org.glassfish.grizzly.strategies.SameThreadStrategy;
-import org.glassfish.grizzly.strategies.SimpleDynamicStrategy;
-import org.glassfish.grizzly.strategies.WorkerThreadStrategy;
+import org.glassfish.grizzly.strategies.LeaderFollowerIOStrategy;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 
 /**
- * Sample shows how easy custom {@link Strategy} could be applied for a
+ * Sample shows how easy custom {@link org.glassfish.grizzly.IOStrategy} could be applied for a
  * {@link org.glassfish.grizzly.Transport}. In this example we use
- * {@link LeaderFollowerStrategy} for processing all I/O events occurring on
+ * {@link org.glassfish.grizzly.strategies.LeaderFollowerIOStrategy} for processing all I/O events occurring on
  * {@link org.glassfish.grizzly.Connection}.
  *
  * To test this echo server you can use {@link org.glassfish.grizzly.samples.echo.EchoClient}.
  *
- * @see Strategy
- * @see LeaderFollowerStrategy
- * @see SameThreadStrategy
- * @see WorkerThreadStrategy
- * @see SimpleDynamicStrategy
+ * @see org.glassfish.grizzly.IOStrategy
+ * @see org.glassfish.grizzly.strategies.LeaderFollowerIOStrategy
+ * @see org.glassfish.grizzly.strategies.SameThreadIOStrategy
+ * @see org.glassfish.grizzly.strategies.WorkerThreadIOStrategy
+ * @see org.glassfish.grizzly.strategies.SimpleDynamicIOStrategy
  * 
  * @author Alexey Stashok
  */
@@ -86,8 +83,8 @@ public class CustomStrategy {
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
         transport.setProcessor(filterChainBuilder.build());
         
-        // Set the LeaderFollowerStrategy (any strategy could be applied this way)
-        transport.setStrategy(new LeaderFollowerStrategy(
+        // Set the LeaderFollowerIOStrategy (any IOStrategy could be applied this way)
+        transport.setIOStrategy(new LeaderFollowerIOStrategy(
                 GrizzlyExecutorService.createInstance()));
         
         try {

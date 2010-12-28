@@ -86,7 +86,7 @@ import org.glassfish.grizzly.nio.SelectorRunner;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorPool;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorsEnabledTransport;
-import org.glassfish.grizzly.strategies.WorkerThreadStrategy;
+import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.AbstractThreadPool;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
@@ -458,8 +458,8 @@ public final class UDPNIOTransport extends NIOTransport implements
                 }
             }
 
-            if (strategy == null) {
-                strategy = new WorkerThreadStrategy(threadPool);
+            if (IOStrategy == null) {
+                IOStrategy = new WorkerThreadIOStrategy(threadPool);
             }
 
             /* By default TemporarySelector pool size should be equal

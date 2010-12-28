@@ -40,8 +40,8 @@
 
 package org.glassfish.grizzly.http.echo;
 
-import org.glassfish.grizzly.Strategy;
-import org.glassfish.grizzly.strategies.SameThreadStrategy;
+import org.glassfish.grizzly.IOStrategy;
+import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 
 /**
  *
@@ -56,7 +56,7 @@ public class Settings {
 
     private int selectorThreads = Runtime.getRuntime().availableProcessors();
 
-    private Class<? extends Strategy> strategyClass = SameThreadStrategy.class;
+    private Class<? extends IOStrategy> strategyClass = SameThreadIOStrategy.class;
 
     private boolean isMonitoringMemory = false;
 
@@ -94,13 +94,13 @@ public class Settings {
                 settings.setWorkerThreads(Integer.parseInt(value));
             } else if ("-selectorThreads".equalsIgnoreCase(param)) {
                 settings.setSelectorThreads(Integer.parseInt(value));
-            } else if ("-strategy".equalsIgnoreCase(param)) {
+            } else if ("-IOStrategy".equalsIgnoreCase(param)) {
                 try {
                     settings.setStrategyClass(
-                            (Class<? extends Strategy>) Class.forName(value));
+                            (Class<? extends IOStrategy>) Class.forName(value));
                 } catch (Exception e) {
-                    System.out.println("Warning strategy class: " +
-                            value + " was not found. Default strategy: " +
+                    System.out.println("Warning IOStrategy class: " +
+                            value + " was not found. Default IOStrategy: " +
                             settings.strategyClass + " will be used instead.");
                 }
             } else if ("-monitorMemory".equalsIgnoreCase(param)) {
@@ -118,7 +118,7 @@ public class Settings {
     }
 
     public static void help() {
-        System.out.println("Use EchoServer -host=<HOST> -port=<PORT> -blocking=<true|false> -binary=<true|false> -chunked=<true|false> -workerThreads=<WORKER_THREADS_NUMBER> -selectorThreads=<SELECTOR_THREADS_NUMBER> -strategy=<STRATEGY>");
+        System.out.println("Use EchoServer -host=<HOST> -port=<PORT> -blocking=<true|false> -binary=<true|false> -chunked=<true|false> -workerThreads=<WORKER_THREADS_NUMBER> -selectorThreads=<SELECTOR_THREADS_NUMBER> -IOStrategy=<STRATEGY>");
     }
 
     public String getHost() {
@@ -153,11 +153,11 @@ public class Settings {
         this.workerThreads = workerThreads;
     }
 
-    public Class<? extends Strategy> getStrategyClass() {
+    public Class<? extends IOStrategy> getStrategyClass() {
         return strategyClass;
     }
 
-    public void setStrategyClass(Class<? extends Strategy> strategyClass) {
+    public void setStrategyClass(Class<? extends IOStrategy> strategyClass) {
         this.strategyClass = strategyClass;
     }
 
@@ -202,7 +202,7 @@ public class Settings {
         sb.append("\nPort: ").append(port);
         sb.append("\nWorker threads: ").append(workerThreads);
         sb.append("\nSelector threads: ").append(selectorThreads);
-        sb.append("\nStrategy class: ").append(strategyClass);
+        sb.append("\nIOStrategy class: ").append(strategyClass);
         sb.append("\nMonitoring memory: ").append(isMonitoringMemory);
         sb.append("\nStream Write Method: ").append((blocking) ? "blocking" : "non-blocking");
         sb.append("\nStream Type: ").append(((binary) ? "binary" : "character"));

@@ -44,7 +44,7 @@ import java.io.IOException;
 import java.util.concurrent.Executor;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.Strategy;
+import org.glassfish.grizzly.IOStrategy;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.utils.CurrentThreadExecutor;
 import org.glassfish.grizzly.utils.WorkerThreadExecutor;
@@ -53,36 +53,36 @@ import java.nio.channels.Selector;
 import java.util.concurrent.ExecutorService;
 
 /**
- * Simple dynamic strategy, which switches I/O processing strategies, basing
+ * Simple dynamic IOStrategy, which switches I/O processing strategies, basing
  * on statistics. This implementation takes in consideration number of
  * {@link SelectionKey}s, which were selected last time by {@link Selector}.
  *
- * <tt>SimpleDynamicStrategy</tt> is able to use 2 strategies underneath:
- * {@link SameThreadStrategy}, {@link WorkerThreadStrategy}.
+ * <tt>SimpleDynamicIOStrategy</tt> is able to use 2 strategies underneath:
+ * {@link SameThreadIOStrategy}, {@link WorkerThreadIOStrategy}.
  * And is able to switch between them basing on corresponding threshold
  * (threshold represents the number of selected {@link SelectionKey}s).
  *
- * So the strategy is getting applied following way:
+ * So the IOStrategy is getting applied following way:
  *
- * {@link SameThreadStrategy} --(worker-thread threshold)--> {@link WorkerThreadStrategy}.
+ * {@link SameThreadIOStrategy} --(worker-thread threshold)--> {@link WorkerThreadIOStrategy}.
  *
  * @author Alexey Stashok
  */
-public final class SimpleDynamicStrategy implements Strategy {
-    private final SameThreadStrategy sameThreadStrategy;
-    private final WorkerThreadStrategy workerThreadStrategy;
+public final class SimpleDynamicIOStrategy implements IOStrategy {
+    private final SameThreadIOStrategy sameThreadStrategy;
+    private final WorkerThreadIOStrategy workerThreadStrategy;
 
     private static final int WORKER_THREAD_THRESHOLD = 1;
 
-    public SimpleDynamicStrategy(final ExecutorService workerThreadPool) {
+    public SimpleDynamicIOStrategy(final ExecutorService workerThreadPool) {
         this(new CurrentThreadExecutor(),
                 new WorkerThreadExecutor(workerThreadPool));
     }
 
-    protected SimpleDynamicStrategy(final Executor sameThreadProcessorExecutor,
-            final Executor workerThreadProcessorExecutor) {
-        sameThreadStrategy = new SameThreadStrategy();
-        workerThreadStrategy = new WorkerThreadStrategy(
+    protected SimpleDynamicIOStrategy(final Executor sameThreadProcessorExecutor,
+                                      final Executor workerThreadProcessorExecutor) {
+        sameThreadStrategy = new SameThreadIOStrategy();
+        workerThreadStrategy = new WorkerThreadIOStrategy(
                 sameThreadProcessorExecutor, workerThreadProcessorExecutor);
     }
 
@@ -150,10 +150,10 @@ public final class SimpleDynamicStrategy implements Strategy {
 //
 //    /**
 //     * Returns the number of {@link SelectionKey}s, which should be selected
-//     * from a {@link Selector}, to make it apply {@link LeaderFollowerStrategy}.
+//     * from a {@link Selector}, to make it apply {@link LeaderFollowerIOStrategy}.
 //     *
 //     * @return the number of {@link SelectionKey}s, which should be selected
-//     * from a {@link Selector}, to make it apply {@link LeaderFollowerStrategy}.
+//     * from a {@link Selector}, to make it apply {@link LeaderFollowerIOStrategy}.
 //     */
 //    public int getLeaderFollowerThreshold() {
 //        return leaderFollowerThreshold;
@@ -161,11 +161,11 @@ public final class SimpleDynamicStrategy implements Strategy {
 //
 //    /**
 //     * Set the number of {@link SelectionKey}s, which should be selected
-//     * from a {@link Selector}, to make it apply {@link LeaderFollowerStrategy}.
+//     * from a {@link Selector}, to make it apply {@link LeaderFollowerIOStrategy}.
 //     *
 //     * @param leaderFollowerThreshold the number of {@link SelectionKey}s,
 //     * which should be selected from a {@link Selector}, to make it apply
-//     * {@link LeaderFollowerStrategy}.
+//     * {@link LeaderFollowerIOStrategy}.
 //     */
 //    public void setLeaderFollowerThreshold(int leaderFollowerThreshold) {
 //        this.leaderFollowerThreshold = leaderFollowerThreshold;
@@ -174,10 +174,10 @@ public final class SimpleDynamicStrategy implements Strategy {
 //
 //    /**
 //     * Returns the number of {@link SelectionKey}s, which should be selected
-//     * from a {@link Selector}, to make it apply {@link WorkerThreadStrategy}.
+//     * from a {@link Selector}, to make it apply {@link WorkerThreadIOStrategy}.
 //     *
 //     * @return the number of {@link SelectionKey}s, which should be selected
-//     * from a {@link Selector}, to make it apply {@link WorkerThreadStrategy}.
+//     * from a {@link Selector}, to make it apply {@link WorkerThreadIOStrategy}.
 //     */
 //    public int getWorkerThreadThreshold() {
 //        return WORKER_THREAD_THRESHOLD;
@@ -185,11 +185,11 @@ public final class SimpleDynamicStrategy implements Strategy {
 //
 //    /**
 //     * Set the number of {@link SelectionKey}s, which should be selected
-//     * from a {@link Selector}, to make it apply {@link WorkerThreadStrategy}.
+//     * from a {@link Selector}, to make it apply {@link WorkerThreadIOStrategy}.
 //     *
 //     * @param WORKER_THREAD_THRESHOLD the number of {@link SelectionKey}s,
 //     * which should be selected from a {@link Selector}, to make it apply
-//     * {@link WorkerThreadStrategy}.
+//     * {@link WorkerThreadIOStrategy}.
 //     */
 //    public void setWorkerThreadThreshold(int WORKER_THREAD_THRESHOLD) {
 //        this.WORKER_THREAD_THRESHOLD = WORKER_THREAD_THRESHOLD;

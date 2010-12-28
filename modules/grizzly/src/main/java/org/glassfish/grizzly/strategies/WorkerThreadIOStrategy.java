@@ -47,7 +47,6 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.PostProcessor;
 import org.glassfish.grizzly.Processor;
-import org.glassfish.grizzly.Strategy;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.utils.CurrentThreadExecutor;
 import org.glassfish.grizzly.utils.WorkerThreadExecutor;
@@ -56,12 +55,12 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * {@link Strategy}, which executes {@link Processor}s in worker thread.
+ * {@link org.glassfish.grizzly.IOStrategy}, which executes {@link Processor}s in worker thread.
  *
  * @author Alexey Stashok
  */
-public final class WorkerThreadStrategy extends AbstractStrategy {
-    private static final Logger logger = Grizzly.logger(WorkerThreadStrategy.class);
+public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
+    private static final Logger logger = Grizzly.logger(WorkerThreadIOStrategy.class);
     
     /*
      * NONE,
@@ -78,13 +77,13 @@ public final class WorkerThreadStrategy extends AbstractStrategy {
     private final Executor sameThreadExecutor;
     private final Executor workerThreadExecutor;
     
-    public WorkerThreadStrategy(final ExecutorService workerThreadPool) {
+    public WorkerThreadIOStrategy(final ExecutorService workerThreadPool) {
         this(new CurrentThreadExecutor(),
                 new WorkerThreadExecutor(workerThreadPool));
     }
 
-    protected WorkerThreadStrategy(Executor sameThreadProcessorExecutor,
-            Executor workerThreadProcessorExecutor) {
+    protected WorkerThreadIOStrategy(Executor sameThreadProcessorExecutor,
+                                     Executor workerThreadProcessorExecutor) {
         this.sameThreadExecutor = sameThreadProcessorExecutor;
         this.workerThreadExecutor = workerThreadProcessorExecutor;
         

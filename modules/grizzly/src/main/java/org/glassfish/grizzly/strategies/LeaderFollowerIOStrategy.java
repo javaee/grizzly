@@ -45,19 +45,18 @@ import java.util.concurrent.Executor;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.PostProcessor;
-import org.glassfish.grizzly.Strategy;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.SelectorRunner;
 import org.glassfish.grizzly.utils.WorkerThreadExecutor;
 import java.util.concurrent.ExecutorService;
 
 /**
- * {@link Strategy}, which executes {@link org.glassfish.grizzly.Processor}s in a current threads, and
+ * {@link org.glassfish.grizzly.IOStrategy}, which executes {@link org.glassfish.grizzly.Processor}s in a current threads, and
  * resumes selector thread logic in separate thread.
  *
  * @author Alexey Stashok
  */
-public final class LeaderFollowerStrategy extends AbstractStrategy {
+public final class LeaderFollowerIOStrategy extends AbstractIOStrategy {
     /*
      * NONE,
      * READ,
@@ -71,11 +70,11 @@ public final class LeaderFollowerStrategy extends AbstractStrategy {
 //    private final Executor[] executors;
     private final Executor workerThreadExecutor;
     
-    public LeaderFollowerStrategy(final ExecutorService workerThreadPool) {
+    public LeaderFollowerIOStrategy(final ExecutorService workerThreadPool) {
         this(new WorkerThreadExecutor(workerThreadPool));
     }
 
-    protected LeaderFollowerStrategy(Executor workerThreadProcessorExecutor) {
+    protected LeaderFollowerIOStrategy(Executor workerThreadProcessorExecutor) {
 
 //        executors = new Executor[] {null,
 //            workerThreadProcessorExecutor, workerThreadProcessorExecutor,
