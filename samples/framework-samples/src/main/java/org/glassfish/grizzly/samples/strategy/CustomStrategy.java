@@ -83,7 +83,7 @@ public class CustomStrategy {
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
         transport.setProcessor(filterChainBuilder.build());
         
-        // Set the LeaderFollowerIOStrategy (any IOStrategy could be applied this way)
+        // Set the LeaderFollowerIOStrategy (any strategy could be applied this way)
         transport.setIOStrategy(new LeaderFollowerIOStrategy(
                 GrizzlyExecutorService.createInstance()));
         

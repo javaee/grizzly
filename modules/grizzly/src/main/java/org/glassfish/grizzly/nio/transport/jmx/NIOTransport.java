@@ -168,8 +168,8 @@ public class NIOTransport extends JmxObject {
         return getType(transport.getProcessorSelector());
     }
 
-    @ManagedAttribute(id="IOStrategy")
-    public String getStrategy() {
+    @ManagedAttribute(id="io-strategy")
+    public String getIOStrategy() {
         return getType(transport.getIOStrategy());
     }
 

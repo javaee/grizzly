@@ -94,7 +94,7 @@ public class Settings {
                 settings.setWorkerThreads(Integer.parseInt(value));
             } else if ("-selectorThreads".equalsIgnoreCase(param)) {
                 settings.setSelectorThreads(Integer.parseInt(value));
-            } else if ("-IOStrategy".equalsIgnoreCase(param)) {
+            } else if ("-iOStrategy".equalsIgnoreCase(param)) {
                 try {
                     settings.setStrategyClass(
                             (Class<? extends IOStrategy>) Class.forName(value));
@@ -118,7 +118,7 @@ public class Settings {
     }
 
     public static void help() {
-        System.out.println("Use EchoServer -host=<HOST> -port=<PORT> -blocking=<true|false> -binary=<true|false> -chunked=<true|false> -workerThreads=<WORKER_THREADS_NUMBER> -selectorThreads=<SELECTOR_THREADS_NUMBER> -IOStrategy=<STRATEGY>");
+        System.out.println("Use EchoServer -host=<HOST> -port=<PORT> -blocking=<true|false> -binary=<true|false> -chunked=<true|false> -workerThreads=<WORKER_THREADS_NUMBER> -selectorThreads=<SELECTOR_THREADS_NUMBER> -strategy=<STRATEGY>");
     }
 
     public String getHost() {
@@ -200,7 +200,7 @@ public class Settings {
         sb.append("\n-----------------------------------");
         sb.append("\nHost: ").append(host);
         sb.append("\nPort: ").append(port);
-        sb.append("\nWorker threads: ").append(workerThreads);
+        sb.append("\nWorker threads: ").append(workerThreads - selectorThreads);
         sb.append("\nSelector threads: ").append(selectorThreads);
         sb.append("\nIOStrategy class: ").append(strategyClass);
         sb.append("\nMonitoring memory: ").append(isMonitoringMemory);

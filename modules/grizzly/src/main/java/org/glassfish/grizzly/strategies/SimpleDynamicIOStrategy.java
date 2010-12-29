@@ -53,7 +53,7 @@ import java.nio.channels.Selector;
 import java.util.concurrent.ExecutorService;
 
 /**
- * Simple dynamic IOStrategy, which switches I/O processing strategies, basing
+ * Simple dynamic strategy, which switches I/O processing strategies, basing
  * on statistics. This implementation takes in consideration number of
  * {@link SelectionKey}s, which were selected last time by {@link Selector}.
  *
@@ -62,7 +62,7 @@ import java.util.concurrent.ExecutorService;
  * And is able to switch between them basing on corresponding threshold
  * (threshold represents the number of selected {@link SelectionKey}s).
  *
- * So the IOStrategy is getting applied following way:
+ * So the strategy is getting applied following way:
  *
  * {@link SameThreadIOStrategy} --(worker-thread threshold)--> {@link WorkerThreadIOStrategy}.
  *

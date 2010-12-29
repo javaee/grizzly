@@ -87,7 +87,9 @@ import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.grizzly.nio.SelectorRunner;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
+import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
+import org.glassfish.grizzly.strategies.WorkerThreadPoolConfigProducer;
 import org.glassfish.grizzly.threadpool.AbstractThreadPool;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
@@ -232,11 +234,20 @@ public final class TCPNIOTransport extends NIOTransport implements
                 nioChannelDistributor = new RoundRobinConnectionDistributor(this);
             }
 
+            if (strategy == null) {
+                strategy = new WorkerThreadIOStrategy(threadPool);
+            }
+
             if (threadPool == null) {
-                final ThreadPoolConfig config = ThreadPoolConfig.defaultConfig()
+                ThreadPoolConfig config;
+                if (strategy instanceof WorkerThreadPoolConfigProducer) {
+                    config = ((WorkerThreadPoolConfigProducer) strategy).createDefaultWorkerPoolConfig(this);
+                } else {
+                    config = ThreadPoolConfig.defaultConfig()
                         .setCorePoolSize(selectorRunnersCount * 2)
                         .setMaxPoolSize(selectorRunnersCount * 2)
                         .setMemoryManager(getMemoryManager());
+                }
                 config.getInitialMonitoringConfig().addProbes(
                         getThreadPoolMonitoringConfig().getProbes());
                 
@@ -246,14 +257,11 @@ public final class TCPNIOTransport extends NIOTransport implements
                 if (threadPool instanceof GrizzlyExecutorService) {
                     final ThreadPoolConfig config =
                             ((GrizzlyExecutorService) threadPool).getConfiguration();
-                    if (selectorRunnersCount >= config.getMaxPoolSize()) {
+                    if (!(strategy instanceof SameThreadIOStrategy)
+                            && selectorRunnersCount >= config.getMaxPoolSize()) {
                         selectorRunnersCount = config.getMaxPoolSize() / 2;
                     }
                 }
-            }
-
-            if (IOStrategy == null) {
-                IOStrategy = new WorkerThreadIOStrategy(threadPool);
             }
 
             /* By default TemporarySelector pool size should be equal
@@ -261,9 +269,13 @@ public final class TCPNIOTransport extends NIOTransport implements
             int selectorPoolSize =
                     TemporarySelectorPool.DEFAULT_SELECTORS_COUNT;
             if (threadPool instanceof AbstractThreadPool) {
-                selectorPoolSize = Math.min(
-                       ((AbstractThreadPool) threadPool).getConfig().getMaxPoolSize(),
-                       selectorPoolSize);
+                if (strategy instanceof SameThreadIOStrategy) {
+                    selectorPoolSize = selectorRunnersCount;
+                } else {
+                    selectorPoolSize = Math.min(
+                           ((AbstractThreadPool) threadPool).getConfig().getMaxPoolSize(),
+                           selectorPoolSize);
+                }
             }
             temporarySelectorIO.setSelectorPool(
                     new TemporarySelectorPool(selectorPoolSize));

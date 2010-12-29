@@ -38,62 +38,21 @@
  * holder.
  */
 
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
-
 package org.glassfish.grizzly.strategies;
 
-import org.glassfish.grizzly.Context;
-import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.PostProcessor;
-import org.glassfish.grizzly.ProcessorResult.Status;
-import org.glassfish.grizzly.IOStrategy;
-import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
-import java.io.IOException;
 
 /**
+ * Strategy implementations may implement this interface to signify they have
+ * certain thread pool configuration requirements that could be used when
+ * building the runtime.
  *
- * @author oleksiys
+ * @since 2.0
  */
-public abstract class AbstractIOStrategy implements IOStrategy, WorkerThreadPoolConfigProducer  {
-    // COMPLETE, COMPLETE_LEAVE, RE-REGISTER, RERUN, ERROR, TERMINATE, NOT_RUN
-    private final static boolean[] isRegisterMap = {true, false, true, false, false, false, false};
+public interface WorkerThreadPoolConfigProducer {
 
-    protected final static PostProcessor enableInterestPostProcessor =
-            new EnableInterestPostProcessor();
+    ThreadPoolConfig createDefaultWorkerPoolConfig(final NIOTransport transport);
 
-
-    // ----------------------------- Methods from WorkerThreadPoolConfigProducer
-
-
-    public ThreadPoolConfig createDefaultWorkerPoolConfig(final NIOTransport transport) {
-
-        final ThreadPoolConfig config = ThreadPoolConfig.defaultConfig().clone();
-        final int selectorRunnerCount = transport.getSelectorRunnersCount();
-        config.setCorePoolSize(selectorRunnerCount * 2);
-        config.setMaxPoolSize(selectorRunnerCount * 2);
-        config.setMemoryManager(transport.getMemoryManager());
-        return config;
-
-    }
-
-
-    // ---------------------------------------------------------- Nested Classes
-
-
-    private static class EnableInterestPostProcessor implements PostProcessor {
-        @Override
-        public void process(Context context, Status status) throws IOException {
-            if (isRegisterMap[status.ordinal()]) {
-                final IOEvent ioEvent = context.getIoEvent();
-                final NIOConnection nioConnection = (NIOConnection) context.getConnection();
-                nioConnection.enableIOEvent(ioEvent);
-            }
-        }
-    }
 }

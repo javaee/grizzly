@@ -613,7 +613,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
     }
 
     /**
-     * Iterators. Basic IOStrategy is to traverse list, treating
+     * Iterators. Basic strategy is to traverse list, treating
      * non-data (i.e., request) nodes as terminating list.
      * Once a valid data node is found, the item is cached
      * so that the next call to next() will return it even

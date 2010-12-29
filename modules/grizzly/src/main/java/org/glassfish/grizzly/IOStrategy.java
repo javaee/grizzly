@@ -43,10 +43,10 @@ package org.glassfish.grizzly;
 import java.io.IOException;
 
 /**
- * <tt>IOStrategy</tt> is responsible for making decision how
+ * <tt>strategy</tt> is responsible for making decision how
  * {@link Runnable} task will be run: in current thread, worker thread.
  *
- * <tt>IOStrategy</tt> can make any other processing decisions.
+ * <tt>strategy</tt> can make any other processing decisions.
  * 
  * @author Alexey Stashok
  */
@@ -57,7 +57,7 @@ public interface IOStrategy {
      * @param connection the {@link Connection} upon which the provided
      *  {@link IOEvent} occurred.
      * @param ioEvent the {@link IOEvent} that triggered execution of this
-     *  <code>IOStrategy</code>
+     *  <code>strategy</code>
      *
      * @return
      *

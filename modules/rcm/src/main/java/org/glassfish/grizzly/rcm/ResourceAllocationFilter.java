@@ -121,7 +121,7 @@ public class ResourceAllocationFilter extends BaseFilter {
 
     /**
      * The allocation mode used: ceiling or Reserve. With Ceiling policy,
-     * the IOStrategy is to wait until all apps queues are showing some slack.
+     * the strategy is to wait until all apps queues are showing some slack.
      * With Reserve policy, if 100% reservation is made by other apps,
      * cancel the request processing.
      */

@@ -44,7 +44,10 @@ import java.io.IOException;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.PostProcessor;
+import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.nio.NIOConnection;
+import org.glassfish.grizzly.nio.NIOTransport;
+import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
 /**
  * {@link org.glassfish.grizzly.IOStrategy}, which executes {@link org.glassfish.grizzly.Processor}s in a current thread.
@@ -67,4 +70,19 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
         connection.getTransport().fireIOEvent(ioEvent, connection, pp);
         return true;
     }
+
+
+    // ----------------------------------- Methods from WorkerThreadPoolConfigProducer
+
+
+    @Override
+    public ThreadPoolConfig createDefaultWorkerPoolConfig(final NIOTransport transport) {
+        final ThreadPoolConfig config = ThreadPoolConfig.defaultConfig().clone();
+        final int runnerCount = transport.getSelectorRunnersCount();
+        config.setCorePoolSize(runnerCount);
+        config.setMaxPoolSize(runnerCount);
+        config.setMemoryManager(transport.getMemoryManager());
+        return config;
+    }
+
 }

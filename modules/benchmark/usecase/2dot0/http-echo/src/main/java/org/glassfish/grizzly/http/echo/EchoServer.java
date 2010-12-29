@@ -48,6 +48,7 @@ import org.glassfish.grizzly.http.server.io.NIOWriter;
 import org.glassfish.grizzly.http.server.io.ReadHandler;
 import org.glassfish.grizzly.memory.MemoryProbe;
 import org.glassfish.grizzly.nio.NIOTransport;
+import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
@@ -133,18 +134,21 @@ final class EchoServer {
             transport.getMemoryManager().getMonitoringConfig().addProbes(probe);
         }
 
-        int poolSize = (settings.getWorkerThreads());
+        IOStrategy strategy = loadStrategy(settings.getStrategyClass(), transport);
 
+        final int selectorCount = settings.getSelectorThreads();
+        ((NIOTransport) transport).setSelectorRunnersCount(selectorCount);
+
+        transport.setIOStrategy(strategy);
+        final int poolSize = ((strategy instanceof SameThreadIOStrategy)
+                ? selectorCount
+                : settings.getWorkerThreads());
+        settings.setWorkerThreads(poolSize);
         final ThreadPoolConfig tpc = ThreadPoolConfig.defaultConfig().clone().
                 setPoolName(POOL_NAME).
                 setCorePoolSize(poolSize).setMaxPoolSize(poolSize);
 
         transport.setThreadPool(GrizzlyExecutorService.createInstance(tpc));
-        ((NIOTransport) transport).setSelectorRunnersCount(settings.getSelectorThreads());
-
-        IOStrategy IOStrategy = loadStrategy(settings.getStrategyClass(), transport);
-
-        transport.setIOStrategy(IOStrategy);
 
     }
 

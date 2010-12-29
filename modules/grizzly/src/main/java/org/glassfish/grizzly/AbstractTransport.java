@@ -88,9 +88,9 @@ public abstract class AbstractTransport implements Transport {
     protected ProcessorSelector processorSelector;
 
     /**
-     * Transport IOStrategy
+     * Transport strategy
      */
-    protected IOStrategy IOStrategy;
+    protected IOStrategy strategy;
 
     /**
      * Transport MemoryManager
@@ -298,7 +298,7 @@ public abstract class AbstractTransport implements Transport {
      */
     @Override
     public IOStrategy getIOStrategy() {
-        return IOStrategy;
+        return strategy;
     }
 
     /**
@@ -306,7 +306,7 @@ public abstract class AbstractTransport implements Transport {
      */
     @Override
     public void setIOStrategy(IOStrategy IOStrategy) {
-        this.IOStrategy = IOStrategy;
+        this.strategy = IOStrategy;
         notifyProbesConfigChanged(this);
     }
 
