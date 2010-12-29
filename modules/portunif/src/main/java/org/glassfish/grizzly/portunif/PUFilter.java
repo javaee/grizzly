@@ -79,14 +79,14 @@ public class PUFilter extends BaseFilter {
 
     public PUFilter() {
         puContextAttribute =
-                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.<PUContext>createAttribute(
-                PUFilter.class.getName() + ".puContext");
+                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+                        PUFilter.class.getName() + ".puContext");
         isProcessingAttribute =
-                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.<Boolean>createAttribute(
+                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
                 PUFilter.class.getName() + ".isProcessing");
         suspendedContextAttribute =
-                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.<FilterChainContext>createAttribute(
-                PUFilter.class.getName() + ".suspendedContext");
+                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+                        PUFilter.class.getName() + ".suspendedContext");
     }
 
     public PUProtocol register(final ProtocolFinder protocolFinder,
