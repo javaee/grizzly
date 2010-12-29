@@ -55,6 +55,7 @@ import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.FilterChainEvent;
 import org.glassfish.grizzly.filterchain.NextAction;
@@ -112,6 +113,12 @@ public class PUFilter extends BaseFilter {
 
     public Filter getBackChannelFilter() {
         return backChannelFilter;
+    }
+
+    public FilterChain createPUFilterChain() {
+        final FilterChainBuilder builder = FilterChainBuilder.stateless();
+        builder.add(backChannelFilter);
+        return builder.build();
     }
 
     @Override

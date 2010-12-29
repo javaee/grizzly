@@ -110,12 +110,12 @@ public class BasicPUTest {
                         .build();
 
                 Future<Connection> future = connectorHandler.connect("localhost", PORT);
-                connection = (TCPNIOConnection) future.get(10, TimeUnit.SECONDS);
+                connection = (TCPNIOConnection) future.get();
                 assertTrue(connection != null);
 
                 connection.write(protocol);
 
-                assertTrue(resultFuture.get(10, TimeUnit.SECONDS));
+                assertTrue(resultFuture.get());
             }
 
         } finally {
@@ -129,12 +129,9 @@ public class BasicPUTest {
     }
 
     private PUProtocol createProtocol(final PUFilter puFilter, final String name) {
-        final ProtocolFinder finder = new SimpleProtocolFinder(name);
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
-        filterChainBuilder.add(puFilter.getBackChannelFilter());
-        filterChainBuilder.add(new SimpleResponseFilter(name));
-
-        return new PUProtocol(finder, filterChainBuilder.build());
+        final FilterChain chain = puFilter.createPUFilterChain();
+        chain.add(new SimpleResponseFilter(name));
+        return new PUProtocol(new SimpleProtocolFinder(name), chain);
     }
 
     private static final class SimpleProtocolFinder implements ProtocolFinder {
