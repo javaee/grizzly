@@ -70,12 +70,12 @@ public class BackChannelFilter extends BaseFilter {
     }
 
     @Override
-    public NextAction handleEvent(FilterChainContext ctx, Object event) throws IOException {
+    public NextAction handleEvent(final FilterChainContext ctx, Object event) throws IOException {
         return super.handleEvent(ctx, event);
     }
 
     @Override
-    public void exceptionOccurred(FilterChainContext ctx, Throwable error) {
+    public void exceptionOccurred(final FilterChainContext ctx, Throwable error) {
         super.exceptionOccurred(ctx, error);
     }
 }

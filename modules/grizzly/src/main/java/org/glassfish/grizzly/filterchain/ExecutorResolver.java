@@ -269,16 +269,16 @@ public abstract class ExecutorResolver {
         public EventResolver() {
             upExecutor = new UpstreamExecutor() {
                 @Override
-                public NextAction execute(Filter filter, FilterChainContext context)
-                        throws IOException {
+                public NextAction execute(final Filter filter,
+                        final FilterChainContext context) throws IOException {
                     return filter.handleEvent(context, context.event);
                 }
             };
 
             downExecutor = new DownstreamExecutor() {
                 @Override
-                public NextAction execute(Filter filter, FilterChainContext context)
-                        throws IOException {
+                public NextAction execute(final Filter filter,
+                        final FilterChainContext context) throws IOException {
                     return filter.handleEvent(context, context.event);
                 }
             };
