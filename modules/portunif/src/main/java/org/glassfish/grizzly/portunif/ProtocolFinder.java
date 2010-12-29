@@ -48,7 +48,7 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
  */
 public interface ProtocolFinder {
     public enum Result {
-        FOUND, NOT_FOUND, NEED_MORE_DATA;
+        FOUND, NOT_FOUND, NEED_MORE_DATA
     }
 
     public Result find(final PUContext puContext,
