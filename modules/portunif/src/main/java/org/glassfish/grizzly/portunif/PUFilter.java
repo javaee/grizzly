@@ -246,7 +246,7 @@ public class PUFilter extends BaseFilter {
         }
     }
 
-    private class InternalCompletionHandler implements
+    private static class InternalCompletionHandler implements
             CompletionHandler<FilterChainContext> {
 
         private final FilterChainContext suspendedContext;
