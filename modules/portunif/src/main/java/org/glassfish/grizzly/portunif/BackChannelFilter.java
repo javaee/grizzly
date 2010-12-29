@@ -42,7 +42,6 @@ package org.glassfish.grizzly.portunif;
 
 import java.io.IOException;
 import org.glassfish.grizzly.filterchain.BaseFilter;
-import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 
@@ -50,16 +49,24 @@ import org.glassfish.grizzly.filterchain.NextAction;
  *
  * @author oleksiys
  */
-public class BridgeFilter extends BaseFilter {
+public class BackChannelFilter extends BaseFilter {
+    private final PUFilter puFilter;
 
-    @Override
-    public NextAction handleRead(FilterChainContext ctx) throws IOException {
-        return super.handleRead(ctx);
+    BackChannelFilter(final PUFilter puFilter) {
+        this.puFilter = puFilter;
     }
 
     @Override
-    public NextAction handleWrite(FilterChainContext ctx) throws IOException {
-        return super.handleWrite(ctx);
+    public NextAction handleWrite(final FilterChainContext ctx) throws IOException {
+        final FilterChainContext suspendedParentContext =
+                puFilter.suspendedContextAttribute.get(ctx);
+
+        assert suspendedParentContext != null;
+
+        suspendedParentContext.write(ctx.getAddress(), ctx.getMessage(),
+                ctx.getTransportContext().getCompletionHandler());
+
+        return ctx.getStopAction();
     }
 
     @Override
@@ -68,28 +75,7 @@ public class BridgeFilter extends BaseFilter {
     }
 
     @Override
-    public NextAction handleClose(FilterChainContext ctx) throws IOException {
-        return super.handleClose(ctx);
-    }
-
-    @Override
     public void exceptionOccurred(FilterChainContext ctx, Throwable error) {
         super.exceptionOccurred(ctx, error);
     }
-
-    @Override
-    public void onAdded(FilterChain filterChain) {
-        super.onAdded(filterChain);
-    }
-
-    @Override
-    public void onFilterChainChanged(FilterChain filterChain) {
-        super.onFilterChainChanged(filterChain);
-    }
-
-    @Override
-    public void onRemoved(FilterChain filterChain) {
-        super.onRemoved(filterChain);
-    }
-    
 }

@@ -37,12 +37,11 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.portunif;
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.Grizzly;
@@ -52,68 +51,110 @@ import org.glassfish.grizzly.ProcessorExecutor;
 import org.glassfish.grizzly.ProcessorResult.Status;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.utils.ArraySet;
 
 /**
  *
  * @author oleksiys
  */
 public class PUFilter extends BaseFilter {
-    private Set<PUProtocol> protocols = new HashSet<PUProtocol>();
+    private static final Logger LOGGER = Grizzly.logger(PUFilter.class);
 
-    private final Attribute<PUProtocol> stickyProtocolAttribute;
+    private final BackChannelFilter backChannelFilter =
+            new BackChannelFilter(this);
+    private final ArraySet<PUProtocol> protocols =
+            new ArraySet<PUProtocol>(PUProtocol.class);
+    
+    final Attribute<PUContext> puContextAttribute;
+    final Attribute<Boolean> isProcessingAttribute;
+    final Attribute<FilterChainContext> suspendedContextAttribute;
+
     public PUFilter() {
-        stickyProtocolAttribute =
-                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-                PUFilter.class.getName() + ".stickyProtocol");
+        puContextAttribute =
+                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.<PUContext>createAttribute(
+                PUFilter.class.getName() + ".puContext");
+        isProcessingAttribute =
+                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.<Boolean>createAttribute(
+                PUFilter.class.getName() + ".isProcessing");
+        suspendedContextAttribute =
+                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.<FilterChainContext>createAttribute(
+                PUFilter.class.getName() + ".suspendedContext");
     }
 
     public PUProtocol register(final ProtocolFinder protocolFinder,
             final FilterChain filterChain) {
-        
+
         final PUProtocol puProtocol = new PUProtocol(protocolFinder, filterChain);
-        protocols.add(puProtocol);
+        register(puProtocol);
+
         return puProtocol;
     }
 
     public void register(final PUProtocol puProtocol) {
+        final Filter filter = puProtocol.getFilterChain().get(0);
+        if (filter != backChannelFilter) {
+            throw new IllegalStateException("The first Filter in the protocol should be the BackChannelFilter");
+        }
+
         protocols.add(puProtocol);
     }
 
     public void deregister(final PUProtocol puProtocol) {
         protocols.remove(puProtocol);
     }
-    
+
+    public Filter getBackChannelFilter() {
+        return backChannelFilter;
+    }
+
     @Override
     public NextAction handleRead(final FilterChainContext ctx) throws IOException {
-        final Connection connection = ctx.getConnection();
-        PUProtocol protocol = stickyProtocolAttribute.get(connection);
-        if (protocol == null) {
-            
+        if (isProcessingAttribute.get(ctx) == Boolean.TRUE) {
+            return ctx.getStopAction();
         }
 
+        final Connection connection = ctx.getConnection();
+        PUContext puContext = puContextAttribute.get(connection);
+        if (puContext == null) {
+            puContext = new PUContext();
+            puContextAttribute.set(connection, puContext);
+        } else if (puContext.lastResult == ProtocolFinder.Result.NOT_FOUND) {
+            return ctx.getInvokeAction();
+        }
+
+        PUProtocol protocol = puContext.protocol;
+
+        if (protocol == null) {
+            findProtocol(puContext, ctx);
+            protocol = puContext.protocol;
+        }
+        
         if (protocol != null) {
+            if (!puContext.isSticky) {
+                puContext.reset();
+            }
+            
+            isProcessingAttribute.set(ctx, Boolean.TRUE);
+
             final FilterChain filterChain = protocol.getFilterChain();
-            ProcessorExecutor.execute(connection, IOEvent.READ, filterChain, new PostProcessor() {
-
-                @Override
-                public void process(final Context context,
-                        final Status status) throws IOException {
-
-                }
-            });
+            final Context context = filterChain.obtainContext(connection);
+            context.setIoEvent(IOEvent.READ);
+            context.setPostProcessor(new InternalPostProcessor());
+            suspendedContextAttribute.set(context, ctx);
+            ProcessorExecutor.execute(context);
 
             return ctx.getSuspendAction();
         }
 
+        if (puContext.lastResult == ProtocolFinder.Result.NOT_FOUND) {
+            return ctx.getInvokeAction();
+        }
+        
         return ctx.getStopAction(ctx.getMessage());
-    }
-
-    @Override
-    public NextAction handleWrite(final FilterChainContext ctx) throws IOException {
-        return super.handleWrite(ctx);
     }
 
     @Override
@@ -124,5 +165,53 @@ public class PUFilter extends BaseFilter {
     @Override
     public NextAction handleClose(FilterChainContext ctx) throws IOException {
         return super.handleClose(ctx);
+    }
+
+    private void findProtocol(final PUContext puContext,
+            final FilterChainContext ctx) {
+        final PUProtocol[] protocolArray = protocols.getArray();
+        for (int i = puContext.lastProtocolFinderIdx; i < protocolArray.length; i++) {
+            puContext.lastProtocolFinderIdx = i;
+            final PUProtocol protocol = protocolArray[i];
+            try {
+                final ProtocolFinder.Result result =
+                        protocol.getProtocolFinder().find(puContext, ctx);
+
+                puContext.lastResult = result;
+
+                switch (result) {
+                    case FOUND: {
+                        puContext.protocol = protocol;
+                        return;
+                    }
+
+                    case NEED_MORE_DATA: {
+                        return;
+                    }
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING,
+                        "ProtocolFinder " + protocol.getProtocolFinder() +
+                        " reported error", e);
+            }
+        }
+
+    }
+
+    private class InternalPostProcessor implements PostProcessor {
+        
+        @Override
+        public void process(final Context context, final Status status) throws IOException {
+            final FilterChainContext suspendedContext =
+                    suspendedContextAttribute.remove(context);
+
+            assert suspendedContext != null;
+            
+            switch (status) {
+                case COMPLETE:
+                case REREGISTER:
+                    suspendedContext.resume();
+            }
+        }
     }
 }

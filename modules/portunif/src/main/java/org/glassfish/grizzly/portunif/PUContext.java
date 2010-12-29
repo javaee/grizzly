@@ -40,17 +40,29 @@
 
 package org.glassfish.grizzly.portunif;
 
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-
 /**
  *
  * @author oleksiys
  */
-public interface ProtocolFinder {
-    public enum Result {
-        FOUND, NOT_FOUND, NEED_MORE_DATA;
+public class PUContext {
+    int lastProtocolFinderIdx;
+    
+    boolean isSticky = true;
+    PUProtocol protocol;
+    ProtocolFinder.Result lastResult;
+
+    public boolean isSticky() {
+        return isSticky;
     }
 
-    public Result find(final PUContext puContext,
-            final FilterChainContext ctx);
+    public void setSticky(final boolean isSticky) {
+        this.isSticky = isSticky;
+    }
+
+    void reset() {
+        lastProtocolFinderIdx = 0;
+        isSticky = true;
+        protocol = null;
+        lastResult = null;
+    }
 }
