@@ -62,6 +62,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
+import org.glassfish.grizzly.filterchain.FilterChainEvent;
 
 /**
  * Server side {@link HttpCodecFilter} implementation, which is responsible for
@@ -77,7 +78,13 @@ import java.util.concurrent.TimeUnit;
  */
 public class HttpServerFilter extends HttpCodecFilter {
 
-    public static final Object RESPONSE_COMPLETE_EVENT = new Object();
+    public static final FilterChainEvent RESPONSE_COMPLETE_EVENT =
+            new FilterChainEvent() {
+        @Override
+        public Object type() {
+            return "RESPONSE_COMPLETE_EVENT";
+        }
+    };
 
     private static final FlushAndCloseHandler FLUSH_AND_CLOSE_HANDLER =
             new FlushAndCloseHandler();
@@ -212,8 +219,8 @@ public class HttpServerFilter extends HttpCodecFilter {
 
 
     @Override
-    public NextAction handleEvent(final FilterChainContext ctx, final Object event)
-    throws IOException {
+    public NextAction handleEvent(final FilterChainContext ctx,
+            final FilterChainEvent event) throws IOException {
 
         final Connection c = ctx.getConnection();
         
