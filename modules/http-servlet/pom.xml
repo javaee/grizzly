@@ -66,10 +66,11 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
-                        <Import-Package>
-                            org.glassfish.grizzly*;version=${project.version},
-                            *,
-                        </Import-Package>
+<!--                        <Import-Package>
+                            org.glassfish.grizzly.*,
+                            java.xml.bind.*,
+                            javax.servlet.http.*;
+                        </Import-Package>-->
                         <Export-Package>org.glassfish.grizzly.servlet.*;version=${project.version}</Export-Package>
                     </instructions>
                     <unpackBundle>true</unpackBundle>
@@ -115,6 +116,11 @@
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-utils</artifactId>
+            <version>${grizzly-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.grizzly</groupId>
+            <artifactId>grizzly-framework</artifactId>
             <version>${grizzly-version}</version>
         </dependency>
         <dependency>
