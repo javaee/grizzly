@@ -61,6 +61,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import junit.framework.TestCase;
+import org.glassfish.grizzly.filterchain.FilterChainEvent;
 import org.glassfish.grizzly.memory.Buffers;
 
 /**
@@ -86,8 +87,19 @@ public class FilterChainTest extends TestCase {
                 }
             });
 
-    private static final Object INC_EVENT = new Object();
-    private static final Object DEC_EVENT = new Object();
+    private static final FilterChainEvent INC_EVENT = new FilterChainEvent() {
+        @Override
+        public Object type() {
+            return "INC_EVENT";
+        }
+    };
+
+    private static final FilterChainEvent DEC_EVENT = new FilterChainEvent() {
+        @Override
+        public Object type() {
+            return "DEC_EVENT";
+        }
+    };
     
     public void testEventUpstream() throws Exception {
         final Connection connection =
@@ -238,8 +250,8 @@ public class FilterChainTest extends TestCase {
         }
 
         @Override
-        public NextAction handleEvent(final FilterChainContext ctx, final Object event) throws IOException {
-            if (event == TransportFilter.FLUSH_EVENT) {
+        public NextAction handleEvent(final FilterChainContext ctx, final FilterChainEvent event) throws IOException {
+            if (event.type() == TransportFilter.FlushEvent.TYPE) {
                 final Connection c = ctx.getConnection();
                 final Buffer buffer = bufferAttr.remove(c);
 
@@ -300,15 +312,15 @@ public class FilterChainTest extends TestCase {
         }
         
         @Override
-        public NextAction handleEvent(FilterChainContext ctx, Object event)
+        public NextAction handleEvent(FilterChainContext ctx, FilterChainEvent event)
                 throws IOException {
             final Connection c = ctx.getConnection();
             AtomicInteger ai = counterAttr.get(c);
             final int value = ai.get();
 
-            if (event == DEC_EVENT) {
+            if (event.type() == DEC_EVENT.type()) {
                 ai.decrementAndGet();
-            } else if (event == INC_EVENT) {
+            } else if (event.type() == INC_EVENT.type()) {
                 ai.incrementAndGet();
             } else {
                 throw new UnsupportedOperationException("Unsupported event");

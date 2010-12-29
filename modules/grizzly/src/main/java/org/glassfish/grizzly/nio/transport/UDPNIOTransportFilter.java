@@ -57,6 +57,7 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Filter;
+import org.glassfish.grizzly.filterchain.FilterChainEvent;
 
 /**
  * The {@link UDPNIOTransport}'s transport {@link Filter} implementation
@@ -159,17 +160,22 @@ public final class UDPNIOTransportFilter extends BaseFilter {
 
     @Override
     public NextAction handleEvent(final FilterChainContext ctx,
-            final Object event) throws IOException {
+            final FilterChainEvent event) throws IOException {
         
-        if (event == TransportFilter.FLUSH_EVENT) {
+        if (event.type() == TransportFilter.FlushEvent.TYPE) {
             final Connection connection = ctx.getConnection();
             final FilterChainContext.TransportContext transportContext =
                     ctx.getTransportContext();
 
-            final FutureImpl contextFuture = transportContext.getFuture();
-            final CompletionHandler completionHandler = transportContext.getCompletionHandler();
+            if (transportContext.getFuture() != null ||
+                    transportContext.getCompletionHandler() != null) {
+                throw new IllegalStateException("TransportContext CompletionHandler and Future must be null");
+            }
 
-            if (contextFuture == null && completionHandler == null) return ctx.getInvokeAction();
+            final FutureImpl contextFuture =
+                    ((TransportFilter.FlushEvent) event).getFuture();
+            final CompletionHandler completionHandler =
+                    ((TransportFilter.FlushEvent) event).getCompletionHandler();
 
 
             final CompletionHandler writeCompletionHandler;

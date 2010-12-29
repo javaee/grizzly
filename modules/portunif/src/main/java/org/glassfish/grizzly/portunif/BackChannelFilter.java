@@ -43,6 +43,7 @@ package org.glassfish.grizzly.portunif;
 import java.io.IOException;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.FilterChainEvent;
 import org.glassfish.grizzly.filterchain.NextAction;
 
 /**
@@ -70,12 +71,38 @@ public class BackChannelFilter extends BaseFilter {
     }
 
     @Override
-    public NextAction handleEvent(final FilterChainContext ctx, Object event) throws IOException {
-        return super.handleEvent(ctx, event);
+    public NextAction handleEvent(final FilterChainContext ctx,
+            final FilterChainEvent event) throws IOException {
+        
+        // if downstream event - pass it to the puFilter
+        if (isDownstream(ctx)) {
+            final FilterChainContext suspendedParentContext =
+                    puFilter.suspendedContextAttribute.get(ctx);
+
+            assert suspendedParentContext != null;
+
+            suspendedParentContext.notifyDownstream(event);
+        }
+
+        return ctx.getInvokeAction();
     }
 
     @Override
-    public void exceptionOccurred(final FilterChainContext ctx, Throwable error) {
-        super.exceptionOccurred(ctx, error);
+    public void exceptionOccurred(final FilterChainContext ctx,
+            final Throwable error) {
+        
+        // if downstream event - pass it to the puFilter
+        if (isDownstream(ctx)) {
+            final FilterChainContext suspendedParentContext =
+                    puFilter.suspendedContextAttribute.get(ctx);
+
+            assert suspendedParentContext != null;
+
+            suspendedParentContext.fail(error);
+        }
+    }
+
+    private static boolean isDownstream(final FilterChainContext context) {
+        return context.getStartIdx() > context.getEndIdx();
     }
 }

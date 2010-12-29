@@ -109,8 +109,8 @@ public class BaseFilter implements Filter {
      * {@inheritDoc}
      */
     @Override
-    public NextAction handleEvent(FilterChainContext ctx, Object event)
-            throws IOException {
+    public NextAction handleEvent(final FilterChainContext ctx,
+            final FilterChainEvent event) throws IOException {
         return ctx.getInvokeAction();
     }
 

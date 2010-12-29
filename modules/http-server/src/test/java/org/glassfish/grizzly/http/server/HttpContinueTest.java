@@ -40,8 +40,6 @@
 
 package org.glassfish.grizzly.http.server;
 
-import org.glassfish.grizzly.http.server.*;
-import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import junit.framework.TestCase;
 

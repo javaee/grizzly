@@ -43,7 +43,9 @@ package org.glassfish.grizzly.filterchain;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Transport;
 import java.io.IOException;
+import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
 
@@ -72,10 +74,55 @@ import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
  */
 public final class TransportFilter extends BaseFilter {
 
+    public static FilterChainEvent createFlushEvent() {
+        return FLUSH_EVENT;
+    }
+
+    public static FilterChainEvent createFlushEvent(final FutureImpl future,
+            final CompletionHandler completionHandler) {
+        if (future == null && completionHandler == null) {
+            return FLUSH_EVENT;
+        }
+
+        return new FlushEvent(future, completionHandler);
+    }
+
+    public static final class FlushEvent implements FilterChainEvent {
+        public static final Object TYPE = FlushEvent.class;
+
+        final FutureImpl future;
+        final CompletionHandler completionHandler;
+        
+        private FlushEvent() {
+            this(null, null);
+        }
+
+        private FlushEvent(final FutureImpl future,
+                final CompletionHandler completionHandler) {
+            this.future = future;
+            this.completionHandler = completionHandler;
+        }
+
+        @Override
+        public Object type() {
+            return TYPE;
+        }
+
+        public CompletionHandler getCompletionHandler() {
+            return completionHandler;
+        }
+
+        public FutureImpl getFuture() {
+            return future;
+        }
+    }
+
     /**
-     * TransportFilter command event
+     * TransportFilter flush command event
      */
-    public static final Object FLUSH_EVENT = new Object();
+    private static final FlushEvent FLUSH_EVENT = new FlushEvent();
+
+
 
     public static final String WORKER_THREAD_BUFFER_NAME = "thread-buffer";
     /**
@@ -161,7 +208,9 @@ public final class TransportFilter extends BaseFilter {
      * filter.
      */
     @Override
-    public NextAction handleEvent(FilterChainContext ctx, Object event) throws IOException {
+    public NextAction handleEvent(final FilterChainContext ctx,
+            final FilterChainEvent event) throws IOException {
+        
         final Filter transportFilter0 = getTransportFilter0(
                 ctx.getConnection().getTransport());
 

@@ -40,8 +40,10 @@
 package org.glassfish.grizzly.portunif;
 
 import java.io.IOException;
+import java.util.concurrent.CancellationException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.Grizzly;
@@ -54,6 +56,7 @@ import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.FilterChainEvent;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.utils.ArraySet;
 
@@ -158,8 +161,32 @@ public class PUFilter extends BaseFilter {
     }
 
     @Override
-    public NextAction handleEvent(final FilterChainContext ctx, Object event) throws IOException {
-        return super.handleEvent(ctx, event);
+    public NextAction handleEvent(final FilterChainContext ctx,
+            final FilterChainEvent event) throws IOException {
+
+        // if downstream event - pass it to the puFilter
+        if (isUpstream(ctx)) {
+
+            final Connection connection = ctx.getConnection();
+            final PUContext puContext = puContextAttribute.get(connection);
+            final PUProtocol protocol;
+            if (puContext != null && (protocol = puContext.protocol) != null) {
+                isProcessingAttribute.set(ctx, Boolean.TRUE);
+
+                final FilterChain filterChain = protocol.getFilterChain();
+                final FilterChainContext context = filterChain.obtainFilterChainContext(connection);
+                context.setStartIdx(-1);
+                context.setFilterIdx(-1);
+                context.setEndIdx(filterChain.size());
+
+                suspendedContextAttribute.set(context, ctx);
+                context.notifyUpstream(event, new InternalCompletionHandler(ctx));
+                
+                return ctx.getSuspendAction();
+            }
+        }
+
+        return ctx.getInvokeAction();
     }
 
     @Override
@@ -195,8 +222,12 @@ public class PUFilter extends BaseFilter {
                         " reported error", e);
             }
         }
-
     }
+
+    private static boolean isUpstream(final FilterChainContext context) {
+        return context.getStartIdx() < context.getEndIdx();
+    }
+
 
     private class InternalPostProcessor implements PostProcessor {
         
@@ -213,5 +244,35 @@ public class PUFilter extends BaseFilter {
                     suspendedContext.resume();
             }
         }
+    }
+
+    private class InternalCompletionHandler implements
+            CompletionHandler<FilterChainContext> {
+
+        private final FilterChainContext suspendedContext;
+
+        public InternalCompletionHandler(FilterChainContext suspendedContext) {
+            this.suspendedContext = suspendedContext;
+        }
+
+        @Override
+        public void cancelled() {
+            suspendedContext.fail(new CancellationException());
+        }
+
+        @Override
+        public void failed(final Throwable throwable) {
+            suspendedContext.fail(throwable);
+        }
+
+        @Override
+        public void completed(final FilterChainContext context) {
+            suspendedContext.resume();
+        }
+
+        @Override
+        public void updated(FilterChainContext result) {
+        }
+
     }
 }

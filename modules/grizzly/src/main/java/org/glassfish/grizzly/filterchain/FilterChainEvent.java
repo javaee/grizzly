@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,34 +38,12 @@
  * holder.
  */
 
-package org.glassfish.grizzly.http.server;
-
-import org.junit.Test;
-import static org.junit.Assert.*;
+package org.glassfish.grizzly.filterchain;
 
 /**
- * Basic JMX initialization tests.
+ *
+ * @author oleksiys
  */
-public class HttpServerJmxBasicTest {
-
-    @Test
-    public void transport() throws Exception {
-        HttpServer gws = new HttpServer();
-        HttpServer gws1 = new HttpServer();
-        NetworkListener listener1 = new NetworkListener("listener1", "localhost", 8080);
-        NetworkListener listener2 = new NetworkListener("listener2", "localhost", 8081);
-        gws.addListener(listener1);
-        gws1.addListener(listener2);
-
-        try {
-            gws.start();
-            gws1.start();
-            gws.getServerConfiguration().setJmxEnabled(true);
-            gws1.getServerConfiguration().setJmxEnabled(true);
-            assertTrue(true);
-        } finally {
-            gws.stop();
-            gws1.stop();
-        }
-    }
+public interface FilterChainEvent {
+    Object type();
 }

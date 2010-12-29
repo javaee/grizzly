@@ -165,8 +165,8 @@ public interface Filter {
      *         should continue the execution
      * @throws {@link java.io.IOException}
      */
-    public NextAction handleEvent(FilterChainContext ctx, Object event)
-            throws IOException;
+    public NextAction handleEvent(FilterChainContext ctx,
+            FilterChainEvent event) throws IOException;
 
     /**
      * Execute a unit of processing work to be performed, when connection

@@ -151,12 +151,13 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     }
 
     @Override
-    public ReadResult read(FilterChainContext context) throws IOException {
+    public ReadResult read(final FilterChainContext context) throws IOException {
         final Connection connection = context.getConnection();
         if (!context.getTransportContext().isBlocking()) {
             throw new IllegalStateException("FilterChain doesn't support standalone non blocking read. Please use Filter instead.");
         } else {
-            final UnsafeFutureImpl future = UnsafeFutureImpl.create();
+            final UnsafeFutureImpl<FilterChainContext> future =
+                    UnsafeFutureImpl.<FilterChainContext>create();
             context.operationCompletionFuture = future;
 
             final FilterExecutor executor = ExecutorResolver.resolve(context);
@@ -171,7 +172,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             } while (!future.isDone());
 
             try {
-                final FilterChainContext retContext = (FilterChainContext) future.get();
+                final FilterChainContext retContext = future.get();
                 ReadResult rr = ReadResult.create(connection);
                 rr.setMessage(retContext.getMessage());
                 rr.setSrcAddress(retContext.getAddress());
@@ -211,16 +212,14 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     }
 
     @Override
-    public <M> GrizzlyFuture<WriteResult> flush(Connection connection,
-            CompletionHandler<WriteResult> completionHandler)
+    public <M> GrizzlyFuture<WriteResult> flush(final Connection connection,
+            final CompletionHandler<WriteResult> completionHandler)
             throws IOException {
         final FutureImpl<WriteResult> future = SafeFutureImpl.create();
 
         final FilterChainContext context = obtainFilterChainContext(connection);
-        context.transportFilterContext.future = future;
-        context.transportFilterContext.completionHandler = completionHandler;
         context.setOperation(Operation.EVENT);
-        context.event = TransportFilter.FLUSH_EVENT;
+        context.event = TransportFilter.createFlushEvent(future, completionHandler);
         ExecutorResolver.DOWNSTREAM_EXECUTOR_SAMPLE.initIndexes(context);
 
         ProcessorExecutor.execute(context.internalContext);
@@ -229,9 +228,11 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     }
 
     @Override
-    public GrizzlyFuture fireEventDownstream(Connection connection, Object event,
-            CompletionHandler completionHandler) throws IOException {
-        final FutureImpl<WriteResult> future = SafeFutureImpl.create();
+    public GrizzlyFuture<FilterChainContext> fireEventDownstream(final Connection connection,
+            final FilterChainEvent event,
+            final CompletionHandler<FilterChainContext> completionHandler) throws IOException {
+        final FutureImpl<FilterChainContext> future =
+                SafeFutureImpl.<FilterChainContext>create();
 
         final FilterChainContext context = obtainFilterChainContext(connection);
         context.operationCompletionFuture = future;
@@ -246,9 +247,11 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     }
 
     @Override
-    public GrizzlyFuture fireEventUpstream(Connection connection, Object event,
-            CompletionHandler completionHandler) throws IOException {
-        final FutureImpl<WriteResult> future = SafeFutureImpl.create();
+    public GrizzlyFuture<FilterChainContext> fireEventUpstream(final Connection connection,
+            final FilterChainEvent event,
+            final CompletionHandler<FilterChainContext> completionHandler) throws IOException {
+        final FutureImpl<FilterChainContext> future =
+                SafeFutureImpl.<FilterChainContext>create();
 
         final FilterChainContext context = obtainFilterChainContext(connection);
         context.operationCompletionFuture = future;
@@ -416,7 +419,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         }
 
         if (i == end) {
-            notifyComplete(ctx, ctx);
+            notifyComplete(ctx);
         }
 
         return FilterExecution.CONTINUE;
@@ -499,8 +502,8 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
      * @param ctx {@link FilterChainContext}
      * @return position of the last executed {@link Filter}
      */
-    private void throwChain(FilterChainContext ctx, FilterExecutor executor,
-            Throwable exception) {
+    private void throwChain(final FilterChainContext ctx,
+            final FilterExecutor executor, final Throwable exception) {
 
         notifyFailure(ctx, exception);
 
@@ -588,27 +591,30 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         return filtersState;
     }
 
-    private void notifyComplete(FilterChainContext context, Object result) {
+    private void notifyComplete(final FilterChainContext context) {
         final CompletionHandler completionHandler = context.operationCompletionHandler;
         final FutureImpl future = context.operationCompletionFuture;
 
         if (completionHandler != null) {
-            completionHandler.completed(result);
+            completionHandler.completed(context);
         }
 
         if (future != null) {
-            future.result(result);
+            future.result(context);
         }
 
+
+        // If TransportFilter was invoked on the way - the following CompletionHandler and Future
+        // will be null.
         final CompletionHandler transportCompletionHandler = context.transportFilterContext.completionHandler;
         final FutureImpl transportFuture = context.transportFilterContext.future;
 
         if (transportCompletionHandler != null) {
-            transportCompletionHandler.completed(result);
+            transportCompletionHandler.completed(context);
         }
 
         if (transportFuture != null) {
-            transportFuture.result(result);
+            transportFuture.result(context);
         }
     }
 

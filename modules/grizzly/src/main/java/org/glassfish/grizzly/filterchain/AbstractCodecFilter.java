@@ -132,9 +132,4 @@ public abstract class AbstractCodecFilter<K, L> extends BaseFilter
     public Transformer<L, K> getEncoder() {
         return encoder;
     }
-
-    @Override
-    public void exceptionOccurred(FilterChainContext ctx, Throwable error) {
-        super.exceptionOccurred(ctx, error);
-    }
 }

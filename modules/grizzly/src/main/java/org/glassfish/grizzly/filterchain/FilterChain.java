@@ -110,11 +110,15 @@ public interface FilterChain extends Processor, List<Filter> {
     <M> GrizzlyFuture<WriteResult> flush(Connection connection,
             CompletionHandler<WriteResult> completionHandler) throws IOException;
 
-    GrizzlyFuture fireEventUpstream(Connection connection, Object event,
-            CompletionHandler completionHandler) throws IOException;
+    GrizzlyFuture<FilterChainContext> fireEventUpstream(Connection connection,
+            FilterChainEvent event,
+            CompletionHandler<FilterChainContext> completionHandler)
+            throws IOException;
     
-    GrizzlyFuture fireEventDownstream(Connection connection, Object event,
-            CompletionHandler completionHandler) throws IOException;
+    GrizzlyFuture<FilterChainContext> fireEventDownstream(Connection connection,
+            FilterChainEvent event,
+            CompletionHandler<FilterChainContext> completionHandler)
+            throws IOException;
 
     ReadResult read(FilterChainContext context) throws IOException;
 
