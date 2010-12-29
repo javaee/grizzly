@@ -164,7 +164,7 @@ public class PUFilter extends BaseFilter {
     public NextAction handleEvent(final FilterChainContext ctx,
             final FilterChainEvent event) throws IOException {
 
-        // if downstream event - pass it to the puFilter
+        // if upstream event - pass it to the puFilter
         if (isUpstream(ctx)) {
 
             final Connection connection = ctx.getConnection();
