@@ -60,7 +60,7 @@ import java.io.IOException;
  *
  * @author oleksiys
  */
-public abstract class AbstractIOStrategy implements IOStrategy, WorkerThreadPoolConfigProducer  {
+public abstract class AbstractIOStrategy implements IOStrategy {
     // COMPLETE, COMPLETE_LEAVE, RE-REGISTER, RERUN, ERROR, TERMINATE, NOT_RUN
     private final static boolean[] isRegisterMap = {true, false, true, false, false, false, false};
 

@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly;
 
+import org.glassfish.grizzly.strategies.WorkerThreadPoolConfigProducer;
+
 import java.io.IOException;
 
 /**
@@ -50,7 +52,7 @@ import java.io.IOException;
  * 
  * @author Alexey Stashok
  */
-public interface IOStrategy {
+public interface IOStrategy extends WorkerThreadPoolConfigProducer {
 
     /**
      *

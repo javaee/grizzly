@@ -445,20 +445,10 @@ public final class UDPNIOTransport extends NIOTransport implements
             }
 
             if (threadPool == null) {
-                ThreadPoolConfig config;
-                if (strategy instanceof WorkerThreadPoolConfigProducer) {
-                    config = ((WorkerThreadPoolConfigProducer) strategy).createDefaultWorkerPoolConfig(this);
-                } else {
-                    config = ThreadPoolConfig.defaultConfig()
-                        .setCorePoolSize(selectorRunnersCount * 2)
-                        .setMaxPoolSize(selectorRunnersCount * 2)
-                        .setMemoryManager(getMemoryManager());
-                }
+                ThreadPoolConfig config = strategy.createDefaultWorkerPoolConfig(this);
                 config.getInitialMonitoringConfig().addProbes(
                         getThreadPoolMonitoringConfig().getProbes());
-
                 setThreadPool0(GrizzlyExecutorService.createInstance(config));
-
             } else {
                 if (threadPool instanceof GrizzlyExecutorService) {
                     final ThreadPoolConfig config =
@@ -469,8 +459,6 @@ public final class UDPNIOTransport extends NIOTransport implements
                     }
                 }
             }
-
-
 
             /* By default TemporarySelector pool size should be equal
             to the number of processing threads */
