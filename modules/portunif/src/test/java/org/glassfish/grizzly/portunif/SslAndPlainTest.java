@@ -71,8 +71,19 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 /**
- * Port-unification test, which involves secured and plain protocols
- * 
+ * Port-unification test, which involves secured and plain protocols.
+ * Test creates a protocol tree:
+ *                 PUFilter
+ *                     |
+ *        -------------------------
+ *        |   |   |               |
+ *        X   Y   Z           SSLFilter
+ *                                |
+ *                            PUFilter
+ *                      --------------------
+ *                      |         |        |
+ *                      A         B        X
+ *
  * @author Alexey Stashok
  */
 public class SslAndPlainTest {
