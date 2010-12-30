@@ -116,7 +116,7 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
      */
     public GrizzlyFuture<Connection> accept() throws IOException {
         if (!isStandalone()) {
-            throw new IllegalStateException("Accept could be used in standlone mode only");
+            throw new IllegalStateException("Accept could be used in standalone mode only");
         }
 
         final GrizzlyFuture<Connection> future = acceptAsync();
@@ -208,10 +208,6 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
         super.preClose();
     }
 
-    protected void throwUnsupportReadWrite() {
-        throw new UnsupportedOperationException("TCPNIOServerConnection "
-                + "doesn't support neither read nor write operations.");
-    }
 
     /**
      * Method will be called by framework, when async accept will be ready
