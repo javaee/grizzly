@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2006-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -36,41 +36,69 @@
  * and therefore, elected the GPL Version 2 license, then the option applies
  * only if the new code is made subject to such option by the copyright
  * holder.
+ *
+ *
+ * This file incorporates work covered by the following copyright and
+ * permission notice:
+ *
+ * Copyright 2004 The Apache Software Foundation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-package org.glassfish.grizzly.config;
 
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.portunif.PUContext;
-import org.glassfish.grizzly.portunif.ProtocolFinder;
+package org.glassfish.grizzly.config.ssl;
+
+import java.net.Socket;
+import javax.net.ssl.SSLSocket;
+// START SJSAS 6439313
+import javax.net.ssl.SSLEngine;
+import org.glassfish.grizzly.ssl.SSLSupport;
+// END SJSAS 6439313
 
 /**
+ * Implementation class for JSSEFactory for JSSE 1.1.x (that ships with the
+ * 1.4 JVM).
  *
- * @author oleksiys
+ * @author Bill Barker
  */
-public class XProtocolFinder implements ProtocolFinder {
+// START SJSAS 6240885
+//class JSSE14Factory implements JSSEFactory {
+public class JSSE14Factory implements JSSEFactory {
+// END SJSAS 6240885
 
-    private final static String name = "X-protocol";
-    private byte[] signature = name.getBytes(XProtocolFilter.CHARSET);
-
+    // START SJSAS 6240885
+    // 
+    //JSSE14Factory() {
+    public JSSE14Factory() {
+    // END SJSAS 6240885
+    }
 
     @Override
-    public Result find(PUContext puContext, FilterChainContext ctx) {
-        
-        final Buffer buffer = ctx.getMessage();
-
-        if (buffer.remaining() < signature.length) {
-            return Result.NEED_MORE_DATA;
-        }
-
-        final int start = buffer.position();
-
-        for (int i = 0; i < signature.length; i++) {
-            if (buffer.get(i + start) != signature[i]) {
-                return Result.NOT_FOUND;
-            }
-        }
-
-        return Result.FOUND;
+    public ServerSocketFactory getSocketFactory() {
+	return new JSSE14SocketFactory();
     }
+    
+    
+    @Override
+    public SSLSupport getSSLSupport(Socket socket) {
+        return new JSSE14Support((SSLSocket)socket);
+    }
+
+    // START SJSAS 6439313
+    @Override
+    public SSLSupport getSSLSupport(SSLEngine sslEngine) {
+        return new JSSE14Support(sslEngine);
+    }
+
+    // END SJSAS 6439313
 }

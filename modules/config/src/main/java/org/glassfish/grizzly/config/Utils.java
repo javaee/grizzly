@@ -54,6 +54,9 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Enumeration;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.glassfish.grizzly.Grizzly;
 
 /**
  * Created Dec 18, 2008
@@ -61,6 +64,8 @@ import java.util.Enumeration;
  * @author <a href="mailto:justin.lee@sun.com">Justin Lee</a>
  */
 public class Utils {
+    private static final Logger LOGGER = Grizzly.logger(Utils.class);
+
     private final static String habitatName = "default";
     private final static String inhabitantPath = "META-INF/inhabitants";
 
@@ -140,6 +145,39 @@ public class Utils {
     
     public static String composeThreadPoolName(final NetworkListener networkListener) {
         return networkListener.getThreadPool() + "-" + networkListener.getPort();
+    }
+
+    /**
+     * Load {@link AsyncFilter} with the specific service name and classname.
+     *
+     * @param habitat
+     * @param name
+     * @param realClassName
+     * @return
+     */
+    public static <E> E newInstance(Habitat habitat, Class<E> clazz,
+            final String name, final String realClassName) {
+        boolean isInitialized = false;
+
+        E instance = habitat.getComponent(clazz, name);
+        if (instance == null) {
+            try {
+                instance = (E) newInstance(realClassName);
+                isInitialized = true;
+            } catch (Exception e) {
+            }
+        } else {
+            isInitialized = true;
+        }
+
+        if (!isInitialized) {
+            LOGGER.log(Level.WARNING, "Instance could not be initialized. "
+                    + "Class={0}, name={1}, realClassName={2}",
+                    new Object[]{clazz, name, realClassName});
+            return null;
+        }
+
+        return instance;
     }
 
     public static Object newInstance(String classname) throws Exception {

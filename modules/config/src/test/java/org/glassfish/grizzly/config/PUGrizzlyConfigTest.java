@@ -62,7 +62,7 @@ import org.testng.annotations.Test;
  *
  * @author <a href="mailto:justin.d.lee@oracle.com">Justin Lee</a>
  */
-@Test(enabled=false)
+@Test(enabled=true)
 public class PUGrizzlyConfigTest {
     public void puConfig() throws IOException, InstantiationException {
         GrizzlyConfig grizzlyConfig = null;

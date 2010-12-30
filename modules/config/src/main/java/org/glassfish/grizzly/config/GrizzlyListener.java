@@ -44,6 +44,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 
 import org.glassfish.grizzly.config.dom.NetworkListener;
+import org.jvnet.hk2.component.Habitat;
 
 /**
  * <p>The GrizzlyServiceListener is responsible of mapping incoming requests to the proper Container or Grizzly
@@ -79,7 +80,7 @@ public interface GrizzlyListener {
     
     // TODO: Must get the information from domain.xml Config objects.
     // TODO: Pending Grizzly issue 54
-    public void configure(NetworkListener networkListener) throws IOException;
+    public void configure(Habitat habitat, NetworkListener networkListener) throws IOException;
 
     public void processDynamicConfigurationChange(PropertyChangeEvent[] events);
 

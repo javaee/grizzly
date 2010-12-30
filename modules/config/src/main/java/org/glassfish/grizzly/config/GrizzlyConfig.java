@@ -53,6 +53,7 @@ import org.glassfish.grizzly.config.dom.NetworkListener;
 import org.glassfish.grizzly.memory.AbstractMemoryManager;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
+import org.jvnet.hk2.component.Habitat;
 
 /**
  * Created Nov 24, 2008
@@ -62,10 +63,12 @@ import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
 public class GrizzlyConfig {
     private static final Logger logger = Logger.getLogger(GrizzlyConfig.class.getName());
     private final NetworkConfig config;
+    private final Habitat habitat;
     private final List<GrizzlyListener> listeners = new ArrayList<GrizzlyListener>();
 
     public GrizzlyConfig(String file) {
-        config = Utils.getHabitat(file).getComponent(NetworkConfig.class);
+        habitat = Utils.getHabitat(file);
+        config = habitat.getComponent(NetworkConfig.class);
     }
 
     public NetworkConfig getConfig() {
@@ -86,7 +89,7 @@ public class GrizzlyConfig {
             }
             for (final NetworkListener listener : config.getNetworkListeners().getNetworkListener()) {
                 final GrizzlyListener grizzlyListener = new GenericGrizzlyListener();
-                grizzlyListener.configure(listener);
+                grizzlyListener.configure(habitat, listener);
                 listeners.add(grizzlyListener);
                 final Thread thread = new DefaultWorkerThread(Grizzly.DEFAULT_ATTRIBUTE_BUILDER,
                                                               grizzlyListener.getName(),

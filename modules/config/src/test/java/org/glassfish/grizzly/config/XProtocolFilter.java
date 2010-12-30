@@ -40,23 +40,42 @@
 
 package org.glassfish.grizzly.config;
 
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.MemoryManager;
+
 /**
  *
  * @author oleksiys
  */
-public class XProtocolFilter /*implements ProtocolFilter*/ {
+public class XProtocolFilter extends BaseFilter {
+    public static final Charset CHARSET = Charset.forName("ISO-8859-1");
 
-/*
-    public boolean execute(Context ctx) throws IOException {
-        SelectableChannel channel = ctx.getSelectionKey().channel();
-        OutputWriter.flushChannel(channel, ByteBuffer.wrap("X-Protocol-Response".getBytes()));
-        ctx.getSelectorHandler().closeChannel(channel);
-        return false;
+    @Override
+    public NextAction handleRead(final FilterChainContext ctx) throws IOException {
+        final Connection connection = ctx.getConnection();
+        final MemoryManager memoryManager = connection.getTransport().getMemoryManager();
+        ctx.write(Buffers.wrap(memoryManager, "X-Protocol-Response", CHARSET));
+
+        ctx.flush(new EmptyCompletionHandler() {
+
+            @Override
+            public void completed(Object result) {
+                try {
+                    connection.close();
+                } catch (IOException ex) {
+                }
+            }
+
+        });
+        return ctx.getStopAction();
     }
-
-    public boolean postExecute(Context ctx) throws IOException {
-        return true;
-    }
-*/
-
 }

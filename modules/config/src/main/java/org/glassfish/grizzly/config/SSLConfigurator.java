@@ -59,6 +59,7 @@ import org.glassfish.grizzly.config.ssl.ServerSocketFactory;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
+import org.jvnet.hk2.component.Habitat;
 
 /**
  * @author oleksiys
@@ -68,34 +69,14 @@ public class SSLConfigurator extends SSLEngineConfigurator {
     private static final String PLAIN_PASSWORD_PROVIDER_NAME = "plain";
     private final static Logger LOGGER = Logger.getLogger(SSLConfigurator.class.getName());
     /**
-     * The list of cipher suite
-     */
-//    protected String[] enabledCipherSuites = null;
-    /**
-     * the list of protocols
-     */
-//    protected String[] enabledProtocols = null;
-//    /**
-//     * Client mode when handshaking.
-//     */
-//    protected boolean clientMode = false;
-//    /**
-//     * Require client Authentication.
-//     */
-//    protected boolean needClientAuth = false;
-//    /**
-//     * True when requesting authentication.
-//     */
-//    protected boolean wantClientAuth = false;
-    /**
      * SSL settings
      */
     private final Ssl ssl;
     private final SSLImplementation sslImplementation;
 
-    public SSLConfigurator(final Ssl ssl) {
+    public SSLConfigurator(final Habitat habitat, final Ssl ssl) {
         this.ssl = ssl;
-        sslImplementation = lookupSSLImplementation(ssl);
+        sslImplementation = lookupSSLImplementation(habitat, ssl);
         needClientAuth = isNeedClientAuth(ssl);
         wantClientAuth = isWantClientAuth(ssl);
         clientMode = false;
@@ -107,11 +88,11 @@ public class SSLConfigurator extends SSLEngineConfigurator {
      */
     protected SSLContext configureSSL() {
         SSLContext newSslContext = null;
-        
+
         final List<String> tmpSSLArtifactsList = new LinkedList<String>();
         try {
             newSslContext = initializeSSLContext();
-            
+
             if (ssl != null) {
                 // client-auth
 //                if (Boolean.parseBoolean(ssl.getClientAuthEnabled())) {
@@ -172,7 +153,7 @@ public class SSLConfigurator extends SSLEngineConfigurator {
                     enabledCipherSuites = ciphers;
                 }
             }
-            
+
             return newSslContext;
         } catch (Exception e) {
             if (LOGGER.isLoggable(Level.WARNING)) {
@@ -180,7 +161,7 @@ public class SSLConfigurator extends SSLEngineConfigurator {
                         LogMessages.WARNING_GRIZZLY_CONFIG_SSL_GENERAL_CONFIG_ERROR(), e);
             }
         }
-        
+
         return null;
     }
 
@@ -272,31 +253,36 @@ public class SSLConfigurator extends SSLEngineConfigurator {
         return false;
     }
 
-    private static SSLImplementation lookupSSLImplementation(Ssl ssl) {
-        SSLImplementation instance = null;
-        final String sslImplClassName = ssl.getClassname();
+    private static SSLImplementation lookupSSLImplementation(
+            final Habitat habitat, final Ssl ssl) {
+
         try {
+            final String sslImplClassName = ssl.getClassname();
             if (sslImplClassName != null) {
-                try {
-                    instance = (SSLImplementation) Utils.loadClass(sslImplClassName).newInstance();
-                } catch (Exception e) {
-                    if (LOGGER.isLoggable(Level.SEVERE)) {
-                        LOGGER.log(Level.SEVERE,
-                                LogMessages.SEVERE_GRIZZLY_CONFIG_SSL_CLASS_LOAD_FAILED_ERROR(sslImplClassName), e);
+                final SSLImplementation impl = Utils.newInstance(habitat,
+                        SSLImplementation.class,
+                        sslImplClassName, sslImplClassName);
+
+                if (impl != null) {
+                    return impl;
+                } else {
+                    if (LOGGER.isLoggable(Level.WARNING)) {
+                        LOGGER.warning(LogMessages.WARNING_GRIZZLY_CONFIG_SSL_SSL_IMPLEMENTATION_LOAD_ERROR(sslImplClassName));
                     }
+                    return SSLImplementation.getInstance();
                 }
             } else {
-                instance = SSLImplementation.getInstance();
+                return SSLImplementation.getInstance();
             }
         } catch (Exception e) {
             if (LOGGER.isLoggable(Level.WARNING)) {
-                LOGGER.log(Level.WARNING, LogMessages.WARNING_GRIZZLY_CONFIG_SSL_GENERAL_CONFIG_ERROR(), e);
+                LOGGER.log(Level.WARNING,
+                        LogMessages.WARNING_GRIZZLY_CONFIG_SSL_GENERAL_CONFIG_ERROR(),
+                        e);
             }
         }
-        if (instance == null) {
-            throw new GrizzlyConfigException(LogMessages.SEVERE_GRIZZLY_CONFIG_SSL_ERROR());
-        }
-        return instance;
+
+        return null;
     }
 
     /**

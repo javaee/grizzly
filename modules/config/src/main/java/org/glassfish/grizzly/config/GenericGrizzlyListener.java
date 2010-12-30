@@ -60,10 +60,13 @@ import org.glassfish.grizzly.SocketBinder;
 import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.config.dom.Http;
 import org.glassfish.grizzly.config.dom.NetworkListener;
+import org.glassfish.grizzly.config.dom.PortUnification;
 import org.glassfish.grizzly.config.dom.Protocol;
+import org.glassfish.grizzly.config.dom.ProtocolChainInstanceHandler;
 import org.glassfish.grizzly.config.dom.Ssl;
 import org.glassfish.grizzly.config.dom.ThreadPool;
 import org.glassfish.grizzly.config.dom.Transport;
+import org.glassfish.grizzly.config.portunif.HttpRedirectFilter;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -84,6 +87,10 @@ import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.portunif.PUFilter;
+import org.glassfish.grizzly.portunif.PUProtocol;
+import org.glassfish.grizzly.portunif.ProtocolFinder;
+import org.glassfish.grizzly.portunif.finders.SSLProtocolFinder;
 import org.glassfish.grizzly.rcm.ResourceAllocationFilter;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.ssl.SSLFilter;
@@ -93,6 +100,7 @@ import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 import org.glassfish.grizzly.utils.SilentConnectionFilter;
 import org.glassfish.grizzly.websockets.WebSocketFilter;
+import org.jvnet.hk2.component.Habitat;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 
 /**
@@ -173,17 +181,27 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     }
 
     public <E> List<E> getFilters(Class<E> clazz) {
-        final List<E> filters = new ArrayList<E>(2);
+        return getFilters(clazz, rootFilterChain, new ArrayList<E>(2));
+    }
 
-        for (final Filter filter : rootFilterChain) {
+    public static <E> List<E> getFilters(Class<E> clazz,
+            final FilterChain filterChain, final List<E> filters) {
+
+        for (final Filter filter : filterChain) {
             if (clazz.isAssignableFrom(filter.getClass())) {
                 filters.add((E) filter);
+            }
+
+            if (PUFilter.class.isAssignableFrom(filter.getClass())) {
+                final Set<PUProtocol> puProtocols = ((PUFilter) filter).getProtocols();
+                for (PUProtocol puProtocol: puProtocols) {
+                    getFilters(clazz, puProtocol.getFilterChain(), filters);
+                }
             }
         }
 
         return filters;
     }
-
 
     /*
      * Configures the given grizzlyListener.
@@ -193,23 +211,27 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     // TODO: Must get the information from domain.xml Config objects.
     // TODO: Pending Grizzly issue 54
     @Override
-    public void configure(final NetworkListener networkListener) throws IOException {
+    public void configure(final Habitat habitat,
+            final NetworkListener networkListener) throws IOException {
+        
         setName(networkListener.getName());
         setAddress(InetAddress.getByName(networkListener.getAddress()));
         setPort(Integer.parseInt(networkListener.getPort()));
 
-        configureDelayedExecutor();
-        configureTransport(networkListener.findTransport());
-        configureProtocol(networkListener.findProtocol(), rootFilterChain);
-        configureThreadPool(networkListener.findThreadPool());
+        configureDelayedExecutor(habitat);
+        configureTransport(habitat, networkListener.findTransport());
+        configureProtocol(habitat, networkListener.findProtocol(), rootFilterChain);
+        configureThreadPool(habitat, networkListener.findThreadPool());
     }
 
-    protected void configureTransport(final Transport transportConfig) {
+    protected void configureTransport(final Habitat habitat,
+            final Transport transportConfig) {
+        
         final String transportName = transportConfig.getName();
         if ("tcp".equalsIgnoreCase(transportName)) {
-            transport = configureTCPTransport(transportConfig);
+            transport = configureTCPTransport(habitat, transportConfig);
         } else if ("udp".equalsIgnoreCase(transportName)) {
-            transport = configureUDPTransport(transportConfig);
+            transport = configureUDPTransport(habitat, transportConfig);
         } else {
             throw new GrizzlyConfigException("Unsupported transport type " + transportConfig.getName());
         }
@@ -223,7 +245,9 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         transport.setProcessor(rootFilterChain);
     }
 
-    protected NIOTransport configureTCPTransport(final Transport transportConfig) {
+    protected NIOTransport configureTCPTransport(final Habitat habitat,
+            final Transport transportConfig) {
+        
         final TCPNIOTransport tcpTransport = TransportFactory.getInstance().createTCPTransport();
         tcpTransport.setTcpNoDelay(Boolean.parseBoolean(transportConfig.getTcpNoDelay()));
         tcpTransport.setLinger(Integer.parseInt(transportConfig.getLinger()));
@@ -232,88 +256,102 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         return tcpTransport;
     }
 
-    protected NIOTransport configureUDPTransport(final Transport transportConfig) {
+    protected NIOTransport configureUDPTransport(final Habitat habitat,
+            final Transport transportConfig) {
+        
         return TransportFactory.getInstance().createUDPTransport();
     }
 
-    protected void configureProtocol(final Protocol protocol,
-            final FilterChain filterChain) {
+    protected void configureProtocol(final Habitat habitat,
+            final Protocol protocol, final FilterChain filterChain) {
+        if (Boolean.valueOf(protocol.getSecurityEnabled())) {
+            configureSsl(habitat, protocol.getSsl(), filterChain);
+        }
+
+        configureSubProtocol(habitat, protocol, filterChain);
+    }
+
+    protected void configureSubProtocol(final Habitat habitat,
+            final Protocol protocol, final FilterChain filterChain) {
         
-        final Http http = protocol.getHttp();
-        if (http != null) {
-            if (Boolean.valueOf(protocol.getSecurityEnabled())) {
-                configureSsl(protocol.getSsl(), filterChain);
-            }
+        if (protocol.getHttp() != null) {
+            final Http http = protocol.getHttp();
 
-            configureHttpProtocol(http, filterChain);
+            configureHttpProtocol(habitat, http, filterChain);
 
-            // Only HTTP protocol defined
-//            configureHttpListenerProperty(http);
-//            configureKeepAlive(http);
-//            configureHttpProtocol(http);
-//            configureFileCache(http.getFileCache());
-//            defaultVirtualServer = http.getDefaultVirtualServer();
-
-            
-            // acceptor-threads
-//            if (mayEnableComet && GrizzlyConfig.toBoolean(http.getCometSupportEnabled())) {
-//                throw new GrizzlyConfigException("Comet not support in 2.x yet.");
-////                configureComet(habitat);
-//            }
-
-            /*
-            } else if (protocol.getPortUnification() != null) {
+        } else if (protocol.getPortUnification() != null) {
             // Port unification
-            PortUnification pu = protocol.getPortUnification();
+            final PortUnification pu = protocol.getPortUnification();
             final String puFilterClassname = pu.getClassname();
+
+            PUFilter puFilter = null;
+            
             if (puFilterClassname != null) {
-            try {
-            puFilter = (PUReadFilter) newInstance(puFilterClassname);
-            configureElement(puFilter, pu);
-            } catch (Exception e) {
-            logger.log(Level.WARNING,
-            "Can not initialize port unification filter: " +
-            puFilterClassname + " default filter will be used instead", e);
-            }
-            }
-            List<ProtocolFinder> findersConfig = pu.getProtocolFinder();
-            for (com.glassfish.grizzly.config.dom.ProtocolFinder finderConfig : findersConfig) {
-            String finderClassname = finderConfig.getClassname();
-            try {
-            ProtocolFinder protocolFinder = (ProtocolFinder) newInstance(finderClassname);
-            configureElement(protocolFinder, finderConfig);
-            Protocol subProtocol = finderConfig.findProtocol();
-            ProtocolChainInstanceHandler protocolChain =
-            configureProtocol(networkListener, subProtocol,
-            habitat, mayEnableComet);
-            final String protocolName = subProtocol.getName();
-            finders.add(new ConfigProtocolFinderWrapper(protocolName, protocolFinder));
-            final String[] protocols = new String[]{protocolName};
-            if (protocolChain != null) {
-            handlers.add(new CustomFilterChainProtocolHandler(protocolChain) {
-            public String[] getProtocols() {
-            return protocols;
+                try {
+                    puFilter = (PUFilter) Utils.newInstance(habitat,
+                            PUFilter.class, puFilterClassname, puFilterClassname);
+                    
+                    configureElement(habitat, puFilter, pu);
+                } catch (Exception e) {
+                    logger.log(Level.WARNING,
+                            "Can not initialize port unification filter: "
+                            + puFilterClassname + " default filter will be used instead", e);
+                }
             }
 
-            public ByteBuffer getByteBuffer() {
-            final WorkerThread workerThread = (WorkerThread) Thread.currentThread();
-            if (workerThread.getSSLEngine() != null) {
-            return workerThread.getInputBB();
+            if (puFilter == null) {
+                puFilter = new PUFilter();
             }
-            return null;
+            
+            List<org.glassfish.grizzly.config.dom.ProtocolFinder> findersConfig = pu.getProtocolFinder();
+            for (org.glassfish.grizzly.config.dom.ProtocolFinder finderConfig : findersConfig) {
+                final String finderClassname = finderConfig.getClassname();
+                try {
+                    final ProtocolFinder protocolFinder = Utils.newInstance(habitat,
+                            ProtocolFinder.class, finderClassname, finderClassname);
+                    
+                    configureElement(habitat, protocolFinder, finderConfig);
+
+                    final Protocol subProtocol = finderConfig.findProtocol();
+
+                    final FilterChain subProtocolFilterChain =
+                            puFilter.getPUFilterChainBuilder().build();
+
+                    // If subprotocol is secured - we need to wrap it under SSLProtocolFinder
+                    if (Boolean.valueOf(subProtocol.getSecurityEnabled())) {
+                        final PUFilter extraSslPUFilter = new PUFilter();
+                        configureSsl(habitat, subProtocol.getSsl(), subProtocolFilterChain);
+                        subProtocolFilterChain.add(extraSslPUFilter);
+
+                        final FilterChain extraSslPUFilterChain =
+                                extraSslPUFilter.getPUFilterChainBuilder().build();
+                        configureSubProtocol(habitat, subProtocol,
+                                extraSslPUFilterChain);
+
+                        extraSslPUFilter.register(protocolFinder, extraSslPUFilterChain);
+
+                        puFilter.register(new SSLProtocolFinder(
+                                new SSLConfigurator(habitat, subProtocol.getSsl())),
+                                subProtocolFilterChain);
+                    } else {
+                        configureProtocol(habitat, subProtocol,
+                                subProtocolFilterChain);
+                        puFilter.register(protocolFinder, subProtocolFilterChain);
+                    }
+                } catch (Exception e) {
+                    logger.log(Level.WARNING, "Can not initialize sub protocol. Finder: "
+                            + finderClassname, e);
+                }
             }
-            });
-            } else {
-            handlers.add(new WebProtocolHandler(protocolName));
-            }
-            } catch (Exception e) {
-            logger.log(Level.WARNING, "Can not initialize sub protocol. Finder: " +
-            finderClassname, e);
-            }
-            }
-            configurePortUnification(); */
+
+            filterChain.add(puFilter);            
+        } else if (protocol.getHttpRedirect() != null) {
+            filterChain.add(new org.glassfish.grizzly.http.HttpServerFilter());
+            final HttpRedirectFilter filter = new HttpRedirectFilter();
+            filter.configure(habitat, protocol.getHttpRedirect());
+            filterChain.add(filter);
         } else {
-            org.glassfish.grizzly.config.dom.ProtocolChainInstanceHandler pcihConfig = protocol.getProtocolChainInstanceHandler();
+            ProtocolChainInstanceHandler pcihConfig = protocol.getProtocolChainInstanceHandler();
             if (pcihConfig == null) {
                 logger.log(Level.WARNING, "Empty protocol declaration");
                 return;
@@ -324,8 +362,8 @@ public class GenericGrizzlyListener implements GrizzlyListener {
             for (org.glassfish.grizzly.config.dom.ProtocolFilter filterConfig : filterChainConfig.getProtocolFilter()) {
                 final String filterClassname = filterConfig.getClassname();
                 try {
-                    Filter filter = (Filter) Utils.newInstance(filterClassname);
-                    configureElement(filter, filterConfig);
+                    final Filter filter = (Filter) Utils.newInstance(filterClassname);
+                    configureElement(habitat, filter, filterConfig);
                     filterChain.add(filter);
                 } catch (Exception e) {
                     logger.log(Level.WARNING, "Can not initialize protocol filter: "
@@ -337,21 +375,21 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         }
     }
 
-    protected static void configureSsl(final Ssl ssl,
+    protected static void configureSsl(final Habitat habitat, final Ssl ssl,
             final FilterChain filterChain) {
-        final SSLEngineConfigurator serverConfig = new SSLConfigurator(ssl);
+        final SSLEngineConfigurator serverConfig = new SSLConfigurator(habitat, ssl);
         
-        final SSLEngineConfigurator clientConfig = new SSLConfigurator(ssl);
+        final SSLEngineConfigurator clientConfig = new SSLConfigurator(habitat, ssl);
         clientConfig.setClientMode(true);
 
         filterChain.add(new SSLFilter(serverConfig, clientConfig));
     }
 
     @SuppressWarnings({"unchecked"})
-    private static void configureElement(Object instance,
-            ConfigBeanProxy configuration) {
+    private static void configureElement(final Habitat habitat,
+            final Object instance, final ConfigBeanProxy configuration) {
         if (instance instanceof ConfigAwareElement) {
-            ((ConfigAwareElement) instance).configure(configuration);
+            ((ConfigAwareElement) instance).configure(habitat, configuration);
         }
     }
 
@@ -383,16 +421,20 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     }
      */
 
-    protected void configureThreadPool(final ThreadPool threadPool) {
+    protected void configureThreadPool(final Habitat habitat,
+            final ThreadPool threadPool) {
+        
         try {
             transport.setThreadPool(GrizzlyExecutorService.createInstance(
-                    configureThreadPoolConfig(threadPool)));
+                    configureThreadPoolConfig(habitat, threadPool)));
         } catch (NumberFormatException ex) {
             logger.log(Level.WARNING, " Invalid thread-pool attribute", ex);
         }
     }
 
-    protected ThreadPoolConfig configureThreadPoolConfig(final ThreadPool threadPool) {
+    protected ThreadPoolConfig configureThreadPoolConfig(final Habitat habitat,
+            final ThreadPool threadPool) {
+        
 //            Http http = listener.findHttpProtocol().getHttp();
 //            int keepAlive = http == null ? 0 : Integer.parseInt(http.getTimeoutSeconds());
         final int maxQueueSize = threadPool.getMaxQueueSize() != null ? Integer.MAX_VALUE
@@ -425,7 +467,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         return poolConfig;
     }
     
-    protected void configureDelayedExecutor() {
+    protected void configureDelayedExecutor(final Habitat habitat) {
         final AtomicInteger threadCounter = new AtomicInteger();
 
         auxExecutorService = Executors.newCachedThreadPool(
@@ -463,7 +505,9 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         }
     }
 
-    protected void configureHttpProtocol(final Http http, final FilterChain filterChain) {
+    protected void configureHttpProtocol(final Habitat habitat, 
+            final Http http, final FilterChain filterChain) {
+        
         final int idleTimeoutSeconds = Integer.parseInt(http.getTimeoutSeconds());
         filterChain.add(new SilentConnectionFilter(delayedExecutor, idleTimeoutSeconds,
                 TimeUnit.SECONDS));
@@ -471,14 +515,15 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         final int maxHeaderSize = Integer.parseInt(http.getHeaderBufferLengthBytes());
         final boolean chunkingEnabled = Boolean.parseBoolean(http.getChunkingEnabled());
 
-        final KeepAlive keepAlive = configureKeepAlive(http);
+        final KeepAlive keepAlive = configureKeepAlive(habitat, http);
         final org.glassfish.grizzly.http.HttpServerFilter httpServerFilter =
                 new org.glassfish.grizzly.http.HttpServerFilter(
                 chunkingEnabled, maxHeaderSize,
                 keepAlive,
                 delayedExecutor);
 
-        final Set<ContentEncoding> contentEncodings = configureContentEncodings(http);
+        final Set<ContentEncoding> contentEncodings =
+                configureContentEncodings(habitat, http);
 
         for (ContentEncoding contentEncoding : contentEncodings) {
             httpServerFilter.addContentEncoding(contentEncoding);
@@ -501,7 +546,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
             filterChain.add(new WebSocketFilter());
         }
 
-        final FileCache fileCache = configureHttpFileCache(http.getFileCache());
+        final FileCache fileCache = configureHttpFileCache(habitat, http.getFileCache());
         fileCache.initialize(transport.getMemoryManager(), delayedExecutor);
         final FileCacheFilter fileCacheFilter = new FileCacheFilter(fileCache);
 //        fileCache.getMonitoringConfig().addProbes(
@@ -529,7 +574,8 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     /**
      * Configure the Grizzly HTTP FileCache mechanism
      */
-    protected FileCache configureHttpFileCache(final org.glassfish.grizzly.config.dom.FileCache cache) {
+    protected FileCache configureHttpFileCache(final Habitat habitat,
+            final org.glassfish.grizzly.config.dom.FileCache cache) {
         final FileCache fileCache = new FileCache();
 
         if (cache != null) {
@@ -545,7 +591,9 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         return fileCache;
     }
 
-    protected KeepAlive configureKeepAlive(final Http http) {
+    protected KeepAlive configureKeepAlive(final Habitat habitat,
+            final Http http) {
+        
         int timeoutInSeconds = 60;
         int maxConnections = 256;
         if (http != null) {
@@ -574,13 +622,18 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         return keepAlive;
     }
 
-    protected Set<ContentEncoding> configureContentEncodings(final Http http) {
-        final Set<ContentEncoding> compressionEncodings = configureCompressionEncodings(http);
+    protected Set<ContentEncoding> configureContentEncodings(
+            final Habitat habitat, final Http http) {
+
+        final Set<ContentEncoding> compressionEncodings =
+                configureCompressionEncodings(habitat, http);
 
         return compressionEncodings;
     }
 
-    protected Set<ContentEncoding> configureCompressionEncodings(final Http http) {
+    protected Set<ContentEncoding> configureCompressionEncodings(
+            final Habitat habitat, final Http http) {
+        
         final String mode = http.getCompression();
 
         int compressionMinSize = Integer.parseInt(http.getCompressionMinSizeBytes());
