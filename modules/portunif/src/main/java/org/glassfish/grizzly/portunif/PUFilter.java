@@ -80,13 +80,13 @@ public class PUFilter extends BaseFilter {
     public PUFilter() {
         puContextAttribute =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-                        PUFilter.class.getName() + ".puContext");
+                        PUFilter.class.getName() + "-" + hashCode() + ".puContext");
         isProcessingAttribute =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-                PUFilter.class.getName() + ".isProcessing");
+                PUFilter.class.getName() + "-" + hashCode() + ".isProcessing");
         suspendedContextAttribute =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-                        PUFilter.class.getName() + ".suspendedContext");
+                        PUFilter.class.getName() + "-" + hashCode() + ".suspendedContext");
     }
 
     public PUProtocol register(final ProtocolFinder protocolFinder,
@@ -115,10 +115,10 @@ public class PUFilter extends BaseFilter {
         return backChannelFilter;
     }
 
-    public FilterChain createPUFilterChain() {
+    public FilterChainBuilder getPUFilterChainBuilder() {
         final FilterChainBuilder builder = FilterChainBuilder.stateless();
         builder.add(backChannelFilter);
-        return builder.build();
+        return builder;
     }
 
     @Override
@@ -151,9 +151,14 @@ public class PUFilter extends BaseFilter {
             isProcessingAttribute.set(ctx, Boolean.TRUE);
 
             final FilterChain filterChain = protocol.getFilterChain();
-            final Context context = filterChain.obtainContext(connection);
+
+            final FilterChainContext filterChainContext =
+                    filterChain.obtainFilterChainContext(connection);
+            final Context context = filterChainContext.getInternalContext();
             context.setIoEvent(IOEvent.READ);
             context.setPostProcessor(new InternalPostProcessor());
+            filterChainContext.setAddress(ctx.getAddress());
+            filterChainContext.setMessage(ctx.getMessage());
             suspendedContextAttribute.set(context, ctx);
             ProcessorExecutor.execute(context);
 

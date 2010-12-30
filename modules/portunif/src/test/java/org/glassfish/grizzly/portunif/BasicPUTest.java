@@ -47,7 +47,6 @@ import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.Future;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.TransportFactory;
@@ -129,8 +128,10 @@ public class BasicPUTest {
     }
 
     private PUProtocol createProtocol(final PUFilter puFilter, final String name) {
-        final FilterChain chain = puFilter.createPUFilterChain();
-        chain.add(new SimpleResponseFilter(name));
+        final FilterChain chain = puFilter.getPUFilterChainBuilder()
+                .add(new SimpleResponseFilter(name))
+                .build();
+        
         return new PUProtocol(new SimpleProtocolFinder(name), chain);
     }
 
