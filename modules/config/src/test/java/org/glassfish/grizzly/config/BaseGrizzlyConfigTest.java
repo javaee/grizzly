@@ -46,7 +46,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URLConnection;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 import java.util.List;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import org.glassfish.grizzly.http.server.HttpServerFilter;
 
 import org.glassfish.grizzly.http.server.StaticHttpHandler;
@@ -105,6 +111,36 @@ public class BaseGrizzlyConfigTest {
 
         for (HttpServerFilter httpServerFilter : httpServerFilters) {
             httpServerFilter.setHttpHandler(new StaticHttpHandler(name));
+        }
+    }
+
+    public SSLSocketFactory getSSLSocketFactory() throws IOException {
+        try {
+            //---------------------------------
+            // Create a trust manager that does not validate certificate chains
+            TrustManager[] trustAllCerts = new TrustManager[]{
+                new X509TrustManager() {
+                    public X509Certificate[] getAcceptedIssuers() {
+                        return null;
+                    }
+
+                    public void checkClientTrusted(
+                        X509Certificate[] certs, String authType) {
+                    }
+
+                    public void checkServerTrusted(
+                        X509Certificate[] certs, String authType) {
+                    }
+                }
+            };
+            // Install the all-trusting trust manager
+            SSLContext sc = SSLContext.getInstance("SSL");
+            sc.init(null, trustAllCerts, new SecureRandom());
+            //---------------------------------
+            return sc.getSocketFactory();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IOException(e.getMessage());
         }
     }
 }

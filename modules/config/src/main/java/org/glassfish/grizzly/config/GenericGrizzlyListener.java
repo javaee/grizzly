@@ -334,7 +334,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
                                 new SSLConfigurator(habitat, subProtocol.getSsl())),
                                 subProtocolFilterChain);
                     } else {
-                        configureProtocol(habitat, subProtocol,
+                        configureSubProtocol(habitat, subProtocol,
                                 subProtocolFilterChain);
                         puFilter.register(protocolFinder, subProtocolFilterChain);
                     }

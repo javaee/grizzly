@@ -44,7 +44,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.glassfish.grizzly.http.server.HttpServer;
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
@@ -172,12 +171,7 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
                         if (subProtocol != null) {
                             final Protocol httpProtocol = findHttpProtocol(tray, subProtocol);
                             if (httpProtocol != null) {
-                                if (foundHttpProtocol == null) {
-                                    foundHttpProtocol = httpProtocol;
-                                } else {
-                                    throw new IllegalStateException(
-                                        "Port unification allows only one \"<http>\" definition");
-                                }
+                                foundHttpProtocol = httpProtocol;
                             }
                         }
                     }

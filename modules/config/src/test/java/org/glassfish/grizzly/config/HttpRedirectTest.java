@@ -40,25 +40,17 @@
 
 package org.glassfish.grizzly.config;
 
-import org.jvnet.hk2.config.Dom;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import javax.net.SocketFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.security.SecureRandom;
-import java.security.cert.X509Certificate;
 
 @Test
 public class HttpRedirectTest extends BaseGrizzlyConfigTest {
@@ -180,37 +172,6 @@ public class HttpRedirectTest extends BaseGrizzlyConfigTest {
 //        adapter.addRootFolder(name);
 //
 //    }
-
-
-    public SSLSocketFactory getSSLSocketFactory() throws IOException {
-        try {
-            //---------------------------------
-            // Create a trust manager that does not validate certificate chains
-            TrustManager[] trustAllCerts = new TrustManager[]{
-                new X509TrustManager() {
-                    public X509Certificate[] getAcceptedIssuers() {
-                        return null;
-                    }
-
-                    public void checkClientTrusted(
-                        X509Certificate[] certs, String authType) {
-                    }
-
-                    public void checkServerTrusted(
-                        X509Certificate[] certs, String authType) {
-                    }
-                }
-            };
-            // Install the all-trusting trust manager
-            SSLContext sc = SSLContext.getInstance("SSL");
-            sc.init(null, trustAllCerts, new SecureRandom());
-            //---------------------------------
-            return sc.getSocketFactory();
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new IOException(e.getMessage());
-        }
-    }
 
     /**
      * Check the localhost aliases, cause server might return not localhost, but 127.0.0.1

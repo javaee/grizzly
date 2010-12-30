@@ -52,6 +52,7 @@ import java.net.Socket;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.List;
+import javax.net.ssl.HttpsURLConnection;
 import org.glassfish.grizzly.http.server.HttpServerFilter;
 import org.glassfish.grizzly.http.server.StaticHttpHandler;
 
@@ -63,7 +64,7 @@ import org.testng.annotations.Test;
  * @author <a href="mailto:justin.d.lee@oracle.com">Justin Lee</a>
  */
 @Test(enabled=true)
-public class PUGrizzlyConfigTest {
+public class PUGrizzlyConfigTest extends BaseGrizzlyConfigTest {
     public void puConfig() throws IOException, InstantiationException {
         GrizzlyConfig grizzlyConfig = null;
         
@@ -89,24 +90,30 @@ public class PUGrizzlyConfigTest {
         }
     }
 
-    public void wrongPuConfigDoubleHttp() throws IOException, InstantiationException {
+    public void puHttpHttpsSamePortConfig() throws IOException, InstantiationException {
         GrizzlyConfig grizzlyConfig = null;
 
-        boolean isIllegalState = false;
-        
         try {
-            grizzlyConfig = new GrizzlyConfig("grizzly-config-pu-double-http.xml");
+            grizzlyConfig = new GrizzlyConfig("grizzly-config-pu-http-https-same-port.xml");
             grizzlyConfig.setupNetwork();
-        } catch (IllegalStateException e) {
-            isIllegalState = true;
+            int count = 0;
+            for (GrizzlyListener listener : grizzlyConfig.getListeners()) {
+                addStaticHttpHandler((GenericGrizzlyListener) listener, count++);
+            }
+            final String httpContent1 = getContent(new URL("http://localhost:38082").openConnection());
+            Assert.assertEquals(httpContent1, "<html><body>You've found the server on port 38082</body></html>");
+
+            HttpsURLConnection.setDefaultSSLSocketFactory(getSSLSocketFactory());
+            final String httpContent2 = getContent(new URL("https://localhost:38082").openConnection());
+            Assert.assertEquals(httpContent2, "<html><body>You've found the server on port 38082</body></html>");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException(e.getMessage());
         } finally {
             if (grizzlyConfig != null) {
                 grizzlyConfig.shutdownNetwork();
             }
         }
-
-        Assert.assertTrue(isIllegalState,
-                "Loop in protocol definition should throw IllegalStateException");
     }
 
     public void wrongPuConfigLoop() throws IOException, InstantiationException {
@@ -129,41 +136,41 @@ public class PUGrizzlyConfigTest {
                 "Double http definition should throw IllegalStateException");
     }
         
-    private String getContent(URLConnection connection) throws IOException {
-        final InputStream inputStream = connection.getInputStream();
-        StringBuilder builder;
-        InputStreamReader reader = new InputStreamReader(inputStream);
-        try {
-            builder = new StringBuilder();
-            char[] buffer = new char[1024];
-            int read;
-            while ((read = reader.read(buffer)) != -1) {
-                builder.append(buffer, 0, read);
-            }
-        } finally {
-            reader.close();
-        }
-        return builder.toString();
-    }
-
-    private void addStaticHttpHandler(GenericGrizzlyListener listener, int count) throws IOException {
-        final String name = System.getProperty("java.io.tmpdir", "/tmp") + "/grizzly-config-root" + count;
-        File dir = new File(name);
-        dir.mkdirs();
-        final FileWriter writer = new FileWriter(new File(dir, "index.html"));
-        try {
-            writer.write("<html><body>You've found the server on port " + listener.getPort() + "</body></html>");
-        } finally {
-            writer.flush();
-            writer.close();
-        }
-
-        final List<HttpServerFilter> httpServerFilters = listener.getFilters(HttpServerFilter.class);
-
-        for (HttpServerFilter httpServerFilter : httpServerFilters) {
-            httpServerFilter.setHttpHandler(new StaticHttpHandler(name));
-        }
-    }
+//    private String getContent(URLConnection connection) throws IOException {
+//        final InputStream inputStream = connection.getInputStream();
+//        StringBuilder builder;
+//        InputStreamReader reader = new InputStreamReader(inputStream);
+//        try {
+//            builder = new StringBuilder();
+//            char[] buffer = new char[1024];
+//            int read;
+//            while ((read = reader.read(buffer)) != -1) {
+//                builder.append(buffer, 0, read);
+//            }
+//        } finally {
+//            reader.close();
+//        }
+//        return builder.toString();
+//    }
+//
+//    private void addStaticHttpHandler(GenericGrizzlyListener listener, int count) throws IOException {
+//        final String name = System.getProperty("java.io.tmpdir", "/tmp") + "/grizzly-config-root" + count;
+//        File dir = new File(name);
+//        dir.mkdirs();
+//        final FileWriter writer = new FileWriter(new File(dir, "index.html"));
+//        try {
+//            writer.write("<html><body>You've found the server on port " + listener.getPort() + "</body></html>");
+//        } finally {
+//            writer.flush();
+//            writer.close();
+//        }
+//
+//        final List<HttpServerFilter> httpServerFilters = listener.getFilters(HttpServerFilter.class);
+//
+//        for (HttpServerFilter httpServerFilter : httpServerFilters) {
+//            httpServerFilter.setHttpHandler(new StaticHttpHandler(name));
+//        }
+//    }
 
     @SuppressWarnings({"SocketOpenedButNotSafelyClosed"})
     private String getXProtocolContent(String host, int port) throws IOException {
