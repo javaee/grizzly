@@ -71,7 +71,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 /**
- * Simple port-unification test
+ * Port-unification test, which involves secured and plain protocols
  * 
  * @author Alexey Stashok
  */
@@ -90,8 +90,6 @@ public class SslAndPlainTest {
             new ProtocolDescription("YYYYY", false), new ProtocolDescription("BBBBB", true),
             new ProtocolDescription("ZZZZZ", false), new ProtocolDescription("XXXXX", true)
         };
-//        final ProtocolDescription[] protocols = new ProtocolDescription[]{
-//            new ProtocolDescription("AAAAA", true)};
 
         SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
         SSLEngineConfigurator clientSSLEngineConfigurator = null;
@@ -152,7 +150,6 @@ public class SslAndPlainTest {
                         FilterChainBuilder.stateless()
                         .add(new TransportFilter());
                 if (protocol.isSecure) {
-//                    continue;
                     clientFilterChainBuilder.add(
                             new SSLFilter(serverSSLEngineConfigurator,
                             clientSSLEngineConfigurator));
@@ -173,7 +170,7 @@ public class SslAndPlainTest {
 
                 connection.write(protocol.name);
 
-                assertTrue(resultFuture.get(1000, TimeUnit.SECONDS));
+                assertTrue(resultFuture.get(10, TimeUnit.SECONDS));
             }
 
         } finally {
@@ -185,19 +182,6 @@ public class SslAndPlainTest {
             TransportFactory.getInstance().close();
         }
     }
-
-//    private PUProtocol createSslProtocol(final PUFilter puFilter,
-//            final String name, final SSLEngineConfigurator serverSslEngineConfig,
-//            final SSLEngineConfigurator clientSslEngineConfig) {
-//
-//        final FilterChain chain = puFilter.getPUFilterChainBuilder()
-//                .add(new SSLFilter(serverSslEngineConfig, clientSslEngineConfig))
-//                .add(new StringFilter(CHARSET))
-//                .add(new SimpleResponseFilter(name))
-//                .build();
-//
-//        return new PUProtocol(new SimpleProtocolFinder(name), chain);
-//    }
 
     private PUProtocol createProtocol(final PUFilter puFilter,
             final ProtocolDescription protocolDescription) {
