@@ -40,6 +40,7 @@
 package org.glassfish.grizzly.portunif;
 
 import java.io.IOException;
+import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -109,6 +110,10 @@ public class PUFilter extends BaseFilter {
 
     public void deregister(final PUProtocol puProtocol) {
         protocols.remove(puProtocol);
+    }
+
+    public Set<PUProtocol> getProtocols() {
+        return protocols;
     }
 
     public Filter getBackChannelFilter() {
