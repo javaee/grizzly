@@ -65,13 +65,14 @@ import org.testng.annotations.Test;
  */
 @Test(enabled=true)
 public class PUGrizzlyConfigTest extends BaseGrizzlyConfigTest {
+    static int count;
+
     public void puConfig() throws IOException, InstantiationException {
         GrizzlyConfig grizzlyConfig = null;
         
         try {
             grizzlyConfig = new GrizzlyConfig("grizzly-config-pu.xml");
             grizzlyConfig.setupNetwork();
-            int count = 0;
             for (GrizzlyListener listener : grizzlyConfig.getListeners()) {
                 addStaticHttpHandler((GenericGrizzlyListener) listener, count++);
             }
@@ -96,7 +97,6 @@ public class PUGrizzlyConfigTest extends BaseGrizzlyConfigTest {
         try {
             grizzlyConfig = new GrizzlyConfig("grizzly-config-pu-http-https-same-port.xml");
             grizzlyConfig.setupNetwork();
-            int count = 0;
             for (GrizzlyListener listener : grizzlyConfig.getListeners()) {
                 addStaticHttpHandler((GenericGrizzlyListener) listener, count++);
             }
