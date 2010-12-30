@@ -341,6 +341,14 @@ public final class FilterChainContext implements AttributeStorage {
         return transportFilterContext;
     }
 
+    /**
+     * Get the general Grizzly {@link Context} this filter context wraps.
+     * @return the general Grizzly {@link Context} this filter context wraps.
+     */
+    public final Context getInternalContext() {
+        return internalContext;
+    }
+
     Operation getOperation() {
         return operation;
     }
