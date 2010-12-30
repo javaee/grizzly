@@ -53,9 +53,7 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.AbstractCodecFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext.Operation;
-import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
-import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CancellationException;
@@ -67,6 +65,7 @@ import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 import org.glassfish.grizzly.nio.PendingWriteQueueLimitExceededException;
+import static org.glassfish.grizzly.ssl.SSLUtils.*;
 
 /**
  * SSL {@link Filter} to operate with SSL encrypted data.
@@ -75,15 +74,6 @@ import org.glassfish.grizzly.nio.PendingWriteQueueLimitExceededException;
  */
 public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     private static final Logger LOGGER = Grizzly.logger(SSLFilter.class);
-
-    private static final byte CHANGE_CIPHER_SPECT_CONTENT_TYPE = 20;
-    private static final byte ALERT_CONTENT_TYPE = 21;
-    private static final byte HANDSHAKE_CONTENT_TYPE = 22;
-    private static final byte APPLICATION_DATA_CONTENT_TYPE = 23;
-    private static final int SSLV3_RECORD_HEADER_SIZE = 5; // SSLv3 record header
-    private static final int SSL20_HELLO_VERSION = 0x0002;
-    private static final int MIN_VERSION = 0x0300;
-    private static final int MAX_MAJOR_VERSION = 0x03;
 
     private final Attribute<CompletionHandler> handshakeCompletionHandlerAttr;
     private final SSLEngineConfigurator serverSSLEngineConfigurator;
@@ -158,22 +148,22 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     public NextAction handleRead(final FilterChainContext ctx)
             throws IOException {
         final Connection connection = ctx.getConnection();
-        SSLEngine sslEngine = SSLUtils.getSSLEngine(connection);
+        SSLEngine sslEngine = getSSLEngine(connection);
 
-        if (sslEngine != null && !SSLUtils.isHandshaking(sslEngine)) {
+        if (sslEngine != null && !isHandshaking(sslEngine)) {
             return super.handleRead(ctx);
         } else {
             if (sslEngine == null) {
                 sslEngine = serverSSLEngineConfigurator.createSSLEngine();
                 sslEngine.beginHandshake();
-                SSLUtils.setSSLEngine(connection, sslEngine);
+                setSSLEngine(connection, sslEngine);
             }
 
             final Buffer buffer = doHandshakeStep(sslEngine, ctx);
 
             final boolean hasRemaining = buffer.hasRemaining();
             
-            final boolean isHandshaking = SSLUtils.isHandshaking(sslEngine);
+            final boolean isHandshaking = isHandshaking(sslEngine);
             if (!isHandshaking) {
                 notifyHandshakeCompleted(connection, sslEngine);
 
@@ -190,12 +180,12 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     @Override
     public NextAction handleWrite(FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
-        SSLEngine sslEngine = SSLUtils.getSSLEngine(connection);
-        if (sslEngine != null && !SSLUtils.isHandshaking(sslEngine)) {
+        SSLEngine sslEngine = getSSLEngine(connection);
+        if (sslEngine != null && !isHandshaking(sslEngine)) {
             return accurateWrite(ctx, true);
         } else {
             synchronized(connection) {
-                sslEngine = SSLUtils.getSSLEngine(connection);
+                sslEngine = getSSLEngine(connection);
                 if (sslEngine == null) {
                     handshake(connection,
                             new PendingWriteCompletionHandler(connection),
@@ -224,8 +214,8 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
             }
         } else {
             // Check one more time whether handshake is completed
-            final SSLEngine sslEngine = SSLUtils.getSSLEngine(connection);
-            if (sslEngine != null && !SSLUtils.isHandshaking(sslEngine)) {
+            final SSLEngine sslEngine = getSSLEngine(connection);
+            if (sslEngine != null && !isHandshaking(sslEngine)) {
                 return super.handleWrite(ctx);
             }
 
@@ -256,12 +246,12 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
             final SSLEngineConfigurator sslEngineConfigurator)
             throws IOException {
 
-        SSLEngine sslEngine = SSLUtils.getSSLEngine(connection);
+        SSLEngine sslEngine = getSSLEngine(connection);
 
         if (sslEngine == null) {
             sslEngine = sslEngineConfigurator.createSSLEngine();
             sslEngine.beginHandshake();
-            SSLUtils.setSSLEngine(connection, sslEngine);
+            setSSLEngine(connection, sslEngine);
         } else {
             sslEngineConfigurator.configure(sslEngine);
             sslEngine.beginHandshake();
@@ -313,48 +303,11 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                             return inputBuffer;
                         }
 
-                        final int expectedLength = getSSLPacketSize(inputBuffer);
-                        if (expectedLength == -1
-                                || inputBuffer.remaining() < expectedLength) {
+                        final SSLEngineResult sslEngineResult =
+                                handshakeUnwrap(connection, sslEngine, inputBuffer);
+
+                        if (sslEngineResult == null) {
                             return inputBuffer;
-                        }
-
-                        final SSLEngineResult sslEngineResult;
-
-                        final int pos = inputBuffer.position();
-                        if (!inputBuffer.isComposite()) {
-                            final ByteBuffer inputBB = inputBuffer.toByteBuffer();
-
-                            final Buffer outputBuffer = memoryManager.allocate(
-                                    appBufferSize);
-
-                            sslEngineResult = sslEngine.unwrap(inputBB,
-                                    outputBuffer.toByteBuffer());
-                            outputBuffer.dispose();
-
-                            inputBuffer.position(pos + sslEngineResult.bytesConsumed());
-                            
-                            if (inputBuffer.hasRemaining()) {
-                                // shift remainder to the buffer position 0
-                                inputBuffer.compact();
-                                // trim
-                                inputBuffer.trim();
-                            }
-
-                        } else {
-                            final ByteBuffer inputByteBuffer =
-                                    inputBuffer.toByteBuffer(pos,
-                                    pos + expectedLength);
-
-                            final Buffer outputBuffer = memoryManager.allocate(
-                                    appBufferSize);
-
-                            sslEngineResult = sslEngine.unwrap(inputByteBuffer,
-                                    outputBuffer.toByteBuffer());
-
-                            inputBuffer.position(pos + sslEngineResult.bytesConsumed());
-
-                            outputBuffer.dispose();
                         }
 
                         final Status status = sslEngineResult.getStatus();
@@ -374,24 +327,12 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                             LOGGER.log(Level.FINEST, "NEED_WRAP Engine: {0}", sslEngine);
                         }
 
-                        final Buffer buffer = memoryManager.allocate(
-                                sslEngine.getSession().getPacketBufferSize());
-                        buffer.allowBufferDispose(true);
+                        final Buffer buffer = handshakeWrap(connection, sslEngine);
 
                         try {
-                            final SSLEngineResult sslEngineResult =
-                                    sslEngine.wrap(Buffers.EMPTY_BYTE_BUFFER,
-                                    buffer.toByteBuffer());
-
-                            buffer.position(sslEngineResult.bytesProduced());
-                            buffer.trim();
-
                             context.write(dstAddress, buffer, null);
 
                             handshakeStatus = sslEngine.getHandshakeStatus();
-                        } catch (SSLException e) {
-                            buffer.dispose();
-                            throw e;
                         } catch (IOException e) {
                             buffer.dispose();
                             throw e;
@@ -407,7 +348,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                         if (isLoggingFinest) {
                             LOGGER.log(Level.FINEST, "NEED_TASK Engine: {0}", sslEngine);
                         }
-                        SSLUtils.executeDelegatedTask(sslEngine);
+                        executeDelegatedTask(sslEngine);
                         handshakeStatus = sslEngine.getHandshakeStatus();
                         break;
                     }
@@ -435,105 +376,6 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
             completionHandler.completed(sslEngine);
             handshakeCompletionHandlerAttr.remove(connection);
         }
-    }
-
-
-    /*
-     * Check if there is enough inbound data in the ByteBuffer
-     * to make a inbound packet.  Look for both SSLv2 and SSLv3.
-     *
-     * @return -1 if there are not enough bytes to tell (small header),
-     */
-    protected static int getSSLPacketSize(Buffer buf) throws SSLException {
-
-        /*
-         * SSLv2 length field is in bytes 0/1
-         * SSLv3/TLS length field is in bytes 3/4
-         */
-        if (buf.remaining() < 5) {
-            return -1;
-        }
-
-        int pos = buf.position();
-        byte byteZero = buf.get(pos);
-
-        int len;
-
-        /*
-         * If we have already verified previous packets, we can
-         * ignore the verifications steps, and jump right to the
-         * determination.  Otherwise, try one last hueristic to
-         * see if it's SSL/TLS.
-         */
-        if (byteZero >= CHANGE_CIPHER_SPECT_CONTENT_TYPE
-                && byteZero <= APPLICATION_DATA_CONTENT_TYPE) {
-            /*
-             * Last sanity check that it's not a wild record
-             */
-            final byte major = buf.get(pos + 1);
-            final byte minor = buf.get(pos + 2);
-            final int v = (major << 8) | minor;
-
-            // Check if too old (currently not possible)
-            // or if the major version does not match.
-            // The actual version negotiation is in the handshaker classes
-            if ((v < MIN_VERSION)
-                    || (major > MAX_MAJOR_VERSION)) {
-                throw new SSLException("Unsupported record version major="
-                        + major + " minor=" + minor);
-            }
-
-            /*
-             * One of the SSLv3/TLS message types.
-             */
-            len = ((buf.get(pos + 3) & 0xff) << 8)
-                    + (buf.get(pos + 4) & 0xff) + SSLV3_RECORD_HEADER_SIZE;
-
-        } else {
-            /*
-             * Must be SSLv2 or something unknown.
-             * Check if it's short (2 bytes) or
-             * long (3) header.
-             *
-             * Internals can warn about unsupported SSLv2
-             */
-            boolean isShort = ((byteZero & 0x80) != 0);
-
-            if (isShort
-                    && ((buf.get(pos + 2) == 1) || buf.get(pos + 2) == 4)) {
-
-                final byte major = buf.get(pos + 3);
-                final byte minor = buf.get(pos + 4);
-                final int v = (major << 8) | minor;
-
-                // Check if too old (currently not possible)
-                // or if the major version does not match.
-                // The actual version negotiation is in the handshaker classes
-                if ((v < MIN_VERSION)
-                        || (major > MAX_MAJOR_VERSION)) {
-
-                    // if it's not SSLv2, we're out of here.
-                    if (v != SSL20_HELLO_VERSION) {
-                        throw new SSLException("Unsupported record version major="
-                                + major + " minor=" + minor);
-                    }
-                }
-
-                /*
-                 * Client or Server Hello
-                 */
-                int mask = (isShort ? 0x7f : 0x3f);
-                len = ((byteZero & mask) << 8)
-                        + (buf.get(pos + 1) & 0xff) + (isShort ? 2 : 3);
-
-            } else {
-                // Gobblygook!
-                throw new SSLException(
-                        "Unrecognized SSL message, plaintext connection?");
-            }
-        }
-
-        return len;
     }
 
     private final class PendingWriteCompletionHandler

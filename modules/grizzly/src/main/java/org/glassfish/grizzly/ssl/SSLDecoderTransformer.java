@@ -55,6 +55,7 @@ import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 import javax.net.ssl.SSLException;
+import static org.glassfish.grizzly.ssl.SSLUtils.*;
 
 /**
  * <tt>Transformer</tt>, which decodes SSL encrypted data, contained in the
@@ -71,7 +72,7 @@ public final class SSLDecoderTransformer extends AbstractTransformer<Buffer, Buf
             TransformationResult.createErrorResult(
             NEED_HANDSHAKE_ERROR, "Handshake was not executed");
 
-    private Logger logger = Grizzly.logger(SSLDecoderTransformer.class);
+    private static final Logger LOGGER = Grizzly.logger(SSLDecoderTransformer.class);
 
     private final MemoryManager<Buffer> memoryManager;
 
@@ -93,14 +94,14 @@ public final class SSLDecoderTransformer extends AbstractTransformer<Buffer, Buf
             AttributeStorage state, Buffer originalMessage)
             throws TransformationException {
 
-        final SSLEngine sslEngine = SSLUtils.getSSLEngine(state);
+        final SSLEngine sslEngine = getSSLEngine(state);
         if (sslEngine == null) {
             return HANDSHAKE_NOT_EXECUTED_RESULT;
         }
 
         final int expectedLength;
         try {
-            expectedLength = SSLFilter.getSSLPacketSize(originalMessage);
+            expectedLength = getSSLPacketSize(originalMessage);
             if (expectedLength == -1 || originalMessage.remaining() < expectedLength) {
                 return TransformationResult.createIncompletedResult(
                             originalMessage);
@@ -115,8 +116,8 @@ public final class SSLDecoderTransformer extends AbstractTransformer<Buffer, Buf
         TransformationResult<Buffer, Buffer> transformationResult = null;
 
         try {
-            if (logger.isLoggable(Level.FINE)) {
-                logger.log(Level.FINE, "SSLDecoder engine: {0} input: {1} output: {2}",
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "SSLDecoder engine: {0} input: {1} output: {2}",
                         new Object[]{sslEngine, originalMessage, targetBuffer});
             }
 
@@ -140,8 +141,8 @@ public final class SSLDecoderTransformer extends AbstractTransformer<Buffer, Buf
 
             final SSLEngineResult.Status status = sslEngineResult.getStatus();
 
-            if (logger.isLoggable(Level.FINE)) {
-                logger.log(Level.FINE, "SSLDecoderr done engine: {0} result: {1} input: {2} output: {3}",
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "SSLDecoderr done engine: {0} result: {1} input: {2} output: {3}",
                         new Object[]{sslEngine, sslEngineResult, originalMessage, targetBuffer});
             }
 
