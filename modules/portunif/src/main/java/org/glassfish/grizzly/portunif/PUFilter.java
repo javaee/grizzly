@@ -129,6 +129,7 @@ public class PUFilter extends BaseFilter {
     @Override
     public NextAction handleRead(final FilterChainContext ctx) throws IOException {
         if (isProcessingAttribute.get(ctx) == Boolean.TRUE) {
+            isProcessingAttribute.remove(ctx);
             return ctx.getStopAction();
         }
 

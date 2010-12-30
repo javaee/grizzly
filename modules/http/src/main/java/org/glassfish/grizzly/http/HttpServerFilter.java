@@ -184,9 +184,6 @@ public class HttpServerFilter extends HttpCodecFilter {
         
         HttpRequestPacketImpl httpRequest = httpRequestInProcessAttr.get(connection);
         if (httpRequest == null) {
-
-
-
             final boolean isSecureLocal = isSecure;
             httpRequest = HttpRequestPacketImpl.create();
             httpRequest.initialize(connection, input.position(), maxHeadersSize);
