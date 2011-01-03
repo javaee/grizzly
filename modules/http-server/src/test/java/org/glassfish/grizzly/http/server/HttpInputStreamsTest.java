@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,7 +43,7 @@ package org.glassfish.grizzly.http.server;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -934,7 +934,7 @@ public class HttpInputStreamsTest extends TestCase {
     @SuppressWarnings({"unchecked"})
     private HttpPacket createRequest(final String method, final String content) {
         final Buffer contentBuffer = content != null ?
-            Buffers.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), content) :
+            Buffers.wrap(NIOTransportBuilder.DEFAULT_MEMORY_MANAGER, content) :
             null;
         
         HttpRequestPacket.Builder b = HttpRequestPacket.builder();
@@ -974,7 +974,7 @@ public class HttpInputStreamsTest extends TestCase {
         ServerConfiguration sconfig = server.getServerConfiguration();
         sconfig.addHttpHandler(new SimpleResponseHttpHandler(strategy, testResult), "/*");
 
-        TCPNIOTransport ctransport = TransportFactory.getInstance().createTCPTransport();
+        TCPNIOTransport ctransport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
         try {
             server.start();
             FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
@@ -1001,7 +1001,6 @@ public class HttpInputStreamsTest extends TestCase {
         } finally {
             server.stop();
             ctransport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 

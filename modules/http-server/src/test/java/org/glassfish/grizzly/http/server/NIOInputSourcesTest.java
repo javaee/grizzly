@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,7 +43,7 @@ package org.glassfish.grizzly.http.server;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -398,7 +398,7 @@ public class NIOInputSourcesTest extends TestCase {
             throws Exception {
 
         final TCPNIOTransport clientTransport =
-                TransportFactory.getInstance().createTCPTransport();
+                (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
         final HttpServer server = createWebServer(httpHandler);
         try {
             server.start();
@@ -463,7 +463,7 @@ public class NIOInputSourcesTest extends TestCase {
 
         if (content != null) {
             HttpContent.Builder cb = request.httpContentBuilder();
-            MemoryManager mm = TransportFactory.getInstance().getDefaultMemoryManager();
+            MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
             Buffer contentBuffer;
             if (encoding != null) {
                 try {

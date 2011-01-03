@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -47,7 +47,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
-import org.glassfish.grizzly.nio.transport.UDPNIOConnection;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
@@ -68,7 +67,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
 
 
     public void testStartStop() throws IOException {
-        UDPNIOTransport transport = TransportFactory.getInstance().createUDPTransport();
+        UDPNIOTransport transport = (UDPNIOTransport) NIOTransportBuilder.defaultUDPTransportBuilder().build();
 
         try {
             transport.bind(PORT);
@@ -78,13 +77,12 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             assertTrue("Exception!!!", false);
         } finally {
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 
     public void testConnectorHandlerConnect() throws Exception {
         Connection connection = null;
-        UDPNIOTransport transport = TransportFactory.getInstance().createUDPTransport();
+        UDPNIOTransport transport = (UDPNIOTransport) NIOTransportBuilder.defaultUDPTransportBuilder().build();
 
         try {
             transport.bind(PORT);
@@ -99,7 +97,6 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             }
 
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 
@@ -107,7 +104,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
         Connection connection = null;
         StreamWriter writer = null;
 
-        UDPNIOTransport transport = TransportFactory.getInstance().createUDPTransport();
+        UDPNIOTransport transport = (UDPNIOTransport) NIOTransportBuilder.defaultUDPTransportBuilder().build();
 
         try {
             transport.bind(PORT);
@@ -136,20 +133,19 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             }
 
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 
     public void testSimpleEcho() throws Exception {
         Connection connection = null;
-        StreamReader reader = null;
-        StreamWriter writer = null;
+        StreamReader reader;
+        StreamWriter writer;
 
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new EchoFilter());
 
-        UDPNIOTransport transport = TransportFactory.getInstance().createUDPTransport();
+        UDPNIOTransport transport = (UDPNIOTransport) NIOTransportBuilder.defaultUDPTransportBuilder().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -157,7 +153,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             transport.start();
 
             Future<Connection> future = transport.connect("localhost", PORT);
-            connection = (UDPNIOConnection) future.get(10, TimeUnit.SECONDS);
+            connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
             connection.configureBlocking(true);
@@ -185,20 +181,19 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             }
 
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 
     public void testSeveralPacketsEcho() throws Exception {
         Connection connection = null;
-        StreamReader reader = null;
-        StreamWriter writer = null;
+        StreamReader reader;
+        StreamWriter writer;
 
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new EchoFilter());
 
-        UDPNIOTransport transport = TransportFactory.getInstance().createUDPTransport();
+        UDPNIOTransport transport = (UDPNIOTransport) NIOTransportBuilder.defaultUDPTransportBuilder().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -207,7 +202,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             transport.configureBlocking(true);
 
             Future<Connection> future = transport.connect("localhost", PORT);
-            connection = (UDPNIOConnection) future.get(10, TimeUnit.SECONDS);
+            connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
             connection.configureStandalone(true);
@@ -216,7 +211,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
 
             for (int i = 0; i < 100; i++) {
-                byte[] originalMessage = new String("Hello world #" + i).getBytes();
+                byte[] originalMessage = ("Hello world #" + i).getBytes();
                 writer.writeByteArray(originalMessage);
                 Future<Integer> writeFuture = writer.flush();
 
@@ -236,20 +231,19 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             }
 
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 
     public void testAsyncReadWriteEcho() throws Exception {
         Connection connection = null;
-        StreamReader reader = null;
-        StreamWriter writer = null;
+        StreamReader reader;
+        StreamWriter writer;
 
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new EchoFilter());
 
-        UDPNIOTransport transport = TransportFactory.getInstance().createUDPTransport();
+        UDPNIOTransport transport = (UDPNIOTransport) NIOTransportBuilder.defaultUDPTransportBuilder().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -257,7 +251,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             transport.start();
 
             Future<Connection> connectFuture = transport.connect("localhost", PORT);
-            connection = (UDPNIOConnection) connectFuture.get(10, TimeUnit.SECONDS);
+            connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
             connection.configureStandalone(true);
@@ -284,7 +278,6 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             }
 
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 
@@ -293,14 +286,14 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
         final int packetSize = 32;
 
         Connection connection = null;
-        StreamReader reader = null;
-        StreamWriter writer = null;
+        StreamReader reader;
+        StreamWriter writer;
 
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new EchoFilter());
         
-        UDPNIOTransport transport = TransportFactory.getInstance().createUDPTransport();
+        UDPNIOTransport transport = (UDPNIOTransport) NIOTransportBuilder.defaultUDPTransportBuilder().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -312,7 +305,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             transport.start();
 
             Future<Connection> connectFuture = transport.connect("localhost", PORT);
-            connection = (UDPNIOConnection) connectFuture.get(10, TimeUnit.SECONDS);
+            connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
             connection.configureStandalone(true);
@@ -342,7 +335,6 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             }
 
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 }

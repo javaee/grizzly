@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -48,9 +48,9 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.TransformationException;
 import org.glassfish.grizzly.TransformationResult;
-import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
@@ -77,7 +77,7 @@ public final class SSLDecoderTransformer extends AbstractTransformer<Buffer, Buf
     private final MemoryManager<Buffer> memoryManager;
 
     public SSLDecoderTransformer() {
-        this(TransportFactory.getInstance().getDefaultMemoryManager());
+        this(NIOTransportBuilder.DEFAULT_MEMORY_MANAGER);
     }
 
     public SSLDecoderTransformer(MemoryManager<Buffer> memoryManager) {

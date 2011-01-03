@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -1115,7 +1115,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
         future.get(10, TimeUnit.SECONDS);
         
         // test streaming
-        MemoryManager alloc = TransportFactory.getInstance().getDefaultMemoryManager();
+        MemoryManager alloc = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;;
         byte[] testdata = new byte[500];
 
 
@@ -1183,7 +1183,6 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
             clientconnection.close();
             servertransport.stop();
             clienttransport.stop();
-            TransportFactory.getInstance().close();
 
         } catch (Exception ex) {
             LOGGER.log(Level.SEVERE, "Close", ex);
@@ -1191,7 +1190,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
     }
 
     public void setupServer() {
-        servertransport = TransportFactory.getInstance().createTCPTransport();
+        servertransport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
         // no use for default memorymanager
         servertransport.configureStandalone(true);
 
@@ -1217,7 +1216,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
     public void setupClient() {
 
-        clienttransport = TransportFactory.getInstance().createTCPTransport();
+        clienttransport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
         try {
 
             clienttransport.start();

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,8 +41,8 @@
 package org.glassfish.grizzly.memory;
 
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.TransportFactory;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
@@ -63,7 +63,7 @@ public final class BuffersBuffer extends CompositeBuffer {
      * Construct <tt>BuffersBuffer</tt>.
      */
     public static BuffersBuffer create() {
-        return create(TransportFactory.getInstance().getDefaultMemoryManager(),
+        return create(NIOTransportBuilder.DEFAULT_MEMORY_MANAGER,
                 null, 0, false);
     }
 
@@ -140,7 +140,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         if (memoryManager != null) {
             this.memoryManager = memoryManager;
         } else {
-            this.memoryManager = TransportFactory.getInstance().getDefaultMemoryManager();
+            this.memoryManager = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
         }
 
         if (buffers != null || this.buffers == null) {

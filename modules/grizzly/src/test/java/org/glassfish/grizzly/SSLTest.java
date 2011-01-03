@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -201,7 +201,7 @@ public class SSLTest {
             throws Exception {
 
         final Integer pingPongTurnArounds = turnAroundsNum;
-        
+
         Connection connection = null;
         SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
         SSLEngineConfigurator clientSSLEngineConfigurator = null;
@@ -229,7 +229,7 @@ public class SSLTest {
         filterChainBuilder.addAll(filterIndex, filters);
 
         TCPNIOTransport transport =
-                TransportFactory.getInstance().createTCPTransport();
+                (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -263,7 +263,6 @@ public class SSLTest {
             }
 
             transport.stop();
-            TransportFactory.getInstance().close();
         }
 
     }
@@ -301,7 +300,7 @@ public class SSLTest {
         filterChainBuilder.addAll(filterIndex, filters);
 
         TCPNIOTransport transport =
-                TransportFactory.getInstance().createTCPTransport();
+                (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(filterChainBuilder.build());
 
         SSLStreamReader reader = null;
@@ -386,7 +385,6 @@ public class SSLTest {
             }
 
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 
@@ -414,7 +412,7 @@ public class SSLTest {
         filterChainBuilder.add(new EchoFilter());
 
         TCPNIOTransport transport =
-                TransportFactory.getInstance().createTCPTransport();
+                (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(filterChainBuilder.build());
 
         final MemoryManager mm = transport.getMemoryManager();
@@ -471,7 +469,6 @@ public class SSLTest {
             }
 
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
     
@@ -504,9 +501,9 @@ public class SSLTest {
         private final SSLFilter sslFilter;
 
         private final FutureImpl<Integer> serverCompletedFeature =
-                SafeFutureImpl.<Integer>create();
+                SafeFutureImpl.create();
         private final FutureImpl<Integer> clientCompletedFeature =
-                SafeFutureImpl.<Integer>create();
+                SafeFutureImpl.create();
 
         public SSLPingPongFilter(SSLFilter sslFilter, int turnaroundNum) {
             this.sslFilter = sslFilter;

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -47,7 +47,6 @@ import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import org.glassfish.grizzly.utils.DelayFilter;
@@ -129,7 +128,8 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
     }
 
     protected final void doTestStringEcho(boolean blocking,
-            int messageNum, Filter... filters) throws Exception {
+                                          int messageNum,
+                                          Filter... filters) throws Exception {
         Connection connection = null;
 
         final String clientMessage = "Hello server! It's a client";
@@ -159,7 +159,7 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
         });
 
         
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -169,7 +169,7 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
             final BlockingQueue<String> resultQueue = new LinkedTransferQueue<String>();
             
             Future<Connection> future = transport.connect("localhost", PORT);
-            connection = (TCPNIOConnection) future.get(10, TimeUnit.SECONDS);
+            connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
             FilterChainBuilder clientFilterChainBuilder =
@@ -208,7 +208,6 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
             }
 
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 }

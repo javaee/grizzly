@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,7 +43,7 @@ package org.glassfish.grizzly.http.core;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -120,14 +120,14 @@ public class GZipEncodingTest extends TestCase {
         result.setStatusCode(200);
         result.addHeader("content-encoding", "gzip");
 
-        final MemoryManager mm = TransportFactory.getInstance().getDefaultMemoryManager();
+        final MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
         result.setContent(Buffers.wrap(mm, "Echo: <nothing>"));
         doTest(request, result, gzipServerContentEncoding, null);
     }
 
 
     public void testGZipRequest() throws Throwable {
-        final MemoryManager mm = TransportFactory.getInstance().getDefaultMemoryManager();
+        final MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
 
         String reqString = "GZipped hello. Works?";
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -176,7 +176,7 @@ public class GZipEncodingTest extends TestCase {
             }
         });
 
-        final MemoryManager mm = TransportFactory.getInstance().getDefaultMemoryManager();
+        final MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
 
         String reqString = generateBigString(16384);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -225,7 +225,7 @@ public class GZipEncodingTest extends TestCase {
             }
         });
 
-        final MemoryManager mm = TransportFactory.getInstance().getDefaultMemoryManager();
+        final MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
 
         String reqString = generateBigString(16384);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -288,10 +288,10 @@ public class GZipEncodingTest extends TestCase {
         filterChainBuilder.add(new SimpleResponseFilter());
         FilterChain filterChain = filterChainBuilder.build();
 
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(filterChain);
 
-        TCPNIOTransport ctransport = TransportFactory.getInstance().createTCPTransport();
+        TCPNIOTransport ctransport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
         try {
             transport.bind(PORT);
             transport.start();
@@ -327,7 +327,6 @@ public class GZipEncodingTest extends TestCase {
         } finally {
             transport.stop();
             ctransport.stop();
-            TransportFactory.getInstance().close();
             reportThreadErrors();
         }
     }

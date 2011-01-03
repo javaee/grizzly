@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.http.core;
 
+import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpResponsePacket;
@@ -47,7 +48,6 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.StandaloneProcessor;
-import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -166,7 +166,7 @@ public class HttpResponseParseTest extends TestCase {
     @SuppressWarnings({"unchecked"})
     private HttpPacket doTestDecoder(String response, int limit) {
 
-        MemoryManager mm = TransportFactory.getInstance().getDefaultMemoryManager();
+        MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
         Buffer input = Buffers.wrap(mm, response);
         
         HttpClientFilter filter = new HttpClientFilter(limit);
@@ -197,7 +197,7 @@ public class HttpResponseParseTest extends TestCase {
         filterChainBuilder.add(new HTTPResponseCheckFilter(parseResult,
                 protocol, code, phrase, Collections.<String, Pair<String, String>>emptyMap()));
 
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(filterChainBuilder.build());
         
         try {
@@ -237,7 +237,6 @@ public class HttpResponseParseTest extends TestCase {
             }
 
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 
@@ -285,7 +284,7 @@ public class HttpResponseParseTest extends TestCase {
 
     protected static final class StandaloneConnection extends NIOConnection {
         public StandaloneConnection() {
-            super(TransportFactory.getInstance().createTCPTransport());
+            super(NIOTransportBuilder.defaultTCPTransportBuilder().build());
         }
 
         @Override

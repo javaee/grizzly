@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,6 +42,7 @@ package org.glassfish.grizzly.http.server;
 
 import org.glassfish.grizzly.ConnectionProbe;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.Processor;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -58,7 +59,6 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.TransportProbe;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.ContentEncoding;
@@ -391,7 +391,6 @@ public class HttpServer {
                 disableJMX();
             }
             
-            TransportFactory.getInstance().close();
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, null, e);
         } finally {
@@ -593,7 +592,7 @@ public class HttpServer {
             @Override
             public Thread newThread(Runnable r) {
                 final Thread newThread = new DefaultWorkerThread(
-                        TransportFactory.getInstance().getDefaultAttributeBuilder(),
+                        NIOTransportBuilder.DEFAULT_ATTRIBUTE_BUILDER,
                         "HttpServer-" + threadCounter.getAndIncrement(),
                         null,
                         r);
@@ -622,7 +621,7 @@ public class HttpServer {
             @Override
             public Thread newThread(Runnable r) {
                 final Thread newThread = new DefaultWorkerThread(
-                        TransportFactory.getInstance().getDefaultAttributeBuilder(),
+                        NIOTransportBuilder.DEFAULT_ATTRIBUTE_BUILDER,
                         serverConfig.getName() + "-" + threadCounter.getAndIncrement(),
                         null,
                         r);

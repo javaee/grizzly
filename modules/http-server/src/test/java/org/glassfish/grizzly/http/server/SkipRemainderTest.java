@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,11 +40,11 @@
 
 package org.glassfish.grizzly.http.server;
 
+import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.SocketConnectorHandler;
-import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -155,7 +155,7 @@ public class SkipRemainderTest {
             final LinkedTransferQueue<Integer> transferQueue)
             throws Exception, InterruptedException {
 
-        final MemoryManager mm = TransportFactory.getInstance().getDefaultMemoryManager();
+        final MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
         
         final int contentSizeHalf = content.length / 2;
         

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -56,8 +56,8 @@ public class JmxBasicTest {
     @Test
     public void transport() throws Exception {
         GrizzlyJmxManager manager = GrizzlyJmxManager.instance();
-        final TCPNIOTransport transport1 = TransportFactory.getInstance().createTCPTransport();
-        final TCPNIOTransport transport2 = TransportFactory.getInstance().createTCPTransport();
+        final TCPNIOTransport transport1 = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        final TCPNIOTransport transport2 = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
 
         try {
             JmxObject jmxTransportObject1 =
@@ -77,7 +77,6 @@ public class JmxBasicTest {
         } finally {
             transport1.stop();
             transport2.stop();
-            TransportFactory.getInstance().close();
         }
     }
 }

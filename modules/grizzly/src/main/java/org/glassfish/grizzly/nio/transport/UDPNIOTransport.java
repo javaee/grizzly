@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -444,21 +444,34 @@ public final class UDPNIOTransport extends NIOTransport implements
                 strategy = new WorkerThreadIOStrategy(threadPool);
             }
 
+            if (selectorPool == null) {
+                setSelectorPool0(GrizzlyExecutorService.createInstance(selectorConfig));
+            }
+
             if (threadPool == null) {
-                ThreadPoolConfig config = strategy.createDefaultWorkerPoolConfig(this);
-                config.getInitialMonitoringConfig().addProbes(
+                if (workerConfig != null) {
+                    workerConfig.getInitialMonitoringConfig().addProbes(
                         getThreadPoolMonitoringConfig().getProbes());
-                setThreadPool0(GrizzlyExecutorService.createInstance(config));
-            } else {
-                if (threadPool instanceof GrizzlyExecutorService) {
-                    final ThreadPoolConfig config =
-                            ((GrizzlyExecutorService) threadPool).getConfiguration();
-                    if (!(strategy instanceof SameThreadIOStrategy)
-                            && selectorRunnersCount >= config.getMaxPoolSize()) {
-                        selectorRunnersCount = config.getMaxPoolSize() / 2;
-                    }
+                    setThreadPool0(GrizzlyExecutorService.createInstance(workerConfig));
                 }
             }
+
+
+//            if (threadPool == null) {
+//                ThreadPoolConfig config = strategy.createDefaultWorkerPoolConfig(this);
+//                config.getInitialMonitoringConfig().addProbes(
+//                        getThreadPoolMonitoringConfig().getProbes());
+//                setThreadPool0(GrizzlyExecutorService.createInstance(config));
+//            } else {
+//                if (threadPool instanceof GrizzlyExecutorService) {
+//                    final ThreadPoolConfig config =
+//                            ((GrizzlyExecutorService) threadPool).getConfiguration();
+//                    if (!(strategy instanceof SameThreadIOStrategy)
+//                            && selectorRunnersCount >= config.getMaxPoolSize()) {
+//                        selectorRunnersCount = config.getMaxPoolSize() / 2;
+//                    }
+//                }
+//            }
 
             /* By default TemporarySelector pool size should be equal
             to the number of processing threads */

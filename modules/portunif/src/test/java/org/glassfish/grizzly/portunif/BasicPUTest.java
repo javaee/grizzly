@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,6 +41,8 @@
 package org.glassfish.grizzly.portunif;
 
 import java.nio.charset.Charset;
+
+import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import java.io.IOException;
 import org.glassfish.grizzly.filterchain.BaseFilter;
@@ -49,7 +51,6 @@ import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
 import java.util.concurrent.Future;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.Connection;
@@ -86,7 +87,7 @@ public class BasicPUTest {
                 .add(new StringFilter(CHARSET))
                 .add(puFilter);
 
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(puFilterChainBuilder.build());
 
         try {
@@ -123,7 +124,6 @@ public class BasicPUTest {
             }
 
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 

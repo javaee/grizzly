@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -77,12 +77,7 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
 
     @Override
     public ThreadPoolConfig createDefaultWorkerPoolConfig(final NIOTransport transport) {
-        final ThreadPoolConfig config = ThreadPoolConfig.defaultConfig().clone();
-        final int runnerCount = transport.getSelectorRunnersCount();
-        config.setCorePoolSize(runnerCount);
-        config.setMaxPoolSize(runnerCount);
-        config.setMemoryManager(transport.getMemoryManager());
-        return config;
+        return null;
     }
 
 }

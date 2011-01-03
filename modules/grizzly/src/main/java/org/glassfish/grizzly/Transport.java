@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -46,6 +46,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
+import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.threadpool.ThreadPoolProbe;
 import org.glassfish.grizzly.utils.StateHolder;
 import java.io.IOException;
@@ -298,6 +299,13 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      */
     ExecutorService getThreadPool();
 
+
+    /**
+     * @return {@link ExecutorService} responsible for running {@link org.glassfish.grizzly.nio.SelectorRunner}
+     *  threads.
+     */
+    ExecutorService getSelectorRunnerThreadPool();
+
     /**
      * Set a thread pool, which will process transport internal tasks like
      * NIO {@link Selector} polling etc.
@@ -305,6 +313,47 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      * @param threadPool {@link ExecutorService} transport thread pool.
      */
     void setThreadPool(ExecutorService threadPool);
+
+    /**
+     * Set a thread pool which will run {@link org.glassfish.grizzly.nio.SelectorRunner}
+     * threads.
+     *
+     * @param threadPool {@link ExecutorService} for {@link org.glassfish.grizzly.nio.SelectorRunner}s
+     */
+    void setSelectorRunnerThreadPool(ExecutorService threadPool);
+
+
+    /**
+     * Set the {@link ThreadPoolConfig} to be used by the {@link org.glassfish.grizzly.nio.SelectorRunner}
+     * thread pool.
+     *
+     * @param runnerConfig {@link org.glassfish.grizzly.nio.SelectorRunner} thread
+     *  pool configuration.
+     */
+    void setSelectorRunnerThreadPoolConfig(final ThreadPoolConfig runnerConfig);
+
+    /**
+     * Set the {@link ThreadPoolConfig} to be used by the worker thread pool.
+     *
+     * @param workerConfig worker thread pool configuration.
+     */
+    void setWorkerThreadPoolConfig(final ThreadPoolConfig workerConfig);
+
+    /**
+     * @return the {@link ThreadPoolConfig} that will be used to construct the
+     *  {@link java.util.concurrent.ExecutorService} which will run the
+     *  {@link org.glassfish.grizzly.Transport}'s
+     *  {@link org.glassfish.grizzly.nio.SelectorRunner}s.
+     */
+    ThreadPoolConfig getSelectorRunnerThreadPoolConfig();
+
+    /**
+     * @return the {@link ThreadPoolConfig} that will be used to construct the
+     *  {@link java.util.concurrent.ExecutorService} for <code>IOStrategies</code>
+     *  that require worker threads.  Depending on the {@link IOStrategy} being
+     *  used, this may return <code>null</code>.
+     */
+    ThreadPoolConfig getWorkerThreadPoolConfig();
 
     /**
      * Get {@link Transport} associated {@link AttributeBuilder}, which will

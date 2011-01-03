@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -73,11 +73,11 @@ public class FilterChainTest extends TestCase {
     private static final int PORT = 7788;
     
     private static final Attribute<AtomicInteger> counterAttr =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.<AtomicInteger>createAttribute(
+            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
             FilterChainTest.class.getName() + ".counter");
     
     private static final Attribute<CompositeBuffer> bufferAttr =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.<CompositeBuffer>createAttribute(
+            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
             FilterChainTest.class.getName() + ".buffer",
             new NullaryFunction<CompositeBuffer>() {
 
@@ -103,7 +103,7 @@ public class FilterChainTest extends TestCase {
     
     public void testEventUpstream() throws Exception {
         final Connection connection =
-                new TCPNIOConnection(TransportFactory.getInstance().createTCPTransport(), null);
+                new TCPNIOConnection((TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build(), null);
 
         counterAttr.set(connection, new AtomicInteger(0));
 
@@ -137,7 +137,7 @@ public class FilterChainTest extends TestCase {
 
     public void testEventDownstream() throws Exception {
         final Connection connection =
-                new TCPNIOConnection(TransportFactory.getInstance().createTCPTransport(), null);
+                new TCPNIOConnection((TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build(), null);
 
         counterAttr.set(connection, new AtomicInteger(3));
 
@@ -170,7 +170,7 @@ public class FilterChainTest extends TestCase {
     }
 
     public void testFlush() throws Exception {
-        final TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        final TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
         final MemoryManager mm = transport.getMemoryManager();
 
         final Buffer msg = Buffers.wrap(mm, "Echo this message");
@@ -199,7 +199,7 @@ public class FilterChainTest extends TestCase {
             transport.bind(PORT);
             transport.start();
 
-            final FutureImpl<Integer> resultEcho = SafeFutureImpl.<Integer>create();
+            final FutureImpl<Integer> resultEcho = SafeFutureImpl.create();
 
             FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter());
@@ -209,7 +209,7 @@ public class FilterChainTest extends TestCase {
             final FilterChain clientChain = clientFilterChainBuilder.build();
 
             Future<Connection> connectFuture = transport.connect("localhost", PORT);
-            connection = (TCPNIOConnection) connectFuture.get(10, TimeUnit.SECONDS);
+            connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
             connection.setProcessor(clientChain);
 
@@ -217,7 +217,7 @@ public class FilterChainTest extends TestCase {
 
             try {
                 resultEcho.get(5, TimeUnit.SECONDS);
-                assertEquals("No message expected", true);
+                fail("No message expected");
             } catch (TimeoutException expected) {
             }
 
@@ -233,7 +233,6 @@ public class FilterChainTest extends TestCase {
             }
 
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 

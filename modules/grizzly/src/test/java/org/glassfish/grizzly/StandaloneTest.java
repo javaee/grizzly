@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -62,7 +62,7 @@ public class StandaloneTest extends GrizzlyTestCase {
     
     public void testStandalone() throws Exception {
         TCPNIOTransport transport =
-                TransportFactory.getInstance().createTCPTransport();
+                (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
         int messageSize = 166434;
 
         Connection connection = null;
@@ -121,7 +121,6 @@ public class StandaloneTest extends GrizzlyTestCase {
             }
 
             transport.stop();
-            TransportFactory.getInstance().close();
         }
 
     }

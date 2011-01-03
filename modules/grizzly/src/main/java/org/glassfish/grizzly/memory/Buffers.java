@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -51,7 +51,7 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.Appender;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.NIOTransportBuilder;
 
 /**
  * Class has useful methods to simplify the work with {@link Buffer}s.
@@ -155,7 +155,7 @@ public class Buffers {
     public static Buffer wrap(MemoryManager memoryManager,
             byte[] array, int offset, int length) {
         if (memoryManager == null) {
-            memoryManager = TransportFactory.getInstance().getDefaultMemoryManager();
+            memoryManager = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
         }
 
         if (memoryManager instanceof WrapperAware) {

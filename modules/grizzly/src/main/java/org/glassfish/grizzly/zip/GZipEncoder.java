@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,11 +41,10 @@
 package org.glassfish.grizzly.zip;
 
 import org.glassfish.grizzly.AbstractTransformer;
-import org.glassfish.grizzly.AbstractTransformer.LastResultAwareState;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.TransformationException;
 import org.glassfish.grizzly.TransformationResult;
-import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
@@ -73,7 +72,7 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
     private static final Buffer header;
 
     static {
-        header = TransportFactory.getInstance().getDefaultMemoryManager().allocate(10);
+        header = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER.allocate(10);
         header.put((byte) GZIP_MAGIC);                // Magic number (short)
         header.put((byte) (GZIP_MAGIC >> 8));                // Magic number (short)
         header.put((byte) Deflater.DEFLATED);         // Compression method (CM)
@@ -263,7 +262,6 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
 
     /**
      * Writes next block of compressed data to the output stream.
-     * @throws IOException if an I/O error has occurred
      */
      protected Buffer deflate(Deflater deflater, MemoryManager memoryManager) {
         final Buffer buffer = memoryManager.allocate(bufferSize);

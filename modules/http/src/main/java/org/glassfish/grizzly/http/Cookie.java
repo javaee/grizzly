@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -59,7 +59,7 @@
 package org.glassfish.grizzly.http;
 
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.http.util.CookieSerializerUtils;
 import org.glassfish.grizzly.memory.MemoryManager;
 
@@ -547,7 +547,7 @@ public class Cookie implements Cloneable {
 
     public Buffer asServerCookieBuffer(MemoryManager memoryManager) {
         if (memoryManager == null) memoryManager =
-                TransportFactory.getInstance().getDefaultMemoryManager();
+                NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
         
         final Buffer buffer = memoryManager.allocate(4096);
         CookieSerializerUtils.serializeServerCookie(buffer, this);
@@ -568,7 +568,7 @@ public class Cookie implements Cloneable {
 
     public Buffer asClientCookieBuffer(MemoryManager memoryManager) {
         if (memoryManager == null) memoryManager =
-                TransportFactory.getInstance().getDefaultMemoryManager();
+                NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
 
         final Buffer buffer = memoryManager.allocate(4096);
         CookieSerializerUtils.serializeClientCookies(buffer, this);

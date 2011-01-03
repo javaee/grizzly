@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.http.core;
 
+import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
@@ -47,7 +48,6 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.StandaloneProcessor;
-import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -165,7 +165,7 @@ public class HttpRequestParseTest extends TestCase {
     @SuppressWarnings({"unchecked"})
     private HttpPacket doTestDecoder(String request, int limit) {
 
-        MemoryManager mm = TransportFactory.getInstance().getDefaultMemoryManager();
+        MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
         Buffer input = Buffers.wrap(mm, request);
         
         HttpServerFilter filter = new HttpServerFilter(true, limit, null, null);
@@ -196,7 +196,7 @@ public class HttpRequestParseTest extends TestCase {
         filterChainBuilder.add(new HTTPRequestCheckFilter(parseResult,
                 method, requestURI, protocol, Collections.<String, Pair<String, String>>emptyMap()));
 
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(filterChainBuilder.build());
         
         try {
@@ -235,7 +235,6 @@ public class HttpRequestParseTest extends TestCase {
             }
 
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 
@@ -287,7 +286,7 @@ public class HttpRequestParseTest extends TestCase {
         private final SocketAddress peerAddress;
 
         public StandaloneConnection() {
-            super(TransportFactory.getInstance().createTCPTransport());
+            super(NIOTransportBuilder.defaultTCPTransportBuilder().build());
             localAddress = new InetSocketAddress("127.0.0.1", 0);
             peerAddress = new InetSocketAddress("127.0.0.1", 0);
         }

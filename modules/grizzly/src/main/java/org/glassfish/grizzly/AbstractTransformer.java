@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -110,7 +110,7 @@ public abstract class AbstractTransformer<K, L> implements Transformer<K, L> {
             return connection.getTransport().getMemoryManager();
         }
 
-        return TransportFactory.getInstance().getDefaultMemoryManager();
+        return NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
     }
     
     public MemoryManager getMemoryManager() {

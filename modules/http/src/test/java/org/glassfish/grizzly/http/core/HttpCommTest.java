@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,13 +40,13 @@
 
 package org.glassfish.grizzly.http.core;
 
+import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.http.HttpClientFilter;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChain;
@@ -91,7 +91,7 @@ public class HttpCommTest extends TestCase {
         serverFilterChainBuilder.add(new HttpServerFilter());
         serverFilterChainBuilder.add(new DummyServerFilter());
 
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(serverFilterChainBuilder.build());
 
         Connection connection = null;
@@ -142,7 +142,6 @@ public class HttpCommTest extends TestCase {
             }
 
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,9 +40,9 @@
 
 package org.glassfish.grizzly.http.core;
 
+import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChain;
@@ -82,7 +82,7 @@ public class ContentTest extends TestCase {
     public void testExplicitContentLength() throws Exception {
         HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("POST").protocol(Protocol.HTTP_1_1).uri("/default").contentLength(10).build();
         httpRequest.addHeader("Host", "localhost:" + PORT);
-        HttpContent content = httpRequest.httpContentBuilder().content(Buffers.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "1234567890")).build();
+        HttpContent content = httpRequest.httpContentBuilder().content(Buffers.wrap(NIOTransportBuilder.DEFAULT_MEMORY_MANAGER, "1234567890")).build();
 
         doHttpRequestTest(content);
     }
@@ -91,7 +91,7 @@ public class ContentTest extends TestCase {
     public void testHeaderContentLength() throws Exception {
         HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("POST").protocol(Protocol.HTTP_1_1).uri("/default").header("Content-Length", "10").build();
         httpRequest.addHeader("Host", "localhost:" + PORT);
-        HttpContent content = httpRequest.httpContentBuilder().content(Buffers.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "1234567890")).build();
+        HttpContent content = httpRequest.httpContentBuilder().content(Buffers.wrap(NIOTransportBuilder.DEFAULT_MEMORY_MANAGER, "1234567890")).build();
 
         doHttpRequestTest(content);
     }
@@ -100,7 +100,7 @@ public class ContentTest extends TestCase {
     public void testSimpleChunked() throws Exception {
         HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("POST").protocol(Protocol.HTTP_1_1).uri("/default").chunked(true).build();
         httpRequest.addHeader("Host", "localhost:" + PORT);
-        HttpContent content = httpRequest.httpTrailerBuilder().content(Buffers.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "1234567890")).build();
+        HttpContent content = httpRequest.httpTrailerBuilder().content(Buffers.wrap(NIOTransportBuilder.DEFAULT_MEMORY_MANAGER, "1234567890")).build();
 
         doHttpRequestTest(content);
     }
@@ -109,9 +109,9 @@ public class ContentTest extends TestCase {
     public void testSeveralChunked() throws Exception {
         HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("POST").protocol(Protocol.HTTP_1_1).uri("/default").chunked(true).build();
         httpRequest.addHeader("Host", "localhost:" + PORT);
-        HttpContent content1 = httpRequest.httpContentBuilder().content(Buffers.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "1234567890")).build();
-        HttpContent content2 = httpRequest.httpContentBuilder().content(Buffers.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "0987654321")).build();
-        HttpContent content3 = httpRequest.httpTrailerBuilder().content(Buffers.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "final")).build();
+        HttpContent content1 = httpRequest.httpContentBuilder().content(Buffers.wrap(NIOTransportBuilder.DEFAULT_MEMORY_MANAGER, "1234567890")).build();
+        HttpContent content2 = httpRequest.httpContentBuilder().content(Buffers.wrap(NIOTransportBuilder.DEFAULT_MEMORY_MANAGER, "0987654321")).build();
+        HttpContent content3 = httpRequest.httpTrailerBuilder().content(Buffers.wrap(NIOTransportBuilder.DEFAULT_MEMORY_MANAGER, "final")).build();
 
         doHttpRequestTest(content1, content2, content3);
     }
@@ -130,7 +130,7 @@ public class ContentTest extends TestCase {
         filterChainBuilder.add(new HTTPRequestMergerFilter(parseResult));
         FilterChain filterChain = filterChainBuilder.build();
         
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(filterChain);
 
         try {
@@ -179,7 +179,6 @@ public class ContentTest extends TestCase {
             }
 
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 

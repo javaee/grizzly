@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -56,8 +56,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.SocketBinder;
-import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.config.dom.Http;
 import org.glassfish.grizzly.config.dom.NetworkListener;
 import org.glassfish.grizzly.config.dom.PortUnification;
@@ -118,7 +119,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     protected volatile String name;
     protected volatile InetAddress address;
     protected volatile int port;
-    protected NIOTransport transport;
+    NIOTransport transport;
     protected FilterChain rootFilterChain;
 
     private volatile ExecutorService auxExecutorService;
@@ -248,7 +249,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     protected NIOTransport configureTCPTransport(final Habitat habitat,
             final Transport transportConfig) {
         
-        final TCPNIOTransport tcpTransport = TransportFactory.getInstance().createTCPTransport();
+        final TCPNIOTransport tcpTransport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
         tcpTransport.setTcpNoDelay(Boolean.parseBoolean(transportConfig.getTcpNoDelay()));
         tcpTransport.setLinger(Integer.parseInt(transportConfig.getLinger()));
         tcpTransport.setServerConnectionBackLog(Integer.parseInt(transportConfig.getMaxConnectionsCount()));
@@ -259,7 +260,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     protected NIOTransport configureUDPTransport(final Habitat habitat,
             final Transport transportConfig) {
         
-        return TransportFactory.getInstance().createUDPTransport();
+        return NIOTransportBuilder.defaultUDPTransportBuilder().build();
     }
 
     protected void configureProtocol(final Habitat habitat,
@@ -476,7 +477,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
             @Override
             public Thread newThread(Runnable r) {
                 final Thread newThread = new DefaultWorkerThread(
-                        TransportFactory.getInstance().getDefaultAttributeBuilder(),
+                        transport.getAttributeBuilder(),
                         getName() + "-" + threadCounter.getAndIncrement(),
                         null,
                         r);

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,7 +44,6 @@ import java.nio.channels.SelectableChannel;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
-import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import java.io.IOException;
 import java.util.Arrays;
@@ -87,20 +86,19 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
 
     public void testStartStop() throws IOException {
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
 
         try {
             transport.bind(PORT);
             transport.start();
         } finally {
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 
     public void testConnectorHandlerConnect() throws Exception {
         Connection connection = null;
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
 
         try {
             transport.bind(PORT);
@@ -115,13 +113,12 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             }
 
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 
     public void testBindUnbind() throws Exception {
         Connection connection = null;
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
 
         try {
             transport.bind(PORT);
@@ -141,7 +138,6 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             } catch (ExecutionException e) {
                 assertTrue(e.getCause() instanceof IOException);
             }
-            assertTrue(connection != null);
 
             transport.bind(PORT);
 
@@ -154,13 +150,12 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             }
 
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 
     public void testMultiBind() throws Exception {
         Connection connection = null;
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
 
         try {
             final TCPNIOServerConnection serverConnection1 = transport.bind(PORT);
@@ -188,13 +183,21 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
                 assertTrue(e.getCause() instanceof IOException);
             }
 
+            transport.unbind(serverConnection2);
+            future = transport.connect("localhost", PORT + 1);
+            try {
+                connection = future.get(10, TimeUnit.SECONDS);
+                assertTrue("Server connection should be closed!", false);
+            } catch (ExecutionException e) {
+                assertTrue(e.getCause() instanceof IOException);
+            }
+
         } finally {
             if (connection != null) {
                 connection.close();
             }
 
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 
@@ -202,7 +205,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         Connection connection = null;
         StreamWriter writer = null;
 
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
 
         try {
             transport.bind(PORT);
@@ -231,20 +234,19 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             }
 
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 
     public void testSimpleEcho() throws Exception {
         Connection connection = null;
-        StreamReader reader = null;
-        StreamWriter writer = null;
+        StreamReader reader;
+        StreamWriter writer;
 
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new EchoFilter());
 
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -252,7 +254,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             transport.start();
 
             Future<Connection> future = transport.connect("localhost", PORT);
-            connection = (TCPNIOConnection) future.get(10, TimeUnit.SECONDS);
+            connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
             connection.configureBlocking(true);
@@ -280,20 +282,19 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             }
 
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 
     public void testSeveralPacketsEcho() throws Exception {
         Connection connection = null;
-        StreamReader reader = null;
-        StreamWriter writer = null;
+        StreamReader reader;
+        StreamWriter writer;
 
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new EchoFilter());
         
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -302,7 +303,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             transport.configureBlocking(true);
 
             Future<Connection> future = transport.connect("localhost", PORT);
-            connection = (TCPNIOConnection) future.get(10, TimeUnit.SECONDS);
+            connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
             connection.configureStandalone(true);
@@ -331,20 +332,19 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             }
 
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 
     public void testAsyncReadWriteEcho() throws Exception {
         Connection connection = null;
-        StreamReader reader = null;
-        StreamWriter writer = null;
+        StreamReader reader;
+        StreamWriter writer;
 
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new EchoFilter());
         
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -352,7 +352,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             transport.start();
 
             Future<Connection> connectFuture = transport.connect("localhost", PORT);
-            connection = (TCPNIOConnection) connectFuture.get(10, TimeUnit.SECONDS);
+            connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
             connection.configureStandalone(true);
@@ -379,7 +379,6 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             }
 
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 
@@ -389,8 +388,8 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         final AtomicInteger serverBytesCounter = new AtomicInteger();
 
         Connection connection = null;
-        StreamReader reader = null;
-        StreamWriter writer = null;
+        StreamReader reader;
+        StreamWriter writer;
         
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
@@ -405,7 +404,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             }
         });
 
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -413,7 +412,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             transport.start();
 
             Future<Connection> connectFuture = transport.connect("localhost", PORT);
-            connection = (TCPNIOConnection) connectFuture.get(10, TimeUnit.SECONDS);
+            connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
             connection.configureStandalone(true);
@@ -466,7 +465,6 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             }
 
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 
@@ -474,8 +472,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         class CheckSizeFilter extends BaseFilter {
             private int size;
             private CountDownLatch latch;
-            volatile Future resultFuture;
-            
+
             public CheckSizeFilter(int size) {
                 latch = new CountDownLatch(1);
                 this.size = size;
@@ -499,8 +496,8 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         int fullMessageSize = 2048;
 
         Connection connection = null;
-        StreamReader reader = null;
-        StreamWriter writer = null;
+        StreamReader reader;
+        StreamWriter writer;
 
         CheckSizeFilter checkSizeFilter = new CheckSizeFilter(fullMessageSize);
 
@@ -509,7 +506,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         filterChainBuilder.add(checkSizeFilter);
         filterChainBuilder.add(new EchoFilter());
 
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -517,7 +514,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             transport.start();
 
             Future<Connection> connectFuture = transport.connect("localhost", PORT);
-            connection = (TCPNIOConnection) connectFuture.get(10, TimeUnit.SECONDS);
+            connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
             connection.configureStandalone(true);
@@ -560,16 +557,15 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             }
 
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 
     public void testSelectorSwitch() throws Exception {
         Connection connection = null;
-        StreamReader reader = null;
-        StreamWriter writer = null;
+        StreamReader reader;
+        StreamWriter writer;
 
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
 
         final CustomChannelDistributor distributor = new CustomChannelDistributor(transport);
         transport.setNioChannelDistributor(distributor);
@@ -582,7 +578,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             public NextAction handleAccept(final FilterChainContext ctx) throws IOException {
                 final NIOConnection connection = (NIOConnection) ctx.getConnection();
 
-                connection.attachToSelectorRunner(distributor.getSelectorRunner(0));
+                connection.attachToSelectorRunner(distributor.getSelectorRunner());
 
                 return ctx.getInvokeAction();
             }
@@ -598,7 +594,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             transport.start();
 
             Future<Connection> future = transport.connect("localhost", PORT);
-            connection = (TCPNIOConnection) future.get(10, TimeUnit.SECONDS);
+            connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
             connection.configureBlocking(true);
@@ -626,7 +622,6 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             }
 
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 
@@ -642,7 +637,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         @Override
         public void registerChannel(final SelectableChannel channel,
                 final int interestOps, final Object attachment) throws IOException {
-            final SelectorRunner runner = getSelectorRunner(interestOps);
+            final SelectorRunner runner = getSelectorRunner();
 
             transport.getSelectorHandler().registerChannel(runner,
                     channel, interestOps, attachment);
@@ -654,13 +649,13 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
                 final Object attachment,
                 final CompletionHandler completionHandler)
                 throws IOException {
-            final SelectorRunner runner = getSelectorRunner(interestOps);
+            final SelectorRunner runner = getSelectorRunner();
 
             return transport.getSelectorHandler().registerChannelAsync(
                     runner, channel, interestOps, attachment, completionHandler);
         }
 
-        public SelectorRunner getSelectorRunner(final int interestOps) {
+        public SelectorRunner getSelectorRunner() {
             final SelectorRunner[] runners = getTransportSelectorRunners();
             final int index = counter.getAndIncrement() % runners.length;
 

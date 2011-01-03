@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,17 +40,15 @@
 
 package org.glassfish.grizzly.threadpool;
 
-import org.glassfish.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
+import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
-import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
-import org.glassfish.grizzly.TransportFactory;
 
 /**
  *
@@ -92,7 +90,7 @@ public class GrizzlyExecutorService extends AbstractExecutorService
         cfg = cfg.clone();
 
         if (cfg.getMemoryManager() == null) {
-            cfg.setMemoryManager(TransportFactory.getInstance().getDefaultMemoryManager());
+            cfg.setMemoryManager(NIOTransportBuilder.DEFAULT_MEMORY_MANAGER);
         }
         
         final Queue<Runnable> queue = cfg.getQueue();

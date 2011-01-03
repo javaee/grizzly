@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -50,6 +50,7 @@ import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.grizzly.monitoring.MonitoringAware;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringConfigImpl;
+import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.threadpool.ThreadPoolProbe;
 import org.glassfish.grizzly.utils.StateHolder;
 
@@ -98,9 +99,14 @@ public abstract class AbstractTransport implements Transport {
     protected MemoryManager memoryManager;
 
     /**
-     * Transport thread pool
+     * Worker thread pool
      */
     protected ExecutorService threadPool;
+
+    /**
+     * SelectorRunner thread pool.
+     */
+    protected ExecutorService selectorPool;
 
     /**
      * Transport AttributeBuilder, which will be used to create Attributes
@@ -116,6 +122,10 @@ public abstract class AbstractTransport implements Transport {
      * Transport default buffer size for write operations
      */
     protected int writeBufferSize;
+
+    protected ThreadPoolConfig workerConfig;
+
+    protected ThreadPoolConfig selectorConfig;
 
     /**
      * Transport probes
@@ -339,6 +349,58 @@ public abstract class AbstractTransport implements Transport {
      * {@inheritDoc}
      */
     @Override
+    public ExecutorService getSelectorRunnerThreadPool() {
+        return selectorPool;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setSelectorRunnerThreadPool(ExecutorService selectorPool) {
+        this.selectorPool = selectorPool;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setSelectorRunnerThreadPoolConfig(ThreadPoolConfig selectorConfig) {
+        if (isStopped()) {
+            this.selectorConfig = selectorConfig;
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setWorkerThreadPoolConfig(ThreadPoolConfig workerConfig) {
+        if (isStopped()) {
+            this.workerConfig = workerConfig;
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ThreadPoolConfig getSelectorRunnerThreadPoolConfig() {
+        return ((isStopped()) ? selectorConfig : selectorConfig.clone());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ThreadPoolConfig getWorkerThreadPoolConfig() {
+        return ((isStopped()) ? workerConfig : workerConfig.clone());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void setThreadPool(final ExecutorService threadPool) {
         if (threadPool instanceof MonitoringAware) {
             ((MonitoringAware<ThreadPoolProbe>) threadPool).getMonitoringConfig()
@@ -351,6 +413,10 @@ public abstract class AbstractTransport implements Transport {
     protected void setThreadPool0(final ExecutorService threadPool) {
         this.threadPool = threadPool;
         notifyProbesConfigChanged(this);
+    }
+
+    protected void setSelectorPool0(final ExecutorService selectorPool) {
+        this.selectorPool = selectorPool;
     }
 
     /**
