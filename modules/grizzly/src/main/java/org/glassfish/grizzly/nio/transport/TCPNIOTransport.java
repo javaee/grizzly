@@ -91,7 +91,6 @@ import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.AbstractThreadPool;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
-import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.threadpool.WorkerThread;
 import java.io.EOFException;
 import java.lang.ref.SoftReference;
@@ -233,10 +232,6 @@ public final class TCPNIOTransport extends NIOTransport implements
                 nioChannelDistributor = new RoundRobinConnectionDistributor(this);
             }
 
-            if (strategy == null) {
-                strategy = new WorkerThreadIOStrategy(threadPool);
-            }
-
             if (selectorPool == null) {
                 setSelectorPool0(GrizzlyExecutorService.createInstance(selectorConfig));
             }
@@ -278,6 +273,11 @@ public final class TCPNIOTransport extends NIOTransport implements
                            selectorPoolSize);
                 }
             }
+
+            if (strategy == null) {
+                strategy = new WorkerThreadIOStrategy(threadPool);
+            }
+
             temporarySelectorIO.setSelectorPool(
                     new TemporarySelectorPool(selectorPoolSize));
 

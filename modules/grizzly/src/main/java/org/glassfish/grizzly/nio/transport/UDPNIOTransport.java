@@ -88,10 +88,8 @@ import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorPool;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorsEnabledTransport;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
-import org.glassfish.grizzly.strategies.WorkerThreadPoolConfigProducer;
 import org.glassfish.grizzly.threadpool.AbstractThreadPool;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
-import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.memory.ByteBufferArray;
@@ -440,10 +438,6 @@ public final class UDPNIOTransport extends NIOTransport implements
                 nioChannelDistributor = new RoundRobinConnectionDistributor(this);
             }
 
-            if (strategy == null) {
-                strategy = new WorkerThreadIOStrategy(threadPool);
-            }
-
             if (selectorPool == null) {
                 setSelectorPool0(GrizzlyExecutorService.createInstance(selectorConfig));
             }
@@ -486,6 +480,11 @@ public final class UDPNIOTransport extends NIOTransport implements
                            selectorPoolSize);
                 }
             }
+
+            if (strategy == null) {
+                strategy = new WorkerThreadIOStrategy(threadPool);
+            }
+
             temporarySelectorIO.setSelectorPool(
                     new TemporarySelectorPool(selectorPoolSize));
 

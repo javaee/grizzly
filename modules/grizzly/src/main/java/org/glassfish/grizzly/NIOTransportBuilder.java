@@ -172,12 +172,10 @@ public class NIOTransportBuilder {
         transport = protocol.createRawTransport();
 
         workerConfig = strategy.createDefaultWorkerPoolConfig(transport);
-        selectorConfig = ((workerConfig != null)
+        selectorConfig = configSelectorPool((workerConfig != null)
                               ? workerConfig.clone()
                               : ThreadPoolConfig.defaultConfig().clone());
         this.strategy = strategy;
-        configSelectorPool(selectorConfig);
-
     }
 
 
@@ -307,10 +305,9 @@ public class NIOTransportBuilder {
      * </p>
      * @param config
      */
-    protected void configSelectorPool(final ThreadPoolConfig config) {
+    protected ThreadPoolConfig configSelectorPool(final ThreadPoolConfig config) {
         final int runnerCount = getRunnerCount();
-        config.setCorePoolSize(runnerCount);
-        config.setMaxPoolSize(runnerCount);
+        return config.setCorePoolSize(runnerCount).setMaxPoolSize(runnerCount);
     }
 
 

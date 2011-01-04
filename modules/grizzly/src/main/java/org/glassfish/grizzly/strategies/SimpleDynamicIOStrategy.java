@@ -48,8 +48,6 @@ import org.glassfish.grizzly.IOStrategy;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
-import org.glassfish.grizzly.utils.CurrentThreadExecutor;
-import org.glassfish.grizzly.utils.WorkerThreadExecutor;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.concurrent.ExecutorService;
@@ -76,16 +74,10 @@ public final class SimpleDynamicIOStrategy implements IOStrategy {
 
     private static final int WORKER_THREAD_THRESHOLD = 1;
 
-    public SimpleDynamicIOStrategy(final ExecutorService workerThreadPool) {
-        this(new CurrentThreadExecutor(),
-                new WorkerThreadExecutor(workerThreadPool));
-    }
-
-    protected SimpleDynamicIOStrategy(final Executor sameThreadProcessorExecutor,
-                                      final Executor workerThreadProcessorExecutor) {
+    public SimpleDynamicIOStrategy(final Executor workerThreadProcessorExecutor) {
         sameThreadStrategy = new SameThreadIOStrategy();
         workerThreadStrategy = new WorkerThreadIOStrategy(
-                sameThreadProcessorExecutor, workerThreadProcessorExecutor);
+                workerThreadProcessorExecutor);
     }
 
     @Override
@@ -101,6 +93,7 @@ public final class SimpleDynamicIOStrategy implements IOStrategy {
         }
     }
 
+    @Override
     public ThreadPoolConfig createDefaultWorkerPoolConfig(final NIOTransport transport) {
 
         final ThreadPoolConfig config = ThreadPoolConfig.defaultConfig().clone();

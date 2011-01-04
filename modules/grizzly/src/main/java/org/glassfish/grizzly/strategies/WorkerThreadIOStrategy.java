@@ -37,7 +37,6 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.strategies;
 
 import java.io.IOException;
@@ -48,9 +47,6 @@ import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.PostProcessor;
 import org.glassfish.grizzly.Processor;
 import org.glassfish.grizzly.nio.NIOConnection;
-import org.glassfish.grizzly.utils.CurrentThreadExecutor;
-import org.glassfish.grizzly.utils.WorkerThreadExecutor;
-import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -60,8 +56,8 @@ import java.util.logging.Logger;
  * @author Alexey Stashok
  */
 public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
+
     private static final Logger logger = Grizzly.logger(WorkerThreadIOStrategy.class);
-    
     /*
      * NONE,
      * READ,
@@ -73,31 +69,23 @@ public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
      * CLOSED
      */
 //    private final Executor[] executors;
-
-    private final Executor sameThreadExecutor;
+//    private final Executor sameThreadExecutor;
     private final Executor workerThreadExecutor;
-    
-    public WorkerThreadIOStrategy(final ExecutorService workerThreadPool) {
-        this(new CurrentThreadExecutor(),
-                new WorkerThreadExecutor(workerThreadPool));
-    }
 
-    protected WorkerThreadIOStrategy(Executor sameThreadProcessorExecutor,
-                                     Executor workerThreadProcessorExecutor) {
-        this.sameThreadExecutor = sameThreadProcessorExecutor;
-        this.workerThreadExecutor = workerThreadProcessorExecutor;
-        
+    public WorkerThreadIOStrategy(final Executor workerThreadExecutor) {
+        this.workerThreadExecutor = workerThreadExecutor;
+
     }
 
     @Override
     public boolean executeIoEvent(final Connection connection,
             final IOEvent ioEvent) throws IOException {
-        
+
         final NIOConnection nioConnection = (NIOConnection) connection;
-        
+
         final boolean disableInterest = (ioEvent == IOEvent.READ
                 || ioEvent == IOEvent.WRITE);
-        
+
         final PostProcessor pp;
         if (disableInterest) {
             nioConnection.disableIOEvent(ioEvent);
@@ -106,45 +94,54 @@ public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
             pp = null;
         }
 
-//        final Executor executor = executors[ioEvent.ordinal()];
-        final Executor executor = getExecutor(ioEvent);
-        
-        executor.execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    connection.getTransport().fireIOEvent(
-                            ioEvent, connection, pp);
-                } catch (IOException e) {
-                    logger.log(Level.FINE, "Uncaught exception: ", e);
-                    try {
-                        connection.close().markForRecycle(true);
-                    } catch (IOException ee) {
-                        logger.log(Level.WARNING, "Exception occurred when " +
-                                "closing the connection: ", ee);
-                    }
-                } catch (Exception e) {
-                    logger.log(Level.WARNING, "Uncaught exception: ", e);
-                    try {
-                        connection.close().markForRecycle(true);
-                    } catch (IOException ee) {
-                        logger.log(Level.WARNING, "Exception occurred when " +
-                                "closing the connection: ", ee);
-                    }
+        if (isExecuteInCurrentThread(ioEvent)) {
+            run0(connection, ioEvent, pp);
+        } else {
+            workerThreadExecutor.execute(new Runnable() {
+
+                @Override
+                public void run() {
+                    run0(connection, ioEvent, pp);
                 }
-            }
-        });
+            });
+        }
 
         return true;
     }
 
-    private Executor getExecutor(final IOEvent ioEvent) {
-        switch(ioEvent) {
+    private void run0(final Connection connection, final IOEvent ioEvent,
+            final PostProcessor postProcessor) {
+        try {
+            connection.getTransport().fireIOEvent(ioEvent, connection,
+                    postProcessor);
+        } catch (IOException e) {
+            logger.log(Level.FINE, "Uncaught exception: ", e);
+            try {
+                connection.close().markForRecycle(true);
+            } catch (IOException ee) {
+                logger.log(Level.WARNING, "Exception occurred when " +
+                        "closing the connection: ", ee);
+            }
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Uncaught exception: ", e);
+            try {
+                connection.close().markForRecycle(true);
+            } catch (IOException ee) {
+                logger.log(Level.WARNING, "Exception occurred when " +
+                        "closing the connection: ", ee);
+            }
+        }
+    }
+
+    private boolean isExecuteInCurrentThread(final IOEvent ioEvent) {
+        switch (ioEvent) {
             case READ:
             case WRITE:
-            case CLOSED: return workerThreadExecutor;
+            case CLOSED:
+                return true;
 
-            default: return sameThreadExecutor;
+            default:
+                return false;
         }
     }
 }

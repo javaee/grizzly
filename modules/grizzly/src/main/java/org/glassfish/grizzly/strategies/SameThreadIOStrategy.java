@@ -44,7 +44,6 @@ import java.io.IOException;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.PostProcessor;
-import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;

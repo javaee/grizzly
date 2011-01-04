@@ -71,6 +71,7 @@ public abstract class AbstractIOStrategy implements IOStrategy {
     // ----------------------------- Methods from WorkerThreadPoolConfigProducer
 
 
+    @Override
     public ThreadPoolConfig createDefaultWorkerPoolConfig(final NIOTransport transport) {
 
         final ThreadPoolConfig config = ThreadPoolConfig.defaultConfig().clone();

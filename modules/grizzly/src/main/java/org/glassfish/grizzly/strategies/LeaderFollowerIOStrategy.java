@@ -47,8 +47,6 @@ import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.PostProcessor;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.SelectorRunner;
-import org.glassfish.grizzly.utils.WorkerThreadExecutor;
-import java.util.concurrent.ExecutorService;
 
 /**
  * {@link org.glassfish.grizzly.IOStrategy}, which executes {@link org.glassfish.grizzly.Processor}s in a current threads, and
@@ -70,17 +68,12 @@ public final class LeaderFollowerIOStrategy extends AbstractIOStrategy {
 //    private final Executor[] executors;
     private final Executor workerThreadExecutor;
     
-    public LeaderFollowerIOStrategy(final ExecutorService workerThreadPool) {
-        this(new WorkerThreadExecutor(workerThreadPool));
-    }
-
-    protected LeaderFollowerIOStrategy(Executor workerThreadProcessorExecutor) {
-
+    public LeaderFollowerIOStrategy(final Executor workerThreadExecutor) {
 //        executors = new Executor[] {null,
 //            workerThreadProcessorExecutor, workerThreadProcessorExecutor,
 //            null, null, null, null,
 //            workerThreadProcessorExecutor};
-        this.workerThreadExecutor = workerThreadProcessorExecutor;
+        this.workerThreadExecutor = workerThreadExecutor;
     }
 
     @Override
