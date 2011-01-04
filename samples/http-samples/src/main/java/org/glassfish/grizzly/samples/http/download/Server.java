@@ -41,7 +41,6 @@
 package org.glassfish.grizzly.samples.http.download;
 
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.HttpServerFilter;
@@ -50,6 +49,7 @@ import org.glassfish.grizzly.utils.IdleTimeoutFilter;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.NIOTransportBuilder;
 
 /**
  * Simple HTTP (Web) server, which listens on a specific TCP port and shares
@@ -80,7 +80,9 @@ public class Server {
         serverFilterChainBuilder.add(new WebServerFilter("."));
 
         // Initialize Transport
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        final TCPNIOTransport transport =
+                (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder()
+                .build();
         // Set filterchain as a Transport Processor
         transport.setProcessor(serverFilterChainBuilder.build());
 
@@ -98,8 +100,6 @@ public class Server {
             // stop the transport
             transport.stop();
 
-            // release TransportManager resources like ThreadPool
-            TransportFactory.getInstance().close();
             logger.info("Stopped transport...");
         }
     }
