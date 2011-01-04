@@ -119,7 +119,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     protected volatile String name;
     protected volatile InetAddress address;
     protected volatile int port;
-    NIOTransport transport;
+    protected NIOTransport transport;
     protected FilterChain rootFilterChain;
 
     private volatile ExecutorService auxExecutorService;
