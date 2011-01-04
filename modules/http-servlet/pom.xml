@@ -89,6 +89,7 @@
                             </schemaIncludes>
                             <generatePackage>org.glassfish.grizzly.servlet.ver30</generatePackage>
                             <strict>true</strict>
+                            <catalog>src/main/resources/catalog.cat</catalog>
                         </configuration>
                         <goals>
                             <goal>generate</goal>
