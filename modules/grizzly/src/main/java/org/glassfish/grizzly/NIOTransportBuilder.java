@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly;
 
-import java.util.concurrent.Executor;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.DefaultAttributeBuilder;
 import org.glassfish.grizzly.memory.HeapMemoryManager;
@@ -53,7 +52,6 @@ import org.glassfish.grizzly.nio.SelectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
-import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
 /**
