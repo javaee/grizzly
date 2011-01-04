@@ -40,7 +40,7 @@
 
 package org.glassfish.grizzly.samples.filterchain;
 
-import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -65,7 +65,9 @@ public class GIOPServer {
 
 
         // Create TCP NIO transport
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        final TCPNIOTransport transport =
+                (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder()
+                .build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -77,7 +79,6 @@ public class GIOPServer {
             System.in.read();
         } finally {
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 }

@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.samples.simpleauth;
 
-import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -50,10 +49,11 @@ import org.glassfish.grizzly.utils.StringFilter;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.NIOTransportBuilder;
 
 /**
  * Server implementation, which echoes message, only if client was authenticated :)
- * Client and server exachange String based messages:
+ * Client and server exchange String based messages:
  *
  * (1)
  * MultiLinePacket = command
@@ -93,7 +93,9 @@ public class Server {
         filterChainBuilder.add(new EchoFilter());
 
         // Create TCP transport
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        final TCPNIOTransport transport =
+                (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder()
+                .build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -110,8 +112,6 @@ public class Server {
             // stop the transport
             transport.stop();
 
-            // release TransportManager resources like ThreadPool
-            TransportFactory.getInstance().close();
             logger.info("Stopped transport...");
         }
     }

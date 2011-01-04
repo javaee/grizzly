@@ -40,13 +40,13 @@
 
 package org.glassfish.grizzly.samples.tunnel;
 
-import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import java.io.IOException;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.NIOTransportBuilder;
 
 /**
  * Simple tunneling server
@@ -64,7 +64,9 @@ public class TunnelServer {
 
     public static void main(String[] args) throws IOException {
         // Create TCP transport
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        final TCPNIOTransport transport =
+                (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder()
+                .build();
 
         // Create a FilterChain using FilterChainBuilder
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
@@ -91,8 +93,6 @@ public class TunnelServer {
             // stop the transport
             transport.stop();
 
-            // release TransportManager resources like ThreadPool
-            TransportFactory.getInstance().close();
             logger.info("Stopped transport...");
         }
     }

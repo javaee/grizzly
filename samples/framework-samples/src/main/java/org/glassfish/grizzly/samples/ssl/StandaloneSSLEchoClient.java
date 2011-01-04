@@ -48,8 +48,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.StandaloneProcessor;
-import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
@@ -78,8 +78,9 @@ public class StandaloneSSLEchoClient {
         SSLStreamWriter writer = null;
         
         // Create the TCP transport
-        TCPNIOTransport transport = TransportFactory.getInstance().
-                createTCPTransport();
+        final TCPNIOTransport transport =
+                (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder()
+                .build();
 
         try {
             // start the transport
@@ -135,8 +136,6 @@ public class StandaloneSSLEchoClient {
 
             // stop the transport
             transport.stop();
-            // release TransportManager resources like ThreadPool etc.
-            TransportFactory.getInstance().close();
         }
     }
 

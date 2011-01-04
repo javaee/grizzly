@@ -41,8 +41,8 @@
 package org.glassfish.grizzly.samples.strategy;
 
 import java.io.IOException;
+import org.glassfish.grizzly.NIOTransportBuilder;
 
-import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -80,7 +80,9 @@ public class CustomStrategy {
 
 
         // Create TCP transport
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        final TCPNIOTransport transport =
+                (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder()
+                .build();
         transport.setProcessor(filterChainBuilder.build());
         
         // Set the LeaderFollowerIOStrategy (any strategy could be applied this way)
@@ -101,8 +103,6 @@ public class CustomStrategy {
             // stop the transport
             transport.stop();
 
-            // release TransportManager resources like ThreadPool
-            TransportFactory.getInstance().close();
             System.out.println("Stopped transport...");
         }
     }

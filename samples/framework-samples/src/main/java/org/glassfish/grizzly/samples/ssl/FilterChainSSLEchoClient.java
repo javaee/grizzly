@@ -47,7 +47,6 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.net.URL;
-import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
@@ -59,6 +58,7 @@ import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.ssl.SSLFilter;
 import javax.net.ssl.SSLEngine;
+import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.memory.Buffers;
 
 /**
@@ -92,7 +92,9 @@ public class FilterChainSSLEchoClient {
         filterChainBuilder.add(new SendMessageFilter(sslFilter));
 
         // Create TCP transport
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        final TCPNIOTransport transport =
+                (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder()
+                .build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -109,8 +111,6 @@ public class FilterChainSSLEchoClient {
             // stop the transport
             transport.stop();
 
-            // release TransportManager resources like ThreadPool
-            TransportFactory.getInstance().close();
             System.out.println("Stopped transport...");
         }
     }

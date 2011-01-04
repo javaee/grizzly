@@ -49,8 +49,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.StandaloneProcessor;
-import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
@@ -71,8 +71,9 @@ public class EchoClient {
         StreamWriter writer = null;
         
         // Create the TCP transport
-        TCPNIOTransport transport = TransportFactory.getInstance().
-                createTCPTransport();
+        final TCPNIOTransport transport =
+                (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder()
+                .build();
 
         try {
             // start the transport
@@ -121,8 +122,6 @@ public class EchoClient {
 
             // stop the transport
             transport.stop();
-            // release TransportManager resources like ThreadPool etc.
-            TransportFactory.getInstance().close();
         }
     }
 }

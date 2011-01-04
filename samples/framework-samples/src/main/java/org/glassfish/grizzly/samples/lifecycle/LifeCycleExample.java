@@ -41,7 +41,7 @@
 package org.glassfish.grizzly.samples.lifecycle;
 
 import java.io.IOException;
-import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -70,7 +70,9 @@ public class LifeCycleExample {
         filterChainBuilder.add(new EchoFilter());
 
         // Create TCP transport
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        final TCPNIOTransport transport =
+                (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder()
+                .build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -87,9 +89,6 @@ public class LifeCycleExample {
         } finally {
             // stop the transport
             transport.stop();
-
-            // release TransportManager resources like ThreadPool
-            TransportFactory.getInstance().close();
         }
     }
 
