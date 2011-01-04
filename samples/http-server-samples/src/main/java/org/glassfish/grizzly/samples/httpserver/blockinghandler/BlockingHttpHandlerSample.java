@@ -42,7 +42,6 @@ package org.glassfish.grizzly.samples.httpserver.blockinghandler;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -68,6 +67,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.memory.Buffers;
 
 
@@ -149,8 +149,9 @@ public class BlockingHttpHandlerSample {
 
 
             // Initialize Transport
-            TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
-            // Set filterchain as a Transport Processor
+            final TCPNIOTransport transport =
+                    (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder()
+                    .build();            // Set filterchain as a Transport Processor
             transport.setProcessor(clientFilterChainBuilder.build());
 
             try {
@@ -188,9 +189,6 @@ public class BlockingHttpHandlerSample {
             } finally {
                 // stop the transport
                 transport.stop();
-
-                // release TransportManager resources like ThreadPool
-                TransportFactory.getInstance().close();
             }
         }
 
