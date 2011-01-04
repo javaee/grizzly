@@ -2228,7 +2228,7 @@ public class Request {
             final int sessionIdStart = start + semicolon + match.length();
             final int semicolon2 = uriChunk.indexOf(';', sessionIdStart);
 
-            final int end = semicolon >= 0 ? semicolon2 : uriChunk.getEnd();
+            final int end = semicolon2 >= 0 ? semicolon2 : uriChunk.getEnd();
 
             final String sessionId = uriChunk.toString(sessionIdStart, end);
             
