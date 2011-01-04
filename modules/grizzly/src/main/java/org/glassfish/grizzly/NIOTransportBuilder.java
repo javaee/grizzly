@@ -1,4 +1,4 @@
-package org.glassfish.grizzly;/*
+/*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
  * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
@@ -38,6 +38,7 @@ package org.glassfish.grizzly;/*
  * holder.
  */
 
+package org.glassfish.grizzly;
 
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.DefaultAttributeBuilder;
