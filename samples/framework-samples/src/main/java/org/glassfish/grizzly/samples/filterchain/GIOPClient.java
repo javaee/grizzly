@@ -76,7 +76,7 @@ public class GIOPClient {
 
         // Create TCP NIO transport
         final TCPNIOTransport transport =
-                (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder()
+                NIOTransportBuilder.defaultTCPTransportBuilder()
                 .build();
         transport.setProcessor(filterChainBuilder.build());
 

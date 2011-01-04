@@ -62,7 +62,7 @@ public class StandaloneTest extends GrizzlyTestCase {
     
     public void testStandalone() throws Exception {
         TCPNIOTransport transport =
-                (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+                NIOTransportBuilder.defaultTCPTransportBuilder().build();
         int messageSize = 166434;
 
         Connection connection = null;

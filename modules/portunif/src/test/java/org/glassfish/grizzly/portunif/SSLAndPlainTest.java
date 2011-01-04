@@ -146,7 +146,7 @@ public class SSLAndPlainTest {
                 .add(new TransportFilter())
                 .add(rootPuFilter);
 
-        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(puFilterChainBuilder.build());
 
         try {

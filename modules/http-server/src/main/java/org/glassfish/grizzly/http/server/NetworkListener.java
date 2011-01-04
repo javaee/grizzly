@@ -117,7 +117,7 @@ public class NetworkListener {
      * The {@link TCPNIOTransport} used by this <code>NetworkListener</code>
      */
     private TCPNIOTransport transport =
-            (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+            NIOTransportBuilder.defaultTCPTransportBuilder().build();
 
 
     /**

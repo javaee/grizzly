@@ -87,7 +87,7 @@ public class BasicPUTest {
                 .add(new StringFilter(CHARSET))
                 .add(puFilter);
 
-        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(puFilterChainBuilder.build());
 
         try {

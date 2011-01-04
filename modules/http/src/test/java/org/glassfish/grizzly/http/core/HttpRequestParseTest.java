@@ -196,7 +196,7 @@ public class HttpRequestParseTest extends TestCase {
         filterChainBuilder.add(new HTTPRequestCheckFilter(parseResult,
                 method, requestURI, protocol, Collections.<String, Pair<String, String>>emptyMap()));
 
-        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(filterChainBuilder.build());
         
         try {

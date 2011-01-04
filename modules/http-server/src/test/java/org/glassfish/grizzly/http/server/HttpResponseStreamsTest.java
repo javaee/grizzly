@@ -571,7 +571,7 @@ public class HttpResponseStreamsTest extends TestCase {
         sconfig.addHttpHandler(new TestHttpHandler(strategy), new String[] { "/*" });
 
         final FutureImpl<String> parseResult = SafeFutureImpl.create();
-        TCPNIOTransport ctransport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport ctransport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
         try {
             server.start();
 

@@ -288,10 +288,10 @@ public class GZipEncodingTest extends TestCase {
         filterChainBuilder.add(new SimpleResponseFilter());
         FilterChain filterChain = filterChainBuilder.build();
 
-        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(filterChain);
 
-        TCPNIOTransport ctransport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport ctransport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
         try {
             transport.bind(PORT);
             transport.start();

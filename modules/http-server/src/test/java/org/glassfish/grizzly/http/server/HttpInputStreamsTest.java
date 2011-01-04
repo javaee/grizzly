@@ -974,7 +974,7 @@ public class HttpInputStreamsTest extends TestCase {
         ServerConfiguration sconfig = server.getServerConfiguration();
         sconfig.addHttpHandler(new SimpleResponseHttpHandler(strategy, testResult), "/*");
 
-        TCPNIOTransport ctransport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport ctransport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
         try {
             server.start();
             FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();

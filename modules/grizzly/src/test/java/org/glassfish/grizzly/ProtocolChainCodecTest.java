@@ -159,7 +159,7 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
         });
 
         
-        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {

@@ -398,7 +398,7 @@ public class NIOInputSourcesTest extends TestCase {
             throws Exception {
 
         final TCPNIOTransport clientTransport =
-                (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+                NIOTransportBuilder.defaultTCPTransportBuilder().build();
         final HttpServer server = createWebServer(httpHandler);
         try {
             server.start();

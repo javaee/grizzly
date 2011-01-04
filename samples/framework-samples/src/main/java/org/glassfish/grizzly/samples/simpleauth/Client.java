@@ -95,7 +95,7 @@ public class Client {
         
         // Create TCP transport
         final TCPNIOTransport transport =
-                (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder()
+                NIOTransportBuilder.defaultTCPTransportBuilder()
                 .build();
         transport.setProcessor(filterChainBuilder.build());
 

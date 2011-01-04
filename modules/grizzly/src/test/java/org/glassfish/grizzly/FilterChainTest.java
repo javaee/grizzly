@@ -103,7 +103,7 @@ public class FilterChainTest extends TestCase {
     
     public void testEventUpstream() throws Exception {
         final Connection connection =
-                new TCPNIOConnection((TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build(), null);
+                new TCPNIOConnection(NIOTransportBuilder.defaultTCPTransportBuilder().build(), null);
 
         counterAttr.set(connection, new AtomicInteger(0));
 
@@ -137,7 +137,7 @@ public class FilterChainTest extends TestCase {
 
     public void testEventDownstream() throws Exception {
         final Connection connection =
-                new TCPNIOConnection((TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build(), null);
+                new TCPNIOConnection(NIOTransportBuilder.defaultTCPTransportBuilder().build(), null);
 
         counterAttr.set(connection, new AtomicInteger(3));
 
@@ -170,7 +170,7 @@ public class FilterChainTest extends TestCase {
     }
 
     public void testFlush() throws Exception {
-        final TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        final TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
         final MemoryManager mm = transport.getMemoryManager();
 
         final Buffer msg = Buffers.wrap(mm, "Echo this message");

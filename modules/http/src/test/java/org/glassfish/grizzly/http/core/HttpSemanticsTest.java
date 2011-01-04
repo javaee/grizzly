@@ -287,9 +287,9 @@ public class HttpSemanticsTest extends TestCase {
         filterChainBuilder.add(serverFilter);
         FilterChain filterChain = filterChainBuilder.build();
 
-        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(filterChain);
-        TCPNIOTransport ctransport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport ctransport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
         try {
             transport.bind(PORT);
             transport.start();

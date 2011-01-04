@@ -67,17 +67,8 @@ import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
  *
  * @since 2.0
  */
-public class NIOTransportBuilder {
+public class NIOTransportBuilder<T extends NIOTransport> {
 
-    /**
-     * {@link TransportProtocol} implementation for TCP transports.
-     */
-    public static final TransportProtocol TCP = new TCPTransportProtocol();
-
-    /**
-     * {@link TransportProtocol} implementation for UDP transports.
-     */
-    public static final TransportProtocol UDP = new UDPTransportProtocol();
 
     /**
      * <p>
@@ -122,19 +113,14 @@ public class NIOTransportBuilder {
 
 
     /**
-     * The {@link TransportProtocol} used by this builder instance.
-     */
-    private final TransportProtocol protocol;
-
-    /**
      * The {@link IOStrategy} used by this builder instance.
      */
     private IOStrategy strategy;
 
     /**
-     * The {@link NIOTransport} obtained from {@link #protocol}.
+     * The {@link NIOTransport} implementation.
      */
-    private final NIOTransport transport;
+    private T transport;
 
     /**
      * Configuration for the {@link NIOTransport}'s selector thread pool.
@@ -154,7 +140,7 @@ public class NIOTransportBuilder {
     /**
      * <p>
      * Constructs a new <code>NIOTransport</code> using the given
-     * {@link TransportProtocol} and {@link IOStrategy}.
+     * <code>transportClass</code> and {@link IOStrategy}.
      * </p>
      *
      * <p>
@@ -165,24 +151,15 @@ public class NIOTransportBuilder {
      * will be chosen.
      * </p>
      *
-     * @param protocol the {@link TransportProtocol}
-     * @param strategy the {@link IOStrategy}
+     * @param transportClass the class of the {@link NIOTransport}
+     *  implementation to be used.
+     * @param strategy the {@link IOStrategy}.
      */
-    private NIOTransportBuilder(final TransportProtocol protocol,
-                                IOStrategy strategy) {
-        this.protocol = protocol;
-        transport = protocol.createRawTransport();
+    private NIOTransportBuilder(final Class<? extends NIOTransport> transportClass,
+                                final IOStrategy strategy)
+    throws IllegalAccessException, InstantiationException {
 
-        if (strategy == null) {
-            strategy = new WorkerThreadIOStrategy(new Executor() {
-
-                @Override
-                public void execute(final Runnable command) {
-                    transport.getThreadPool().execute(command);
-                }
-            });
-        }
-        
+        transport = (T) transportClass.newInstance();
         workerConfig = strategy.createDefaultWorkerPoolConfig(transport);
         selectorConfig = configSelectorPool((workerConfig != null)
                               ? workerConfig.clone()
@@ -197,7 +174,7 @@ public class NIOTransportBuilder {
     /**
      * <p>
      * Constructs a new <code>NIOTransport</code> using the given
-     * {@link TransportProtocol} and {@link IOStrategy}.
+     * <code>transportClass</code> and {@link IOStrategy}.
      * </p>
      *
      * <p>
@@ -208,41 +185,49 @@ public class NIOTransportBuilder {
      * will be chosen.
      * </p>
      *
-     * @param protocol the {@link TransportProtocol}
-     * @param strategy the {@link IOStrategy}
+     * @param transportClass the class of the {@link NIOTransport}
+     *  implementation to be used.
+     * @param strategy the {@link IOStrategy}.
+     *
+     * @throws IllegalStateException if <code>transportClass</code> cannot be
+     *  constructed.
      */
-    public static NIOTransportBuilder newInstance(final TransportProtocol protocol,
+    public static NIOTransportBuilder newInstance(final Class<? extends NIOTransport> transportClass,
                                                   final IOStrategy strategy) {
-        return new NIOTransportBuilder(protocol, strategy);
+        try {
+            return new NIOTransportBuilder(transportClass, strategy);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
     }
 
 
     /**
      * <p>
-     * This method calls {@link #newInstance(org.glassfish.grizzly.NIOTransportBuilder.TransportProtocol, IOStrategy)}
-     * passing {@link #TCP} as the {@link TransportProtocol} and {@link SameThreadIOStrategy}
-     * as the {@link IOStrategy}.
+     * This method calls {@link #newInstance(Class, IOStrategy)}
+     * passing {@link TCPNIOTransport}.class as the <code>transportClass<code>
+     * and {@link SameThreadIOStrategy} as the {@link IOStrategy}.
      * </p>
      *
      * @return an <code>NIOTransportBuilder</code> that will build {@link TCPNIOTransport}
      *  instances.
      */
-    public static NIOTransportBuilder defaultTCPTransportBuilder() {
-        return newInstance(TCP, null);
+    public static NIOTransportBuilder<TCPNIOTransport> defaultTCPTransportBuilder() {
+        return newInstance(TCPNIOTransport.class, new SameThreadIOStrategy());
     }
 
     /**
      * <p>
-     * This method calls {@link #newInstance(org.glassfish.grizzly.NIOTransportBuilder.TransportProtocol, IOStrategy)}
-     * passing {@link #UDP} as the {@link TransportProtocol} and {@link SameThreadIOStrategy}
-     * as the {@link IOStrategy}.
+     * This method calls {@link #newInstance(Class, IOStrategy)}
+     * passing {@link TCPNIOTransport}.class as the <code>transportClass<code>
+     * and {@link SameThreadIOStrategy} as the {@link IOStrategy}.
      * </p>
      *
      * @return an <code>NIOTransportBuilder</code> that will build {@link UDPNIOTransport}
      *  instances.
      */
-    public static NIOTransportBuilder defaultUDPTransportBuilder() {
-        return newInstance(UDP, null);
+    public static NIOTransportBuilder<UDPNIOTransport> defaultUDPTransportBuilder() {
+        return newInstance(UDPNIOTransport.class, new SameThreadIOStrategy());
     }
 
     /**
@@ -280,21 +265,14 @@ public class NIOTransportBuilder {
      */
     public void setIOStrategy(IOStrategy strategy) {
         this.strategy = strategy;
-        this.workerConfig = strategy.createDefaultWorkerPoolConfig(transport);
-    }
-
-    /**
-     * @return the {@link TransportProtocol} this builder is using.
-     */
-    public TransportProtocol getProtocol() {
-        return protocol;
+        this.workerConfig = strategy.createDefaultWorkerPoolConfig((NIOTransport) transport);
     }
 
 
     /**
      * @return an {@link NIOTransport} based on the builder's configuration.
      */
-    public NIOTransport build() {
+    public T build() {
         transport.setMemoryManager(DEFAULT_MEMORY_MANAGER);
         transport.setAttributeBuilder(DEFAULT_ATTRIBUTE_BUILDER);
         transport.setSelectorHandler(DEFAULT_SELECTOR_HANDLER);
@@ -334,50 +312,4 @@ public class NIOTransportBuilder {
         return Math.max(1, Runtime.getRuntime().availableProcessors() / 2 * 3);
     }
 
-
-    // ---------------------------------------------------------- Nested Classes
-
-
-    /**
-     * <p>
-     * Implementations of this class are basically factories for the raw transport
-     * implementation to be used by a particular {@link NIOTransportBuilder}
-     * instance.
-     * </p>
-     */
-    public static interface TransportProtocol {
-
-        /**
-         * @return a new {@link NIOTransport} implementation appropriate for
-         *  the protocol of interest.
-         */
-        NIOTransport createRawTransport();
-
-    } // END TransportProtocol
-
-
-    /**
-     * An {@link TransportProtocol} implementation for <code>TCP</code>.
-     */
-    private static final class TCPTransportProtocol implements TransportProtocol {
-
-        @Override
-        public NIOTransport createRawTransport() {
-            return new TCPNIOTransport();
-        }
-
-    } // END TCPTransportProtocol
-
-
-    /**
-     * An {@link TransportProtocol} implementation for <code>UDP</code>.
-     */
-    private static final class UDPTransportProtocol implements TransportProtocol {
-
-        @Override
-        public NIOTransport createRawTransport() {
-            return new UDPNIOTransport();
-        }
-
-    } // END UDPTransportProtocol
 }

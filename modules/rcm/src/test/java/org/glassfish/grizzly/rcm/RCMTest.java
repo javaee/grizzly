@@ -145,7 +145,7 @@ public class RCMTest extends TestCase {
             }
         });
 
-        transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(filterChainBuilder.build());
 
         transport.bind(port);

@@ -81,7 +81,7 @@ public class Server {
 
         // Initialize Transport
         final TCPNIOTransport transport =
-                (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder()
+                NIOTransportBuilder.defaultTCPTransportBuilder()
                 .build();
         // Set filterchain as a Transport Processor
         transport.setProcessor(serverFilterChainBuilder.build());

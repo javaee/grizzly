@@ -113,7 +113,7 @@ public class GZipTest extends TestCase {
         serverChainBuilder.add(new StringFilter());
         serverChainBuilder.add(new EchoFilter());
 
-        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(serverChainBuilder.build());
 
         try {

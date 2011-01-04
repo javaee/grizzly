@@ -229,7 +229,7 @@ public class SSLTest {
         filterChainBuilder.addAll(filterIndex, filters);
 
         TCPNIOTransport transport =
-                (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+                NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -300,7 +300,7 @@ public class SSLTest {
         filterChainBuilder.addAll(filterIndex, filters);
 
         TCPNIOTransport transport =
-                (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+                NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(filterChainBuilder.build());
 
         SSLStreamReader reader = null;
@@ -412,7 +412,7 @@ public class SSLTest {
         filterChainBuilder.add(new EchoFilter());
 
         TCPNIOTransport transport =
-                (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+                NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(filterChainBuilder.build());
 
         final MemoryManager mm = transport.getMemoryManager();

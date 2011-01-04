@@ -65,7 +65,7 @@ public class TunnelServer {
     public static void main(String[] args) throws IOException {
         // Create TCP transport
         final TCPNIOTransport transport =
-                (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder()
+                NIOTransportBuilder.defaultTCPTransportBuilder()
                 .build();
 
         // Create a FilterChain using FilterChainBuilder

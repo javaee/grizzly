@@ -56,8 +56,8 @@ public class JmxBasicTest {
     @Test
     public void transport() throws Exception {
         GrizzlyJmxManager manager = GrizzlyJmxManager.instance();
-        final TCPNIOTransport transport1 = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
-        final TCPNIOTransport transport2 = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        final TCPNIOTransport transport1 = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        final TCPNIOTransport transport2 = NIOTransportBuilder.defaultTCPTransportBuilder().build();
 
         try {
             JmxObject jmxTransportObject1 =

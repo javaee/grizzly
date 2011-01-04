@@ -72,7 +72,7 @@ public class WebSocketsHandshakeTest extends TestCase {
         serverFilterChainBuilder.add(new HttpServerFilter());
         serverFilterChainBuilder.add(new WebSocketFilter());
 
-        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(serverFilterChainBuilder.build());
 
         FutureImpl<WebSocket> serverFuture = SafeFutureImpl.create();

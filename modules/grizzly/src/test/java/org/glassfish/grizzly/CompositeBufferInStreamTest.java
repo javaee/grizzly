@@ -66,7 +66,7 @@ public class CompositeBufferInStreamTest extends GrizzlyTestCase {
 
     public void testCompositeBuffer() throws Exception {
         Connection connection = null;
-        final TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        final TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
 
         final Buffer portion1 = Buffers.wrap(transport.getMemoryManager(), "Hello");
         final Buffer portion2 = Buffers.wrap(transport.getMemoryManager(), " ");

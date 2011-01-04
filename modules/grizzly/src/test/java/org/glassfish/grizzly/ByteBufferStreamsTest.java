@@ -1190,7 +1190,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
     }
 
     public void setupServer() {
-        servertransport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        servertransport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
         // no use for default memorymanager
         servertransport.configureStandalone(true);
 
@@ -1216,7 +1216,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
     public void setupClient() {
 
-        clienttransport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        clienttransport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
         try {
 
             clienttransport.start();

@@ -90,7 +90,7 @@ public class KeepAliveTest extends TestCase {
 
         }, "/path");
 
-        final TCPNIOTransport clientTransport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        final TCPNIOTransport clientTransport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
         final HttpClient client = new HttpClient(clientTransport);
 
         try {
@@ -141,7 +141,7 @@ public class KeepAliveTest extends TestCase {
 
         }, "/path");
 
-        final TCPNIOTransport clientTransport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        final TCPNIOTransport clientTransport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
         final HttpClient client = new HttpClient(clientTransport);
 
         try {
@@ -206,7 +206,7 @@ public class KeepAliveTest extends TestCase {
         }, "/path");
         server.getListener("grizzly").getKeepAlive().setMaxRequestsCount(maxKeepAliveRequests);
 
-        final TCPNIOTransport clientTransport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        final TCPNIOTransport clientTransport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
         final HttpClient client = new HttpClient(clientTransport);
 
         try {

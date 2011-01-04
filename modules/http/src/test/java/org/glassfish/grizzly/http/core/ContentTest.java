@@ -130,7 +130,7 @@ public class ContentTest extends TestCase {
         filterChainBuilder.add(new HTTPRequestMergerFilter(parseResult));
         FilterChain filterChain = filterChainBuilder.build();
         
-        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(filterChain);
 
         try {

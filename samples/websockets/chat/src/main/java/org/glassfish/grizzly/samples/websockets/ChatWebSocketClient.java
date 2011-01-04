@@ -60,7 +60,7 @@ public class ChatWebSocketClient {
     public static void main(String[] args) throws Exception {
         // initialize transport
         final TCPNIOTransport transport =
-                (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder()
+                NIOTransportBuilder.defaultTCPTransportBuilder()
                 .build();
 
         ChatWebSocket websocket = null;

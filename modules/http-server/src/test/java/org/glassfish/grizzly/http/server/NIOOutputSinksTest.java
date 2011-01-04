@@ -135,7 +135,7 @@ public class NIOOutputSinksTest extends TestCase {
         });
 
 
-        final TCPNIOTransport clientTransport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        final TCPNIOTransport clientTransport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
         clientTransport.setProcessor(filterChainBuilder.build());
         final AtomicInteger writeCounter = new AtomicInteger();
         final AtomicBoolean callbackInvoked = new AtomicBoolean(false);
@@ -295,7 +295,7 @@ public class NIOOutputSinksTest extends TestCase {
         });
 
 
-        final TCPNIOTransport clientTransport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        final TCPNIOTransport clientTransport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
         clientTransport.setProcessor(filterChainBuilder.build());
         final AtomicInteger writeCounter = new AtomicInteger();
         final AtomicBoolean callbackInvoked = new AtomicBoolean(false);
@@ -440,7 +440,7 @@ public class NIOOutputSinksTest extends TestCase {
             }
         });
 
-        final TCPNIOTransport clientTransport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        final TCPNIOTransport clientTransport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
         clientTransport.setProcessor(filterChainBuilder.build());
         final HttpHandler ga = new HttpHandler() {
 

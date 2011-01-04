@@ -91,7 +91,7 @@ public class IdleConnectionFilterTest extends GrizzlyTestCase {
 
             });
 
-        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(filterChainBuilder.build());
         
         try {
@@ -146,7 +146,7 @@ public class IdleConnectionFilterTest extends GrizzlyTestCase {
             }
         });
         
-        TCPNIOTransport transport = (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
         transport.setProcessor(filterChainBuilder.build());
         
         try {

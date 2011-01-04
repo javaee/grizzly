@@ -79,7 +79,7 @@ public class StandaloneSSLEchoClient {
         
         // Create the TCP transport
         final TCPNIOTransport transport =
-                (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder()
+                NIOTransportBuilder.defaultTCPTransportBuilder()
                 .build();
 
         try {
