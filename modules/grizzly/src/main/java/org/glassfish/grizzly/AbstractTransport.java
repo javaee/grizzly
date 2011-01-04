@@ -127,6 +127,8 @@ public abstract class AbstractTransport implements Transport {
 
     protected ThreadPoolConfig selectorConfig;
 
+    protected boolean managedWorkerPool = true;
+
     /**
      * Transport probes
      */
@@ -402,6 +404,7 @@ public abstract class AbstractTransport implements Transport {
      */
     @Override
     public void setThreadPool(final ExecutorService threadPool) {
+        managedWorkerPool = false;
         if (threadPool instanceof MonitoringAware) {
             ((MonitoringAware<ThreadPoolProbe>) threadPool).getMonitoringConfig()
                     .addProbes(threadPoolMonitoringConfig.getProbes());

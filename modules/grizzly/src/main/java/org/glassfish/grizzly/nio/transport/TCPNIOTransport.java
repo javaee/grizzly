@@ -320,7 +320,7 @@ public final class TCPNIOTransport extends NIOTransport implements
 
             stopSelectorRunners();
 
-            if (threadPool != null) {
+            if (threadPool != null && managedWorkerPool) {
                 threadPool.shutdown();
                 threadPool = null;
             }

@@ -522,7 +522,7 @@ public final class UDPNIOTransport extends NIOTransport implements
             state.setState(State.STOP);
             stopSelectorRunners();
 
-            if (threadPool != null) {
+            if (threadPool != null && managedWorkerPool) {
                 threadPool.shutdown();
                 threadPool = null;
             }
