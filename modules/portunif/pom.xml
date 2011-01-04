@@ -79,7 +79,7 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
-                        <Export-Package></Export-Package>
+                        <Export-Package>org.glassfish.grizzly.portunif.*</Export-Package>
                         <Embed-Dependency>org.glassfish.grizzly;scope=runtime</Embed-Dependency>
                     </instructions>
                 </configuration>
