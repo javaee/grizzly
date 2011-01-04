@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.samples.websockets;
 
-import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.websockets.WebSocket;
 import org.glassfish.grizzly.websockets.WebSocketConnectorHandler;
@@ -50,6 +49,7 @@ import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.glassfish.grizzly.NIOTransportBuilder;
 
 /**
  * Standalone Java web-socket chat client implementation.
@@ -59,7 +59,9 @@ import java.util.concurrent.TimeUnit;
 public class ChatWebSocketClient {
     public static void main(String[] args) throws Exception {
         // initialize transport
-        final TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        final TCPNIOTransport transport =
+                (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder()
+                .build();
 
         ChatWebSocket websocket = null;
         
@@ -127,7 +129,6 @@ public class ChatWebSocketClient {
 
             // stop the transport
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 }

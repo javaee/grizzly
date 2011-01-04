@@ -40,7 +40,7 @@
 
 package org.glassfish.grizzly.samples.websockets;
 
-import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.HttpServerFilter;
@@ -80,7 +80,9 @@ public class ChatWebSocketServer {
         serverFilterChainBuilder.add(new SimpleWebServerFilter(webappDir));
 
         // initialize transport
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        final TCPNIOTransport transport =
+                (TCPNIOTransport) NIOTransportBuilder.defaultTCPTransportBuilder()
+                .build();
         transport.setProcessor(serverFilterChainBuilder.build());
 
         // initialize websocket chat application
@@ -101,7 +103,6 @@ public class ChatWebSocketServer {
         } finally {
             // stop the transport
             transport.stop();
-            TransportFactory.getInstance().close();
         }
     }
 }
