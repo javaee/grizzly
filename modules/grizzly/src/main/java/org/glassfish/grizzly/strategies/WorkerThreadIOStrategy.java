@@ -94,9 +94,7 @@ public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
             pp = null;
         }
 
-        if (isExecuteInCurrentThread(ioEvent)) {
-            run0(connection, ioEvent, pp);
-        } else {
+        if (isExecuteInWorkerThread(ioEvent)) {
             workerThreadExecutor.execute(new Runnable() {
 
                 @Override
@@ -104,6 +102,8 @@ public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
                     run0(connection, ioEvent, pp);
                 }
             });
+        } else {
+            run0(connection, ioEvent, pp);
         }
 
         return true;
@@ -133,15 +133,8 @@ public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
         }
     }
 
-    private boolean isExecuteInCurrentThread(final IOEvent ioEvent) {
-        switch (ioEvent) {
-            case READ:
-            case WRITE:
-            case CLOSED:
-                return true;
-
-            default:
-                return false;
-        }
+    private static boolean isExecuteInWorkerThread(final IOEvent ioEvent) {
+        return ioEvent == IOEvent.READ || ioEvent == IOEvent.WRITE ||
+                ioEvent == IOEvent.CLOSED;
     }
 }

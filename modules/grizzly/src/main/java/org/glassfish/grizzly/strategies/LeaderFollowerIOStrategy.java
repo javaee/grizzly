@@ -69,18 +69,11 @@ public final class LeaderFollowerIOStrategy extends AbstractIOStrategy {
     private final Executor workerThreadExecutor;
     
     public LeaderFollowerIOStrategy(final Executor workerThreadExecutor) {
-//        executors = new Executor[] {null,
-//            workerThreadProcessorExecutor, workerThreadProcessorExecutor,
-//            null, null, null, null,
-//            workerThreadProcessorExecutor};
         this.workerThreadExecutor = workerThreadExecutor;
     }
 
     @Override
     public boolean executeIoEvent(Connection connection, IOEvent ioEvent) throws IOException {
-//        final Executor executor = executors[ioEvent.ordinal()];
-        final Executor executor = getExecutor(ioEvent);
-        
         final boolean isReadWrite =
                 (ioEvent == IOEvent.READ || ioEvent == IOEvent.WRITE);
         
@@ -91,10 +84,10 @@ public final class LeaderFollowerIOStrategy extends AbstractIOStrategy {
             pp = enableInterestPostProcessor;
         }
 
-        if (executor != null) {
+        if (isExecuteInWorkerThread(ioEvent)) {
             final SelectorRunner runner = nioConnection.getSelectorRunner();
             runner.postpone();
-            executor.execute(runner);
+            workerThreadExecutor.execute(runner);
             connection.getTransport().fireIOEvent(ioEvent, connection, pp);
 
             return false;
@@ -104,13 +97,8 @@ public final class LeaderFollowerIOStrategy extends AbstractIOStrategy {
         }
     }
 
-    private Executor getExecutor(final IOEvent ioEvent) {
-        switch(ioEvent) {
-            case READ:
-            case WRITE:
-            case CLOSED: return workerThreadExecutor;
-
-            default: return null;
-        }
+    private static boolean isExecuteInWorkerThread(final IOEvent ioEvent) {
+        return ioEvent == IOEvent.READ || ioEvent == IOEvent.WRITE ||
+                ioEvent == IOEvent.CLOSED;
     }
 }

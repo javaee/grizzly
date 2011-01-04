@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly;
 
+import java.util.concurrent.Executor;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.DefaultAttributeBuilder;
 import org.glassfish.grizzly.memory.HeapMemoryManager;
@@ -52,6 +53,7 @@ import org.glassfish.grizzly.nio.SelectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
+import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
 /**
@@ -132,7 +134,7 @@ public class NIOTransportBuilder {
     /**
      * The {@link NIOTransport} obtained from {@link #protocol}.
      */
-    private NIOTransport transport;
+    private final NIOTransport transport;
 
     /**
      * Configuration for the {@link NIOTransport}'s selector thread pool.
@@ -167,10 +169,20 @@ public class NIOTransportBuilder {
      * @param strategy the {@link IOStrategy}
      */
     private NIOTransportBuilder(final TransportProtocol protocol,
-                                final IOStrategy strategy) {
+                                IOStrategy strategy) {
         this.protocol = protocol;
         transport = protocol.createRawTransport();
 
+        if (strategy == null) {
+            strategy = new WorkerThreadIOStrategy(new Executor() {
+
+                @Override
+                public void execute(final Runnable command) {
+                    transport.getThreadPool().execute(command);
+                }
+            });
+        }
+        
         workerConfig = strategy.createDefaultWorkerPoolConfig(transport);
         selectorConfig = configSelectorPool((workerConfig != null)
                               ? workerConfig.clone()
@@ -216,7 +228,7 @@ public class NIOTransportBuilder {
      *  instances.
      */
     public static NIOTransportBuilder defaultTCPTransportBuilder() {
-        return newInstance(TCP, new SameThreadIOStrategy());
+        return newInstance(TCP, null);
     }
 
     /**
@@ -230,7 +242,7 @@ public class NIOTransportBuilder {
      *  instances.
      */
     public static NIOTransportBuilder defaultUDPTransportBuilder() {
-        return newInstance(UDP, new SameThreadIOStrategy());
+        return newInstance(UDP, null);
     }
 
     /**

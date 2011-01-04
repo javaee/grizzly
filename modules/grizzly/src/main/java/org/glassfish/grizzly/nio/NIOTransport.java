@@ -62,6 +62,8 @@ public abstract class NIOTransport extends AbstractTransport {
 
     public NIOTransport(final String name) {
         super(name);
+
+        selectorRunnersCount = Math.max(1, Runtime.getRuntime().availableProcessors() / 2 * 3);
     }
 
     public SelectionKeyHandler getSelectionKeyHandler() {
