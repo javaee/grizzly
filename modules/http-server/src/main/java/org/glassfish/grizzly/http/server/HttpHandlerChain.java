@@ -179,7 +179,7 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
                     httpHandler = (HttpHandler) mappingData.context;
                 }
 
-                request.setContextPath(mappingData.contextPath.toString());
+                updateContextPath(request, mappingData.contextPath.toString());
                 
                 // We already decoded the URL.
                 httpHandler.setDecodeUrl(false);

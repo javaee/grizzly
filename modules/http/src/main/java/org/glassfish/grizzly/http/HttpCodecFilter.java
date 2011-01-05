@@ -384,6 +384,10 @@ public abstract class HttpCodecFilter extends BaseFilter
 
                     final HttpContent decodedContent = decodeContent(connection, message);
                     if (decodedContent != null) {
+                        if (httpHeader.isSkipRemainder()) {  // Do we skip the remainder?
+                            return ctx.getStopAction();
+                        }
+
                         HttpProbeNotifier.notifyContentChunkParse(this,
                                 connection, decodedContent);
 

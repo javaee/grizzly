@@ -182,6 +182,40 @@ public class DataChunk {
     }
 
     /**
+     * Returns the <tt>DataChunk</tt> start position.
+     *
+     * @return the <tt>DataChunk</tt> start position.
+     */
+    public int getStart() {
+        switch (type) {
+            case Buffer:
+                return bufferChunk.getStart();
+            case Chars:
+                return charChunk.getStart();
+
+            default:
+                return 0;
+        }
+    }
+
+    /**
+     * Returns the <tt>DataChunk</tt> end position.
+     *
+     * @return the <tt>DataChunk</tt> end position.
+     */
+    public int getEnd() {
+        switch (type) {
+            case Buffer:
+                return bufferChunk.getEnd();
+            case Chars:
+                return charChunk.getEnd();
+
+            default:
+                return stringValue.length();
+        }
+    }
+
+    /**
      * Returns true if the message bytes starts with the specified string.
      * @param c the character
      * @param fromIndex The start position

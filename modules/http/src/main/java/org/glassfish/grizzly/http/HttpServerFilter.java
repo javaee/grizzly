@@ -223,21 +223,32 @@ public class HttpServerFilter extends HttpCodecFilter {
         
         if (event == RESPONSE_COMPLETE_EVENT && c.isOpen()) {
 
-            final KeepAliveContext keepAliveContext =
-                    keepAliveContextAttr.get(c);
-            keepAliveQueue.add(keepAliveContext,
-                               keepAlive.getIdleTimeoutInSeconds(),
-                               TimeUnit.SECONDS);
-            final HttpRequestPacket httpRequest = keepAliveContext.request;
-            final boolean isStayAlive = isKeepAlive(httpRequest, keepAliveContext);
-            if (!isStayAlive) {
-                ctx.flush(FLUSH_AND_CLOSE_HANDLER);
-            } else {
-                if (httpRequest.isExpectContent()) {
-                    httpRequest.setSkipRemainder(true);
+            if (processKeepAlive) {
+                final KeepAliveContext keepAliveContext =
+                        keepAliveContextAttr.get(c);
+                keepAliveQueue.add(keepAliveContext,
+                        keepAlive.getIdleTimeoutInSeconds(),
+                        TimeUnit.SECONDS);
+                final HttpRequestPacket httpRequest = keepAliveContext.request;
+                final boolean isStayAlive = isKeepAlive(httpRequest, keepAliveContext);
+                if (!isStayAlive) {
+                    ctx.flush(FLUSH_AND_CLOSE_HANDLER);
+                } else {
+                    if (httpRequest.isExpectContent()) {
+                        // If transfer encoding is defined and we can determine the message body length
+                        if (httpRequest.getTransferEncoding() != null) {
+                            httpRequest.setSkipRemainder(true);
+                        } else {
+                            // if we can not determine the message body length - assume this packet as processed
+                            httpRequest.setExpectContent(false);
+                            onHttpPacketParsed(httpRequest, ctx);
+                        }
+                    }
                 }
+                keepAliveContext.request = null;
+            } else {
+                ctx.flush(FLUSH_AND_CLOSE_HANDLER);
             }
-            keepAliveContext.request = null;
 
             return ctx.getStopAction();
         }

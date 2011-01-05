@@ -304,19 +304,19 @@ public class Request {
     /**
      * The attributes associated with this Request, keyed by attribute name.
      */
-    protected HashMap<String, Object> attributes = new HashMap<String, Object>();
+    protected final HashMap<String, Object> attributes = new HashMap<String, Object>();
 
 
     /**
      * List of read only attributes for this Request.
      */
-    private HashMap<String,Object> readOnlyAttributes = new HashMap<String,Object>();
+    private final HashMap<String,Object> readOnlyAttributes = new HashMap<String,Object>();
 
 
     /**
      * The preferred Locales associated with this Request.
      */
-    protected ArrayList<Locale> locales = new ArrayList<Locale>();
+    protected final ArrayList<Locale> locales = new ArrayList<Locale>();
 
 
     /**
@@ -573,6 +573,11 @@ public class Request {
         sessionParsed = false;
         requestParametersParsed = false;
         cookiesParsed = false;
+
+        if (rawCookies != null) {
+            rawCookies.recycle();
+        }
+        
         locales.clear();
         localesParsed = false;
         secure = false;
@@ -2244,45 +2249,13 @@ public class Request {
 
             setRequestedSessionURL(true);
 
-            uriChunk.delete(sessionIdStart, end);
-//            if (!request.requestURI().getByteChunk().isNull()) {
-//                extractSessionIdFromRequestURI();
-//            }
+            uriChunk.delete(semicolon, end);
         } else {
             setRequestedSessionId(null);
             setRequestedSessionURL(false);
         }
 
-    }
-    
-    /**
-     * Extracts the session ID from the request URI.
-     */
-//    protected void extractSessionIdFromRequestURI() {
-//
-//        int start, end, semicolon, semicolon2;
-//
-//        // TODO Rework this to not depend on ByteChunk
-//        DataChunk bc = request.getRequestURIRef().getRequestURIBC();
-//        ByteChunk uriBC = new ByteChunk(bc.size());
-//        byte[] bytes = bc.getBuffer().toByteBuffer().array();
-//        uriBC.setBytes(bytes, 0, bytes.length);
-//        start = uriBC.getStart();
-//        end = uriBC.getEnd();
-//        semicolon = uriBC.indexOf(match, 0, match.length(), 0);
-//
-//        if (semicolon > 0) {
-//            semicolon2 = uriBC.indexOf
-//                (';', semicolon + match.length());
-//            uriBC.setEnd(start + semicolon);
-//            byte[] buf = uriBC.getBuffer();
-//            if (semicolon2 >= 0) {
-//                System.arraycopy(buf, start + semicolon2, buf, start + semicolon, end - start - semicolon2);
-//                uriBC.setBytes(buf, start, semicolon
-//                               + (end - start - semicolon2));
-//            }
-//        }
-//    }
+    }   
 
     /**
      * Set a flag indicating whether or not the requested session ID for this

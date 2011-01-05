@@ -307,4 +307,14 @@ public abstract class HttpHandler {
     protected void setDecodeUrl(boolean decodeURL){
         this.decodeURL = decodeURL;
     }
+
+    /**
+     * Utility method to update {@link Request} context-path value.
+     * 
+     * @param request
+     * @param contextPath
+     */
+    protected static void updateContextPath(final Request request, final String contextPath) {
+        request.setContextPath(contextPath);
+    }
 }

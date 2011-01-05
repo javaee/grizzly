@@ -123,7 +123,7 @@ public final class Cookies {
     }
 
     public Collection<Cookie> get() {
-        if (isProcessed) {
+        if (!isProcessed) {
             isProcessed = true;
             processCookies();
         }
