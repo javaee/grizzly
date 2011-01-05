@@ -54,6 +54,7 @@ import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.EchoFilter;
 import java.io.IOException;
 import java.util.concurrent.Future;
@@ -103,7 +104,7 @@ public class FilterChainTest extends TestCase {
     
     public void testEventUpstream() throws Exception {
         final Connection connection =
-                new TCPNIOConnection(NIOTransportBuilder.defaultTCPTransportBuilder().build(), null);
+                new TCPNIOConnection(TCPNIOTransportBuilder.newInstance().build(), null);
 
         counterAttr.set(connection, new AtomicInteger(0));
 
@@ -137,7 +138,7 @@ public class FilterChainTest extends TestCase {
 
     public void testEventDownstream() throws Exception {
         final Connection connection =
-                new TCPNIOConnection(NIOTransportBuilder.defaultTCPTransportBuilder().build(), null);
+                new TCPNIOConnection(TCPNIOTransportBuilder.newInstance().build(), null);
 
         counterAttr.set(connection, new AtomicInteger(3));
 
@@ -170,7 +171,7 @@ public class FilterChainTest extends TestCase {
     }
 
     public void testFlush() throws Exception {
-        final TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        final TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         final MemoryManager mm = transport.getMemoryManager();
 
         final Buffer msg = Buffers.wrap(mm, "Echo this message");

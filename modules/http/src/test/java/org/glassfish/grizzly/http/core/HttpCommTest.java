@@ -59,6 +59,7 @@ import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import org.glassfish.grizzly.utils.LinkedTransferQueue;
 import java.io.IOException;
@@ -91,7 +92,7 @@ public class HttpCommTest extends TestCase {
         serverFilterChainBuilder.add(new HttpServerFilter());
         serverFilterChainBuilder.add(new DummyServerFilter());
 
-        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(serverFilterChainBuilder.build());
 
         Connection connection = null;

@@ -44,6 +44,7 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.StringFilter;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -51,7 +52,6 @@ import java.nio.charset.Charset;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.NIOTransportBuilder;
 
 /**
  * Client implementation, which sends a message to a {@link Server} and checks
@@ -95,8 +95,7 @@ public class Client {
         
         // Create TCP transport
         final TCPNIOTransport transport =
-                NIOTransportBuilder.defaultTCPTransportBuilder()
-                .build();
+               TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {

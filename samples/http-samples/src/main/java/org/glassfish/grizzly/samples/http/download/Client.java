@@ -48,6 +48,7 @@ import org.glassfish.grizzly.http.HttpClientFilter;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.IdleTimeoutFilter;
 import java.io.IOException;
 import java.net.URI;
@@ -56,7 +57,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.NIOTransportBuilder;
 
 /**
  * Simple asynchronous HTTP client implementation, which downloads HTTP resource
@@ -100,8 +100,7 @@ public class Client {
 
         // Initialize Transport
         final TCPNIOTransport transport =
-                NIOTransportBuilder.defaultTCPTransportBuilder()
-                .build();
+                TCPNIOTransportBuilder.newInstance().build();
         // Set filterchain as a Transport Processor
         transport.setProcessor(clientFilterChainBuilder.build());
 

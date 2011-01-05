@@ -45,11 +45,11 @@ import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.IdleTimeoutFilter;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.NIOTransportBuilder;
 
 /**
  * Simple HTTP (Web) server, which listens on a specific TCP port and shares
@@ -81,8 +81,7 @@ public class Server {
 
         // Initialize Transport
         final TCPNIOTransport transport =
-                NIOTransportBuilder.defaultTCPTransportBuilder()
-                .build();
+                TCPNIOTransportBuilder.newInstance().build();
         // Set filterchain as a Transport Processor
         transport.setProcessor(serverFilterChainBuilder.build());
 

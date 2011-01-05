@@ -47,6 +47,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
 
@@ -62,7 +63,7 @@ public class StandaloneTest extends GrizzlyTestCase {
     
     public void testStandalone() throws Exception {
         TCPNIOTransport transport =
-                NIOTransportBuilder.defaultTCPTransportBuilder().build();
+                TCPNIOTransportBuilder.newInstance().build();
         int messageSize = 166434;
 
         Connection connection = null;

@@ -49,6 +49,7 @@ import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import org.glassfish.grizzly.utils.DelayFilter;
 import org.glassfish.grizzly.utils.EchoFilter;
@@ -113,7 +114,7 @@ public class GZipTest extends TestCase {
         serverChainBuilder.add(new StringFilter());
         serverChainBuilder.add(new EchoFilter());
 
-        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(serverChainBuilder.build());
 
         try {

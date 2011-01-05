@@ -51,7 +51,7 @@ import java.nio.channels.SelectionKey;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.Connection;
+
 import org.glassfish.grizzly.ConnectionProbe;
 import org.glassfish.grizzly.Grizzly;
 import java.util.concurrent.TimeUnit;
@@ -84,7 +84,7 @@ public class UDPNIOConnection extends NIOConnection {
     public void register() throws IOException {
 
         final Future future =
-                transport.getNioChannelDistributor().registerChannelAsync(
+                transport.getNIOChannelDistributor().registerChannelAsync(
                 channel,
                 isStandalone() ? 0 : SelectionKey.OP_READ, this,
                 ((UDPNIOTransport) transport).registerChannelCompletionHandler);

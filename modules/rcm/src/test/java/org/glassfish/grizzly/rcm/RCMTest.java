@@ -63,6 +63,7 @@ import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 
 /**
  * Basic RCM test.
@@ -145,7 +146,7 @@ public class RCMTest extends TestCase {
             }
         });
 
-        transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
 
         transport.bind(port);

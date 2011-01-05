@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly;
 
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.junit.Test;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.junit.Before;
@@ -229,7 +230,7 @@ public class SSLTest {
         filterChainBuilder.addAll(filterIndex, filters);
 
         TCPNIOTransport transport =
-                NIOTransportBuilder.defaultTCPTransportBuilder().build();
+                TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -300,7 +301,7 @@ public class SSLTest {
         filterChainBuilder.addAll(filterIndex, filters);
 
         TCPNIOTransport transport =
-                NIOTransportBuilder.defaultTCPTransportBuilder().build();
+                TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
 
         SSLStreamReader reader = null;
@@ -412,7 +413,7 @@ public class SSLTest {
         filterChainBuilder.add(new EchoFilter());
 
         TCPNIOTransport transport =
-                NIOTransportBuilder.defaultTCPTransportBuilder().build();
+                TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
 
         final MemoryManager mm = transport.getMemoryManager();

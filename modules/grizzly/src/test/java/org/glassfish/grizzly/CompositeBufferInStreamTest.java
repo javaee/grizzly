@@ -45,6 +45,7 @@ import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.utils.Pair;
@@ -66,7 +67,7 @@ public class CompositeBufferInStreamTest extends GrizzlyTestCase {
 
     public void testCompositeBuffer() throws Exception {
         Connection connection = null;
-        final TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        final TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
 
         final Buffer portion1 = Buffers.wrap(transport.getMemoryManager(), "Hello");
         final Buffer portion2 = Buffers.wrap(transport.getMemoryManager(), " ");

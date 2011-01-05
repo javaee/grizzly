@@ -43,7 +43,6 @@ package org.glassfish.grizzly.http.server;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -57,6 +56,7 @@ import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import junit.framework.TestCase;
 
@@ -571,7 +571,7 @@ public class HttpResponseStreamsTest extends TestCase {
         sconfig.addHttpHandler(new TestHttpHandler(strategy), new String[] { "/*" });
 
         final FutureImpl<String> parseResult = SafeFutureImpl.create();
-        TCPNIOTransport ctransport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport ctransport = TCPNIOTransportBuilder.newInstance().build();
         try {
             server.start();
 

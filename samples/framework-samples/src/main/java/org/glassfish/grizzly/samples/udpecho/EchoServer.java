@@ -43,10 +43,10 @@ package org.glassfish.grizzly.samples.udpecho;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
+import org.glassfish.grizzly.nio.transport.UDPNIOTransportBuilder;
 import org.glassfish.grizzly.samples.echo.EchoFilter;
 import org.glassfish.grizzly.utils.StringFilter;
 
@@ -72,8 +72,7 @@ public class EchoServer {
 
         // Create UDP transport
         final UDPNIOTransport transport =
-                (UDPNIOTransport) NIOTransportBuilder.defaultUDPTransportBuilder()
-                .build();
+                UDPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {

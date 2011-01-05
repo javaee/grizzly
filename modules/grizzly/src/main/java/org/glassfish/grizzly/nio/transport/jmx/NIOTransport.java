@@ -175,7 +175,7 @@ public class NIOTransport extends JmxObject {
 
     @ManagedAttribute(id="channel-distributor")
     public String getChannelDistributor() {
-        return getType(transport.getNioChannelDistributor());
+        return getType(transport.getNIOChannelDistributor());
     }
 
     @ManagedAttribute(id="selector-handler")

@@ -47,6 +47,7 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.EchoFilter;
 import org.glassfish.grizzly.utils.LinkedTransferQueue;
 import org.glassfish.grizzly.utils.StringEncoder;
@@ -112,7 +113,7 @@ public class FilterChainReadTest extends TestCase {
         filterChainBuilder.add(new EchoFilter());
 
 
-        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -215,7 +216,7 @@ public class FilterChainReadTest extends TestCase {
         filterChainBuilder.add(new EchoFilter());
 
 
-        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -321,7 +322,7 @@ public class FilterChainReadTest extends TestCase {
         });
 
 
-        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {

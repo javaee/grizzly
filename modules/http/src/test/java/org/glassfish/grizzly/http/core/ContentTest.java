@@ -60,6 +60,7 @@ import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -130,7 +131,7 @@ public class ContentTest extends TestCase {
         filterChainBuilder.add(new HTTPRequestMergerFilter(parseResult));
         FilterChain filterChain = filterChainBuilder.build();
         
-        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChain);
 
         try {

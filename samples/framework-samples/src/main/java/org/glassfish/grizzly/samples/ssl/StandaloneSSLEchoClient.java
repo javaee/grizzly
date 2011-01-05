@@ -48,10 +48,10 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.StandaloneProcessor;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.ssl.SSLStreamReader;
@@ -79,8 +79,7 @@ public class StandaloneSSLEchoClient {
         
         // Create the TCP transport
         final TCPNIOTransport transport =
-                NIOTransportBuilder.defaultTCPTransportBuilder()
-                .build();
+                TCPNIOTransportBuilder.newInstance().build();
 
         try {
             // start the transport

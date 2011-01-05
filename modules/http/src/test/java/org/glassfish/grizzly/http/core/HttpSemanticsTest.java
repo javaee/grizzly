@@ -43,7 +43,6 @@ package org.glassfish.grizzly.http.core;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.Filter;
@@ -65,6 +64,7 @@ import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import junit.framework.TestCase;
 
@@ -287,9 +287,9 @@ public class HttpSemanticsTest extends TestCase {
         filterChainBuilder.add(serverFilter);
         FilterChain filterChain = filterChainBuilder.build();
 
-        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChain);
-        TCPNIOTransport ctransport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport ctransport = TCPNIOTransportBuilder.newInstance().build();
         try {
             transport.bind(PORT);
             transport.start();

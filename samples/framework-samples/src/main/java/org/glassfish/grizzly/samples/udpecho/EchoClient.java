@@ -46,7 +46,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -55,6 +54,7 @@ import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
+import org.glassfish.grizzly.nio.transport.UDPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.StringFilter;
 
 /**
@@ -82,8 +82,7 @@ public class EchoClient {
 
         // Create the UDP transport
         final UDPNIOTransport transport =
-                (UDPNIOTransport) NIOTransportBuilder.defaultUDPTransportBuilder()
-                .build();
+                UDPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {

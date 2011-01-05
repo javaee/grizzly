@@ -55,6 +55,7 @@ import java.util.logging.Logger;
 import junit.framework.Assert;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
@@ -1190,7 +1191,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
     }
 
     public void setupServer() {
-        servertransport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        servertransport = TCPNIOTransportBuilder.newInstance().build();
         // no use for default memorymanager
         servertransport.configureStandalone(true);
 
@@ -1216,7 +1217,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
     public void setupClient() {
 
-        clienttransport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        clienttransport = TCPNIOTransportBuilder.newInstance().build();
         try {
 
             clienttransport.start();

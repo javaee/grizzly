@@ -44,7 +44,6 @@ import java.io.IOException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -53,6 +52,7 @@ import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 
 /**
  * Simple GIOP client
@@ -76,8 +76,7 @@ public class GIOPClient {
 
         // Create TCP NIO transport
         final TCPNIOTransport transport =
-                NIOTransportBuilder.defaultTCPTransportBuilder()
-                .build();
+                TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {

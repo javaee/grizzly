@@ -46,6 +46,7 @@ import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 
 /**
  * Class initializes and starts the echo server, based on Grizzly 2.0
@@ -68,8 +69,7 @@ public class EchoServer {
         
         // Create TCP transport
         final TCPNIOTransport transport =
-                NIOTransportBuilder.defaultTCPTransportBuilder()
-                .build();
+                TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
         
         try {

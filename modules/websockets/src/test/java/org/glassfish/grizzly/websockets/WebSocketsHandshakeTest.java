@@ -49,6 +49,7 @@ import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import org.glassfish.grizzly.websockets.frame.Frame;
 import java.net.ConnectException;
@@ -72,7 +73,7 @@ public class WebSocketsHandshakeTest extends TestCase {
         serverFilterChainBuilder.add(new HttpServerFilter());
         serverFilterChainBuilder.add(new WebSocketFilter());
 
-        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(serverFilterChainBuilder.build());
 
         FutureImpl<WebSocket> serverFuture = SafeFutureImpl.create();

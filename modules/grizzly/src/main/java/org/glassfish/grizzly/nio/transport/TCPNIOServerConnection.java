@@ -86,7 +86,7 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
                 ((TCPNIOTransport) transport).selectorRegistrationHandler;
 
         final Future future =
-                transport.getNioChannelDistributor().registerChannelAsync(
+                transport.getNIOChannelDistributor().registerChannelAsync(
                 channel, SelectionKey.OP_ACCEPT, this, registerCompletionHandler);
         try {
             future.get(10, TimeUnit.SECONDS);
@@ -188,7 +188,7 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
             connection.setProcessorSelector(processorSelector);
         }
 
-        tcpNIOTransport.getNioChannelDistributor().registerChannelAsync(
+        tcpNIOTransport.getNIOChannelDistributor().registerChannelAsync(
                 acceptedChannel, 0, connection, handler);
     }
 

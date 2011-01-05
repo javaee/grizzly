@@ -62,6 +62,7 @@ import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import junit.framework.TestCase;
 
@@ -974,7 +975,7 @@ public class HttpInputStreamsTest extends TestCase {
         ServerConfiguration sconfig = server.getServerConfiguration();
         sconfig.addHttpHandler(new SimpleResponseHttpHandler(strategy, testResult), "/*");
 
-        TCPNIOTransport ctransport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport ctransport = TCPNIOTransportBuilder.newInstance().build();
         try {
             server.start();
             FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();

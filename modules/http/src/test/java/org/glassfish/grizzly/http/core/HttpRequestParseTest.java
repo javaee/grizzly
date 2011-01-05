@@ -59,6 +59,7 @@ import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import org.glassfish.grizzly.utils.Pair;
@@ -196,7 +197,7 @@ public class HttpRequestParseTest extends TestCase {
         filterChainBuilder.add(new HTTPRequestCheckFilter(parseResult,
                 method, requestURI, protocol, Collections.<String, Pair<String, String>>emptyMap()));
 
-        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
         
         try {
@@ -286,7 +287,7 @@ public class HttpRequestParseTest extends TestCase {
         private final SocketAddress peerAddress;
 
         public StandaloneConnection() {
-            super(NIOTransportBuilder.defaultTCPTransportBuilder().build());
+            super(TCPNIOTransportBuilder.newInstance().build());
             localAddress = new InetSocketAddress("127.0.0.1", 0);
             peerAddress = new InetSocketAddress("127.0.0.1", 0);
         }

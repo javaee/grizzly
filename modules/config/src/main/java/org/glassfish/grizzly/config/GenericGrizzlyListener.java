@@ -57,7 +57,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.SocketBinder;
 import org.glassfish.grizzly.config.dom.Http;
 import org.glassfish.grizzly.config.dom.NetworkListener;
@@ -88,6 +87,8 @@ import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.nio.transport.UDPNIOTransportBuilder;
 import org.glassfish.grizzly.portunif.PUFilter;
 import org.glassfish.grizzly.portunif.PUProtocol;
 import org.glassfish.grizzly.portunif.ProtocolFinder;
@@ -249,7 +250,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     protected NIOTransport configureTCPTransport(final Habitat habitat,
             final Transport transportConfig) {
         
-        final TCPNIOTransport tcpTransport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        final TCPNIOTransport tcpTransport = TCPNIOTransportBuilder.newInstance().build();
         tcpTransport.setTcpNoDelay(Boolean.parseBoolean(transportConfig.getTcpNoDelay()));
         tcpTransport.setLinger(Integer.parseInt(transportConfig.getLinger()));
         tcpTransport.setServerConnectionBackLog(Integer.parseInt(transportConfig.getMaxConnectionsCount()));
@@ -260,7 +261,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     protected NIOTransport configureUDPTransport(final Habitat habitat,
             final Transport transportConfig) {
         
-        return NIOTransportBuilder.defaultUDPTransportBuilder().build();
+        return UDPNIOTransportBuilder.newInstance().build();
     }
 
     protected void configureProtocol(final Habitat habitat,

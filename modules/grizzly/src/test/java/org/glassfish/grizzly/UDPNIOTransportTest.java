@@ -48,6 +48,7 @@ import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
+import org.glassfish.grizzly.nio.transport.UDPNIOTransportBuilder;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.utils.EchoFilter;
@@ -67,7 +68,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
 
 
     public void testStartStop() throws IOException {
-        UDPNIOTransport transport = (UDPNIOTransport) NIOTransportBuilder.defaultUDPTransportBuilder().build();
+        UDPNIOTransport transport = (UDPNIOTransport) UDPNIOTransportBuilder.newInstance().build();
 
         try {
             transport.bind(PORT);
@@ -82,7 +83,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
 
     public void testConnectorHandlerConnect() throws Exception {
         Connection connection = null;
-        UDPNIOTransport transport = (UDPNIOTransport) NIOTransportBuilder.defaultUDPTransportBuilder().build();
+        UDPNIOTransport transport = (UDPNIOTransport) UDPNIOTransportBuilder.newInstance().build();
 
         try {
             transport.bind(PORT);
@@ -104,7 +105,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
         Connection connection = null;
         StreamWriter writer = null;
 
-        UDPNIOTransport transport = (UDPNIOTransport) NIOTransportBuilder.defaultUDPTransportBuilder().build();
+        UDPNIOTransport transport = (UDPNIOTransport) UDPNIOTransportBuilder.newInstance().build();
 
         try {
             transport.bind(PORT);
@@ -145,7 +146,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new EchoFilter());
 
-        UDPNIOTransport transport = (UDPNIOTransport) NIOTransportBuilder.defaultUDPTransportBuilder().build();
+        UDPNIOTransport transport = (UDPNIOTransport) UDPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -193,7 +194,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new EchoFilter());
 
-        UDPNIOTransport transport = (UDPNIOTransport) NIOTransportBuilder.defaultUDPTransportBuilder().build();
+        UDPNIOTransport transport = (UDPNIOTransport) UDPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -243,7 +244,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new EchoFilter());
 
-        UDPNIOTransport transport = (UDPNIOTransport) NIOTransportBuilder.defaultUDPTransportBuilder().build();
+        UDPNIOTransport transport = (UDPNIOTransport) UDPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -293,7 +294,7 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new EchoFilter());
         
-        UDPNIOTransport transport = (UDPNIOTransport) NIOTransportBuilder.defaultUDPTransportBuilder().build();
+        UDPNIOTransport transport = (UDPNIOTransport) UDPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {

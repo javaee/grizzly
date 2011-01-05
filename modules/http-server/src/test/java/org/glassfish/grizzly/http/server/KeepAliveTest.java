@@ -43,7 +43,6 @@ package org.glassfish.grizzly.http.server;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.EmptyCompletionHandler;
-import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -66,6 +65,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import junit.framework.TestCase;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 
 /**
  * Testing HTTP keep-alive
@@ -90,7 +90,7 @@ public class KeepAliveTest extends TestCase {
 
         }, "/path");
 
-        final TCPNIOTransport clientTransport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
         final HttpClient client = new HttpClient(clientTransport);
 
         try {
@@ -141,7 +141,7 @@ public class KeepAliveTest extends TestCase {
 
         }, "/path");
 
-        final TCPNIOTransport clientTransport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
         final HttpClient client = new HttpClient(clientTransport);
 
         try {
@@ -206,7 +206,7 @@ public class KeepAliveTest extends TestCase {
         }, "/path");
         server.getListener("grizzly").getKeepAlive().setMaxRequestsCount(maxKeepAliveRequests);
 
-        final TCPNIOTransport clientTransport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
         final HttpClient client = new HttpClient(clientTransport);
 
         try {

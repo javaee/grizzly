@@ -43,6 +43,7 @@ package org.glassfish.grizzly;
 import org.glassfish.grizzly.monitoring.jmx.GrizzlyJmxManager;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -56,8 +57,8 @@ public class JmxBasicTest {
     @Test
     public void transport() throws Exception {
         GrizzlyJmxManager manager = GrizzlyJmxManager.instance();
-        final TCPNIOTransport transport1 = NIOTransportBuilder.defaultTCPTransportBuilder().build();
-        final TCPNIOTransport transport2 = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        final TCPNIOTransport transport1 = TCPNIOTransportBuilder.newInstance().build();
+        final TCPNIOTransport transport2 = TCPNIOTransportBuilder.newInstance().build();
 
         try {
             JmxObject jmxTransportObject1 =

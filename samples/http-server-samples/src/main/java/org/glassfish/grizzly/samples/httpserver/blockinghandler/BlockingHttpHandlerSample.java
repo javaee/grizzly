@@ -67,8 +67,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 
 
 /**
@@ -150,8 +150,7 @@ public class BlockingHttpHandlerSample {
 
             // Initialize Transport
             final TCPNIOTransport transport =
-                    NIOTransportBuilder.defaultTCPTransportBuilder()
-                    .build();            // Set filterchain as a Transport Processor
+                    TCPNIOTransportBuilder.newInstance().build();
             transport.setProcessor(clientFilterChainBuilder.build());
 
             try {

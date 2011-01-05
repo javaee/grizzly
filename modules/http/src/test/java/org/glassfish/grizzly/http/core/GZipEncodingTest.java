@@ -67,6 +67,7 @@ import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -288,10 +289,10 @@ public class GZipEncodingTest extends TestCase {
         filterChainBuilder.add(new SimpleResponseFilter());
         FilterChain filterChain = filterChainBuilder.build();
 
-        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChain);
 
-        TCPNIOTransport ctransport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport ctransport = TCPNIOTransportBuilder.newInstance().build();
         try {
             transport.bind(PORT);
             transport.start();

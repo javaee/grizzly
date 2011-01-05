@@ -152,7 +152,7 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         // if connected immediately - register channel on selector with NO_INTEREST
         // interest
         final GrizzlyFuture<RegisterChannelResult> registerChannelFuture =
-                nioTransport.getNioChannelDistributor().
+                nioTransport.getNIOChannelDistributor().
                 registerChannelAsync(datagramChannel,
                 0, newConnection,
                 new ConnectHandler(connectFuture, completionHandler));

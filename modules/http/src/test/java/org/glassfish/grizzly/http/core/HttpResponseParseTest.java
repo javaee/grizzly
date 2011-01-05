@@ -60,6 +60,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import org.glassfish.grizzly.utils.Pair;
@@ -197,7 +198,7 @@ public class HttpResponseParseTest extends TestCase {
         filterChainBuilder.add(new HTTPResponseCheckFilter(parseResult,
                 protocol, code, phrase, Collections.<String, Pair<String, String>>emptyMap()));
 
-        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
         
         try {
@@ -284,7 +285,7 @@ public class HttpResponseParseTest extends TestCase {
 
     protected static final class StandaloneConnection extends NIOConnection {
         public StandaloneConnection() {
-            super(NIOTransportBuilder.defaultTCPTransportBuilder().build());
+            super(TCPNIOTransportBuilder.newInstance().build());
         }
 
         @Override

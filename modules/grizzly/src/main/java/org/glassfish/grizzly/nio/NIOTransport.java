@@ -131,12 +131,11 @@ public abstract class NIOTransport extends AbstractTransport {
         selectorRunners = null;
     }
 
-    public NIOChannelDistributor getNioChannelDistributor() {
+    public NIOChannelDistributor getNIOChannelDistributor() {
         return nioChannelDistributor;
     }
 
-    public void setNioChannelDistributor(final NIOChannelDistributor
-            nioChannelDistributor) {
+    public void setNIOChannelDistributor(final NIOChannelDistributor nioChannelDistributor) {
         this.nioChannelDistributor = nioChannelDistributor;
         notifyProbesConfigChanged(this);
     }

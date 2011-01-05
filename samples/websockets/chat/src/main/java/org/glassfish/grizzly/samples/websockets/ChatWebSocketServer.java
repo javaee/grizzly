@@ -40,11 +40,11 @@
 
 package org.glassfish.grizzly.samples.websockets;
 
-import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.websockets.WebSocketApplication;
 import org.glassfish.grizzly.websockets.WebSocketEngine;
 import org.glassfish.grizzly.websockets.WebSocketFilter;
@@ -81,8 +81,7 @@ public class ChatWebSocketServer {
 
         // initialize transport
         final TCPNIOTransport transport =
-                NIOTransportBuilder.defaultTCPTransportBuilder()
-                .build();
+                TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(serverFilterChainBuilder.build());
 
         // initialize websocket chat application

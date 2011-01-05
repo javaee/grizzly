@@ -155,12 +155,12 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
             if (isConnected) {
                 registerChannelFuture =
-                        nioTransport.getNioChannelDistributor().registerChannelAsync(
+                        nioTransport.getNIOChannelDistributor().registerChannelAsync(
                         socketChannel, 0, newConnection,
                         instantConnectHandler);
             } else {
                 registerChannelFuture =
-                        nioTransport.getNioChannelDistributor().registerChannelAsync(
+                        nioTransport.getNIOChannelDistributor().registerChannelAsync(
                         socketChannel, SelectionKey.OP_CONNECT, newConnection,
                         nioTransport.selectorRegistrationHandler);
             }

@@ -57,7 +57,7 @@ import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
-import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.utils.EchoFilter;
@@ -87,7 +87,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
 
     public void testStartStop() throws IOException {
-        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
 
         try {
             transport.bind(PORT);
@@ -99,7 +99,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
     public void testConnectorHandlerConnect() throws Exception {
         Connection connection = null;
-        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
 
         try {
             transport.bind(PORT);
@@ -119,7 +119,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
     public void testBindUnbind() throws Exception {
         Connection connection = null;
-        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
 
         try {
             transport.bind(PORT);
@@ -156,7 +156,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
     public void testMultiBind() throws Exception {
         Connection connection = null;
-        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
 
         try {
             final TCPNIOServerConnection serverConnection1 = transport.bind(PORT);
@@ -206,7 +206,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         Connection connection = null;
         StreamWriter writer = null;
 
-        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
 
         try {
             transport.bind(PORT);
@@ -247,7 +247,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new EchoFilter());
 
-        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -294,7 +294,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new EchoFilter());
-        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -344,7 +344,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new EchoFilter());
         
-        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -404,7 +404,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             }
         });
 
-        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -506,7 +506,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         filterChainBuilder.add(checkSizeFilter);
         filterChainBuilder.add(new EchoFilter());
 
-        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -565,10 +565,10 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         StreamReader reader;
         StreamWriter writer;
 
-        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
 
         final CustomChannelDistributor distributor = new CustomChannelDistributor(transport);
-        transport.setNioChannelDistributor(distributor);
+        transport.setNIOChannelDistributor(distributor);
 
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());

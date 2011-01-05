@@ -60,6 +60,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.PendingWriteQueueLimitExceededException;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.utils.EchoFilter;
@@ -103,7 +104,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
             }
         });
 
-        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -219,7 +220,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
         filterChainBuilder.add(new TransportFilter());
         
 
-        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
 
 
@@ -312,7 +313,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
         filterChainBuilder.add(new TransportFilter());
 
 
-        final TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        final TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
 
 

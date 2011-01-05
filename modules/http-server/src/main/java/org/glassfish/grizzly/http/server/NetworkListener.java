@@ -51,6 +51,7 @@ import org.glassfish.grizzly.http.KeepAlive;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 
 import java.io.IOException;
@@ -117,7 +118,7 @@ public class NetworkListener {
      * The {@link TCPNIOTransport} used by this <code>NetworkListener</code>
      */
     private TCPNIOTransport transport =
-            NIOTransportBuilder.defaultTCPTransportBuilder().build();
+            TCPNIOTransportBuilder.newInstance().build();
 
 
     /**

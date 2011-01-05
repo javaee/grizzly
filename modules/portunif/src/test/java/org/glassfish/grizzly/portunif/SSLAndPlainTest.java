@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.portunif;
 
 import org.glassfish.grizzly.NIOTransportBuilder;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.portunif.finders.SSLProtocolFinder;
 import org.glassfish.grizzly.utils.StringDecoder;
 import org.glassfish.grizzly.Buffer;
@@ -146,7 +147,7 @@ public class SSLAndPlainTest {
                 .add(new TransportFilter())
                 .add(rootPuFilter);
 
-        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(puFilterChainBuilder.build());
 
         try {

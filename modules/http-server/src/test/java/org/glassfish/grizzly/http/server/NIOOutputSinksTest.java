@@ -42,7 +42,6 @@ package org.glassfish.grizzly.http.server;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.filterchain.BaseFilter;
@@ -63,6 +62,7 @@ import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.PendingWriteQueueLimitExceededException;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import junit.framework.TestCase;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -135,7 +135,7 @@ public class NIOOutputSinksTest extends TestCase {
         });
 
 
-        final TCPNIOTransport clientTransport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
         clientTransport.setProcessor(filterChainBuilder.build());
         final AtomicInteger writeCounter = new AtomicInteger();
         final AtomicBoolean callbackInvoked = new AtomicBoolean(false);
@@ -295,7 +295,7 @@ public class NIOOutputSinksTest extends TestCase {
         });
 
 
-        final TCPNIOTransport clientTransport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
         clientTransport.setProcessor(filterChainBuilder.build());
         final AtomicInteger writeCounter = new AtomicInteger();
         final AtomicBoolean callbackInvoked = new AtomicBoolean(false);
@@ -440,7 +440,7 @@ public class NIOOutputSinksTest extends TestCase {
             }
         });
 
-        final TCPNIOTransport clientTransport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
         clientTransport.setProcessor(filterChainBuilder.build());
         final HttpHandler ga = new HttpHandler() {
 

@@ -58,6 +58,7 @@ import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.StringFilter;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -87,7 +88,7 @@ public class BasicPUTest {
                 .add(new StringFilter(CHARSET))
                 .add(puFilter);
 
-        TCPNIOTransport transport = NIOTransportBuilder.defaultTCPTransportBuilder().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(puFilterChainBuilder.build());
 
         try {

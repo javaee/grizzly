@@ -63,6 +63,7 @@ import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import junit.framework.TestCase;
 
@@ -398,7 +399,7 @@ public class NIOInputSourcesTest extends TestCase {
             throws Exception {
 
         final TCPNIOTransport clientTransport =
-                NIOTransportBuilder.defaultTCPTransportBuilder().build();
+                TCPNIOTransportBuilder.newInstance().build();
         final HttpServer server = createWebServer(httpHandler);
         try {
             server.start();
