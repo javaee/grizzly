@@ -153,13 +153,6 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
 
     }
 
-    private String name;
-    private Processor processor;
-    private ProcessorSelector processorSelector;
-    private int readBufferSize;
-    private int writeBufferSize;
-
-
     // ---------------------------------------------------------- Public Methods
 
 
@@ -305,17 +298,10 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
     }
 
     /**
-     * @return an {@link NIOTransport} based on the builder's configuration.
-     */
-    public NIOTransport build() {
-        return transport;
-    }
-
-    /**
      * @see Transport#getName()
      */
     public String getName() {
-        return name;
+        return transport.getName();
     }
 
     /**
@@ -324,7 +310,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * @return this <code>NIOTransportBuilder</code>
      */
     public T setName(String name) {
-        this.name = name;
+        transport.setName(name);
         return getThis();
     }
 
@@ -332,7 +318,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * @see Transport#getProcessor()
      */
     public Processor getProcessor() {
-        return processor;
+        return transport.getProcessor();
     }
 
     /**
@@ -340,15 +326,16 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      *
      * @return this <code>NIOTransportBuilder</code>
      */
-    public void setProcessor(Processor processor) {
-        this.processor = processor;
+    public T setProcessor(Processor processor) {
+        transport.setProcessor(processor);
+        return getThis();
     }
 
     /**
      * @see Transport#getProcessorSelector() ()
      */
     public ProcessorSelector getProcessorSelector() {
-        return processorSelector;
+        return transport.getProcessorSelector();
     }
 
     /**
@@ -356,15 +343,16 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      *
      * @return this <code>NIOTransportBuilder</code>
      */
-    public void setProcessorSelector(ProcessorSelector processorSelector) {
-        this.processorSelector = processorSelector;
+    public T setProcessorSelector(ProcessorSelector processorSelector) {
+        transport.setProcessorSelector(processorSelector);
+        return getThis();
     }
 
     /**
      * @see Transport#getReadBufferSize() ()
      */
     public int getReadBufferSize() {
-        return readBufferSize;
+        return transport.getReadBufferSize();
     }
 
     /**
@@ -372,15 +360,16 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      *
      * @return this <code>NIOTransportBuilder</code>
      */
-    public void setReadBufferSize(int readBufferSize) {
-        this.readBufferSize = readBufferSize;
+    public T setReadBufferSize(int readBufferSize) {
+        transport.setReadBufferSize(readBufferSize);
+        return getThis();
     }
 
     /**
      * @see Transport#getWriteBufferSize()
      */
     public int getWriteBufferSize() {
-        return writeBufferSize;
+        return transport.getWriteBufferSize();
     }
 
     /**
@@ -388,8 +377,16 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      *
      * @return this <code>NIOTransportBuilder</code>
      */
-    public void setWriteBufferSize(int writeBufferSize) {
-        this.writeBufferSize = writeBufferSize;
+    public T setWriteBufferSize(int writeBufferSize) {
+        transport.setWriteBufferSize(writeBufferSize);
+        return getThis();
+    }
+
+    /**
+     * @return an {@link NIOTransport} based on the builder's configuration.
+     */
+    public NIOTransport build() {
+        return transport;
     }
 
 
