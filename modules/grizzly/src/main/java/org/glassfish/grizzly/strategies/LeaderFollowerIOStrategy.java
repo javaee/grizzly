@@ -55,27 +55,33 @@ import org.glassfish.grizzly.nio.SelectorRunner;
  * @author Alexey Stashok
  */
 public final class LeaderFollowerIOStrategy extends AbstractIOStrategy {
-    /*
-     * NONE,
-     * READ,
-     * WRITE,
-     * SERVER_ACCEPT,
-     * ACCEPTED,
-     * CLIENT_CONNECTED,
-     * CONNECTED
-     * CLOSED
-     */
-//    private final Executor[] executors;
-    private final Executor workerThreadExecutor;
-    
-    public LeaderFollowerIOStrategy(final Executor workerThreadExecutor) {
-        this.workerThreadExecutor = workerThreadExecutor;
+
+    private static final LeaderFollowerIOStrategy INSTANCE = new LeaderFollowerIOStrategy();
+
+
+    // ------------------------------------------------------------ Constructors
+
+
+    private LeaderFollowerIOStrategy() { }
+
+
+    // ---------------------------------------------------------- Public Methods
+
+
+    public static LeaderFollowerIOStrategy getInstance() {
+
+        return INSTANCE;
+
     }
 
+
+    // ------------------------------------------------- Methods from IOStrategy
+
     @Override
-    public boolean executeIoEvent(Connection connection, IOEvent ioEvent) throws IOException {
-        final boolean isReadWrite =
-                (ioEvent == IOEvent.READ || ioEvent == IOEvent.WRITE);
+    public boolean executeIoEvent(final Connection connection,
+                                  final IOEvent ioEvent) throws IOException {
+        final boolean isReadWrite = isReadWrite(ioEvent);
+
         
         final NIOConnection nioConnection = (NIOConnection) connection;
         PostProcessor pp = null;
@@ -87,7 +93,7 @@ public final class LeaderFollowerIOStrategy extends AbstractIOStrategy {
         if (isExecuteInWorkerThread(ioEvent)) {
             final SelectorRunner runner = nioConnection.getSelectorRunner();
             runner.postpone();
-            workerThreadExecutor.execute(runner);
+            getWorkerThreadPool(connection).execute(runner);
             connection.getTransport().fireIOEvent(ioEvent, connection, pp);
 
             return false;
@@ -97,8 +103,4 @@ public final class LeaderFollowerIOStrategy extends AbstractIOStrategy {
         }
     }
 
-    private static boolean isExecuteInWorkerThread(final IOEvent ioEvent) {
-        return ioEvent == IOEvent.READ || ioEvent == IOEvent.WRITE ||
-                ioEvent == IOEvent.CLOSED;
-    }
 }

@@ -195,7 +195,7 @@ public class NIOTransport extends JmxObject {
 
     @ManagedAttribute(id="thread-pool-type")
     public String getThreadPoolType() {
-        return getType(transport.getThreadPool());
+        return getType(transport.getWorkerThreadPool());
     }
 
     @ManagedAttribute(id="last-error")
@@ -255,7 +255,7 @@ public class NIOTransport extends JmxObject {
             }
         }
 
-        final GrizzlyExecutorService threadPool = (GrizzlyExecutorService) transport.getThreadPool();
+        final GrizzlyExecutorService threadPool = (GrizzlyExecutorService) transport.getWorkerThreadPool();
         if (currentThreadPool != threadPool) {
             if (currentThreadPool != null) {
                 mom.unregister(threadPoolJmx);

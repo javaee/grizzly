@@ -450,23 +450,6 @@ public final class UDPNIOTransport extends NIOTransport implements
                 }
             }
 
-
-//            if (threadPool == null) {
-//                ThreadPoolConfig config = strategy.createDefaultWorkerPoolConfig(this);
-//                config.getInitialMonitoringConfig().addProbes(
-//                        getThreadPoolMonitoringConfig().getProbes());
-//                setThreadPool0(GrizzlyExecutorService.createInstance(config));
-//            } else {
-//                if (threadPool instanceof GrizzlyExecutorService) {
-//                    final ThreadPoolConfig config =
-//                            ((GrizzlyExecutorService) threadPool).getConfiguration();
-//                    if (!(strategy instanceof SameThreadIOStrategy)
-//                            && selectorRunnersCount >= config.getMaxPoolSize()) {
-//                        selectorRunnersCount = config.getMaxPoolSize() / 2;
-//                    }
-//                }
-//            }
-
             /* By default TemporarySelector pool size should be equal
             to the number of processing threads */
             int selectorPoolSize =
@@ -482,7 +465,7 @@ public final class UDPNIOTransport extends NIOTransport implements
             }
 
             if (strategy == null) {
-                strategy = new WorkerThreadIOStrategy(threadPool);
+                strategy =  WorkerThreadIOStrategy.getInstance();
             }
 
             temporarySelectorIO.setSelectorPool(

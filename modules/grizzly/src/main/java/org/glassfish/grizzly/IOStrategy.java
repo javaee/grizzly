@@ -65,6 +65,7 @@ public interface IOStrategy extends WorkerThreadPoolConfigProducer {
      *
      * @throws IOException if an error occurs processing the {@link IOEvent}.
      */
-    boolean executeIoEvent(Connection connection, IOEvent ioEvent) throws IOException;
+    boolean executeIoEvent(final Connection connection, final IOEvent ioEvent)
+    throws IOException;
 
 }

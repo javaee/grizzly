@@ -46,7 +46,7 @@ import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 
 /**
- * TODO Docs
+ * {@link NIOTransportBuilder} implementation for <code>TCP</code>.
  *
  * @since 2.0
  */
@@ -71,7 +71,8 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
 
     public static TCPNIOTransportBuilder newInstance() {
         try {
-            return new TCPNIOTransportBuilder(TCPNIOTransport.class, new SameThreadIOStrategy());
+            return new TCPNIOTransportBuilder(TCPNIOTransport.class,
+                                              SameThreadIOStrategy.getInstance());
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }

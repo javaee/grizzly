@@ -161,7 +161,7 @@ final class EchoServer {
                 Constructor[] cs = strategy.getConstructors();
                 for (Constructor c : cs) {
                     if (c.getParameterTypes().length == 1 && c.getParameterTypes()[0].isAssignableFrom(ExecutorService.class)) {
-                        return (IOStrategy) c.newInstance(transport.getThreadPool());
+                        return (IOStrategy) c.newInstance(transport.getWorkerThreadPool());
                     }
                 }
 

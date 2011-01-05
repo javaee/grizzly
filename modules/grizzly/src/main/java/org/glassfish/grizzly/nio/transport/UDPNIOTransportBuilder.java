@@ -46,7 +46,7 @@ import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 
 
 /**
- * TODO: documentation
+ * {@link NIOTransportBuilder} implementation for <code>UDP</code>.
  *
  * @since 2.0
  */
@@ -69,7 +69,8 @@ public class UDPNIOTransportBuilder extends NIOTransportBuilder<UDPNIOTransportB
 
     public static UDPNIOTransportBuilder newInstance() {
         try {
-            return new UDPNIOTransportBuilder(UDPNIOTransport.class, new SameThreadIOStrategy());
+            return new UDPNIOTransportBuilder(UDPNIOTransport.class,
+                                              SameThreadIOStrategy.getInstance());
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }

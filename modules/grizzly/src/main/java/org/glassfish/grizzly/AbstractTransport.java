@@ -343,7 +343,7 @@ public abstract class AbstractTransport implements Transport {
      * {@inheritDoc}
      */
     @Override
-    public ExecutorService getThreadPool() {
+    public ExecutorService getWorkerThreadPool() {
         return threadPool;
     }
 

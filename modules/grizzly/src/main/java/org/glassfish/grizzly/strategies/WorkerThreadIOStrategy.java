@@ -57,34 +57,35 @@ import java.util.logging.Logger;
  */
 public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
 
+    private static final WorkerThreadIOStrategy INSTANCE = new WorkerThreadIOStrategy();
+
     private static final Logger logger = Grizzly.logger(WorkerThreadIOStrategy.class);
-    /*
-     * NONE,
-     * READ,
-     * WRITE,
-     * SERVER_ACCEPT,
-     * ACCEPTED,
-     * CLIENT_CONNECTED,
-     * CONNECTED
-     * CLOSED
-     */
-//    private final Executor[] executors;
-//    private final Executor sameThreadExecutor;
-    private final Executor workerThreadExecutor;
 
-    public WorkerThreadIOStrategy(final Executor workerThreadExecutor) {
-        this.workerThreadExecutor = workerThreadExecutor;
 
+    // ------------------------------------------------------------ Constructors
+
+
+    private WorkerThreadIOStrategy() { }
+
+
+    // ---------------------------------------------------------- Public Methods
+
+
+    public static WorkerThreadIOStrategy getInstance() {
+        return INSTANCE;
     }
+
+
+    // ------------------------------------------------- Methods from IOStrategy
+
 
     @Override
     public boolean executeIoEvent(final Connection connection,
-            final IOEvent ioEvent) throws IOException {
+                                  final IOEvent ioEvent) throws IOException {
 
         final NIOConnection nioConnection = (NIOConnection) connection;
 
-        final boolean disableInterest = (ioEvent == IOEvent.READ
-                || ioEvent == IOEvent.WRITE);
+        final boolean disableInterest = isReadWrite(ioEvent);
 
         final PostProcessor pp;
         if (disableInterest) {
@@ -95,7 +96,7 @@ public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
         }
 
         if (isExecuteInWorkerThread(ioEvent)) {
-            workerThreadExecutor.execute(new Runnable() {
+            getWorkerThreadPool(connection).execute(new Runnable() {
 
                 @Override
                 public void run() {
@@ -109,8 +110,13 @@ public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
         return true;
     }
 
-    private void run0(final Connection connection, final IOEvent ioEvent,
-            final PostProcessor postProcessor) {
+
+    // --------------------------------------------------------- Private Methods
+
+
+    private static void run0(final Connection connection,
+                             final IOEvent ioEvent,
+                             final PostProcessor postProcessor) {
         try {
             connection.getTransport().fireIOEvent(ioEvent, connection,
                     postProcessor);
@@ -133,8 +139,4 @@ public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
         }
     }
 
-    private static boolean isExecuteInWorkerThread(final IOEvent ioEvent) {
-        return ioEvent == IOEvent.READ || ioEvent == IOEvent.WRITE ||
-                ioEvent == IOEvent.CLOSED;
-    }
 }

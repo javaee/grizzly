@@ -48,7 +48,6 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.samples.echo.EchoFilter;
 import org.glassfish.grizzly.strategies.LeaderFollowerIOStrategy;
-import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 
 /**
  * Sample shows how easy custom {@link org.glassfish.grizzly.IOStrategy} could be applied for a
@@ -85,8 +84,7 @@ public class CustomStrategy {
         transport.setProcessor(filterChainBuilder.build());
         
         // Set the LeaderFollowerIOStrategy (any strategy could be applied this way)
-        transport.setIOStrategy(new LeaderFollowerIOStrategy(
-                GrizzlyExecutorService.createInstance()));
+        transport.setIOStrategy(LeaderFollowerIOStrategy.getInstance());
         
         try {
             // binding transport to start listen on certain host and port

@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.strategies;
 
 import java.io.IOException;
+
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.PostProcessor;
@@ -55,10 +56,29 @@ import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
  */
 public final class SameThreadIOStrategy extends AbstractIOStrategy {
 
+    private static final SameThreadIOStrategy INSTANCE = new SameThreadIOStrategy();
+
+
+    // ------------------------------------------------------------ Constructors
+
+
+    private SameThreadIOStrategy() { }
+
+
+    // ---------------------------------------------------------- Public Methods
+
+
+    public static SameThreadIOStrategy getInstance() {
+        return INSTANCE;
+    }
+
+
+    // ------------------------------------------------- Methods from IOStrategy
+
 
     @Override
-    public boolean executeIoEvent(Connection connection,
-            IOEvent ioEvent) throws IOException {
+    public boolean executeIoEvent(final Connection connection,
+                                  final IOEvent ioEvent) throws IOException {
         final boolean isReadWrite = (ioEvent == IOEvent.READ || ioEvent == IOEvent.WRITE);
         PostProcessor pp = null;
         if (isReadWrite) {

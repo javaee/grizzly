@@ -45,6 +45,7 @@
 
 package org.glassfish.grizzly.strategies;
 
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.PostProcessor;
@@ -55,6 +56,7 @@ import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
 import java.io.IOException;
+import java.util.concurrent.Executor;
 
 /**
  *
@@ -81,6 +83,24 @@ public abstract class AbstractIOStrategy implements IOStrategy {
         config.setMemoryManager(transport.getMemoryManager());
         return config;
 
+    }
+
+
+    // ------------------------------------------------------- Protected Methods
+
+
+    protected static boolean isReadWrite(final IOEvent ioEvent) {
+        return (ioEvent == IOEvent.READ || ioEvent == IOEvent.WRITE);
+    }
+
+    protected static boolean isExecuteInWorkerThread(final IOEvent ioEvent) {
+        return (ioEvent == IOEvent.READ
+                   || ioEvent == IOEvent.WRITE
+                   || ioEvent == IOEvent.CLOSED);
+    }
+
+    protected static Executor getWorkerThreadPool(final Connection c) {
+        return c.getTransport().getWorkerThreadPool();
     }
 
 

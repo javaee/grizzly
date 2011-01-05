@@ -297,7 +297,7 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      *
      * @return {@link ExecutorService} transport thread pool.
      */
-    ExecutorService getThreadPool();
+    ExecutorService getWorkerThreadPool();
 
 
     /**
