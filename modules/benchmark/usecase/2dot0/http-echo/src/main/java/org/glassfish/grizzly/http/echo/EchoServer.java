@@ -57,6 +57,7 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import org.glassfish.grizzly.http.server.io.NIOOutputStream;
@@ -155,20 +156,10 @@ final class EchoServer {
 
     private static IOStrategy loadStrategy(Class<? extends IOStrategy> strategy, Transport transport) {
         try {
-            return strategy.newInstance();
+            final Method m = strategy.getMethod("getInstance");
+            return (IOStrategy) m.invoke(null);
         } catch (Exception e) {
-            try {
-                Constructor[] cs = strategy.getConstructors();
-                for (Constructor c : cs) {
-                    if (c.getParameterTypes().length == 1 && c.getParameterTypes()[0].isAssignableFrom(ExecutorService.class)) {
-                        return (IOStrategy) c.newInstance(transport.getWorkerThreadPool());
-                    }
-                }
-
-                throw new IllegalStateException("Can not initialize IOStrategy: " + strategy);
-            } catch (Exception ee) {
-                throw new IllegalStateException("Can not initialize IOStrategy: " + strategy + ". Error: " + ee.getClass() + ": " + ee.getMessage());
-            }
+            throw new IllegalStateException("Can not initialize IOStrategy: " + strategy + ". Error: " + e);
         }
     }
 
