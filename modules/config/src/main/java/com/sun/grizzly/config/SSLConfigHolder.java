@@ -47,8 +47,6 @@ import com.sun.grizzly.config.dom.Protocol;
 import com.sun.grizzly.config.dom.Ssl;
 import com.sun.grizzly.util.net.SSLImplementation;
 import com.sun.grizzly.util.net.ServerSocketFactory;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -62,6 +60,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLServerSocketFactory;
+
+import com.sun.hk2.component.Holder;
 import org.jvnet.hk2.component.Habitat;
 
 /**
@@ -76,7 +76,7 @@ public class SSLConfigHolder {
     /**
      * The <code>SSLImplementation</code>
      */
-    protected SSLImplementation sslImplementation;
+    protected Holder<SSLImplementation> sslImplementation;
     /**
      * The <code>SSLContext</code> associated with the SSL implementation we are running on.
      */
@@ -112,13 +112,24 @@ public class SSLConfigHolder {
      */
     private final Ssl ssl;
 
+    @SuppressWarnings({"unchecked"})
     public SSLConfigHolder(final Habitat habitat, final Ssl ssl) throws SSLException {
         this.ssl = ssl;
-        sslImplementation = lookupSSLImplementation(habitat, ssl);
-
+        sslImplementation = habitat.getInhabitantByContract(
+                                            SSLImplementation.class.getName(),
+                                            ssl.getClassname());
         if (sslImplementation == null) {
-            throw new SSLException("Can not configure SSLImplementation");
+            final SSLImplementation impl = lookupSSLImplementation(habitat, ssl);
+            if (impl == null) {
+                throw new SSLException("Can not configure SSLImplementation");
+            }
+            sslImplementation = new Holder<SSLImplementation>() {
+                public SSLImplementation get() {
+                    return impl;
+                }
+            };
         }
+
     }
 
     /**
@@ -139,7 +150,7 @@ public class SSLConfigHolder {
      * Return the current <code>SSLImplementation</code> this Thread
      */
     public SSLImplementation getSSLImplementation() {
-        return sslImplementation;
+        return sslImplementation.get();
     }
 
     /**
@@ -431,22 +442,6 @@ public class SSLConfigHolder {
 
         return null;
     }
-
-    private static ClassLoader getContextClassLoader() {
-        return AccessController.doPrivileged(
-                new PrivilegedAction<ClassLoader>() {
-
-                    public ClassLoader run() {
-                        ClassLoader cl = null;
-                        try {
-                            cl = Thread.currentThread().getContextClassLoader();
-                        } catch (SecurityException ignore) {
-                        }
-                        return cl;
-                    }
-                });
-    }
-
 
     /*
      * Evalutates the given List of cipher suite names, converts each cipher
