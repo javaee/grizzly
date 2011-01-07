@@ -289,6 +289,42 @@ return ctx.getStopAction(remainder, appender);</programlisting></para>
                                     role="italic">org.glassfish.grizzly.Appender</emphasis> should
                                 be passed as additional parameter.</para>
                         </listitem>
+                        <listitem>
+                            <para><emphasis role="bold"
+                                >RerunFilterAction</emphasis><programlisting>return ctx.getRerunFilterAction();</programlisting></para>
+                            <para>Instructs FilterChain to rerurn this Filter one more time. Might
+                                be useful to simplify I/O event processing code, avoid
+                                recursions.</para>
+                        </listitem>
+                        <listitem>
+                            <para><emphasis role="bold">SuspendAction</emphasis></para>
+                            <programlisting>return ctx.getSuspendAction();</programlisting>
+                            <para>Instructs FilterChain to terminate (leave) the I/O event
+                                processing in the current thread. User will be able to resume the
+                                I/O event processing by
+                                calling<programlisting>ctx.resume();</programlisting></para>
+                            <para>Once <emphasis role="italic">ctx.resume()</emphasis> is called,
+                                FilterChain resumes processing at the same Filter it was
+                                suspended.</para>
+                            <para>Please note, after returning SuspendAction and before I/O event
+                                processing will be resumed, Grizzly supposes I/O event as being
+                                processed, so Grizzly won't initialize the same I/O event processing
+                                on the same Connection. For example if we return the SuspendAction
+                                during READ event processing - Grizzly won't notify FilterChain
+                                about any new data coming on the same Connection, until READ event
+                                processing won't be completed.</para>
+                        </listitem>
+                        <listitem>
+                            <para><emphasis role="bold"
+                                >SuspendStopAction</emphasis><programlisting>return ctx.getSuspendStopAction();</programlisting></para>
+                            <para>This NextAction is very similar to SuspendAction, except one
+                                important thing - after getting SuspendStopAction, Grizzly will keep
+                                listening for the same I/O events on the Connection and notify
+                                FilterChain if they occur.</para>
+                            <para>We have to be very careful with this NextAction and make sure two
+                                or more threads are not processing the same I/O operation
+                                simultaneously.</para>
+                        </listitem>
                     </itemizedlist></para>
             </listitem>
         </itemizedlist>
