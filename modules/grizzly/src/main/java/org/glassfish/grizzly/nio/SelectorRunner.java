@@ -401,7 +401,7 @@ public final class SelectorRunner implements Runnable {
      * 
      * @param key {@link SelectionKey}, which was processed, when the {@link Exception} occured
      * @param description error description
-     * @param e {@link Exception} occured
+     * @param e {@link Exception} occurred
      * @param runLogLevel logger {@link Level} to use, if transport is in running state
      * @param stoppedLogLevel logger {@link Level} to use, if transport is not in running state
      */
