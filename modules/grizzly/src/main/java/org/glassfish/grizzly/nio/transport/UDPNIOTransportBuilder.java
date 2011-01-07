@@ -42,7 +42,7 @@ package org.glassfish.grizzly.nio.transport;
 import org.glassfish.grizzly.IOStrategy;
 import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
-import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
+import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 
 
 /**
@@ -70,7 +70,7 @@ public class UDPNIOTransportBuilder extends NIOTransportBuilder<UDPNIOTransportB
     public static UDPNIOTransportBuilder newInstance() {
         try {
             return new UDPNIOTransportBuilder(UDPNIOTransport.class,
-                                              SameThreadIOStrategy.getInstance());
+                                              WorkerThreadIOStrategy.getInstance());
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }

@@ -41,9 +41,8 @@ package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.IOStrategy;
 import org.glassfish.grizzly.NIOTransportBuilder;
-import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
-import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
+import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 
 /**
  * {@link NIOTransportBuilder} implementation for <code>TCP</code>.
@@ -72,7 +71,7 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
     public static TCPNIOTransportBuilder newInstance() {
         try {
             return new TCPNIOTransportBuilder(TCPNIOTransport.class,
-                                              SameThreadIOStrategy.getInstance());
+                                              WorkerThreadIOStrategy.getInstance());
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
