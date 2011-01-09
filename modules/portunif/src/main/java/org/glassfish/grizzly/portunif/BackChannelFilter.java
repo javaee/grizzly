@@ -41,7 +41,9 @@
 package org.glassfish.grizzly.portunif;
 
 import java.io.IOException;
+import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.FilterChainEvent;
 import org.glassfish.grizzly.filterchain.NextAction;
@@ -56,6 +58,41 @@ public class BackChannelFilter extends BaseFilter {
     BackChannelFilter(final PUFilter puFilter) {
         this.puFilter = puFilter;
     }
+
+    @Override
+    public NextAction handleRead(final FilterChainContext ctx) throws IOException {
+        // If this method is called as part of natural PU filterchain processing -
+        // just pass process to the next filter
+        if (!isFilterChainRead(ctx)) {
+            return ctx.getInvokeAction();
+        }
+
+        // if this is filterchain read - delegate read to the underlying filterchain
+        final FilterChainContext suspendedParentContext =
+                puFilter.suspendedContextAttribute.get(ctx);
+
+        assert suspendedParentContext != null;
+
+        final ReadResult readResult = suspendedParentContext.read();
+
+        ctx.setMessage(readResult.getMessage());
+        ctx.setAddress(readResult.getSrcAddress());
+
+        readResult.recycle();
+
+        return ctx.getInvokeAction();
+    }
+
+    /**
+     * Methods returns <tt>true</tt>, if {@link #handleRead(org.glassfish.grizzly.filterchain.FilterChainContext)}
+     * is called because user explicitly initiated FilterChain by calling
+     * {@link FilterChainContext#read()} or {@link FilterChain#read(org.glassfish.grizzly.filterchain.FilterChainContext)};
+     * otherwise <tt>false</tt> is returned.
+     */
+    private boolean isFilterChainRead(final FilterChainContext ctx) {
+        return ctx.getMessage() == null;
+    }
+
 
     @Override
     public NextAction handleWrite(final FilterChainContext ctx) throws IOException {
