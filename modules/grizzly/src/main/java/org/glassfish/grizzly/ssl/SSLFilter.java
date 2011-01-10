@@ -53,7 +53,6 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.AbstractCodecFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext.Operation;
-import org.glassfish.grizzly.memory.MemoryManager;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CancellationException;
@@ -63,7 +62,6 @@ import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLSession;
 import org.glassfish.grizzly.nio.PendingWriteQueueLimitExceededException;
 import static org.glassfish.grizzly.ssl.SSLUtils.*;
 
@@ -95,7 +93,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
      * @param clientSSLEngineConfigurator SSLEngine configurator for client side connections
      */
     public SSLFilter(SSLEngineConfigurator serverSSLEngineConfigurator,
-            SSLEngineConfigurator clientSSLEngineConfigurator) {
+                     SSLEngineConfigurator clientSSLEngineConfigurator) {
         super(new SSLDecoderTransformer(), new SSLEncoderTransformer());
 
         if (serverSSLEngineConfigurator == null) {
@@ -146,7 +144,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     
     @Override
     public NextAction handleRead(final FilterChainContext ctx)
-            throws IOException {
+    throws IOException {
         final Connection connection = ctx.getConnection();
         SSLEngine sslEngine = getSSLEngine(connection);
 
@@ -198,7 +196,8 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     }
 
     private NextAction accurateWrite(final FilterChainContext ctx,
-            final boolean isHandshakeComplete) throws IOException {
+                                     final boolean isHandshakeComplete)
+    throws IOException {
         
         final Connection connection = ctx.getConnection();
 
@@ -226,25 +225,25 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     }
 
     public void handshake(final Connection connection,
-            final CompletionHandler<SSLEngine> completionHandler)
-            throws IOException {
+                          final CompletionHandler<SSLEngine> completionHandler)
+    throws IOException {
         handshake(connection, completionHandler, null,
                 clientSSLEngineConfigurator);
     }
 
     public void handshake(final Connection connection,
-            final CompletionHandler<SSLEngine> completionHandler,
-            final Object dstAddress)
-            throws IOException {
+                          final CompletionHandler<SSLEngine> completionHandler,
+                          final Object dstAddress)
+    throws IOException {
         handshake(connection, completionHandler, dstAddress,
                 clientSSLEngineConfigurator);
     }
 
     public void handshake(final Connection connection,
-            final CompletionHandler<SSLEngine> completionHandler,
-            final Object dstAddress,
-            final SSLEngineConfigurator sslEngineConfigurator)
-            throws IOException {
+                          final CompletionHandler<SSLEngine> completionHandler,
+                          final Object dstAddress,
+                          final SSLEngineConfigurator sslEngineConfigurator)
+    throws IOException {
 
         SSLEngine sslEngine = getSSLEngine(connection);
 
@@ -268,7 +267,8 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     }
 
     protected Buffer doHandshakeStep(final SSLEngine sslEngine,
-            FilterChainContext context) throws IOException {
+                                     FilterChainContext context)
+    throws IOException {
 
         final Connection connection = context.getConnection();
         final Object dstAddress = context.getAddress();
@@ -277,13 +277,8 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         final boolean isLoggingFinest = LOGGER.isLoggable(Level.FINEST);
 
         synchronized (connection) {
-            final SSLSession sslSession = sslEngine.getSession();
-            final int appBufferSize = sslSession.getApplicationBufferSize();
 
             HandshakeStatus handshakeStatus = sslEngine.getHandshakeStatus();
-
-            final MemoryManager memoryManager =
-                    connection.getTransport().getMemoryManager();
 
             while (true) {
 
@@ -367,7 +362,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     }
 
     private void notifyHandshakeCompleted(final Connection connection,
-            final SSLEngine sslEngine) {
+                                          final SSLEngine sslEngine) {
 
         final CompletionHandler<SSLEngine> completionHandler =
                 handshakeCompletionHandlerAttr.get(connection);
