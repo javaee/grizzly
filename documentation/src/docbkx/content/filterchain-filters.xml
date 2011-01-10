@@ -144,11 +144,11 @@ public NextAction handleClose(FilterChainContext ctx) throws IOException;</progr
   <para><emphasis role="bold" xml:id="fc-serial-rule">It's important to
   remember that the same I/O events on the specific Connection are processed
   serially. For example, if we process READ I/O event on Connection "A",
-  Grizzly will never start the processing of another READ I/O event on the
-  same Connection "A", until previous processing won't be finished, or user
-  won't explicitly do that in his code. If the latter - it's becoming
-  responsibility of user to follow the rule of I/O events processing
-  seriality</emphasis></para>
+  Grizzly will never start processing another READ I/O event on the same
+  Connection "A" until the processing of the previous READ I/O event has
+  completed processing. If the user decides to take ownership of I/O event
+  processing, then the "rule" of serial event processing should still be
+  observed.</emphasis></para>
 
   <para>Additionally FilterChain Filters are able to initiate and handle
   custom event notifications. The event initiator may chose to emit the event
