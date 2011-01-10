@@ -57,11 +57,7 @@
 
   <xi:include href="filterchain-filters.xml" xpointer="element(/1)" />
 
-  <section>
-    <title>Configuration</title>
-
-    <para></para>
-  </section>
+  <xi:include href="configuration.xml" xpointer="element(/1)" />
 
   <section>
     <title>Best Practices</title>
