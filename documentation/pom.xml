@@ -56,7 +56,6 @@
     <packaging>pom</packaging>
     <version>${grizzly-version}</version>
     <name>grizzly-documentation</name>
-    <url>https://grizzly.dev.java.net</url>
     <build>
         <plugins>
             <plugin>

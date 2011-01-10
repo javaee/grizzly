@@ -54,7 +54,6 @@
     <packaging>pom</packaging>
     <version>${grizzly-version}</version>
     <name>grizzly-samples</name>
-    <url>https://grizzly.dev.java.net</url>
     <modules>
         <module>framework-samples</module>
         <module>http-samples</module>

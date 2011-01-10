@@ -47,7 +47,7 @@
     <packaging>pom</packaging>
     <name>grizzly-project</name>
     <version>2.0.0-SNAPSHOT</version>
-    <url>https://grizzly.dev.java.net</url>
+    <url>http://grizzly.java.net</url>
     <issueManagement>
         <system>bugzilla</system>
         <url>https://grizzly.dev.java.net/servlets/ProjectIssues</url>
@@ -117,20 +117,12 @@
     </organization>
     <repositories>
         <repository>
-            <id>java.net</id>
-            <name>Java.net Repository for Grizzly</name>
-            <url>http://download.java.net/maven/2</url>
-        </repository>
-        <repository>
-            <id>maven-repository.dev.java.net</id>
-            <name>Java.net Maven 1 Repository (legacy)</name>
-            <url>http://download.java.net/maven/1</url>
-            <layout>legacy</layout>
-        </repository>
-        <repository>
-            <id>codehaus</id>
-            <name>repository.codehaus.org</name>
-            <url>http://repository.codehaus.org</url>
+            <id>glassfish-repo-archive</id>
+            <name>Nexus repository collection for Glassfish</name>
+            <url>http://maven.glassfish.org/content/groups/glassfish</url>
+            <snapshots>
+                <updatePolicy>never</updatePolicy>
+            </snapshots>
         </repository>
         <repository>
             <id>glassfish-maven2-repository.dev.java.net</id>
@@ -142,15 +134,10 @@
     <pluginRepositories>
         <pluginRepository>
             <id>glassfish</id>
-            <url>http://download.java.net/maven/2/</url>
+            <url>http://download.java.net/maven/glassfish/</url>
         </pluginRepository>
     </pluginRepositories>
     <build>
-        <sourceDirectory>src/main/java</sourceDirectory>
-        <scriptSourceDirectory>src/main/scripts</scriptSourceDirectory>
-        <testSourceDirectory>src/test/java</testSourceDirectory>
-        <outputDirectory>target/classes</outputDirectory>
-        <testOutputDirectory>target/test-classes</testOutputDirectory>
         <extensions>
             <extension>
                 <groupId>org.jvnet.wagon-svn</groupId>
@@ -352,6 +339,21 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <version>${felix-version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.sun.enterprise</groupId>
+                <artifactId>hk2</artifactId>
+                <version>${hk2.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.sun.enterprise</groupId>
+                <artifactId>config-types</artifactId>
+                <version>${hk2.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.sun.enterprise</groupId>
+                <artifactId>osgi-adapter</artifactId>
+                <version>${hk2.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>  
     <distributionManagement>
@@ -374,6 +376,7 @@
 	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <grizzly-version>2.0.0-SNAPSHOT</grizzly-version>
         <grizzly-released-version>1.9.19</grizzly-released-version>
+        <hk2.version>1.0.72</hk2.version>
         <junit-version>4.7</junit-version>
         <maven-plugin.version>1.0.0</maven-plugin.version>
         <servlet-version>2.5</servlet-version>

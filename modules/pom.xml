@@ -54,7 +54,6 @@
     <packaging>pom</packaging>
     <version>${grizzly-version}</version>
     <name>grizzly-modules</name>
-    <url>https://grizzly.dev.java.net</url>
     <modules>
         <module>utils</module>
         <module>grizzly</module>
@@ -62,6 +61,7 @@
         <module>http</module>
         <module>http-server</module>
         <module>http-servlet</module>
+        <module>comet</module>
         <module>websockets</module>
         <module>portunif</module>
         <module>config</module>

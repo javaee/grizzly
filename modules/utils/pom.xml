@@ -54,7 +54,6 @@
     <packaging>jar</packaging>
     <version>2.0.0-SNAPSHOT</version>
     <name>grizzly-utils</name>
-    <url>https://grizzly.dev.java.net</url>
     <build>
         <defaultGoal>install</defaultGoal>
         <resources>

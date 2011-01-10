@@ -54,7 +54,6 @@
     <packaging>bundle</packaging>
     <version>${grizzly-version}</version>
     <name>grizzly-http-server-samples</name>
-    <url>https://grizzly.dev.java.net</url>
     <build>
         <defaultGoal>install</defaultGoal>
         <resources>

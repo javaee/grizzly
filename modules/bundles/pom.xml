@@ -54,7 +54,6 @@
     <packaging>pom</packaging>
     <version>${grizzly-version}</version>
     <name>grizzly-bundles</name>
-    <url>https://grizzly.dev.java.net</url>
     <modules>
         <module>http</module>
         <module>http-servlet</module>

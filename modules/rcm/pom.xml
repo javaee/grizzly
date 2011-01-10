@@ -54,7 +54,6 @@
     <packaging>bundle</packaging>
     <version>${grizzly-version}</version>
     <name>grizzly-rcm</name>
-    <url>https://grizzly.dev.java.net</url>
     <build>
         <defaultGoal>install</defaultGoal>
         <plugins>

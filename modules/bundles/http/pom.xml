@@ -54,7 +54,6 @@
     <packaging>jar</packaging>
     <version>${grizzly-version}</version>
     <name>grizzly-http-webserver</name>
-    <url>https://grizzly.dev.java.net</url>
     <build>
         <defaultGoal>install</defaultGoal>
         <plugins>
