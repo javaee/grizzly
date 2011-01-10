@@ -42,7 +42,6 @@ package org.glassfish.grizzly.portunif;
 
 import java.nio.charset.Charset;
 
-import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import java.io.IOException;
 import org.glassfish.grizzly.filterchain.BaseFilter;
