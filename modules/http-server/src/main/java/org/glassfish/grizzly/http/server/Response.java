@@ -145,6 +145,11 @@ public class Response {
 
     private String detailErrorMsg;
 
+    /**
+     * Default locale as mandated by the spec.
+     */
+    private static Locale DEFAULT_LOCALE = Locale.getDefault();
+
     private static final String HTTP_RESPONSE_DATE_HEADER =
         "EEE, dd MMM yyyy HH:mm:ss zzz";
 
@@ -273,6 +278,12 @@ public class Response {
         this.ctx = ctx;
         this.delayQueue = delayQueue;
         this.suspendStatus = suspendStatus;
+
+        final Locale locale = response.getLocale();
+
+        if (locale == null) {
+            response.setLocale(DEFAULT_LOCALE);
+        }
     }
 
     /**
