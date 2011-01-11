@@ -16,7 +16,7 @@
   <section>
     <title>Transport Configuration</title>
 
-    <para>Just ss there are concrete NIOTransport implementations for TCP and
+    <para>Just as there are concrete NIOTransport implementations for TCP and
     UDP, so too are there two concrete NIOTransportBuilder implementations.
     Each NIOTransportBuilder implementation exposes configurable features
     unique to each transport. The following describes configuration properties
@@ -42,8 +42,8 @@
             <entry>IOStrategy</entry>
 
             <entry>Sets the IOStrategy that will be used by this transport.
-            Not that changing this value before the transport has been started
-            may have an impact on the return value of the
+            Note that changing this value before the transport has been
+            started may have an impact on the return value of the
             workerThreadPoolConfig property. If no value is explicitly set,
             the WorkerThreadIOStrategy will be employed. See the section on
             <link xlink:href="iostrategies.xml"
@@ -136,7 +136,7 @@
       <tgroup cols="2">
         <tbody>
           <row>
-            <entry>clientSocketSoTimeoutE</entry>
+            <entry>clientSocketSoTimeout</entry>
 
             <entry>Enable/disable SO_TIMEOUT with the specified timeout, in
             milliseconds (client mode).</entry>
@@ -198,7 +198,7 @@
           </row>
 
           <row>
-            <entry>temporarySelectorI</entry>
+            <entry>temporarySelectorIO</entry>
 
             <entry>Allows the specification of a TemporarySelectorIO instance
             to aid in the simulation of blocking IO.</entry>
@@ -322,7 +322,7 @@
     <section>
       <title>FixedThreadPool</title>
 
-      <para>This pool will be selected when the queueLimit propery is less
+      <para>This pool will be selected when the queueLimit property is less
       than zero, and the max and core pool sizes are the same. The
       FixedThreadPool has no syncronization when executing tasks, so it offers
       better performance.</para>
