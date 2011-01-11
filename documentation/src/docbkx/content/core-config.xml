@@ -8,4 +8,226 @@
          xmlns:db="http://docbook.org/ns/docbook">
   <title>Core Configuration</title>
 
+  <para>The primary points of configuration of the core framework are that of
+  the Transport instances and their associated thread pools. The ability to
+  configure both entities is possible via the NIOTransportBuilder. </para>
+
+  <para>As there are concrete NIOTransport implementations for TCP and UDP, so
+  too are there two concrete NIOTransportBuilder implementations. Each
+  NIOTransportBuilder implementation exposes configurable features unique to
+  each transport. The following sections will be divided into configuration
+  properties common to all NIOTransports and then describe the properties for
+  the TCP and UDP NIOTransport implementations.</para>
+
+  <table>
+    <title>NIOTransportBuilder Properties</title>
+
+    <tgroup cols="2">
+      <tbody>
+        <row>
+          <entry>workerThreadPoolConfig</entry>
+
+          <entry>This property exposes a ThreadPoolConfig instance that allows
+          configuration of the worker thread pool used by the transport that
+          will be constructed by this builder. Note: depending on the
+          IOStrategy being used, this value may be null.</entry>
+        </row>
+
+        <row>
+          <entry>IOStrategy</entry>
+
+          <entry>Sets the IOStrategy that will be used by this transport. Not
+          that changing this value before the transport has been started may
+          have an impact on the return value of the workerThreadPoolConfig
+          property. If no value is explicitly set, the WorkerThreadIOStrategy
+          will be employed. See the section on <link
+          xlink:href="iostrategies.xml">IOStrategies</link> for specifics on
+          each concreate IOStrategy included with Grizzly 2.0.</entry>
+        </row>
+
+        <row>
+          <entry>memoryManager</entry>
+
+          <entry>Sets the MemoryManager to be used by this transport. If no
+          value is explicitly set, the MemoryManager used will be the
+          NIOTransportBuilder.DEFAULT_MEMORY_MANAGER. See the section on <link
+          xlink:href="memory.xml">Memory Management</link> for specifics on
+          the MemoryManager system.</entry>
+        </row>
+
+        <row>
+          <entry>selectorHandler</entry>
+
+          <entry>Sets the SelectorHandler to be used by this transport. If no
+          value is explicitly set, the SelectorHandler used wil be the
+          NIOTransportBuilder.DEFAULT_SELECTOR_HANDLER. See the section on
+          <link xlink:href="transports-connections.xml">Transports and
+          Connections</link> for specifics on the SelectorHandler.</entry>
+        </row>
+
+        <row>
+          <entry>selectionKeyHandler</entry>
+
+          <entry>Sets the SelectionKeyHandler to be used by this transport. If
+          no value is explicitly set, the SelectionKeyHandler used will be the
+          NIOTransportBuilder.DEFAULT_SELECTION_KEY_HANDLER. See the section
+          on <link xlink:href="transports-connections.xml">Transports and
+          Connections</link> for specifix on the SelectionKeyHandler.</entry>
+        </row>
+
+        <row>
+          <entry>attributeBuilder</entry>
+
+          <entry>Sets the AttributeBuilder to be used by this transport. If no
+          value is explicitly set, the AttributeBuilder used will be the
+          NIOTransportBuilder.DEFAULT_ATTRIBUTE_BUILDER.</entry>
+        </row>
+
+        <row>
+          <entry>NIOChannelDistributor</entry>
+
+          <entry>Sets the NIOChannelDistributor used by this transport. See
+          the section on <link
+          xlink:href="transports-connections.xml">Transports and
+          Connections</link> for specifix on the SelectionKeyHandler.</entry>
+        </row>
+
+        <row>
+          <entry>processor</entry>
+
+          <entry>Sets the Processor used by this transport. </entry>
+        </row>
+
+        <row>
+          <entry>processorSelector</entry>
+
+          <entry>Sets the ProcessorSelector used by this transport.</entry>
+        </row>
+
+        <row>
+          <entry>readBufferSize</entry>
+
+          <entry>Sets the size of the Buffer that will be allocated,
+          per-connection, to read incoming data.</entry>
+        </row>
+
+        <row>
+          <entry>writeBuffersSize</entry>
+
+          <entry>Sets the size of the Buffer that will be applicated,
+          per-connection, to write outgoing data.</entry>
+        </row>
+      </tbody>
+    </tgroup>
+  </table>
+
+  <table>
+    <title>TCPNIOTransportBuilder Properties</title>
+
+    <tgroup cols="2">
+      <tbody>
+        <row>
+          <entry>clientSocketSoTimeoutE</entry>
+
+          <entry>Enable/disable SO_TIMEOUT with the specified timeout, in
+          milliseconds (client mode).</entry>
+        </row>
+
+        <row>
+          <entry>connectionTimeout</entry>
+
+          <entry>Time in milliseconds for how long establishing a connection
+          can take before the operation times out.</entry>
+        </row>
+
+        <row>
+          <entry>keepAlive</entry>
+
+          <entry>Enable/disable SO_KEEPALIVE. </entry>
+        </row>
+
+        <row>
+          <entry>linger</entry>
+
+          <entry>Enable/disable SO_LINGER with the specified linger time in
+          seconds. The maximum timeout value is platform specific. The setting
+          only affects socket close.</entry>
+        </row>
+
+        <row>
+          <entry>reuseAddress</entry>
+
+          <entry>Enable/disable the SO_REUSEADDR socket option. When a TCP
+          connection is closed the connection may remain in a timeout state
+          for a period of time after the connection is closed (typically known
+          as the TIME_WAIT state or 2MSL wait state). For applications using a
+          well known socket address or port it may not be possible to bind a
+          socket to the required SocketAddress if there is a connection in the
+          timeout state involving the socket address or port. </entry>
+        </row>
+
+        <row>
+          <entry>serverConnectionBacklog</entry>
+
+          <entry>Specifies the maximum pending connection queue
+          length.</entry>
+        </row>
+
+        <row>
+          <entry>serverSocketSoTimeout</entry>
+
+          <entry>Enable/disable SO_TIMEOUT with the specified timeout, in
+          milliseconds (server mode). </entry>
+        </row>
+
+        <row>
+          <entry>tcpNoDelay</entry>
+
+          <entry>Enable/disable TCP_NODELAY (disable/enable Nagle's
+          algorithm). </entry>
+        </row>
+
+        <row>
+          <entry>temporarySelectorI</entry>
+
+          <entry>Allows the specification of a TemporarySelectorIO instance to
+          aid in the simulation of blocking IO.</entry>
+        </row>
+      </tbody>
+    </tgroup>
+  </table>
+
+  <table>
+    <title>UDPNIOTransportBuilder Properties</title>
+
+    <tgroup cols="2">
+      <tbody>
+        <row>
+          <entry>connectionTimeout</entry>
+
+          <entry>Time in milliseconds for how long establishing a connection
+          can take before the operation times out.</entry>
+        </row>
+
+        <row>
+          <entry>reuseAddress</entry>
+
+          <entry>Enable/disable the SO_REUSEADDR socket option. When a TCP
+          connection is closed the connection may remain in a timeout state
+          for a period of time after the connection is closed (typically known
+          as the TIME_WAIT state or 2MSL wait state). For applications using a
+          well known socket address or port it may not be possible to bind a
+          socket to the required SocketAddress if there is a connection in the
+          timeout state involving the socket address or port. </entry>
+        </row>
+
+        <row>
+          <entry>temporarySelectorIO</entry>
+
+          <entry>Allows the specification of a TemporarySelectorIO instance to
+          aid in the simulation of blocking IO.</entry>
+        </row>
+      </tbody>
+    </tgroup>
+  </table>
 </section>
