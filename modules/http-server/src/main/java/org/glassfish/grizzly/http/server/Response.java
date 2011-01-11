@@ -1591,32 +1591,10 @@ public class Response {
     @SuppressWarnings({"unchecked"})
     public void resume() {
         checkResponse();
-        synchronized(suspendSync) {
-            if (!isSuspended || suspendedContext.isResuming) {
-                throw new IllegalStateException("Not Suspended");
-            }
-            final Connection connection = ctx.getConnection();
 
-            connection.removeCloseListener(suspendedContext);
-
-            final CompletionHandler<Response> completionHandler =
-                    suspendedContext.completionHandler;
-            
-            suspendedContext.isResuming = true;
-
-            if (completionHandler != null) {
-                completionHandler.completed(this);
-            }
-
-            suspendedContext.reset();
-
-            isSuspended = false;
-
-            HttpServerProbeNotifier.notifyRequestResume(request.httpServerFilter,
-                    connection, request);
-
-            ctx.resume();
-        }
+        suspendedContext.markResumed();
+        
+        ctx.resume();
     }
 
     /**
@@ -1628,32 +1606,9 @@ public class Response {
     public void cancel() {
         checkResponse();
 
-        synchronized (suspendSync) {
-            if (!isSuspended || suspendedContext.isResuming) {
-                throw new IllegalStateException("Not Suspended");
-            }
-            final Connection connection = ctx.getConnection();
+        suspendedContext.markCancelled();
 
-            connection.removeCloseListener(suspendedContext);
-
-            final CompletionHandler<Response> completionHandler =
-                    suspendedContext.completionHandler;
-            
-            suspendedContext.isResuming = true;
-
-            if (completionHandler != null) {
-                completionHandler.cancelled();
-            }
-
-            isSuspended = false;
-
-            suspendedContext.reset();
-
-            HttpServerProbeNotifier.notifyRequestCancel(
-                    request.httpServerFilter, connection, request);
-
-            ctx.resume();
-        }
+        ctx.resume();
     }
     
     /**
@@ -1674,6 +1629,64 @@ public class Response {
         long delayMillis;
         boolean isResuming;
         volatile long timeoutTimeMillis;
+
+        /**
+         * Marks {@link Response} as resumed, but doesn't resume associated
+         * {@link FilterChainContext} invocation.
+         */
+        public void markResumed() {
+            synchronized(suspendSync) {
+                if (!isSuspended || suspendedContext.isResuming) {
+                    throw new IllegalStateException("Not Suspended");
+                }
+
+                final Connection connection = ctx.getConnection();
+
+                connection.removeCloseListener(this);
+
+                isResuming = true;
+
+                if (completionHandler != null) {
+                    completionHandler.completed(Response.this);
+                }
+
+                reset();
+
+                isSuspended = false;
+
+                HttpServerProbeNotifier.notifyRequestResume(request.httpServerFilter,
+                        connection, request);
+            }
+        }
+
+        /**
+         * Marks {@link Response} as cancelled, but doesn't resume associated
+         * {@link FilterChainContext} invocation.
+         */
+        public void markCancelled() {
+            synchronized (suspendSync) {
+                if (!isSuspended || suspendedContext.isResuming) {
+                    throw new IllegalStateException("Not Suspended");
+                }
+
+                final Connection connection = ctx.getConnection();
+
+                connection.removeCloseListener(this);
+
+                isResuming = true;
+
+                if (completionHandler != null) {
+                    completionHandler.cancelled();
+                }
+
+                isSuspended = false;
+
+                reset();
+
+                HttpServerProbeNotifier.notifyRequestCancel(
+                        request.httpServerFilter, connection, request);
+            }
+        }
 
         boolean onTimeout() {
             synchronized (suspendSync) {
@@ -1723,18 +1736,28 @@ public class Response {
 
         @Override
         public void setTimeout(final long timeout, final TimeUnit timeunit) {
-            if (timeout > 0) {
-                delayMillis = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
-            } else {
-                delayMillis = DelayedExecutor.UNSET_TIMEOUT;
-            }
+            synchronized (suspendSync) {
+                if (!isSuspended || suspendedContext.isResuming) {
+                    return;
+                }
+                
+                if (timeout > 0) {
+                    delayMillis = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
+                } else {
+                    delayMillis = DelayedExecutor.UNSET_TIMEOUT;
+                }
 
-            delayQueue.add(Response.this, delayMillis, TimeUnit.MILLISECONDS);
+                delayQueue.add(Response.this, delayMillis, TimeUnit.MILLISECONDS);
+            }
         }
 
         @Override
         public boolean isSuspended() {
             return isSuspended;
+        }
+
+        public SuspendStatus getSuspendStatus() {
+            return suspendStatus;
         }
     }
 
