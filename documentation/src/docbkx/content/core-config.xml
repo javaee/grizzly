@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<section version="5.0" xml:id="memory" xmlns="http://docbook.org/ns/docbook"
+<section version="5.0" xml:id="core-config" xmlns="http://docbook.org/ns/docbook"
          xmlns:xlink="http://www.w3.org/1999/xlink"
          xmlns:xi="http://www.w3.org/2001/XInclude"
          xmlns:svg="http://www.w3.org/2000/svg"
@@ -78,7 +78,7 @@
             be the NIOTransportBuilder.DEFAULT_SELECTION_KEY_HANDLER. See the
             section on <link
             xlink:href="transports-connections.xml">Transports and
-            Connections</link> for specifix on the
+            Connections</link> for specifics on the
             SelectionKeyHandler.</entry>
           </row>
 
@@ -95,9 +95,9 @@
 
             <entry>Sets the NIOChannelDistributor used by this transport. See
             the section on <link
-            xlink:href="transports-connections.xml">Transports and
-            Connections</link> for specifix on the
-            SelectionKeyHandler.</entry>
+            xlink:href="transports-connections.xml?">Transports and
+            Connections</link> for specifics on the
+            NIOChannelDistributor.</entry>
           </row>
 
           <row>
