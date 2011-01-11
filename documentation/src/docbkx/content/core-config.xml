@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<section version="5.0" xml:id="core-config" xmlns="http://docbook.org/ns/docbook"
+<section version="5.0" xml:id="core-config"
+         xmlns="http://docbook.org/ns/docbook"
          xmlns:xlink="http://www.w3.org/1999/xlink"
          xmlns:xi="http://www.w3.org/2001/XInclude"
          xmlns:svg="http://www.w3.org/2000/svg"
@@ -45,9 +46,9 @@
             may have an impact on the return value of the
             workerThreadPoolConfig property. If no value is explicitly set,
             the WorkerThreadIOStrategy will be employed. See the section on
-            <link xlink:href="iostrategies.xml">IOStrategies</link> for
-            specifics on each concreate IOStrategy included with Grizzly
-            2.0.</entry>
+            <link xlink:href="iostrategies.xml"
+            xml:id="ios001">IOStrategies</link> for specifics on each
+            concreate IOStrategy included with Grizzly 2.0.</entry>
           </row>
 
           <row>
@@ -56,8 +57,9 @@
             <entry>Sets the MemoryManager to be used by this transport. If no
             value is explicitly set, the MemoryManager used will be the
             NIOTransportBuilder.DEFAULT_MEMORY_MANAGER. See the section on
-            <link xlink:href="memory.xml">Memory Management</link> for
-            specifics on the MemoryManager system.</entry>
+            <link xlink:href="memory.xml" xml:id="mem001">Memory
+            Management</link> for specifics on the MemoryManager
+            system.</entry>
           </row>
 
           <row>
@@ -66,8 +68,9 @@
             <entry>Sets the SelectorHandler to be used by this transport. If
             no value is explicitly set, the SelectorHandler used wil be the
             NIOTransportBuilder.DEFAULT_SELECTOR_HANDLER. See the section on
-            <link xlink:href="transports-connections.xml">Transports and
-            Connections</link> for specifics on the SelectorHandler.</entry>
+            <link xlink:href="transports-connections.xml"
+            xml:id="tc001">Transports and Connections</link> for specifics on
+            the SelectorHandler.</entry>
           </row>
 
           <row>
@@ -76,10 +79,9 @@
             <entry>Sets the SelectionKeyHandler to be used by this transport.
             If no value is explicitly set, the SelectionKeyHandler used will
             be the NIOTransportBuilder.DEFAULT_SELECTION_KEY_HANDLER. See the
-            section on <link
-            xlink:href="transports-connections.xml">Transports and
-            Connections</link> for specifics on the
-            SelectionKeyHandler.</entry>
+            section on <link xlink:href="transports-connections.xml"
+            xml:id="tc002">Transports and Connections</link> for specifics on
+            the SelectionKeyHandler.</entry>
           </row>
 
           <row>
@@ -94,10 +96,9 @@
             <entry>NIOChannelDistributor</entry>
 
             <entry>Sets the NIOChannelDistributor used by this transport. See
-            the section on <link
-            xlink:href="transports-connections.xml?">Transports and
-            Connections</link> for specifics on the
-            NIOChannelDistributor.</entry>
+            the section on <link xlink:href="transports-connections.xml?"
+            xml:id="tc003">Transports and Connections</link> for specifics on
+            the NIOChannelDistributor.</entry>
           </row>
 
           <row>
@@ -352,9 +353,9 @@
     <para>Here are some examples of using the TCPNIOTransportBuilder to
     configure the Transport and/or thread pool.</para>
 
-    <programlisting language="java">final TCPNIOTransportBuilder builder = TCPNIOTranportBuilder.newInstance();<co
+    <programlisting language="java">final TCPNIOTransportBuilder builder = TCPNIOTranportBuilder.newInstance(); <co
         linkends="ex1-1" xml:id="ex1new" />
-final TCPNIOTransport transport = builder.build();<co linkends="ex1-2"
+final TCPNIOTransport transport = builder.build(); <co linkends="ex1-2"
         xml:id="ex1bld" /></programlisting>
 
     <calloutlist>
@@ -369,10 +370,10 @@ final TCPNIOTransport transport = builder.build();<co linkends="ex1-2"
       </callout>
     </calloutlist>
 
-    <programlisting>final TCPNIOTransportBuilder builder = TCPNIOTransportBuilder.newInstance();<co
-        linkends="ex2-1" xml:id="ex2-1-co" />
-final TCPNIOTransport transport = builder.setIOStrategy(new SameThreadIOStrategy()).setTcpNoDelay(true).build();<co
-        linkends="ex2-2" xml:id="ex2-2-co" /></programlisting>
+    <programlisting language="java">
+final TCPNIOTransportBuilder builder = TCPNIOTransportBuilder.newInstance(); <co linkends="ex2-1" xml:id="ex2-1-co" />
+final TCPNIOTransport transport = builder.setIOStrategy(new SameThreadIOStrategy()).setTcpNoDelay(true).build(); <co linkends="ex2-2" xml:id="ex2-2-co" />
+    </programlisting>
 
     <calloutlist>
       <callout arearefs="ex2-1-co" xml:id="ex2-1">
@@ -386,13 +387,13 @@ final TCPNIOTransport transport = builder.setIOStrategy(new SameThreadIOStrategy
       </callout>
     </calloutlist>
 
-    <programlisting>final TCPNIOTransportBuilder builder = TCPNIOTransportBuilder.newInstance();<co
+    <programlisting language="java">final TCPNIOTransportBuilder builder = TCPNIOTransportBuilder.newInstance(); <co
         linkends="ex3-1" xml:id="ex3-1-co" />
-final ThreadPoolConfig config = builder.getWorkerThreadPoolConfig();<co
+final ThreadPoolConfig config = builder.getWorkerThreadPoolConfig(); <co
         linkends="ex3-2" xml:id="ex3-2-co" />
-config.setCorePoolSize(5).setMaxPoolSize(5).setQueueLimit(-1);<co
+config.setCorePoolSize(5).setMaxPoolSize(5).setQueueLimit(-1); <co
         linkends="ex3-3" xml:id="ex3-3-co" />
-final TCPNIOTransport transport = builder.build();<co linkends="ex3-4"
+final TCPNIOTransport transport = builder.build(); <co linkends="ex3-4"
         xml:id="ex3-4-co" /></programlisting>
 
     <calloutlist>
