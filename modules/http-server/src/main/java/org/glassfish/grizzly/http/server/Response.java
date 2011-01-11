@@ -97,6 +97,7 @@ import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.http.util.Charsets;
 
 /**
  * Wrapper object for the Coyote response.
@@ -552,7 +553,13 @@ public class Response {
      */
     public String getCharacterEncoding() {
         checkResponse();
-        return response.getCharacterEncoding();
+        final String characterEncoding = response.getCharacterEncoding();
+
+        if (characterEncoding == null) {
+            return Charsets.DEFAULT_CHARACTER_ENCODING;
+        }
+
+        return characterEncoding;
     }
 
     /*

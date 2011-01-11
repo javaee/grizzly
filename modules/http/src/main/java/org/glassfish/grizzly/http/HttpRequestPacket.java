@@ -86,11 +86,6 @@ public abstract class HttpRequestPacket extends HttpHeader {
     private boolean requiresAcknowledgement;
 
     /**
-     * Char encoding parsed flag.
-     */
-    private boolean charEncodingParsed = false;
-
-    /**
      * Returns {@link HttpRequestPacket} builder.
      *
      * @return {@link Builder}.
@@ -235,22 +230,7 @@ public abstract class HttpRequestPacket extends HttpHeader {
         queryC.setString(query);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public String getCharacterEncoding() {
-        if (characterEncoding != null || charEncodingParsed) {
-            return characterEncoding;
-        }
-
-        characterEncoding = ContentType.getCharsetFromContentType(getContentType());
-        charEncodingParsed = true;
-
-        return characterEncoding;
-    }
-
-
+    
     /**
      * Return the buffer holding the server name, if
      * any. Use isNull() to check if there is no value
@@ -500,7 +480,6 @@ public abstract class HttpRequestPacket extends HttpHeader {
         localNameC.recycle();
         serverNameC.recycle();
 
-        charEncodingParsed = false;
         requiresAcknowledgement = false;
 
         remotePort = -1;
