@@ -520,7 +520,7 @@ public class Response {
      */
     public int getContentLength() {
         checkResponse();
-        return ((int) response.getContentLength());
+        return (int) response.getContentLength();
     }
 
 
@@ -530,7 +530,7 @@ public class Response {
      */
     public String getContentType() {
         checkResponse();
-        return (response.getContentType());
+        return response.getContentType();
     }
 
 
@@ -552,9 +552,28 @@ public class Response {
      */
     public String getCharacterEncoding() {
         checkResponse();
-        return (response.getCharacterEncoding());
+        return response.getCharacterEncoding();
     }
 
+    /*
+     * Overrides the name of the character encoding used in the body
+     * of the request. This method must be called prior to reading
+     * request parameters or reading input using getReader().
+     *
+     * @param charset String containing the name of the chararacter encoding.
+     */
+    public void setCharacterEncoding(String charset) {
+        checkResponse();
+        if (isCommitted())
+            return;
+
+        // Ignore any call made after the getWriter has been invoked
+        // The default should be used
+        if (usingWriter)
+            return;
+
+        response.setCharacterEncoding(charset);
+    }
 
     /**
      * Return the servlet output stream associated with this Response.
@@ -779,51 +798,7 @@ public class Response {
 
         response.setContentType(type);
 
-        // Check to see if content type contains charset
-        if (type != null) {
-            int index = type.indexOf(";");
-            if (index != -1) {
-                int len = type.length();
-                index++;
-                while (index < len && Character.isSpaceChar((type.charAt(index)))) {
-                    index++;
-                }
-                if (index+7 < len
-                        && type.charAt(index) == 'c'
-                        && type.charAt(index+1) == 'h'
-                        && type.charAt(index+2) == 'a'
-                        && type.charAt(index+3) == 'r'
-                        && type.charAt(index+4) == 's'
-                        && type.charAt(index+5) == 'e'
-                        && type.charAt(index+6) == 't'
-                        && type.charAt(index+7) == '=') {
-                }
-            }
-        }
-
     }
-
-
-    /*
-     * Overrides the name of the character encoding used in the body
-     * of the request. This method must be called prior to reading
-     * request parameters or reading input using getReader().
-     *
-     * @param charset String containing the name of the chararacter encoding.
-     */
-    public void setCharacterEncoding(String charset) {
-        checkResponse();
-        if (isCommitted())
-            return;
-
-        // Ignore any call made after the getWriter has been invoked
-        // The default should be used
-        if (usingWriter)
-            return;
-
-        response.setCharacterEncoding(charset);
-    }
-
 
 
     /**

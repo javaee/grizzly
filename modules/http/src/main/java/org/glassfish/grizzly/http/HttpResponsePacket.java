@@ -44,6 +44,7 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.util.DataChunk;
 
 import java.util.Locale;
+import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.memory.Buffers;
 
@@ -98,6 +99,11 @@ public abstract class HttpResponsePacket extends HttpHeader {
      */
     private boolean allowCustomReasonPhrase = true;
 
+    private String quotedCharsetValue = characterEncoding;
+    /**
+     * Has the charset been explicitly set.
+     */
+    protected boolean charsetSet = false;
 
     /**
      * Returns {@link HttpResponsePacket} builder.
@@ -110,6 +116,8 @@ public abstract class HttpResponsePacket extends HttpHeader {
 
     // ----------------------------------------------------------- Constructors
     protected HttpResponsePacket() {
+        characterEncoding = Charsets.DEFAULT_CHARACTER_ENCODING;
+        quotedCharsetValue = Charsets.DEFAULT_CHARACTER_ENCODING;
     }
 
     // -------------------- State --------------------
@@ -232,7 +240,105 @@ public abstract class HttpResponsePacket extends HttpHeader {
         reasonPhraseC.setBuffer(reason, reason.position(), reason.limit());
     }
 
+    /**
+     * Sets the content type.
+     *
+     * This method must preserve any response charset that may already have
+     * been set via a call to response.setContentType(), response.setLocale(),
+     * or response.setCharacterEncoding().
+     *
+     * @param type the content type
+     */
+    @Override
+    public void setContentType(String type) {
 
+        int semicolonIndex = -1;
+
+        if (type == null) {
+            contentType = null;
+            return;
+        }
+
+        /*
+         * Remove the charset param (if any) from the Content-Type, and use it
+         * to set the response encoding.
+         * The most recent response encoding setting will be appended to the
+         * response's Content-Type (as its charset param) by getContentType();
+         */
+        boolean hasCharset = false;
+        int len = type.length();
+        int index = type.indexOf(';');
+        while (index != -1) {
+            semicolonIndex = index;
+            index++;
+            while (index < len && Character.isSpace(type.charAt(index))) {
+                index++;
+            }
+            if (index+8 < len
+                    && type.charAt(index) == 'c'
+                    && type.charAt(index+1) == 'h'
+                    && type.charAt(index+2) == 'a'
+                    && type.charAt(index+3) == 'r'
+                    && type.charAt(index+4) == 's'
+                    && type.charAt(index+5) == 'e'
+                    && type.charAt(index+6) == 't'
+                    && type.charAt(index+7) == '=') {
+                hasCharset = true;
+                break;
+            }
+            index = type.indexOf(';', index);
+        }
+
+        if (!hasCharset) {
+            contentType = type;
+            return;
+        }
+
+        contentType = type.substring(0, semicolonIndex);
+        String tail = type.substring(index+8);
+        int nextParam = tail.indexOf(';');
+        String charsetValue;
+        if (nextParam != -1) {
+            contentType += tail.substring(nextParam);
+            charsetValue = tail.substring(0, nextParam);
+        } else {
+            charsetValue = tail;
+        }
+
+        // The charset value may be quoted, but must not contain any quotes.
+        if (charsetValue != null && charsetValue.length() > 0) {
+            charsetSet=true;
+            // START SJSAS 6316254
+            quotedCharsetValue = charsetValue;
+            // END SJSAS 6316254
+            characterEncoding = charsetValue.replace('"', ' ').trim();
+        }
+    }
+
+    @Override
+    public String getContentType() {
+
+        String ret = contentType;
+
+        if (ret != null
+                /* SJSAS 6316254
+                && characterEncoding != null
+                */
+                // START SJSAS 6316254
+                && quotedCharsetValue != null
+                // END SJSAS 6316254
+                && charsetSet) {
+            /* SJSAS 6316254
+            ret = ret + ";charset=" + characterEncoding;
+            */
+            // START SJSAS 6316254
+            ret = ret + ";charset=" + quotedCharsetValue;
+            // END SJSAS 6316254
+        }
+
+        return ret;
+    }
+    
     /**
      * @return the request that triggered this response
      */
@@ -287,8 +393,12 @@ public abstract class HttpResponsePacket extends HttpHeader {
         locale = null;
         contentLanguage = null;
         request = null;
+        charsetSet = false;
 
         super.reset();
+        
+        characterEncoding = Charsets.DEFAULT_CHARACTER_ENCODING;
+        quotedCharsetValue = Charsets.DEFAULT_CHARACTER_ENCODING;
     }
 
 

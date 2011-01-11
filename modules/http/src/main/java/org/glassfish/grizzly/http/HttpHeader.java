@@ -78,8 +78,7 @@ public abstract class HttpHeader extends HttpPacket
 
     protected boolean isChunked;
     protected long contentLength = -1;
-    protected String charEncoding;
-    protected boolean charEncodingParsed;
+    protected String characterEncoding;
     protected boolean contentTypeParsed;
     protected String contentType;
 
@@ -386,16 +385,7 @@ public abstract class HttpHeader extends HttpPacket
      * @return the character encoding of this HTTP message.
      */
     public String getCharacterEncoding() {
-
-        if (charEncoding != null || charEncodingParsed) {
-            return charEncoding;
-        }
-
-        charEncoding = ContentType.getCharsetFromContentType(getContentType());
-        charEncodingParsed = true;
-
-        return charEncoding;
-        
+        return characterEncoding;
     }
 
 
@@ -405,7 +395,7 @@ public abstract class HttpHeader extends HttpPacket
      * @param enc the encoding.
      */
     public void setCharacterEncoding(String enc) {
-        this.charEncoding = enc;
+        this.characterEncoding = enc;
     }
 
 
@@ -600,8 +590,7 @@ public abstract class HttpHeader extends HttpPacket
         isCommitted = false;
         isChunked = false;
         contentLength = -1;
-        charEncoding = null;
-        charEncodingParsed = false;
+        characterEncoding = null;
         contentType = null;
         contentTypeParsed = false;
         transferEncoding = null;

@@ -610,11 +610,11 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         final FutureImpl transportFuture = context.transportFilterContext.future;
 
         if (transportCompletionHandler != null) {
-            transportCompletionHandler.completed(context);
+            transportCompletionHandler.completed(null);
         }
 
         if (transportFuture != null) {
-            transportFuture.result(context);
+            transportFuture.result(null);
         }
     }
 

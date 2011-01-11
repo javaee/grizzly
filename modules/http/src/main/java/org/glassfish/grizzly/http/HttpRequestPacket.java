@@ -47,6 +47,7 @@ import org.glassfish.grizzly.http.util.RequestURIRef;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import org.glassfish.grizzly.http.util.ContentType;
 
 /**
  * The {@link HttpHeader} object, which represents HTTP request message.
@@ -83,6 +84,11 @@ public abstract class HttpRequestPacket extends HttpHeader {
     private final DataChunk serverNameC = DataChunk.newInstance();
 
     private boolean requiresAcknowledgement;
+
+    /**
+     * Char encoding parsed flag.
+     */
+    private boolean charEncodingParsed = false;
 
     /**
      * Returns {@link HttpRequestPacket} builder.
@@ -227,6 +233,21 @@ public abstract class HttpRequestPacket extends HttpHeader {
      */
     public void setQueryString(String query) {
         queryC.setString(query);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getCharacterEncoding() {
+        if (characterEncoding != null || charEncodingParsed) {
+            return characterEncoding;
+        }
+
+        characterEncoding = ContentType.getCharsetFromContentType(getContentType());
+        charEncodingParsed = true;
+
+        return characterEncoding;
     }
 
 
@@ -479,6 +500,7 @@ public abstract class HttpRequestPacket extends HttpHeader {
         localNameC.recycle();
         serverNameC.recycle();
 
+        charEncodingParsed = false;
         requiresAcknowledgement = false;
 
         remotePort = -1;

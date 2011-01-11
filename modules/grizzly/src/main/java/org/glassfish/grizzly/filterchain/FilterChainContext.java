@@ -512,7 +512,7 @@ public final class FilterChainContext implements AttributeStorage {
     }
 
     public void write(final Object message,
-            final CompletionHandler completionHandler) throws IOException {
+            final CompletionHandler<WriteResult> completionHandler) throws IOException {
         write(null, message, completionHandler);
     }
 
