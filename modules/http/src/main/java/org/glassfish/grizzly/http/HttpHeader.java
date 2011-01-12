@@ -431,7 +431,7 @@ public abstract class HttpHeader extends HttpPacket
      *
      * @param dc container for the content-type value.
      */
-    protected void extractContentType(DataChunk dc) {
+    protected void extractContentType(final DataChunk dc) {
         if (!contentTypeParsed) {
             contentTypeParsed = true;
 

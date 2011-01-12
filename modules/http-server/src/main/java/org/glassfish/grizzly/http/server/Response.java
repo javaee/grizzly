@@ -143,8 +143,6 @@ public class Response {
     private boolean cacheEnabled = false;
 
 
-    private String detailErrorMsg;
-
     /**
      * Default locale as mandated by the spec.
      */
@@ -315,7 +313,6 @@ public class Response {
         usingWriter = false;
         appCommitted = false;
         error = false;
-        detailErrorMsg = null;
         request = null;
         response.recycle();
         writer = null;
@@ -473,7 +470,8 @@ public class Response {
      * @param message detail error message
      */
     public void setDetailMessage(String message) {
-        this.detailErrorMsg = message;
+        checkResponse();
+        response.setReasonPhrase(message);
     }
 
 
@@ -483,7 +481,8 @@ public class Response {
      * @return the detail error message
      */
     public String getDetailMessage() {
-        return this.detailErrorMsg;
+        checkResponse();
+        return response.getReasonPhrase();
     }
     // END S1AS 4878272
 

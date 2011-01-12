@@ -44,7 +44,6 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.util.DataChunk;
 
 import java.util.Locale;
-import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.memory.Buffers;
 
@@ -104,7 +103,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
      *
      * @return {@link Builder}.
      */
-    public static Builder builder(HttpRequestPacket request) {
+    public static Builder builder(final HttpRequestPacket request) {
         return new Builder(request);
     }
 
@@ -224,11 +223,11 @@ public abstract class HttpResponsePacket extends HttpHeader {
      *
      * @param message the status reason phrase for this response.
      */
-    public void setReasonPhrase(String message) {
+    public void setReasonPhrase(final String message) {
         reasonPhraseC.setString(message);
     }
 
-    public void setReasonPhrase(Buffer reason) {
+    public void setReasonPhrase(final Buffer reason) {
         reasonPhraseC.setBuffer(reason, reason.position(), reason.limit());
     }
 
@@ -255,7 +254,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
      * @param acknowledgement <code>true</code> if this packet is an
      *  acknowledgment to a client expectation.
      */
-    public void setAcknowledgement(boolean acknowledgement) {
+    public void setAcknowledgement(final boolean acknowledgement) {
         this.acknowledgment = acknowledgement;
     }
 
@@ -320,7 +319,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
     /**
      * @inheritDoc
      */
-    @Override public void setHeader(String name, String value) {
+    @Override public void setHeader(final String name, final String value) {
         char c = name.charAt(0);
         if((c=='C' || c=='c') && checkSpecialHeader(name, value)) {
             return;
@@ -332,7 +331,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
     /**
      * @inheritDoc
      */
-    @Override public void addHeader(String name, String value) {
+    @Override public void addHeader(final String name, final String value) {
         char c = name.charAt(0);
         if((c=='C' || c=='c') && checkSpecialHeader(name, value)) {
             return;
@@ -353,7 +352,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
      * Called explicitly by user to set the Content-Language and
      * the default encoding
      */
-    public void setLocale(Locale locale) {
+    public void setLocale(final Locale locale) {
 
         if (locale == null) {
             return;  // throw an exception?
@@ -365,8 +364,8 @@ public abstract class HttpResponsePacket extends HttpHeader {
         // Set the contentLanguage for header output
         contentLanguage = locale.getLanguage();
         if ((contentLanguage != null) && (contentLanguage.length() > 0)) {
-            String country = locale.getCountry();
-            StringBuilder value = new StringBuilder(contentLanguage);
+            final String country = locale.getCountry();
+            final StringBuilder value = new StringBuilder(contentLanguage);
             if ((country != null) && (country.length() > 0)) {
                 value.append('-');
                 value.append(country);
@@ -390,7 +389,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
      * Set the value that will be used by the <code>Content-Language</code>
      * response header.
      */
-    public void setContentLanguage(String contentLanguage) {
+    public void setContentLanguage(final String contentLanguage) {
         this.contentLanguage = contentLanguage;
     }
 
@@ -402,7 +401,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
      * Associates the request that triggered this response.
      * @param request the request that triggered this response
      */
-    public void setRequest(HttpRequestPacket request) {
+    public void setRequest(final HttpRequestPacket request) {
         this.request = request;
     }
 
@@ -415,7 +414,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
      * Called from set/addHeader.
      * Return true if the header is special, no need to set the header.
      */
-    private boolean checkSpecialHeader(String name, String value) {
+    private boolean checkSpecialHeader(final String name, final String value) {
         // XXX Eliminate redundant fields !!!
         // ( both header and in special fields )
         if (name.equalsIgnoreCase("Content-Type")) {
