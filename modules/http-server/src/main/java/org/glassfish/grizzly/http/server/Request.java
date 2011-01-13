@@ -285,7 +285,7 @@ public class Request {
      * The string manager for this package.
      */
     protected static final StringManager sm =
-        StringManager.getManager(Constants.Package);
+        StringManager.getManager(Constants.Package, Request.class.getClassLoader());
 
     /**
      * The set of cookies associated with this Request.

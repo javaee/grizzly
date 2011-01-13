@@ -101,7 +101,9 @@ import org.glassfish.grizzly.http.util.StringManager;
  * @author Jan Luehe
  */
 public class JSSE14SocketFactory extends JSSESocketFactory {
-    private static final StringManager sm = StringManager.getManager(JSSE14SocketFactory.class.getPackage().getName());
+    private static final StringManager sm = StringManager.getManager(
+            JSSE14SocketFactory.class.getPackage().getName(),
+            JSSE14SocketFactory.class.getClassLoader());
 
     public JSSE14SocketFactory() {
     }

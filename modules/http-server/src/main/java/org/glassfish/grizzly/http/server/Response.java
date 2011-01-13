@@ -168,7 +168,7 @@ public class Response {
      * The string manager for this package.
      */
     protected final static StringManager sm =
-        StringManager.getManager(Constants.Package);
+        StringManager.getManager(Constants.Package, Response.class.getClassLoader());
 
 
     // ------------------------------------------------------------- Properties

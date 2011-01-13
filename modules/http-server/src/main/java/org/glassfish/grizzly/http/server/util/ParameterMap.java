@@ -164,7 +164,8 @@ public final class ParameterMap extends LinkedHashMap<String,String[]> {
      * The string manager for this package.
      */
     private static final StringManager sm =
-        StringManager.getManager("org.glassfish.grizzly.http.server.util.res");
+        StringManager.getManager("org.glassfish.grizzly.http.server.util.res",
+        ParameterMap.class.getClassLoader());
 
 
     // --------------------------------------------------------- Public Methods

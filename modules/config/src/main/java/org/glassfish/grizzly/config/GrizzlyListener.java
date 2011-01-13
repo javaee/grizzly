@@ -82,7 +82,7 @@ public interface GrizzlyListener {
     // TODO: Pending Grizzly issue 54
     public void configure(Habitat habitat, NetworkListener networkListener) throws IOException;
 
-    public void processDynamicConfigurationChange(PropertyChangeEvent[] events);
+    public void processDynamicConfigurationChange(Habitat habitat, PropertyChangeEvent[] events);
 
     public <T> T getAdapter(Class<T> adapterClass);
 }

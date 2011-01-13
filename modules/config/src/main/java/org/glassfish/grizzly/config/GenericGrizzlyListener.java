@@ -174,7 +174,8 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     }
 
     @Override
-    public void processDynamicConfigurationChange(PropertyChangeEvent[] events) {
+    public void processDynamicConfigurationChange(Habitat habitat,
+            PropertyChangeEvent[] events) {
     }
 
     @Override
