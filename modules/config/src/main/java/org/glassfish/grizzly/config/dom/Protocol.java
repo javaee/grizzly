@@ -56,6 +56,8 @@ import java.util.List;
  */
 @Configured
 public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
+    boolean SECURITY_ENABLED = false;
+
     /**
      * Defines any HTTP settings for this Protocol
      */
@@ -87,7 +89,6 @@ public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
     @Element
     HttpRedirect getHttpRedirect();
 
-    @SuppressWarnings({"UnusedDeclaration"})
     void setHttpRedirect(HttpRedirect value);
 
     /**
@@ -102,7 +103,7 @@ public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
      * True means the protocol is secured and ssl element will be used to initialize security settings. False means that
      * protocol is not secured and ssl element, if present, will be ignored.
      */
-    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    @Attribute(defaultValue = "" + SECURITY_ENABLED, dataType = Boolean.class)
     String getSecurityEnabled();
 
     void setSecurityEnabled(String value);
@@ -121,7 +122,6 @@ public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
     @DuckTyped
     Protocols getParent();
 
-    @SuppressWarnings({"UnusedDeclaration"})
     class Duck {
         static public List<NetworkListener> findNetworkListeners(Protocol protocol) {
             final List<NetworkListener> listeners = protocol.getParent().getParent()
@@ -136,7 +136,7 @@ public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
         }
 
         public static Protocols getParent(Protocol protocol) {
-            return (Protocols) protocol.getParent(Protocols.class);
+            return protocol.getParent(Protocols.class);
         }
     }
 }

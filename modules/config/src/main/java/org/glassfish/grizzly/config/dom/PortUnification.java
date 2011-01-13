@@ -55,6 +55,8 @@ import java.util.List;
  */
 @Configured
 public interface PortUnification extends ConfigBeanProxy, Injectable, PropertyBag {
+    boolean STICKY_ENABLED = true;
+
     /**
      * Port unification logic implementation class
      */
@@ -81,7 +83,7 @@ public interface PortUnification extends ConfigBeanProxy, Injectable, PropertyBa
      * but next time for a next data on this connection - protocol finders will
      * be called again to recognize the target protocol.
      */
-    @Attribute(defaultValue = "true", dataType = Boolean.class)
+    @Attribute(defaultValue = "" + STICKY_ENABLED, dataType = Boolean.class)
     String getWebProtocolStickyEnabled();
 
     /**

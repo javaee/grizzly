@@ -53,6 +53,20 @@ import javax.validation.constraints.Pattern;
  */
 @Configured
 public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
+    boolean ALLOW_LAZY_INIT = true;
+    boolean CLIENT_AUTH_ENABLED = false;
+    boolean SSL2_ENABLED = false;
+    boolean SSL3_ENABLED = true;
+    boolean TLS_ENABLED = true;
+    boolean TLS_ROLLBACK_ENABLED = true;
+    int MAX_CERT_LENGTH = 5;
+    int DEFAULT_SSL_INACTIVITY_TIMEOUT = 30;
+    String CLIENT_AUTH_PATTERN = "(|need|want)";
+    String STORE_TYPE_PATTERN = "(JKS|NSS)";
+    String PASSWORD_PROVIDER = "plain";
+    String SSL2_CIPHERS_PATTERN =
+            "((\\+|\\-)(rc2|rc2export|rc4|rc4export|idea|des|desede3)(\\s*,\\s*(\\+|\\-)(rc2|rc2export|rc4|rc4export|idea|des|desede3))*)*";
+
     /**
      * Nickname of the server certificate in the certificate database or the PKCS#11 token. In the certificate, the name
      * format is tokenname:nickname. Including the tokenname: part of the name in this attribute is optional.
@@ -66,7 +80,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
      * Determines whether SSL3 client authentication is performed on every request, independent of ACL-based access
      * control.
      */
-    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    @Attribute(defaultValue = "" + CLIENT_AUTH_ENABLED, dataType = Boolean.class)
     String getClientAuthEnabled();
 
     void setClientAuthEnabled(String value);
@@ -76,7 +90,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
      * need, or left blank
      */
     @Attribute(dataType = String.class, defaultValue = "")
-    @Pattern(regexp = "(|need|want)")
+    @Pattern(regexp = CLIENT_AUTH_PATTERN)
     String getClientAuth();
 
     void setClientAuth(String value);
@@ -95,12 +109,12 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
      * type of the keystore file
      */
     @Attribute(dataType = String.class)
-    @Pattern(regexp = "(JKS|NSS)")
+    @Pattern(regexp = STORE_TYPE_PATTERN)
     String getKeyStoreType();
 
     void setKeyStoreType(String type);
 
-    @Attribute(defaultValue="plain")
+    @Attribute(defaultValue= PASSWORD_PROVIDER)
     String getKeyStorePasswordProvider();
 
     void setKeyStorePasswordProvider(String provider);
@@ -132,8 +146,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
      * ciphers are assumed to be enabled. NOT Used in PE
      */
     @Attribute
-    @Pattern(
-        regexp = "((\\+|\\-)(rc2|rc2export|rc4|rc4export|idea|des|desede3)(\\s*,\\s*(\\+|\\-)(rc2|rc2export|rc4|rc4export|idea|des|desede3))*)*")
+    @Pattern(regexp = SSL2_CIPHERS_PATTERN)
     String getSsl2Ciphers();
 
     void setSsl2Ciphers(String value);
@@ -143,7 +156,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
      * this element is used as a child of the iiop-listener element then the only allowed value for this attribute is
      * "false".
      */
-    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    @Attribute(defaultValue = "" + SSL2_ENABLED, dataType = Boolean.class)
     String getSsl2Enabled();
 
     void setSsl2Enabled(String value);
@@ -152,7 +165,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
      * Determines whether SSL3 is enabled. If both SSL2 and SSL3 are enabled for a virtual server, the server tries SSL3
      * encryption first. If that fails, the server tries SSL2 encryption.
      */
-    @Attribute(defaultValue = "true", dataType = Boolean.class)
+    @Attribute(defaultValue = "" + SSL3_ENABLED, dataType = Boolean.class)
     String getSsl3Enabled();
 
     void setSsl3Enabled(String value);
@@ -171,7 +184,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Determines whether TLS is enabled.
      */
-    @Attribute(defaultValue = "true", dataType = Boolean.class)
+    @Attribute(defaultValue = "" + TLS_ENABLED, dataType = Boolean.class)
     String getTlsEnabled();
 
     void setTlsEnabled(String value);
@@ -180,7 +193,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
      * Determines whether TLS rollback is enabled. TLS rollback should be enabled for Microsoft Internet Explorer 5.0
      * and 5.5. NOT Used in PE
      */
-    @Attribute(defaultValue = "true", dataType = Boolean.class)
+    @Attribute(defaultValue = "" + TLS_ROLLBACK_ENABLED, dataType = Boolean.class)
     String getTlsRollbackEnabled();
 
     void setTlsRollbackEnabled(String value);
@@ -190,7 +203,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setTrustAlgorithm(String algorithm);
 
-    @Attribute(dataType = Integer.class, defaultValue = "5")
+    @Attribute(dataType = Integer.class, defaultValue = "" + MAX_CERT_LENGTH)
     String getTrustMaxCertLength();
 
     void setTrustMaxCertLength(String maxLength);
@@ -204,12 +217,12 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
      * type of the truststore file
      */
     @Attribute(dataType = String.class)
-    @Pattern(regexp = "(JKS|NSS)")
+    @Pattern(regexp = STORE_TYPE_PATTERN)
     String getTrustStoreType();
 
     void setTrustStoreType(String type);
 
-    @Attribute(defaultValue="plain")
+    @Attribute(defaultValue= PASSWORD_PROVIDER)
     String getTrustStorePasswordProvider();
 
     void setTrustStorePasswordProvider(String provider);
@@ -225,8 +238,17 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Does SSL configuration allow implementation to initialize it lazily way
      */
-    @Attribute(defaultValue = "true", dataType = Boolean.class)
+    @Attribute(defaultValue = "" + ALLOW_LAZY_INIT, dataType = Boolean.class)
     String getAllowLazyInit();
 
     void setAllowLazyInit(String value);
+
+    /**
+     * @return the timeout within which there must be activity from the client.
+     *  Defaults to {@value #DEFAULT_SSL_INACTIVITY_TIMEOUT} seconds.
+     */
+    @Attribute(defaultValue = "" + DEFAULT_SSL_INACTIVITY_TIMEOUT, dataType = Integer.class)
+    String getSSLInactivityTimeout();
+
+    void setSSLInactivityTimeout(int handshakeTimeout);
 }

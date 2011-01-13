@@ -55,15 +55,28 @@ import java.util.List;
  */
 @Configured
 public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
+    boolean DISPLAY_CONFIGURATION = false;
+    boolean ENABLE_SNOOP = false;
+    boolean TCP_NO_DELAY = true;
+    int ACCEPTOR_THREADS = 1;
+    int BUFFER_SIZE = 8192;
+    int IDLE_KEY_TIMEOUT = 30;
+    int LINGER = -1;
+    int MAX_CONNECTIONS_COUNT = 4096;
+    int READ_TIMEOUT = 30000;
+    int SELECTOR_POLL_TIMEOUT = 1000;
+    String BYTE_BUFFER_TYPE = "HEAP";
+    String CLASSNAME = "com.sun.grizzly.TCPSelectorHandler";
+
     /**
      * The number of acceptor threads listening for the transport's events
      */
-    @Attribute(defaultValue = "1", dataType = Integer.class)
+    @Attribute(defaultValue = "" + ACCEPTOR_THREADS, dataType = Integer.class)
     String getAcceptorThreads();
 
     void setAcceptorThreads(String value);
 
-    @Attribute(defaultValue = "8192", dataType = Integer.class)
+    @Attribute(defaultValue = "" + BUFFER_SIZE, dataType = Integer.class)
     String getBufferSizeBytes();
 
     void setBufferSizeBytes(String size);
@@ -71,7 +84,7 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Type of ByteBuffer, which will be used with transport. Possible values are: HEAP and DIRECT
      */
-    @Attribute(defaultValue = "HEAP")
+    @Attribute(defaultValue = BYTE_BUFFER_TYPE)
     String getByteBufferType();
 
     void setByteBufferType(String value);
@@ -79,7 +92,7 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Name of class, which implements transport logic
      */
-    @Attribute(defaultValue = "org.glassfish.grizzly.nio.transport.TCPNIOTransport")
+    @Attribute(defaultValue = CLASSNAME)
     String getClassname();
 
     void setClassname(String value);
@@ -88,7 +101,7 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
      * Flush Grizzly's internal configuration to the server logs (like number of threads created, how many polled
      * objects, etc.)
      */
-    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    @Attribute(defaultValue = "" + DISPLAY_CONFIGURATION, dataType = Boolean.class)
     String getDisplayConfiguration();
 
     void setDisplayConfiguration(String bool);
@@ -97,7 +110,7 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
      * Dump the requests/response information in server.log. Useful for debugging purpose, but significantly reduce
      * performance as the request/response bytes are translated to String.
      */
-    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    @Attribute(defaultValue = "" + ENABLE_SNOOP, dataType = Boolean.class)
     String getEnableSnoop();
 
     void setEnableSnoop(String bool);
@@ -105,7 +118,7 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Timeout, after which idle key will be cancelled and channel closed
      */
-    @Attribute(defaultValue = "30", dataType = Integer.class)
+    @Attribute(defaultValue = "" + IDLE_KEY_TIMEOUT, dataType = Integer.class)
     String getIdleKeyTimeoutSeconds();
 
     void setIdleKeyTimeoutSeconds(String value);
@@ -113,7 +126,7 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * The max number of connections the transport should handle at the same time
      */
-    @Attribute(defaultValue = "4096", dataType = Integer.class)
+    @Attribute(defaultValue = "" + MAX_CONNECTIONS_COUNT, dataType = Integer.class)
     String getMaxConnectionsCount();
 
     void setMaxConnectionsCount(String value);
@@ -129,7 +142,7 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Read operation timeout in ms
      */
-    @Attribute(defaultValue = "30000", dataType = Integer.class)
+    @Attribute(defaultValue = "" + READ_TIMEOUT, dataType = Integer.class)
     String getReadTimeoutMillis();
 
     void setReadTimeoutMillis(String value);
@@ -145,7 +158,7 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * The time, in milliseconds, a NIO Selector will block waiting for events (users requests).
      */
-    @Attribute(defaultValue = "1000", dataType = Integer.class)
+    @Attribute(defaultValue = "" + SELECTOR_POLL_TIMEOUT, dataType = Integer.class)
     String getSelectorPollTimeoutMillis();
 
     void setSelectorPollTimeoutMillis(String timeout);
@@ -153,17 +166,17 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Write operation timeout in ms
      */
-    @Attribute(defaultValue = "30000", dataType = Integer.class)
+    @Attribute(defaultValue = "" + READ_TIMEOUT, dataType = Integer.class)
     String getWriteTimeoutMillis();
 
     void setWriteTimeoutMillis(String value);
 
-    @Attribute(defaultValue = "true", dataType = Boolean.class)
+    @Attribute(defaultValue = "" + TCP_NO_DELAY, dataType = Boolean.class)
     String getTcpNoDelay();
 
     void setTcpNoDelay(String noDelay);
 
-    @Attribute(defaultValue = "-1", dataType = Integer.class)
+    @Attribute(defaultValue = "" + LINGER, dataType = Integer.class)
     String getLinger();
 
     void setLinger(String linger);

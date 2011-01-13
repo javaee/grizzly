@@ -45,7 +45,6 @@ import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.types.PropertyBag;
-import org.glassfish.grizzly.http.util.Constants;
 
 /**
  * Created Jan 8, 2009
@@ -54,35 +53,40 @@ import org.glassfish.grizzly.http.util.Constants;
  */
 @Configured
 public interface FileCache extends ConfigBeanProxy, Injectable, PropertyBag {
+    boolean ENABLED = false;
+    int MAX_AGE = 30;
+    int MAX_CACHE_SIZE = 10485760;
+    int MAX_FILES = 1024;
+
     /**
      * Enables the caching of file content
      */
-    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    @Attribute(defaultValue = "" + ENABLED, dataType = Boolean.class)
     String getEnabled();
 
-    void setEnabled(String enabled);
+    void setEnabled(final String enabled);
 
     /**
      * How old files can get before aging out of cache in seconds
      */
-    @Attribute(defaultValue = "" + Constants.MAX_AGE_IN_SECONDS, dataType = Integer.class)
+    @Attribute(defaultValue = "" + MAX_AGE, dataType = Integer.class)
     String getMaxAgeSeconds();
 
-    void setMaxAgeSeconds(String maxAge);
+    void setMaxAgeSeconds(final String maxAge);
 
     /**
      * Maximum cache size on the disk
      */
-    @Attribute(defaultValue = "" + Constants.MAX_LARGE_FILE_CACHE_SIZE, dataType = Integer.class)
+    @Attribute(defaultValue = "" + MAX_CACHE_SIZE, dataType = Integer.class)
     String getMaxCacheSizeBytes();
 
-    void setMaxCacheSizeBytes(String maxCacheSize);
+    void setMaxCacheSizeBytes(final String maxCacheSize);
 
     /**
      * Maximum number of files in the file cache.
      */
-    @Attribute(defaultValue = "" + Constants.MAX_CACHE_ENTRIES, dataType = Integer.class)
+    @Attribute(defaultValue = "" + MAX_FILES, dataType = Integer.class)
     String getMaxFilesCount();
 
-    void setMaxFilesCount(String maxFilesCount);
+    void setMaxFilesCount(final String maxFilesCount);
 }
