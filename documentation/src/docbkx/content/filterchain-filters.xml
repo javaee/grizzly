@@ -343,7 +343,7 @@ return ctx.getStopAction(remainder, appender);</programlisting></para>
               message.</para>
 
               <para>Unlike remainder in the InvokeAction, the StopAction
-              remainder should be "appendable", sothe FilterChain will know
+              remainder should be "appendable", so the FilterChain will know
               how new data chunk should be appended to the stored one. So the
               remainder should either implement <emphasis
               role="italic">org.glassfish.grizzly.Appendable</emphasis> or
