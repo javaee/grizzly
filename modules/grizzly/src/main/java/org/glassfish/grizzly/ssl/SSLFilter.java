@@ -369,16 +369,17 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
 
 
     protected void renegotiate(final SSLEngine sslEngine,
-                               FilterChainContext context) throws IOException {
+                               final FilterChainContext context)
+                               throws IOException {
 
-        boolean authConfigured =
+        final boolean authConfigured =
                 (sslEngine.getWantClientAuth()
                         || sslEngine.getNeedClientAuth());
         if (!authConfigured) {
             sslEngine.setNeedClientAuth(true);
         }
         final Connection c = context.getConnection();
-        FilterChainContext ctx = createContext(c, Operation.WRITE);
+        final FilterChainContext ctx = createContext(c, Operation.WRITE);
         sslEngine.getSession().invalidate();
         sslEngine.beginHandshake();
 
@@ -426,7 +427,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
 
 
     protected Object[] getPeerCertificateChain(final SSLEngine sslEngine,
-                                               FilterChainContext context,
+                                               final FilterChainContext context,
                                                final boolean needClientAuth)
     throws IOException {
 
@@ -487,16 +488,16 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         return ctx.getSuspendAction();
     }
 
-    private X509Certificate[] extractX509Certs(Certificate[] certs) {
-        X509Certificate[] x509Certs = new X509Certificate[certs.length];
+    private X509Certificate[] extractX509Certs(final Certificate[] certs) {
+        final X509Certificate[] x509Certs = new X509Certificate[certs.length];
         for(int i = 0, len = certs.length; i < len; i++) {
             if( certs[i] instanceof X509Certificate ) {
                 x509Certs[i] = (X509Certificate)certs[i];
             } else {
                 try {
-                    byte [] buffer = certs[i].getEncoded();
-                    CertificateFactory cf =
-                    CertificateFactory.getInstance("X.509");
+                    final byte [] buffer = certs[i].getEncoded();
+                    final CertificateFactory cf =
+                            CertificateFactory.getInstance("X.509");
                     ByteArrayInputStream stream = new ByteArrayInputStream(buffer);
                     x509Certs[i] = (X509Certificate)
                     cf.generateCertificate(stream);
@@ -515,7 +516,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         return x509Certs;
     }
 
-    private Certificate[] getPeerCertificates(SSLEngine sslEngine) {
+    private Certificate[] getPeerCertificates(final SSLEngine sslEngine) {
         try {
             return sslEngine.getSession().getPeerCertificates();
         } catch( Throwable t ) {
