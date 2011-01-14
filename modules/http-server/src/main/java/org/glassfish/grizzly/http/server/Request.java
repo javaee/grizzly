@@ -85,6 +85,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.security.Principal;
+import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -112,6 +113,11 @@ import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.http.util.Chunk;
+import org.glassfish.grizzly.ssl.SSLFilter;
+import org.glassfish.grizzly.ssl.SSLSupport;
+import org.glassfish.grizzly.ssl.SSLSupportImpl;
+
+import static org.glassfish.grizzly.http.util.Constants.FORM_POST_CONTENT_TYPE;
 
 /**
  * Wrapper object for the Coyote request.
@@ -785,40 +791,7 @@ public class Request {
      * @param name Name of the request attribute to return
      */
     public Object getAttribute(String name) {
-        // TODO need to rework this without the action code logic
         return attributes.get(name);
-//        Object attr=attributes.get(name);
-//
-//        if(attr!=null)
-//            return(attr);
-//
-//        attr =  request.getAttribute(name);
-//        if(attr != null)
-//            return attr;
-//        // XXX Should move to Globals
-//        if(Constants.SSL_CERTIFICATE_ATTR.equals(name)) {
-//            request.action(ActionCode.ACTION_REQ_SSL_CERTIFICATE, null);
-//            attr = getAttribute(Globals.CERTIFICATES_ATTR);
-//            if(attr != null)
-//                attributes.put(name, attr);
-//        } else if( isSSLAttribute(name) ) {
-//            request.action(ActionCode.ACTION_REQ_SSL_ATTRIBUTE,
-//                                 request);
-//            attr = request.getAttribute(Globals.CERTIFICATES_ATTR);
-//            if( attr != null) {
-//                attributes.put(Globals.CERTIFICATES_ATTR, attr);
-//            }
-//            attr = request.getAttribute(Globals.CIPHER_SUITE_ATTR);
-//            if(attr != null) {
-//                attributes.put(Globals.CIPHER_SUITE_ATTR, attr);
-//            }
-//            attr = request.getAttribute(Globals.KEY_SIZE_ATTR);
-//            if(attr != null) {
-//                attributes.put(Globals.KEY_SIZE_ATTR, attr);
-//            }
-//            attr = attributes.get(name);
-//        }
-//        return attr;
     }
 
 
@@ -1740,11 +1713,76 @@ public class Request {
      * Return the principal that has been authenticated for this Request.
      */
     public Principal getUserPrincipal() {
-        return userPrincipal;
+        if (userPrincipal == null) {
+            if (getRequest().isSecure()) {
+                X509Certificate[] certs;
+                SSLFilter.CertificateEvent event = new SSLFilter.CertificateEvent(true);
+                try {
+                    ctx.notifyDownstream(event);
+                } catch (IOException ioe) {
+                    if (LOGGER.isLoggable(Level.FINE)) {
+                        LOGGER.log(Level.FINE, ioe.toString(), ioe);
+                    }
+                }
+                certs = (X509Certificate[]) event.getCertificates();
+                if ((certs == null) || (certs.length < 1)) {
+                    certs = (X509Certificate[])
+                            getAttribute(Globals.SSL_CERTIFICATE_ATTR);
+                }
+                if ((certs == null) || (certs.length < 1)) {
+                    userPrincipal = null;
+                } else {
+                    userPrincipal = certs[0].getSubjectX500Principal();
+                }
+            }
+        }
+        return (userPrincipal);
     }
 
     public FilterChainContext getContext() {
         return ctx;
+    }
+
+    public void populateCertificateAttribute() {
+        if (getRequest().isSecure()) {
+            SSLFilter.CertificateEvent event = new SSLFilter.CertificateEvent(true);
+            try {
+                ctx.notifyDownstream(event);
+            } catch (IOException ioe) {
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, ioe.toString(), ioe);
+                }
+            }
+            attributes.put(SSLSupport.CERTIFICATE_KEY, event.getCertificates());
+        }
+    }
+
+    public void populateSSLAttributes() {
+        try {
+            SSLSupport sslSupport = new SSLSupportImpl(ctx.getConnection());
+            Object sslO = sslSupport.getCipherSuite();
+            if (sslO != null) {
+                attributes.put(SSLSupport.CIPHER_SUITE_KEY, sslO);
+            }
+            sslO = sslSupport.getPeerCertificateChain(false);
+            if (sslO != null) {
+                attributes.put(SSLSupport.CERTIFICATE_KEY, sslO);
+            }
+            sslO = sslSupport.getKeySize();
+            if (sslO != null) {
+                attributes.put(SSLSupport.KEY_SIZE_KEY, sslO);
+            }
+            sslO = sslSupport.getSessionId();
+            if (sslO != null) {
+                attributes.put(SSLSupport.SESSION_ID_KEY, sslO);
+            }
+        } catch (IOException ioe) {
+            if (LOGGER.isLoggable(Level.WARNING)) {
+                LOGGER.log(Level.WARNING,
+                        "Unable to populate SSL attributes",
+                        ioe);
+            }
+        }
     }
 
     protected String unescape(String s) {
@@ -1813,23 +1851,16 @@ public class Request {
      */
     protected void parseRequestParameters() {
 
-        /* SJSAS 4936855
-        requestParametersParsed = true;
-         */
-
-        //Parameters parameters = request.getParameters();
-
         // getCharacterEncoding() may have been overridden to search for
         // hidden form field containing request encoding
         final String enc = getCharacterEncoding();
-        // START SJSAS 4936855
+
         // Delay updating requestParametersParsed to TRUE until
         // after getCharacterEncoding() has been called, because
         // getCharacterEncoding() may cause setCharacterEncoding() to be
         // called, and the latter will ignore the specified encoding if
         // requestParametersParsed is TRUE
         requestParametersParsed = true;
-        // END SJSAS 4936855
 
         Charset charset;
 
@@ -1878,14 +1909,11 @@ public class Request {
     }
 
     private boolean checkPostContentType(final String contentType) {
-        if (contentType == null) {
-            return false;
-        }
+        return ((contentType != null)
+                  && contentType.trim().startsWith(FORM_POST_CONTENT_TYPE));
 
-        return contentType.trim().startsWith(org.glassfish.grizzly.http.util.Constants.FORM_POST_CONTENT_TYPE);
     }
 
-    // START SJSAS 6346738
     /**
      * Gets the POST body of this request.
      *
@@ -1895,7 +1923,6 @@ public class Request {
         inputBuffer.fillFully(len);
         return inputBuffer.getBuffer();
     }
-    // END SJSAS 6346738
 
     /**
      * Skips the POST body of this request.
@@ -2142,11 +2169,7 @@ public class Request {
      */
     public boolean isRequestedSessionIdFromCookie() {
 
-        if (requestedSessionId != null) {
-            return requestedSessionCookie;
-        } else {
-            return false;
-        }
+        return ((requestedSessionId != null) && requestedSessionCookie);
 
     }
 
@@ -2156,11 +2179,7 @@ public class Request {
      */
     public boolean isRequestedSessionIdFromURL() {
 
-        if (requestedSessionId != null) {
-            return requestedSessionURL;
-        } else {
-            return false;
-        }
+        return ((requestedSessionId != null) && requestedSessionURL);
 
     }
 
@@ -2180,11 +2199,7 @@ public class Request {
         }
 
         Session localSession = sessions.put(requestedSessionId, session);
-        if ((localSession != null) && localSession.isValid()) {
-            return true;
-        } else {
-            return false;
-        }
+        return ((localSession != null) && localSession.isValid());
 
     }
     

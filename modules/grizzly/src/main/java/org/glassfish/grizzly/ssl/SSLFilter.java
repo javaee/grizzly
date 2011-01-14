@@ -42,9 +42,16 @@ package org.glassfish.grizzly.ssl;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.FilterChainEvent;
 import org.glassfish.grizzly.filterchain.NextAction;
+
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.util.logging.Filter;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Connection;
@@ -62,6 +69,7 @@ import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLException;
+
 import org.glassfish.grizzly.nio.PendingWriteQueueLimitExceededException;
 import static org.glassfish.grizzly.ssl.SSLUtils.*;
 
@@ -79,8 +87,12 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
 
     private final ConnectionCloseListener closeListener = new ConnectionCloseListener();
     
-    // Max pending bytes SSLFilter may enqueue
+    // Max bytes SSLFilter may enqueue
     protected volatile int maxPendingBytes = Integer.MAX_VALUE;
+
+
+    // ------------------------------------------------------------ Constructors
+
 
     public SSLFilter() {
         this(null, null);
@@ -117,31 +129,22 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                 "SSLFilter-HandshakeCompletionHandlerAttr");
     }
 
-    /**
-     * @return the maximum number of bytes that may be pending to be written
-     *  to a particular {@link Connection}.
-     * This value is related to the situation when we try to send application
-     * data before SSL handshake completes, so the data should be stored and
-     * sent on wire once handshake will be completed.
-     */
-    public int getMaxPendingBytesPerConnection() {
-        return maxPendingBytes;
+
+    // ----------------------------------------------------- Methods from Filter
+
+
+    @Override
+    public NextAction handleEvent(FilterChainContext ctx, FilterChainEvent event) throws IOException {
+        if (event instanceof CertificateEvent) {
+            final CertificateEvent ce = (CertificateEvent) event;
+            ce.certs = getPeerCertificateChain(getSSLEngine(ctx.getConnection()),
+                                               ctx,
+                                               ce.needClientAuth);
+            return ctx.getStopAction();
+        }
+        return ctx.getInvokeAction();
     }
 
-    /**
-     * Configures the maximum number of bytes pending to be written
-     * for a particular {@link Connection}.
-     * This value is related to the situation when we try to send application
-     * data before SSL handshake completes, so the data should be stored and
-     * sent on wire once handshake will be completed.
-     *
-     * @param maxPendingBytes maximum number of pending writes that may be
-     *  queued for a particular {@link Connection}
-     */
-    public void setMaxPendingBytesPerConnection(final int maxPendingBytes) {
-        this.maxPendingBytes = maxPendingBytes;
-    }
-    
     @Override
     public NextAction handleRead(final FilterChainContext ctx)
     throws IOException {
@@ -195,33 +198,32 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         }
     }
 
-    private NextAction accurateWrite(final FilterChainContext ctx,
-                                     final boolean isHandshakeComplete)
-    throws IOException {
-        
-        final Connection connection = ctx.getConnection();
 
-        final CompletionHandler completionHandler =
-                handshakeCompletionHandlerAttr.get(connection);
-        final boolean isPendingHandler = completionHandler instanceof PendingWriteCompletionHandler;
-        
-        if (isHandshakeComplete && !isPendingHandler) {
-            return super.handleWrite(ctx);
-        } else if (isPendingHandler) {
-            if (!((PendingWriteCompletionHandler) completionHandler).add(ctx)) {
-                return super.handleWrite(ctx);
-            }
-        } else {
-            // Check one more time whether handshake is completed
-            final SSLEngine sslEngine = getSSLEngine(connection);
-            if (sslEngine != null && !isHandshaking(sslEngine)) {
-                return super.handleWrite(ctx);
-            }
+    // ---------------------------------------------------------- Public Methods
 
-            throw new IllegalStateException("Handshake is not completed!");
-        }
+    /**
+     * @return the maximum number of bytes that may be queued to be written
+     *  to a particular {@link Connection}.
+     * This value is related to the situation when we try to send application
+     * data before SSL handshake completes, so the data should be stored and
+     * sent on wire once handshake will be completed.
+     */
+    public int getMaxPendingBytesPerConnection() {
+        return maxPendingBytes;
+    }
 
-        return ctx.getSuspendAction();
+    /**
+     * Configures the maximum number of bytes that may be queued to be written
+     * for a particular {@link Connection}.
+     * This value is related to the situation when we try to send application
+     * data before SSL handshake completes, so the data should be stored and
+     * sent on wire once handshake will be completed.
+     *
+     * @param maxPendingBytes maximum number of bytes that may be queued to be
+     *  written for a particular {@link Connection}
+     */
+    public void setMaxPendingBytesPerConnection(final int maxPendingBytes) {
+        this.maxPendingBytes = maxPendingBytes;
     }
 
     public void handshake(final Connection connection,
@@ -265,6 +267,10 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
 
         doHandshakeStep(sslEngine, ctx);
     }
+
+
+    // ------------------------------------------------------- Protected Methods
+
 
     protected Buffer doHandshakeStep(final SSLEngine sslEngine,
                                      FilterChainContext context)
@@ -361,6 +367,165 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         }
     }
 
+
+    protected void renegotiate(final SSLEngine sslEngine,
+                               FilterChainContext context) throws IOException {
+
+        boolean authConfigured =
+                (sslEngine.getWantClientAuth()
+                        || sslEngine.getNeedClientAuth());
+        if (!authConfigured) {
+            sslEngine.setNeedClientAuth(true);
+        }
+        final Connection c = context.getConnection();
+        FilterChainContext ctx = createContext(c, Operation.WRITE);
+        sslEngine.getSession().invalidate();
+        sslEngine.beginHandshake();
+
+        try {
+            // write the initial handshake bytes to the client
+            final Buffer buffer = handshakeWrap(c, sslEngine);
+
+            try {
+                context.write(ctx.getAddress(), buffer, null);
+            } catch (IOException e) {
+                buffer.dispose();
+                throw e;
+            } catch (Exception e) {
+                buffer.dispose();
+                throw new IOException("Unexpected exception", e);
+            }
+
+            // read the bytes returned by the client
+            ReadResult result = ctx.read();
+            Buffer m = (Buffer) result.getMessage();
+            ctx.setMessage(m);
+            while (isHandshaking(sslEngine)) {
+                doHandshakeStep(sslEngine, ctx);
+                // if the current buffer's content has been consumed by the
+                // SSLEngine, then we need to issue another read to continue
+                // the handshake.  Continue doing so until handshaking is
+                // complete
+                if (!m.hasRemaining() && isHandshaking(sslEngine)) {
+                    result = ctx.read();
+                    m = (Buffer) result.getMessage();
+                    ctx.setMessage(m);
+                }
+            }
+
+        } catch (Throwable t) {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "Error during handshake", t);
+            }
+        } finally {
+            if (!authConfigured) {
+                sslEngine.setNeedClientAuth(false);
+            }
+        }
+    }
+
+
+    protected Object[] getPeerCertificateChain(final SSLEngine sslEngine,
+                                               FilterChainContext context,
+                                               final boolean needClientAuth)
+    throws IOException {
+
+        Certificate[] certs = getPeerCertificates(sslEngine);
+        if (certs != null) {
+            return certs;
+        }
+
+        if (needClientAuth) {
+            renegotiate(sslEngine, context);
+        }
+
+        certs = getPeerCertificates(sslEngine);
+
+        if (certs == null) {
+            return null;
+        }
+
+        X509Certificate[] x509Certs = extractX509Certs(certs);
+
+        if (x509Certs == null || x509Certs.length < 1) {
+            return null;
+        }
+
+        return x509Certs;
+    }
+
+
+    // --------------------------------------------------------- Private Methods
+
+
+    private NextAction accurateWrite(final FilterChainContext ctx,
+                                     final boolean isHandshakeComplete)
+    throws IOException {
+
+        final Connection connection = ctx.getConnection();
+
+        final CompletionHandler completionHandler =
+                handshakeCompletionHandlerAttr.get(connection);
+        final boolean isPendingHandler = completionHandler instanceof PendingWriteCompletionHandler;
+
+        if (isHandshakeComplete && !isPendingHandler) {
+            return super.handleWrite(ctx);
+        } else if (isPendingHandler) {
+            if (!((PendingWriteCompletionHandler) completionHandler).add(ctx)) {
+                return super.handleWrite(ctx);
+            }
+        } else {
+            // Check one more time whether handshake is completed
+            final SSLEngine sslEngine = getSSLEngine(connection);
+            if (sslEngine != null && !isHandshaking(sslEngine)) {
+                return super.handleWrite(ctx);
+            }
+
+            throw new IllegalStateException("Handshake is not completed!");
+        }
+
+        return ctx.getSuspendAction();
+    }
+
+    private X509Certificate[] extractX509Certs(Certificate[] certs) {
+        X509Certificate[] x509Certs = new X509Certificate[certs.length];
+        for(int i = 0, len = certs.length; i < len; i++) {
+            if( certs[i] instanceof X509Certificate ) {
+                x509Certs[i] = (X509Certificate)certs[i];
+            } else {
+                try {
+                    byte [] buffer = certs[i].getEncoded();
+                    CertificateFactory cf =
+                    CertificateFactory.getInstance("X.509");
+                    ByteArrayInputStream stream = new ByteArrayInputStream(buffer);
+                    x509Certs[i] = (X509Certificate)
+                    cf.generateCertificate(stream);
+                } catch(Exception ex) {
+                    LOGGER.log(Level.INFO,
+                               "Error translating cert " + certs[i],
+                               ex);
+                    return null;
+                }
+            }
+
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE,"Cert #" + i + " = " + x509Certs[i]);
+            }
+        }
+        return x509Certs;
+    }
+
+    private Certificate[] getPeerCertificates(SSLEngine sslEngine) {
+        try {
+            return sslEngine.getSession().getPeerCertificates();
+        } catch( Throwable t ) {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE,"Error getting client certs", t);
+            }
+            return null;
+        }
+    }
+
     private void notifyHandshakeCompleted(final Connection connection,
                                           final SSLEngine sslEngine) {
 
@@ -372,6 +537,10 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
             handshakeCompletionHandlerAttr.remove(connection);
         }
     }
+
+
+    // ----------------------------------------------------------- Inner Classes
+
 
     private final class PendingWriteCompletionHandler
             extends EmptyCompletionHandler<SSLEngine> {
@@ -461,4 +630,43 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
             }
         }
     }
+
+
+    // ---------------------------------------------------------- Nested Classes
+
+
+    public static class CertificateEvent implements FilterChainEvent {
+
+        private static final String TYPE = "CERT_EVENT";
+
+        private Object[] certs;
+
+        private final boolean needClientAuth;
+
+
+        // -------------------------------------------------------- Constructors
+
+
+        public CertificateEvent(final boolean needClientAuth) {
+            this.needClientAuth = needClientAuth;
+        }
+
+
+        // --------------------------------------- Methods from FilterChainEvent
+
+
+        @Override
+        public Object type() {
+            return TYPE;
+        }
+
+
+        // ------------------------------------------------------ Public Methods
+
+
+        public Object[] getCertificates() {
+            return certs;
+        }
+
+    } // END CertificateEvent
 }
