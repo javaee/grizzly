@@ -509,7 +509,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
             }
 
             if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE,"Cert #" + i + " = " + x509Certs[i]);
+                LOGGER.log(Level.FINE, "Cert #{0} = {1}", new Object[] {i, x509Certs[i]});
             }
         }
         return x509Certs;
