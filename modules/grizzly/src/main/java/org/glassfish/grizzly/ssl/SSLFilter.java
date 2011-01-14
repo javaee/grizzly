@@ -135,7 +135,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
 
     @Override
     public NextAction handleEvent(FilterChainContext ctx, FilterChainEvent event) throws IOException {
-        if (event instanceof CertificateEvent) {
+        if (event.type() == CertificateEvent.TYPE) {
             final CertificateEvent ce = (CertificateEvent) event;
             ce.certs = getPeerCertificateChain(getSSLEngine(ctx.getConnection()),
                                                ctx,
@@ -379,7 +379,6 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
             sslEngine.setNeedClientAuth(true);
         }
         final Connection c = context.getConnection();
-        final FilterChainContext ctx = createContext(c, Operation.WRITE);
         sslEngine.getSession().invalidate();
         sslEngine.beginHandshake();
 
@@ -388,7 +387,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
             final Buffer buffer = handshakeWrap(c, sslEngine);
 
             try {
-                context.write(ctx.getAddress(), buffer, null);
+                context.write(context.getAddress(), buffer, null);
             } catch (IOException e) {
                 buffer.dispose();
                 throw e;
@@ -398,19 +397,19 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
             }
 
             // read the bytes returned by the client
-            ReadResult result = ctx.read();
+            ReadResult result = context.read();
             Buffer m = (Buffer) result.getMessage();
-            ctx.setMessage(m);
+            context.setMessage(m);
             while (isHandshaking(sslEngine)) {
-                doHandshakeStep(sslEngine, ctx);
+                doHandshakeStep(sslEngine, context);
                 // if the current buffer's content has been consumed by the
                 // SSLEngine, then we need to issue another read to continue
                 // the handshake.  Continue doing so until handshaking is
                 // complete
                 if (!m.hasRemaining() && isHandshaking(sslEngine)) {
-                    result = ctx.read();
+                    result = context.read();
                     m = (Buffer) result.getMessage();
-                    ctx.setMessage(m);
+                    context.setMessage(m);
                 }
             }
 
@@ -657,7 +656,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
 
 
         @Override
-        public Object type() {
+        public final Object type() {
             return TYPE;
         }
 
