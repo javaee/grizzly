@@ -3,7 +3,7 @@
 
     DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 
-    Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
 
     The contents of this file are subject to the terms of either the GNU
     General Public License Version 2 only ("GPL") or the Common Development
@@ -41,7 +41,8 @@
 
 -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <parent>
         <groupId>org.glassfish.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
@@ -57,14 +58,14 @@
     <build>
         <defaultGoal>install</defaultGoal>
         <resources>
-            <resource>              
+            <resource>
                 <filtering>true</filtering>
                 <directory>src/main/java/</directory>
                 <excludes>
                     <exclude>**/*.java</exclude>
                 </excludes>
             </resource>
-            <resource>              
+            <resource>
                 <directory>src/main/resources</directory>
             </resource>
         </resources>
@@ -82,7 +83,7 @@
                         <Export-Package>
                             org.glassfish.grizzly.localization.*;version=${project.version},
                         </Export-Package>
-                   </instructions>
+                    </instructions>
                     <unpackBundle>true</unpackBundle>
                 </configuration>
                 <executions>
@@ -128,10 +129,22 @@
                                 </includes>
                             </resources>
                             <destDir>${project.build.directory}/generated-sources</destDir>
-                            <localizationUtilitiesPkgName>org.glassfish.grizzly.localization</localizationUtilitiesPkgName>
+                            <localizationUtilitiesPkgName>org.glassfish.grizzly.localization
+                            </localizationUtilitiesPkgName>
                         </configuration>
                         <goals>
                             <goal>rs-gen</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
                         </goals>
                     </execution>
                 </executions>

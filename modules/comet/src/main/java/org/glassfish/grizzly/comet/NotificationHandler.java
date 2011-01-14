@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,18 +37,31 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+package org.glassfish.grizzly.comet;
 
-package org.glassfish.grizzly.utils;
-
-import java.nio.ByteBuffer;
+import java.io.IOException;
+import java.util.Iterator;
 
 /**
+ * This class is invoked when the CometContext.notify is invoked. The CometContext delegate the handling of the
+ * notification process to an implementation of this interface.
  *
- * @author oleksiys
+ * @author Jeanfrancois Arcand
  */
-public class Utils {
-    public static String byteBuffer2String(ByteBuffer bb) {
-        return new String(bb.array(), bb.arrayOffset() + bb.position(),
-                bb.remaining());
-    }
+public interface NotificationHandler {
+    /**
+     * Notify all {@link CometHandler}.
+     *
+     * @param cometEvent the CometEvent used to notify CometHandler
+     * @param iteratorHandlers An iterator over a list of CometHandler
+     */
+    void notify(CometEvent cometEvent, Iterator<CometHandler> iteratorHandlers) throws IOException;
+
+    /**
+     * Notify a single {@link CometHandler}.
+     *
+     * @param cometEvent the CometEvent used to notify CometHandler
+     * @param cometHandler An iterator over a list of CometHandler
+     */
+    void notify(CometEvent cometEvent, CometHandler cometHandler) throws IOException;
 }

@@ -37,10 +37,10 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
-package org.glassfish.grizzly.servlet.utils;
+package org.glassfish.grizzly.utils;
 
 import java.lang.management.ManagementFactory;
+import java.nio.ByteBuffer;
 import java.util.List;
 
 /**
@@ -85,13 +85,8 @@ public class Utils {
         return copy;
     }
 
-    public static class Result{
-        public int bytesRead = 0;
-        public boolean isClosed = false;
-
-        public Result(int i, boolean b) {
-            bytesRead = i;
-            isClosed = b;
-        }
-    }
+    public static String byteBuffer2String(ByteBuffer bb) {
+        return new String(bb.array(), bb.arrayOffset() + bb.position(),
+                bb.remaining());
+    }    
 }

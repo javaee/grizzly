@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,7 +49,7 @@ import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.MimeHeaders;
-import org.glassfish.grizzly.http.util.Utils;
+import org.glassfish.grizzly.http.util.HttpUtils;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 import java.util.ArrayList;
@@ -272,7 +272,7 @@ public abstract class HttpHeader extends HttpPacket
         final MemoryManager mm = c.getTransport().getMemoryManager();
         final Buffer b = mm.allocate(20);
         b.allowBufferDispose(true);
-        Utils.longToBuffer(length, b);
+        HttpUtils.longToBuffer(length, b);
         return b;
     }
 

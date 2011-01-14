@@ -2,7 +2,7 @@
 
     DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 
-    Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
 
     The contents of this file are subject to the terms of either the GNU
     General Public License Version 2 only ("GPL") or the Common Development
@@ -353,6 +353,11 @@
                 <groupId>com.sun.enterprise</groupId>
                 <artifactId>osgi-adapter</artifactId>
                 <version>${hk2.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>cobertura-maven-plugin</artifactId>
+                <version>2.4</version>
             </dependency>
         </dependencies>
     </dependencyManagement>  

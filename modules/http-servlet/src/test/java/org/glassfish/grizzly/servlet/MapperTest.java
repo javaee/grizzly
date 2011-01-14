@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,15 +40,17 @@
 
 package org.glassfish.grizzly.servlet;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.util.logging.Logger;
+
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.servlet.utils.Utils;
+import org.glassfish.grizzly.http.server.HttpHandlerChain;
+import org.glassfish.grizzly.utils.Utils;
 
 /**
  * Test {@link HttpHandlerChain} use of the {@link MapperTest}
@@ -93,19 +95,15 @@ public class MapperTest extends HttpServerAbstractTest {
             s1.setServletPath("");
 //            s1.addDocRoot(".");
                 
-            httpServer.getServerConfiguration().addHttpHandler(s1, new String[]{alias[0]});
+            httpServer.getServerConfiguration().addHttpHandler(s1, alias[0]);
 
             ServletHandler s2 = getServletHandler(alias[1]);
             s2.setContextPath("/jsp");
             s2.setServletPath("");
 //            s2.addDocRoot(".");
                 
-            httpServer.getServerConfiguration().addHttpHandler(s2, new String[]{alias[1]});
-            
-            HttpURLConnection conn = null;
-            
-            
-            conn = getConnection("/jsp/index.jsp", PORT);
+            httpServer.getServerConfiguration().addHttpHandler(s2, alias[1]);
+            HttpURLConnection conn = getConnection("/jsp/index.jsp", PORT);
             assertEquals(HttpServletResponse.SC_OK, getResponseCodeFromAlias(conn));
             assertEquals(alias[1], readResponse(conn));
             
@@ -199,23 +197,20 @@ public class MapperTest extends HttpServerAbstractTest {
                 resp.getWriter().write(alias);
             }
         });
-        httpServer.getServerConfiguration().addHttpHandler(httpHandler, new String[]{alias});
+        httpServer.getServerConfiguration().addHttpHandler(httpHandler, alias);
         return httpHandler;
     }
     
     private ServletHandler getServletHandler(final String alias) {
-        ServletHandler servletHandler = new ServletHandler(new HttpServlet() {
+        return new ServletHandler(new HttpServlet() {
 
             @Override
-            protected void doGet(
-                    HttpServletRequest req, HttpServletResponse resp)
-                    throws IOException {
+            protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
                 logger.log(Level.INFO, "Servlet : {0} received request {1}", new Object[]{alias, req.getRequestURI()});
                 resp.setStatus(HttpServletResponse.SC_OK);
                 resp.getWriter().write(alias);
             }
         });
-        return servletHandler;
     }
 
 }

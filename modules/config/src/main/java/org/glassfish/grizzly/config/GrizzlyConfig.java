@@ -37,7 +37,6 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.config;
 
 import java.io.IOException;
@@ -54,11 +53,6 @@ import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
 import org.jvnet.hk2.component.Habitat;
 
-/**
- * Created Nov 24, 2008
- *
- * @author <a href="mailto:justin.d.lee@oracle.com">Justin Lee</a>
- */
 public class GrizzlyConfig {
     private static final Logger logger = Logger.getLogger(GrizzlyConfig.class.getName());
     private final NetworkConfig config;
@@ -82,7 +76,6 @@ public class GrizzlyConfig {
         validateConfig(config);
         synchronized (listeners) {
             AbstractMemoryManager amm = null;
-
             for (final NetworkListener listener : config.getNetworkListeners().getNetworkListener()) {
                 final GenericGrizzlyListener grizzlyListener = new GenericGrizzlyListener();
                 grizzlyListener.configure(habitat, listener);
@@ -92,9 +85,9 @@ public class GrizzlyConfig {
                 }
                 listeners.add(grizzlyListener);
                 final Thread thread = new DefaultWorkerThread(Grizzly.DEFAULT_ATTRIBUTE_BUILDER,
-                                                              grizzlyListener.getName(),
-                                                              ((amm != null) ? amm.createThreadLocalPool() : null),
-                                                              new ListenerRunnable(grizzlyListener));
+                    grizzlyListener.getName(),
+                    amm != null ? amm.createThreadLocalPool() : null,
+                    new ListenerRunnable(grizzlyListener));
                 thread.setDaemon(true);
                 thread.start();
             }
@@ -141,7 +134,7 @@ public class GrizzlyConfig {
 
     public static boolean toBoolean(String value) {
         final String v = value == null ? value : value.trim();
-        return v != null && ("true".equals(v) || "yes".equals(v) || "on".equals(v) || "1".equals(v));
+        return "true".equals(v) || "yes".equals(v) || "on".equals(v) || "1".equals(v);
     }
 
     private static class ListenerRunnable implements Runnable {

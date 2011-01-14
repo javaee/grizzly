@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,13 +40,21 @@
 
 package org.glassfish.grizzly.websockets;
 
+import java.io.IOException;
+import java.net.ConnectException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.Filter;
+import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.http.HttpClientFilter;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
@@ -55,21 +63,16 @@ import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.http.Protocol;
+import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.http.util.HttpStatus;
-import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.websockets.frame.ParseResult;
-import org.glassfish.grizzly.websockets.frame.Frame;
-import java.io.IOException;
-import java.net.ConnectException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.websockets.frame.Frame;
+import org.glassfish.grizzly.websockets.frame.ParseResult;
 
 /**
- * WebSocket {@link org.glassfish.grizzly.filterchain.Filter} implementation, which supposed to be placed into a
- * {@link org.glassfish.grizzly.filterchain.FilterChain} right after HTTP Filter: {@link HttpServerFilter}, {@link HttpClientFilter};
+ * WebSocket {@link Filter} implementation, which supposed to be placed into a
+ * {@link FilterChain} right after HTTP Filter: {@link HttpServerFilter}, {@link HttpClientFilter};
  * depending whether it's server or client side.
  * The <tt>WebSocketFilter</tt> handles websocket connection, handshake phases and, when
  * receives a websocket frame - redirects it to appropriate handler ({@link WebSocketApplication}, {@link WebSocketClientHandler}) for processing.
@@ -91,12 +94,12 @@ public class WebSocketFilter extends BaseFilter {
      * Method handles Grizzly {@link Connection} connect phase. Check if the {@link Connection}
      * is a client-side {@link WebSocket}, if yes - creates websocket handshake packet
      * and send it to a server. Otherwise, if it's not websocket connection - pass processing
-     * to the next {@link org.glassfish.grizzly.filterchain.Filter} in a chain.
+     * to the next {@link Filter} in a chain.
      * 
      * @param ctx {@link FilterChainContext}
-     * @return {@link NextAction} instruction for {@link org.glassfish.grizzly.filterchain.FilterChain},
+     * @return {@link NextAction} instruction for {@link FilterChain},
      *  how it should continue the execution
-     * @throws {@link java.io.IOException}
+     * @throws {@link IOException}
      */
     @Override
     public NextAction handleConnect(FilterChainContext ctx) throws IOException {
@@ -126,13 +129,13 @@ public class WebSocketFilter extends BaseFilter {
     /**
      * Method handles Grizzly {@link Connection} close phase. Check if the {@link Connection}
      * is a {@link WebSocket}, if yes - tries to close the websocket gracefully (sending close frame)
-     * and calls {@link WebSocketHandler#onClose(org.glassfish.grizzly.websockets.WebSocket)}.
+     * and calls {@link WebSocketHandler#onClose(WebSocket)}.
      * If the Grizzly {@link Connection} is not websocket - passes processing to the next filter in the chain.
      *
      * @param ctx {@link FilterChainContext}
-     * @return {@link NextAction} instruction for {@link org.glassfish.grizzly.filterchain.FilterChain},
+     * @return {@link NextAction} instruction for {@link FilterChain},
      *  how it should continue the execution
-     * @throws {@link java.io.IOException}
+     * @throws {@link IOException}
      */
     @Override
     public NextAction handleClose(FilterChainContext ctx) throws IOException {
@@ -172,9 +175,9 @@ public class WebSocketFilter extends BaseFilter {
      * for server- and client- side connections.
      *
      * @param ctx {@link FilterChainContext}
-     * @return {@link NextAction} instruction for {@link org.glassfish.grizzly.filterchain.FilterChain},
+     * @return {@link NextAction} instruction for {@link FilterChain},
      *  how it should continue the execution
-     * @throws {@link java.io.IOException}
+     * @throws {@link IOException}
      */
     @Override
     public NextAction handleRead(FilterChainContext ctx) throws IOException {
@@ -269,9 +272,9 @@ public class WebSocketFilter extends BaseFilter {
      * we assume that message is websocket {@link Frame} and serialize it into a {@link Buffer}.
      *
      * @param ctx {@link FilterChainContext}
-     * @return {@link NextAction} instruction for {@link org.glassfish.grizzly.filterchain.FilterChain},
+     * @return {@link NextAction} instruction for {@link FilterChain},
      *  how it should continue the execution
-     * @throws {@link java.io.IOException}
+     * @throws {@link IOException}
      */
     @Override
     public NextAction handleWrite(FilterChainContext ctx) throws IOException {
@@ -299,9 +302,9 @@ public class WebSocketFilter extends BaseFilter {
      * @param ctx {@link FilterChainContext}
      * @param content HTTP message
      * 
-     * @return {@link NextAction} instruction for {@link org.glassfish.grizzly.filterchain.FilterChain},
+     * @return {@link NextAction} instruction for {@link FilterChain},
      *  how it should continue the execution
-     * @throws {@link java.io.IOException}
+     * @throws {@link IOException}
      */
     private NextAction handleHandshake(FilterChainContext ctx,
             HttpContent content) throws IOException {
@@ -360,7 +363,7 @@ public class WebSocketFilter extends BaseFilter {
      * @param ctx {@link FilterChainContext}
      * @param requestContent HTTP message
      *
-     * @throws {@link java.io.IOException}
+     * @throws {@link IOException}
      */
     private void handleServerHandshake(FilterChainContext ctx,
             HttpContent requestContent) throws IOException {
@@ -407,7 +410,7 @@ public class WebSocketFilter extends BaseFilter {
      * @param ctx {@link FilterChainContext}
      * @param responseContent HTTP message
      *
-     * @throws {@link java.io.IOException}
+     * @throws {@link IOException}
      */
     private void handleClientHandshake(FilterChainContext ctx,
             HttpContent responseContent) throws IOException {

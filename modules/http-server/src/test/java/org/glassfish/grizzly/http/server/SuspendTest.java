@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,9 +40,21 @@
 
 package org.glassfish.grizzly.http.server;
 
-import org.glassfish.grizzly.Grizzly;
+import java.io.IOException;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Logger;
+
+import junit.framework.AssertionFailedError;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -58,27 +70,19 @@ import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.ssl.SSLFilter;
-import java.io.IOException;
-import java.net.URL;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.logging.Logger;
+import org.glassfish.grizzly.utils.Utils;
 import org.junit.After;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-import static org.junit.Assert.*;
 
 /**
- * Units test that exercise the {@link org.glassfish.grizzly.http.server.Response#suspend() }, {@link org.glassfish.grizzly.http.server.Response#resume() }
- * and {@link org.glassfish.grizzly.http.server.Response#cancel() } API.
+ * Units test that exercise the {@link Response#suspend() }, {@link Response#resume() }
+ * and {@link Response#cancel() } API.
  *
  * @author Jeanfrancois Arcand
  * @author gustav trede
@@ -166,9 +170,8 @@ public class SuspendTest {
     @Test
     public void testSuspendResumeSameTransaction() throws Exception {
         startWebServer(new TestStaticHttpHandler() {
-
             @Override
-            public void service(final Request req, final Response res) {
+            public void service(Request req, Response res) {
                 try {
                     res.suspend();
                     write(res, testData);
@@ -187,7 +190,7 @@ public class SuspendTest {
         startWebServer(new TestStaticHttpHandler() {
 
             @Override
-            public void service(final Request req, final Response res) {
+            public void service(Request req, Response res) {
                 try {
                     res.suspend();
                     write(res, testData);
@@ -207,7 +210,7 @@ public class SuspendTest {
         startWebServer(new TestStaticHttpHandler() {
 
             @Override
-            public void service(final Request req, final Response res) {
+            public void service(Request req, Response res) {
                 try {
                     res.suspend();
                     writeToSuspendedClient(res);
@@ -225,7 +228,7 @@ public class SuspendTest {
         startWebServer(new TestStaticHttpHandler() {
 
             @Override
-            public void service(final Request req, final Response res) {
+            public void service(Request req, final Response res) {
                 res.suspend();
                 scheduledThreadPool.schedule(new Runnable() {
 
@@ -245,11 +248,11 @@ public class SuspendTest {
         startWebServer(new TestStaticHttpHandler() {
 
             @Override
-            public void dologic(final Request req, final Response res) throws Throwable {
-                res.suspend(60, TimeUnit.SECONDS, new TestCompletionHandler() {
+            public void doLogic(Request req, final Response res) throws Throwable {
+                res.suspend(60, TimeUnit.SECONDS, new TestCompletionHandler<Response>() {
 
                     @Override
-                    public void completed(Object result) {
+                    public void completed(Response result) {
                         writeToSuspendedClient(res);
                         try {
                             res.flush();
@@ -270,8 +273,8 @@ public class SuspendTest {
         startWebServer(new TestStaticHttpHandler() {
 
             @Override
-            public void dologic(final Request req, final Response res) throws Throwable {
-                res.suspend(60, TimeUnit.SECONDS, new TestCompletionHandler() {
+            public void doLogic(Request req, final Response res) throws Throwable {
+                res.suspend(60, TimeUnit.SECONDS, new TestCompletionHandler<Response>() {
 
                     @Override
                     public void cancelled() {
@@ -294,13 +297,13 @@ public class SuspendTest {
         startWebServer(new TestStaticHttpHandler() {
 
             @Override
-            public void dologic(final Request req, final Response res) throws Throwable {
-                res.suspend(60, TimeUnit.SECONDS, new TestCompletionHandler() {
+            public void doLogic(Request req, final Response res) throws Throwable {
+                res.suspend(60, TimeUnit.SECONDS, new TestCompletionHandler<Response>() {
 
                     private AtomicBoolean first = new AtomicBoolean(true);
 
                     @Override
-                    public void completed(Object result) {
+                    public void completed(Response result) {
                         if (!first.compareAndSet(true, false)) {
                             fail("recursive resume");
                         }
@@ -323,8 +326,8 @@ public class SuspendTest {
         startWebServer(new TestStaticHttpHandler() {
 
             @Override
-            public void dologic(final Request req, final Response res) throws Throwable {
-                res.suspend(5, TimeUnit.SECONDS, new TestCompletionHandler() {
+            public void doLogic(Request req, final Response res) throws Throwable {
+                res.suspend(5, TimeUnit.SECONDS, new TestCompletionHandler<Response>() {
 
                     @Override
                     public void cancelled() {
@@ -348,8 +351,8 @@ public class SuspendTest {
         startWebServer(new TestStaticHttpHandler() {
 
             @Override
-            public void dologic(final Request req, final Response res) throws Throwable {
-                res.suspend(5, TimeUnit.SECONDS, new TestCompletionHandler() {
+            public void doLogic(Request req, final Response res) throws Throwable {
+                res.suspend(5, TimeUnit.SECONDS, new TestCompletionHandler<Response>() {
 
                     @Override
                     public void cancelled() {
@@ -363,7 +366,7 @@ public class SuspendTest {
                     int counter = 0;
 
                     @Override
-                    public boolean onTimeout(final Response response) {
+                    public boolean onTimeout(Response response) {
                         if (++counter == 1) {
                             response.getSuspendContext().setTimeout(5, TimeUnit.SECONDS);
                             return false;
@@ -385,11 +388,11 @@ public class SuspendTest {
         startWebServer(new TestStaticHttpHandler() {
 
             @Override
-            public void dologic(final Request req, final Response res) throws Throwable {
-                res.suspend(60, TimeUnit.SECONDS, new TestCompletionHandler() {
+            public void doLogic(Request req, final Response res) throws Throwable {
+                res.suspend(60, TimeUnit.SECONDS, new TestCompletionHandler<Response>() {
 
                     @Override
-                    public void completed(Object result) {
+                    public void completed(Response result) {
 //                        Utils.dumpErr("resumed");
                     }
                 });
@@ -423,11 +426,11 @@ public class SuspendTest {
         startWebServer(new TestStaticHttpHandler() {
 
             @Override
-            public void dologic(final Request req, final Response res) throws Throwable {
-                res.suspend(60, TimeUnit.SECONDS, new TestCompletionHandler() {
+            public void doLogic(Request req, final Response res) throws Throwable {
+                res.suspend(60, TimeUnit.SECONDS, new TestCompletionHandler<Response>() {
 
                     @Override
-                    public void completed(Object result) {
+                    public void completed(Response result) {
                         try {
 //                            Utils.dumpErr("trying to resume");
                             res.resume();
@@ -448,12 +451,12 @@ public class SuspendTest {
         startWebServer(new HttpHandler() {
 
             @Override
-            public void service(final Request req, final Response res) {
+            public void service(Request req, final Response res) {
                 try {
-                    res.suspend(60, TimeUnit.SECONDS, new TestCompletionHandler() {
+                    res.suspend(60, TimeUnit.SECONDS, new TestCompletionHandler<Response>() {
 
                         @Override
-                        public void completed(Object result) {
+                        public void completed(Response result) {
                             if (res.isSuspended()) {
 //                                Utils.dumpErr("Resumed");
                                 try {
@@ -482,10 +485,10 @@ public class SuspendTest {
         startWebServer(new HttpHandler() {
 
             @Override
-            public void service(final Request req, final Response res) {
+            public void service(Request req, final Response res) {
                 try {
                     final long t1 = System.currentTimeMillis();
-                    res.suspend(10, TimeUnit.SECONDS, new TestCompletionHandler() {
+                    res.suspend(10, TimeUnit.SECONDS, new TestCompletionHandler<Response>() {
 
                         @Override
                         public void cancelled() {
@@ -510,15 +513,15 @@ public class SuspendTest {
         startWebServer(new HttpHandler() {
 
             @Override
-            public void service(final Request req, final Response res) {
+            public void service(Request req, final Response res) {
                 try {
                     final long t1 = System.currentTimeMillis();
-                    res.suspend(10, TimeUnit.SECONDS, new TestCompletionHandler() {
+                    res.suspend(10, TimeUnit.SECONDS, new TestCompletionHandler<Response>() {
 
                         @Override
-                        public void completed(Object result) {
+                        public void completed(Response result) {
                             try {
-//                                Utils.dumpErr("Resumed TOOK: " + (System.currentTimeMillis() - t1));
+                                Utils.dumpErr("Resumed TOOK: " + (System.currentTimeMillis() - t1));
                                 res.getWriter().write(testString);
                                 res.finish();
                                 // res.flushBuffer();
@@ -542,10 +545,10 @@ public class SuspendTest {
                         }
 
                         if (!res.isCommitted()) {
-//                            Utils.dumpErr("Resuming");
+                            Utils.dumpErr("Resuming");
                             res.resume();
                         } else {
-                            fail("response is commited so we dont resume");
+                            fail("response is committed so we don't resume");
                         }
                     }
                 }).start();
@@ -564,8 +567,7 @@ public class SuspendTest {
         runTest(true);
     }
 
-    private void runTest(boolean assertResponse)
-            throws Exception {
+    private void runTest(boolean assertResponse) throws Exception {
         FutureImpl<Boolean> resultFuture = SafeFutureImpl.create();
         final Connection connection = runClient(testString, true, resultFuture);
 
@@ -642,16 +644,16 @@ public class SuspendTest {
         public void service(Request req, Response res) {
             try {
                 if (!res.isSuspended()) {
-                    dologic(req, res);
+                    doLogic(req, res);
                 }
-            } catch (junit.framework.AssertionFailedError ae) {
+            } catch (AssertionFailedError ae) {
             } catch (Throwable t) {
                 t.printStackTrace();
                 fail(t.getMessage());
             }
         }
 
-        public void dologic(final Request req, final Response res) throws Throwable {
+        public void doLogic(Request req, Response res) throws Throwable {
         }
 
         protected void writeToSuspendedClient(Response resp) {
@@ -708,7 +710,7 @@ public class SuspendTest {
         }
     }
 
-    private class TestCompletionHandler extends EmptyCompletionHandler {
+    private class TestCompletionHandler<E> extends EmptyCompletionHandler<E> {
 
         @Override
         public void cancelled() {
@@ -716,7 +718,7 @@ public class SuspendTest {
         }
 
         @Override
-        public void completed(Object result) {
+        public void completed(E result) {
             fail("Unexpected resume");
         }
 

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,31 +40,42 @@
 
 package org.glassfish.grizzly.servlet;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.security.GeneralSecurityException;
+import java.util.HashMap;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSession;
-import javax.servlet.*;
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.File;
-import java.io.IOException;
-import java.net.*;
-import java.security.GeneralSecurityException;
-import java.util.HashMap;
-import java.util.logging.Logger;
+
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
-import org.glassfish.grizzly.servlet.utils.Utils;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
+import org.glassfish.grizzly.utils.Utils;
 
 /**
- * {@link GrizzlyWebServer} tests.
+ * {@link HttpServer} tests.
  *
  * @author Hubert Iwaniuk
  * @since Jan 22, 2009
@@ -163,7 +174,7 @@ public class HttpServerTest extends HttpServerAbstractTest {
     }
 
     /**
-     * Test if {@link GrizzlyWebServer#start} throws {@link IOException} if can't bind.
+     * Test if {@link HttpServer#start} throws {@link IOException} if can't bind.
      *
      * @throws IOException Error.
      */
@@ -194,7 +205,7 @@ public class HttpServerTest extends HttpServerAbstractTest {
     }
 
     /**
-     * Tests that {@link GrizzlyWebServer} will start properly in secure mode with modified configuration.
+     * Tests that {@link HttpServer} will start properly in secure mode with modified configuration.
      *
      * @throws IOException Not much to say here.
      * @throws URISyntaxException Could not find keystore file.
@@ -231,7 +242,7 @@ public class HttpServerTest extends HttpServerAbstractTest {
                     response.setStatus(500, "Server made a boo.");
                 }
             }
-        }, new String[]{"/sec"});
+        }, "/sec");
         try {
             httpServer.start();
         } catch (IOException e) {
@@ -271,9 +282,9 @@ public class HttpServerTest extends HttpServerAbstractTest {
     }
 
     /**
-     * Tests if {@link Filter} is getting destroyed on {@link GrizzlyWebServer#stop}.
+     * Tests if {@link Filter} is getting destroyed on {@link HttpServer#stop}.
      *
-     * @throws IOException Couldn't start {@link GrizzlyWebServer}.
+     * @throws IOException Couldn't start {@link HttpServer}.
      */
     public void testServletFilterDestroy() throws IOException {
 
@@ -304,7 +315,7 @@ public class HttpServerTest extends HttpServerAbstractTest {
             }
         }, "filter", new HashMap(0));
 
-        httpServer.getServerConfiguration().addHttpHandler(servletHandler, new String[]{"/"});
+        httpServer.getServerConfiguration().addHttpHandler(servletHandler, "/");
         httpServer.start();
 
         httpServer.stop();
@@ -376,15 +387,13 @@ public class HttpServerTest extends HttpServerAbstractTest {
         ServletHandler servletHandler = new ServletHandler(new HttpServlet() {
 
             @Override
-            protected void doGet(
-                    HttpServletRequest req, HttpServletResponse resp)
-                    throws IOException {
+            protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
                 logger.log(Level.INFO, "{0} received request {1}", new Object[]{alias, req.getRequestURI()});
                 resp.setStatus(HttpServletResponse.SC_OK);
                 resp.getWriter().write(alias);
             }
         });
-        httpServer.getServerConfiguration().addHttpHandler(servletHandler, new String[]{alias});
+        httpServer.getServerConfiguration().addHttpHandler(servletHandler, alias);
         return servletHandler;
     }
 }

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,13 +40,16 @@
 
 package org.glassfish.grizzly.http.server.io;
 
+import java.io.InputStream;
+import java.io.Reader;
+
 import org.glassfish.grizzly.Buffer;
 
 
 /**
  * <p>
- * This interface defines methods to allow an {@link java.io.InputStream} or
- * {@link java.io.Reader} to notify the developer <em>when</em> and <em>how much</em>
+ * This interface defines methods to allow an {@link InputStream} or
+ * {@link Reader} to notify the developer <em>when</em> and <em>how much</em>
  * data is ready to be read without blocking.
  * </p>
  *
@@ -73,7 +76,7 @@ public interface NIOInputSource {
      *  be read without blocking.
      *
      * @see ReadHandler#onDataAvailable()
-     * @see org.glassfish.grizzly.http.server.io.ReadHandler#onAllDataRead()
+     * @see ReadHandler#onAllDataRead()
      */
     boolean notifyAvailable(final ReadHandler handler);
 

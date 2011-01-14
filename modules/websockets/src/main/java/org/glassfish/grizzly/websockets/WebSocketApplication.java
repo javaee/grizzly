@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,10 +40,12 @@
 
 package org.glassfish.grizzly.websockets;
 
-import org.glassfish.grizzly.Connection;
 import java.io.IOException;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.glassfish.grizzly.Connection;
 
 /**
  * Abstract server-side {@link WebSocket} application, which will handle
@@ -54,10 +56,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * @author Alexey Stashok
  */
-public abstract class WebSocketApplication<W extends WebSocket>
-        implements WebSocketHandler<W> {
-    private final ConcurrentHashMap<W, Boolean> websockets =
-            new ConcurrentHashMap<W, Boolean>();
+public abstract class WebSocketApplication<W extends WebSocket> implements WebSocketHandler<W> {
+    private final Map<W, Boolean> websockets = new ConcurrentHashMap<W, Boolean>();
 
     /**
      * Method is called, when new {@link WebSocket} gets accepted.
@@ -72,9 +72,6 @@ public abstract class WebSocketApplication<W extends WebSocket>
         add(websocket);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void onClose(W websocket) throws IOException {
         remove(websocket);
@@ -112,7 +109,7 @@ public abstract class WebSocketApplication<W extends WebSocket>
      * <tt>false</tt> otherwise.
      */
     public boolean remove(W socket) {
-        return (websockets.remove(socket) != null);
+        return websockets.remove(socket) != null;
     }
     
     /**
@@ -122,8 +119,7 @@ public abstract class WebSocketApplication<W extends WebSocket>
      * @param websocketMeta {@link ClientWebSocketMeta}.
      * @throws HandshakeException error, occurred during the handshake.
      */
-    protected void handshake(ClientWebSocketMeta websocketMeta)
-            throws HandshakeException {
+    protected void handshake(ClientWebSocketMeta websocketMeta) throws HandshakeException {
     }
 
     /**
@@ -137,8 +133,7 @@ public abstract class WebSocketApplication<W extends WebSocket>
      * @return customized {@link WebSocket}, or <tt>null</tt>, if application wants
      * to delegate {@link WebSocket} creation to {@link WebSocketEngine}.
      */
-    protected W createWebSocket(Connection connection,
-            ServerWebSocketMeta meta) {
+    protected W createWebSocket(Connection connection, ServerWebSocketMeta meta) {
         return null;
     }
 }

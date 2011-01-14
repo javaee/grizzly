@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -58,9 +58,10 @@
 
 package org.glassfish.grizzly.http.server.util;
 
-import org.glassfish.grizzly.http.util.StringManager;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import org.glassfish.grizzly.http.util.StringManager;
 
 /**
  * Extended implementation of <strong>LinkedHashMap</strong> that includes a
@@ -163,8 +164,7 @@ public final class ParameterMap extends LinkedHashMap<String,String[]> {
     /**
      * The string manager for this package.
      */
-    private static final StringManager sm =
-        StringManager.getManager("org.glassfish.grizzly.http.server.util.res",
+    private static final StringManager sm = StringManager.getManager("org.glassfish.grizzly.http.server.util.res",
         ParameterMap.class.getClassLoader());
 
 

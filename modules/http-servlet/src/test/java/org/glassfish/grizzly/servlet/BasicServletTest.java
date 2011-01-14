@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,18 +40,18 @@
 
 package org.glassfish.grizzly.servlet;
 
-
+import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.util.logging.Logger;
+
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.servlet.utils.Utils;
+import org.glassfish.grizzly.utils.Utils;
 
 /**
  * Basic Servlet Test.
@@ -162,7 +162,7 @@ public class BasicServletTest extends HttpServerAbstractTest {
             assertEquals(HttpServletResponse.SC_OK,
                     getResponseCodeFromAlias(conn));
             String s = conn.getHeaderField("Request-Was");
-            Utils.dumpOut("s: " +s );
+            Utils.dumpOut("s: " + s);
             assertEquals(s, "/index.html");
         } finally {
             stopHttpServer();
