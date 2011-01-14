@@ -368,6 +368,16 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     }
 
 
+    /**
+     * Performs an SSL renegotiation.
+     *
+     * @param sslEngine the {@link SSLEngine} associated with this
+     *  this renegotiation request.
+     * @param context the {@link FilterChainContext} associated with this
+     *  this renegotiation request.
+     *
+     * @throws IOException if an error occurs during SSL renegotiation.
+     */
     protected void renegotiate(final SSLEngine sslEngine,
                                final FilterChainContext context)
                                throws IOException {
@@ -425,6 +435,26 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     }
 
 
+    /**
+     * <p>
+     * Obtains the certificate chain for this SSL session.  If no certificates
+     * are available, and <code>needClientAuth</code> is true, an SSL renegotiation
+     * will be be triggered to request the certificates from the client.
+     * </p>
+     *
+     * @param sslEngine the {@link SSLEngine} associated with this
+     *  certificate request.
+     * @param context the {@link FilterChainContext} associated with this
+     *  this certificate request.
+     * @param needClientAuth determines whether or not SSL renegotiation will
+     *  be attempted to obtain the certificate chain.
+     *
+     * @return the certificate chain as an <code>Object[]</code>.  If no
+     *  certificate chain can be determined, this method will return
+     *  <code>null</code>.
+     *
+     * @throws IOException if an error occurs during renegotiation.
+     */
     protected Object[] getPeerCertificateChain(final SSLEngine sslEngine,
                                                final FilterChainContext context,
                                                final boolean needClientAuth)
