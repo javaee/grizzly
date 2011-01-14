@@ -130,7 +130,7 @@ public class HttpClientFilter extends HttpCodecFilter {
         if (httpResponse == null) {
             httpResponse = HttpResponsePacketImpl.create();
             httpResponse.initialize(input.position(), maxHeadersSize);
-            httpResponse.setSecure(isSecure);
+            httpResponse.setSecure(isSecure(connection));
             httpResponseInProcessAttr.set(connection, httpResponse);
         }
 

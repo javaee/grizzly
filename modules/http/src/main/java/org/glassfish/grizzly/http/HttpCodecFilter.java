@@ -64,6 +64,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.glassfish.grizzly.http.util.BufferChunk;
 import org.glassfish.grizzly.http.util.Constants;
+import org.glassfish.grizzly.ssl.SSLUtils;
 
 /**
  * The {@link org.glassfish.grizzly.filterchain.Filter}, responsible for transforming {@link Buffer} into
@@ -108,15 +109,6 @@ public abstract class HttpCodecFilter extends BaseFilter
 
     };
     
-    /**
-     * flag, which indicates whether this <tt>HttpCodecFilter</tt> is dealing with
-     * the secured HTTP packets. For this filter flag means nothing, it's just
-     * a value, which is getting set to a {@link HttpRequestPacket} or
-     * {@link HttpResponsePacket}.
-     */
-    protected volatile boolean isSecure;
-    private final boolean isSecureSet;
-
     protected final int maxHeadersSize;
 
     /**
@@ -197,39 +189,11 @@ public abstract class HttpCodecFilter extends BaseFilter
     public HttpCodecFilter(final Boolean isSecure,
                            final boolean chunkingEnabled,
                            final int maxHeadersSize) {
-        if (isSecure == null) {
-            isSecureSet = false;
-        } else {
-            isSecureSet = true;
-            this.isSecure = isSecure;
-        }
-
         this.maxHeadersSize = maxHeadersSize;
         this.chunkingEnabled = chunkingEnabled;
         transferEncodings.addAll(new FixedLengthTransferEncoding(),
                 new ChunkedTransferEncoding(maxHeadersSize));
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onAdded(final FilterChain filterChain) {
-        if (!isSecureSet) {
-            autoDetectSecure(filterChain);
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onFilterChainChanged(final FilterChain filterChain) {
-        if (!isSecureSet) {
-            autoDetectSecure(filterChain);
-        }
-    }
-
 
     /**
      * <p>
@@ -1398,24 +1362,13 @@ public abstract class HttpCodecFilter extends BaseFilter
     }
 
     /**
-     * Autodetect whether we will deal with HTTP or HTTPS by trying to find
-     * {@link SSLFilter} in the {@link FilterChain}.
-     *
-     * @param filterChain {@link FilterChain}
+     * flag, which indicates whether this <tt>HttpCodecFilter</tt> is dealing with
+     * the secured HTTP packets. For this filter flag means nothing, it's just
+     * a value, which is getting set to a {@link HttpRequestPacket} or
+     * {@link HttpResponsePacket}.
      */
-    protected void autoDetectSecure(final FilterChain filterChain) {
-        final int httpFilterIdx = filterChain.indexOf(this);
-        if (httpFilterIdx != -1) {
-            for (int i=0; i<httpFilterIdx; i++) {
-                final Filter filter = filterChain.get(i);
-                if (filter.getClass().isAssignableFrom(SSLFilter.class)) {
-                    isSecure = true;
-                    return;
-                }
-            }
-        }
-
-        isSecure = false;
+    protected static boolean isSecure(final Connection connection) {
+        return SSLUtils.getSSLEngine(connection) != null;
     }
 
     protected static final class HeaderParsingState {
