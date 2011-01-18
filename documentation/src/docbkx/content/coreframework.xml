@@ -59,11 +59,7 @@
 
   <xi:include href="core-config.xml" xpointer="element(/1)" />
 
-  <section>
-    <title>Best Practices</title>
-
-    <para></para>
-  </section>
+  <xi:include href="best-practices.xml" xpointer="element(/1)" />
 
   <section>
     <title>Quick Start</title>
