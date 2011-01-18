@@ -84,16 +84,16 @@ public class BasicCometTest extends TestCase {
     @Override
     protected void tearDown() throws Exception {
         super.tearDown();
-        stopGrizzlyWebServer();
+        stopHttpServer();
     }
 
     public void atestOnInterruptExpirationDelay() throws Exception {
         Utils.dumpOut("testOnInterruptExpirationDelay - will wait 2 seconds");
         final int delay = 2000;
         cometContext.setExpirationDelay(delay);
-        newGWS(PORT += 1);
+        newHttpServer(PORT += 1);
         String alias = "/OnInterrupt";
-        addAdapter(alias, false);
+        addHttpHandler(alias, false);
         httpServer.start();
         HttpURLConnection conn = getConnection(alias, delay + 4000);
         long t1 = System.currentTimeMillis();
@@ -106,10 +106,10 @@ public class BasicCometTest extends TestCase {
 
     public void testClientCloseConnection() throws Exception {
         Utils.dumpOut("testClientCloseConnection");
-        newGWS(PORT += 2);
+        newHttpServer(PORT += 2);
         cometContext.setExpirationDelay(-1);
         String alias = "/OnClientCloseConnection";
-        final CometGrizzlyAdapter ga = addAdapter(alias, true);
+        final CometHttpHandler ga = addHttpHandler(alias, true);
         httpServer.start();
         Socket s = new Socket("localhost", PORT);
         s.setSoLinger(false, 0);
@@ -156,9 +156,9 @@ public class BasicCometTest extends TestCase {
 
     public void atestOnEvent() throws Exception {
         Utils.dumpOut("testOnEvent ");
-        newGWS(PORT += 4);
+        newHttpServer(PORT += 4);
         String alias = "/OnEvent";
-        addAdapter(alias, true);
+        addHttpHandler(alias, true);
         cometContext.setExpirationDelay(-1);
         httpServer.start();
         int iter = 10;
@@ -200,27 +200,27 @@ public class BasicCometTest extends TestCase {
         return urlConn.getResponseCode();
     }
 
-    private CometGrizzlyAdapter addAdapter(final String alias, final boolean resume) {
-        final CometGrizzlyAdapter c = new CometGrizzlyAdapter(resume);
+    private CometHttpHandler addHttpHandler(final String alias, final boolean resume) {
+        final CometHttpHandler c = new CometHttpHandler(resume);
         httpServer.getServerConfiguration().addHttpHandler(c, alias);
         return c;
     }
 
-    private void newGWS(int port) throws IOException {
+    private void newHttpServer(int port) throws IOException {
         httpServer = HttpServer.createSimpleServer("./", port);
     }
 
-    private void stopGrizzlyWebServer() {
+    private void stopHttpServer() {
         if(httpServer != null) {
             httpServer.stop();
         }
     }
 
-    class CometGrizzlyAdapter extends HttpHandler {
+    class CometHttpHandler extends HttpHandler {
         private final boolean resume;
         private DefaultCometHandler c;
 
-        public CometGrizzlyAdapter(boolean resume) {
+        public CometHttpHandler(boolean resume) {
             this.resume = resume;
         }
 

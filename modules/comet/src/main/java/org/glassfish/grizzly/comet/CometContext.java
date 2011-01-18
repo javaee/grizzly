@@ -51,6 +51,8 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.TimeoutHandler;
+import org.glassfish.grizzly.http.server.io.NIOInputStream;
+import org.glassfish.grizzly.http.server.io.ReadHandler;
 
 /**
  * The main object used by {@link CometHandler} and Servlet to push information amongs suspended request/response. The
@@ -173,7 +175,7 @@ public class CometContext<E> {
     }
 
     /**
-     * Add an attibute.
+     * Add an attribute.
      *
      * @param key the key
      * @param value the value
@@ -226,10 +228,21 @@ public class CometContext<E> {
         // is it ok that we only manage one addCometHandler call per thread ?
         // else we can use a list of handlers to add inside thread local
         CometEngine.updatedContexts.set(handler);
-        handler.getResponse().suspend(getExpirationDelay(), TimeUnit.MILLISECONDS, new CometCompletionHandler(handler),
+        final Response response = handler.getResponse();
+        response.suspend(getExpirationDelay(), TimeUnit.MILLISECONDS, new CometCompletionHandler(handler),
             new CometTimeoutHandler(handler));
         try {
             initialize(handler);
+
+            // Register asynchronous read-event listener
+            final NIOInputStream nioInputStream =
+                    response.getRequest().getInputStream(false);
+            
+            if (!nioInputStream.notifyAvailable(
+                    new CometInputHandler(nioInputStream, handler)) &&
+                    !nioInputStream.isFinished()) {
+                notifyOnAsyncRead(handler);
+            }
         } catch (IOException e) {
             throw new RuntimeException(e.getMessage(), e);
         }
@@ -428,6 +441,14 @@ public class CometContext<E> {
         return notificationHandler;
     }
 
+    private static void notifyOnAsyncRead(final CometHandler handler) {
+        try {
+            handler.onEvent(new CometEvent(CometEvent.Type.READ));
+        } catch (IOException e) {
+            logger.log(Level.FINE, e.getMessage());
+        }
+    }
+
     private class CometCompletionHandler implements CompletionHandler<Response> {
         private final CometHandler handler;
 
@@ -497,5 +518,30 @@ public class CometContext<E> {
             }
             return true;
         }
+    }
+
+    private class CometInputHandler implements ReadHandler {
+        final NIOInputStream nioInputStream;
+        private final CometHandler handler;
+
+        public CometInputHandler(final NIOInputStream nioInputStream,
+                final CometHandler handler) {
+            this.nioInputStream = nioInputStream;
+            this.handler = handler;
+        }
+
+        @Override
+        public void onDataAvailable() {
+            notifyOnAsyncRead(handler);
+            nioInputStream.notifyAvailable(this);            
+        }
+
+        @Override
+        public void onError(Throwable t) {
+        }
+
+        @Override
+        public void onAllDataRead() {
+        }        
     }
 }

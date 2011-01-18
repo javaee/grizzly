@@ -41,8 +41,6 @@
 package org.glassfish.grizzly.comet;
 
 import java.io.IOException;
-import javax.servlet.Servlet;
-import javax.servlet.http.HttpServletResponse;
 
 import org.glassfish.grizzly.http.server.Response;
 
