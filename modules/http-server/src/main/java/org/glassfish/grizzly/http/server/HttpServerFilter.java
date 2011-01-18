@@ -232,7 +232,7 @@ public class HttpServerFilter extends BaseFilter
                 httpRequestInProcessAttr.get(c);
 
         if (request != null) {
-            ReadHandler handler = request.getInputBuffer().getReadHandler();
+            final ReadHandler handler = request.getInputBuffer().getReadHandler();
             if (handler != null) {
                 handler.onError(error);
             }
