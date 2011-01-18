@@ -50,7 +50,7 @@ import java.util.List;
  * @author Jean-Francois Arcand
  */
 public class Utils {
-    public static boolean VERBOSE_TESTS = true;
+    public static boolean VERBOSE_TESTS = false;
 
     public static boolean isDebugVM() {
         boolean debugMode = false;

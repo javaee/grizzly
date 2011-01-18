@@ -390,8 +390,6 @@ public class CometContext<E> {
      * Initialize the newly added {@link CometHandler}.
      */
     protected void initialize(CometHandler handler) throws IOException {
-        System.out.println("CometContext.initialize");
-        System.out.println("response = " + handler.getResponse());
         handler.onInitialize(eventInitialize);
     }
 
@@ -459,8 +457,6 @@ public class CometContext<E> {
         @Override
         public void cancelled() {
             try {
-                System.out.println("CometContext$CometCompletionHandler.cancelled");
-                System.out.println("handler response = " + handler.getResponse());
                 handler.onInterrupt(eventInterrupt);
             } catch (IOException e) {
                 throw new RuntimeException(e.getMessage(), e);
@@ -470,8 +466,6 @@ public class CometContext<E> {
         @Override
         public void failed(final Throwable throwable) {
             try {
-                System.out.println("CometContext$CometCompletionHandler.failed");
-                System.out.println("handler response = " + handler.getResponse());
                 handler.onInterrupt(eventInterrupt);
             } catch (IOException e) {
                 throw new RuntimeException(e.getMessage(), e);
@@ -481,9 +475,6 @@ public class CometContext<E> {
         @Override
         public void completed(final Response result) {
             try {
-                System.out.println("CometContext$CometCompletionHandler.completed");
-                System.out.println("handler response = " + handler.getResponse());
-                System.out.println("response = " + result);
                 handler.onInterrupt(eventInterrupt);
             } catch (IOException e) {
                 throw new RuntimeException(e.getMessage(), e);
@@ -492,9 +483,6 @@ public class CometContext<E> {
 
         @Override
         public void updated(final Response result) {
-            System.out.println("CometContext$CometCompletionHandler.updated");
-            System.out.println("handler response = " + handler.getResponse());
-            System.out.println("response = " + result);
         }
     }
 
@@ -507,9 +495,6 @@ public class CometContext<E> {
 
         @Override
         public boolean onTimeout(final Response response) {
-            System.out.println("CometContext$CometTimeoutHandler.onTimeout");
-            System.out.println("handler response = " + handler.getResponse());
-            System.out.println("response = " + response);
             try {
                 handler.onInterrupt(eventInterrupt);
             } catch (IOException e) {
