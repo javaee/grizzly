@@ -45,6 +45,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.glassfish.grizzly.CompletionHandler;
@@ -226,14 +227,7 @@ public class CometContext<E> {
         // else we can use a list of handlers to add inside thread local
         CometEngine.updatedContexts.set(handler);
         handler.getResponse().suspend(getExpirationDelay(), TimeUnit.MILLISECONDS, new CometCompletionHandler(handler),
-            new TimeoutHandler() {
-                @Override
-                public boolean onTimeout(final Response response) {
-                    System.out.println("CometContext.onTimeout");
-                    System.out.println("response = " + response);
-                    return false;
-                }
-            });
+            new CometTimeoutHandler(handler));
         try {
             initialize(handler);
         } catch (IOException e) {
@@ -383,6 +377,8 @@ public class CometContext<E> {
      * Initialize the newly added {@link CometHandler}.
      */
     protected void initialize(CometHandler handler) throws IOException {
+        System.out.println("CometContext.initialize");
+        System.out.println("response = " + handler.getResponse());
         handler.onInitialize(eventInitialize);
     }
 
@@ -442,6 +438,8 @@ public class CometContext<E> {
         @Override
         public void cancelled() {
             try {
+                System.out.println("CometContext$CometCompletionHandler.cancelled");
+                System.out.println("handler response = " + handler.getResponse());
                 handler.onInterrupt(eventInterrupt);
             } catch (IOException e) {
                 throw new RuntimeException(e.getMessage(), e);
@@ -451,6 +449,8 @@ public class CometContext<E> {
         @Override
         public void failed(final Throwable throwable) {
             try {
+                System.out.println("CometContext$CometCompletionHandler.failed");
+                System.out.println("handler response = " + handler.getResponse());
                 handler.onInterrupt(eventInterrupt);
             } catch (IOException e) {
                 throw new RuntimeException(e.getMessage(), e);
@@ -460,6 +460,9 @@ public class CometContext<E> {
         @Override
         public void completed(final Response result) {
             try {
+                System.out.println("CometContext$CometCompletionHandler.completed");
+                System.out.println("handler response = " + handler.getResponse());
+                System.out.println("response = " + result);
                 handler.onInterrupt(eventInterrupt);
             } catch (IOException e) {
                 throw new RuntimeException(e.getMessage(), e);
@@ -469,6 +472,30 @@ public class CometContext<E> {
         @Override
         public void updated(final Response result) {
             System.out.println("CometContext$CometCompletionHandler.updated");
+            System.out.println("handler response = " + handler.getResponse());
+            System.out.println("response = " + result);
+        }
+    }
+
+    private class CometTimeoutHandler implements TimeoutHandler {
+        private final CometHandler handler;
+
+        public CometTimeoutHandler(final CometHandler handler) {
+            this.handler = handler;
+        }
+
+        @Override
+        public boolean onTimeout(final Response response) {
+            System.out.println("CometContext$CometTimeoutHandler.onTimeout");
+            System.out.println("handler response = " + handler.getResponse());
+            System.out.println("response = " + response);
+            try {
+                handler.onInterrupt(eventInterrupt);
+            } catch (IOException e) {
+                logger.log(Level.SEVERE, e.getMessage());
+                throw new RuntimeException(e.getMessage(), e);
+            }
+            return true;
         }
     }
 }

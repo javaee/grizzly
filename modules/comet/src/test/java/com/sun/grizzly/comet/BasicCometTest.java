@@ -45,14 +45,13 @@ import java.net.HttpURLConnection;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.net.URL;
+import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import junit.framework.TestCase;
 import org.glassfish.grizzly.comet.CometContext;
 import org.glassfish.grizzly.comet.CometEngine;
-import org.glassfish.grizzly.comet.CometEvent;
-import org.glassfish.grizzly.comet.CometHandler;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.Request;
@@ -88,8 +87,6 @@ public class BasicCometTest extends TestCase {
         stopGrizzlyWebServer();
     }
 
-    public void testDummy() {}
-    
     public void atestOnInterruptExpirationDelay() throws Exception {
         Utils.dumpOut("testOnInterruptExpirationDelay - will wait 2 seconds");
         final int delay = 2000;
@@ -107,7 +104,7 @@ public class BasicCometTest extends TestCase {
         assertTrue("comet idletimeout was too late," + delta + "ms", delta < delay + 3000);
     }
 
-    public void atestClientCloseConnection() throws Exception {
+    public void testClientCloseConnection() throws Exception {
         Utils.dumpOut("testClientCloseConnection");
         newGWS(PORT += 2);
         cometContext.setExpirationDelay(-1);
@@ -123,9 +120,11 @@ public class BasicCometTest extends TestCase {
         os.write(a.getBytes());
         os.flush();
         try {
+            System.out.println("reading: " + new Date());
             s.getInputStream().read();
             fail("client socket read did not read timeout");
         } catch (SocketTimeoutException ex) {
+            System.out.println("exception: " + new Date());
             s.close();
             Thread.sleep(5000);
             assertEquals(onInterrupt, ga.c.wasInterrupt);
@@ -232,66 +231,4 @@ public class BasicCometTest extends TestCase {
         }
     }
 
-    static class DefaultCometHandler implements CometHandler<String> {
-        private final boolean resume;
-        private String attachment;
-        private Response response;
-        volatile String wasInterrupt = "";
-        private CometContext<String> cometContext;
-
-        public DefaultCometHandler(final CometContext<String> cometContext, Response response, boolean resume) {
-            this.cometContext = cometContext;
-            this.response = response;
-            this.resume = resume;
-        }
-
-        @Override
-        public Response getResponse() {
-            return response;
-        }
-
-        @Override
-        public CometContext<String> getCometContext() {
-            return cometContext;
-        }
-
-        public void attach(String attachment) {
-            this.attachment = attachment;
-        }
-
-        public void onEvent(CometEvent event) throws IOException {
-            Utils.dumpOut("     -> onEvent Handler:" + hashCode());
-            response.addHeader("onEvent", event.attachment().toString());
-            response.getWriter().write("onEvent");
-            if (resume) {
-                event.getCometContext().resumeCometHandler(this);
-            }
-        }
-
-        public void onInitialize(CometEvent event) throws IOException {
-            Utils.dumpOut("     -> onInitialize Handler:" + hashCode());
-            String test = (String) event.attachment();
-            if (test == null) {
-                test = onInitialize;
-            }
-            response.addHeader(onInitialize, test);
-        }
-
-        public void onTerminate(CometEvent event) throws IOException {
-            Utils.dumpOut("    -> onTerminate Handler:" + hashCode());
-            response.addHeader(onTerminate, event.attachment().toString());
-            response.getWriter().write(onTerminate);
-        }
-
-        public void onInterrupt(CometEvent event) throws IOException {
-            Utils.dumpOut("    -> onInterrupt Handler:" + hashCode());
-            wasInterrupt = onInterrupt;
-            String test = (String) event.attachment();
-            if (test == null) {
-                test = onInterrupt;
-            }
-            response.addHeader(onInterrupt, test);
-            response.getWriter().write(onInterrupt);
-        }
-    }
 }

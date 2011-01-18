@@ -93,6 +93,11 @@ public class CometUnitTest extends TestCase {
         Utils.dumpErr("JVM: " + rmx.getVmVendor() + " " + rmx.getVmName() + " " + rmx.getVmVersion() + " params: " + rmx
             .getInputArguments());
     }
+
+    public void testSlug() {
+
+    }
+
     /* public void testLongPollingSocketReuse() throws Exception{
         doActualLogic(true,false,40,20);
     }*/
@@ -100,9 +105,9 @@ public class CometUnitTest extends TestCase {
          doActualLogic(false,false,6500,64);
     }*/
 
-    public void testStreaming1() throws Throwable {
+//    public void testStreaming1() throws Throwable {
         //doActualLogic(false,true,15,1,false);
-    }
+//    }
     /* public void testStreaming2() throws Throwable{
         doActualLogic(false,true,21,4, false);
     }
