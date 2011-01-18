@@ -37,7 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package com.sun.grizzly.comet;
+package org.glassfish.grizzly.comet;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;

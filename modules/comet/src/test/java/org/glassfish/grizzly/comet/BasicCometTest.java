@@ -37,7 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package com.sun.grizzly.comet;
+package org.glassfish.grizzly.comet;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -45,13 +45,10 @@ import java.net.HttpURLConnection;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.net.URL;
-import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import junit.framework.TestCase;
-import org.glassfish.grizzly.comet.CometContext;
-import org.glassfish.grizzly.comet.CometEngine;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.Request;

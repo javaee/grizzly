@@ -1,4 +1,4 @@
-package com.sun.grizzly.comet;
+package org.glassfish.grizzly.comet;
 
 import java.io.IOException;
 

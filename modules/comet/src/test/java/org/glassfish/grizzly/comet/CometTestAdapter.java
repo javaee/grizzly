@@ -38,14 +38,10 @@
  * holder.
  */
 
-package com.sun.grizzly.comet;
+package org.glassfish.grizzly.comet;
 
 import java.io.IOException;
 
-import org.glassfish.grizzly.comet.CometContext;
-import org.glassfish.grizzly.comet.CometEngine;
-import org.glassfish.grizzly.comet.CometEvent;
-import org.glassfish.grizzly.comet.CometHandler;
 import org.glassfish.grizzly.comet.concurrent.DefaultConcurrentCometHandler;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.Request;
