@@ -87,7 +87,7 @@ public class BasicCometTest extends TestCase {
         stopHttpServer();
     }
 
-    public void atestOnInterruptExpirationDelay() throws Exception {
+    public void testOnInterruptExpirationDelay() throws Exception {
         Utils.dumpOut("testOnInterruptExpirationDelay - will wait 2 seconds");
         final int delay = 2000;
         cometContext.setExpirationDelay(delay);
@@ -120,11 +120,9 @@ public class BasicCometTest extends TestCase {
         os.write(a.getBytes());
         os.flush();
         try {
-            System.out.println("reading: " + new Date());
             s.getInputStream().read();
             fail("client socket read did not read timeout");
         } catch (SocketTimeoutException ex) {
-            System.out.println("exception: " + new Date());
             s.close();
             Thread.sleep(5000);
             assertEquals(onInterrupt, ga.c.wasInterrupt);
