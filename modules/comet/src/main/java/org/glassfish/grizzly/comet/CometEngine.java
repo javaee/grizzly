@@ -39,7 +39,9 @@
  */
 package org.glassfish.grizzly.comet;
 
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -114,10 +116,6 @@ public class CometEngine {
      * Is Grizzly ARP enabled? By default we set it to false.
      */
     private static volatile boolean isCometSupported;
-    /**
-     * Store updatedCometContext.
-     */
-    protected final static ThreadLocal<CometHandler> updatedContexts = new ThreadLocal<CometHandler>();
 
     /**
      * Create a singleton and initialize all lists required.
@@ -238,81 +236,6 @@ public class CometEngine {
     }
 
     /**
-     * Handle an interrupted(or polled) request by matching the current context path with the registered one. If
-     * required, the bring the target component (Servlet) to the proper execution stage and then {@link
-     * CometContext#notify} the {@link CometHandler}
-     *
-     * @param apt the current apt representing the request.
-     *
-     * @return boolean true if the request can be polled.
-     */
-/*
-    protected boolean handle(AsyncProcessorTask apt) throws IOException {
-        // That means Grizzly ARP is invoking us via AsyncFilter.
-        if (!isCometSupported) {
-            //volatile read is in general cheaper then a write.
-            isCometSupported = true;
-        }
-        String topic = apt.getAsyncExecutor().getProcessorTask().getRequestURI();
-        CometContext cometContext = topic == null ? null : activeContexts.get(topic);
-        */
-/* If the cometContext is null, it means the context has never
-        * been registered. The registration might happens during the
-        * Servlet.service() execution so we need to keep a reference
-        * to the current thread so we can later retrieve the associated
-        * SelectionKey. The SelectionKey is required in order to park the request.
-        *//*
-
-        int continuationType = cometContext == null
-            ? AFTER_SERVLET_PROCESSING : cometContext.continuationType;
-        */
-/* Execute the Servlet.service method. CometEngine.register() ork
-        * CometContext.addCometHandler() might be invoked during the execution.
-        *//*
-
-        executeServlet(continuationType, apt);
-        */
-/* Will return a CometContext instance if and only if the
-         * Servlet.service() have invoked CometContext.addCometHandler().
-         * If the returned CometContext is null, it means we need to 
-         * execute a synchronous request. 
-         *//*
-
-        CometTask cometTask = updatedContexts.get();
-        if (cometTask != null) {
-            //need to impl thread local that gets and sets null in one efficient operation
-            updatedContexts.set(null);
-            cometContext = cometTask.getCometContext();
-            if (cometTask.upcoming_op_isread) {  //alreadySuspended
-                cometTask.upcoming_op_isread = false;
-                //need to set dummy key in cometTask ?
-                cometContext.addActiveHandler(cometTask);
-                return false;
-            }
-            cometTask.setAsyncProcessorTask(apt);
-            if (cometContext.getExpirationDelay() != -1) {
-                cometTask.setTimeout(System.currentTimeMillis());
-            }
-            SelectionKey mainKey = apt.getAsyncExecutor().getProcessorTask().getSelectionKey();
-            if (mainKey.isValid() && cometContext.getExpirationDelay()
-                != DISABLE_CLIENT_DISCONNECTION_DETECTION) {
-                try {
-                    mainKey.interestOps(SelectionKey.OP_READ);
-                    mainKey.attach(cometTask);
-                    cometContext.initialize(cometTask.getCometHandler());
-                } catch (Exception e) {
-                    mainKey.attach(Long.MIN_VALUE);
-                    return false;
-                }
-                cometContext.addActiveHandler(cometTask);
-                return true;
-            }
-        }
-        return false;
-    }
-*/
-
-    /**
      * Return the {@link CometContext} associated with the topic.
      *
      * @param topic the topic used to creates the {@link CometContext}
@@ -330,6 +253,10 @@ public class CometEngine {
     protected boolean interrupt(final CometHandler handler, final boolean finishExecution) throws IOException {
         final CometContext cometContext = handler.getCometContext();
         final boolean removed = cometContext.removeCometHandler(handler, finishExecution);
+        final PrintWriter s = new PrintWriter(new FileWriter("/tmp/removed"));
+        new Exception("removed = " + removed).printStackTrace(s);
+        s.flush();
+        s.close();
         if (removed && ! finishExecution) {
             interrupt0(handler, finishExecution);
         }

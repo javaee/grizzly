@@ -40,13 +40,13 @@
 
 package org.glassfish.grizzly.config.dom;
 
+import javax.validation.constraints.Pattern;
+
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.types.PropertyBag;
-
-import javax.validation.constraints.Pattern;
 
 /**
  * Define SSL processing parameters
@@ -69,7 +69,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
 
     /**
      * Nickname of the server certificate in the certificate database or the PKCS#11 token. In the certificate, the name
-     * format is tokenname:nickname. Including the tokenname: part of the name in this attribute is optional.
+     * format is token name:nickname. Including the token name: part of the name in this attribute is optional.
      */
     @Attribute
     String getCertNickname();

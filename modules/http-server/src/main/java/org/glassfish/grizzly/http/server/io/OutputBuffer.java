@@ -40,6 +40,15 @@
 
 package org.glassfish.grizzly.http.server.io;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetEncoder;
+import java.nio.charset.CoderResult;
+import java.nio.charset.CodingErrorAction;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
@@ -51,20 +60,11 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.http.server.Constants;
+import org.glassfish.grizzly.http.util.Charsets;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.NIOConnection;
-
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.CharsetEncoder;
-import java.nio.charset.CoderResult;
-import java.nio.charset.CodingErrorAction;
-import java.util.concurrent.atomic.AtomicReference;
-import org.glassfish.grizzly.http.util.Charsets;
-import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * Abstraction exposing both byte and character methods to write content
@@ -224,8 +224,10 @@ public class OutputBuffer {
         if (!closed) {
             close();
         }
-
-        ctx.notifyDownstream(HttpServerFilter.RESPONSE_COMPLETE_EVENT);
+        
+        if(ctx != null) {
+            ctx.notifyDownstream(HttpServerFilter.RESPONSE_COMPLETE_EVENT);
+        }
 
         finished = true;
 
@@ -541,7 +543,7 @@ public class OutputBuffer {
         handleAsyncErrors();
 
         final Buffer bufferToFlush;
-        final boolean isFlushComposite = compositeBuffer.hasRemaining();
+        final boolean isFlushComposite = compositeBuffer != null && compositeBuffer.hasRemaining();
 
         if (isFlushComposite) {
             finishCurrentBuffer();
@@ -618,9 +620,11 @@ public class OutputBuffer {
 
     private void forceCommitHeaders(final boolean isLast) throws IOException {
         if (isLast) {
-            final HttpContent.Builder builder = response.httpContentBuilder();
-            builder.last(true);
-            ctx.write(builder.build());
+            if (response != null) {
+                final HttpContent.Builder builder = response.httpContentBuilder();
+                builder.last(true);
+                ctx.write(builder.build());
+            }
         } else {
             ctx.write(response);
         }

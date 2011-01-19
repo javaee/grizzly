@@ -126,12 +126,12 @@ public class DefaultNotificationHandler implements NotificationHandler {
                     throw ISEempty;
             }
         } catch (Throwable ex) {
+            logger.log(Level.FINE, "Notification failed: ", ex);
             try {
                 cometEvent.getCometContext().resumeCometHandler(cometHandler);
             } catch (Throwable t) {
                 logger.log(Level.FINE, "Resume phase failed: ", t);
             }
-            logger.log(Level.FINE, "Notification failed: ", ex);
         }
     }
 

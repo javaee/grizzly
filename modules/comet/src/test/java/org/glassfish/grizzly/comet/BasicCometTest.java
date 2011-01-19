@@ -45,14 +45,11 @@ import java.net.HttpURLConnection;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.net.URL;
-import java.util.logging.Level;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import junit.framework.TestCase;
-import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
-import org.glassfish.grizzly.http.server.Request;
-import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.utils.Utils;
 
 /**
@@ -90,15 +87,20 @@ public class BasicCometTest extends TestCase {
         cometContext.setExpirationDelay(delay);
         newHttpServer(PORT += 1);
         String alias = "/OnInterrupt";
-        addHttpHandler(alias, false);
+        final CometHttpHandler httpHandler = addHttpHandler(alias, false);
         httpServer.start();
         HttpURLConnection conn = getConnection(alias, delay + 4000);
         long t1 = System.currentTimeMillis();
+        conn.getHeaderFields();
+        final DefaultCometHandler cometHandler = httpHandler.cometHandler;
+        assertNotNull("Should get a comet handler registered", cometHandler);
+        assertTrue(cometHandler.onInitializeCalled.get());
+        assertTrue(cometHandler.onInterruptCalled.get());
         assertEquals(onInitialize, conn.getHeaderField(onInitialize));
-        assertEquals(onInterrupt, conn.getHeaderField(onInterrupt));
+
         long delta = System.currentTimeMillis() - t1;
-        assertTrue("comet idletimeout was too fast," + delta + "ms", delta > delay - 250);
-        assertTrue("comet idletimeout was too late," + delta + "ms", delta < delay + 3000);
+        assertTrue("comet idle timeout was too fast," + delta + "ms", delta > delay - 250);
+        assertTrue("comet idle timeout was too late," + delta + "ms", delta < delay + 3000);
     }
 
     public void testClientCloseConnection() throws Exception {
@@ -122,107 +124,68 @@ public class BasicCometTest extends TestCase {
         } catch (SocketTimeoutException ex) {
             s.close();
             Thread.sleep(5000);
-            assertEquals(onInterrupt, ga.c.wasInterrupt);
+            assertTrue(ga.cometHandler.onInterruptCalled.get());
         }
     }
-    /* public void testOnTerminate() throws IOException {
+
+    public void testOnTerminate() throws IOException, InterruptedException {
         Utils.dumpOut("testOnTerminate ");
         cometContext.setExpirationDelay(-1);
-        newGWS(PORT+=3);
+        newHttpServer(PORT += 3);
         String alias = "/OnTerminate";
-        final CometGrizzlyAdapter ga = addAdapter(alias,true);
+        final CountDownHttpHandler httpHandler = new CountDownHttpHandler(cometContext, true);
+        httpServer.getServerConfiguration().addHttpHandler(httpHandler, alias);
         httpServer.start();
-        new Thread() {
-            @Override
-            public void run() {
-                try {
-                    Thread.sleep(200);
-                    CometEngine.getEngine().unregister(cometContext.topic);
-                } catch (Throwable ex) {
-                    ex.printStackTrace();
-                    fail("exception:"+ex.getMessage());
-                }
-            }
-        }.start();
-        HttpURLConnection conn = getConnection(alias,1000);
-        assertEquals(conn.getHeaderField(onInitialize)  , onInitialize);
-        assertEquals(conn.getHeaderField(onTerminate), onTerminate);
-    }*/
+        HttpURLConnection conn = getConnection(alias, 5000);
+        conn.getHeaderFields();
 
-    public void atestOnEvent() throws Exception {
+        CometEngine.getEngine().unregister(cometContext.topic);
+        final CountDownCometHandler cometHandler = (CountDownCometHandler) httpHandler.cometHandler;
+        assertTrue(cometHandler.onTerminate.await(10, TimeUnit.SECONDS));
+        assertEquals(conn.getHeaderField(onInitialize), onInitialize);
+        assertTrue(cometHandler.onTerminateCalled.get());
+    }
+
+    public void testOnEvent() throws Exception {
         Utils.dumpOut("testOnEvent ");
-        newHttpServer(PORT += 4);
-        String alias = "/OnEvent";
-        addHttpHandler(alias, true);
+        final String alias = "/OnEvent";
+        final int port = PORT += 4;
         cometContext.setExpirationDelay(-1);
+        newHttpServer(port);
+        final CountDownHttpHandler httpHandler = new CountDownHttpHandler(cometContext, true);
+        httpServer.getServerConfiguration().addHttpHandler(httpHandler, alias);
         httpServer.start();
-        int iter = 10;
-        while (iter-- > 0) {
-            new Thread() {
-                @Override
-                public void run() {
-                    try {
-                        Thread.sleep(150);
-                        cometContext.notify(onEvent);
-                    } catch (Throwable ex) {
-                        Logger.getLogger(BasicCometTest.class.getName()).log(Level.SEVERE, null, ex);
-                        fail("sleep/notify exception:" + ex.getMessage());
-                    }
-                }
-            }.start();
-            HttpURLConnection conn = getConnection(alias, 1000);
-            assertEquals(onInitialize, conn.getHeaderField(onInitialize));
-            assertEquals(onEvent, conn.getHeaderField(onEvent));
-            conn.disconnect();
-        }
+        HttpURLConnection conn = getConnection(alias, 2000);
+        conn.getContent();
+        final CountDownCometHandler cometHandler = (CountDownCometHandler) httpHandler.cometHandler;
+        assertTrue("Should see onInitialize() get called", cometHandler.onInitialize.await(10, TimeUnit.SECONDS));
+        cometContext.notify("onEvent");
+        assertTrue("Should see onEvent() get called", cometHandler.onEvent.await(10, TimeUnit.SECONDS));
+        conn.disconnect();
     }
 
-    private HttpURLConnection getConnection(String alias) throws IOException {
-        return getConnection(alias, 40 * 1000);
-    }
-
-    private HttpURLConnection getConnection(String alias, int readtimeout) throws IOException {
-        URL url = new URL("http", "localhost", PORT, alias);
-        HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();
+    private HttpURLConnection getConnection(String alias, int timeout) throws IOException {
+        HttpURLConnection urlConn = (HttpURLConnection) new URL("http", "localhost", PORT, alias).openConnection();
         urlConn.setConnectTimeout(5 * 1000);
-        urlConn.setReadTimeout(readtimeout);
+        urlConn.setReadTimeout(timeout);
         urlConn.connect();
         return urlConn;
     }
 
-    private int getResponseCodeFromAlias(HttpURLConnection urlConn)
-        throws IOException {
-        return urlConn.getResponseCode();
-    }
-
-    private CometHttpHandler addHttpHandler(final String alias, final boolean resume) {
-        final CometHttpHandler c = new CometHttpHandler(resume);
+    private CometHttpHandler addHttpHandler(String alias, boolean resume) {
+        final CometHttpHandler c = new CometHttpHandler(cometContext, resume);
         httpServer.getServerConfiguration().addHttpHandler(c, alias);
         return c;
     }
 
-    private void newHttpServer(int port) throws IOException {
+    private void newHttpServer(int port) {
+        stopHttpServer();
         httpServer = HttpServer.createSimpleServer("./", port);
     }
 
     private void stopHttpServer() {
-        if(httpServer != null) {
+        if (httpServer != null) {
             httpServer.stop();
-        }
-    }
-
-    class CometHttpHandler extends HttpHandler {
-        private final boolean resume;
-        private DefaultCometHandler c;
-
-        public CometHttpHandler(boolean resume) {
-            this.resume = resume;
-        }
-
-        @Override
-        public void service(Request request, Response response) {
-            c = new DefaultCometHandler(cometContext, response, resume);
-            cometContext.addCometHandler(c);
         }
     }
 

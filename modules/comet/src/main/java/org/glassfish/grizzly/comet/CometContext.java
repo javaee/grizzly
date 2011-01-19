@@ -225,9 +225,7 @@ public class CometContext<E> {
         if (!CometEngine.getEngine().isCometEnabled()) {
             throw new IllegalStateException(COMET_NOT_ENABLED);
         }
-        // is it ok that we only manage one addCometHandler call per thread ?
-        // else we can use a list of handlers to add inside thread local
-        CometEngine.updatedContexts.set(handler);
+        handlers.add(handler);
         final Response response = handler.getResponse();
         response.suspend(getExpirationDelay(), TimeUnit.MILLISECONDS, new CometCompletionHandler(handler),
             new CometTimeoutHandler(handler));
