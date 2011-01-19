@@ -97,7 +97,21 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
                         stage = AsyncTask.POST_EXECUTE;
                         break;
                     case AsyncTask.POST_EXECUTE:
-                        asyncExecutor.postExecute();
+                        continueExecution = asyncExecutor.postExecute();
+                        if (continueExecution) {
+                            if (asyncExecutor.getProcessorTask().hasNextRequest()) {
+                                asyncExecutor.reset();
+                                asyncExecutor.getProcessorTask().prepareForNextRequest();
+
+                                stage = AsyncTask.PRE_EXECUTE;
+                            } else {
+                                stage = AsyncTask.FINISH;
+                            }
+                        }
+                        break;
+//                        asyncExecutor.getAsyncHandler().returnTask(this);
+                    case AsyncTask.FINISH:
+                        asyncExecutor.finishExecute();
                         asyncExecutor.getAsyncHandler().returnTask(this);
                         return;
                 }
@@ -131,7 +145,7 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
     public void recycle() {
         stage = AsyncTask.PRE_EXECUTE;
         if (asyncExecutor instanceof DefaultAsyncExecutor){
-            ((DefaultAsyncExecutor)asyncExecutor).recycle();
+            ((DefaultAsyncExecutor)asyncExecutor).reset();
         }
     }
 

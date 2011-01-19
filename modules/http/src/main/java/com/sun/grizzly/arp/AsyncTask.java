@@ -54,8 +54,9 @@ public interface AsyncTask extends Task{
     public final static int PRE_EXECUTE = 0;
     public final static int INTERRUPTED = 1;
     public final static int POST_EXECUTE = 2;
-    public final static int COMPLETED = 3;
-    public final static int EXECUTE = 4;    
+    public final static int FINISH = 3;
+    public final static int COMPLETED = 4;
+    public final static int EXECUTE = 5;
     
     /**
      * Get the {@link AsyncExecutor}.

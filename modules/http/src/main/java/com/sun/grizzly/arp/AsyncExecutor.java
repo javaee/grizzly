@@ -89,6 +89,11 @@ public interface AsyncExecutor {
      */    
     public boolean postExecute() throws Exception;
     
+    /**
+     * finish the processing on this connection until new data come.
+     * @return true if the processing can continue.
+     */
+    public boolean finishExecute() throws Exception;
     
     /**
      * Set the {@link AsyncProcesssorTask}.
@@ -138,5 +143,10 @@ public interface AsyncExecutor {
      * @return {@link ProcessorTask} used to execute the request processing.
      */        
     public ProcessorTask getProcessorTask();
-    
+
+    /**
+     * Reset
+     */
+    public void reset();
+
 }

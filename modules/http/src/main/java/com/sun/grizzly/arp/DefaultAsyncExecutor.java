@@ -101,6 +101,7 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
     private final AtomicBoolean parseHeaderPhase = new AtomicBoolean(false);
     private final AtomicBoolean executeAdapterPhase = new AtomicBoolean(false);
     private final AtomicBoolean commitResponsePhase = new AtomicBoolean(false);
+    private final AtomicBoolean finishResponsePhase = new AtomicBoolean(false);
 
     
     // --------------------------------------------------------------------- //
@@ -137,8 +138,7 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
      */
     public boolean interrupt() throws Exception{
         if (asyncFilters.isEmpty()) {
-            execute();
-            return false;
+            return execute();
         } else {
             final AsyncFilter.Result result = invokeFilters();
             if (result == AsyncFilter.Result.NEXT) {
@@ -196,12 +196,22 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
         if (!commitResponsePhase.getAndSet(true)){
             if (processorTask == null) return false;
             processorTask.postResponse();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Resume the connection by commit the {@link Response} object.
+     */
+    public boolean finishExecute() throws Exception{
+        if (!finishResponsePhase.getAndSet(true)){
+            if (processorTask == null) return false;
             finishResponse();
             return false;
         }
         return false;
     }
-
       
     /**
      * Set the {@link AsyncTask}.
@@ -292,9 +302,11 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
     /**
      * Reset
      */
-    void recycle(){
-        parseHeaderPhase.getAndSet(false);
-        executeAdapterPhase.getAndSet(false);
-        commitResponsePhase.getAndSet(false);
+    @Override
+    public void reset(){
+        parseHeaderPhase.set(false);
+        executeAdapterPhase.set(false);
+        commitResponsePhase.set(false);
+        finishResponsePhase.set(false);
     }
 }

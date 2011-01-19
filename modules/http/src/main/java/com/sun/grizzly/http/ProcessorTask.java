@@ -687,7 +687,7 @@ public class ProcessorTask extends TaskBase implements Processor,
             }
             ((InputReader)inputStream).setReadTimeout(soTimeout);
 
-            isProcessingCompleted = false;
+            prepareForNextRequest();
 
             boolean exitWhile = parseRequest();
             if (handleKeepAliveBlockingThread && maxKeepAliveRequests > 0 && --keepAliveLeft == 0){
@@ -718,11 +718,15 @@ public class ProcessorTask extends TaskBase implements Processor,
 
             invokeAdapter();
             postResponse();
-        } while (!error && keepAlive && !SuspendResponseUtils.isSuspendedInCurrentThread() &&
-                (handleKeepAliveBlockingThread || inputBuffer.available() > 0));
+        } while (hasNextRequest());
         return error;
     }
 
+    public boolean hasNextRequest() {
+        return !error && keepAlive &&
+                !SuspendResponseUtils.isSuspendedInCurrentThread() &&
+                (handleKeepAliveBlockingThread || inputBuffer.available() > 0);
+    }
 
     /**
      * Prepare and post the response.
@@ -944,7 +948,8 @@ public class ProcessorTask extends TaskBase implements Processor,
      * commited.
      */
     public void postProcess() throws Exception {
-        if (response.isSuspended() || isProcessingCompleted){
+        if (response.isSuspended() || isProcessingCompleted ||
+                SuspendResponseUtils.isSuspendedInCurrentThread()) {
             return;
         }
 
@@ -2615,6 +2620,10 @@ public class ProcessorTask extends TaskBase implements Processor,
 
     void setPostProcessor(PostProcessor postProcessor) {
         this.externalPostProcessor = postProcessor;
+    }
+
+    public void prepareForNextRequest() {
+        isProcessingCompleted = false;
     }
 
     public static interface PostProcessor {
