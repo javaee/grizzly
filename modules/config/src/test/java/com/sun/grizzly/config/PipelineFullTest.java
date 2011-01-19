@@ -54,9 +54,9 @@ public class PipelineFullTest extends BaseGrizzlyConfigTest {
     public void check() throws IOException {
         GrizzlyConfig grizzlyConfig = null;
         try {
-            grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
-            grizzlyConfig.getConfig().getNetworkListeners().getNetworkListener().get(0)
-                .findThreadPool().setMaxQueueSize("0");
+            grizzlyConfig = new GrizzlyConfig("grizzly-config-zero-queue.xml");
+//            grizzlyConfig.getConfig().getNetworkListeners().getNetworkListener().get(0)
+//                .findThreadPool().setMaxQueueSize("0");
             grizzlyConfig.setupNetwork();
             int count = 0;
             for (GrizzlyServiceListener listener : grizzlyConfig.getListeners()) {
