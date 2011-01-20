@@ -7,7 +7,7 @@
         will help to optimize our application.<itemizedlist>
             <listitem>
                 <para><emphasis role="bold">IOStrategy</emphasis></para>
-                <para>In the <link xlink:href="iostrategies.xml" xml:id="iostrategies"
+                <para>In the <link linkend="iostrategies"
                         >IOStrategy</link> section we introduces different Grizzly
                     IOStrategies.</para>
                 <para>By default Grizzly Transports use Worker-thread IOStrategy, which is reliable
@@ -34,8 +34,7 @@
             </listitem>
             <listitem>
                 <para><emphasis role="bold">Worker thread pool</emphasis></para>
-                <para>In the thread pool <link xlink:href="core-config.xml"
-                        xml:id="threadpool-config">configuration</link> section we discussed
+                <para>In the thread pool <link linkend="threadpool-config">configuration</link> section we discussed
                     different thread pool implementation with their pros and cons, which will be
                     emplyed by Grizzly depending on the thread pool configuration.</para>
                 <para>All the IO Strategies, except SameThread Strategy, use worker threads to
