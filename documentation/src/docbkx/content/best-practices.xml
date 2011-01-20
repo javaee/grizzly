@@ -1,12 +1,62 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<section version="5.0" xml:id="bestpractices"
-         xmlns="http://docbook.org/ns/docbook"
-         xmlns:xlink="http://www.w3.org/1999/xlink"
-         xmlns:xi="http://www.w3.org/2001/XInclude"
-         xmlns:svg="http://www.w3.org/2000/svg"
-         xmlns:m="http://www.w3.org/1998/Math/MathML"
-         xmlns:html="http://www.w3.org/1999/xhtml"
-         xmlns:db="http://docbook.org/ns/docbook">
-  <title>Best Practices</title>
-  <para></para>
+<section version="5.0" xml:id="bestpractices" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:svg="http://www.w3.org/2000/svg" xmlns:m="http://www.w3.org/1998/Math/MathML" xmlns:html="http://www.w3.org/1999/xhtml">
+    <title>Best Practices</title>
+    <para>When developing network application, we usually wonder how we can optimize it, how big
+        worker thread-pool should be used. which I/O strategy employed?</para>
+    <para>There is no general answer for that question, but we'll try to provide some tips, which
+        will help to optimize our application.<itemizedlist>
+            <listitem>
+                <para><emphasis role="bold">IOStrategy</emphasis></para>
+                <para>In the <link xlink:href="iostrategies.xml" xml:id="iostrategies"
+                        >IOStrategy</link> section we introduces different Grizzly
+                    IOStrategies.</para>
+                <para>By default Grizzly Transports use Worker-thread IOStrategy, which is reliable
+                    for any possible usecase, but in case we want to optimize processing, and we're
+                    sure our processing logic doesn't involve any blocking I/O operations, we might
+                    want to chose Same-thread IOStrategy, which should be more performant, cause it
+                    doesn't do any thread context switches.</para>
+                <para>For example if we implement general HTTP Servlet container, we can't be sure
+                    about nature of specific Servlets developers may have, that's why we'd probably
+                    use Worker-thread IOStrategy; but if we use Grizzly 2.0 HttpServer and
+                    HttpHandler, which leverages NIO streams - then we'd chose Same-thread strategy
+                    and optimize processing time and resource consumption;</para>
+            </listitem>
+            <listitem>
+                <para><emphasis role="bold">Selector runners count</emphasis></para>
+                <para>Grizzly automatically assigns the value equal to <link
+                        xlink:href="http://download.oracle.com/javase/6/docs/api/java/lang/Runtime.html#availableProcessors()"
+                        >Runtime.getRuntime().availableProcessors()</link>, depending on usecase
+                    developer may change this value slighly.</para>
+                <para>Scott Oaks, from Glassfish performance team, <link
+                        xlink:href="http://weblogs.java.net/blog/2007/12/03/glassfish-tuning-primer"
+                        >suggests</link> to use <citation>1 of these for every 1-4 cores on your
+                        machine; no more than that</citation>;</para>
+            </listitem>
+            <listitem>
+                <para><emphasis role="bold">Worker thread pool</emphasis></para>
+                <para>In the thread pool <link xlink:href="core-config.xml"
+                        xml:id="threadpool-config">configuration</link> section we discussed
+                    different thread pool implementation with their pros and cons, which will be
+                    emplyed by Grizzly depending on the thread pool configuration.</para>
+                <para>All the IO Strategies, except SameThread Strategy, use worker threads to
+                    process IOEvents, which occur on Connections. How many threads should we
+                    normally use for the worker thread pool?</para>
+                <para>In his <link
+                        xlink:href="http://weblogs.java.net/blog/2007/12/03/glassfish-tuning-primer"
+                        >blog</link> Scott suggests <citation>How many is "just enough"? It depends,
+                        of course -- in a case where HTTP requests don't use any external resource
+                        and are hence CPU bound, you want only as many HTTP request processing
+                        threads as you have CPUs on the machine. But if the HTTP request makes a
+                        database call (even indirectly, like by using a JPA entity), the request
+                        will block while waiting for the database, and you could profitably run
+                        another thread. So this takes some trial and error, but start with the same
+                        number of threads as you have CPU and increase them until you no longer see
+                        an improvement in throughput</citation>.</para>
+                <para>Translating this to the general, non HTTP, usecase, if IOEvent processing
+                    includes blocking I/O operation(s), which will make thread block doing nothing
+                    for some time expecting result from peer - you'd probably need to have more
+                    worker threads, otherwise the simplier processing is - less worker threads count
+                    is recommended.</para>
+            </listitem>
+        </itemizedlist></para>
 </section>

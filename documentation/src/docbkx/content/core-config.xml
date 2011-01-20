@@ -91,6 +91,11 @@
             no value is explicitly set, the AttributeBuilder used will be the
             NIOTransportBuilder.DEFAULT_ATTRIBUTE_BUILDER.</entry>
           </row>
+          <row>
+            <entry>dddd</entry>
+            
+            <entry>bbb</entry>
+          </row>
 
           <row>
             <entry>NIOChannelDistributor</entry>
@@ -243,7 +248,7 @@
     </table>
   </section>
 
-  <section>
+  <section xml:id="threadpool-config">
     <title>Thread Pool Configuration</title>
 
     <para>Grizzly's thread pool configuration is managed by the
