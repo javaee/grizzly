@@ -139,11 +139,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
             final CertificateEvent ce = (CertificateEvent) event;
             ce.certs = getPeerCertificateChain(getSSLEngine(ctx.getConnection()),
                                                ctx,
-                                               ce);
-            if (ce.hasRemainder()) {
-                ctx.getStopAction(ctx.<Object>getMessage());
-                ctx.setMessage(null);
-            }
+                                               ce.needClientAuth);
             return ctx.getStopAction();
         }
         return ctx.getInvokeAction();
@@ -380,15 +376,11 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
      * @param context the {@link FilterChainContext} associated with this
      *  this renegotiation request.
      *
-     * @return a <code>true</code> if there is content remaining to be processed
-     *  after the SSLEngine consumed what it needed to complete the handshake,
-     *  otherwise returns false.
-     *
      * @throws IOException if an error occurs during SSL renegotiation.
      */
-    protected boolean renegotiate(final SSLEngine sslEngine,
-                                  final FilterChainContext context)
-    throws IOException {
+    protected void renegotiate(final SSLEngine sslEngine,
+                               final FilterChainContext context)
+                               throws IOException {
 
         final boolean authConfigured =
                 (sslEngine.getWantClientAuth()
@@ -430,18 +422,11 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                     context.setMessage(m);
                 }
             }
-            final Buffer remainder = (Buffer) context.getMessage();
-            if (!remainder.hasRemaining()) {
-                context.setMessage(null);
-                return false;
-            }
-            return true;
 
         } catch (Throwable t) {
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "Error during handshake", t);
             }
-            return false;
         } finally {
             if (!authConfigured) {
                 sslEngine.setNeedClientAuth(false);
@@ -461,7 +446,8 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
      *  certificate request.
      * @param context the {@link FilterChainContext} associated with this
      *  this certificate request.
-     * @param ce the event that triggered this certificate request.
+     * @param needClientAuth determines whether or not SSL renegotiation will
+     *  be attempted to obtain the certificate chain.
      *
      * @return the certificate chain as an <code>Object[]</code>.  If no
      *  certificate chain can be determined, this method will return
@@ -471,7 +457,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
      */
     protected Object[] getPeerCertificateChain(final SSLEngine sslEngine,
                                                final FilterChainContext context,
-                                               final CertificateEvent ce)
+                                               final boolean needClientAuth)
     throws IOException {
 
         Certificate[] certs = getPeerCertificates(sslEngine);
@@ -479,8 +465,8 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
             return certs;
         }
 
-        if (ce.needClientAuth) {
-            ce.remainder = renegotiate(sslEngine, context);
+        if (needClientAuth) {
+            renegotiate(sslEngine, context);
         }
 
         certs = getPeerCertificates(sslEngine);
@@ -685,8 +671,6 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
 
         private Object[] certs;
 
-        private boolean remainder;
-
         private final boolean needClientAuth;
 
 
@@ -712,10 +696,6 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
 
         public Object[] getCertificates() {
             return certs;
-        }
-
-        public boolean hasRemainder() {
-            return remainder;
         }
 
     } // END CertificateEvent
