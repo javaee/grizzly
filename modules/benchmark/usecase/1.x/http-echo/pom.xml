@@ -53,7 +53,7 @@
     <artifactId>grizzly-http-echo-benchmark1.x</artifactId>
     <packaging>bundle</packaging>
     <version>${grizzly-version}</version>
-    <name>grizzly-http-samples</name>
+    <name>grizzly-http-echo-benchmark1.x</name>
     <build>
         <defaultGoal>install</defaultGoal>
         <resources>
@@ -87,7 +87,7 @@
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-http</artifactId>
-            <version>1.9.24</version>
+            <version>1.9.28</version>
         </dependency>
     </dependencies>
 </project>
