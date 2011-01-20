@@ -91,11 +91,6 @@
             no value is explicitly set, the AttributeBuilder used will be the
             NIOTransportBuilder.DEFAULT_ATTRIBUTE_BUILDER.</entry>
           </row>
-          <row>
-            <entry>dddd</entry>
-            
-            <entry>bbb</entry>
-          </row>
 
           <row>
             <entry>NIOChannelDistributor</entry>
