@@ -55,7 +55,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.glassfish.grizzly.ssl;
 
 import java.io.IOException;
@@ -68,33 +67,30 @@ import java.io.IOException;
  * @author EKR
  */
 public interface SSLSupport {
+
     /**
      * The Request attribute key for the cipher suite.
      */
     public static final String CIPHER_SUITE_KEY = "javax.servlet.request.cipher_suite";
-
     /**
      * The Request attribute key for the key size.
      */
     public static final String KEY_SIZE_KEY = "javax.servlet.request.key_size";
-
     /**
      * The Request attribute key for the client certificate chain.
      */
     public static final String CERTIFICATE_KEY = "javax.servlet.request.X509Certificate";
-
     /**
      * The Request attribute key for the session id.
      * This one is a Tomcat extension to the Servlet spec.
      */
     public static final String SESSION_ID_KEY = "javax.servlet.request.ssl_session";
-
     /**
      * A mapping table to determine the number of effective bits in the key
      * when using a cipher suite containing the specified cipher name.  The
      * underlying data came from the TLS Specification (RFC 2246), Appendix C.
      */
-     static final CipherData ciphers[] = {
+    static final CipherData ciphers[] = {
         new CipherData("_WITH_NULL_", 0),
         new CipherData("_WITH_IDEA_CBC_", 128),
         new CipherData("_WITH_RC2_CBC_40_", 40),
@@ -102,7 +98,9 @@ public interface SSLSupport {
         new CipherData("_WITH_RC4_128_", 128),
         new CipherData("_WITH_DES40_CBC_", 40),
         new CipherData("_WITH_DES_CBC_", 56),
-        new CipherData("_WITH_3DES_EDE_CBC_", 168)
+        new CipherData("_WITH_3DES_EDE_CBC_", 168),
+        new CipherData("_WITH_AES_128_", 128),
+        new CipherData("_WITH_AES_256_", 256)
     };
 
     /**
@@ -114,7 +112,7 @@ public interface SSLSupport {
      * The client certificate chain (if any).
      */
     public Object[] getPeerCertificateChain()
-        throws IOException;
+            throws IOException;
 
     /**
      * The client certificate chain (if any).
@@ -122,7 +120,7 @@ public interface SSLSupport {
      *              connection if necessary.
      */
     public Object[] getPeerCertificateChain(boolean force)
-        throws IOException;
+            throws IOException;
 
     /**
      * Get the keysize.
@@ -139,29 +137,27 @@ public interface SSLSupport {
      * Unfortunately, all of these values are nonsensical.
      **/
     public Integer getKeySize()
-        throws IOException;
+            throws IOException;
 
     /**
      * The current session Id.
      */
     public String getSessionId()
-        throws IOException;
+            throws IOException;
+
     /**
      * Simple data class that represents the cipher being used, along with the
      * corresponding effective key size.  The specified phrase must appear in the
      * name of the cipher suite to be recognized.
      */
-
     final class CipherData {
 
         public String phrase = null;
-
         public int keySize = 0;
 
         public CipherData(String phrase, int keySize) {
             this.phrase = phrase;
             this.keySize = keySize;
         }
-
     }
 }
