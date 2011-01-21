@@ -40,37 +40,48 @@
     holder.
 
 -->
-<section version="5.0" xml:id="quickstart" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:svg="http://www.w3.org/2000/svg" xmlns:ns="http://docbook.org/ns/docbook" xmlns:m="http://www.w3.org/1998/Math/MathML" xmlns:html="http://www.w3.org/1999/xhtml">
+<section version="5.0" xml:id="quickstart"
+         xmlns="http://docbook.org/ns/docbook"
+         xmlns:xlink="http://www.w3.org/1999/xlink"
+         xmlns:xi="http://www.w3.org/2001/XInclude"
+         xmlns:svg="http://www.w3.org/2000/svg"
+         xmlns:ns="http://docbook.org/ns/docbook"
+         xmlns:m="http://www.w3.org/1998/Math/MathML"
+         xmlns:html="http://www.w3.org/1999/xhtml">
   <title>Quick Start</title>
-  <para>This chapter will present how to get started with Grizzly 2.0, both client and server
-    side.</para>
+
+  <para>This chapter will present how to get started with Grizzly 2.0, both
+  client and server side.</para>
+
   <para>First, it is necessary to depend on the correct Grizzly 2.0 <link
-      xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-framework/"
-      >core</link> artifact. Maven developers will need to add following dependency to the
-    pom:<programlisting>&lt;dependency>
-    &lt;groupId>org.glassfish.grizzly&lt;/groupId>
-    &lt;artifactId>grizzly-framework&lt;/artifactId>
-    &lt;version>2.0.0&lt;/version>
-&lt;/dependency></programlisting></para>
-  <para>Maven repository to be used
-    is<ns:programlisting>&lt;repository>
-    &lt;id>glassfish-maven2-repository.dev.java.net&lt;/id>
-    &lt;name>Java.net Maven 2 Repository for GlassFish&lt;/name>
-    &lt;url>http://download.java.net/maven/glassfish/&lt;/url>
-&lt;/repository></ns:programlisting></para>
-    
-    <para>Let's implement simple Echo client-server application. The client will get user's data
-    from standard input, send data to Echo server and redirect server's response to the standard
-    output. The responsibility of the Echo server is to read data from network channel and echo the
-    same data back to the channel.</para>
+  xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-framework/">core</link>
+  artifact. Maven developers will need to add following dependency to the
+  pom:<programlisting>&lt;dependency&gt;
+    &lt;groupId&gt;org.glassfish.grizzly&lt;/groupId&gt;
+    &lt;artifactId&gt;grizzly-framework&lt;/artifactId&gt;
+    &lt;version&gt;2.0.0&lt;/version&gt;
+&lt;/dependency&gt;</programlisting></para>
+
+  <para>Maven repository to be used is<programlisting>&lt;repository&gt;
+    &lt;id&gt;glassfish-maven2-repository.dev.java.net&lt;/id&gt;
+    &lt;name&gt;Java.net Maven 2 Repository for GlassFish&lt;/name&gt;
+    &lt;url&gt;http://download.java.net/maven/glassfish/&lt;/url&gt;
+&lt;/repository&gt;</programlisting></para>
+
+  <para>Let's implement simple Echo client-server application. The client will
+  get user's data from standard input, send data to Echo server and redirect
+  server's response to the standard output. The responsibility of the Echo
+  server is to read data from network channel and echo the same data back to
+  the channel.</para>
+
+  <section>
+    <title>Client</title>
+
     <section>
-      <title>Client</title>
-    
-      <section>
-        <title>Create client filter</title>
-        
-        <para>Client filter is responsible for redirecting server response to the standard
-        output<ns:programlisting>import java.io.IOException;
+      <title>Create client filter</title>
+
+      <para>Client filter is responsible for redirecting server response to
+      the standard output<programlisting>import java.io.IOException;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
@@ -95,13 +106,13 @@ public class ClientFilter extends BaseFilter {
 
         return ctx.getStopAction();
     }
-}</ns:programlisting></para>
-      </section>
+}</programlisting></para>
     </section>
+  </section>
 
-    <section>
-      <title>Server</title>
+  <section>
+    <title>Server</title>
 
-      <para/>
-    </section>
+    <para></para>
+  </section>
 </section>
