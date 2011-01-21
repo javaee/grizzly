@@ -40,28 +40,37 @@
 
 package com.sun.grizzly.http.embed;
 
-import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.SSLConfig;
+import com.sun.grizzly.arp.AsyncExecutor;
 import com.sun.grizzly.arp.AsyncFilter;
 import com.sun.grizzly.arp.AsyncHandler;
 import com.sun.grizzly.arp.DefaultAsyncHandler;
 import com.sun.grizzly.http.Management;
 import com.sun.grizzly.http.SelectorThread;
-import com.sun.grizzly.http.deployer.*;
+import com.sun.grizzly.http.deployer.DeployException;
+import com.sun.grizzly.http.deployer.Deployable;
+import com.sun.grizzly.http.deployer.Deployer;
+import com.sun.grizzly.http.deployer.DeploymentConfiguration;
+import com.sun.grizzly.http.deployer.DeploymentID;
+import com.sun.grizzly.http.deployer.FromURIDeployer;
 import com.sun.grizzly.ssl.SSLSelectorThread;
 import com.sun.grizzly.tcp.Adapter;
+import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapterChain;
 import com.sun.grizzly.tcp.http11.GrizzlyListener;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 import com.sun.grizzly.util.ClassLoaderUtil;
+import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.util.LoggerUtils;
+import com.sun.grizzly.util.http.mapper.Mapper;
 import com.sun.grizzly.util.net.jsse.JSSEImplementation;
 
 import javax.management.ObjectInstance;
 import javax.management.ObjectName;
 import java.io.IOException;
+import java.lang.String;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -74,8 +83,8 @@ import java.util.logging.Logger;
  * <p>
  * This class creates a WebServer that listen for http request. By default, 
  * creating an instance of this class can be used as it is to synchronously serve resources located 
- * under {@link #webResourcesPath}. By default, the {@link com.sun.grizzly.tcp.StaticResourcesAdapter} is
- * used when there is no {@link GrizzlyAdapter} specified.  The {@link com.sun.grizzly.tcp.StaticResourcesAdapter}
+ * under {@link #webResourcesPath}. By default, the {@link StaticResourcesAdapter} is
+ * used when there is no {@link GrizzlyAdapter} specified.  The {@link StaticResourcesAdapter}
  * allow servicing of static resources like html files, images files, etc. 
  * 
  * The {@link GrizzlyAdapter} provides developers with a simple and consistent mechanism for extending 
@@ -84,10 +93,10 @@ import java.util.logging.Logger;
  * http based protocol. 
  * </p><p>You can extend the GrizzlyWebServer by adding one or serveral
  * {@link GrizzlyAdapter}. If more that one are used, the {@link GrizzlyAdapterChain}
- * will be used to map the request to its associated {@link GrizzlyAdapter}s, using a {@link com.sun.grizzly.util.http.mapper.Mapper}.
+ * will be used to map the request to its associated {@link GrizzlyAdapter}s, using a {@link Mapper}.
  * A {@link GrizzlyAdapter} gets invoked
  * as soon as the http request has been parsed and 
- * decoded. The  {@link GrizzlyAdapter#service(com.sun.grizzly.tcp.http11.GrizzlyRequest, com.sun.grizzly.tcp.http11.GrizzlyResponse)}
+ * decoded. The  {@link GrizzlyAdapter#service(GrizzlyRequest, GrizzlyResponse)}
  * method is invoked with a
  * {@link GrizzlyRequest} and {@link GrizzlyResponse} that can be used to extend the
  * functionality of the Web Server. By default, all http requests are synchronously
@@ -97,7 +106,7 @@ import java.util.logging.Logger;
  * {@link #addAsyncFilter} method. {@link AsyncFilter} can be used when
  * asynchronous operation are required, like suspending the current http request,
  * delaying the invocation of {@link GrizzlyAdapter} etc. The state of the
- * request processing can be managed using {@link com.sun.grizzly.arp.AsyncExecutor}, like resuming
+ * request processing can be managed using {@link AsyncExecutor}, like resuming
  * the process so {@link GrizzlyAdapter}s can be invoked.
  * </p><p>
  * The following picture describes how {@link AsyncFilter} and {@link GrizzlyAdapter}
@@ -359,7 +368,7 @@ public class GrizzlyWebServer {
     // Listening port
     private final int port;
     
-    static public enum PROTOCOL { HTTP, AJP }
+    public enum PROTOCOL { HTTP, AJP }
 
   /**
      * Create a default GrizzlyWebServer
@@ -504,7 +513,7 @@ public class GrizzlyWebServer {
      * first invoked. {@link GrizzlyAdapter}s
      * are always invoked after {@link AsyncFilter}
      * @param grizzlyAdapter a {@link GrizzlyAdapter}
-     * @deprecated - Use {@link #addGrizzlyAdapter(com.sun.grizzly.tcp.http11.GrizzlyAdapter, java.lang.String[])}
+     * @deprecated - Use {@link #addGrizzlyAdapter(GrizzlyAdapter, String[])}
      */
     public void addGrizzlyAdapter(GrizzlyAdapter grizzlyAdapter){
         adapters.put(grizzlyAdapter,new String[0]);
@@ -578,7 +587,7 @@ public class GrizzlyWebServer {
     /**
      * Start the GrizzlyWebServer and start listening for http requests. Calling 
      * this method several time has no effect once GrizzlyWebServer has been started.
-     * @throws java.io.IOException If can't startup.
+     * @throws IOException If can't startup.
      */
     public void start() throws IOException{
         if (isStarted) return;
