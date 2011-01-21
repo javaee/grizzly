@@ -88,7 +88,7 @@ public final class Cookies {
             new ArrayList<Cookie>(INITIAL_SIZE);
     
     private boolean isProcessed;
-    private final MimeHeaders headers;
+    private MimeHeaders headers;
 
     /*
     List of Separator Characters (see isSeparator())
@@ -111,15 +111,9 @@ public final class Cookies {
         }
     }
 
-    /**
-     *  Construct a new cookie collection, that will extract
-     *  the information from headers.
-     *
-     * @param headers Cookies are lazy-evaluated and will extract the
-     *     information from the provided headers.
-     */
-    public Cookies(MimeHeaders headers) {
-        this.headers = headers;
+
+    public boolean initialized() {
+        return headers != null;
     }
 
     public Collection<Cookie> get() {
@@ -130,12 +124,17 @@ public final class Cookies {
 
         return cookies;
     }
+
+    public void setHeaders(MimeHeaders headers) {
+        this.headers = headers;
+    }
     
     /**
      * Recycle.
      */
     public void recycle() {
         cookies.clear();
+        headers = null;
         isProcessed = false;
     }
 

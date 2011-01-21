@@ -597,6 +597,9 @@ public class Request {
         reader = null;
 
         request.recycle();
+        if (rawCookies != null) {
+            rawCookies.recycle();
+        }
 
         response = null;
         request = null;
@@ -1839,7 +1842,10 @@ public class Request {
      */
     protected Cookies getRawCookies() {
         if (rawCookies == null) {
-            rawCookies = new Cookies(request.getHeaders());
+            rawCookies = new Cookies();
+        }
+        if (!rawCookies.initialized()) {
+            rawCookies.setHeaders(request.getHeaders());
         }
         
         return rawCookies;
