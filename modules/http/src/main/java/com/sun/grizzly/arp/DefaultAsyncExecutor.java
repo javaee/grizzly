@@ -58,7 +58,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * @author Jeanfrancois Arcand
  */
-public class DefaultAsyncExecutor implements AsyncExecutor{
+public class DefaultAsyncExecutor implements AsyncExecutor {
     
     private final static String ASYNC_FILTER = 
             "com.sun.grizzly.asyncFilters";
@@ -302,7 +302,6 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
     /**
      * Reset
      */
-    @Override
     public void reset(){
         parseHeaderPhase.set(false);
         executeAdapterPhase.set(false);
