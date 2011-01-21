@@ -40,8 +40,10 @@
 
 package org.glassfish.grizzly.samples.echo;
 
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.util.Arrays;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -49,11 +51,11 @@ import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.StandaloneProcessor;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.streams.StreamReader;
-import org.glassfish.grizzly.streams.StreamWriter;
+import org.glassfish.grizzly.utils.StringFilter;
 
 /**
  * The simple client, which sends a message to the echo server
@@ -67,12 +69,21 @@ public class EchoClient {
             ExecutionException, InterruptedException, TimeoutException {
 
         Connection connection = null;
-        StreamReader reader = null;
-        StreamWriter writer = null;
-        
-        // Create the TCP transport
+
+        // Create a FilterChain using FilterChainBuilder
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        // Add TransportFilter, which is responsible
+        // for reading and writing data to the connection
+        filterChainBuilder.add(new TransportFilter());
+        // StringFilter is responsible for Buffer <-> String conversion
+        filterChainBuilder.add(new StringFilter(Charset.forName("UTF-8")));
+        // ClientFilter is responsible for redirecting server responses to the standard output
+        filterChainBuilder.add(new ClientFilter());
+
+        // Create TCP transport
         final TCPNIOTransport transport =
                 TCPNIOTransportBuilder.newInstance().build();
+        transport.setProcessor(filterChainBuilder.build());
 
         try {
             // start the transport
@@ -86,33 +97,16 @@ public class EchoClient {
 
             assert connection != null;
 
-            connection.configureStandalone(true);
+            System.out.println("Ready... (\"q\" to exit)");
+            final BufferedReader inReader = new BufferedReader(new InputStreamReader(System.in));
+            do {
+                final String userInput = inReader.readLine();
+                if (userInput == null || "q".equals(userInput)) {
+                    break;
+                }
 
-            writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
-            String message = "Echo test";
-            byte[] sendBytes = message.getBytes();
-
-            // sync. write the complete message using
-            // temporary selectors if required
-            writer.writeByteArray(sendBytes);
-            Future<Integer> writeFuture = writer.flush();
-            writeFuture.get();
-
-            assert writeFuture.isDone();
-
-            reader = StandaloneProcessor.INSTANCE.getStreamReader(connection);
-            // allocate the buffer for receiving bytes
-            byte[] receiveBytes = new byte[sendBytes.length];
-            Future readFuture = reader.notifyAvailable(receiveBytes.length);
-
-            readFuture.get();
-
-            reader.readByteArray(receiveBytes);
-
-            // check the result
-            final boolean isEqual = Arrays.equals(sendBytes, receiveBytes);
-            assert isEqual;
-            logger.info("Echo came successfully");
+                connection.write(userInput);
+            } while (true);
         } finally {
             // close the client connection
             if (connection != null) {
