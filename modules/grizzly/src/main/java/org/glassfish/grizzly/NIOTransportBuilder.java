@@ -419,7 +419,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      *  that should be used.
      */
     private int getRunnerCount() {
-        return Math.max(1, Runtime.getRuntime().availableProcessors() / 2 * 3);
+        return Math.max(1, Runtime.getRuntime().availableProcessors());
     }
 
 }
