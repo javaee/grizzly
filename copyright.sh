@@ -52,6 +52,7 @@ valid() {
 		 grep -vi .jar | \
 		 grep -vi .jks | \
 		 grep -vi .jpg | \
+		 grep -vi .json | \
 		 grep -vi .manifest | \
 		 grep -vi .mm | \
 		 grep -vi .ods | \
