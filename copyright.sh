@@ -73,7 +73,7 @@ valid() {
 }
 
 run() {
-	$JAVA -jar $0/../copyright.jar $* | while read LINE
+	$JAVA -jar copyright.jar $* | while read LINE
 	do
 		valid $LINE
 	done
