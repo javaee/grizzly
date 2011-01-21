@@ -85,7 +85,7 @@ then
 	JAVA=java
 fi
 
-$JAVA -jar $0/../copyright.jar -V
+$JAVA -jar copyright.jar -V
 rm -f copyrightcheck.out
 run $* | tee copyrightcheck.out
 
