@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section version="5.0" xml:id="quickstart" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:svg="http://www.w3.org/2000/svg" xmlns:ns="http://docbook.org/ns/docbook" xmlns:m="http://www.w3.org/1998/Math/MathML" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Quick Start</title>
+  <para>This chapter will present how to get started with Grizzly 2.0, both client and server
+    side.</para>
+  <para>First, it is necessary to depend on the correct Grizzly 2.0 <link
+      xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-framework/"
+      >core</link> artifact. Maven developers will need to add following dependency to the
+    pom:<programlisting>&lt;dependency>
+    &lt;groupId>org.glassfish.grizzly&lt;/groupId>
+    &lt;artifactId>grizzly-framework&lt;/artifactId>
+    &lt;version>2.0.0&lt;/version>
+&lt;/dependency></programlisting></para>
+  <para>Maven repository to be used
+    is<ns:programlisting>&lt;repository>
+    &lt;id>glassfish-maven2-repository.dev.java.net&lt;/id>
+    &lt;name>Java.net Maven 2 Repository for GlassFish&lt;/name>
+    &lt;url>http://download.java.net/maven/glassfish/&lt;/url>
+&lt;/repository></ns:programlisting></para>
+    
+    <section>
+      <title>Server</title>
+    
+        <para/>
+      </section>
+
+    <section>
+      <title>Client</title>
+
+      <para/>
+    </section>
+</section>
