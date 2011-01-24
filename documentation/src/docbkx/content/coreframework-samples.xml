@@ -3,7 +3,7 @@
 
     DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 
-    Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
 
     The contents of this file are subject to the terms of either the GNU
     General Public License Version 2 only ("GPL") or the Common Development
@@ -40,29 +40,14 @@
     holder.
 
 -->
-<chapter version="5.0" xmlns="http://docbook.org/ns/docbook"
+<section version="5.0" xml:id="coreframework-samples"
+         xmlns="http://docbook.org/ns/docbook"
          xmlns:xlink="http://www.w3.org/1999/xlink"
          xmlns:xi="http://www.w3.org/2001/XInclude"
          xmlns:svg="http://www.w3.org/2000/svg"
          xmlns:m="http://www.w3.org/1998/Math/MathML"
-         xmlns:html="http://www.w3.org/1999/xhtml"
-         xmlns:db="http://docbook.org/ns/docbook">
-  <title>The Core Framework</title>
+         xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Samples</title>
 
-  <xi:include href="memory.xml" xpointer="element(/1)" />
-
-  <xi:include href="iostrategies.xml" xpointer="element(/1)" />
-
-  <xi:include href="transports-connections.xml" xpointer="element(/1)" />
-
-  <xi:include href="filterchain-filters.xml" xpointer="element(/1)" />
-
-  <xi:include href="core-config.xml" xpointer="element(/1)" />
-
-  <xi:include href="best-practices.xml" xpointer="element(/1)" />
-
-  <xi:include href="quickstart.xml" xpointer="element(/1)" />
-
-  <xi:include href="coreframework-samples.xml" xpointer="element(/1)" />
-  
-</chapter>
+  <para></para>
+</section>
