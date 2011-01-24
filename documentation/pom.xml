@@ -3,7 +3,7 @@
 
     DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 
-    Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
 
     The contents of this file are subject to the terms of either the GNU
     General Public License Version 2 only ("GPL") or the Common Development
@@ -64,9 +64,11 @@
                 <version>2.0.11</version>
                 <dependencies>
                     <dependency>
-                        <groupId>org.docbook</groupId>
+                        <groupId>net.sf.docbook</groupId>
                         <artifactId>docbook-xml</artifactId>
-                        <version>4.4</version>
+                        <version>5.0-all</version>
+                        <classifier>resources</classifier>
+                        <type>zip</type>
                         <scope>runtime</scope>
                     </dependency>
                 </dependencies>

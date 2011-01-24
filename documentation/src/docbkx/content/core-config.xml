@@ -365,7 +365,7 @@
 
       <para>This pool will be selected when the queueLimit property is less
       than zero, and the max and core pool sizes are the same. The
-      FixedThreadPool has no syncronization when executing tasks, so it offers
+      FixedThreadPool has no synchronization when executing tasks, so it offers
       better performance.</para>
     </section>
 
@@ -383,8 +383,8 @@
       <title>SyncThreadPool</title>
 
       <para>This pool will be selected when none of the criteria for the other
-      thread pools apply. This thread pool does have syncronization to have
-      precise controll over the decision of thread creation.</para>
+      thread pools apply. This thread pool does have synchronization to have
+      precise control over the decision of thread creation.</para>
     </section>
   </section>
 
