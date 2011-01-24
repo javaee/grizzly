@@ -63,15 +63,21 @@ public class EchoServer {
     public static void main(String[] args) throws IOException {
         // Create a FilterChain using FilterChainBuilder
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+
         // Add TransportFilter, which is responsible
         // for reading and writing data to the connection
         filterChainBuilder.add(new TransportFilter());
+
+        // StringFilter is responsible for Buffer <-> String conversion
         filterChainBuilder.add(new StringFilter(Charset.forName("UTF-8")));
+
+        // EchoFilter is responsible for echoing received messages
         filterChainBuilder.add(new EchoFilter());
         
         // Create TCP transport
         final TCPNIOTransport transport =
                 TCPNIOTransportBuilder.newInstance().build();
+        
         transport.setProcessor(filterChainBuilder.build());
         
         try {

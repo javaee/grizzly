@@ -40,8 +40,8 @@
 
 package org.glassfish.grizzly.samples.echo;
 
-import org.glassfish.grizzly.filterchain.BaseFilter;
 import java.io.IOException;
+import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
