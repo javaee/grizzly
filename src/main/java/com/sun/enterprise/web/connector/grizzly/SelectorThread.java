@@ -1986,6 +1986,7 @@ public class SelectorThread extends Thread implements MBeanRegistration{
      */    
     public void setKeepAliveTimeoutInSeconds(int timeout) {
         keepAliveTimeoutInSeconds = timeout;
+        kaTimeout = timeout * 1000;
         keepAliveStats.setSecondsTimeouts(timeout);
     }
 
