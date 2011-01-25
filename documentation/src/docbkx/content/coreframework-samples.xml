@@ -49,5 +49,219 @@
          xmlns:html="http://www.w3.org/1999/xhtml">
   <title>Samples</title>
 
-  <para></para>
+  <section>
+      <title>Parsing an incoming message</title>
+        <para>When writing network application, very often we need to parse incoming bytes into
+            application specific message.</para>
+        <para>The problem is that chunk of data been read from NIO Connection may contain just a
+            part of application message, or contain several of them at once. So how parsing Filter
+            should work out these scenarious?<itemizedlist>
+                <listitem>
+                    <para>If we don't have enough data to build an application message - we stop the
+                        FilterChain processing and store the incomplete buffer by
+                        returning<programlisting>return filterChainContext.getStopAction(buffer);</programlisting></para>
+                </listitem>
+                <listitem>
+                    <para>If the source Buffer contains more than one message at once - we're
+                        splitting up the source Buffer into two chunks:<orderedlist>
+                            <listitem>
+                                <para>The Buffer, which belongs to the first complete application
+                                    message;</para>
+                            </listitem>
+                            <listitem>
+                                <para>The remainder.</para>
+                            </listitem>
+                        </orderedlist></para>
+                    <para>The 1st chunk could be parsed immediately and correspondent application
+                        message created. After completing the parsing we may want to instruct
+                        FilterChain to continue execution, by calling the next Filter in the chain,
+                        and store the remainder to be processed later (once processing of this
+                        message is
+                        complete).<programlisting>return filterChainContext.getInvokeAction(remainder);</programlisting></para>
+                </listitem>
+            </itemizedlist></para>
+        <para>Here is an example of parsing Filter, parses the incoming Buffer and creates a
+            GIOPMessage, which has following
+            structure<programlisting>public class GIOPMessage {
+    private byte G;
+    private byte I;
+    private byte O;
+    private byte P;
+
+    private byte major;
+    private byte minor;
+
+    private byte flags;
+    private byte value;
+
+    private int bodyLength;
+
+    private byte[] body;
+}</programlisting></para>
+        <para>So the actual parser Filter code
+            is<programlisting>    private static final int HEADER_SIZE = 12;
+
+    /**
+     * Method is called, when new data was read from the Connection and ready
+     * to be processed.
+     *
+     * We override this method to perform Buffer -> GIOPMessage transformation.
+     * 
+     * @param ctx Context of {@link FilterChainContext} processing
+     * @return the next action
+     * @throws java.io.IOException
+     */
+    @Override
+    public NextAction handleRead(final FilterChainContext ctx) throws IOException {
+        // Get the source buffer from the context
+        final Buffer sourceBuffer = ctx.getMessage();
+
+        final int sourceBufferLength = sourceBuffer.remaining();
+
+        // If source buffer doesn't contain header
+        if (sourceBufferLength &lt; HEADER_SIZE) {
+            // stop the filterchain processing and store sourceBuffer to be
+            // used next time
+            <emphasis role="bold">return ctx.getStopAction(sourceBuffer);</emphasis>
+        }
+
+        // Get the body length
+        final int bodyLength = sourceBuffer.getInt(HEADER_SIZE - 4);
+        // The complete message length
+        final int completeMessageLength = HEADER_SIZE + bodyLength;
+        
+        // If the source message doesn't contain entire body
+        if (sourceBufferLength &lt; completeMessageLength) {
+            // stop the filterchain processing and store sourceBuffer to be
+            // used next time
+            <emphasis role="bold">return ctx.getStopAction(sourceBuffer);</emphasis>
+        }
+
+        // Check if the source buffer has more than 1 complete GIOP message
+        // If yes - split up the first message and the remainder
+        final Buffer remainder = sourceBufferLength > completeMessageLength ? 
+            sourceBuffer.split(completeMessageLength) : null;
+
+        // Construct a GIOP message
+        final GIOPMessage giopMessage = new GIOPMessage();
+
+        // Set GIOP header bytes
+        giopMessage.setGIOPHeader(sourceBuffer.get(), sourceBuffer.get(),
+                sourceBuffer.get(), sourceBuffer.get());
+
+        // Set major version
+        giopMessage.setMajor(sourceBuffer.get());
+
+        // Set minor version
+        giopMessage.setMinor(sourceBuffer.get());
+
+        // Set flags
+        giopMessage.setFlags(sourceBuffer.get());
+
+        // Set value
+        giopMessage.setValue(sourceBuffer.get());
+
+        // Set body length
+        giopMessage.setBodyLength(sourceBuffer.getInt());
+
+        // Read body
+        final byte[] body = new byte[bodyLength];
+        sourceBuffer.get(body);
+        // Set body
+        giopMessage.setBody(body);
+
+        ctx.setMessage(giopMessage);
+
+        // We can try to dispose the buffer
+        sourceBuffer.tryDispose();
+
+        // Instruct FilterChain to store the remainder (if any) and continue execution
+        <emphasis role="bold">return ctx.getInvokeAction(remainder);</emphasis>
+    }</programlisting></para>
+      <para>The complete GIOP sample code could be found <link xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/filterchain">here</link></para>
+  </section>
+    <section>
+        <title>Asynchronous FilterChain execution</title>
+        <para>During the FilterChain execution, we might want to continue IOEvent processing in the
+            different/custom thread.</para>
+        <para>For example, we've chosen the SameThreadStrategy for our usecase to avoid redundant
+            thread context switches and it fits great to our usecase, but at the same time we still
+            have some scenarious, which either execute long lasting tasks, or use blocking I/O (for
+            ex. database access), and to not make entire server unresponsive, we'd want to execute
+            such a task in our custom thread pool and let Grizzly service other Connections.</para>
+        <para>This might be easily implemented with Grizzly using code like (not working
+            sample):<programlisting>    public NextAction handleRead(final FilterChainContext ctx) throws IOException {
+    
+            // Get the SuspendAction in advance, cause once we execute LongLastTask in the
+            // custom thread - we lose control over the context
+            final NextAction suspendActipn = ctx.getSuspendAction();
+            
+            // suspend the current execution
+            ctx.suspend();
+            
+            // schedule async work
+            scheduler.schedule(new Runnable() {
+
+                @Override
+                public void run() {
+                    doLongLastingTask();
+
+                    // Resume the FilterChain IOEvent processing
+                    ctx.resume();
+                }
+            }, 5, TimeUnit.SECONDS);
+
+            // return suspend status
+            return suspendActipn;
+    }</programlisting></para>
+        <para>during processing IOEvent. We have to understand that by instructing Grizzly to
+            suspend the IOEvent execution, we're becoming responsible for resuming the execution at
+            one point of time (when long lasting task or blocking I/O operation
+            completes).<programlisting>public void run() {
+    doLongLastingTask();
+
+    // Resume the FilterChain IOEvent processing
+    ctx.resume();
+}</programlisting></para>
+        <para><emphasis role="bold">Please note, once we resume the FilterChain processing - the
+                FilterChain will resume the execution starting from the Filter, which returned
+                SuspendAction!</emphasis> So the "suspender", has to distunguish two types of
+            processing - the regular and resumed to avoid neverending loop. So coming back to our
+            Filter sample, we should introduce some flag to distinguish the processing
+            type.<programlisting>    public NextAction handleRead(final FilterChainContext ctx) throws IOException {
+<emphasis role="bold">        // Check if it's resuming phase?
+        final Boolean isResumed = isResumedAttribute.remove(ctx);
+        if (!isResumed) {
+</emphasis>    
+            // Get the SuspendAction in advance, cause once we execute LongLastTask in the
+            // custom thread - we lose control over the context
+            final NextAction suspendActipn = ctx.getSuspendAction();
+            
+            // suspend the current execution
+            ctx.suspend();
+            
+            // schedule async work
+            myExecutorService.execute(new Runnable() {
+
+                @Override
+                public void run() {
+                    doLongLastingTask();
+
+<emphasis role="bold">                    // Set the flag to let know the Filter, that we're resuming the processing
+                    isResumedAttribute.set(ctx, Boolean.TRUE);
+</emphasis>
+                    // Resume the FilterChain IOEvent processing
+                    ctx.resume();
+                }
+            });
+
+            // return suspend status
+            return suspendActipn;
+<emphasis role="bold">        }
+
+        // If we reach this point - the processing was resumed - so let's continue FilterChain execution
+        return ctx.getInvokeAction();</emphasis>
+    }</programlisting></para>
+        <para>The asynchronous EchoFilter example could be found <link xlink:href="http://java.net/projects/grizzly/sources/svn/content/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/echo/EchoFilterAsync.java">here</link>.</para>
+    </section>
 </section>
