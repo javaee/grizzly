@@ -290,7 +290,7 @@ public class AIOController extends Controller {
         for (AIOHandler ioHandler : aioHandlers) {
             startIOHandlerRunner(ioHandler, selectorHandlerCount > 1);
         }
-        waitUntilSeletorHandlersStop();
+        waitUntilSelectorHandlersStop();
         aioHandlers.clear();
         if (threadPool != null){
             threadPool.shutdown();
