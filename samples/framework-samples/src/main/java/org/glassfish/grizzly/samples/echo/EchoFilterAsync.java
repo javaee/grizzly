@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -86,11 +86,14 @@ public class EchoFilterAsync extends BaseFilter {
         if (message != null) {
             // If message is not null - it's first time the filter is getting called
             // and we need to init async thread, which will reply
-
             
             // Peer address is used for non-connected UDP Connection :)
             final Object peerAddress = ctx.getAddress();
 
+            // Get the SuspendAction in advance, cause once we execute LongLastTask in the
+            // custom thread - we lose control over the context
+            final NextAction suspendActipn = ctx.getSuspendAction();
+            
             // suspend the current execution
             ctx.suspend();
             
@@ -114,7 +117,7 @@ public class EchoFilterAsync extends BaseFilter {
             }, 5, TimeUnit.SECONDS);
 
             // return suspend status
-            return ctx.getSuspendAction();
+            return suspendActipn;
         }
 
         // If message is null - it means async thread completed the execution
