@@ -410,7 +410,7 @@ public abstract class HttpHeader extends HttpPacket
     /**
      * Set the character encoding of this HTTP message.
      *
-     * @param enc the encoding.
+     * @param charset the encoding.
      */
     public void setCharacterEncoding(final String charset) {
 
