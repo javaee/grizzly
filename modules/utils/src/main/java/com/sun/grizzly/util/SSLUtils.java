@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -54,6 +54,7 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLEngineResult.Status;
+import javax.net.ssl.SSLHandshakeException;
 
 /**
  * SSL over NIO utility class. The class handle the SSLEngine operations 
@@ -556,7 +557,30 @@ public class SSLUtils {
                 sslEngine.setNeedClientAuth(true);
             }
             sslEngine.getSession().invalidate();
-            sslEngine.beginHandshake();
+            try {
+                sslEngine.beginHandshake();
+            } catch (SSLHandshakeException e) {
+                // If we catch SSLHandshakeException at this point it may be due
+                // to an older SSL peer that hasn't made its SSL/TLS renegotiation
+                // secure.  This will be the case with Oracle's VM older than
+                // 1.6.0_22 or native applications using OpenSSL libraries
+                // older than 0.9.8m.
+                //
+                // What we're trying to accomplish here is an attempt to detect
+                // this issue and log a useful message for the end user instead
+                // of an obscure exception stack trace in the server's log.
+                // Note that this probably will only work on Oracle's VM.
+                if (e.toString().toLowerCase().contains("insecure renegotiation")) {
+                    if (logger.isLoggable(Level.SEVERE)) {
+                        logger.severe(com.sun.grizzly.util.LogMessages.SEVERE_GRIZZLY_UTILS_SSL_JSSE_INSECURE_RENEGOTIATION_NOT_ALLOWED());
+                    }
+                    // we could return null here and let the caller
+                    // decided what to do, but since the SSLEngine will
+                    // close the channel making further actions useless,
+                    // we'll report the entire cause.
+                }
+                throw e;
+            }
                       
             ByteBuffer origBB = byteBuffer;
             // In case the application hasn't read all the body bytes.
