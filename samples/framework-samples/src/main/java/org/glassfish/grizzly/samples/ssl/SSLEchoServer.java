@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,6 +42,7 @@ package org.glassfish.grizzly.samples.ssl;
 
 import java.io.IOException;
 import java.net.URL;
+import java.nio.charset.Charset;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -50,6 +51,7 @@ import org.glassfish.grizzly.samples.echo.EchoFilter;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.ssl.SSLFilter;
+import org.glassfish.grizzly.utils.StringFilter;
 
 /**
  * Class initializes and starts the SSL echo server, based on Grizzly 2.0
@@ -77,6 +79,9 @@ public class SSLEchoServer {
         final SSLEngineConfigurator clientConfig = serverConfig.clone().setClientMode(true);
 
         filterChainBuilder.add(new SSLFilter(serverConfig, clientConfig));
+
+        // Add StringFilter, which will be responsible for Buffer <-> String transformation
+        filterChainBuilder.add(new StringFilter(Charset.forName("UTF-8")));
 
         // Use the plain EchoFilter
         filterChainBuilder.add(new EchoFilter());
