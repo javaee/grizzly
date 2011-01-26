@@ -101,5 +101,15 @@
         <imagedata fileref="../images/portunification/portunification-diagram2.svg"></imagedata>
       </imageobject>
     </inlinemediaobject></para>
+    <para>The PUFilter logic could be described using follwoing flowchart diagram:</para>
+    <para><inlinemediaobject>
+      <imageobject>
+        <imagedata scale="70" fileref="../images/portunification/pufilter-flowchart.svg"></imagedata>
+      </imageobject>
+    </inlinemediaobject></para>
+  </section>
+  <section>
+    <title>Sample</title>
+    <para></para>
   </section>
 </chapter>
