@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -63,8 +63,9 @@ import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.utils.ArraySet;
 
 /**
- *
- * @author oleksiys
+ * Port unification filter.
+ * 
+ * @author Alexey Stashok
  */
 public class PUFilter extends BaseFilter {
     private static final Logger LOGGER = Grizzly.logger(PUFilter.class);
@@ -90,6 +91,14 @@ public class PUFilter extends BaseFilter {
                         PUFilter.class.getName() + "-" + hashCode() + ".suspendedContext");
     }
 
+    /**
+     * Registers new {@link ProtocolFinder} - {@link FilterChain} pair, which
+     * defines the protocol.
+     * 
+     * @param protocolFinder {@link ProtocolFinder}
+     * @param filterChain {@link FilterChain}
+     * @return {@link PUProtocol}, which wraps passed {@link ProtocolFinder} and {@link FilterChain}.
+     */
     public PUProtocol register(final ProtocolFinder protocolFinder,
             final FilterChain filterChain) {
 
@@ -99,6 +108,11 @@ public class PUFilter extends BaseFilter {
         return puProtocol;
     }
 
+    /**
+     * Registers new {@link PUProtocol}.
+     *
+     * @param puProtocol {@link PUProtocol}
+     */
     public void register(final PUProtocol puProtocol) {
         final Filter filter = puProtocol.getFilterChain().get(0);
         if (filter != backChannelFilter) {
@@ -108,18 +122,46 @@ public class PUFilter extends BaseFilter {
         protocols.add(puProtocol);
     }
 
+    /**
+     * Deregisters the {@link PUProtocol}.
+     *
+     * @param puProtocol {@link PUProtocol}
+     */
     public void deregister(final PUProtocol puProtocol) {
         protocols.remove(puProtocol);
     }
 
+    /**
+     * Get registered port unification protocols - {@link PUProtocol}s.
+     *
+     * @return {@link PUProtocol} {@link Set}.
+     */
     public Set<PUProtocol> getProtocols() {
         return protocols;
     }
 
+    /**
+     * Get the back channel {@link Filter} implementation, which should connect the
+     * custom protocol {@link FilterChain} with the main {@link ProtocolChain}.
+     * Usually developers shouldn't use this method, if they build custom protocol
+     * chains using {@link #getPUFilterChainBuilder()}, otherwise they have to
+     * make sure there custom protocol {@link FilterChain} contains back channel
+     * {@link Filter} (usually first Filter in the custom protocol filter chain).
+     *
+     *
+     * @return back channel {@link Filter}.
+     */
     public Filter getBackChannelFilter() {
         return backChannelFilter;
     }
 
+    /**
+     * Returns the {@link FilterChainBuilder}, developers may use to build there
+     * custom protocol filter chain.
+     * The returned {@link FilterChainBuilder} may have some {@link Filter}s pre-added.
+     *
+     * @return {@link FilterChainBuilder}.
+     */
     public FilterChainBuilder getPUFilterChainBuilder() {
         final FilterChainBuilder builder = FilterChainBuilder.stateless();
         builder.add(backChannelFilter);
