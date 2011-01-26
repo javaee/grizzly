@@ -41,24 +41,21 @@
 
 -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-    <parent>
-        <groupId>org.glassfish.grizzly</groupId>
-        <artifactId>grizzly-project</artifactId>
-        <version>2.0.0-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
-    </parent>
-    <modelVersion>4.0.0</modelVersion>
-    <groupId>org.glassfish.grizzly.samples</groupId>
-    <artifactId>grizzly-samples</artifactId>
-    <packaging>pom</packaging>
-    <version>2.0.0-SNAPSHOT</version>
-    <name>grizzly-samples</name>
-    <modules>
-        <module>framework-samples</module>
-        <module>http-samples</module>
-        <module>websockets/chat</module>
-        <module>http-server-samples</module>
-        <module>comet</module>
-    </modules>
-</project>
+<web-app version="2.5" xmlns="http://java.sun.com/xml/ns/javaee"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd ">
+
+	<servlet>
+		<servlet-name>LongPollingServlet</servlet-name>
+		<servlet-class>
+			com.sun.grizzly.samples.comet.LongPollingServlet
+		</servlet-class>
+        <load-on-startup>0</load-on-startup>
+	</servlet>
+
+	<servlet-mapping>
+		<servlet-name>LongPollingServlet</servlet-name>
+		<url-pattern>/long_polling</url-pattern>
+	</servlet-mapping>
+
+</web-app>

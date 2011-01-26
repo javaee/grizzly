@@ -42,7 +42,7 @@
                         org.glassfish.grizzly.config; \
                         org.glassfish.grizzly.config.dom; \
                         org.glassfish.grizzly.config.portunif; \
-                        org.glassfish.grizzly.config.ssl; version=${grizzly-version}
+                        org.glassfish.grizzly.config.ssl; version=${project.version}
 
 Import-Package: \
                         *

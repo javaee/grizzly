@@ -113,6 +113,7 @@ public class Response {
 
     private static final ThreadCache.CachedTypeIndex<Response> CACHE_IDX =
             ThreadCache.obtainIndex(Response.class, 2);
+    private static final ThreadLocal<Response> current = new ThreadLocal<Response>();
 
     public static Response create() {
         final Response response =
@@ -1611,6 +1612,14 @@ public class Response {
             throw new IllegalStateException("Internal " +
                     "org.glassfish.grizzly.http.server.Response has not been set");
         }
+    }
+
+    public static Response getCurrent() {
+        return current.get();
+    }
+
+    public static void setCurrent(Response response) {
+        current.set(response);
     }
 
     public final class SuspendedContextImpl implements SuspendContext,

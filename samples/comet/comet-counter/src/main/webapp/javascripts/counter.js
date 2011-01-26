@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,28 +38,31 @@
  * holder.
  */
 
-package org.glassfish.grizzly.comet;
-
-import java.io.IOException;
-
-import org.glassfish.grizzly.http.server.Request;
-import org.glassfish.grizzly.http.server.Response;
-
-public class CountDownHttpHandler extends CometHttpHandler {
-    public CountDownHttpHandler(CometContext<String> cometContext, boolean resume) {
-        super(cometContext, resume);
-    }
-
-    @Override
-    public void service(Request request, Response response) throws IOException {
-        response.setContentType("text/html");
-        super.service(request, response);
-        response.flush();
-    }
-
-    @Override
-    public DefaultCometHandler createHandler(Response response) {
-        return new CountDownCometHandler(cometContext, response);
-    }
-
+var counter = {
+      'poll' : function() {
+         new Ajax.Request('long_polling', {
+            method : 'GET',
+            onSuccess : counter.update
+         });
+      },
+      'increment' : function() {
+         new Ajax.Request('long_polling', {
+            method : 'POST'
+         });
+      },
+      'update' : function(req, json) {
+         $('count').innerHTML = json.counter;
+         counter.poll();
+      }
 }
+
+var rules = {
+      '#increment': function(element) {
+         element.onclick = function() {
+            counter.increment();
+         };
+      }
+};
+
+Behaviour.register(rules);
+Behaviour.addLoadEvent(counter.poll);

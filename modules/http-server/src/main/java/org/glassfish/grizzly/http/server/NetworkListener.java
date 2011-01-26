@@ -37,12 +37,17 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.http.server;
+
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.net.ssl.SSLEngine;
 
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.http.ContentEncoding;
@@ -54,136 +59,91 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.net.ssl.SSLEngine;
-
 public class NetworkListener {
-
     private static final Logger LOGGER = Grizzly.logger(NetworkListener.class);
-
     /**
-     * The default network host to which the {@link HttpServer} will
-     * bind to in order to service <code>HTTP</code> requests.  
+     * The default network host to which the {@link HttpServer} will bind to in order to service <code>HTTP</code>
+     * requests.
      */
     public static final String DEFAULT_NETWORK_HOST = "0.0.0.0";
-
-
     /**
-     * The default network port to which the {@link HttpServer} will
-     * bind to in order to service <code>HTTP</code> requests.
+     * The default network port to which the {@link HttpServer} will bind to in order to service <code>HTTP</code>
+     * requests.
      */
     public static final int DEFAULT_NETWORK_PORT = 8080;
-
-
     /**
-     * The network host to which the <code>HttpServer<code> will
-     * bind to in order to service <code>HTTP</code> requests.   If not
-     * explicitly set, the value of {@link #DEFAULT_NETWORK_HOST} will be used.
+     * The network host to which the <code>HttpServer<code> will bind to in order to service <code>HTTP</code> requests.
+     * If not explicitly set, the value of {@link #DEFAULT_NETWORK_HOST} will be used.
      */
     private String host = DEFAULT_NETWORK_HOST;
-
-
     /**
-     * The network port to which the <code>HttpServer<code> will
-     * bind to in order to service <code>HTTP</code> requests.  If not
-     * explicitly set, the value of {@link #DEFAULT_NETWORK_PORT} will be used.
+     * The network port to which the <code>HttpServer<code> will bind to in order to service <code>HTTP</code> requests.
+     * If not explicitly set, the value of {@link #DEFAULT_NETWORK_PORT} will be used.
      */
     private int port = DEFAULT_NETWORK_PORT;
-
-
     /**
-     * The logical <code>name</code> of this particular
-     * <code>NetworkListener</code> instance.
+     * The logical <code>name</code> of this particular <code>NetworkListener</code> instance.
      */
     private final String name;
-
     /**
      * The configuration for HTTP keep-alive connections
      */
     private final KeepAlive keepAliveConfig = new KeepAlive();
-
-
     /**
-     * The Grizzly {@link FilterChain} used to process incoming and outgoing
-     * network I/O.
+     * The Grizzly {@link FilterChain} used to process incoming and outgoing network I/O.
      */
     private FilterChain filterChain;
-
-
     /**
      * The {@link TCPNIOTransport} used by this <code>NetworkListener</code>
      */
     private TCPNIOTransport transport =
-            TCPNIOTransportBuilder.newInstance().build();
-
-
+        TCPNIOTransportBuilder.newInstance().build();
     /**
-     * Flag indicating whether or not this listener is secure.  Defaults to
-     * <code>false</code>
+     * Flag indicating whether or not this listener is secure.  Defaults to <code>false</code>
      */
     private boolean secure;
-
-
     /**
-     * Flag indicating whether or not Web Sockets is enabled.  Defaults to
-     * <code>false</code>
+     * Flag indicating whether or not comet is enabled.  Defaults to <code>false</code>
+     */
+    private boolean cometEnabled;
+    /**
+     * Flag indicating whether or not Web Sockets is enabled.  Defaults to <code>false</code>
      */
     private boolean webSocketsEnabled;
-
-
     /**
-     * Flag indicating whether or not the chunked transfer encoding is
-     * enabled.  Defaults to <code>true</code>.
+     * Flag indicating whether or not the chunked transfer encoding is enabled.  Defaults to <code>true</code>.
      */
     private boolean chunkingEnabled = true;
-
-
     /**
-     * Configuration for the {@link SSLEngine} that will be used
-     * for secure listeners.
+     * Configuration for the {@link SSLEngine} that will be used for secure listeners.
      */
     private SSLEngineConfigurator sslEngineConfig;
-
-
     /**
      * The maximum size of an incoming <code>HTTP</code> message.
      */
     private int maxHttpHeaderSize = -1;
-
     private String compression;
-
     /**
      * {@link FileCache} to be used by this <code>NetworkListener</code>.
      */
     private final FileCache fileCache = new FileCache();
-
     /**
      * The set of the supported {@link ContentEncoding}s.
      */
     private final Set<ContentEncoding> contentEncodings =
-            new HashSet<ContentEncoding>();
+        new HashSet<ContentEncoding>();
     /**
      * Maximum size, in bytes, of all data waiting to be written.
      */
     private volatile int maxPendingBytes;
-
-
     /**
      * Flag indicating the paused state of this listener.
      */
     private boolean paused;
-
-
     /**
      * {@link HttpServerFilter} associated with this listener.
      */
     private HttpServerFilter httpServerFilter;
-
-
     /**
      * {@link HttpCodecFilter} associated with this listener.
      */
@@ -202,36 +162,26 @@ public class NetworkListener {
     private int transactionTimeout;
     // ------------------------------------------------------------ Constructors
 
-
     /**
-     * <p>
-     * Constructs a new <code>NetworkListener</code> using the specified
-     * <code>name</code>.  The listener's host and port will default to
-     * {@link #DEFAULT_NETWORK_HOST} and {@link #DEFAULT_NETWORK_PORT}.
-     * </p>
+     * <p> Constructs a new <code>NetworkListener</code> using the specified <code>name</code>.  The listener's host and
+     * port will default to {@link #DEFAULT_NETWORK_HOST} and {@link #DEFAULT_NETWORK_PORT}. </p>
      *
      * @param name the logical name of the listener.
      */
     public NetworkListener(final String name) {
-
         validateArg("name", name);
         this.name = name;
 
     }
 
-
     /**
-     * <p>
-     * Constructs a new <code>NetworkListener</code> using the specified
-     * <code>name</code> and <code>host</code>.  The listener's port will
-     * default to {@link #DEFAULT_NETWORK_PORT}.
-     * </p>
+     * <p> Constructs a new <code>NetworkListener</code> using the specified <code>name</code> and <code>host</code>.
+     * The listener's port will default to {@link #DEFAULT_NETWORK_PORT}. </p>
      *
      * @param name the logical name of the listener.
      * @param host the network host to which this listener will bind.
      */
     public NetworkListener(final String name, final String host) {
-
         validateArg("name", name);
         validateArg("host", host);
         this.name = name;
@@ -239,21 +189,17 @@ public class NetworkListener {
 
     }
 
-
     /**
-     * <p>
-     * Constructs a new <code>NetworkListener</code> using the specified
-     * <code>name</code>, <code>host</code>, and <code>port</code>.
-     * </p>
+     * <p> Constructs a new <code>NetworkListener</code> using the specified <code>name</code>, <code>host</code>, and
+     * <code>port</code>. </p>
      *
      * @param name the logical name of the listener.
      * @param host the network host to which this listener will bind.
      * @param port the network port to which this listener will bind..
      */
     public NetworkListener(final String name,
-                           final String host,
-                           final int port) {
-
+        final String host,
+        final int port) {
         validateArg("name", name);
         validateArg("host", name);
         if (port <= 0) {
@@ -262,162 +208,131 @@ public class NetworkListener {
         this.name = name;
         this.host = host;
         this.port = port;
-        
+
     }
-
-
     // ----------------------------------------------------------- Configuration
-
 
     /**
      * @return the logical name of this listener.
      */
     public String getName() {
-
         return name;
 
     }
-
 
     /**
      * @return the network host to which this listener is configured to bind to.
      */
     public String getHost() {
-
         return host;
 
     }
-
 
     /**
      * @return the network port to which this listener is configured to bind to.
      */
     public int getPort() {
-
         return port;
 
     }
-
 
     /**
      * @return the configuration for the keep-alive HTTP connections.
      */
     public KeepAlive getKeepAlive() {
-
         return keepAliveConfig;
 
     }
-
 
     /**
      * @return the {@link TCPNIOTransport} used by this listener.
      */
     public TCPNIOTransport getTransport() {
-
         return transport;
 
     }
 
-
     /**
-     * <p>
-     * This allows the developer to specify a custom {@link TCPNIOTransport}
-     * implementation to be used by this listener.
-     * </p>
-     *
-     * <p>
-     * Attempts to change the transport implementation while the listener
-     * is running will be ignored.
-     * </p>
+     * <p> This allows the developer to specify a custom {@link TCPNIOTransport} implementation to be used by this
+     * listener. </p>
+     * <p/>
+     * <p> Attempts to change the transport implementation while the listener is running will be ignored. </p>
      *
      * @param transport a custom {@link TCPNIOTransport} implementation.
      */
     public void setTransport(final TCPNIOTransport transport) {
-
         if (transport == null) {
             return;
         }
-
         if (!transport.isStopped()) {
             return;
         }
-
         this.transport = transport;
 
     }
 
+    public boolean isCometEnabled() {
+        return cometEnabled;
+    }
+
+    public void setCometEnabled(final boolean cometEnabled) {
+        this.cometEnabled = cometEnabled;
+    }
 
     /**
-     * @return <code>true</code> if Web Sockets is enabled, otherwise,
-     *  returns <code>false</code>.
+     * @return <code>true</code> if Web Sockets is enabled, otherwise, returns <code>false</code>.
      */
     public boolean isWebSocketsEnabled() {
-
         return webSocketsEnabled;
 
     }
 
     /**
-     * @return <code>true</code> if the http response bodies should be
-     *  chunked if not content length has been explicitly specified.
+     * Enables/disables Web Sockets support for this listener.
+     *
+     * @param webSocketsEnabled <code>true</code> if Web Sockets support should be enabled.
+     */
+    public void setWebSocketsEnabled(boolean webSocketsEnabled) {
+        this.webSocketsEnabled = webSocketsEnabled;
+
+    }
+
+    /**
+     * @return <code>true</code> if the http response bodies should be chunked if not content length has been explicitly
+     *         specified.
      */
     public boolean isChunkingEnabled() {
-
         return chunkingEnabled;
 
     }
 
-
     /**
-     * Enable/disable chunking of an http response body if no content
-     * length has been explictly specified.  Chunking is enabled by
-     * default.
+     * Enable/disable chunking of an http response body if no content length has been explictly specified.  Chunking is
+     * enabled by default.
      *
-     * @param chunkingEnabled <code>true</code> to enable chunking;
-     *  <code>false</code> to disable.
+     * @param chunkingEnabled <code>true</code> to enable chunking; <code>false</code> to disable.
      */
     public void setChunkingEnabled(boolean chunkingEnabled) {
         this.chunkingEnabled = chunkingEnabled;
     }
 
     /**
-     * Enables/disables Web Sockets support for this listener.
-     *
-     * @param webSocketsEnabled <code>true</code> if Web Sockets support
-     *  should be enabled.
-     */
-    public void setWebSocketsEnabled(boolean webSocketsEnabled) {
-
-        this.webSocketsEnabled = webSocketsEnabled;
-
-    }
-
-
-    /**
-     * @return <code>true</code> if this is a secure listener, otherwise
-     *  <code>false</code>.  Listeners are not secure by default.
+     * @return <code>true</code> if this is a secure listener, otherwise <code>false</code>.  Listeners are not secure
+     *         by default.
      */
     public boolean isSecure() {
-
         return secure;
 
     }
 
-
     /**
-     * <p>
-     * Enable or disable security for this listener.
-     * </p>
-     *
-     * <p>
-     * Attempts to change this value while the listener is running will
-     * be ignored.
-     * </p>
+     * <p> Enable or disable security for this listener. </p>
+     * <p/>
+     * <p> Attempts to change this value while the listener is running will be ignored. </p>
      *
      * @param secure if <code>true</code> this listener will be secure.
      */
     public void setSecure(final boolean secure) {
-
         if (!transport.isStopped()) {
             return;
         }
@@ -425,47 +340,26 @@ public class NetworkListener {
 
     }
 
-
     /**
-     * @return the {@link SSLEngine} configuration for this
-     *  listener.
+     * @return the {@link SSLEngine} configuration for this listener.
      */
     public SSLEngineConfigurator getSslEngineConfig() {
-
         return sslEngineConfig;
 
     }
 
-
     /**
-     * <p>
-     * Provides customization of the {@link SSLEngine}
-     * used by this listener.
-     * </p>
-     *
-     * <p>
-     * Attempts to change this value while the listener is running will
-     * be ignored.
-     * </p>
+     * <p> Provides customization of the {@link SSLEngine} used by this listener. </p>
+     * <p/>
+     * <p> Attempts to change this value while the listener is running will be ignored. </p>
      *
      * @param sslEngineConfig custom SSL configuration.
      */
     public void setSSLEngineConfig(final SSLEngineConfigurator sslEngineConfig) {
-
         if (!transport.isStopped()) {
             return;
         }
         this.sslEngineConfig = sslEngineConfig;
-
-    }
-
-
-    /**
-     * @return the maximum header size for an HTTP request.
-     */
-    public int getMaxHttpHeaderSize() {
-
-        return maxHttpHeaderSize;
 
     }
 
@@ -477,21 +371,22 @@ public class NetworkListener {
         this.compression = compression;
     }
 
+    /**
+     * @return the maximum header size for an HTTP request.
+     */
+    public int getMaxHttpHeaderSize() {
+        return maxHttpHeaderSize;
+
+    }
 
     /**
-     * <p>
-     * Configures the maximum header size for an HTTP request.
-     * </p>
-     *
-     * <p>
-     * Attempts to change this value while the listener is running will
-     * be ignored.
-     * </p>
+     * <p> Configures the maximum header size for an HTTP request. </p>
+     * <p/>
+     * <p> Attempts to change this value while the listener is running will be ignored. </p>
      *
      * @param maxHttpHeaderSize the maximum header size for an HTTP request.
      */
     public void setMaxHttpHeaderSize(final int maxHttpHeaderSize) {
-
         if (!transport.isStopped()) {
             return;
         }
@@ -499,43 +394,31 @@ public class NetworkListener {
 
     }
 
-
     /**
-     * @return the {@link FilterChain} used to by the {@link TCPNIOTransport}
-     *  associated with this listener.
+     * @return the {@link FilterChain} used to by the {@link TCPNIOTransport} associated with this listener.
      */
     public FilterChain getFilterChain() {
-
         return filterChain;
 
     }
 
-
     /**
-     * <p>
-     * Specifies the {@link FilterChain} to be used by the {@link TCPNIOTransport}
-     * associated with this listener.
+     * <p> Specifies the {@link FilterChain} to be used by the {@link TCPNIOTransport} associated with this listener.
      * </p>
-     *
-     * <p>
-     * Attempts to change this value while the listener is running will
-     * be ignored.
-     * </p>
+     * <p/>
+     * <p> Attempts to change this value while the listener is running will be ignored. </p>
      *
      * @param filterChain the {@link FilterChain}.
      */
     public void setFilterChain(final FilterChain filterChain) {
-
         if (!transport.isStopped()) {
             return;
         }
-
         if (filterChain != null) {
             this.filterChain = filterChain;
         }
 
     }
-
 
     /**
      * @return the {@link FileCache} associated with this listener.
@@ -552,147 +435,108 @@ public class NetworkListener {
     }
 
     /**
-     * @return the maximum size, in bytes, of all data waiting to be written
-     *  to the associated {@link Connection}.
+     * @return the maximum size, in bytes, of all data waiting to be written to the associated {@link Connection}.
      */
     public int getMaxPendingBytes() {
-
         return maxPendingBytes;
 
     }
 
-
     /**
-     * The maximum size, in bytes, of all data waiting to be written
-     * to the associated {@link Connection}.
+     * The maximum size, in bytes, of all data waiting to be written to the associated {@link Connection}.
      *
-     * @param maxPendingBytes the maximum size, in bytes, of all data waiting
-     *  to be written to the associated {@link Connection}.
+     * @param maxPendingBytes the maximum size, in bytes, of all data waiting to be written to the associated {@link
+     * Connection}.
      */
     public void setMaxPendingBytes(int maxPendingBytes) {
-
         this.maxPendingBytes = maxPendingBytes;
         transport.getAsyncQueueIO().getWriter().setMaxPendingBytesPerConnection(maxPendingBytes);
 
     }
-
-
     // ---------------------------------------------------------- Public Methods
 
-
     /**
-     * @return <code>true</code> if this listener has been paused, otherwise
-     *  <code>false</code>
+     * @return <code>true</code> if this listener has been paused, otherwise <code>false</code>
      */
     public boolean isPaused() {
         return paused;
     }
 
-
     /**
-     * @return <code>true</code> if the listener has been started, otherwise
-     *  <code>false</code>.
+     * @return <code>true</code> if the listener has been started, otherwise <code>false</code>.
      */
     public boolean isStarted() {
-
         return !transport.isStopped();
-        
+
     }
 
-
     /**
-     * <p>
-     * Starts the listener.
-     * </p>
+     * <p> Starts the listener. </p>
      *
-     * @throws IOException if an error occurs when attempting to start the
-     *  listener.
+     * @throws IOException if an error occurs when attempting to start the listener.
      */
     public synchronized void start() throws IOException {
-
         if (!transport.isStopped()) {
             return;
         }
-
-
         if (filterChain == null) {
             throw new IllegalStateException("No FilterChain available."); // i18n
         }
-
         transport.setProcessor(filterChain);
         transport.bind(host, port);
         transport.start();
-
         if (LOGGER.isLoggable(Level.INFO)) {
             LOGGER.log(Level.INFO,
-                       "Started listener bound to [{0}]",
+                "Started listener bound to [{0}]",
                 host + ':' + port);
         }
 
 
     }
 
-
     /**
-     * <p>
-     * Stops the listener.
-     * </p>
+     * <p> Stops the listener. </p>
      *
-     * @throws IOException if an error occurs when attempting to stop
-     *  the listener.
+     * @throws IOException if an error occurs when attempting to stop the listener.
      */
     public synchronized void stop() throws IOException {
-
         if (transport.isStopped()) {
             return;
         }
-
         transport.stop();
-
         if (LOGGER.isLoggable(Level.INFO)) {
             LOGGER.log(Level.INFO,
-                       "Stopped listener bound to [{0}]",
+                "Stopped listener bound to [{0}]",
                 host + ':' + port);
         }
 
     }
 
-
     /**
-     * <p>
-     * Pauses the listener.
-     * </p>
+     * <p> Pauses the listener. </p>
      *
-     * @throws IOException if an error occurs when attempting to pause the
-     *  listener.
+     * @throws IOException if an error occurs when attempting to pause the listener.
      */
     public synchronized void pause() throws IOException {
-
         if (transport.isStopped() || transport.isPaused()) {
             return;
         }
-
         transport.pause();
         paused = true;
         if (LOGGER.isLoggable(Level.INFO)) {
             LOGGER.log(Level.INFO,
-                       "Paused listener bound to [{0}]",
+                "Paused listener bound to [{0}]",
                 host + ':' + port);
         }
 
     }
 
-
     /**
-     * <p>
-     * Resumes a paused listener.
-     * </p>
+     * <p> Resumes a paused listener. </p>
      *
-     * @throws IOException if an error occurs when attempting to resume the
-     *  listener.
+     * @throws IOException if an error occurs when attempting to resume the listener.
      */
     public synchronized void resume() throws IOException {
-
         if (transport.isStopped() || !transport.isPaused()) {
             return;
         }
@@ -700,35 +544,30 @@ public class NetworkListener {
         paused = false;
         if (LOGGER.isLoggable(Level.INFO)) {
             LOGGER.log(Level.INFO,
-                       "Resumed listener bound to [{0}]",
+                "Resumed listener bound to [{0}]",
                 host + ':' + port);
         }
 
     }
 
     /**
-     * @return a value containing the name, host, port, and secure status of
-     *  this listener.
+     * @return a value containing the name, host, port, and secure status of this listener.
      */
     @Override
     public String toString() {
         return "NetworkListener{" +
-                "name='" + name + '\'' +
-                ", host='" + host + '\'' +
-                ", port=" + port +
-                ", secure=" + secure +
-                '}';
+            "name='" + name + '\'' +
+            ", host='" + host + '\'' +
+            ", port=" + port +
+            ", secure=" + secure +
+            '}';
     }
-
-
 
     public JmxObject createManagementObject() {
         return new org.glassfish.grizzly.http.server.jmx.NetworkListener(this);
     }
 
-
     public HttpServerFilter getHttpServerFilter() {
-
         if (httpServerFilter == null) {
             for (Filter f : filterChain) {
                 if (f instanceof HttpServerFilter) {
@@ -741,9 +580,7 @@ public class NetworkListener {
 
     }
 
-
     public HttpCodecFilter getHttpCodecFilter() {
-
         if (httpCodecFilter == null) {
             for (Filter f : filterChain) {
                 if (f instanceof HttpCodecFilter) {
@@ -753,22 +590,18 @@ public class NetworkListener {
             }
         }
         return httpCodecFilter;
-        
+
     }
-
-
     // --------------------------------------------------------- Private Methods
 
-
     private static void validateArg(final String name, final String value) {
-
         if (value == null || value.length() == 0) {
             throw new IllegalArgumentException("Argument "
-                                                  + name
-                                                  + " cannot be "
-                                                  + (value == null
-                                                          ? "null"
-                                                          : "have a zero length")); // I18n
+                + name
+                + " cannot be "
+                + (value == null
+                ? "null"
+                : "have a zero length")); // I18n
         }
 
     }
@@ -789,76 +622,76 @@ public class NetworkListener {
         this.authPassthroughEnabled = authPassthroughEnabled;
     }
 
-    public void setMaxPostSize(final int maxPostSize) {
-        this.maxPostSize = maxPostSize;
+    public String getCompressableMimeTypes() {
+        return compressableMimeTypes;
     }
 
     public void setCompressableMimeTypes(final String compressableMimeTypes) {
         this.compressableMimeTypes = compressableMimeTypes;
     }
 
-    public void setNoCompressionUserAgents(final String noCompressionUserAgents) {
-        this.noCompressionUserAgents = noCompressionUserAgents;
+    public int getCompressionMinSize() {
+        return compressionMinSize;
     }
 
     public void setCompressionMinSize(final int compressionMinSize) {
         this.compressionMinSize = compressionMinSize;
     }
 
-    public void setRestrictedUserAgents(final String restrictedUserAgents) {
-        this.restrictedUserAgents = restrictedUserAgents;
-    }
-
-    public void setUploadTimeout(final int uploadTimeout) {
-        this.uploadTimeout = uploadTimeout;
+    public boolean isDisableUploadTimeout() {
+        return disableUploadTimeout;
     }
 
     public void setDisableUploadTimeout(final boolean disableUploadTimeout) {
         this.disableUploadTimeout = disableUploadTimeout;
     }
 
-    public void setTraceEnabled(final boolean traceEnabled) {
-        this.traceEnabled = traceEnabled;
-    }
-
-    public void setUriEncoding(final String uriEncoding) {
-        this.uriEncoding = uriEncoding;
-    }
-
-    public String getCompressableMimeTypes() {
-        return compressableMimeTypes;
-    }
-
-    public int getCompressionMinSize() {
-        return compressionMinSize;
-    }
-
-    public boolean isDisableUploadTimeout() {
-        return disableUploadTimeout;
-    }
-
     public int getMaxPostSize() {
         return maxPostSize;
+    }
+
+    public void setMaxPostSize(final int maxPostSize) {
+        this.maxPostSize = maxPostSize;
     }
 
     public String getNoCompressionUserAgents() {
         return noCompressionUserAgents;
     }
 
+    public void setNoCompressionUserAgents(final String noCompressionUserAgents) {
+        this.noCompressionUserAgents = noCompressionUserAgents;
+    }
+
     public String getRestrictedUserAgents() {
         return restrictedUserAgents;
+    }
+
+    public void setRestrictedUserAgents(final String restrictedUserAgents) {
+        this.restrictedUserAgents = restrictedUserAgents;
     }
 
     public boolean isTraceEnabled() {
         return traceEnabled;
     }
 
+    public void setTraceEnabled(final boolean traceEnabled) {
+        this.traceEnabled = traceEnabled;
+    }
+
     public int getUploadTimeout() {
         return uploadTimeout;
     }
 
+    public void setUploadTimeout(final int uploadTimeout) {
+        this.uploadTimeout = uploadTimeout;
+    }
+
     public String getUriEncoding() {
         return uriEncoding;
+    }
+
+    public void setUriEncoding(final String uriEncoding) {
+        this.uriEncoding = uriEncoding;
     }
 
     public int getTransactionTimeout() {

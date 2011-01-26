@@ -40,15 +40,18 @@
 package org.glassfish.grizzly.comet;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.attributes.Attribute;
+import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.TimeoutHandler;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
@@ -123,10 +126,11 @@ public class CometContext<E> {
     /**
      * The list of registered {@link CometHandler}
      */
-    private final Set<CometHandler> handlers;
+    private final List<CometHandler> handlers;
     protected final CometEvent<CometContext> eventInterrupt;
     protected final CometEvent<CometContext> eventTerminate;
     private final CometEvent<CometContext> eventInitialize;
+    private CometEngine cometEngine;
 
     /**
      * Create a new instance
@@ -134,11 +138,12 @@ public class CometContext<E> {
      * @param contextTopic the context path
      * @param type when the Comet processing will happen (see {@link CometEngine}).
      */
-    public CometContext(String contextTopic, int type) {
+    public CometContext(CometEngine engine, String contextTopic, int type) {
+        cometEngine = engine;
         topic = contextTopic;
         continuationType = type;
         attributes = new ConcurrentHashMap();
-        handlers = new ConcurrentSkipListSet<CometHandler>();
+        handlers = new CopyOnWriteArrayList<CometHandler>();
         eventInterrupt = new CometEvent<CometContext>(CometEvent.Type.INTERRUPT, this);
         eventInitialize = new CometEvent<CometContext>(CometEvent.Type.INITIALIZE, this);
         eventTerminate = new CometEvent<CometContext>(CometEvent.Type.TERMINATE, this, this);
@@ -214,8 +219,8 @@ public class CometContext<E> {
      * {@link CometHandler} is useful only when no I/O operations on the HttpServletResponse are required. Examples
      * include calling a remote EJB when a push operations happens, storing data inside a database, etc.
      *
-     *
      * @param handler a new {@link CometHandler}
+     *
      * @return The {@link CometHandler#hashCode} value.
      */
     public int addCometHandler(final CometHandler handler) {
@@ -226,19 +231,21 @@ public class CometContext<E> {
             throw new IllegalStateException(COMET_NOT_ENABLED);
         }
         handlers.add(handler);
-        final Response response = handler.getResponse();
+        Attribute<Request> httpRequestInProcessAttr = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.
+            createAttribute("HttpServerFilter.Request");
+        Request handlerRequest = httpRequestInProcessAttr.get(CometEngine.getConnection());
+        CometEngine.setConnection(null);
+        final Response response = handlerRequest.getResponse();
+        handler.setResponse(response);
+        handler.setCometContext(this);
         response.suspend(getExpirationDelay(), TimeUnit.MILLISECONDS, new CometCompletionHandler(handler),
             new CometTimeoutHandler(handler));
         try {
             initialize(handler);
-
             // Register asynchronous read-event listener
-            final NIOInputStream nioInputStream =
-                    response.getRequest().getInputStream(false);
-            
-            if (!nioInputStream.notifyAvailable(
-                    new CometInputHandler(nioInputStream, handler)) &&
-                    !nioInputStream.isFinished()) {
+            final NIOInputStream nioInputStream = response.getRequest().getInputStream(false);
+            if (!nioInputStream.notifyAvailable(new CometInputHandler(nioInputStream, handler)) &&
+                !nioInputStream.isFinished()) {
                 notifyOnAsyncRead(handler);
             }
         } catch (IOException e) {
@@ -260,7 +267,7 @@ public class CometContext<E> {
         topic = null;
         notificationHandler = null;
         initDefaultValues();
-        CometEngine.cometEngine.cometContextCache.offer(this);
+        cometEngine.cometContextCache.offer(this);
     }
 
     /**
@@ -419,7 +426,7 @@ public class CometContext<E> {
      *
      * @return the current list of active {@link CometHandler}
      */
-    public Set<CometHandler> getCometHandlers() {
+    public List<CometHandler> getCometHandlers() {
         return handlers;
     }
 
@@ -508,7 +515,7 @@ public class CometContext<E> {
         private final CometHandler handler;
 
         public CometInputHandler(final NIOInputStream nioInputStream,
-                final CometHandler handler) {
+            final CometHandler handler) {
             this.nioInputStream = nioInputStream;
             this.handler = handler;
         }
@@ -516,7 +523,7 @@ public class CometContext<E> {
         @Override
         public void onDataAvailable() {
             notifyOnAsyncRead(handler);
-            nioInputStream.notifyAvailable(this);            
+            nioInputStream.notifyAvailable(this);
         }
 
         @Override
@@ -525,6 +532,6 @@ public class CometContext<E> {
 
         @Override
         public void onAllDataRead() {
-        }        
+        }
     }
 }

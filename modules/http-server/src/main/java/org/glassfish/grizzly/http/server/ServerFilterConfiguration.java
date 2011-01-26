@@ -37,7 +37,6 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.http.server;
 
 /**
@@ -47,33 +46,28 @@ package org.glassfish.grizzly.http.server;
  */
 public class ServerFilterConfiguration {
     private String httpServerName;
-
     private String httpServerVersion;
 
     public ServerFilterConfiguration() {
         this("Grizzly", "2.0");
     }
 
-    public ServerFilterConfiguration(final String serverName,
-            final String serverVersion) {
+    public ServerFilterConfiguration(final String serverName, final String serverVersion) {
         this.httpServerName = serverName;
         this.httpServerVersion = serverVersion;
     }
-    
+
     /**
      * @return the server name used for headers and default error pages.
      */
     public String getHttpServerName() {
-
         return httpServerName;
 
     }
 
-
     /**
-     * Sets the server name used for HTTP response headers and default generated
-     * error pages.  If not value is explicitly set, this value defaults to
-     * <code>Grizzly</code>.
+     * Sets the server name used for HTTP response headers and default generated error pages.  If not value is
+     * explicitly set, this value defaults to <code>Grizzly</code>.
      *
      * @param httpServerName server name
      */
@@ -81,27 +75,21 @@ public class ServerFilterConfiguration {
         this.httpServerName = httpServerName;
     }
 
-
     /**
-     * @return the version of this server used for headers and default error
-     *  pages.
+     * @return the version of this server used for headers and default error pages.
      */
     public String getHttpServerVersion() {
-
         return httpServerVersion;
 
     }
 
-
     /**
-     * Sets the version of the server info sent in HTTP response headers and the
-     *  default generated error pages.  If not value is explicitly set, this
-     *  value defaults to the current version of the Grizzly runtime.
+     * Sets the version of the server info sent in HTTP response headers and the default generated error pages.  If not
+     * value is explicitly set, this value defaults to the current version of the Grizzly runtime.
      *
      * @param httpServerVersion server version
      */
     public void setHttpServerVersion(String httpServerVersion) {
-
         this.httpServerVersion = httpServerVersion;
 
     }

@@ -52,7 +52,7 @@
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-http-webserver</artifactId>
     <packaging>jar</packaging>
-    <version>${grizzly-version}</version>
+    <version>2.0.0-SNAPSHOT</version>
     <name>grizzly-http-webserver</name>
     <build>
         <defaultGoal>install</defaultGoal>
@@ -133,7 +133,7 @@
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-http</artifactId>
-            <version>${grizzly-version}</version>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
 </project>

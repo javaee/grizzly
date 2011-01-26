@@ -67,7 +67,7 @@ public class CometTestAdapter extends HttpHandler {
     public void service(Request req, Response res) {
         cometContext.addCometHandler(useConcurrentCometHandler
                                ? new MyConcurrentCometHandler(cometContext, res)
-                               : new CometRequestHandler(cometContext, res));
+                               : new CometRequestHandler());
     }
 
     private void doEvent(CometEvent event, CometHandler handler) throws IOException {
@@ -110,11 +110,6 @@ public class CometTestAdapter extends HttpHandler {
         private CometContext<Byte> context;
         private Response response;
 
-        private CometRequestHandler(CometContext<Byte> context, Response response) {
-            this.context = context;
-            this.response = response;
-        }
-
         public void onEvent(CometEvent event) throws IOException {
             doEvent(event, this);
         }
@@ -141,6 +136,16 @@ public class CometTestAdapter extends HttpHandler {
         @Override
         public CometContext<Byte> getCometContext() {
             return context;
+        }
+
+        @Override
+        public void setCometContext(final CometContext<Byte> context) {
+            this.context = context;
+        }
+
+        @Override
+        public void setResponse(final Response response) {
+            this.response = response;
         }
 
         @Override

@@ -359,6 +359,11 @@
                 <artifactId>cobertura-maven-plugin</artifactId>
                 <version>2.4</version>
             </dependency>
+            <dependency>
+                <groupId>javax.servlet</groupId>
+                <artifactId>servlet-api</artifactId>
+                <version>2.5</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>  
     <distributionManagement>
@@ -379,8 +384,6 @@
     </dependencies>
     <properties>
 	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <grizzly-version>2.0.0-SNAPSHOT</grizzly-version>
-        <grizzly-released-version>1.9.19</grizzly-released-version>
         <hk2.version>1.0.72</hk2.version>
         <junit-version>4.7</junit-version>
         <maven-plugin.version>1.0.0</maven-plugin.version>

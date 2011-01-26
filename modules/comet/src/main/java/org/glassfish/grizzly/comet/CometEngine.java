@@ -39,9 +39,7 @@
  */
 package org.glassfish.grizzly.comet;
 
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -49,6 +47,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.localization.LogMessages;
 
 /**
@@ -103,7 +102,8 @@ public class CometEngine {
     /**
      * The single instance of this class.
      */
-    protected final static CometEngine cometEngine = new CometEngine();
+    private final static ThreadLocal<CometEngine> cometEngine = new ThreadLocal<CometEngine>();
+    private final static ThreadLocal<Connection> connection = new ThreadLocal<Connection>();
     /**
      * The current active {@link CometContext} keyed by context path.
      */
@@ -115,7 +115,7 @@ public class CometEngine {
     /**
      * Is Grizzly ARP enabled? By default we set it to false.
      */
-    private static volatile boolean isCometSupported;
+    private boolean isCometSupported;
 
     /**
      * Create a singleton and initialize all lists required.
@@ -132,7 +132,7 @@ public class CometEngine {
         return isCometSupported;
     }
 
-    public static void setCometSupported(boolean supported) {
+    public void setCometSupported(boolean supported) {
         isCometSupported = supported;
     }
 
@@ -142,7 +142,24 @@ public class CometEngine {
      * @return CometEngine the singleton.
      */
     public static CometEngine getEngine() {
-        return cometEngine;
+        return cometEngine.get();
+    }
+
+    public static void setEngine(CometEngine engine) {
+        cometEngine.set(engine);
+    }
+
+    /**
+     * Return a singleton of this Class.
+     *
+     * @return CometConnection the singleton.
+     */
+    public static Connection getConnection() {
+        return connection.get();
+    }
+
+    public static void setConnection(Connection conn) {
+        connection.set(conn);
     }
 
     /**
@@ -182,7 +199,7 @@ public class CometEngine {
      *
      * @return CometContext a configured {@link CometContext}.
      */
-    public CometContext register(String topic, int type) {
+    public <E> CometContext<E> register(String topic, int type) {
         return register(topic, type, DefaultNotificationHandler.class);
     }
 
@@ -195,12 +212,11 @@ public class CometEngine {
      *
      * @return a new {@link CometContext} if not already created, or the existing one.
      */
-    public CometContext register(String topic, int type,
-        Class<? extends NotificationHandler> notificationClass) {
+    public <E> CometContext<E> register(String topic, int type, Class<? extends NotificationHandler> notificationClass) {
         // Double checked locking used used to prevent the otherwise static/global 
         // locking, cause example code does heavy usage of register calls
         // for existing topics from http get calls etc.
-        CometContext cometContext = activeContexts.get(topic);
+        CometContext<E> cometContext = activeContexts.get(topic);
         if (cometContext == null) {
             synchronized (activeContexts) {
                 cometContext = activeContexts.get(topic);
@@ -209,7 +225,7 @@ public class CometEngine {
                     if (cometContext != null) {
                         cometContext.topic = topic;
                     } else {
-                        cometContext = new CometContext(topic, type);
+                        cometContext = new CometContext<E>(this, topic, type);
                     }
                     NotificationHandler notificationHandler;
                     try {
@@ -240,7 +256,7 @@ public class CometEngine {
      *
      * @param topic the topic used to creates the {@link CometContext}
      */
-    public CometContext getCometContext(String topic) {
+    public <E> CometContext<E> getCometContext(String topic) {
         return activeContexts.get(topic);
     }
 
@@ -253,10 +269,6 @@ public class CometEngine {
     protected boolean interrupt(final CometHandler handler, final boolean finishExecution) throws IOException {
         final CometContext cometContext = handler.getCometContext();
         final boolean removed = cometContext.removeCometHandler(handler, finishExecution);
-        final PrintWriter s = new PrintWriter(new FileWriter("/tmp/removed"));
-        new Exception("removed = " + removed).printStackTrace(s);
-        s.flush();
-        s.close();
         if (removed && ! finishExecution) {
             interrupt0(handler, finishExecution);
         }

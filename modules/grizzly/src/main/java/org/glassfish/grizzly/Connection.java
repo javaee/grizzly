@@ -40,12 +40,13 @@
 
 package org.glassfish.grizzly;
 
-import org.glassfish.grizzly.monitoring.MonitoringAware;
 import java.io.IOException;
-import org.glassfish.grizzly.attributes.AttributeStorage;
-import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+
+import org.glassfish.grizzly.attributes.AttributeStorage;
+import org.glassfish.grizzly.monitoring.MonitoringAware;
+import org.glassfish.grizzly.monitoring.MonitoringConfig;
 
 /**
  * Common interface, which represents any kind of connection.
@@ -253,7 +254,7 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
      * @param error {@link Throwable}.
      */
     public void notifyConnectionError(Throwable error);
-        
+
     /**
      * The listener, which is used to be notified, when <tt>Connection</tt> gets closed.
      */

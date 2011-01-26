@@ -40,40 +40,11 @@
 
 package org.glassfish.grizzly.http.server;
 
-import org.glassfish.grizzly.ConnectionProbe;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.NIOTransportBuilder;
-import org.glassfish.grizzly.Processor;
-import org.glassfish.grizzly.filterchain.FilterChain;
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
-import org.glassfish.grizzly.http.server.filecache.FileCache;
-import org.glassfish.grizzly.http.server.jmx.JmxEventListener;
-import org.glassfish.grizzly.monitoring.jmx.GrizzlyJmxManager;
-import org.glassfish.grizzly.monitoring.jmx.JmxObject;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.rcm.ResourceAllocationFilter;
-import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import org.glassfish.grizzly.TransportProbe;
-import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.http.ContentEncoding;
-import org.glassfish.grizzly.memory.MemoryProbe;
-import org.glassfish.grizzly.monitoring.MonitoringConfig;
-import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
-import org.glassfish.grizzly.ssl.SSLFilter;
-import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
-import org.glassfish.grizzly.threadpool.ThreadPoolProbe;
-import org.glassfish.grizzly.utils.DelayedExecutor;
-import org.glassfish.grizzly.utils.SilentConnectionFilter;
-import org.glassfish.grizzly.websockets.WebSocketFilter;
-
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -81,6 +52,34 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.glassfish.grizzly.ConnectionProbe;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.NIOTransportBuilder;
+import org.glassfish.grizzly.Processor;
+import org.glassfish.grizzly.TransportProbe;
+import org.glassfish.grizzly.filterchain.Filter;
+import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.http.ContentEncoding;
+import org.glassfish.grizzly.http.server.filecache.FileCache;
+import org.glassfish.grizzly.http.server.jmx.JmxEventListener;
+import org.glassfish.grizzly.memory.MemoryProbe;
+import org.glassfish.grizzly.monitoring.MonitoringConfig;
+import org.glassfish.grizzly.monitoring.jmx.GrizzlyJmxManager;
+import org.glassfish.grizzly.monitoring.jmx.JmxObject;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.rcm.ResourceAllocationFilter;
+import org.glassfish.grizzly.ssl.SSLContextConfigurator;
+import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
+import org.glassfish.grizzly.ssl.SSLFilter;
+import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
+import org.glassfish.grizzly.threadpool.ThreadPoolProbe;
+import org.glassfish.grizzly.utils.DelayedExecutor;
+import org.glassfish.grizzly.utils.SilentConnectionFilter;
 
 
 /**
@@ -529,8 +528,12 @@ public class HttpServer {
                     serverConfig.getMonitoringConfig().getHttpConfig().getProbes());
             builder.add(httpServerFilter);
 
+            if (listener.isCometEnabled()) {
+                builder.add(loadFilter("org.glassfish.grizzly.comet.CometFilter"));
+            }
+
             if (listener.isWebSocketsEnabled()) {
-                builder.add(new WebSocketFilter());
+                builder.add(loadFilter("org.glassfish.grizzly.websockets.WebSocketFilter"));
             }
 
             final FileCache fileCache = listener.getFileCache();
@@ -553,6 +556,13 @@ public class HttpServer {
         configureMonitoring(listener);
     }
 
+    private Filter loadFilter(final String className) {
+        try {
+            return (Filter) Class.forName(className).newInstance();
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
+    }
 
     private void configureMonitoring(final NetworkListener listener) {
         final TCPNIOTransport transport = listener.getTransport();

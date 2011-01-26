@@ -37,7 +37,6 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.comet;
 
 import java.io.IOException;
@@ -45,19 +44,16 @@ import java.io.IOException;
 import org.glassfish.grizzly.http.server.Response;
 
 /**
- * This interface represents a suspended connection (or response). Passing an instance of this class to
- * {@link CometContext#addCometHandler} automatically tells Grizzly Comet to suspend the underlying connection and
- * to avoid commiting the response. Since the response is not committed, the connection is considered as suspended
- * and can be resumed later when an event happens by invoking {@link CometContext#resumeCometHandler(CometHandler)},
- * from {@link CometHandler#onEvent}.  {@link CometContext#resumeCometHandler(CometHandler), resume the connection
- * by commiting the response. As an example, a browser icons will spins when a connection is suspended, as the
- * complete response hasn't been sent back.
- * 
- * Components that implement this interface will be notified {@link CometContext#notify(String)} is invoked or when
- * the {@link CometContext#getExpirationDelay()} expires.
- *
- * With {@link Servlet}, it is recommended to attach the {@link HttpServletResponse} and use this object to push
- * eback messages to the client.
+ * This interface represents a suspended connection (or response). Passing an instance of this class to {@link
+ * CometContext#addCometHandler} automatically tells Grizzly Comet to suspend the underlying connection and to avoid
+ * commiting the response. Since the response is not committed, the connection is considered as suspended and can be
+ * resumed later when an event happens by invoking {@link CometContext#resumeCometHandler(CometHandler)}, from {@link
+ * CometHandler#onEvent}.  {@link CometContext#resumeCometHandler(CometHandler), resume the connection by commiting the
+ * response. As an example, a browser icons will spins when a connection is suspended, as the complete response hasn't
+ * been sent back.
+ * <p/>
+ * Components that implement this interface will be notified {@link CometContext#notify(String)} is invoked or when the
+ * {@link CometContext#getExpirationDelay()} expires.
  */
 public interface CometHandler<E> {
     /**
@@ -65,47 +61,37 @@ public interface CometHandler<E> {
      */
     Response getResponse();
 
+    void setResponse(Response response);
+
     CometContext<E> getCometContext();
 
+    void setCometContext(CometContext<E> context);
 
     /**
-     * Attach an instance of E to this class.
-     */
-    void attach(E attachment);
-
-
-    /**
-     * Receive {@link CometEvent} notification. This method will be invoked
-     * every time a {@link CometContext#notify} is invoked. The {@link CometEvent}
-     * will contains the message that can be pushed back to the remote client,
-     * cached or ignored. This method can also be used to resume a connection
-     * once a notified by invoking {@link CometContext#resumeCometHandler}.<br>
-     * its not optimal to flush outputstream in this method for long polling,
-     * flush is performed in each CometContext.resume call.<br>
-     * flushing multiple times can fragment the data into several tcp packets,
-     * that leads to extra IO and overhead in general due to client ack for each packet etc.
+     * Receive {@link CometEvent} notification. This method will be invoked every time a {@link CometContext#notify} is
+     * invoked. The {@link CometEvent} will contains the message that can be pushed back to the remote client, cached or
+     * ignored. This method can also be used to resume a connection once a notified by invoking {@link
+     * CometContext#resumeCometHandler}.<br> its not optimal to flush outputstream in this method for long polling,
+     * flush is performed in each CometContext.resume call.<br> flushing multiple times can fragment the data into
+     * several tcp packets, that leads to extra IO and overhead in general due to client ack for each packet etc.
      */
     void onEvent(CometEvent event) throws IOException;
 
-
     /**
-     * Receive {@link CometEvent} notification when Grizzly is about to
-     * suspend the connection. This method is always invoked during the
-     * processing of {@link CometContext#addCometHandler} operations.
+     * Receive {@link CometEvent} notification when Grizzly is about to suspend the connection. This method is always
+     * invoked during the processing of {@link CometContext#addCometHandler} operations.
      */
     void onInitialize(CometEvent event) throws IOException;
 
     /**
-     * Receive {@link CometEvent} notification when the response
-     * is resumed by a {@link CometHandler} or by the {@link CometContext}
+     * Receive {@link CometEvent} notification when the response is resumed by a {@link CometHandler} or by the {@link
+     * CometContext}
      */
     void onTerminate(CometEvent event) throws IOException;
 
     /**
-     * Receive {@link CometEvent} notification when the underlying
-     * tcp communication is resumed by Grizzly. This happens
-     * when the {@link CometContext#setExpirationDelay} expires or when
-     * the remote client close the connection.
+     * Receive {@link CometEvent} notification when the underlying tcp communication is resumed by Grizzly. This happens
+     * when the {@link CometContext#setExpirationDelay} expires or when the remote client close the connection.
      */
     void onInterrupt(CometEvent event) throws IOException;
 }

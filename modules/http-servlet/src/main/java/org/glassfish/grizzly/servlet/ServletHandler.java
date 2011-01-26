@@ -370,7 +370,7 @@ public class ServletHandler extends HttpHandler {
 
     /**
      * Customize the error page returned to the client.
-     * @param response  the {@link GrizzlyResponse}
+     * @param response  the {@link Response}
      * @param message   the HTTP error message
      * @param errorCode the error code.
      */
