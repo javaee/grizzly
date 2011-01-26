@@ -85,5 +85,21 @@
     </inlinemediaobject></para>
     <para>For better usability, Grizzly port unification introduces the PUProtocol abstraction,
       which holds ProtocolFinder + FilterChain pair.</para>
+    <para>The picture above is not complete, one piece is missed. We can imagine how new data comes
+      from network, comes into main FilterChain, it redirects it to the corresponding protocol
+      FilterChain.</para>
+    <para>But what about opposite connection? Imagine HttpServerFilter wants to send data back to
+      the client, so it constructs HttpPacket and send it by the custom protocol FilterChain.
+      HttpFilter intercepts the HttpPacket, decodes it into a Buffer and... there is no Filter in
+      the custom protocol FilterChain to pass the Buffer to, so it never comes to TransportFilter
+      and never gets sent! In order to fix that, we need to add utility back channel Filter as the
+      first Filter in the protocol FilterChain, which will be reponsible for redirecting custom
+      protocol FilterChain processing back to the main FilterChain. So finally complete picture will
+      look like:</para>
+    <para><inlinemediaobject>
+      <imageobject>
+        <imagedata fileref="../images/portunification/portunification-diagram2.svg"></imagedata>
+      </imageobject>
+    </inlinemediaobject></para>
   </section>
 </chapter>
