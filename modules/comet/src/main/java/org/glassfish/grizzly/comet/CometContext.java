@@ -286,6 +286,17 @@ public class CometContext<E> {
 
     /**
      * Remove a {@link CometHandler}. If the continuation (connection) associated with this {@link CometHandler} no
+     * longer have {@link CometHandler} associated to it, it will be resumed by Grizzly by calling {@link
+     * CometContext#resumeCometHandler(CometHandler)}
+     *
+     * @return <tt>true</tt> if the operation succeeded.
+     */
+    public boolean removeCometHandler(CometHandler handler) {
+        return removeCometHandler(handler, true);
+    }
+
+    /**
+     * Remove a {@link CometHandler}. If the continuation (connection) associated with this {@link CometHandler} no
      * longer have {@link CometHandler} associated to it, it will be resumed.
      *
      * @param handler The CometHandler to remove.

@@ -51,5 +51,5 @@ public interface MonitoringAware<E> {
      *
      * @return the object associated {@link MonitoringConfig}.
      */
-    public MonitoringConfig<E> getMonitoringConfig();
+    MonitoringConfig<E> getMonitoringConfig();
 }

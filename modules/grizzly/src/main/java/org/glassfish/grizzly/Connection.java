@@ -59,7 +59,7 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
      * Get the {@link Transport}, to which this {@link Connection} belongs to.
      * @return the {@link Transport}, to which this {@link Connection} belongs to.
      */
-    public Transport getTransport();
+    Transport getTransport();
 
     /**
      * Is {@link Connection} open and ready.
@@ -69,7 +69,7 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
      * @return <tt>true</tt>, if connection is open and ready, or <tt>false</tt>
      * otherwise.
      */
-    public boolean isOpen();
+    boolean isOpen();
 
     /**
      * Sets the {@link Connection} mode.
@@ -78,18 +78,18 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
      * if {@link Connection} should operate in blocking mode, or
      * <tt>false</tt> otherwise.
      */
-    public void configureBlocking(boolean isBlocking);
+    void configureBlocking(boolean isBlocking);
 
     /**
      * @return the {@link Connection} mode.
      * <tt>true</tt>, if {@link Connection} is operating in blocking mode, or
      * <tt>false</tt> otherwise.
      */
-    public boolean isBlocking();
+    boolean isBlocking();
 
-    public void configureStandalone(boolean isStandalone);
+    void configureStandalone(boolean isStandalone);
 
-    public boolean isStandalone();
+    boolean isStandalone();
 
     /**
      * Gets the {@link Processor}, which will process {@link Connection}
@@ -103,7 +103,7 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
      * @return the default {@link Processor}, which will process
      * {@link Connection} I/O events.
      */
-    public Processor obtainProcessor(IOEvent ioEvent);
+    Processor obtainProcessor(IOEvent ioEvent);
     
     /**
      * Gets the default {@link Processor}, which will process {@link Connection}
@@ -118,7 +118,7 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
      * @return the default {@link Processor}, which will process
      * {@link Connection} I/O events.
      */
-    public Processor getProcessor();
+    Processor getProcessor();
 
     /**
      * Sets the default {@link Processor}, which will process {@link Connection}
@@ -133,8 +133,8 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
      * @param preferableProcessor the default {@link Processor}, which will
      * process {@link Connection} I/O events.
      */
-    public void setProcessor(
-            Processor preferableProcessor);
+    void setProcessor(
+        Processor preferableProcessor);
 
     /**
      * Gets the default {@link ProcessorSelector}, which will be used to get
@@ -145,7 +145,7 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
      * {@link Processor} to process {@link Connection} I/O events, in case if
      * this {@link Connection}'s {@link Processor} is <tt>null</tt>.
      */
-    public ProcessorSelector getProcessorSelector();
+    ProcessorSelector getProcessorSelector();
     
     /**
      * Sets the default {@link ProcessorSelector}, which will be used to get
@@ -157,31 +157,31 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
      * I/O events, in case if this {@link Connection}'s {@link Processor}
      * is <tt>null</tt>.
      */
-    public void setProcessorSelector(
-            ProcessorSelector preferableProcessorSelector);
+    void setProcessorSelector(
+        ProcessorSelector preferableProcessorSelector);
 
     /**
      * Get the connection peer address
      * @return the connection peer address
      */
-    public L getPeerAddress();
+    L getPeerAddress();
     
     /**
      * Get the connection local address
      * @return the connection local address
      */
-    public L getLocalAddress();
+    L getLocalAddress();
 
     /**
      * Close the {@link Connection}
      *
      * @return {@link Future}, which could be checked in case, if close operation
      *         will be run asynchronously
-     * @throws java.io.IOException, if I/O error was detected
+     * @throws IOException if I/O error was detected
      * during {@link Connection} closing.
      */
     @Override
-    public GrizzlyFuture close() throws IOException;
+    GrizzlyFuture close() throws IOException;
 
     /**
      * Get the default size of {@link Buffer}s, which will be allocated for
@@ -190,7 +190,7 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
      * @return the default size of {@link Buffer}s, which will be allocated for
      * reading data from {@link Connection}.
      */
-    public int getReadBufferSize();
+    int getReadBufferSize();
 
     /**
      * Set the default size of {@link Buffer}s, which will be allocated for
@@ -199,7 +199,7 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
      * @param readBufferSize the default size of {@link Buffer}s, which will
      * be allocated for reading data from {@link Connection}.
      */
-    public void setReadBufferSize(int readBufferSize);
+    void setReadBufferSize(int readBufferSize);
 
     /**
      * Get the default size of {@link Buffer}s, which will be allocated for
@@ -208,7 +208,7 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
      * @return the default size of {@link Buffer}s, which will be allocated for
      * writing data to {@link Connection}.
      */
-    public int getWriteBufferSize();
+    int getWriteBufferSize();
 
     /**
      * Set the default size of {@link Buffer}s, which will be allocated for
@@ -217,21 +217,21 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
      * @param writeBufferSize the default size of {@link Buffer}s, which will
      * be allocated for writing data to {@link Connection}.
      */
-    public void setWriteBufferSize(int writeBufferSize);
+    void setWriteBufferSize(int writeBufferSize);
 
-    public long getReadTimeout(TimeUnit timeUnit);
+    long getReadTimeout(TimeUnit timeUnit);
 
-    public void setReadTimeout(long timeout, TimeUnit timeUnit);
+    void setReadTimeout(long timeout, TimeUnit timeUnit);
 
-    public long getWriteTimeout(TimeUnit timeUnit);
+    long getWriteTimeout(TimeUnit timeUnit);
 
-    public void setWriteTimeout(long timeout, TimeUnit timeUnit);
+    void setWriteTimeout(long timeout, TimeUnit timeUnit);
 
     /**
      * @return the <tt>Connection</tt> monitoring configuration {@link MonitoringConfig}.
      */
     @Override
-    public MonitoringConfig<ConnectionProbe> getMonitoringConfig();
+    MonitoringConfig<ConnectionProbe> getMonitoringConfig();
 
     /**
      * Add the {@link CloseListener}, which will be notified once <tt>Connection</tt>
@@ -239,26 +239,26 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
      * 
      * @param closeListener {@link CloseListener}.
      */
-    public void addCloseListener(CloseListener closeListener);
+    void addCloseListener(CloseListener closeListener);
 
     /**
      * Remove the {@link CloseListener}.
      *
      * @param closeListener {@link CloseListener}.
      */
-    public boolean removeCloseListener(CloseListener closeListener);
+    boolean removeCloseListener(CloseListener closeListener);
     
     /**
      * Method gets invoked, when error occur during the <tt>Connection</tt> lifecycle.
      *
      * @param error {@link Throwable}.
      */
-    public void notifyConnectionError(Throwable error);
+    void notifyConnectionError(Throwable error);
 
     /**
      * The listener, which is used to be notified, when <tt>Connection</tt> gets closed.
      */
-    public static interface CloseListener {
-        public void onClosed(Connection connection) throws IOException;
+    interface CloseListener {
+        void onClosed(Connection connection) throws IOException;
     }
 }
