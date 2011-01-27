@@ -63,8 +63,9 @@ import org.glassfish.grizzly.samples.portunif.subservice.SubRequestMessage;
 import org.glassfish.grizzly.samples.portunif.subservice.SubResponseMessage;
 
 /**
+ * Client app, which tests deployed SUB-service.
  *
- * @author oleksiys
+ * @author Alexey Stashok
  */
 public class SubClient {
     private static final Logger LOGGER = Grizzly.logger(PUServer.class);
@@ -72,17 +73,24 @@ public class SubClient {
     public static void main(String[] args) throws Exception {
         Connection connection = null;
         
+        // Construct the client filter chain
         final FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.stateless()
+                // Add TransportFilter
                 .add(new TransportFilter())
+                // Add SUB-service message parser/serializer
                 .add(new SubClientMessageFilter())
+                // Add Result reporter Filter
                 .add(new ResultFilter());
 
+        // Construct TCPNIOTransport
         final TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(puFilterChainBuilder.build());
 
         try {
+            // Start
             transport.start();
 
+            // Create the client connection
             final Future<Connection> connectFuture =
                     transport.connect("localhost", PUServer.PORT);
             connection = connectFuture.get(10, TimeUnit.SECONDS);
@@ -90,6 +98,7 @@ public class SubClient {
             LOGGER.info("Enter 2 numbers separated by space (<value1> <value2>) end press <enter>.");
             LOGGER.info("Type q and enter to exit.");
 
+            // Read user input and communicate the SUB-service
             String line;
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
             while ((line = reader.readLine()) != null) {
@@ -97,6 +106,7 @@ public class SubClient {
                     break;
                 }
 
+                // Parse user input
                 final int value1;
                 final int value2;
                 try {
@@ -109,27 +119,35 @@ public class SubClient {
                     continue;
                 }
 
-                GrizzlyFuture<WriteResult> writeFuture =
+
+                // send the request to SUB-service
+                final GrizzlyFuture<WriteResult> writeFuture =
                         connection.write(new SubRequestMessage(value1, value2));
 
-                WriteResult result = writeFuture.get(10, TimeUnit.SECONDS);
+                final WriteResult result = writeFuture.get(10, TimeUnit.SECONDS);
                 assert result != null;
             }
             
         } finally {
+            // Close the client connection
             if (connection != null) {
                 connection.close();
             }
             
+            // Shutdown the transport
             transport.stop();
         }
     }
 
+    // Simple reporting Filter
     private static final class ResultFilter extends BaseFilter {
 
         @Override
         public NextAction handleRead(FilterChainContext ctx) throws IOException {
+            // Take SUB-service response
             final SubResponseMessage subResponseMessage = ctx.getMessage();
+
+            // do output
             LOGGER.log(Level.INFO, "Result={0}", subResponseMessage.getResult());
 
             return ctx.getStopAction();

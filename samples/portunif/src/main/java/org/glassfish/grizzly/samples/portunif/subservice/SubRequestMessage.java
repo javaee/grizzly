@@ -41,22 +41,37 @@
 package org.glassfish.grizzly.samples.portunif.subservice;
 
 /**
+ * SUB-service request message
  *
- * @author oleksiys
+ * @author Alexey Stashok
  */
 public class SubRequestMessage {
     private final int value1;
     private final int value2;
 
+    /**
+     * Construct Request message
+     *
+     * @param value1
+     * @param value2
+     */
     public SubRequestMessage(int value1, int value2) {
         this.value1 = value1;
         this.value2 = value2;
     }
 
+    /**
+     * Get value1
+     * @return value1
+     */
     public int getValue1() {
         return value1;
     }
 
+    /**
+     * Get value2
+     * @return value2
+     */
     public int getValue2() {
         return value2;
     }

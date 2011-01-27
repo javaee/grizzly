@@ -41,16 +41,27 @@
 package org.glassfish.grizzly.samples.portunif.addservice;
 
 /**
+ * ADD-service request message
  *
- * @author oleksiys
+ * @author Alexey Stashok
  */
 public class AddResponseMessage {
     private final int result;
 
+    /**
+     * Construct Response message
+     *
+     * @param result
+     */
     public AddResponseMessage(int result) {
         this.result = result;
     }
 
+    /**
+     * Get result
+     * 
+     * @return result
+     */
     public int getResult() {
         return result;
     }

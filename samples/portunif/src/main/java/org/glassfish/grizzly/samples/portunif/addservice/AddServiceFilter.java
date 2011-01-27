@@ -46,26 +46,41 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 
 /**
- *
- * @author oleksiys
+ * The ADD-service {@link Filter}, responsible for adding two values :)
+ * 
+ * @author Alexey Stashok
  */
 public class AddServiceFilter extends BaseFilter {
     final static byte[] magic = {'a', 'd', 'd'};
 
 
+    /**
+     * Handle just read operation, when some message has come and ready to be
+     * processed.
+     *
+     * @param ctx Context of {@link FilterChainContext} processing
+     * @return the next action
+     * @throws java.io.IOException
+     */
     @Override
     public NextAction handleRead(final FilterChainContext ctx)
             throws IOException {
 
+        // Get the input AddRequestMessage
         final AddRequestMessage addRequestMessage = ctx.getMessage();
+
+        // Calculate the result
         final int result = addRequestMessage.getValue1() +
                 addRequestMessage.getValue2();
 
+        // Create the response message
         final AddResponseMessage addResponseMessage =
                 new AddResponseMessage(result);
 
+        // Send the response to the client
         ctx.write(addResponseMessage);
-        
+
+        // stop the filterchain processing
         return ctx.getStopAction();
     }
 }
