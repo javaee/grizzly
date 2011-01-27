@@ -59,7 +59,7 @@
         <module>http-samples</module>
         <module>websockets/chat</module>
         <module>http-server-samples</module>
-        <module>portunif-samples</module>
+        <module>portunif</module>
         <module>comet</module>
     </modules>
 </project>

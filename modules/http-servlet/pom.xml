@@ -115,18 +115,13 @@
     <dependencies>
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
-            <artifactId>grizzly-utils</artifactId>
+            <artifactId>grizzly-framework</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.glassfish.grizzly</groupId>
-            <artifactId>grizzly-utils</artifactId>
-            <classifier>tests</classifier>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
+         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-framework</artifactId>
+            <classifier>tests</classifier>
             <version>${project.version}</version>
         </dependency>
         <dependency>

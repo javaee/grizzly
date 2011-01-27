@@ -55,7 +55,6 @@
     <version>2.0.0-SNAPSHOT</version>
     <name>grizzly-modules</name>
     <modules>
-        <module>utils</module>
         <module>grizzly</module>
         <module>rcm</module>
         <module>http</module>
