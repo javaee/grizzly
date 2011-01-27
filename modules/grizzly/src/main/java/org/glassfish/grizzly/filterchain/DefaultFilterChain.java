@@ -141,7 +141,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     }
 
     @Override
-    public GrizzlyFuture read(Connection connection,
+    public GrizzlyFuture<ReadResult> read(Connection connection,
             CompletionHandler completionHandler) throws IOException {
         final FilterChainContext context = obtainFilterChainContext(connection);
         context.setOperation(FilterChainContext.Operation.READ);
@@ -194,7 +194,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     }
 
     @Override
-    public GrizzlyFuture write(Connection connection,
+    public GrizzlyFuture<WriteResult> write(Connection connection,
             Object dstAddress, Object message,
             CompletionHandler completionHandler)
             throws IOException {
