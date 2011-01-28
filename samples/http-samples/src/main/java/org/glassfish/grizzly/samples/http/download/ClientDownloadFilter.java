@@ -80,6 +80,8 @@ public class ClientDownloadFilter extends BaseFilter {
     // number of bytes downloaded
     private volatile int bytesDownloaded;
 
+    private final String resourcePath;
+
     /**
      * <tt>ClientDownloadFilter</tt> constructor
      *
@@ -90,7 +92,7 @@ public class ClientDownloadFilter extends BaseFilter {
         this.uri = uri;
         
         // Extracting resource path
-        String resourcePath =
+        resourcePath =
                 uri.getPath().trim().length() > 0 ? uri.getPath().trim() : "/";
 
         int lastSlashIdx = resourcePath.lastIndexOf('/');
@@ -122,7 +124,7 @@ public class ClientDownloadFilter extends BaseFilter {
         // We construct HTTP request version 1.1 and specifying the URL of the
         // resource we want to download
         final HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("GET")
-                .uri(uri.toString()).protocol(Protocol.HTTP_1_1)
+                .uri(resourcePath).protocol(Protocol.HTTP_1_1)
                 .header("Host", uri.getHost()).build();
         logger.log(Level.INFO, "Connected... Sending the request: {0}", httpRequest);
 
