@@ -76,8 +76,6 @@ public class Client {
 
         final String url = args[0];
 
-//        String url = "http://www.google.com";
-        
         // Parse passed URL
         final URI uri = new URI(url);
         final String host = uri.getHost();

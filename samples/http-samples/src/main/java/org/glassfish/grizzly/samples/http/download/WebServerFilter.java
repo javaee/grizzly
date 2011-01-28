@@ -195,12 +195,11 @@ public class WebServerFilter extends BaseFilter {
                 reasonPhrase("Not Found").build();
         
         // Build 404 HttpContent on base of HttpResponsePacket message header
-        final HttpContent content =
-                responseHeader.httpContentBuilder().
-                content(Buffers.wrap(null,
-                "Can not find file, corresponding to URI: " + request.getRequestURIRef().getDecodedURI())).
-                build();
-        return content;
+        return responseHeader.httpContentBuilder().
+                    content(Buffers.wrap(null,
+                                         "Can not find file, corresponding to URI: "
+                                                 + request.getRequestURIRef().getDecodedURI())).
+                          build();
     }
 
     /**
