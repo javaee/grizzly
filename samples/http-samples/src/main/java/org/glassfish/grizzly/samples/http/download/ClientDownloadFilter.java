@@ -59,7 +59,7 @@ import java.util.logging.Logger;
 
 /**
  * HTTP client download filter.
- * This Filter is reponsible for asynchronous downloading of a HTTP resource and
+ * This Filter is responsible for asynchronous downloading of a HTTP resource and
  * saving its content in a local file.
  *
  * @author Alexey Stashok
