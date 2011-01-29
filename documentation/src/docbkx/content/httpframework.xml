@@ -164,28 +164,9 @@ final HttpTrailer trailer = trailderBuilder.build();</programlisting>
       written to client:</para>
 
       <programlisting xml:id="hf-header">// assume we have access to the FilterChainContext via a variable called 'ctx'...
-ctx.write(response); <co linkends="httpf-1" xml:id="httpf-1-co" />
-ctx.write(content);  <co linkends="httpf-2" xml:id="httpf-2-co" />
-ctx.write(trailer);  <co linkends="httpf-3" xml:id="httpf-3-co" /></programlisting>
-
-      <calloutlist>
-        <callout arearefs="httpf-1-co" xml:id="httpf-1">
-          <para>Writes the response message headers to the client (effectively
-          commits the response).</para>
-        </callout>
-
-        <callout arearefs="httpf-2-co" xml:id="httpf-2">
-          <para>Writes the message body to the client.</para>
-        </callout>
-
-        <callout arearefs="httpf-3-co" xml:id="httpf-3">
-          <para>Since the chunked transfer encoding is being used, each
-          content chunk must be followed with a trailer. Since this is the
-          last chunk that will be written (setLast(true) on the content)
-          another trailer will be written on behalf of the developer to signal
-          the end of the http message to the client.</para>
-        </callout>
-      </calloutlist>
+ctx.write(response); 
+ctx.write(content);  
+ctx.write(trailer);  </programlisting>
 
       <para>The examples above are there purely to demonstrate the different
       builder objects. However, the example above could have the step with the
