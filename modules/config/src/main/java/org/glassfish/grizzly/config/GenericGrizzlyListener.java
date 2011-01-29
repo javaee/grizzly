@@ -674,7 +674,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
                             }
                         }
                     }
-                    // Check if suffisant len to trig the compression
+                    // Check if sufficient len to trig the compression
                     final long contentLength = responsePacket.getContentLength();
                     if (contentLength == -1
                         || contentLength > compressionMinSize) {
