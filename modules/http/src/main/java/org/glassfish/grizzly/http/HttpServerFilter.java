@@ -99,6 +99,7 @@ public class HttpServerFilter extends HttpCodecFilter {
     private final boolean processKeepAlive;
     private boolean authPassthroughEnabled;
     private boolean traceEnabled;
+    private String defaultResponseContentType;
 
     /**
      * Constructor, which creates <tt>HttpServerFilter</tt> instance
@@ -120,6 +121,14 @@ public class HttpServerFilter extends HttpCodecFilter {
         this(null, chunkingEnabled, maxHeadersSize, keepAlive, executor);
     }
 
+    public HttpServerFilter(Boolean isSecure,
+                            boolean chunkingEnabled,
+                            int maxHeadersSize,
+                            KeepAlive keepAlive,
+                            DelayedExecutor executor) {
+        this(null, chunkingEnabled, maxHeadersSize, null, keepAlive, executor);
+    }
+
     /**
      * Constructor, which creates <tt>HttpServerFilter</tt> instance,
      * with the specific max header size parameter.
@@ -132,6 +141,7 @@ public class HttpServerFilter extends HttpCodecFilter {
     public HttpServerFilter(Boolean isSecure,
                             boolean chunkingEnabled,
                             int maxHeadersSize,
+                            String defaultResponseContentType,
                             KeepAlive keepAlive,
                             DelayedExecutor executor) {
         super(isSecure, chunkingEnabled, maxHeadersSize);
@@ -152,6 +162,7 @@ public class HttpServerFilter extends HttpCodecFilter {
             this.keepAlive = null;
             processKeepAlive = false;
         }
+        this.defaultResponseContentType = defaultResponseContentType;
 
         final ContentEncoding enc = new GZipContentEncoding(
                 GZipContentEncoding.DEFAULT_IN_BUFFER_SIZE,
@@ -510,6 +521,9 @@ public class HttpServerFilter extends HttpCodecFilter {
             if (contentLanguage != null) {
                 headers.setValue("Content-Language").setString(contentLanguage);
             }
+            if (defaultResponseContentType != null) {
+                response.setContentType(defaultResponseContentType);
+            }
         }
 
         if (!response.containsHeader("Date")) {
@@ -789,6 +803,15 @@ public class HttpServerFilter extends HttpCodecFilter {
     public void setTraceEnabled(final boolean enabled) {
         traceEnabled = enabled;
     }
+
+    public String getDefaultResponseContentType() {
+        return defaultResponseContentType;
+    }
+
+    public void setDefaultResponseContentType(String defaultResponseContentType) {
+        this.defaultResponseContentType = defaultResponseContentType;
+    }
+
     // ---------------------------------------------------------- Nested Classes
 
 

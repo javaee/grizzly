@@ -441,9 +441,13 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         final int maxHeaderSize = Integer.parseInt(http.getHeaderBufferLengthBytes());
         final boolean chunkingEnabled = Boolean.parseBoolean(http.getChunkingEnabled());
         final KeepAlive keepAlive = configureKeepAlive(habitat, http);
+        final String defaultResponseContentType = http.getForcedResponseType();
         final org.glassfish.grizzly.http.HttpServerFilter httpServerFilter =
             new org.glassfish.grizzly.http.HttpServerFilter(
-                chunkingEnabled, maxHeaderSize,
+                null,
+                chunkingEnabled,
+                maxHeaderSize,
+                defaultResponseContentType,
                 keepAlive,
                 delayedExecutor);
         final Set<ContentEncoding> contentEncodings =
