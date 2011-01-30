@@ -455,7 +455,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         for (ContentEncoding contentEncoding : contentEncodings) {
             httpServerFilter.addContentEncoding(contentEncoding);
         }
-        httpServerFilter.addContentEncoding(new GZipContentEncoding());
+        //httpServerFilter.addContentEncoding(new GZipContentEncoding());
         final boolean isRcmSupportEnabled = Boolean.parseBoolean(http.getRcmSupportEnabled());
         if (isRcmSupportEnabled) {
             filterChain.add(new ResourceAllocationFilter());
@@ -545,9 +545,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
 
     protected Set<ContentEncoding> configureContentEncodings(
         final Habitat habitat, final Http http) {
-        final Set<ContentEncoding> compressionEncodings =
-            configureCompressionEncodings(habitat, http);
-        return compressionEncodings;
+        return configureCompressionEncodings(habitat, http);
     }
 
     protected Set<ContentEncoding> configureCompressionEncodings(
@@ -564,8 +562,8 @@ public class GenericGrizzlyListener implements GrizzlyListener {
                 compressionLevel = COMPRESSION_LEVEL.ON;
                 compressionMinSize = Integer.parseInt(mode);
             } catch (Exception ignore) {
+                compressionLevel = COMPRESSION_LEVEL.OFF;
             }
-            compressionLevel = COMPRESSION_LEVEL.OFF;
         }
         final String compressableMimeTypesString = http.getCompressableMimeType();
         final String noCompressionUserAgentsString = http.getNoCompressionUserAgents();
@@ -597,8 +595,6 @@ public class GenericGrizzlyListener implements GrizzlyListener {
 
     public static enum COMPRESSION_LEVEL {OFF, ON, FORCE}
 
-    ;
-
     /**
      * Set compression level.
      */
@@ -613,7 +609,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         throw new IllegalArgumentException();
     }
 
-    public class CompressionEncodingFilter implements EncodingFilter {
+    public static class CompressionEncodingFilter implements EncodingFilter {
         private final COMPRESSION_LEVEL compressionLevel;
         private final int compressionMinSize;
         private final String[] compressableMimeTypes;

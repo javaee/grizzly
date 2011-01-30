@@ -569,10 +569,10 @@ public abstract class HttpCodecFilter extends BaseFilter
                     return encodedBuffer; // DO NOT MARK COMMITTED
                 }
             }
+            setContentEncodingsOnSerializing(httpHeader);
             setTransferEncodingOnSerializing(connection,
                                              httpHeader,
                                              httpContent);
-            setContentEncodingsOnSerializing(httpHeader);
 
             encodedBuffer = memoryManager.allocate(8192);
 
@@ -1273,9 +1273,7 @@ public abstract class HttpCodecFilter extends BaseFilter
     }
 
     final void setContentEncodingsOnSerializing(final HttpHeader httpHeader) {
-        // If user specified content-length - we don't encode the content
-        if (httpHeader.getContentLength() >= 0) return;
-        
+
         final DataChunk bc =
                 httpHeader.getHeaders().getValue(Constants.CONTENT_ENCODING_HEADER);
 
@@ -1285,7 +1283,8 @@ public abstract class HttpCodecFilter extends BaseFilter
         if (encodingsLibrary == null) return;
 
         final List<ContentEncoding> httpPacketEncoders = httpHeader.getContentEncodings(true);
-        
+
+        final boolean specifiedLength = (httpHeader.getContentLength() >= 0);
         for (ContentEncoding encoding : encodingsLibrary) {
             if (isSomeEncodingApplied) {
                 if (lookupAlias(encoding, bc, 0)) {
@@ -1294,6 +1293,12 @@ public abstract class HttpCodecFilter extends BaseFilter
             }
 
             if (encoding.wantEncode(httpHeader)) {
+                if (specifiedLength && chunkingEnabled) {
+                    httpHeader.setContentLength(-1);
+                    httpHeader.setChunked(true);
+                } else if (specifiedLength) {
+                    continue;
+                }
                 httpPacketEncoders.add(encoding);
             }
         }
