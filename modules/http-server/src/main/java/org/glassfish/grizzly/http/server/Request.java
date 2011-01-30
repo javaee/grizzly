@@ -2034,6 +2034,11 @@ public class Request {
                 }
             }
 
+            if (!isAlpha(language) || !isAlpha(country) || !isAlpha(variant)) {
+                 continue;
+            }
+
+
             // Add a new Locale to the list of Locales for this quality level
             Locale locale = new Locale(language, country, variant);
             Double key = -quality;  // Reverse the order
@@ -2072,6 +2077,27 @@ public class Request {
             setJrouteId(cookie.getValue());
         }
     }
+
+    /*
+     * @return <code>true</code> if the given string is composed of
+     *  upper- or lowercase letters only, <code>false</code> otherwise.
+     */
+    static boolean isAlpha(String value) {
+
+        if (value == null) {
+            return false;
+        }
+
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
 
     /**
      * Sets the jroute id of this request.
