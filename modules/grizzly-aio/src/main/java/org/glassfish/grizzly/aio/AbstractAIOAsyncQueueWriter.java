@@ -62,7 +62,7 @@ import org.glassfish.grizzly.impl.SafeFutureImpl;
 import java.util.Queue;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
-import org.glassfish.grizzly.asyncqueue.PendingWriteQueueLimitExceededException;
+import org.glassfish.grizzly.PendingWriteQueueLimitExceededException;
 
 /**
  * The {@link AsyncQueueWriter} implementation, based on the Java AIO
