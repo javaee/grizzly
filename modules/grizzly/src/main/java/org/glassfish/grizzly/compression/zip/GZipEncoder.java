@@ -38,7 +38,7 @@
  * holder.
  */
 
-package org.glassfish.grizzly.zip;
+package org.glassfish.grizzly.compression.zip;
 
 import org.glassfish.grizzly.AbstractTransformer;
 import org.glassfish.grizzly.Buffer;

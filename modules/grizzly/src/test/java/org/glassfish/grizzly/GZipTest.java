@@ -54,7 +54,7 @@ import org.glassfish.grizzly.utils.ChunkingFilter;
 import org.glassfish.grizzly.utils.DelayFilter;
 import org.glassfish.grizzly.utils.EchoFilter;
 import org.glassfish.grizzly.utils.StringFilter;
-import org.glassfish.grizzly.zip.GZipFilter;
+import org.glassfish.grizzly.compression.zip.GZipFilter;
 import java.io.EOFException;
 import java.io.IOException;
 import java.util.concurrent.Future;

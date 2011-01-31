@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -62,7 +62,7 @@ public interface Transformer<K, L> {
      * 
      * @return The <tt>Transformer</tt> name.
      */
-    public String getName();
+    String getName();
 
     /**
      * Transforms an input data to some custom representation.
@@ -76,7 +76,7 @@ public interface Transformer<K, L> {
      * 
      * @throws org.glassfish.grizzly.TransformationException
      */
-    public TransformationResult<K, L> transform(AttributeStorage storage, K input)
+    TransformationResult<K, L> transform(AttributeStorage storage, K input)
             throws TransformationException;
 
     /**
@@ -88,7 +88,7 @@ public interface Transformer<K, L> {
      *        could retrieve or store its state.
      * @return the last returned <tt>Transformer</tt> result.
      */
-    public TransformationResult<K, L> getLastResult(AttributeStorage storage);
+    TransformationResult<K, L> getLastResult(AttributeStorage storage);
 
     /**
      * The <tt>Transformer</tt> has done its work and can release all
@@ -97,7 +97,7 @@ public interface Transformer<K, L> {
      * @param storage the external state storage, where <tt>Transformer</tt>
      *        could retrieve or store its state.
      */
-    public void release(AttributeStorage storage);
+    void release(AttributeStorage storage);
 
-    public boolean hasInputRemaining(AttributeStorage storage, K input);
+    boolean hasInputRemaining(AttributeStorage storage, K input);
 }
