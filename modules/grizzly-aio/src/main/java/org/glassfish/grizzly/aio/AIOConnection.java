@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -408,7 +408,7 @@ public abstract class AIOConnection implements Connection<SocketAddress> {
      *
      * @param connection the <tt>Connection</tt> event occurred on.
      */
-    protected static void notifyProbesConnect(AIOConnection connection) {
+    protected static void notifyProbesConnect(final AIOConnection connection) {
         final ConnectionProbe[] probes =
                 connection.monitoringConfig.getProbesUnsafe();
         if (probes != null) {

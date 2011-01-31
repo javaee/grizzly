@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,64 +40,73 @@
 
 package org.glassfish.grizzly.aio.transport;
 
-import org.glassfish.grizzly.nio.AbstractNIOAsyncQueueReader;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.ReadResult;
-import org.glassfish.grizzly.nio.NIOTransport;
 import java.io.IOException;
 import java.net.SocketAddress;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.Interceptor;
+import org.glassfish.grizzly.aio.AIOConnection;
 import org.glassfish.grizzly.aio.AIOTransport;
+import org.glassfish.grizzly.aio.AbstractAIOAsyncQueueReader;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueReader;
 import org.glassfish.grizzly.asyncqueue.AsyncReadQueueRecord;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.nio.NIOConnection;
 
 /**
  * The TCP transport {@link AsyncQueueReader} implementation, based on
- * the Java NIO
+ * the Java AIO
  *
  * @author Alexey Stashok
  */
-public final class TCPAIOAsyncQueueReader extends AbstractNIOAsyncQueueReader {
-    public TCPAIOAsyncQueueReader(AIOTransport transport) {
+public final class TCPAIOAsyncQueueReader extends AbstractAIOAsyncQueueReader {
+    public TCPAIOAsyncQueueReader(final AIOTransport transport) {
         super(transport);
     }
 
-    @Override
-    protected int read0(final Connection connection, Buffer buffer,
-            final ReadResult<Buffer, SocketAddress> currentResult) throws IOException {
+    protected void read0(
+            final AIOConnection connection,
+            final AsyncReadQueueRecord queueRecord)
+            throws IOException {
 
-        final int oldPosition = buffer != null ? buffer.position() : 0;
-        if ((buffer = ((TCPAIOTransport) transport).read(connection, buffer)) != null) {
-            final int readBytes = buffer.position() - oldPosition;
-            currentResult.setMessage(buffer);
-            currentResult.setReadSize(currentResult.getReadSize() + readBytes);
-            currentResult.setSrcAddress((SocketAddress) connection.getPeerAddress());
-
-            return readBytes;
-        }
-
-        return 0;
+        ((TCPAIOTransport) transport).read(connection, buffer, queueRecord,
+                readCompletionHandler);
     }
 
-    protected void addRecord(Connection connection,
-            Buffer buffer,
-            CompletionHandler completionHandler,
-            Interceptor<ReadResult> interceptor) {
+    protected void addRecord(final Connection connection,
+            final Buffer buffer,
+            final CompletionHandler completionHandler,
+            final Interceptor<ReadResult> interceptor) {
         final AsyncReadQueueRecord record = AsyncReadQueueRecord.create(
-                buffer, SafeFutureImpl.create(),
+                connection, buffer, SafeFutureImpl.create(),
                 ReadResult.create(connection),
                 completionHandler, interceptor);
         ((TCPAIOConnection) connection).getAsyncReadQueue().getQueue().add(record);
     }
-
+    
     @Override
-    protected final void onReadyToRead(Connection connection) throws IOException {
-        final NIOConnection nioConnection = (NIOConnection) connection;
-        nioConnection.enableIOEvent(IOEvent.READ);
-    }
+    protected ReadCompletionHandler createReadCompletionHandler() {
+        return new TCPAIOReadCompletionHandler();
+    }    
+
+    protected class TCPAIOReadCompletionHandler extends ReadCompletionHandler {
+
+        @Override
+        public void completed(final Integer bytesRead,
+                final AsyncReadQueueRecord readQueueRecord) {
+            final TCPAIOConnection connection =
+                    (TCPAIOConnection) readQueueRecord.getConnection();
+            final ReadResult currentResult = readQueueRecord.getCurrentResult();
+            final Buffer buffer = (Buffer) readQueueRecord.getMessage();
+           
+            
+            
+            currentResult.setMessage(buffer);
+            currentResult.setReadSize(currentResult.getReadSize() + bytesRead);
+            currentResult.setSrcAddress((SocketAddress) connection.getPeerAddress());
+            super.completed(bytesRead, readQueueRecord);
+        }
+    }    
 }

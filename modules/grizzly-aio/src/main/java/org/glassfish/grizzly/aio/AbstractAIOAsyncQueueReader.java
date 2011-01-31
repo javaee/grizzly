@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,7 +37,6 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.aio;
 
 import java.io.EOFException;
@@ -73,12 +72,13 @@ public abstract class AbstractAIOAsyncQueueReader
         implements AsyncQueueReader<SocketAddress> {
 
     private static final Logger LOGGER = Grizzly.logger(AbstractAIOAsyncQueueReader.class);
-
     private static final AsyncReadQueueRecord LOCK_RECORD =
-            AsyncReadQueueRecord.create(null, null, null, null, null);
+            AsyncReadQueueRecord.create(null, null, null, null, null, null);
     public static final int DEFAULT_BUFFER_SIZE = 8192;
     protected int defaultBufferSize = DEFAULT_BUFFER_SIZE;
-    protected AIOTransport transport;
+    protected final AIOTransport transport;
+    protected final ReadCompletionHandler readCompletionHandler =
+            createReadCompletionHandler();
 
     public AbstractAIOAsyncQueueReader(AIOTransport transport) {
         this.transport = transport;
@@ -94,23 +94,31 @@ public abstract class AbstractAIOAsyncQueueReader
             final CompletionHandler<ReadResult<Buffer, SocketAddress>> completionHandler,
             final Interceptor<ReadResult> interceptor) throws IOException {
 
+        final boolean isLogFine = LOGGER.isLoggable(Level.FINEST);
+
         if (connection == null) {
             throw new IOException("Connection is null");
         } else if (!connection.isOpen()) {
             throw new IOException("Connection is closed");
         }
 
+        final AIOConnection aioConnection = (AIOConnection) connection;
+
         // Get connection async read queue
         final TaskQueue<AsyncReadQueueRecord> connectionQueue =
                 ((AIOConnection) connection).getAsyncReadQueue();
 
-
         final ReadResult currentResult = ReadResult.create(connection,
                 buffer, null, 0);
 
+        // Create Future
+        final SafeFutureImpl<ReadResult<Buffer, SocketAddress>> readFuture =
+                SafeFutureImpl.<ReadResult<Buffer, SocketAddress>>create();
+
         // create and initialize the read queue record
         final AsyncReadQueueRecord queueRecord = AsyncReadQueueRecord.create(
-                buffer, null, currentResult, completionHandler, interceptor);
+                connection, buffer, readFuture, currentResult,
+                completionHandler, interceptor);
 
         final Queue<AsyncReadQueueRecord> queue = connectionQueue.getQueue();
         final AtomicReference<AsyncReadQueueRecord> currentElement =
@@ -118,83 +126,57 @@ public abstract class AbstractAIOAsyncQueueReader
 
         final boolean isLocked = currentElement.compareAndSet(null, LOCK_RECORD);
 
+        if (isLogFine) {
+            LOGGER.log(Level.FINEST, "AsyncQueueWriter.write connection={0} record={1} directWrite={2}",
+                    new Object[]{connection, queueRecord, isLocked});
+        }
+
         try {
+            if (isLocked) {
+                currentElement.set(queueRecord);
 
-            if (isLocked) { // If AsyncQueue is empty - try to read Buffer here
-                doRead(connection, queueRecord);
+                read0(aioConnection, queueRecord);
+                return readFuture;
+            }
 
-                final int interceptInstructions = intercept(connection,
-                        Reader.READ_EVENT, queueRecord, currentResult);
+            if (isLogFine) {
+                LOGGER.log(Level.FINEST, "AsyncQueueWriter.write queue record."
+                        + " connection={0} record={1}",
+                        new Object[]{connection, queueRecord});
+            }
 
-                if ((interceptInstructions & Interceptor.COMPLETED) != 0
-                        || (interceptor == null && isFinished(connection, queueRecord))) { // if direct read is completed
+            connectionQueue.getQueue().offer(queueRecord);
 
-                    // If message was read directly - set next queue element as current
-                    AsyncReadQueueRecord nextRecord = queue.poll();
-                    currentElement.set(nextRecord);
-                    
-                    // Notify callback handler
-                    onReadComplete(connection, queueRecord);
-
-                    if (nextRecord == null) { // if nothing in queue
-                        // try one more time
-                        nextRecord = queue.peek();
-                        if (nextRecord != null &&
-                                currentElement.compareAndSet(null, nextRecord)) {
-                            if (queue.remove(nextRecord)) {
-                                onReadyToRead(connection);
-                            }
-                        }
-                    } else { // if there is something in queue
-                        onReadyToRead(connection);
-                    }
-
-                    intercept(connection, COMPLETE_EVENT, queueRecord, null);
-                    queueRecord.recycle();
-                    return ReadyFutureImpl.<ReadResult<Buffer, SocketAddress>>create(
-                            currentResult);
-                } else { // If direct read is not finished
-                // Create future
-                    if ((interceptInstructions & Interceptor.RESET) != 0) {
-                        currentResult.setMessage(null);
-                        currentResult.setReadSize(0);
-                        queueRecord.setMessage(null);
-                    }
-
-                    final FutureImpl future = SafeFutureImpl.create();
-                    queueRecord.setFuture(future);
-                    currentElement.set(queueRecord);
-                    
-                    onReadIncomplete(connection, queueRecord);
-                    onReadyToRead(connection);
-
-                    intercept(connection, INCOMPLETE_EVENT, queueRecord, null);
-
-                    return future;
+            if (currentElement.compareAndSet(null, queueRecord)) {
+                if (isLogFine) {
+                    LOGGER.log(Level.FINEST, "AsyncQueueWriter.write set "
+                            + "record as current. connection={0} record={1}",
+                            new Object[]{connection, queueRecord});
                 }
 
-            } else { // Read queue is not empty - add new element to a queue
-                // Create future
-                final FutureImpl future = SafeFutureImpl.create();
-                queueRecord.setFuture(future);
-
-                connectionQueue.getQueue().offer(queueRecord);
-
-                if (currentElement.compareAndSet(null, queueRecord)) { // if queue became empty
-                    // set this element as current and remove it from a queue
-                    if (queue.remove(queueRecord)) {
-                        onReadyToRead(connection);
-                    }
+                if (queue.remove(queueRecord)) {
+                    read0(aioConnection, queueRecord);
                 }
+            }
 
-                // Check whether connection is still open
-                if (!connection.isOpen() && queue.remove(queueRecord)) {
-                    onReadFailure(connection, queueRecord,
-                            new EOFException("Connection is closed"));
+            // Check whether connection is still open
+            if (!connection.isOpen() && queue.remove(queueRecord)) {
+                if (isLogFine) {
+                    LOGGER.log(Level.FINEST, "AsyncQueueWriter.write "
+                            + "connection is closed. connection={0} record={1}",
+                            new Object[]{connection, queueRecord});
                 }
+                onReadFailure(connection, queueRecord,
+                        new IOException("Connection is closed"));
+            }
 
-                return future;            }
+            return readFuture;
         } catch (IOException e) {
+            if (isLogFine) {
+                LOGGER.log(Level.FINEST, "AsyncQueueWriter.write exception."
+                        + " connection=" + connection + " record=" + queueRecord,
+                        e);
+            }
             onReadFailure(connection, queueRecord, e);
             return ReadyFutureImpl.create(e);
         }
@@ -219,74 +201,79 @@ public abstract class AbstractAIOAsyncQueueReader
      */
     @Override
     public void processAsync(final Connection connection) throws IOException {
+        final AIOConnection aioConnection = (AIOConnection) connection;
         final TaskQueue<AsyncReadQueueRecord> connectionQueue =
-                ((AIOConnection) connection).getAsyncReadQueue();
+                aioConnection.getAsyncReadQueue();
 
         final Queue<AsyncReadQueueRecord> queue = connectionQueue.getQueue();
         final AtomicReference<AsyncReadQueueRecord> currentElement =
                 connectionQueue.getCurrentElementAtomic();
 
         AsyncReadQueueRecord queueRecord = currentElement.get();
-        if (queueRecord == LOCK_RECORD) return;
 
         try {
-            while (queueRecord != null) {
-                final ReadResult currentResult = queueRecord.getCurrentResult();
-                doRead(connection, queueRecord);
+            final ReadResult currentResult = queueRecord.getCurrentResult();
 
-                final Interceptor<ReadResult> interceptor =
-                        queueRecord.getInterceptor();
-                // check if message was completely read
-                final int interceptInstructions = intercept(connection,
-                        Reader.READ_EVENT, queueRecord,
-                        currentResult);
+            final Interceptor<ReadResult> interceptor =
+                    queueRecord.getInterceptor();
+            // check if message was completely read
+            final int interceptInstructions = intercept(connection,
+                    Reader.READ_EVENT, queueRecord,
+                    currentResult);
 
-                if ((interceptInstructions & Interceptor.COMPLETED) != 0
-                        || (interceptor == null && isFinished(connection, queueRecord))) {
+            boolean isInitiateAnotherRead = false;
+            if ((interceptInstructions & Interceptor.COMPLETED) != 0
+                    || (interceptor == null && isFinished(connection, queueRecord))) {
 
-                    AsyncReadQueueRecord nextRecord = queue.poll();
-                    currentElement.set(nextRecord);
+                AsyncReadQueueRecord nextRecord = queue.poll();
+                currentElement.set(nextRecord);
 
-                    onReadComplete(connection, queueRecord);
+                onReadComplete(connection, queueRecord);
 
-                    intercept(connection, Reader.COMPLETE_EVENT,
-                            queueRecord, null);
-                    queueRecord.recycle();
+                intercept(connection, Reader.COMPLETE_EVENT,
+                        queueRecord, null);
+                queueRecord.recycle();
 
-                    queueRecord = nextRecord;
-                    // If last element in queue is null - we have to be careful
-                    if (queueRecord == null) {
-                        queueRecord = queue.peek();
-                        if (queueRecord != null &&
-                                currentElement.compareAndSet(null, queueRecord)) {
-                            if (!queue.remove(queueRecord)) { // if the record was picked up by another thread
-                                break;
-                            }
-                        } else { // If there are no elements - return
-                            break;
+                queueRecord = nextRecord;
+                // If last element in queue is null - we have to be careful
+                if (queueRecord == null) {
+                    queueRecord = queue.peek();
+                    if (queueRecord != null
+                            && currentElement.compareAndSet(null, queueRecord)) {
+                        if (queue.remove(queueRecord)) { // if the record was picked up by another thread
+                            isInitiateAnotherRead = true;
                         }
                     }
-                } else { // if there is still some data in current message
-                    if ((interceptInstructions & Interceptor.RESET) != 0) {
-                        currentResult.setMessage(null);
-                        currentResult.setReadSize(0);
-                        queueRecord.setMessage(null);
+                } else {
+                    if (LOGGER.isLoggable(Level.FINEST)) {
+                        LOGGER.log(Level.FINEST, "AsyncQueueReader.processAsync readAnotherRecord. connection={0}",
+                                connection);
                     }
 
-                    onReadIncomplete(connection, queueRecord);
-                    intercept(connection, Reader.INCOMPLETE_EVENT,
-                            queueRecord, null);
-
-                    onReadyToRead(connection);
-                    break;
+                    isInitiateAnotherRead = true;
                 }
+            } else { // if there is still some data in current message
+                if ((interceptInstructions & Interceptor.RESET) != 0) {
+                    currentResult.setMessage(null);
+                    currentResult.setReadSize(0);
+                    queueRecord.setMessage(null);
+                }
+
+                onReadIncomplete(connection, queueRecord);
+                intercept(connection, Reader.INCOMPLETE_EVENT,
+                        queueRecord, null);
             }
+            
+            if (isInitiateAnotherRead) {
+                read0(aioConnection, queueRecord);
+            }
+
         } catch (IOException e) {
             onReadFailure(connection, queueRecord, e);
         } catch (Exception e) {
-            String message = "Unexpected exception occurred in AsyncQueueReader";
+            final String message = "Unexpected exception occurred in AsyncQueueReader";
             LOGGER.log(Level.SEVERE, message, e);
-            IOException ioe = new IOException(e.getClass() + ": " + message);
+            final IOException ioe = new IOException(e);
             onReadFailure(connection, queueRecord, ioe);
         }
     }
@@ -335,23 +322,22 @@ public abstract class AbstractAIOAsyncQueueReader
      * @param queueRecord the record to be read to
      * @throws java.io.IOException
      */
-    final protected int doRead(final Connection connection,
-            final AsyncReadQueueRecord queueRecord) throws IOException {
-
-        final Object message = queueRecord.getMessage();
-
-        final Buffer buffer = (Buffer) message;
-        final ReadResult currentResult = queueRecord.getCurrentResult();
-
-        final int readBytes = read0(connection, buffer, currentResult);
-
-        if (readBytes == -1) {
-            throw new EOFException();
-        }
-
-        return readBytes;
-    }
-
+//    final protected int doRead(final Connection connection,
+//            final AsyncReadQueueRecord queueRecord) throws IOException {
+//
+//        final Object message = queueRecord.getMessage();
+//
+//        final Buffer buffer = (Buffer) message;
+//        final ReadResult currentResult = queueRecord.getCurrentResult();
+//
+//        final int readBytes = read0(connection, buffer, currentResult);
+//
+//        if (readBytes == -1) {
+//            throw new EOFException();
+//        }
+//
+//        return readBytes;
+//    }
     protected final void onReadComplete(Connection connection,
             AsyncReadQueueRecord record)
             throws IOException {
@@ -438,9 +424,40 @@ public abstract class AbstractAIOAsyncQueueReader
                 || !((Buffer) message).hasRemaining();
     }
 
-    protected abstract int read0(Connection connection, Buffer buffer,
-            ReadResult<Buffer, SocketAddress> currentResult) throws IOException;
-
-    protected abstract void onReadyToRead(Connection connection)
+    protected abstract void read0(
+            final AIOConnection connection,
+            final AsyncReadQueueRecord queueRecord)
             throws IOException;
+
+    protected ReadCompletionHandler createReadCompletionHandler() {
+        return new ReadCompletionHandler();
+    }
+
+    protected class ReadCompletionHandler implements
+            java.nio.channels.CompletionHandler<Integer, AsyncReadQueueRecord> {
+
+        @Override
+        public void completed(final Integer result,
+                final AsyncReadQueueRecord readQueueRecord) {
+            try {
+                processAsync(readQueueRecord.getConnection());
+            } catch (IOException ignored) {
+            }
+        }
+
+        @Override
+        public void failed(final Throwable e,
+                final AsyncReadQueueRecord readQueueRecord) {
+                    
+            final IOException ioException;
+            if (IOException.class.isAssignableFrom(e.getClass())) {
+                ioException = (IOException) e;
+            } else {
+                ioException = new IOException(e);
+            }
+
+            onReadFailure(readQueueRecord.getConnection(),
+                    readQueueRecord, ioException);
+        }
+    }
 }

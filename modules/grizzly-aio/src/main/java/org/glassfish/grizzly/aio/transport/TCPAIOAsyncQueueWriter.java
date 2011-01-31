@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,165 +40,64 @@
 
 package org.glassfish.grizzly.aio.transport;
 
-import java.util.concurrent.Future;
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.Interceptor;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
-import org.glassfish.grizzly.nio.AbstractNIOAsyncQueueWriter;
 import java.io.IOException;
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.aio.AIOConnection;
 import org.glassfish.grizzly.aio.AIOTransport;
+import org.glassfish.grizzly.aio.AbstractAIOAsyncQueueWriter;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
-import org.glassfish.grizzly.memory.BufferArray;
-import org.glassfish.grizzly.nio.NIOConnection;
-import org.glassfish.grizzly.utils.DebugPoint;
 
 /**
  * The TCP transport {@link AsyncQueueWriter} implementation, based on
- * the Java NIO
+ * the Java AIO
  *
  * @author Alexey Stashok
  */
-public final class TCPAIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
+public final class TCPAIOAsyncQueueWriter extends AbstractAIOAsyncQueueWriter {
 
     public TCPAIOAsyncQueueWriter(AIOTransport transport) {
         super(transport);
     }
 
     @Override
-    protected AsyncWriteQueueRecord createRecord(
-            final Object message,
-            final Future future,
-            final WriteResult currentResult,
-            final CompletionHandler completionHandler,
-            final Interceptor interceptor,
-            final Object dstAddress,
-            final Buffer outputBuffer,
-            final boolean isCloned) {
-        return TCPNIOQueueRecord.create(message, future, currentResult,
-                completionHandler, interceptor, dstAddress, outputBuffer,
-                isCloned);
-    }
-
-
-
-    @Override
-    protected int write0(Connection connection, AsyncWriteQueueRecord queueRecord) throws IOException {
-        final WriteResult currentResult = queueRecord.getCurrentResult();
+    protected void write0(final AIOConnection connection,
+            final AsyncWriteQueueRecord queueRecord)
+            throws IOException {
         final Buffer buffer = queueRecord.getOutputBuffer();
-        final TCPNIOQueueRecord record = (TCPNIOQueueRecord) queueRecord;
-
-        final int written;
         
-        final int oldPos = buffer.position();
-        if (buffer.isComposite()) {
-            BufferArray array = record.bufferArray;
-            if (array == null) {
-                array = buffer.toBufferArray();
-                record.bufferArray = array;
-            }
-
-            written = ((TCPAIOTransport) transport).write0(connection, array);
-
-
-            if (!buffer.hasRemaining()) {
-                array.restore();
-            }
-
-        } else {
-            written = ((TCPAIOTransport) transport).write0(connection, buffer);
-        }
-
-        if (written > 0) {
-            buffer.position(oldPos + written);
-        }
-
-        ((TCPAIOConnection) connection).onWrite(buffer, written);
-
-        if (currentResult != null) {
-            currentResult.setMessage(buffer);
-            currentResult.setWrittenSize(currentResult.getWrittenSize()
-                    + written);
-            currentResult.setDstAddress(
-                    connection.getPeerAddress());
-        }
-
-        return written;
+        ((TCPAIOTransport) transport).write0(connection, buffer,
+                queueRecord, writeCompletionHandler);
     }
 
     @Override
-    protected final void onReadyToWrite(Connection connection) throws IOException {
-        final NIOConnection nioConnection = (NIOConnection) connection;
-        nioConnection.enableIOEvent(IOEvent.WRITE);
-    }
+    protected WriteCompletionHandler createWriteCompletionHandler() {
+        return new TCPAIOWriteCompletionHandler();
+    }    
 
-    private static class TCPNIOQueueRecord extends AsyncWriteQueueRecord {
-
-        private static final ThreadCache.CachedTypeIndex<TCPNIOQueueRecord> CACHE_IDX =
-                ThreadCache.obtainIndex(TCPNIOQueueRecord.class, 2);
-
-        public static AsyncWriteQueueRecord create(
-                final Object message,
-                final Future future,
-                final WriteResult currentResult,
-                final CompletionHandler completionHandler,
-                final Interceptor interceptor,
-                final Object dstAddress,
-                final Buffer outputBuffer,
-                final boolean isCloned) {
-
-            final TCPNIOQueueRecord asyncWriteQueueRecord =
-                    ThreadCache.takeFromCache(CACHE_IDX);
-
-            if (asyncWriteQueueRecord != null) {
-                asyncWriteQueueRecord.isRecycled = false;
-                asyncWriteQueueRecord.set(message, future, currentResult,
-                        completionHandler, interceptor, dstAddress,
-                        outputBuffer, isCloned);
-
-                return asyncWriteQueueRecord;
-}
-
-            return new TCPNIOQueueRecord(message, future, currentResult,
-                    completionHandler, interceptor, dstAddress,
-                    outputBuffer, isCloned);
-        }
-
-        private BufferArray bufferArray;
-        
-        public TCPNIOQueueRecord(final Object message,
-                final Future future,
-                final WriteResult currentResult,
-                final CompletionHandler completionHandler,
-                final Interceptor interceptor,
-                final Object dstAddress,
-                final Buffer outputBuffer,
-                final boolean isCloned) {
-            super(message, future, currentResult, completionHandler,
-                    interceptor, dstAddress, outputBuffer, isCloned);
-        }
+    protected class TCPAIOWriteCompletionHandler extends WriteCompletionHandler {
 
         @Override
-        public void recycle() {
-            checkRecycled();
-            reset();
-            isRecycled = true;
-            if (Grizzly.isTrackingThreadCache()) {
-                recycleTrack = new DebugPoint(new Exception(),
-                        Thread.currentThread().getName());
-            }
-
-            if (bufferArray != null) {
-                bufferArray.recycle();
-                bufferArray = null;
-            }
+        public void completed(final Integer bytesWritten,
+                final AsyncWriteQueueRecord writeQueueRecord) {
+            final TCPAIOConnection connection =
+                    (TCPAIOConnection) writeQueueRecord.getConnection();
+            final WriteResult currentResult = writeQueueRecord.getCurrentResult();
+            final Buffer buffer = writeQueueRecord.getOutputBuffer();
             
-            ThreadCache.putToCache(CACHE_IDX, this);
+            ((TCPAIOConnection) connection).onWrite(buffer, bytesWritten);
+
+            if (currentResult != null) {
+                currentResult.setMessage(buffer);
+                currentResult.setWrittenSize(currentResult.getWrittenSize()
+                        + bytesWritten);
+                currentResult.setDstAddress(
+                        connection.getPeerAddress());
+            }
+                    
+            super.completed(bytesWritten, writeQueueRecord);
         }
+        
     }
 }

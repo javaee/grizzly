@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,24 +44,20 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ConnectionProbe;
 import org.glassfish.grizzly.aio.AIOConnection;
 import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.nio.SelectorRunner;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.channels.AsynchronousChannel;
-import java.nio.channels.SelectableChannel;
-import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
-import java.util.concurrent.Callable;
 
 /**
  * {@link org.glassfish.grizzly.Connection} implementation
- * for the {@link TCPNIOTransport}
+ * for the {@link TCPAIOTransport}
  *
  * @author Alexey Stashok
  */
@@ -169,28 +165,6 @@ public class TCPAIOConnection extends AIOConnection {
     }
 
     /**
-     * Method will be called, when the connection gets connected.
-     * @throws IOException
-     */
-    protected final void onConnect() throws IOException {
-        final Callable<Connection> localConnectHandler = connectHandler;
-        
-        if (localConnectHandler != null) {
-            connectHandler = null;
-            
-            try {
-                localConnectHandler.call();
-            } catch (IOException e) {
-                throw e;
-            } catch (Exception e) {
-                throw new IOException("Connect exception", e);
-            }
-        }
-
-        notifyProbesConnect(this);
-    }
-
-    /**
      * Method will be called, when some data was read on the connection
      */
     protected final void onRead(Buffer data, int size) {
@@ -210,6 +184,10 @@ public class TCPAIOConnection extends AIOConnection {
      */
     void setMonitoringProbes(final ConnectionProbe[] monitoringProbes) {
         this.monitoringConfig.addProbes(monitoringProbes);
+    }
+
+    final void onConnect() {
+        notifyProbesConnect(this);
     }
 }
     

@@ -55,15 +55,12 @@ import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.filterchain.FilterChainEnabledTransport;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.net.SocketAddress;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.PostProcessor;
 import org.glassfish.grizzly.ProcessorExecutor;
@@ -75,11 +72,7 @@ import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.Writer;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
-import org.glassfish.grizzly.nio.SelectorRunner;
-import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
-import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
-import org.glassfish.grizzly.threadpool.AbstractThreadPool;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.WorkerThread;
 import java.io.EOFException;
@@ -89,11 +82,13 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousChannel;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.memory.BufferArray;
 import org.glassfish.grizzly.memory.ByteBufferArray;
+import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 
 /**
  * TCP Transport NIO implementation
@@ -701,15 +696,7 @@ public final class TCPAIOTransport extends AIOTransport implements
             final Connection connection, final PostProcessor postProcessor)
             throws IOException {
 
-        try {
-            if (ioEvent == IOEvent.SERVER_ACCEPT) {
-                ((TCPAIOServerConnection) connection).onAccept();
-                return IOEventReg.REGISTER;
-            } else if (ioEvent == IOEvent.CLIENT_CONNECTED) {
-                ((TCPAIOConnection) connection).onConnect();
-                return IOEventReg.REGISTER;
-            }
-            
+        try {            
             final Processor conProcessor = connection.obtainProcessor(ioEvent);
 
                 if (ProcessorExecutor.execute(connection, ioEvent,
@@ -1226,30 +1213,6 @@ public final class TCPAIOTransport extends AIOTransport implements
 //        return new org.glassfish.grizzly.nio.transport.jmx.TCPNIOTransport(this);
         return null;
     }
-
-//    class RegisterChannelCompletionHandler
-//            extends EmptyCompletionHandler<RegisterChannelResult> {
-//
-//        @Override
-//        public void completed(final RegisterChannelResult result) {
-//            try {
-//                final SelectionKey selectionKey = result.getSelectionKey();
-//
-//                final TCPAIOConnection connection =
-//                        (TCPAIOConnection) getSelectionKeyHandler().
-//                        getConnectionForKey(selectionKey);
-//
-//                if (connection != null) {
-//                    final SelectorRunner selectorRunner = result.getSelectorRunner();
-//                    connection.setSelectionKey(selectionKey);
-//                    connection.setSelectorRunner(selectorRunner);
-//                }
-//            } catch (Exception e) {
-//                LOGGER.log(Level.FINE, "Exception happened, when " +
-//                        "trying to register the channel", e);
-//            }
-//        }
-//    }
 
     /**
      * Transport default {@link TCPNIOConnectorHandler}.

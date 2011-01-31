@@ -143,11 +143,10 @@ public class TCPAIOConnectorHandler extends AbstractSocketConnectorHandler {
 
                                 connection.resetProperties();
 
-                                // Unregister OP_CONNECT interest
-                                connection.disableIOEvent(IOEvent.CLIENT_CONNECTED);
-
                                 aioTransport.configureChannel(socketChannel);
-
+                                
+                                connection.onConnect();
+                                
                                 aioTransport.fireIOEvent(IOEvent.CONNECTED, connection,
                                         new EnableReadPostProcessor(connectFuture, completionHandler));
 

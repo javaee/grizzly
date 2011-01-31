@@ -64,7 +64,6 @@ import java.util.logging.Logger;
 public final class TCPAIOServerConnection extends TCPAIOConnection {
 
     private static final Logger LOGGER = Grizzly.logger(TCPAIOServerConnection.class);
-    private final Object acceptSync = new Object();
 
     public TCPAIOServerConnection(TCPAIOTransport transport,
             AsynchronousServerSocketChannel serverSocketChannel) {
