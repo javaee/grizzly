@@ -105,7 +105,7 @@ public class HttpServerFilter extends HttpCodecFilter {
      * Constructor, which creates <tt>HttpServerFilter</tt> instance
      */
     public HttpServerFilter() {
-        this(null, true, DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE, null, null);
+        this(true, DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE, null, null);
     }
 
     /**
@@ -118,33 +118,22 @@ public class HttpServerFilter extends HttpCodecFilter {
                             int maxHeadersSize,
                             KeepAlive keepAlive,
                             DelayedExecutor executor) {
-        this(null, chunkingEnabled, maxHeadersSize, keepAlive, executor);
+        this(chunkingEnabled, maxHeadersSize, null, keepAlive, executor);
     }
 
-    public HttpServerFilter(Boolean isSecure,
-                            boolean chunkingEnabled,
-                            int maxHeadersSize,
-                            KeepAlive keepAlive,
-                            DelayedExecutor executor) {
-        this(null, chunkingEnabled, maxHeadersSize, null, keepAlive, executor);
-    }
 
     /**
      * Constructor, which creates <tt>HttpServerFilter</tt> instance,
      * with the specific max header size parameter.
      *
-     * @param isSecure <tt>true</tt>, if the Filter will be used for secured HTTPS communication,
-     *                 or <tt>false</tt> otherwise. It's possible to pass <tt>null</tt>, in this
-     *                 case Filter will try to autodetect security.
      * @param maxHeadersSize the maximum size of the HTTP message header.
      */
-    public HttpServerFilter(Boolean isSecure,
-                            boolean chunkingEnabled,
+    public HttpServerFilter(boolean chunkingEnabled,
                             int maxHeadersSize,
                             String defaultResponseContentType,
                             KeepAlive keepAlive,
                             DelayedExecutor executor) {
-        super(isSecure, chunkingEnabled, maxHeadersSize);
+        super(chunkingEnabled, maxHeadersSize);
 
         this.httpRequestInProcessAttr =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.

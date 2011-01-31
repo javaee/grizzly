@@ -43,8 +43,6 @@ package org.glassfish.grizzly.http;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.filterchain.BaseFilter;
-import org.glassfish.grizzly.filterchain.Filter;
-import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.util.Ascii;
@@ -57,7 +55,6 @@ import org.glassfish.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
-import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.utils.ArraySet;
 import java.io.IOException;
 import java.util.Arrays;
@@ -179,15 +176,11 @@ public abstract class HttpCodecFilter extends BaseFilter
      * Constructor, which creates <tt>HttpCodecFilter</tt> instance, with the specific
      * max header size parameter.
      *
-     * @param isSecure <tt>true</tt>, if the Filter will be used for secured HTTPS communication,
-     *                 or <tt>false</tt> otherwise. It's possible to pass <tt>null</tt>, in this
-     *                 case Filter will try to auto-detect security.
      * @param chunkingEnabled <code>true</code> if the chunked transfer encoding
      *  should be used when no explicit content length has been set.
      * @param maxHeadersSize the maximum size of the HTTP message header.
      */
-    public HttpCodecFilter(final Boolean isSecure,
-                           final boolean chunkingEnabled,
+    public HttpCodecFilter(final boolean chunkingEnabled,
                            final int maxHeadersSize) {
         this.maxHeadersSize = maxHeadersSize;
         this.chunkingEnabled = chunkingEnabled;
@@ -574,7 +567,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                                              httpHeader,
                                              httpContent);
 
-            encodedBuffer = memoryManager.allocate(8192);
+            encodedBuffer = memoryManager.allocate(maxHeadersSize);
 
             encodedBuffer = encodeInitialLine(httpHeader, encodedBuffer, memoryManager);
             encodedBuffer = put(memoryManager, encodedBuffer, Constants.CRLF_BYTES);
