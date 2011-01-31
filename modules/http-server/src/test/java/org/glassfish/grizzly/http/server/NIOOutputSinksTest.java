@@ -42,6 +42,7 @@ package org.glassfish.grizzly.http.server;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.PendingWriteQueueLimitExceededException;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.filterchain.BaseFilter;
@@ -59,7 +60,6 @@ import org.glassfish.grizzly.http.server.io.WriteHandler;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.NIOConnection;
-import org.glassfish.grizzly.nio.PendingWriteQueueLimitExceededException;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import junit.framework.TestCase;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
