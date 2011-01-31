@@ -112,7 +112,11 @@ public class HttpServerFilter extends HttpCodecFilter {
      * Constructor, which creates <tt>HttpServerFilter</tt> instance,
      * with the specific max header size parameter.
      *
-     * @param maxHeadersSize the maximum size of the HTTP message header.
+     * @param chunkingEnabled flag indicating whether or not chunking should
+     *  be allowed or not.
+     * @param maxHeadersSize the maximum size of an inbound HTTP message header.
+     * @param keepAlive keep-alive configuration for this filter instance.
+     * @param executor {@link DelayedExecutor} for handling keep-alive.
      */
     public HttpServerFilter(boolean chunkingEnabled,
                             int maxHeadersSize,
@@ -126,7 +130,13 @@ public class HttpServerFilter extends HttpCodecFilter {
      * Constructor, which creates <tt>HttpServerFilter</tt> instance,
      * with the specific max header size parameter.
      *
-     * @param maxHeadersSize the maximum size of the HTTP message header.
+     * @param chunkingEnabled flag indicating whether or not chunking should
+     *  be allowed or not.
+     * @param maxHeadersSize the maximum size of an inbound HTTP message header.
+     * @param defaultResponseContentType the content type that the response should
+     *  use if no content had been specified at the time the response is committed.
+     * @param keepAlive keep-alive configuration for this filter instance.
+     * @param executor {@link DelayedExecutor} for handling keep-alive.
      */
     public HttpServerFilter(boolean chunkingEnabled,
                             int maxHeadersSize,

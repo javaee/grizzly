@@ -567,7 +567,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                                              httpHeader,
                                              httpContent);
 
-            encodedBuffer = memoryManager.allocate(maxHeadersSize);
+            encodedBuffer = memoryManager.allocate(8192);
 
             encodedBuffer = encodeInitialLine(httpHeader, encodedBuffer, memoryManager);
             encodedBuffer = put(memoryManager, encodedBuffer, Constants.CRLF_BYTES);
