@@ -444,7 +444,6 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         final String defaultResponseContentType = http.getForcedResponseType();
         final org.glassfish.grizzly.http.HttpServerFilter httpServerFilter =
             new org.glassfish.grizzly.http.HttpServerFilter(
-                null,
                 chunkingEnabled,
                 maxHeaderSize,
                 defaultResponseContentType,

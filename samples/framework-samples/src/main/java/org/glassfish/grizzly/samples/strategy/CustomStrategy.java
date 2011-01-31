@@ -47,21 +47,21 @@ import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.samples.echo.EchoFilter;
-import org.glassfish.grizzly.strategies.LeaderFollowerIOStrategy;
+import org.glassfish.grizzly.strategies.LeaderFollowerNIOStrategy;
 
 /**
  * Sample shows how easy custom {@link org.glassfish.grizzly.IOStrategy} could be applied for a
  * {@link org.glassfish.grizzly.Transport}. In this example we use
- * {@link org.glassfish.grizzly.strategies.LeaderFollowerIOStrategy} for processing all I/O events occurring on
+ * {@link org.glassfish.grizzly.strategies.LeaderFollowerNIOStrategy} for processing all I/O events occurring on
  * {@link org.glassfish.grizzly.Connection}.
  *
  * To test this echo server you can use {@link org.glassfish.grizzly.samples.echo.EchoClient}.
  *
  * @see org.glassfish.grizzly.IOStrategy
- * @see org.glassfish.grizzly.strategies.LeaderFollowerIOStrategy
+ * @see org.glassfish.grizzly.strategies.LeaderFollowerNIOStrategy
  * @see org.glassfish.grizzly.strategies.SameThreadIOStrategy
  * @see org.glassfish.grizzly.strategies.WorkerThreadIOStrategy
- * @see org.glassfish.grizzly.strategies.SimpleDynamicIOStrategy
+ * @see org.glassfish.grizzly.strategies.SimpleDynamicNIOStrategy
  * 
  * @author Alexey Stashok
  */
@@ -84,7 +84,7 @@ public class CustomStrategy {
         transport.setProcessor(filterChainBuilder.build());
         
         // Set the LeaderFollowerIOStrategy (any strategy could be applied this way)
-        transport.setIOStrategy(LeaderFollowerIOStrategy.getInstance());
+        transport.setIOStrategy(LeaderFollowerNIOStrategy.getInstance());
         
         try {
             // binding transport to start listen on certain host and port
