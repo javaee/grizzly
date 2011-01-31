@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -85,7 +85,7 @@ public class HttpClientFilter extends HttpCodecFilter {
 
         this.httpResponseInProcessAttr =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-                "HttpServerFilter.httpRequest");
+                "HttpClientFilter.httpResponse");
 
         // TODO - need to investigate why contentEncodings.add(new GZipContentEncoding())
         // fails to compile/run when running tests in Intellij

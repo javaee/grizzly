@@ -78,7 +78,7 @@ import junit.framework.TestCase;
 import org.glassfish.grizzly.memory.Buffers;
 
 /**
- * Testing HTTP request parsing
+ * Testing HTTP response parsing
  * 
  * @author Alexey Stashok
  */
