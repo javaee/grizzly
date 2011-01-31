@@ -39,6 +39,11 @@
  */
 package org.glassfish.grizzly.config.dom;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
@@ -46,11 +51,6 @@ import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.Dom;
 import org.jvnet.hk2.config.DuckTyped;
 import org.jvnet.hk2.config.types.PropertyBag;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 /**
  * Binds protocol to a specific endpoint to listen on

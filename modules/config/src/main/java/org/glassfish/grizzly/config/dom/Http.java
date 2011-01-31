@@ -37,22 +37,18 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.config.dom;
 
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 
-import static org.glassfish.grizzly.http.server.Constants.*;
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
+import org.jvnet.hk2.config.DuckTyped;
 import org.jvnet.hk2.config.Element;
 import org.jvnet.hk2.config.types.PropertyBag;
-import org.glassfish.grizzly.http.util.Constants;
 
 /**
  * Created Jan 8, 2009
@@ -146,7 +142,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     String getDefaultResponseType();
 
     @Deprecated
-    void setDefaultResponseType(final String defaultResponseType);
+    void setDefaultResponseType(String defaultResponseType);
 
     /**
      * The id attribute of the default virtual server for this particular connection group.
@@ -154,7 +150,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     @Attribute(required = true)
     String getDefaultVirtualServer();
 
-    void setDefaultVirtualServer(final String defaultVirtualServer);
+    void setDefaultVirtualServer(String defaultVirtualServer);
 
     @Attribute(defaultValue = "" + DNS_LOOKUP_ENABLED, dataType = Boolean.class)
     String getDnsLookupEnabled();
@@ -163,7 +159,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
 
     @Attribute(defaultValue = "" + ENCODED_SLASH_ENABLED, dataType = Boolean.class)
     String getEncodedSlashEnabled();
-    
+
     void setEncodedSlashEnabled(String enabled);
 
     /**
@@ -184,7 +180,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     String getForcedResponseType();
 
     @Deprecated
-    void setForcedResponseType(final String forcedResponseType);
+    void setForcedResponseType(String forcedResponseType);
 
     /**
      * The size of the buffer used by the request processing threads for reading the request data
@@ -225,7 +221,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     @Attribute(dataType = Integer.class)
     String getRedirectPort();
 
-    void setRedirectPort(final String redirectPort);
+    void setRedirectPort(String redirectPort);
 
     /**
      * Time after which the request times out in seconds
@@ -257,7 +253,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     @Attribute
     String getServerName();
 
-    void setServerName(final String serverName);
+    void setServerName(String serverName);
 
     /**
      * Keep Alive timeout, max time a connection can be deemed as idle and kept in the keep-alive state
@@ -288,7 +284,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     @Attribute(defaultValue = VERSION)
     String getVersion();
 
-    void setVersion(final String version);
+    void setVersion(String version);
 
     @Attribute(defaultValue = "" + WEBSOCKET_SUPPORT_ENABLED, dataType = Boolean.class)
     String getWebsocketsSupportEnabled();
@@ -305,5 +301,14 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     @Attribute(defaultValue = "" + XPOWERED_BY, dataType = Boolean.class)
     String getXpoweredBy();
 
-    void setXpoweredBy(final String xpoweredBy);
+    void setXpoweredBy(String xpoweredBy);
+
+    @DuckTyped
+    Protocol getParent();
+
+    class Duck {
+        public static Protocol getParent(Http http) {
+            return http.getParent(Protocol.class);
+        }
+    }
 }
