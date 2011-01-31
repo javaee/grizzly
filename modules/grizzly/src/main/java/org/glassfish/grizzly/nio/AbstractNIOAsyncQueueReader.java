@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -75,10 +75,10 @@ public abstract class AbstractNIOAsyncQueueReader
     private static final Logger LOGGER = Grizzly.logger(AbstractNIOAsyncQueueReader.class);
 
     private static final AsyncReadQueueRecord LOCK_RECORD =
-            AsyncReadQueueRecord.create(null, null, null, null, null);
+            AsyncReadQueueRecord.create(null, null, null, null, null, null);
     public static final int DEFAULT_BUFFER_SIZE = 8192;
     protected int defaultBufferSize = DEFAULT_BUFFER_SIZE;
-    protected NIOTransport transport;
+    protected final NIOTransport transport;
 
     public AbstractNIOAsyncQueueReader(NIOTransport transport) {
         this.transport = transport;
@@ -110,7 +110,8 @@ public abstract class AbstractNIOAsyncQueueReader
 
         // create and initialize the read queue record
         final AsyncReadQueueRecord queueRecord = AsyncReadQueueRecord.create(
-                buffer, null, currentResult, completionHandler, interceptor);
+                connection, buffer, null, currentResult,
+                completionHandler, interceptor);
 
         final Queue<AsyncReadQueueRecord> queue = connectionQueue.getQueue();
         final AtomicReference<AsyncReadQueueRecord> currentElement =

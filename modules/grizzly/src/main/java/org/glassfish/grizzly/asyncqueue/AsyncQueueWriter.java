@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -80,13 +80,6 @@ public interface AsyncQueueWriter<L>
      *         result
      * @throws java.io.IOException
      */
-//     <M> Future<WriteResult<M, L>> write(Connection connection,
-//                                        L dstAddress,
-//                                        M message,
-//                                        CompletionHandler<WriteResult<M, L>> completionHandler,
-//                                        Transformer<M, Buffer> transformer,
-//                                        Interceptor<WriteResult> interceptor,
-//                                        MessageCloner<M> cloner) throws IOException;
     public GrizzlyFuture<WriteResult<Buffer, SocketAddress>> write(
             Connection connection, SocketAddress dstAddress, Buffer buffer,
             CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler,

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -72,6 +72,7 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
 
     @Override
     protected AsyncWriteQueueRecord createRecord(
+            final Connection connection,
             final Object message,
             final Future future,
             final WriteResult currentResult,
@@ -80,15 +81,17 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             final Object dstAddress,
             final Buffer outputBuffer,
             final boolean isCloned) {
-        return TCPNIOQueueRecord.create(message, future, currentResult,
-                completionHandler, interceptor, dstAddress, outputBuffer,
-                isCloned);
+        return TCPNIOQueueRecord.create(connection, message, future,
+                currentResult, completionHandler, interceptor, dstAddress,
+                outputBuffer, isCloned);
     }
 
 
 
     @Override
-    protected int write0(Connection connection, AsyncWriteQueueRecord queueRecord) throws IOException {
+    protected int write0(Connection connection,
+            AsyncWriteQueueRecord queueRecord) throws IOException {
+                
         final WriteResult currentResult = queueRecord.getCurrentResult();
         final Buffer buffer = queueRecord.getOutputBuffer();
         final TCPNIOQueueRecord record = (TCPNIOQueueRecord) queueRecord;
@@ -143,6 +146,7 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
                 ThreadCache.obtainIndex(TCPNIOQueueRecord.class, 2);
 
         public static AsyncWriteQueueRecord create(
+                final Connection connection,
                 final Object message,
                 final Future future,
                 final WriteResult currentResult,
@@ -157,21 +161,22 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
 
             if (asyncWriteQueueRecord != null) {
                 asyncWriteQueueRecord.isRecycled = false;
-                asyncWriteQueueRecord.set(message, future, currentResult,
-                        completionHandler, interceptor, dstAddress,
-                        outputBuffer, isCloned);
+                asyncWriteQueueRecord.set(connection, message, future,
+                        currentResult, completionHandler, interceptor,
+                        dstAddress, outputBuffer, isCloned);
 
                 return asyncWriteQueueRecord;
 }
 
-            return new TCPNIOQueueRecord(message, future, currentResult,
-                    completionHandler, interceptor, dstAddress,
+            return new TCPNIOQueueRecord(connection, message, future,
+                    currentResult, completionHandler, interceptor, dstAddress,
                     outputBuffer, isCloned);
         }
 
         private BufferArray bufferArray;
         
-        public TCPNIOQueueRecord(final Object message,
+        public TCPNIOQueueRecord(final Connection connection,
+                final Object message,
                 final Future future,
                 final WriteResult currentResult,
                 final CompletionHandler completionHandler,
@@ -179,7 +184,7 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
                 final Object dstAddress,
                 final Buffer outputBuffer,
                 final boolean isCloned) {
-            super(message, future, currentResult, completionHandler,
+            super(connection, message, future, currentResult, completionHandler,
                     interceptor, dstAddress, outputBuffer, isCloned);
         }
 

@@ -45,8 +45,7 @@ import java.io.IOException;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.PostProcessor;
-import org.glassfish.grizzly.nio.NIOConnection;
-import org.glassfish.grizzly.nio.NIOTransport;
+import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
 /**
@@ -82,7 +81,7 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
         final boolean isReadWrite = (ioEvent == IOEvent.READ || ioEvent == IOEvent.WRITE);
         PostProcessor pp = null;
         if (isReadWrite) {
-            ((NIOConnection) connection).disableIOEvent(ioEvent);
+            connection.disableIOEvent(ioEvent);
             pp = enableInterestPostProcessor;
         }
         
@@ -95,7 +94,7 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
 
 
     @Override
-    public ThreadPoolConfig createDefaultWorkerPoolConfig(final NIOTransport transport) {
+    public ThreadPoolConfig createDefaultWorkerPoolConfig(final Transport transport) {
         return null;
     }
 

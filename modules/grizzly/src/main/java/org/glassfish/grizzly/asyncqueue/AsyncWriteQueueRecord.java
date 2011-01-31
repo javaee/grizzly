@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,6 +44,7 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Interceptor;
 import java.util.concurrent.Future;
 import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.WriteResult;
@@ -59,6 +60,7 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
             ThreadCache.obtainIndex(AsyncWriteQueueRecord.class, 2);
 
     public static AsyncWriteQueueRecord create(
+            final Connection connection,
             final Object message,
             final Future future,
             final WriteResult currentResult,
@@ -73,15 +75,15 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
         
         if (asyncWriteQueueRecord != null) {
             asyncWriteQueueRecord.isRecycled = false;
-            asyncWriteQueueRecord.set(message, future, currentResult,
+            asyncWriteQueueRecord.set(connection, message, future, currentResult,
                     completionHandler, interceptor, dstAddress,
                     outputBuffer, isCloned);
             
             return asyncWriteQueueRecord;
         }
 
-        return new AsyncWriteQueueRecord(message, future, currentResult,
-                completionHandler, interceptor, dstAddress,
+        return new AsyncWriteQueueRecord(connection, message, future,
+                currentResult, completionHandler, interceptor, dstAddress,
                 outputBuffer, isCloned);
     }
     
@@ -89,25 +91,27 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     private boolean isCloned;
     private Buffer outputBuffer;
 
-    protected AsyncWriteQueueRecord(Object message, Future future,
-            WriteResult currentResult, CompletionHandler completionHandler,
-            Interceptor interceptor, Object dstAddress,
-            Buffer outputBuffer,
-            boolean isCloned) {
+    protected AsyncWriteQueueRecord(final Connection connection,
+            final Object message, final Future future,
+            final WriteResult currentResult,
+            final CompletionHandler completionHandler,
+            final Interceptor interceptor, final Object dstAddress,
+            final Buffer outputBuffer, final boolean isCloned) {
 
-        super(message, future, currentResult, completionHandler,
+        super(connection, message, future, currentResult, completionHandler,
                 interceptor);
         this.dstAddress = dstAddress;
         this.outputBuffer = outputBuffer;
         this.isCloned = isCloned;
     }
 
-    protected void set(Object message, Future future,
-            WriteResult currentResult, CompletionHandler completionHandler,
-            Interceptor interceptor, Object dstAddress,
-            Buffer outputBuffer,
-            boolean isCloned) {
-        super.set(message, future, currentResult, completionHandler, interceptor);
+    protected void set(final Connection connection, final Object message,
+            final Future future, final WriteResult currentResult,
+            final CompletionHandler completionHandler,
+            final Interceptor interceptor, final Object dstAddress,
+            final Buffer outputBuffer, final boolean isCloned) {
+        super.set(connection, message, future, currentResult,
+                completionHandler, interceptor);
 
         this.dstAddress = dstAddress;
         this.outputBuffer = outputBuffer;
@@ -140,7 +144,7 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     }
 
     protected final void reset() {
-        set(null, null, null, null, null, null, null, false);
+        set(null, null, null, null, null, null, null, null, false);
     }
 
     @Override

@@ -71,7 +71,7 @@ import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 
-import org.glassfish.grizzly.nio.PendingWriteQueueLimitExceededException;
+import org.glassfish.grizzly.PendingWriteQueueLimitExceededException;
 import static org.glassfish.grizzly.ssl.SSLUtils.*;
 
 /**

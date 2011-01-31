@@ -431,7 +431,7 @@ public final class UDPNIOTransport extends NIOTransport implements
             }
 
             if (selectorRunnersCount <= 0) {
-                selectorRunnersCount = Math.max(1, Runtime.getRuntime().availableProcessors() / 2 * 3);
+                selectorRunnersCount = Runtime.getRuntime().availableProcessors();
             }
 
             if (nioChannelDistributor == null) {

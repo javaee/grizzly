@@ -41,7 +41,6 @@
 package org.glassfish.grizzly.strategies;
 
 import java.io.IOException;
-import java.util.concurrent.Executor;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.PostProcessor;
@@ -54,21 +53,21 @@ import org.glassfish.grizzly.nio.SelectorRunner;
  *
  * @author Alexey Stashok
  */
-public final class LeaderFollowerIOStrategy extends AbstractIOStrategy {
+public final class LeaderFollowerNIOStrategy extends AbstractIOStrategy {
 
-    private static final LeaderFollowerIOStrategy INSTANCE = new LeaderFollowerIOStrategy();
+    private static final LeaderFollowerNIOStrategy INSTANCE = new LeaderFollowerNIOStrategy();
 
 
     // ------------------------------------------------------------ Constructors
 
 
-    private LeaderFollowerIOStrategy() { }
+    private LeaderFollowerNIOStrategy() { }
 
 
     // ---------------------------------------------------------- Public Methods
 
 
-    public static LeaderFollowerIOStrategy getInstance() {
+    public static LeaderFollowerNIOStrategy getInstance() {
 
         return INSTANCE;
 

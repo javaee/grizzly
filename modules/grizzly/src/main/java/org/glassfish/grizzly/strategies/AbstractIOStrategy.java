@@ -51,12 +51,11 @@ import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.PostProcessor;
 import org.glassfish.grizzly.ProcessorResult.Status;
 import org.glassfish.grizzly.IOStrategy;
-import org.glassfish.grizzly.nio.NIOConnection;
-import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
 import java.io.IOException;
 import java.util.concurrent.Executor;
+import org.glassfish.grizzly.Transport;
 
 /**
  *
@@ -74,12 +73,12 @@ public abstract class AbstractIOStrategy implements IOStrategy {
 
 
     @Override
-    public ThreadPoolConfig createDefaultWorkerPoolConfig(final NIOTransport transport) {
+    public ThreadPoolConfig createDefaultWorkerPoolConfig(final Transport transport) {
 
         final ThreadPoolConfig config = ThreadPoolConfig.defaultConfig().clone();
-        final int selectorRunnerCount = transport.getSelectorRunnersCount();
-        config.setCorePoolSize(selectorRunnerCount * 2);
-        config.setMaxPoolSize(selectorRunnerCount * 2);
+        final int coresCount = Runtime.getRuntime().availableProcessors();
+        config.setCorePoolSize(coresCount * 2);
+        config.setMaxPoolSize(coresCount * 2);
         config.setMemoryManager(transport.getMemoryManager());
         return config;
 
@@ -112,8 +111,8 @@ public abstract class AbstractIOStrategy implements IOStrategy {
         public void process(Context context, Status status) throws IOException {
             if (isRegisterMap[status.ordinal()]) {
                 final IOEvent ioEvent = context.getIoEvent();
-                final NIOConnection nioConnection = (NIOConnection) context.getConnection();
-                nioConnection.enableIOEvent(ioEvent);
+                final Connection connection = context.getConnection();
+                connection.enableIOEvent(ioEvent);
             }
         }
     }

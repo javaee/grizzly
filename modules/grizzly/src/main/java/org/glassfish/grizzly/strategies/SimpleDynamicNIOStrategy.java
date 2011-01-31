@@ -44,11 +44,10 @@ import java.io.IOException;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.IOStrategy;
+import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 
 /**
  * Simple dynamic strategy, which switches I/O processing strategies, basing
@@ -66,9 +65,9 @@ import java.nio.channels.Selector;
  *
  * @author Alexey Stashok
  */
-public final class SimpleDynamicIOStrategy implements IOStrategy {
+public final class SimpleDynamicNIOStrategy implements IOStrategy {
 
-    private static final SimpleDynamicIOStrategy INSTANCE = new SimpleDynamicIOStrategy();
+    private static final SimpleDynamicNIOStrategy INSTANCE = new SimpleDynamicNIOStrategy();
 
     private final SameThreadIOStrategy sameThreadStrategy;
     private final WorkerThreadIOStrategy workerThreadStrategy;
@@ -78,7 +77,7 @@ public final class SimpleDynamicIOStrategy implements IOStrategy {
 
     // ------------------------------------------------------------ Constructors
 
-    private SimpleDynamicIOStrategy() {
+    private SimpleDynamicNIOStrategy() {
         sameThreadStrategy = SameThreadIOStrategy.getInstance();
         workerThreadStrategy = WorkerThreadIOStrategy.getInstance();
     }
@@ -87,7 +86,7 @@ public final class SimpleDynamicIOStrategy implements IOStrategy {
     // ---------------------------------------------------------- Public Methods
 
 
-    public static SimpleDynamicIOStrategy getInstance() {
+    public static SimpleDynamicNIOStrategy getInstance() {
 
         return INSTANCE;
 
@@ -108,10 +107,10 @@ public final class SimpleDynamicIOStrategy implements IOStrategy {
     }
 
     @Override
-    public ThreadPoolConfig createDefaultWorkerPoolConfig(final NIOTransport transport) {
+    public ThreadPoolConfig createDefaultWorkerPoolConfig(final Transport transport) {
 
         final ThreadPoolConfig config = ThreadPoolConfig.defaultConfig().clone();
-        final int selectorRunnerCount = transport.getSelectorRunnersCount();
+        final int selectorRunnerCount = ((NIOTransport) transport).getSelectorRunnersCount();
         config.setCorePoolSize(selectorRunnerCount * 2);
         config.setMaxPoolSize(selectorRunnerCount * 2);
         config.setMemoryManager(transport.getMemoryManager());

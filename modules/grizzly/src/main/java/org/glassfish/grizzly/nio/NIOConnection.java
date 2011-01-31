@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -605,7 +605,8 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
     protected abstract void preClose();
 
-    public final void enableIOEvent(IOEvent ioEvent) throws IOException {
+    @Override
+    public final void enableIOEvent(final IOEvent ioEvent) throws IOException {
         final SelectionKeyHandler selectionKeyHandler =
                 transport.getSelectionKeyHandler();
         final int interest =
@@ -621,7 +622,8 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                 selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent));
     }
 
-    public final void disableIOEvent(IOEvent ioEvent) throws IOException {
+    @Override
+    public final void disableIOEvent(final IOEvent ioEvent) throws IOException {
         final SelectionKeyHandler selectionKeyHandler =
                 transport.getSelectionKeyHandler();
         final int interest =

@@ -40,13 +40,11 @@
 package org.glassfish.grizzly.strategies;
 
 import java.io.IOException;
-import java.util.concurrent.Executor;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.PostProcessor;
 import org.glassfish.grizzly.Processor;
-import org.glassfish.grizzly.nio.NIOConnection;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -83,13 +81,11 @@ public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
     public boolean executeIoEvent(final Connection connection,
                                   final IOEvent ioEvent) throws IOException {
 
-        final NIOConnection nioConnection = (NIOConnection) connection;
-
         final boolean disableInterest = isReadWrite(ioEvent);
 
         final PostProcessor pp;
         if (disableInterest) {
-            nioConnection.disableIOEvent(ioEvent);
+            connection.disableIOEvent(ioEvent);
             pp = enableInterestPostProcessor;
         } else {
             pp = null;

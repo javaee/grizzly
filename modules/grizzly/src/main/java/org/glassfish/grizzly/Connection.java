@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -227,6 +227,10 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
 
     void setWriteTimeout(long timeout, TimeUnit timeUnit);
 
+    public void enableIOEvent(final IOEvent ioEvent) throws IOException;
+
+    public void disableIOEvent(final IOEvent ioEvent) throws IOException;
+    
     /**
      * @return the <tt>Connection</tt> monitoring configuration {@link MonitoringConfig}.
      */

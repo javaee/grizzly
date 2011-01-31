@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,6 +44,7 @@ import org.glassfish.grizzly.Cacheable;
 import org.glassfish.grizzly.Interceptor;
 import java.util.concurrent.Future;
 import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.utils.DebugPoint;
 
@@ -53,6 +54,7 @@ import org.glassfish.grizzly.utils.DebugPoint;
  * @author Alexey Stashok
  */
 public abstract class AsyncQueueRecord<R> implements Cacheable {
+    protected Connection connection;
     protected Object originalMessage;
     protected Object message;
     protected Future future;
@@ -63,19 +65,22 @@ public abstract class AsyncQueueRecord<R> implements Cacheable {
     protected boolean isRecycled = false;
     protected DebugPoint recycleTrack;
     
-    public AsyncQueueRecord(Object originalMessage, Future future,
-            R currentResult, CompletionHandler completionHandler,
-            Interceptor<R> interceptor) {
+    public AsyncQueueRecord(final Connection connection,
+            final Object originalMessage, final Future future,
+            final R currentResult, final CompletionHandler completionHandler,
+            final Interceptor<R> interceptor) {
 
-        set(originalMessage, future, currentResult, completionHandler,
-                interceptor);
+        set(connection, originalMessage, future, currentResult,
+                completionHandler, interceptor);
     }
 
-    protected final void set(Object originalMessage, Future future,
-            R currentResult, CompletionHandler completionHandler,
-            Interceptor<R> interceptor) {
+    protected final void set(final Connection connection,
+            final Object originalMessage, final Future future,
+            final R currentResult, final CompletionHandler completionHandler,
+            final Interceptor<R> interceptor) {
 
         checkRecycled();
+        this.connection = connection;
         this.originalMessage = originalMessage;
         this.message = originalMessage;
         this.future = future;
@@ -84,6 +89,10 @@ public abstract class AsyncQueueRecord<R> implements Cacheable {
         this.interceptor = interceptor;
     }
 
+    public Connection getConnection() {
+        return connection;
+    }
+  
     public Object getOriginalMessage() {
         checkRecycled();
         return originalMessage;

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.nio;
 
+import org.glassfish.grizzly.PendingWriteQueueLimitExceededException;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.util.concurrent.atomic.AtomicReference;
@@ -78,7 +79,7 @@ public abstract class AbstractNIOAsyncQueueWriter
 
     private static final AsyncWriteQueueRecord LOCK_RECORD =
             AsyncWriteQueueRecord.create(null, null, null, null, null, null,
-            null, false);
+            null, null, false);
     
     protected final NIOTransport transport;
 
@@ -154,7 +155,7 @@ public abstract class AbstractNIOAsyncQueueWriter
         
         // create and initialize the write queue record
         final AsyncWriteQueueRecord queueRecord = createRecord(
-                buffer, null, currentResult, completionHandler,
+                connection, buffer, null, currentResult, completionHandler,
                 interceptor, dstAddress, buffer, false);
 
         final Queue<AsyncWriteQueueRecord> queue = connectionQueue.getQueue();
@@ -288,7 +289,8 @@ public abstract class AbstractNIOAsyncQueueWriter
         }
     }
 
-    protected AsyncWriteQueueRecord createRecord(final Object message,
+    protected AsyncWriteQueueRecord createRecord(final Connection connection,
+            final Object message,
             final Future future,
             final WriteResult currentResult,
             final CompletionHandler completionHandler,
@@ -296,9 +298,9 @@ public abstract class AbstractNIOAsyncQueueWriter
             final Object dstAddress,
             final Buffer outputBuffer,
             final boolean isCloned) {
-        return AsyncWriteQueueRecord.create(message, future, currentResult,
-                completionHandler, interceptor, dstAddress, outputBuffer,
-                isCloned);
+        return AsyncWriteQueueRecord.create(connection, message, future,
+                currentResult, completionHandler, interceptor, dstAddress,
+                outputBuffer, isCloned);
     }
     
     /**

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -48,6 +48,7 @@ import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.utils.DebugPoint;
 import java.util.concurrent.Future;
+import org.glassfish.grizzly.Connection;
 
 /**
  * {@link AsyncQueue} read element unit
@@ -58,32 +59,35 @@ public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult> {
     private static final ThreadCache.CachedTypeIndex<AsyncReadQueueRecord> CACHE_IDX =
             ThreadCache.obtainIndex(AsyncReadQueueRecord.class, 2);
     
-    public static AsyncReadQueueRecord create(Object message,
-            Future future,
-            ReadResult currentResult, CompletionHandler completionHandler,
-            Interceptor<ReadResult> interceptor) {
+    public static AsyncReadQueueRecord create(final Connection connection,
+            final Object message, final Future future,
+            final ReadResult currentResult, CompletionHandler completionHandler,
+            final Interceptor<ReadResult> interceptor) {
 
         final AsyncReadQueueRecord asyncReadQueueRecord =
                 ThreadCache.takeFromCache(CACHE_IDX);
         
         if (asyncReadQueueRecord != null) {
             asyncReadQueueRecord.isRecycled = false;
-            asyncReadQueueRecord.set(message, future, currentResult,
+            asyncReadQueueRecord.set(connection, message, future, currentResult,
                     completionHandler, interceptor);
             return asyncReadQueueRecord;
         }
 
-        return new AsyncReadQueueRecord(message, future, currentResult,
-                completionHandler, interceptor);
+        return new AsyncReadQueueRecord(connection, message, future,
+                currentResult, completionHandler, interceptor);
     }
 
     private Buffer remainderBuffer;
     
-    private AsyncReadQueueRecord(Object message, Future future,
-            ReadResult currentResult, CompletionHandler completionHandler,
-            Interceptor<ReadResult> interceptor) {
+    private AsyncReadQueueRecord(final Connection connection,
+            final Object message, final Future future,
+            final ReadResult currentResult,
+            final CompletionHandler completionHandler,
+            final Interceptor<ReadResult> interceptor) {
         
-        super(message, future, currentResult, completionHandler, interceptor);
+        super(connection, message, future, currentResult, completionHandler,
+                interceptor);
     }
 
     public Buffer getRemainderBuffer() {
@@ -97,7 +101,7 @@ public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult> {
     }
 
     protected final void reset() {
-        set(null, null, null, null, null);
+        set(null, null, null, null, null, null);
         remainderBuffer = null;
     }
 
