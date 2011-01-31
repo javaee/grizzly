@@ -307,6 +307,7 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
 
                 pos += diff;
                 heapBuffer.cap = newSize;
+                heapBuffer.lim = newSize;
 
                 return heapBuffer;
             }
