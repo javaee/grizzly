@@ -96,7 +96,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
     /**
      * Do we allow custom reason phrase.
      */
-    private boolean allowCustomReasonPhrase = true;
+    private boolean allowCustomReasonPhrase;
 
     /**
      * Returns {@link HttpResponsePacket} builder.

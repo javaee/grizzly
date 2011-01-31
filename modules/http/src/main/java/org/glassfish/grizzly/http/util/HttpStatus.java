@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.http.util;
 
+import java.io.CharConversionException;
 import java.util.HashMap;
 import java.util.Map;
 import org.glassfish.grizzly.http.HttpResponsePacket;
@@ -111,7 +112,7 @@ public class HttpStatus {
     /**
      * @param statusCode HTTP status code
      *
-     * @return {@link Buffer} representation of the status.
+     * @return {@link HttpStatus} representation of the status.
      */
     public static HttpStatus getHttpStatus(final int statusCode) {
         HttpStatus status = statusMessages.get(statusCode);
@@ -173,32 +174,84 @@ public class HttpStatus {
      *
      * @param message The message string to be filtered
      */
-    public static String filter(String message) {
+    public static DataChunk filter(DataChunk message) {
 
-        if (message == null)
+        if (message == null || message.isNull())
             return (null);
 
-        char content[] = new char[message.length()];
-        message.getChars(0, message.length(), content, 0);
-        StringBuilder result = new StringBuilder(content.length + 50);
-        for (int i = 0; i < content.length; i++) {
+        try {
+            message.toChars(Charsets.ASCII_CHARSET);
+        } catch (CharConversionException ignored) {
+
+        }
+        char[] content = message.getCharChunk().getChars();
+
+        StringBuilder result = null;
+        for (int i = 0, len = content.length; i < len; i++) {
             switch (content[i]) {
                 case '<':
+                    if (result == null) {
+                        result = new StringBuilder(content.length + 50);
+                        result.append(content, 0, i);
+                    }
                     result.append("&lt;");
                     break;
                 case '>':
+                    if (result == null) {
+                        result = new StringBuilder(content.length + 50);
+                        result.append(content, 0, i);
+                    }
                     result.append("&gt;");
                     break;
                 case '&':
+                    if (result == null) {
+                        result = new StringBuilder(content.length + 50);
+                        result.append(content, 0, i);
+                    }
                     result.append("&amp;");
                     break;
                 case '"':
+                    if (result == null) {
+                        result = new StringBuilder(content.length + 50);
+                        result.append(content, 0, i);
+                    }
                     result.append("&quot;");
                     break;
                 default:
-                    result.append(content[i]);
+                    char c = content[i];
+                    if (c <= 31 && c != 9) {
+                        if (result == null) {
+                            result = new StringBuilder(content.length + 50);
+                            result.append(content, 0, i);
+                        }
+                        c = ' ';
+                    } else if (c == 127) {
+                        c = ' ';
+                        if (result == null) {
+                            result = new StringBuilder(content.length + 50);
+                            result.append(content, 0, i);
+                        }
+                    }
+                    final byte b = (byte) c;
+                    if (b == 10 || b == 13) {
+                        c = ' ';
+                        if (result == null) {
+                            result = new StringBuilder(content.length + 50);
+                            result.append(content, 0, i);
+                        }
+                    }
+                    if (result != null) {
+                        result.append(c);
+                    }
+
             }
         }
-        return (result.toString());
+        if (result != null) {
+            final int len = result.length();
+            final char[] finalResult = new char[len];
+            result.getChars(0, len, finalResult, 0);
+            message.setChars(finalResult, 0, finalResult.length);
+        }
+        return message;
     }
 }
