@@ -77,8 +77,8 @@ public abstract class AbstractAIOAsyncQueueReader
     public static final int DEFAULT_BUFFER_SIZE = 8192;
     protected int defaultBufferSize = DEFAULT_BUFFER_SIZE;
     protected final AIOTransport transport;
-    protected final ReadCompletionHandler readCompletionHandler =
-            createReadCompletionHandler();
+//    protected final ReadCompletionHandler readCompletionHandler =
+//            createReadCompletionHandler();
 
     public AbstractAIOAsyncQueueReader(AIOTransport transport) {
         this.transport = transport;
@@ -429,35 +429,35 @@ public abstract class AbstractAIOAsyncQueueReader
             final AsyncReadQueueRecord queueRecord)
             throws IOException;
 
-    protected ReadCompletionHandler createReadCompletionHandler() {
-        return new ReadCompletionHandler();
-    }
+//    protected ReadCompletionHandler createReadCompletionHandler() {
+//        return new ReadCompletionHandler();
+//    }
 
-    protected class ReadCompletionHandler implements
-            java.nio.channels.CompletionHandler<Integer, AsyncReadQueueRecord> {
-
-        @Override
-        public void completed(final Integer result,
-                final AsyncReadQueueRecord readQueueRecord) {
-            try {
-                processAsync(readQueueRecord.getConnection());
-            } catch (IOException ignored) {
-            }
-        }
-
-        @Override
-        public void failed(final Throwable e,
-                final AsyncReadQueueRecord readQueueRecord) {
-                    
-            final IOException ioException;
-            if (IOException.class.isAssignableFrom(e.getClass())) {
-                ioException = (IOException) e;
-            } else {
-                ioException = new IOException(e);
-            }
-
-            onReadFailure(readQueueRecord.getConnection(),
-                    readQueueRecord, ioException);
-        }
-    }
+//    protected class ReadCompletionHandler implements
+//            java.nio.channels.CompletionHandler<Integer, AsyncReadQueueRecord> {
+//
+//        @Override
+//        public void completed(final Integer result,
+//                final AsyncReadQueueRecord readQueueRecord) {
+//            try {
+//                processAsync(readQueueRecord.getConnection());
+//            } catch (IOException ignored) {
+//            }
+//        }
+//
+//        @Override
+//        public void failed(final Throwable e,
+//                final AsyncReadQueueRecord readQueueRecord) {
+//                    
+//            final IOException ioException;
+//            if (IOException.class.isAssignableFrom(e.getClass())) {
+//                ioException = (IOException) e;
+//            } else {
+//                ioException = new IOException(e);
+//            }
+//
+//            onReadFailure(readQueueRecord.getConnection(),
+//                    readQueueRecord, ioException);
+//        }
+//    }
 }

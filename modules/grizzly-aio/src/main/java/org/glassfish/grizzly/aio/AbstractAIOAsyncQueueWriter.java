@@ -80,8 +80,8 @@ public abstract class AbstractAIOAsyncQueueWriter
             null, null, false);
     protected final AIOTransport transport;
     protected volatile int maxPendingBytes = Integer.MAX_VALUE;
-    protected final WriteCompletionHandler writeCompletionHandler =
-            createWriteCompletionHandler();
+//    protected final WriteCompletionHandler writeCompletionHandler =
+//            createWriteCompletionHandler();
             
 
     public AbstractAIOAsyncQueueWriter(AIOTransport transport) {
@@ -399,37 +399,37 @@ public abstract class AbstractAIOAsyncQueueWriter
             final AsyncWriteQueueRecord queueRecord)
             throws IOException;
 
-    protected WriteCompletionHandler createWriteCompletionHandler() {
-        return new WriteCompletionHandler();    
-    }
-
-    protected class WriteCompletionHandler implements
-            java.nio.channels.CompletionHandler<Integer, AsyncWriteQueueRecord> {
-
-        @Override
-        public void completed(final Integer bytesWritten,
-                final AsyncWriteQueueRecord writeQueueRecord) {
-            try {
-                processAsync(writeQueueRecord.getConnection());
-            } catch (IOException ignored) {
-            }
-        }
-
-        @Override
-        public void failed(final Throwable e,
-                final AsyncWriteQueueRecord writeQueueRecord) {
-                    
-            final IOException ioException;
-            if (IOException.class.isAssignableFrom(e.getClass())) {
-                ioException = (IOException) e;
-            } else {
-                ioException = new IOException(e);
-            }
-
-            onWriteFailure(writeQueueRecord.getConnection(),
-                    writeQueueRecord, ioException);
-        }
-    }
+//    protected WriteCompletionHandler createWriteCompletionHandler() {
+//        return new WriteCompletionHandler();    
+//    }
+//
+//    protected class WriteCompletionHandler implements
+//            java.nio.channels.CompletionHandler<Integer, AsyncWriteQueueRecord> {
+//
+//        @Override
+//        public void completed(final Integer bytesWritten,
+//                final AsyncWriteQueueRecord writeQueueRecord) {
+//            try {
+//                processAsync(writeQueueRecord.getConnection());
+//            } catch (IOException ignored) {
+//            }
+//        }
+//
+//        @Override
+//        public void failed(final Throwable e,
+//                final AsyncWriteQueueRecord writeQueueRecord) {
+//                    
+//            final IOException ioException;
+//            if (IOException.class.isAssignableFrom(e.getClass())) {
+//                ioException = (IOException) e;
+//            } else {
+//                ioException = new IOException(e);
+//            }
+//
+//            onWriteFailure(writeQueueRecord.getConnection(),
+//                    writeQueueRecord, ioException);
+//        }
+//    }
 
     protected final void onWriteComplete(final Connection connection,
             final AsyncWriteQueueRecord record) {

@@ -82,16 +82,15 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousChannel;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
-import java.nio.channels.SocketChannel;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.memory.BufferArray;
 import org.glassfish.grizzly.memory.ByteBufferArray;
-import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 
 /**
- * TCP Transport NIO implementation
+ * TCP Transport AIO implementation
  * 
  * @author Alexey Stashok
  * @author Jean-Francois Arcand
@@ -155,7 +154,7 @@ public final class TCPAIOTransport extends AIOTransport implements
     private Filter defaultTransportFilter;
 
     /**
-     * Default {@link TCPNIOConnectorHandler}
+     * Default {@link TCPAIOConnectorHandler}
      */
     private final TCPAIOConnectorHandler connectorHandler =
             new TransportConnectorHandler();
@@ -759,13 +758,9 @@ public final class TCPAIOTransport extends AIOTransport implements
         }
     }
 
-    public Buffer read(final Connection connection, Buffer buffer)
-            throws IOException {
+    public void read(final Connection connection, Buffer buffer,
+            final Object attachment) throws IOException {
 
-        final Thread currentThread = Thread.currentThread();
-        final boolean isSelectorThread = (currentThread instanceof WorkerThread) &&
-                ((WorkerThread) currentThread).isSelectorThread();
-        
         final TCPAIOConnection tcpConnection = (TCPAIOConnection) connection;
         int read;
 
@@ -774,18 +769,18 @@ public final class TCPAIOTransport extends AIOTransport implements
             buffer = memoryManager.allocateAtLeast(connection.getReadBufferSize());
 
             try {
-                read = readSimple(tcpConnection, buffer, isSelectorThread);
+                readSimple(tcpConnection, buffer);
 
                 tcpConnection.onRead(buffer, read);
             } catch (Exception e) {
                 if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, "TCPNIOConnection (" + connection + ") (allocated) read exception", e);
+                    LOGGER.log(Level.FINE, "TCPAIOConnection (" + connection + ") (allocated) read exception", e);
                 }
                 read = -1;
             }
 
             if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (allocated) read {1} bytes",
+                LOGGER.log(Level.FINE, "TCPAIOConnection ({0}) (allocated) read {1} bytes",
                         new Object[]{connection, read});
             }
             
@@ -803,24 +798,13 @@ public final class TCPAIOTransport extends AIOTransport implements
             if (buffer.hasRemaining()) {
                 final int oldPos = buffer.position();
                 
-                final SocketChannel socketChannel =
-                        (SocketChannel) tcpConnection.getChannel();
+                final AsynchronousSocketChannel socketChannel =
+                        (AsynchronousSocketChannel) tcpConnection.getChannel();
                 
                 if (buffer.isComposite()) {
-                    final ByteBufferArray array = buffer.toByteBufferArray();
-                    final ByteBuffer[] byteBuffers = array.getArray();
-                    final int size = array.size();
-
-                    if (!isSelectorThread) {
-                        read = doReadInLoop(socketChannel, byteBuffers, 0, size);
-                    } else {
-                        read = (int) socketChannel.read(byteBuffers, 0, size);
-                    }
-
-                    array.restore();
-                    array.recycle();
+                    readComposite(tcpConnection, buffer);
                 } else {
-                    read = readSimple(tcpConnection, buffer, isSelectorThread);
+                    readSimple(tcpConnection, buffer);
                 }
 
                 if (read > 0) {
@@ -831,7 +815,7 @@ public final class TCPAIOTransport extends AIOTransport implements
                 tcpConnection.onRead(buffer, read);
                 
                 if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (nonallocated) read {1} bytes", new Object[] {connection, read});
+                    LOGGER.log(Level.FINE, "TCPAIOConnection ({0}) (nonallocated) read {1} bytes", new Object[] {connection, read});
                 }
                 
                 if (read < 0) {
@@ -843,93 +827,37 @@ public final class TCPAIOTransport extends AIOTransport implements
         return buffer;
     }
 
-    private int readSimple(final TCPAIOConnection tcpConnection,
-            final Buffer buffer, final boolean isSelectorThread) throws IOException {
+    private <A> void readSimple(final TCPAIOConnection tcpConnection,
+            final Buffer buffer, final A attachment,
+            final java.nio.channels.CompletionHandler<Integer, A> completionHandler)
+            throws IOException {
 
-        final SocketChannel socketChannel = (SocketChannel) tcpConnection.getChannel();
+        final AsynchronousSocketChannel socketChannel =
+                (AsynchronousSocketChannel) tcpConnection.getChannel();
 
-        final int read;
-        if (!buffer.isDirect()) {
-            final DirectByteBufferRecord record = obtainDirectByteBuffer(
-                    tcpConnection.getReadBufferSize());
-            final ByteBuffer directByteBuffer = record.strongRef;
-            final int length = Math.min(buffer.remaining(), directByteBuffer.remaining());
-
-            try {
-                // make sure we won't read more than buffer allows
-                directByteBuffer.limit(directByteBuffer.position() + length);
-
-                if (!isSelectorThread) {
-                    read = doReadInLoop(socketChannel, directByteBuffer);
-                } else {
-                    read = socketChannel.read(directByteBuffer);
-                }
-
-                if (read > 0) {
-                    directByteBuffer.flip();
-                    buffer.put(directByteBuffer);
-                }
-            } finally {
-                directByteBuffer.clear();
-                releaseDirectByteBuffer(record);
-            }
-
-        } else {
-            if (!isSelectorThread) {
-                read = doReadInLoop(socketChannel, buffer.toByteBuffer());
-            } else {
-                read = socketChannel.read(buffer.toByteBuffer());
-            }
-        }
-
-        return read;
+        socketChannel.read(buffer.toByteBuffer(), attachment, completionHandler);
     }
     
-    private int doReadInLoop(final SocketChannel socketChannel,
-            final ByteBuffer byteBuffer) throws IOException {
-        int read = 0;
-        int readAttempt = 0;
-        int readNow;
-        while ((readNow = socketChannel.read(byteBuffer)) >= 0) {
-            read += readNow;
-            if (!byteBuffer.hasRemaining()
-                    || ++readAttempt >= maxReadAttempts) {
-                return read;
-            }
-        }
+    private <A> void readComposite(final TCPAIOConnection tcpConnection,
+            final ByteBuffer[] byteBuffers, final int offset, final int size,
+            final A attachment,
+            final java.nio.channels.CompletionHandler<Long, A> completionHandler)
+            throws IOException {
+//        final ByteBufferArray array = buffer.toByteBufferArray();
+//
+//        final ByteBuffer[] byteBuffers = array.getArray();
+//        final int size = array.size();
 
-        if (read == 0) {
-            // Assign last readNow (may be -1)
-            read = readNow;
-        }
+        final AsynchronousSocketChannel socketChannel =
+                (AsynchronousSocketChannel) tcpConnection.getChannel();
+        
+        socketChannel.read(byteBuffers, 0, size, Long.MAX_VALUE,
+                TimeUnit.MILLISECONDS, attachment, completionHandler);
 
-        return read;
+//        array.restore();
+//        array.recycle();
     }
     
-    private int doReadInLoop(final SocketChannel socketChannel,
-            final ByteBuffer[] byteBuffers, final int offset, final int length) throws IOException {
-        
-        int read = 0;
-        int readAttempt = 0;
-        int readNow;
-        final ByteBuffer lastByteBuffer = byteBuffers[length - 1];
-        
-        while ((readNow = (int) socketChannel.read(byteBuffers, offset, length)) >= 0) {
-            read += readNow;
-            if (!lastByteBuffer.hasRemaining()
-                    || ++readAttempt >= maxReadAttempts) {
-                return read;
-            }
-        }
-
-        if (read == 0) {
-            // Assign last readNow (may be -1)
-            read = readNow;
-        }
-        
-        return read;
-    }
-
     public int write(Connection connection, Buffer buffer) throws IOException {
         return write(connection, buffer, null);
     }
@@ -947,7 +875,7 @@ public final class TCPAIOTransport extends AIOTransport implements
             written = writeGathered(tcpConnection, array);
 
             if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (composite) write {1} bytes",
+                LOGGER.log(Level.FINE, "TCPAIOConnection ({0}) (composite) write {1} bytes",
                         new Object[]{connection, written});
             }
 
@@ -956,7 +884,7 @@ public final class TCPAIOTransport extends AIOTransport implements
         } else {
             written = writeSimple(tcpConnection, buffer);
             if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (plain) write {1} bytes",
+                LOGGER.log(Level.FINE, "TCPAIOConnection ({0}) (plain) write {1} bytes",
                         new Object[]{connection, written});
             }
         }
@@ -990,7 +918,7 @@ public final class TCPAIOTransport extends AIOTransport implements
         final int written = writeGathered(tcpConnection, bufferArray);
 
         if (LOGGER.isLoggable(Level.FINE)) {
-            LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (composite) write {1} bytes",
+            LOGGER.log(Level.FINE, "TCPAIOConnection ({0}) (composite) write {1} bytes",
                     new Object[]{connection, written});
         }
 
@@ -1003,7 +931,7 @@ public final class TCPAIOTransport extends AIOTransport implements
         final TCPAIOConnection tcpConnection = (TCPAIOConnection) connection;
         final int written = writeSimple(tcpConnection, buffer);
         if (LOGGER.isLoggable(Level.FINE)) {
-            LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (plain) write {1} bytes",
+            LOGGER.log(Level.FINE, "TCPAIOConnection ({0}) (plain) write {1} bytes",
                     new Object[]{connection, written});
         }
 
@@ -1210,12 +1138,12 @@ public final class TCPAIOTransport extends AIOTransport implements
      */
     @Override
     protected JmxObject createJmxManagementObject() {
-//        return new org.glassfish.grizzly.nio.transport.jmx.TCPNIOTransport(this);
+//        return new org.glassfish.grizzly.aio.transport.jmx.TCPAIOTransport(this);
         return null;
     }
 
     /**
-     * Transport default {@link TCPNIOConnectorHandler}.
+     * Transport default {@link TCPAIOConnectorHandler}.
      */
      class TransportConnectorHandler extends TCPAIOConnectorHandler {
         public TransportConnectorHandler() {
