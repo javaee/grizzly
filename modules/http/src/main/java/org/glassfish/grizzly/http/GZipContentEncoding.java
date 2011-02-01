@@ -141,12 +141,12 @@ public class GZipContentEncoding implements ContentEncoding {
 
         try {
             switch (result.getStatus()) {
-                case COMPLETED: {
+                case COMPLETE: {
                     httpContent.setContent(result.getMessage());
                     return ParsingResult.create(httpContent, remainder);
                 }
 
-                case INCOMPLETED: {
+                case INCOMPLETE: {
                     return ParsingResult.create(null, remainder);
                 }
 
@@ -182,8 +182,8 @@ public class GZipContentEncoding implements ContentEncoding {
 
         try {
             switch (result.getStatus()) {
-                case COMPLETED:
-                case INCOMPLETED: {
+                case COMPLETE:
+                case INCOMPLETE: {
                     Buffer encodedBuffer = result.getMessage();
                     final Buffer finishBuffer = encoder.finish(httpHeader);
                     encodedBuffer = Buffers.appendBuffers(

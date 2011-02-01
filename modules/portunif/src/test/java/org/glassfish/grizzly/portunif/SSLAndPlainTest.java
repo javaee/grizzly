@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.portunif;
 
-import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.portunif.finders.SSLProtocolFinder;
 import org.glassfish.grizzly.utils.StringDecoder;
@@ -250,12 +249,12 @@ public class SSLAndPlainTest {
                     STRING_DECODER.transform(ctx.getConnection(), requestedProtocol);
 
             switch (result.getStatus()) {
-                case COMPLETED:
+                case COMPLETE:
                     STRING_DECODER.release(ctx.getConnection());
                     requestedProtocol.position(bufferStart);
                     return protocolDescription.name.equals(result.getMessage()) ?
                         Result.FOUND : Result.NOT_FOUND;
-                case INCOMPLETED:
+                case INCOMPLETE:
                     return Result.NEED_MORE_DATA;
 
                 default:

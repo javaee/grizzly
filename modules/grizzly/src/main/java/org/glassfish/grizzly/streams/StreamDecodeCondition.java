@@ -72,10 +72,10 @@ public class StreamDecodeCondition<E> implements Condition {
                 decoder.transform(streamReader.getConnection(), streamReader);
 
         final Status status = result.getStatus();
-        if (status == Status.COMPLETED) {
+        if (status == Status.COMPLETE) {
             resultAware.setResult(result.getMessage());
             return true;
-        } else if (status == Status.INCOMPLETED) {
+        } else if (status == Status.INCOMPLETE) {
             return false;
         }
 

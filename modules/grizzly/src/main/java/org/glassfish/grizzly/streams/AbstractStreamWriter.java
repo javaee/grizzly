@@ -52,7 +52,7 @@ import org.glassfish.grizzly.TransformationException;
 import org.glassfish.grizzly.TransformationResult;
 import org.glassfish.grizzly.TransformationResult.Status;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
-import org.glassfish.grizzly.memory.MemoryUtils;
+
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.memory.Buffers;
@@ -355,14 +355,14 @@ public abstract class AbstractStreamWriter implements StreamWriter {
                 encoder.transform(connection, object);
 
         final Status status = result.getStatus();
-        if (status == Status.COMPLETED) {
+        if (status == Status.COMPLETE) {
             output.write(result.getMessage());
             if (completionHandler != null) {
                 completionHandler.completed(this);
             }
             return ReadyFutureImpl.<Stream>create(this);
-        } else if (status == Status.INCOMPLETED) {
-            exception = new IllegalStateException("Encoder returned INCOMPLETED state");
+        } else if (status == Status.INCOMPLETE) {
+            exception = new IllegalStateException("Encoder returned INCOMPLETE state");
         }
 
         if (exception == null) {

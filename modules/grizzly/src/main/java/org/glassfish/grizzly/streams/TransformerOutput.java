@@ -103,11 +103,11 @@ public class TransformerOutput extends BufferedOutput {
                         transformer.transform(attributeStorage, buffer);
                 final Status status = result.getStatus();
 
-                if (status == Status.COMPLETED) {
+                if (status == Status.COMPLETE) {
                     final Buffer outputBuffer = result.getMessage();
                     underlyingOutput.write(outputBuffer);
                     transformer.release(attributeStorage);
-                } else if (status == Status.INCOMPLETED) {
+                } else if (status == Status.INCOMPLETE) {
                     buffer.compact();
                     if (!buffer.isComposite()) {
                         buffer = CompositeBuffer.newBuffer(

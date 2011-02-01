@@ -140,7 +140,7 @@ public final class TransformerInput extends BufferedInput {
                             bufferToTransform);
                     final Status status = result.getStatus();
 
-                    if (status == Status.COMPLETED) {
+                    if (status == Status.COMPLETE) {
                         final Buffer outputBuffer = result.getMessage();
                         lock.writeLock().lock();
                         try {
@@ -153,7 +153,7 @@ public final class TransformerInput extends BufferedInput {
                         } finally {
                             lock.writeLock().unlock();
                         }
-                    } else if (status == Status.INCOMPLETED) {
+                    } else if (status == Status.INCOMPLETE) {
                         if (!hasSavedBuffer) {
                             if (bufferToTransform.isComposite()) {
                                 inputBufferAttr.set(attributeStorage,

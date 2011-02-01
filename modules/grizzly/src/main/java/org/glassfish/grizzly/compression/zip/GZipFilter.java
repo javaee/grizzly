@@ -119,12 +119,12 @@ public class GZipFilter extends BaseFilter {
 
         try {
             switch (result.getStatus()) {
-                case COMPLETED: {
+                case COMPLETE: {
                     ctx.setMessage(result.getMessage());
                     return ctx.getInvokeAction(remainder);
                 }
 
-                case INCOMPLETED: {
+                case INCOMPLETE: {
                     return ctx.getStopAction(remainder);
                 }
 
@@ -162,8 +162,8 @@ public class GZipFilter extends BaseFilter {
         
         try {
             switch (result.getStatus()) {
-                case COMPLETED:
-                case INCOMPLETED: {
+                case COMPLETE:
+                case INCOMPLETE: {
                     final Buffer readyBuffer = result.getMessage();
                     final Buffer finishBuffer = encoder.finish(connection);
 

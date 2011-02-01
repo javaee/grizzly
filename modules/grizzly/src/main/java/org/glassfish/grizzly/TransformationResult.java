@@ -56,12 +56,12 @@ public class TransformationResult<I, O> implements Cacheable {
 
     public static <I, O> TransformationResult<I, O> createCompletedResult(
             O message, I externalRemainder) {
-        return create(Status.COMPLETED, message, externalRemainder, 0, null);
+        return create(Status.COMPLETE, message, externalRemainder, 0, null);
     }
 
     public static <I, O> TransformationResult<I, O> createIncompletedResult(
             I externalRemainder) {
-        return create(Status.INCOMPLETED, null, externalRemainder, 0, null);
+        return create(Status.INCOMPLETE, null, externalRemainder, 0, null);
     }
 
     private static <I, O> TransformationResult<I, O> create(Status status,
@@ -83,7 +83,7 @@ public class TransformationResult<I, O> implements Cacheable {
     }
 
     public enum Status {
-        COMPLETED, INCOMPLETED, ERROR
+        COMPLETE, INCOMPLETE, ERROR
     }
 
     private O message;
@@ -95,7 +95,7 @@ public class TransformationResult<I, O> implements Cacheable {
     private I externalRemainder;
 
     public TransformationResult() {
-        this(Status.COMPLETED, null, null);
+        this(Status.COMPLETE, null, null);
     }
 
     public TransformationResult(Status status, O message, I externalRemainder) {

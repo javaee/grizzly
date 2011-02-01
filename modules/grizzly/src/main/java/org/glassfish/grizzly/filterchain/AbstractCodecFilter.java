@@ -71,7 +71,7 @@ public abstract class AbstractCodecFilter<K, L> extends BaseFilter
                 decoder.transform(connection, message);
 
         switch(result.getStatus()) {
-            case COMPLETED:
+            case COMPLETE:
                 final K remainder = result.getExternalRemainder();
                 final boolean hasRemaining =
                         decoder.hasInputRemaining(connection, remainder);
@@ -82,7 +82,7 @@ public abstract class AbstractCodecFilter<K, L> extends BaseFilter
                 } else {
                     return ctx.getInvokeAction();
                 }
-            case INCOMPLETED:
+            case INCOMPLETE:
                 return ctx.getStopAction(message);
             case ERROR:
                 throw new TransformationException(getClass().getName() +
@@ -101,7 +101,7 @@ public abstract class AbstractCodecFilter<K, L> extends BaseFilter
         final TransformationResult<L, K> result = encoder.transform(connection, message);
 
         switch(result.getStatus()) {
-            case COMPLETED:
+            case COMPLETE:
                 ctx.setMessage(result.getMessage());
                 final L remainder = result.getExternalRemainder();
                 final boolean hasRemaining =
@@ -112,7 +112,7 @@ public abstract class AbstractCodecFilter<K, L> extends BaseFilter
                 } else {
                     return ctx.getInvokeAction();
                 }
-            case INCOMPLETED:
+            case INCOMPLETE:
                 return ctx.getStopAction(message);
             case ERROR:
                 throw new TransformationException(getClass().getName() +
