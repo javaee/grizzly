@@ -68,7 +68,7 @@ public class LongPollingServlet extends HttpServlet {
         private CometContext<HttpServletResponse> cometContext;
         private Response response;
 
-        private CounterHandler(final HttpServletResponse httpResponse) {
+        private CounterHandler(HttpServletResponse httpResponse) {
             this.httpResponse = httpResponse;
         }
 
@@ -86,6 +86,7 @@ public class LongPollingServlet extends HttpServlet {
         }
 
         public void onInitialize(CometEvent event) throws IOException {
+            onEvent(event);
         }
         
         public void onInterrupt(CometEvent event) throws IOException {
@@ -111,12 +112,12 @@ public class LongPollingServlet extends HttpServlet {
         }
 
         @Override
-        public void setCometContext(final CometContext<HttpServletResponse> context) {
+        public void setCometContext(CometContext<HttpServletResponse> context) {
             cometContext = context;
         }
 
         @Override
-        public void setResponse(final Response response) {
+        public void setResponse(Response response) {
             this.response = response;
         }
     }
@@ -144,7 +145,7 @@ public class LongPollingServlet extends HttpServlet {
         CounterHandler handler = new CounterHandler(res);
 
         CometEngine engine = CometEngine.getEngine();
-        CometContext context = engine.getCometContext(contextPath);
+        CometContext<HttpServletResponse> context = engine.getCometContext(contextPath);
 
         context.addCometHandler(handler);
     }
@@ -155,7 +156,7 @@ public class LongPollingServlet extends HttpServlet {
         counter.incrementAndGet();
         
         CometEngine engine = CometEngine.getEngine();
-        CometContext<?> context = engine.getCometContext(contextPath);
+        CometContext<HttpServletResponse> context = engine.getCometContext(contextPath);
         context.notify(null);
         
         PrintWriter writer = res.getWriter();

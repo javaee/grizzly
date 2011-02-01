@@ -58,28 +58,7 @@
 
 package org.glassfish.grizzly.http.server;
 
-import org.glassfish.grizzly.http.Protocol;
-import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.http.HttpRequestPacket;
-import org.glassfish.grizzly.http.server.io.NIOInputStream;
-import org.glassfish.grizzly.http.server.io.InputBuffer;
-import org.glassfish.grizzly.http.server.io.NIOReader;
-import org.glassfish.grizzly.http.Cookie;
-import org.glassfish.grizzly.http.Cookies;
-import org.glassfish.grizzly.http.server.util.Globals;
-import org.glassfish.grizzly.http.server.util.MappingData;
-import org.glassfish.grizzly.http.server.util.ParameterMap;
-import org.glassfish.grizzly.http.server.util.StringParser;
-import org.glassfish.grizzly.http.util.DataChunk;
-import org.glassfish.grizzly.http.util.FastHttpDateFormat;
-import org.glassfish.grizzly.http.util.Parameters;
-import org.glassfish.grizzly.http.util.RequestURIRef;
-import org.glassfish.grizzly.http.util.StringManager;
-
 import java.io.CharConversionException;
-
-import javax.security.auth.Subject;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -103,21 +82,41 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.security.auth.Subject;
+
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.DefaultAttributeBuilder;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.http.Cookie;
+import org.glassfish.grizzly.http.Cookies;
+import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.Method;
+import org.glassfish.grizzly.http.Protocol;
+import org.glassfish.grizzly.http.server.io.InputBuffer;
+import org.glassfish.grizzly.http.server.io.NIOInputStream;
+import org.glassfish.grizzly.http.server.io.NIOReader;
+import org.glassfish.grizzly.http.server.util.Globals;
+import org.glassfish.grizzly.http.server.util.MappingData;
+import org.glassfish.grizzly.http.server.util.ParameterMap;
+import org.glassfish.grizzly.http.server.util.StringParser;
 import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.http.util.Chunk;
+import static org.glassfish.grizzly.http.util.Constants.FORM_POST_CONTENT_TYPE;
+import org.glassfish.grizzly.http.util.DataChunk;
+import org.glassfish.grizzly.http.util.FastHttpDateFormat;
+import org.glassfish.grizzly.http.util.Parameters;
+import org.glassfish.grizzly.http.util.RequestURIRef;
+import org.glassfish.grizzly.http.util.StringManager;
 import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.ssl.SSLSupport;
 import org.glassfish.grizzly.ssl.SSLSupportImpl;
-
-import static org.glassfish.grizzly.http.util.Constants.FORM_POST_CONTENT_TYPE;
 
 /**
  * Wrapper object for the Coyote request.
@@ -133,6 +132,7 @@ public class Request {
 
     private static final ThreadCache.CachedTypeIndex<Request> CACHE_IDX =
             ThreadCache.obtainIndex(Request.class, 2);
+    private static final ThreadLocal<Connection> connection = new ThreadLocal<Connection>();
 
     public static Request create() {
         final Request request =
@@ -220,6 +220,13 @@ public class Request {
         return cachedMappingData;
     }
 
+    public static Connection getConnection() {
+        return connection.get();
+    }
+
+    public static void setConnection(final Connection conn) {
+        connection.set(conn);
+    }
 
     /**
      * Simple daemon thread.
@@ -549,12 +556,9 @@ public class Request {
     }
 
     protected void onAfterService() {
-        final int size = afterServicesList.size();
-
-        for (int i = 0; i < size; i++) {
+        for (AfterServiceListener anAfterServicesList : afterServicesList) {
             try {
-                final AfterServiceListener listener = afterServicesList.get(i);
-                listener.onAfterService(this);
+                anAfterServicesList.onAfterService(this);
             } catch (Exception e) {
                 LOGGER.log(Level.WARNING, "Unexpected error during afterService notification", e);
             }
@@ -567,6 +571,7 @@ public class Request {
      */
     protected final void recycle() {
         contextPath = "";
+        connection.set(null);
         dispatcherType = null;
         requestDispatcherPath = null;
 

@@ -47,7 +47,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.localization.LogMessages;
 
 /**
@@ -102,8 +101,7 @@ public class CometEngine {
     /**
      * The single instance of this class.
      */
-    private final static ThreadLocal<CometEngine> cometEngine = new ThreadLocal<CometEngine>();
-    private final static ThreadLocal<Connection> connection = new ThreadLocal<Connection>();
+    private final static CometEngine cometEngine = new CometEngine();
     /**
      * The current active {@link CometContext} keyed by context path.
      */
@@ -142,24 +140,7 @@ public class CometEngine {
      * @return CometEngine the singleton.
      */
     public static CometEngine getEngine() {
-        return cometEngine.get();
-    }
-
-    public static void setEngine(CometEngine engine) {
-        cometEngine.set(engine);
-    }
-
-    /**
-     * Return a singleton of this Class.
-     *
-     * @return CometConnection the singleton.
-     */
-    public static Connection getConnection() {
-        return connection.get();
-    }
-
-    public static void setConnection(Connection conn) {
-        connection.set(conn);
+        return cometEngine;
     }
 
     /**

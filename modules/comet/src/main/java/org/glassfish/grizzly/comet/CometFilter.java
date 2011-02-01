@@ -5,14 +5,11 @@ import java.io.IOException;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.http.server.Request;
 
 public class CometFilter extends BaseFilter {
-    private CometEngine engine;
-
     public CometFilter() {
-        engine = new CometEngine();
-        engine.setCometSupported(true);
-        CometEngine.setEngine(engine);
+        CometEngine.getEngine().setCometSupported(true);
     }
 
     @Override
@@ -22,7 +19,6 @@ public class CometFilter extends BaseFilter {
     }
 
     private void updateThreadLocals(final FilterChainContext ctx) {
-        CometEngine.setConnection(ctx.getConnection());
-        CometEngine.setEngine(engine);
+        Request.setConnection(ctx.getConnection());
     }
 }

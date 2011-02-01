@@ -58,6 +58,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.glassfish.grizzly.SocketBinder;
+import org.glassfish.grizzly.comet.CometEngine;
 import org.glassfish.grizzly.config.dom.Http;
 import org.glassfish.grizzly.config.dom.NetworkListener;
 import org.glassfish.grizzly.config.dom.PortUnification;
@@ -463,6 +464,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
 //                serverConfig.getMonitoringConfig().getHttpConfig().getProbes());
         filterChain.add(httpServerFilter);
         if(GrizzlyConfig.toBoolean(http.getCometSupportEnabled())) {
+            CometEngine.getEngine().setCometSupported(true);
             filterChain.add(loadFilter(habitat, "comet", "org.glassfish.grizzly.comet.CometFilter"));
         }
         final boolean websocketsSupportEnabled = Boolean.parseBoolean(http.getWebsocketsSupportEnabled());

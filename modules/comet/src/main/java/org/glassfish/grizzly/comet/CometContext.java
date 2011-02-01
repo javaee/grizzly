@@ -223,7 +223,7 @@ public class CometContext<E> {
      *
      * @return The {@link CometHandler#hashCode} value.
      */
-    public int addCometHandler(final CometHandler handler) {
+    public int addCometHandler(final CometHandler<E> handler) {
         if (handler == null) {
             throw new IllegalStateException(INVALID_COMET_HANDLER);
         }
@@ -233,15 +233,13 @@ public class CometContext<E> {
         handlers.add(handler);
         Attribute<Request> httpRequestInProcessAttr = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.
             createAttribute("HttpServerFilter.Request");
-        Request handlerRequest = httpRequestInProcessAttr.get(CometEngine.getConnection());
-        CometEngine.setConnection(null);
-        final Response response = handlerRequest.getResponse();
+        final Response response = httpRequestInProcessAttr.get(Request.getConnection()).getResponse();
         handler.setResponse(response);
         handler.setCometContext(this);
+        try {
+        initialize(handler);
         response.suspend(getExpirationDelay(), TimeUnit.MILLISECONDS, new CometCompletionHandler(handler),
             new CometTimeoutHandler(handler));
-        try {
-            initialize(handler);
             // Register asynchronous read-event listener
             final NIOInputStream nioInputStream = response.getRequest().getInputStream(false);
             if (!nioInputStream.notifyAvailable(new CometInputHandler(nioInputStream, handler)) &&
