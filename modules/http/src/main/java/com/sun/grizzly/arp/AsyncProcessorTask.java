@@ -43,15 +43,16 @@ package com.sun.grizzly.arp;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.TaskBase;
+import com.sun.grizzly.tcp.SuspendResponseUtils;
 
 import java.io.IOException;
 import java.util.logging.Level;
 
 /**
  * A {@link Task} that wraps the execution of an asynchronous execution
- * of a {@link ProcessorTask}. Internaly, this class invoke the associated
+ * of a {@link ProcessorTask}. Internally, this class invoke the associated
  * {@link AsyncExecutor} method to execute the {@link ProcessorTask}
- * lifecycle operations.
+ * life-cycle operations.
  *
  * @author Jeanfrancois Arcand
  */
@@ -98,13 +99,17 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
                         break;
                     case AsyncTask.POST_EXECUTE:
                         continueExecution = asyncExecutor.postExecute();
+                        if (SuspendResponseUtils.removeSuspendedInCurrentThread()) {
+                            break;
+                        }
+                        
                         if (continueExecution) {
                             if (asyncExecutor.getProcessorTask().hasNextRequest()) {
                                 asyncExecutor.reset();
                                 asyncExecutor.getProcessorTask().prepareForNextRequest();
 
                                 stage = AsyncTask.PRE_EXECUTE;
-                            } else {
+                            } else {                                
                                 stage = AsyncTask.FINISH;
                             }
                         }
