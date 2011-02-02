@@ -84,8 +84,18 @@ public class WebDefaultSupportTest {
             HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();
             urlConn.connect();
             assertEquals(200, urlConn.getResponseCode());
-            assertEquals("/jspTest/index.jsp",
-                    new BufferedReader(new InputStreamReader(urlConn.getInputStream())).readLine());
+
+            String s = null;
+            final BufferedReader bufferedReader =
+                    new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
+
+            while ((s = bufferedReader.readLine()) != null) {
+                if ("/jspTest/index.jsp".equals(s)) {
+                    break;
+                }
+            }
+
+            assertEquals("/jspTest/index.jsp", s);
             for (Map.Entry<String, List<String>> entry : urlConn.getHeaderFields().entrySet()) {
                 Utils.dumpOut(entry.getKey() + ": " + entry.getValue());
             }
