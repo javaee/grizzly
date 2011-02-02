@@ -40,6 +40,7 @@
 
 package com.sun.grizzly.http;
 
+import com.sun.grizzly.arp.DefaultAsyncHandler;
 import com.sun.grizzly.SSLConfig;
 import com.sun.grizzly.http.utils.SelectorThreadUtils;
 import com.sun.grizzly.ssl.SSLSelectorThread;
@@ -100,16 +101,20 @@ public class SuspendTest {
     private final byte[] testData = testString.getBytes();
 
     private final boolean isSslEnabled;
+    private final boolean isArpEnabled;
 
-    public SuspendTest(boolean isSslEnabled) {
+    public SuspendTest(boolean isSslEnabled, boolean isArpEnabled) {
         this.isSslEnabled = isSslEnabled;
+        this.isArpEnabled = isArpEnabled;
     }
 
     @Parameters
     public static Collection<Object[]> getSslParameter() {
         return Arrays.asList(new Object[][]{
-                    {Boolean.FALSE},
-                    {Boolean.TRUE}
+                    {Boolean.FALSE, Boolean.FALSE},
+                    {Boolean.FALSE, Boolean.TRUE},
+                    {Boolean.TRUE, Boolean.FALSE},
+                    {Boolean.TRUE, Boolean.TRUE}
                 });
     }
 
@@ -138,6 +143,11 @@ public class SuspendTest {
             st = sslSelectorThread;
         } else {
             st = new SelectorThread();
+        }
+
+        if (isArpEnabled) {
+            st.setEnableAsyncExecution(true);
+            st.setAsyncHandler(new DefaultAsyncHandler());
         }
 
         st.setPort(PORT);
