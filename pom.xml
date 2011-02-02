@@ -373,13 +373,6 @@
                 <version>${hk2.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.testng</groupId>
-                <artifactId>testng</artifactId>
-                <version>5.10</version>
-                <classifier>jdk15</classifier>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
                 <groupId>com.sun.enterprise</groupId>
                 <artifactId>osgi-adapter</artifactId>
                 <version>${hk2.version}</version>
@@ -483,11 +476,6 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.testng</groupId>
-            <artifactId>testng</artifactId>
-            <classifier>jdk15</classifier>
         </dependency>
     </dependencies>
     <properties>
