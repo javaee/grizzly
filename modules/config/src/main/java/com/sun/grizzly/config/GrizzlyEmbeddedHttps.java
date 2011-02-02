@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -60,7 +60,6 @@ import org.jvnet.hk2.component.Habitat;
 
 import javax.net.ssl.SSLException;
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 
 /**
@@ -73,7 +72,7 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
 
     private ProtocolFilter lazyInitializationFilter;
 
-    private final AtomicBoolean isSslInitialized = new AtomicBoolean();
+    private volatile boolean isSslInitialized;
     private volatile SSLConfigHolder sslConfigHolder;
 
     @Override
@@ -99,7 +98,7 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
                 }
                 lazyInitializationFilter = new LazySSLInitializationFilter(ssl);
             } else {
-                isSslInitialized.set(true);
+                isSslInitialized = true;
                 if (sslConfigHolder.configureSSL()) {
                     setHttpSecured(true);
                 }
@@ -196,10 +195,13 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
 
         public boolean execute(Context ctx) throws IOException {
             final ProtocolChain chain = ctx.getProtocolChain();
-            if (!isSslInitialized.getAndSet(true)) {
+
+            synchronized (ssl) {
+                if (!isSslInitialized) {
+                    isSslInitialized = true;
                 sslConfigHolder.configureSSL();
             }
-
+            }
             doConfigureFilters(chain);
 
             return true;
