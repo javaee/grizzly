@@ -51,35 +51,373 @@
 
   <section>
     <title>Overview</title>
-    <para></para>
+
+    <para>The Grizzly 2.0 HTTP server framework builds off the HTTP codec
+    framework to provide a more useful abstraction for day-to-day work. At a
+    high level, this framework includes the following:</para>
+
+    <itemizedlist>
+      <listitem>
+        <para>A simple server API for easy embedding of Grizzly within an
+        application.</para>
+      </listitem>
+
+      <listitem>
+        <para>Similar abstractions to those offered by the Servlet
+        specification: HttpHandler (Servlet), Request (HttpServletRequest),
+        Response (HttpServletResponse).</para>
+      </listitem>
+
+      <listitem>
+        <para>The ability to deal with long running HTTP transactions via
+        response suspend/resume facilities.</para>
+      </listitem>
+
+      <listitem>
+        <para>Support of non-blocking IO streams (inbound and
+        outbound).</para>
+      </listitem>
+
+      <listitem>
+        <para>A file cache for static content.</para>
+      </listitem>
+    </itemizedlist>
   </section>
 
   <section>
     <title>Building a Simple Web Server</title>
-    <para></para>
+
+    <section>
+      <title>Components of the Framework</title>
+
+      <para>This section will cover the major components of this
+      framework.</para>
+
+      <table>
+        <title>HTTP Server Components</title>
+
+        <tgroup cols="2">
+          <tbody>
+            <row>
+              <entry>HttpServer</entry>
+
+              <entry>This is the Grizzly HTTP server which can be used to
+              create standalong HTTP programs or embed Grizzly within other
+              application to provide HTTP services.</entry>
+            </row>
+
+            <row>
+              <entry>ServerConfiguration</entry>
+
+              <entry>This class allows developer to add custom HttpHandler
+              implementations to the server as well as exposing JMX/monitoring
+              features.</entry>
+            </row>
+
+            <row>
+              <entry>NetworkListener</entry>
+
+              <entry>This is an abstraction of the Grizzly NIOTransport and
+              Filter implementations. It also allows the enabling/disabling of
+              HTTP-related features such as Comet, WebSockets, the chunked
+              transfer-encoding, etc. HttpServer can support multiple
+              NetworkListeners. Also, keep in mind that all HttpHandlers added
+              to the ServerConfiguration will be shared across all listeners.
+              </entry>
+            </row>
+
+            <row>
+              <entry>HttpHandler</entry>
+
+              <entry>HttpHandler is akin to javax.servlet.Servlet. </entry>
+            </row>
+
+            <row>
+              <entry>Request</entry>
+
+              <entry>Request is similar to
+              javax.servlet.http.HttpServletRequest</entry>
+            </row>
+
+            <row>
+              <entry>Response</entry>
+
+              <entry>Request is similar to
+              javax.servlet.http.HttpServletResponse</entry>
+            </row>
+
+            <row>
+              <entry>Session</entry>
+
+              <entry>Session is similar to
+              javax.servlet.http.HttpSession</entry>
+            </row>
+
+            <row>
+              <entry>HttpServerFilter</entry>
+
+              <entry>This Filter implementation provides the high-level HTTP
+              request/response processing. Note: This Filter is automatically
+              added to the FilterChain used by the NetworkListener, but if a
+              custom chain as well as this level of HTTP processsing, this
+              Filter will need to be added to the chain.</entry>
+            </row>
+
+            <row>
+              <entry>FileCacheFilter</entry>
+
+              <entry>This Filter provides static resource caching capabilites.
+              Like the HttpServerFilter, if file caching is enabled, this
+              Filter will be added automatically.</entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </table>
+    </section>
+
+    <section>
+      <title>Quick Start</title>
+
+      <para>To get started with the HTTP server framework you'll need to
+      include the module in your project:</para>
+
+      <programlisting language="xml">&lt;dependencies&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.glassfish.grizzly&lt;/groupId&gt;
+        &lt;artifactId&gt;grizzly-http-server&lt;/artifactId&gt;
+        &lt;version&gt;2.0.0&lt;/version&gt;
+    &lt;/dependency&gt;
+&lt;/dependencies&gt;</programlisting>
+
+      <para>Once the dependencies are in place, the absolute simplest, albeit
+      not-very-useful, server one can create is:</para>
+
+      <programlisting language="java">HttpServer server = HttpServer.createSimpleServer();
+try {
+    server.start();
+    System.out.println("Press any key to stop the server...");
+    System.in.read();
+} catch (Exception e) {
+    System.err.println(e);
+}</programlisting>
+
+      <para>This will create a Grizzly HTTP server listening on 0.0.0.0:8080
+      and will serve content from the directory in which the JVM was started.
+      As stated before, while this demonstrates the ease of embedding Grizzly,
+      it's not very useful.</para>
+
+      <para>Let's add a HttpHandler to server the current time.</para>
+
+      <programlisting language="java" linenumbering="numbered">HttpServer server = HttpServer.createSimpleServer();
+server.getServerConfiguration().addHttpHandler(
+    new HttpHandler() {
+        public void service(Request request, Response response) throws Exception {
+            final SimpleDateFormat format = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US);
+            final String date = format.format(new Date(System.currentTimeMillis()));
+            response.setContentType("text/plain");
+            response.setContentLength(date.length());
+            response.getWriter().write(date);
+        }
+    },
+    "/time");
+try {
+    server.start();
+    System.out.println("Press any key to stop the server...");
+    System.in.read();
+} catch (Exception e) {
+    System.err.println(e);
+}</programlisting>
+
+      <para>Line 2 adds a new HttpHandler (think Servlet) to service requests
+      make to /time. Any other requests to the server will be considered
+      requests for static content served from the direction in which the JVM
+      was started.</para>
+    </section>
   </section>
 
   <section>
+    <title>HTTP Server Configuration</title>
 
+    <table>
+      <title>ServerConfiguration Properties</title>
+
+      <tgroup cols="2">
+        <tbody>
+          <row>
+            <entry>name</entry>
+
+            <entry>Set the name of this HttpServer instance. If no name is
+            defined, one will be assigned.</entry>
+          </row>
+
+          <row>
+            <entry>jmxEnabled</entry>
+
+            <entry>Determines whether or not JMX monitoring will be enabled
+            for this HttpServer instance. This property can be changed at
+            runtime.</entry>
+          </row>
+
+          <row>
+            <entry>version</entry>
+
+            <entry>Set the version of this server instance. If not explicitly
+            set, the version will be 2.0.</entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </table>
+
+    <para>In addition to the properties described above, the
+    ServerConfiguration allows the addition (addHttpHandler()), removal
+    (removeHttpHandler(), and listing of (getHttpHandlers()) HttpHandlers.
+    </para>
+
+    <table>
+      <title>NetworkListener Properties</title>
+
+      <tgroup cols="2">
+        <tbody>
+          <row>
+            <entry>name</entry>
+
+            <entry>The logical name of this listener (settable only by
+            constructor).</entry>
+          </row>
+
+          <row>
+            <entry>host</entry>
+
+            <entry>The network host to which this listener will bind. If not
+            user specified, it will bind to 0.0.0.0 (settable only by
+            constructor).</entry>
+          </row>
+
+          <row>
+            <entry>port</entry>
+
+            <entry>The network port to which this listener will bind. If not
+            user specified, it will bind to port 8080 (settable only by
+            constructor).</entry>
+          </row>
+
+          <row>
+            <entry>keepAlive</entry>
+
+            <entry>Returns the keep-alive configuration for this listener.
+            This allows configuration for connection idle timeout (default of
+            30 seconds) and max keep-alive (default of 256) requests
+            configuration.</entry>
+          </row>
+
+          <row>
+            <entry>transport</entry>
+
+            <entry>This property will typically be used for fine tuning the
+            transport configuration, however, custom transports can also be
+            provided.</entry>
+          </row>
+
+          <row>
+            <entry>cometEnabled</entry>
+
+            <entry>Enable/disable Comet support (defaults to
+            disabled).</entry>
+          </row>
+
+          <row>
+            <entry>webSocketsEnabled</entry>
+
+            <entry>Enable/disable WebSocket support (defaults to
+            disabled).</entry>
+          </row>
+
+          <row>
+            <entry>chunkingEnabled</entry>
+
+            <entry>Enable/disable the chunk transfer-encoding (defaults to
+            enabled).</entry>
+          </row>
+
+          <row>
+            <entry>secure</entry>
+
+            <entry>Enable/disable SSL/TLS support (defaults to
+            disabled)</entry>
+          </row>
+
+          <row>
+            <entry>sslEngineConfig</entry>
+
+            <entry>If SSL/TLS is enabled, an SSLEngineConfigurator will need
+            to be specified by the developer. This controls how the SSLEngine
+            will be created.</entry>
+          </row>
+
+          <row>
+            <entry>maxHttpHeaderSize</entry>
+
+            <entry>Specifies, in bytes, the maximum size an http message
+            header may be before being rejected. This configuration is only
+            applicable to incoming requests.</entry>
+          </row>
+
+          <row>
+            <entry>filterChain</entry>
+
+            <entry>Allows customization of the FilterChain used by this
+            listener instance.</entry>
+          </row>
+
+          <row>
+            <entry>fileCache</entry>
+
+            <entry>Allows customization of the FileCache configuration used by
+            this listener instance.</entry>
+          </row>
+
+          <row>
+            <entry>contentEncodings</entry>
+
+            <entry>The content encodings (gzip as an example) that may be
+            applied for HTTP transactions on this listener. Custom encodings
+            may be provided.</entry>
+          </row>
+
+          <row>
+            <entry>maxPendingBytes</entry>
+
+            <entry>Specifies the maximum number of bytes that may be pending
+            to be written to a particular connection. If bytes aren't being
+            consumed and this value is exceeded, the connection will be
+            closed.</entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </table>
+  </section>
+
+  <section>
     <title>Long-lasing HTTP requests (suspend/response)</title>
+
     <para></para>
   </section>
 
   <section>
-
     <title>NIO Streams</title>
+
     <para></para>
   </section>
 
   <section>
-
     <title>File Cache</title>
+
     <para></para>
   </section>
 
   <section>
-
     <title>Samples</title>
+
     <para></para>
   </section>
 </chapter>
