@@ -46,6 +46,7 @@ import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -212,12 +213,19 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             transport.bind(PORT);
             transport.start();
 
-            Future<Connection> future = transport.connect("localhost", PORT);
-            connection = future.get(10, TimeUnit.SECONDS);
+            Future<Connection> connectFuture = transport.connect(
+                    new InetSocketAddress("localhost", PORT),
+                    new EmptyCompletionHandler<Connection>()  {
+
+                        @Override
+                        public void completed(final Connection connection) {
+                            connection.configureStandalone(true);
+                        }
+                    });
+            connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
             connection.configureBlocking(true);
-            connection.configureStandalone(true);
             writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
             byte[] sendingBytes = "Hello".getBytes();
             writer.writeByteArray(sendingBytes);
@@ -254,12 +262,19 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             transport.bind(PORT);
             transport.start();
 
-            Future<Connection> future = transport.connect("localhost", PORT);
-            connection = future.get(10, TimeUnit.SECONDS);
+            Future<Connection> connectFuture = transport.connect(
+                    new InetSocketAddress("localhost", PORT),
+                    new EmptyCompletionHandler<Connection>()  {
+
+                        @Override
+                        public void completed(final Connection connection) {
+                            connection.configureStandalone(true);
+                        }
+                    });
+            connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
             connection.configureBlocking(true);
-            connection.configureStandalone(true);
 
             byte[] originalMessage = "Hello".getBytes();
             writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
@@ -302,11 +317,17 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             transport.start();
             transport.configureBlocking(true);
 
-            Future<Connection> future = transport.connect("localhost", PORT);
-            connection = future.get(10, TimeUnit.SECONDS);
-            assertTrue(connection != null);
+            Future<Connection> connectFuture = transport.connect(
+                    new InetSocketAddress("localhost", PORT),
+                    new EmptyCompletionHandler<Connection>()  {
 
-            connection.configureStandalone(true);
+                        @Override
+                        public void completed(final Connection connection) {
+                            connection.configureStandalone(true);
+                        }
+                    });
+            connection = connectFuture.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
 
             reader = StandaloneProcessor.INSTANCE.getStreamReader(connection);
             writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
@@ -351,11 +372,17 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             transport.bind(PORT);
             transport.start();
 
-            Future<Connection> connectFuture = transport.connect("localhost", PORT);
+            Future<Connection> connectFuture = transport.connect(
+                    new InetSocketAddress("localhost", PORT),
+                    new EmptyCompletionHandler<Connection>()  {
+
+                        @Override
+                        public void completed(final Connection connection) {
+                            connection.configureStandalone(true);
+                        }
+                    });
             connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
-
-            connection.configureStandalone(true);
 
             byte[] originalMessage = "Hello".getBytes();
             writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
@@ -411,11 +438,18 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             transport.bind(PORT);
             transport.start();
 
-            Future<Connection> connectFuture = transport.connect("localhost", PORT);
+            Future<Connection> connectFuture = transport.connect(
+                    new InetSocketAddress("localhost", PORT),
+                    new EmptyCompletionHandler<Connection>()  {
+
+                        @Override
+                        public void completed(final Connection connection) {
+                            connection.configureStandalone(true);
+                        }
+                    });
             connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
-            connection.configureStandalone(true);
             reader = StandaloneProcessor.INSTANCE.getStreamReader(connection);
             writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
 
@@ -513,11 +547,17 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             transport.bind(PORT);
             transport.start();
 
-            Future<Connection> connectFuture = transport.connect("localhost", PORT);
+            Future<Connection> connectFuture = transport.connect(
+                    new InetSocketAddress("localhost", PORT),
+                    new EmptyCompletionHandler<Connection>()  {
+
+                        @Override
+                        public void completed(final Connection connection) {
+                            connection.configureStandalone(true);
+                        }
+                    });
             connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
-
-            connection.configureStandalone(true);
 
             byte[] firstChunk = new byte[fullMessageSize / 5];
             Arrays.fill(firstChunk, (byte) 1);
@@ -593,12 +633,19 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             transport.bind(PORT);
             transport.start();
 
-            Future<Connection> future = transport.connect("localhost", PORT);
-            connection = future.get(10, TimeUnit.SECONDS);
+            Future<Connection> connectFuture = transport.connect(
+                    new InetSocketAddress("localhost", PORT),
+                    new EmptyCompletionHandler<Connection>()  {
+
+                        @Override
+                        public void completed(final Connection connection) {
+                            connection.configureStandalone(true);
+                        }
+                    });
+            connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
             connection.configureBlocking(true);
-            connection.configureStandalone(true);
 
             byte[] originalMessage = "Hello".getBytes();
             writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
