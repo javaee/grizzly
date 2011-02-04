@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -58,28 +58,6 @@
 
 package org.glassfish.grizzly.http.server;
 
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.http.HttpResponsePacket;
-import org.glassfish.grizzly.http.server.io.NIOOutputStream;
-import org.glassfish.grizzly.http.server.io.NIOWriter;
-import org.glassfish.grizzly.http.server.io.OutputBuffer;
-import org.glassfish.grizzly.http.util.CharChunk;
-import org.glassfish.grizzly.http.Cookie;
-import org.glassfish.grizzly.http.util.CookieSerializerUtils;
-import org.glassfish.grizzly.http.util.FastHttpDateFormat;
-import org.glassfish.grizzly.http.util.HttpRequestURIDecoder;
-import org.glassfish.grizzly.http.util.HttpStatus;
-import org.glassfish.grizzly.http.util.MessageBytes;
-import org.glassfish.grizzly.http.util.MimeHeaders;
-import org.glassfish.grizzly.http.util.StringManager;
-import org.glassfish.grizzly.http.util.UEncoder;
-import org.glassfish.grizzly.utils.DelayedExecutor;
-import org.glassfish.grizzly.utils.DelayedExecutor.DelayQueue;
-
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -97,7 +75,29 @@ import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.ThreadCache;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.http.Cookie;
+import org.glassfish.grizzly.http.HttpResponsePacket;
+import org.glassfish.grizzly.http.server.io.NIOOutputStream;
+import org.glassfish.grizzly.http.server.io.NIOWriter;
+import org.glassfish.grizzly.http.server.io.OutputBuffer;
+import org.glassfish.grizzly.http.util.CharChunk;
 import org.glassfish.grizzly.http.util.Charsets;
+import org.glassfish.grizzly.http.util.CookieSerializerUtils;
+import org.glassfish.grizzly.http.util.FastHttpDateFormat;
+import org.glassfish.grizzly.http.util.HttpRequestURIDecoder;
+import org.glassfish.grizzly.http.util.HttpStatus;
+import org.glassfish.grizzly.http.util.MessageBytes;
+import org.glassfish.grizzly.http.util.MimeHeaders;
+import org.glassfish.grizzly.http.util.StringManager;
+import org.glassfish.grizzly.http.util.UEncoder;
+import org.glassfish.grizzly.utils.DelayedExecutor;
+import org.glassfish.grizzly.utils.DelayedExecutor.DelayQueue;
 
 /**
  * Wrapper object for the Coyote response.
@@ -1708,6 +1708,7 @@ public class Response {
         private void reset() {
             timeoutTimeMillis = DelayedExecutor.UNSET_TIMEOUT;
             completionHandler = null;
+            timeoutHandler = null;
             isResuming = false;
         }
 

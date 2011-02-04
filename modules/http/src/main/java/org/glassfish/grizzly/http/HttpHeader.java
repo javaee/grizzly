@@ -40,23 +40,23 @@
 
 package org.glassfish.grizzly.http;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
-import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Ascii;
-import org.glassfish.grizzly.http.util.MimeHeaders;
-import org.glassfish.grizzly.http.util.HttpUtils;
-import org.glassfish.grizzly.memory.MemoryManager;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.http.util.ContentType;
+import org.glassfish.grizzly.http.util.DataChunk;
+import org.glassfish.grizzly.http.util.HttpUtils;
+import org.glassfish.grizzly.http.util.MimeHeaders;
+import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
  * {@link HttpPacket}, which represents HTTP message header. There are 2 subtypes
@@ -354,12 +354,12 @@ public abstract class HttpHeader extends HttpPacket
      * <tt>HttpHeader</tt> has been already serialized, and only {@link HttpContent}
      * messages might be serialized for this {@link HttpPacket}.
      *
-     * @param isCommited   <tt>true</tt>, if this <tt>HttpHeader</tt> has been
+     * @param isCommitted   <tt>true</tt>, if this <tt>HttpHeader</tt> has been
      * already serialized, and only {@link HttpContent} messages might be
      * serialized for this {@link HttpPacket}.
      */
-    public void setCommitted(boolean isCommited) {
-        this.isCommitted = isCommited;
+    public void setCommitted(boolean isCommitted) {
+        this.isCommitted = isCommitted;
     }
 
 

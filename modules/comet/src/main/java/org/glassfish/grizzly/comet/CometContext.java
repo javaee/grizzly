@@ -249,7 +249,7 @@ public class CometContext<E> {
         } catch (IOException e) {
             throw new RuntimeException(e.getMessage(), e);
         }
-        return handler.hashCode();
+            return handler.hashCode();
     }
 
     /**
@@ -324,6 +324,7 @@ public class CometContext<E> {
      * @return <tt>true</tt> if the operation succeeded.
      */
     public boolean resumeCometHandler(CometHandler handler) throws IOException {
+        System.out.println("CometContext.resumeCometHandler:   handler.hashCode() = " + handler.hashCode());
         return CometEngine.getEngine().interrupt(handler, false);
     }
 
@@ -470,11 +471,11 @@ public class CometContext<E> {
 
         @Override
         public void cancelled() {
-            try {
-                handler.onInterrupt(eventInterrupt);
-            } catch (IOException e) {
-                throw new RuntimeException(e.getMessage(), e);
-            }
+//            try {
+//                handler.onInterrupt(eventInterrupt);
+//            } catch (IOException e) {
+//                throw new RuntimeException(e.getMessage(), e);
+//            }
         }
 
         @Override
@@ -510,6 +511,7 @@ public class CometContext<E> {
         @Override
         public boolean onTimeout(final Response response) {
             try {
+                System.out.println("CometContext$CometTimeoutHandler.onTimeout:   handler.hashCode() = " + handler.hashCode());
                 handler.onInterrupt(eventInterrupt);
             } catch (IOException e) {
                 logger.log(Level.SEVERE, e.getMessage());

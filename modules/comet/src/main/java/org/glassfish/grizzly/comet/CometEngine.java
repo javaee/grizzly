@@ -271,6 +271,7 @@ public class CometEngine {
             } catch (IOException e) {
             }
         }
+        System.out.println("CometEngine.interrupt0:   handler.hashCode() = " + handler.hashCode());
         handler.getResponse().finish();
     }
 

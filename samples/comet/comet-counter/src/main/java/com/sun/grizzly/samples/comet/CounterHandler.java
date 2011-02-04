@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,63 +43,69 @@ package com.sun.grizzly.samples.comet;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.concurrent.atomic.AtomicInteger;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.glassfish.grizzly.comet.CometContext;
-import org.glassfish.grizzly.comet.CometEngine;
+import org.glassfish.grizzly.comet.CometEvent;
+import org.glassfish.grizzly.comet.CometHandler;
+import org.glassfish.grizzly.http.server.Response;
 
-public class LongPollingServlet extends HttpServlet {
+public class CounterHandler implements CometHandler<HttpServletResponse> {
 
+    private HttpServletResponse httpResponse;
+    private AtomicInteger counter;
+    private CometContext<HttpServletResponse> cometContext;
+    private Response response;
 
-    final AtomicInteger counter = new AtomicInteger();
-    private static final long serialVersionUID = 1L;
-    
-    private String contextPath = null;
-    
-    @Override
-    public void init(ServletConfig config) throws ServletException {
-        super.init(config);
-
-        ServletContext context = config.getServletContext();
-        contextPath = context.getContextPath() + "/long_polling";
-        
-        CometEngine engine = CometEngine.getEngine();
-        CometContext cometContext = engine.register(contextPath);
-        cometContext.setExpirationDelay(5 * 30 * 1000);
-    }
-    
-    @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse res)
-    throws ServletException, IOException {
-
-        CounterHandler handler = buildHandler(res);
-
-        CometEngine engine = CometEngine.getEngine();
-        CometContext<HttpServletResponse> context = engine.getCometContext(contextPath);
-        final int hash = context.addCometHandler(handler);
-        System.out.println("LongPollingServlet.doGet:    hashcode = " + hash);
+    CounterHandler(HttpServletResponse httpResponse, final AtomicInteger counter) {
+        this.httpResponse = httpResponse;
+        this.counter = counter;
     }
 
-    protected CounterHandler buildHandler(final HttpServletResponse res) {
-        return new CounterHandler(res, counter);
+    public void onEvent(CometEvent event) throws IOException {
+        if (CometEvent.Type.NOTIFY == event.getType()) {
+            httpResponse.addHeader("X-JSON", "{\"counter\":" + counter.get() + " }");
+
+            PrintWriter writer = httpResponse.getWriter();
+            writer.write("success");
+            writer.flush();
+
+            event.getCometContext().resumeCometHandler(this);
+        }
     }
 
-    @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse res)
-    throws ServletException, IOException {
-        counter.incrementAndGet();
-        
-        CometEngine engine = CometEngine.getEngine();
-        CometContext<HttpServletResponse> context = engine.getCometContext(contextPath);
-        context.notify(null);
-        
-        PrintWriter writer = res.getWriter();
+    public void onInitialize(CometEvent event) throws IOException {
+    }
+
+    public void onInterrupt(CometEvent event) throws IOException {
+        System.out.println("CounterHandler.onInterrupt:    hashCode() = " + hashCode());
+        httpResponse.addHeader("X-JSON", "{\"counter\":" + counter.get() + " }");
+
+        PrintWriter writer = httpResponse.getWriter();
         writer.write("success");
         writer.flush();
+    }
+
+    public void onTerminate(CometEvent event) throws IOException {
+    }
+
+    @Override
+    public CometContext<HttpServletResponse> getCometContext() {
+        return cometContext;
+    }
+
+    @Override
+    public Response getResponse() {
+        return response;
+    }
+
+    @Override
+    public void setCometContext(CometContext<HttpServletResponse> context) {
+        cometContext = context;
+    }
+
+    @Override
+    public void setResponse(Response response) {
+        this.response = response;
     }
 }
