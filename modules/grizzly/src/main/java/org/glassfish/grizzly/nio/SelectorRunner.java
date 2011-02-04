@@ -350,7 +350,7 @@ public final class SelectorRunner implements Runnable {
             throws IOException {
 
         final SelectionKeyHandler selectionKeyHandler = transport.getSelectionKeyHandler();
-        final IOStrategy IOStrategy = transport.getIOStrategy();
+        final IOStrategy ioStrategy = transport.getIOStrategy();
         final IOEvent[] ioEvents = selectionKeyHandler.getIOEvents(keyReadyOps);
         final NIOConnection connection =
                 (NIOConnection) selectionKeyHandler.getConnectionForKey(key);
@@ -361,7 +361,7 @@ public final class SelectorRunner implements Runnable {
             final int interest = selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent);
             keyReadyOps &= (~interest);
             if (selectionKeyHandler.onProcessInterest(key, interest)) {
-                if (!IOStrategy.executeIoEvent(connection, ioEvent)) {
+                if (!ioStrategy.executeIoEvent(connection, ioEvent)) {
                     return false;
                 }
             }
