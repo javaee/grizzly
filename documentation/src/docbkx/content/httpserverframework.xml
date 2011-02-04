@@ -122,14 +122,14 @@
               HTTP-related features such as Comet, WebSockets, the chunked
               transfer-encoding, etc. HttpServer can support multiple
               NetworkListeners. Also, keep in mind that all HttpHandlers added
-              to the ServerConfiguration will be shared across all listeners.
-              </entry>
+              to the ServerConfiguration will be shared across all
+              listeners.</entry>
             </row>
 
             <row>
               <entry>HttpHandler</entry>
 
-              <entry>HttpHandler is akin to javax.servlet.Servlet. </entry>
+              <entry>HttpHandler is akin to javax.servlet.Servlet.</entry>
             </row>
 
             <row>
@@ -270,8 +270,8 @@ try {
 
     <para>In addition to the properties described above, the
     ServerConfiguration allows the addition (addHttpHandler()), removal
-    (removeHttpHandler(), and listing of (getHttpHandlers()) HttpHandlers.
-    </para>
+    (removeHttpHandler(), and listing of (getHttpHandlers())
+    HttpHandlers.</para>
 
     <table>
       <title>NetworkListener Properties</title>
@@ -400,7 +400,154 @@ try {
   <section>
     <title>Long-lasing HTTP requests (suspend/response)</title>
 
-    <para></para>
+    <para>Some HTTP interactions may need to trigger a long running
+    transaction on the server and wait for the result to generate a response.
+    However, this can be problematic with an NIO-based server as there are
+    generally a handful of threads servicing all requests. A long running
+    transaction in this case would tie up one of the processing threads
+    preventing it from servicing other requests. If enough of these long
+    running transactions were initiated, it could lead to a denial of service.
+    </para>
+
+    <para>To support these use cases without negatively impacting the server,
+    Grizzly allows a response to be suspended until such time that the long
+    running task is complete and the response is ready to be generated.</para>
+
+    <para>Let's cover the methods related to response suspend/resume. The
+    following methods are available on the Response object itself:</para>
+
+    <programlisting>    /**
+     * Suspend the {@link Response}. Suspending a {@link Response} will
+     * tell the underlying container to avoid recycling objects associated with
+     * the current instance, and also to avoid committing response.
+     */
+    public void suspend() {
+        ...
+    }
+
+    /**
+     * Suspend the {@link Response}. Suspending a {@link Response} will
+     * tell the underlying container to avoid recycling objects associated with
+     * the current instance, and also to avoid committing response.
+     *
+     * @param timeout The maximum amount of time,
+     * a {@link Response} can be suspended. When the timeout expires (because
+     * nothing has been written or because the {@link Response#resume()}
+     * or {@link Response#cancel()}), the {@link Response} will be automatically
+     * resumed and committed. Usage of any methods of a {@link Response} that
+     * times out will throw an {@link IllegalStateException}.
+     * @param timeunit timeout units
+     *
+     */
+    public void suspend(final long timeout, final TimeUnit timeunit) {
+        ...
+    }
+
+    /**
+     * Suspend the {@link Response}. Suspending a {@link Response} will
+     * tell the underlying container to avoid recycling objects associated with
+     * the current instance, and also to avoid committing response. When the
+     * {@link Response#resume()} is invoked, the container will
+     * make sure {@link CompletionHandler#completed(Object)}
+     * is invoked with the original &lt;tt&gt;attachment&lt;/tt&gt;. When the
+     * {@link Response#cancel()} is invoked, the container will
+     * make sure {@link org.glassfish.grizzly.CompletionHandler#cancelled()}
+     * is invoked with the original &lt;tt&gt;attachment&lt;/tt&gt;. If the timeout expires, the
+     * {@link org.glassfish.grizzly.CompletionHandler#cancelled()} is invoked with 
+     * the original &lt;tt&gt;attachment&lt;/tt&gt; and the {@link Response} committed.
+     *
+     * @param timeout The maximum amount of time the {@link Response} can be suspended.
+     * When the timeout expires (because nothing has been written or because the
+     * {@link Response#resume()} or {@link Response#cancel()}), the {@link Response}
+     * will be automatically resumed and committed. Usage of any methods of a
+     * {@link Response} that times out will throw an {@link IllegalStateException}.
+     * @param timeunit timeout units
+     * @param completionHandler a {@link org.glassfish.grizzly.CompletionHandler}
+     */
+    public void suspend(final long timeout, 
+                        final TimeUnit timeunit,
+                        final CompletionHandler&lt;Response&gt; completionHandler) {
+        ...
+    }
+
+    /**
+     * Suspend the {@link Response}. Suspending a {@link Response} will
+     * tell the underlying container to avoid recycling objects associated with
+     * the current instance, and also to avoid committing response. When the
+     * {@link Response#resume()} is invoked, the container will
+     * make sure {@link CompletionHandler#completed(Object)}
+     * is invoked with the original &lt;tt&gt;attachment&lt;/tt&gt;. When the
+     * {@link Response#cancel()} is invoked, the container will
+     * make sure {@link org.glassfish.grizzly.CompletionHandler#cancelled()}
+     * is invoked with the original &lt;tt&gt;attachment&lt;/tt&gt;. If the timeout expires, the
+     * {@link org.glassfish.grizzly.CompletionHandler#cancelled()} is invoked with the 
+     * original &lt;tt&gt;attachment&lt;/tt&gt; and the {@link Response} committed.
+     *
+     * @param timeout The maximum amount of time the {@link Response} can be suspended.
+     * When the timeout expires (because nothing has been written or because the
+     * {@link Response#resume()} or {@link Response#cancel()}), the {@link Response}
+     * will be automatically resumed and committed. Usage of any methods of a
+     * {@link Response} that times out will throw an {@link IllegalStateException}.
+     * @param timeunit timeou
+     * @param completionHandler a {@link org.glassfish.grizzly.CompletionHandler}
+     * @param timeoutHandler {@link TimeoutHandler} to customize the suspended 
+     *  &lt;tt&gt;Response&lt;/tt&gt; timeout logic.
+     */
+    public void suspend(final long timeout, 
+                        final TimeUnit timeunit,
+                        final CompletionHandler&lt;Response&gt; completionHandler,
+                        final TimeoutHandler timeoutHandler) {
+        ...
+    }
+
+    /**
+     * Complete the {@link Response} and finish/commit it. If a
+     * {@link CompletionHandler} has been defined, its 
+     * {@link CompletionHandler#completed(Object)} will first be invoked, 
+     * then the {@link Response#finish()}.
+     * Those operations commit the response.
+     */
+    public void resume() {
+        ...
+    }
+
+    /**
+     * Cancel the {@link Response} and finish/commit it. If a
+     * {@link CompletionHandler} has been defined, its 
+     * {@link CompletionHandler#cancelled()} will first be invoked, 
+     * then the {@link Response#finish()}.
+     * Those operations commit the response.
+     */
+    public void cancel() {
+        ...
+    }
+
+    /**
+     * Get the context of the suspended &lt;tt&gt;Response&lt;/tt&gt;.
+     *
+     * @return the context of the suspended &lt;tt&gt;Response&lt;/tt&gt;.
+     */
+    public SuspendContext getSuspendContext() {
+        ...
+    }
+    
+    /**
+     * Return &lt;tt&gt;true&lt;//tt&gt; if that {@link Response#suspend()} has been
+     * invoked and set to &lt;tt&gt;true&lt;/tt&gt;
+     * @return &lt;tt&gt;true&lt;//tt&gt; if that {@link Response#suspend()} has been
+     * invoked and set to &lt;tt&gt;true&lt;/tt&gt;
+     */
+    public boolean isSuspended() {
+        ...
+    }</programlisting>
+
+    <para>So, what exactly happens when the a response is suspended? In the
+    simple case, where Response.suspend() is invoked with no arguments, the
+    response will be moved to another processing queue. Once suspend()
+    returns, generally the service() method of the HttpHandler will exit. The
+    Response will not be recycled nor will the response be committed. Once the
+    long running task is complete, Response.resume() will be invoked and the
+    final processing of the response may be completed. </para>
   </section>
 
   <section>
