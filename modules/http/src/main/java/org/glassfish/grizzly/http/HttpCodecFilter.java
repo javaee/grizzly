@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -912,6 +912,13 @@ public abstract class HttpCodecFilter extends BaseFilter
         if (parsingState.isContentLengthHeader) {
             parsingState.isContentLengthHeader =
                     (size == Constants.CONTENT_LENGTH_HEADER_BYTES.length);
+            System.out.println("isCL=" + parsingState.isContentLengthHeader + " hasCL=" + parsingState.hasContentLength);
+            if (parsingState.isContentLengthHeader &&
+                    parsingState.hasContentLength) {
+                throw new IllegalStateException("Two content-length headers are not allowed");
+            }
+            
+            parsingState.hasContentLength = true;
         } else if (parsingState.isTransferEncodingHeader) {
             parsingState.isTransferEncodingHeader =
                     (size == Constants.TRANSFER_ENCODING_HEADER_BYTES.length);
@@ -1385,6 +1392,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         public long parsingNumericValue;
 
         public boolean isContentLengthHeader;
+        public boolean hasContentLength;
         public boolean isTransferEncodingHeader;
         public boolean isUpgradeHeader;
         public boolean isExpect100Header;
@@ -1414,6 +1422,7 @@ public abstract class HttpCodecFilter extends BaseFilter
             isContentLengthHeader = false;
             isUpgradeHeader = false;
             isExpect100Header = false;
+            hasContentLength = false;
         }
 
         public final void checkOverflow() {

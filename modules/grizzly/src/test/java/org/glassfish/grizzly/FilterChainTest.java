@@ -266,7 +266,7 @@ public class FilterChainTest extends TestCase {
                     @Override
                     public void failed(Throwable throwable) {
                         ctx.fail(throwable);
-                        ctx.recycle();
+                        ctx.completeAndRecycle();
                     }
                 });
 

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,6 +55,8 @@ import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.IOEvent;
@@ -177,6 +179,9 @@ public final class FilterChainContext implements AttributeStorage {
     private final StopAction cachedStopAction = new StopAction();
 
     private final InvokeAction cachedInvokeAction = new InvokeAction();
+
+    private final List<CompletionListener> completionListeners =
+            new ArrayList<CompletionListener>(2);
 
     public FilterChainContext() {
         filterIdx = NO_FILTER_INDEX;
@@ -502,7 +507,7 @@ public final class FilterChainContext implements AttributeStorage {
         newContext.customAttributes = getAttributes();
 
         final ReadResult rr = getFilterChain().read(newContext);
-        newContext.recycle();
+        newContext.completeAndRecycle();
 
         return rr;
     }
@@ -612,6 +617,27 @@ public final class FilterChainContext implements AttributeStorage {
     }
 
     /**
+     * Add the {@link CompletionListener}, which will be notified, when
+     * this {@link FilterChainContext} processing will be completed.
+     *
+     * @param listener the {@link CompletionListener}, which will be notified, when
+     * this {@link FilterChainContext} processing will be completed.
+     */
+    public final void addCompletionListener(final CompletionListener listener) {
+        completionListeners.add(listener);
+    }
+
+    /**
+     * Remove the {@link CompletionListener}.
+     *
+     * @param listener the {@link CompletionListener} to be removed.
+     * @return <tt>true</tt>, if the listener was removed from the list, or
+     *          <tt>false</tt>, if the listener wasn't on the list.
+     */
+    public final boolean removeCompletionListener(final CompletionListener listener) {
+        return completionListeners.remove(listener);
+    }
+    /**
      * Release the context associated resources.
      */
     public void reset() {
@@ -624,11 +650,13 @@ public final class FilterChainContext implements AttributeStorage {
         operationCompletionHandler = null;
         customAttributes = null;
         operation = Operation.NONE;
+        completionListeners.clear();
         internalContext.reset();
         transportFilterContext.reset();
     }
 
-    public void recycle() {
+    public void completeAndRecycle() {
+        notifyComplete();
         reset();
         ThreadCache.putToCache(CACHE_IDX, this);
     }
@@ -646,12 +674,6 @@ public final class FilterChainContext implements AttributeStorage {
         return sb.toString();
     }
 
-//    Comment the mapping array, because "if"s work faster
-//    private static final Operation[] IOEVENT_2_OPERATION = new Operation[] {
-//        Operation.NONE, Operation.NONE, Operation.ACCEPT,
-//        Operation.NONE, Operation.CONNECT,
-//        Operation.READ, Operation.NONE, Operation.CLOSE
-//    };
     static Operation ioEvent2Operation(final IOEvent ioEvent) {
         switch(ioEvent) {
             case READ: return Operation.READ;
@@ -697,6 +719,27 @@ public final class FilterChainContext implements AttributeStorage {
             completionHandler = null;
             future = null;
         }
+    }
 
+    void notifyComplete() {
+        final int size = completionListeners.size();
+        for (int i = 0; i < size; i++) {
+            completionListeners.get(i).onComplete(this);
+        }
+    }
+    /**
+     * The interface, which represents a listener, which will be notified,
+     * once {@link FilterChainContext} processing is complete.
+     *
+     * @see #addCompletionListener(org.glassfish.grizzly.filterchain.FilterChainContext.CompletionListener)
+     */
+    public interface CompletionListener {
+        /**
+         * The method is called, when passed {@link FilterChainContext} processing
+         * is complete.
+         * 
+         * @param context
+         */
+        public void onComplete(FilterChainContext context);
     }
 }

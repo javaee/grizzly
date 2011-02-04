@@ -200,7 +200,7 @@ public class HttpServerFilter extends BaseFilter
                             handlerRequest.getInputBuffer().finished();
                             // we have enough data? - terminate filter chain execution
                             final NextAction action = ctx.getSuspendAction();
-                            ctx.recycle();
+                            ctx.completeAndRecycle();
                             return action;
                         }
                     }

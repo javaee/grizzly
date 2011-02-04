@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -188,8 +188,8 @@ public class HttpServerFilter extends HttpCodecFilter {
      * @throws IOException
      */
     @Override
-    public NextAction handleRead(FilterChainContext ctx) throws IOException {
-        Buffer input = (Buffer) ctx.getMessage();
+    public NextAction handleRead(final FilterChainContext ctx) throws IOException {
+        final Buffer input = (Buffer) ctx.getMessage();
         final Connection connection = ctx.getConnection();
         
         HttpRequestPacketImpl httpRequest = httpRequestInProcessAttr.get(connection);
@@ -198,7 +198,7 @@ public class HttpServerFilter extends HttpCodecFilter {
             httpRequest = HttpRequestPacketImpl.create();
             httpRequest.initialize(connection, input.position(), maxHeadersSize);
             httpRequest.setSecure(isSecureLocal);
-            HttpResponsePacketImpl response = HttpResponsePacketImpl.create();
+            final HttpResponsePacketImpl response = HttpResponsePacketImpl.create();
             response.setUpgrade(httpRequest.getUpgrade());
             response.setSecure(isSecureLocal);
             httpRequest.setResponse(response);
