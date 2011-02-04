@@ -38,46 +38,21 @@
  * holder.
  */
 
-package org.glassfish.grizzly.aio.transport;
+package org.glassfish.grizzly;
 
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
-import java.io.IOException;
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.aio.AIOConnection;
-import org.glassfish.grizzly.aio.AIOTransport;
-import org.glassfish.grizzly.aio.AbstractAIOAsyncQueueWriter;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
+import org.glassfish.grizzly.memory.ByteBufferWrapper;
+import junit.framework.TestCase;
 
 /**
- * The TCP transport {@link AsyncQueueWriter} implementation, based on
- * the Java AIO
  *
- * @author Alexey Stashok
+ * @author oleksiys
  */
-public final class TCPAIOAsyncQueueWriter extends AbstractAIOAsyncQueueWriter {
-
-    public TCPAIOAsyncQueueWriter(AIOTransport transport) {
-        super(transport);
-    }
+public abstract class GrizzlyTestCase extends TestCase {
 
     @Override
-    protected void write0(final AIOConnection connection,
-            final AsyncWriteQueueRecord queueRecord)
-            throws IOException {
-        final Buffer buffer = queueRecord.getOutputBuffer();
-        
-        ((TCPAIOConnection) connection).writeAsync(buffer, queueRecord,
-                queueRecord.getCurrentResult());
-    }
-
-    @Override
-    public void processAsync(final Connection connection) throws IOException {
-        final TCPAIOConnection.IOResult lastWriteResult =
-                ((TCPAIOConnection) connection).getLastWriteResult();
-        final int justWritten = lastWriteResult.getBytesProcessed();
-        lastWriteResult.reset();
-        
-        super.processAsync(connection, justWritten);
+    protected void setUp() throws Exception {
+        super.setUp();
+        Grizzly.setTrackingThreadCache(true);
+        ByteBufferWrapper.DEBUG_MODE = true;
     }
 }

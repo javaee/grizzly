@@ -544,35 +544,4 @@ public abstract class AIOConnection implements Connection<SocketAddress> {
     }
 
     protected abstract void preClose();
-
-    public final void enableIOEvent(IOEvent ioEvent) throws IOException {
-//        final SelectionKeyHandler selectionKeyHandler =
-//                transport.getSelectionKeyHandler();
-//        final int interest =
-//                selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent);
-//
-//        if (interest == 0) return;
-//
-//        notifyIOEventEnabled(this, ioEvent);
-//
-//        final SelectorHandler selectorHandler = transport.getSelectorHandler();
-//
-//        selectorHandler.registerKeyInterest(selectorRunner, selectionKey,
-//                selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent));
-    }
-
-    public final void disableIOEvent(IOEvent ioEvent) throws IOException {
-//        final SelectionKeyHandler selectionKeyHandler =
-//                transport.getSelectionKeyHandler();
-//        final int interest =
-//                selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent);
-//
-//        if (interest == 0) return;
-//
-//        notifyIOEventDisabled(this, ioEvent);
-//
-//        final SelectorHandler selectorHandler = transport.getSelectorHandler();
-//
-//        selectorHandler.unregisterKeyInterest(selectorRunner, selectionKey, interest);
-    }
 }

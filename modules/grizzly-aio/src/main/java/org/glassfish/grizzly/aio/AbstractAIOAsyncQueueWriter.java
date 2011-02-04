@@ -240,8 +240,10 @@ public abstract class AbstractAIOAsyncQueueWriter
     /**
      * {@inheritDoc}
      */
-    @Override
-    public void processAsync(final Connection connection) throws IOException {
+
+    protected void processAsync(final Connection connection,
+            final int justWritten) throws IOException {
+                
         final boolean isLogFine = LOGGER.isLoggable(Level.FINEST);
         final AIOConnection aioConnection = (AIOConnection) connection;
         // Get connection async write queue
@@ -255,9 +257,13 @@ public abstract class AbstractAIOAsyncQueueWriter
         final AsyncWriteQueueRecord queueRecord = currentElement.get();
 
         connectionQueue.releaseSpace(
-                queueRecord.getCurrentResult().getWrittenSize(), true);
+                justWritten, true);
 
-
+        if (!isFinished(connection, queueRecord)) {
+            write0(aioConnection, queueRecord);
+            return;
+        }
+        
         // set next queue element as current
         AsyncWriteQueueRecord nextRecord = queue.poll();
         currentElement.set(nextRecord);
@@ -348,8 +354,8 @@ public abstract class AbstractAIOAsyncQueueWriter
      * {@inheritDoc}
      */
     @Override
-    public final boolean isReady(Connection connection) {
-        TaskQueue connectionQueue =
+    public final boolean isReady(final Connection connection) {
+        final TaskQueue connectionQueue =
                 ((AIOConnection) connection).getAsyncWriteQueue();
 
         return connectionQueue != null
@@ -394,42 +400,16 @@ public abstract class AbstractAIOAsyncQueueWriter
     public final void close() {
     }
 
+    private boolean isFinished(final Connection connection,
+            final AsyncWriteQueueRecord queueRecord) {
+        final Buffer buffer = queueRecord.getOutputBuffer();
+        return !buffer.hasRemaining();
+    }
+    
     protected abstract void write0(
             final AIOConnection connection,
             final AsyncWriteQueueRecord queueRecord)
             throws IOException;
-
-//    protected WriteCompletionHandler createWriteCompletionHandler() {
-//        return new WriteCompletionHandler();    
-//    }
-//
-//    protected class WriteCompletionHandler implements
-//            java.nio.channels.CompletionHandler<Integer, AsyncWriteQueueRecord> {
-//
-//        @Override
-//        public void completed(final Integer bytesWritten,
-//                final AsyncWriteQueueRecord writeQueueRecord) {
-//            try {
-//                processAsync(writeQueueRecord.getConnection());
-//            } catch (IOException ignored) {
-//            }
-//        }
-//
-//        @Override
-//        public void failed(final Throwable e,
-//                final AsyncWriteQueueRecord writeQueueRecord) {
-//                    
-//            final IOException ioException;
-//            if (IOException.class.isAssignableFrom(e.getClass())) {
-//                ioException = (IOException) e;
-//            } else {
-//                ioException = new IOException(e);
-//            }
-//
-//            onWriteFailure(writeQueueRecord.getConnection(),
-//                    writeQueueRecord, ioException);
-//        }
-//    }
 
     protected final void onWriteComplete(final Connection connection,
             final AsyncWriteQueueRecord record) {

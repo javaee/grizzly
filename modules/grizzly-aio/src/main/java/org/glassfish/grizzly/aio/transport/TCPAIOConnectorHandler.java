@@ -62,8 +62,6 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.PostProcessor;
 import org.glassfish.grizzly.ProcessorResult.Status;
 import org.glassfish.grizzly.aio.AIOConnection;
-import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 
 /**
  * TCP NIO transport client side ConnectorHandler implementation
@@ -74,21 +72,19 @@ public class TCPAIOConnectorHandler extends AbstractSocketConnectorHandler {
     
     private static final Logger LOGGER = Grizzly.logger(TCPAIOConnectorHandler.class);
     protected static final int DEFAULT_CONNECTION_TIMEOUT = 30000;
-//    private final InstantConnectHandler instantConnectHandler;
     protected boolean isReuseAddress;
     protected volatile long connectionTimeoutMillis = DEFAULT_CONNECTION_TIMEOUT;
 
-    protected TCPAIOConnectorHandler(TCPAIOTransport transport) {
+    protected TCPAIOConnectorHandler(final TCPAIOTransport transport) {
         super(transport);
         connectionTimeoutMillis = transport.getConnectionTimeout();
         isReuseAddress = transport.isReuseAddress();
-//        instantConnectHandler = new InstantConnectHandler();
     }
 
     @Override
-    public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
-            SocketAddress localAddress,
-            CompletionHandler<Connection> completionHandler) throws IOException {
+    public GrizzlyFuture<Connection> connect(final SocketAddress remoteAddress,
+            final SocketAddress localAddress,
+            final CompletionHandler<Connection> completionHandler) throws IOException {
 
         if (!transport.isBlocking()) {
             return connectAsync(remoteAddress, localAddress, completionHandler);
@@ -164,34 +160,7 @@ public class TCPAIOConnectorHandler extends AbstractSocketConnectorHandler {
                             connectFuture.failure(e);
                         }
                     });
-
-//            newConnection.setConnectHandler(
-//                    new Callable<Connection>() {
-//
-//                        @Override
-//                        public Connection call() throws Exception {
-//                            onConnectedAsync(newConnection, connectFuture,
-//                                    completionHandler);
-//                            return null;
-//                        }
-//                    });
-
-//            final GrizzlyFuture<RegisterChannelResult> registerChannelFuture;
-
-//            if (isConnected) {
-//                registerChannelFuture =
-//                        aioTransport.getNIOChannelDistributor().registerChannelAsync(
-//                        socketChannel, 0, newConnection,
-//                        instantConnectHandler);
-//            } else {
-//                registerChannelFuture =
-//                        nioTransport.getNIOChannelDistributor().registerChannelAsync(
-//                        socketChannel, SelectionKey.OP_CONNECT, newConnection,
-//                        nioTransport.selectorRegistrationHandler);
-//            }
-//
-//            registerChannelFuture.markForRecycle(false);
-
+            
             return connectFuture;
         } catch (Exception e) {
             if (completionHandler != null) {
@@ -239,30 +208,6 @@ public class TCPAIOConnectorHandler extends AbstractSocketConnectorHandler {
         }
     }
 
-//    private class InstantConnectHandler extends EmptyCompletionHandler<RegisterChannelResult> {
-//
-//        @Override
-//        public void completed(RegisterChannelResult result) {
-//            final TCPAIOTransport transport =
-//                    (TCPAIOTransport) TCPAIOConnectorHandler.this.transport;
-//
-//            transport.selectorRegistrationHandler.completed(result);
-//
-//            final SelectionKey selectionKey = result.getSelectionKey();
-//            final SelectionKeyHandler selectionKeyHandler = transport.getSelectionKeyHandler();
-//
-//            final TCPAIOConnection connection =
-//                    (TCPAIOConnection) selectionKeyHandler.getConnectionForKey(selectionKey);
-//
-//            try {
-//                connection.onConnect();
-//
-//            } catch (Exception e) {
-//                LOGGER.log(Level.FINE, "Exception happened, when "
-//                        + "trying to connect the channel", e);
-//            }
-//        }
-//    }
     // COMPLETE, COMPLETE_LEAVE, REREGISTER, RERUN, ERROR, TERMINATE, NOT_RUN
     private final static boolean[] isRegisterMap = {true, false, true, false, false, false, true};
 

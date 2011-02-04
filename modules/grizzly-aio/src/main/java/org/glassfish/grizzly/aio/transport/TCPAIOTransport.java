@@ -60,7 +60,6 @@ import java.util.Collection;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.PostProcessor;
 import org.glassfish.grizzly.ProcessorExecutor;
@@ -68,26 +67,18 @@ import org.glassfish.grizzly.Reader;
 import org.glassfish.grizzly.SocketBinder;
 import org.glassfish.grizzly.StandaloneProcessor;
 import org.glassfish.grizzly.StandaloneProcessorSelector;
-import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.Writer;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
-import org.glassfish.grizzly.threadpool.WorkerThread;
-import java.io.EOFException;
-import java.lang.ref.SoftReference;
 import java.net.StandardSocketOption;
-import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousChannel;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.SocketConnectorHandler;
-import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.memory.BufferArray;
-import org.glassfish.grizzly.memory.ByteBufferArray;
+import org.glassfish.grizzly.aio.BlockingIO;
 
 /**
  * TCP Transport AIO implementation
@@ -112,7 +103,10 @@ public final class TCPAIOTransport extends AIOTransport implements
     /**
      * Transport AsyncQueueIO
      */
-    AsyncQueueIO asyncQueueIO;
+    final AsyncQueueIO asyncQueueIO;
+    
+    final BlockingIO blockingIO;
+    
     /**
      * The server socket time out
      */
@@ -169,10 +163,10 @@ public final class TCPAIOTransport extends AIOTransport implements
         readBufferSize = DEFAULT_READ_BUFFER_SIZE;
         writeBufferSize = DEFAULT_WRITE_BUFFER_SIZE;
 
-//        selectorRegistrationHandler = new RegisterChannelCompletionHandler();
-
         asyncQueueIO = new AsyncQueueIO(new TCPAIOAsyncQueueReader(this),
                 new TCPAIOAsyncQueueWriter(this));
+        blockingIO = new BlockingIO(new TCPAIOBlockingReader(this),
+                new TCPAIOBlockingWriter(this));
 
         attributeBuilder = Grizzly.DEFAULT_ATTRIBUTE_BUILDER;
         defaultTransportFilter = new TCPAIOTransportFilter(this);
@@ -588,6 +582,10 @@ public final class TCPAIOTransport extends AIOTransport implements
         return asyncQueueIO;
     }
 
+    public BlockingIO getBlockingIO() {
+        return blockingIO;
+    }
+    
     @Override
     public synchronized void configureStandalone(final boolean isStandalone) {
         if (this.isStandalone != isStandalone) {
@@ -732,7 +730,7 @@ public final class TCPAIOTransport extends AIOTransport implements
     @Override
     public Reader getReader(final boolean isBlocking) {
         if (isBlocking) {
-            return getTemporarySelectorIO().getReader();
+            return blockingIO.getReader();
         } else {
             return getAsyncQueueIO().getReader();
         }
@@ -752,387 +750,12 @@ public final class TCPAIOTransport extends AIOTransport implements
     @Override
     public Writer getWriter(final boolean isBlocking) {
         if (isBlocking) {
-            return getTemporarySelectorIO().getWriter();
+            return blockingIO.getWriter();
         } else {
             return getAsyncQueueIO().getWriter();
         }
     }
-
-    public void read(final Connection connection, Buffer buffer,
-            final Object attachment) throws IOException {
-
-        final TCPAIOConnection tcpConnection = (TCPAIOConnection) connection;
-        int read;
-
-        final boolean isAllocate = (buffer == null);
-        if (isAllocate) {
-            buffer = memoryManager.allocateAtLeast(connection.getReadBufferSize());
-
-            try {
-                readSimple(tcpConnection, buffer);
-
-                tcpConnection.onRead(buffer, read);
-            } catch (Exception e) {
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, "TCPAIOConnection (" + connection + ") (allocated) read exception", e);
-                }
-                read = -1;
-            }
-
-            if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "TCPAIOConnection ({0}) (allocated) read {1} bytes",
-                        new Object[]{connection, read});
-            }
-            
-            if (read > 0) {
-                buffer.position(read);
-            } else {
-                buffer.dispose();
-                buffer = null;
-                
-                if (read < 0) {
-                    throw new EOFException();
-                }
-            }
-        } else {
-            if (buffer.hasRemaining()) {
-                final int oldPos = buffer.position();
-                
-                final AsynchronousSocketChannel socketChannel =
-                        (AsynchronousSocketChannel) tcpConnection.getChannel();
-                
-                if (buffer.isComposite()) {
-                    readComposite(tcpConnection, buffer);
-                } else {
-                    readSimple(tcpConnection, buffer);
-                }
-
-                if (read > 0) {
-                    buffer.position(oldPos + read);
-                }
-
-
-                tcpConnection.onRead(buffer, read);
-                
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, "TCPAIOConnection ({0}) (nonallocated) read {1} bytes", new Object[] {connection, read});
-                }
-                
-                if (read < 0) {
-                    throw new EOFException();
-                }
-            }
-        }
-
-        return buffer;
-    }
-
-    private <A> void readSimple(final TCPAIOConnection tcpConnection,
-            final Buffer buffer, final A attachment,
-            final java.nio.channels.CompletionHandler<Integer, A> completionHandler)
-            throws IOException {
-
-        final AsynchronousSocketChannel socketChannel =
-                (AsynchronousSocketChannel) tcpConnection.getChannel();
-
-        socketChannel.read(buffer.toByteBuffer(), attachment, completionHandler);
-    }
     
-    private <A> void readComposite(final TCPAIOConnection tcpConnection,
-            final ByteBuffer[] byteBuffers, final int offset, final int size,
-            final A attachment,
-            final java.nio.channels.CompletionHandler<Long, A> completionHandler)
-            throws IOException {
-//        final ByteBufferArray array = buffer.toByteBufferArray();
-//
-//        final ByteBuffer[] byteBuffers = array.getArray();
-//        final int size = array.size();
-
-        final AsynchronousSocketChannel socketChannel =
-                (AsynchronousSocketChannel) tcpConnection.getChannel();
-        
-        socketChannel.read(byteBuffers, 0, size, Long.MAX_VALUE,
-                TimeUnit.MILLISECONDS, attachment, completionHandler);
-
-//        array.restore();
-//        array.recycle();
-    }
-    
-    public int write(Connection connection, Buffer buffer) throws IOException {
-        return write(connection, buffer, null);
-    }
-
-    public int write(Connection connection, Buffer buffer,
-            WriteResult currentResult) throws IOException {
-
-        final TCPAIOConnection tcpConnection = (TCPAIOConnection) connection;
-        final int oldPos = buffer.position();
-        
-        int written;
-        if (buffer.isComposite()) {
-            final BufferArray array = buffer.toBufferArray();
-
-            written = writeGathered(tcpConnection, array);
-
-            if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "TCPAIOConnection ({0}) (composite) write {1} bytes",
-                        new Object[]{connection, written});
-            }
-
-            array.restore();
-            array.recycle();
-        } else {
-            written = writeSimple(tcpConnection, buffer);
-            if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "TCPAIOConnection ({0}) (plain) write {1} bytes",
-                        new Object[]{connection, written});
-            }
-        }
-
-        final boolean hasWritten = (written >= 0);
-        if (hasWritten) {
-            buffer.position(oldPos + written);
-        }
-
-        tcpConnection.onWrite(buffer, written);
-
-        if (hasWritten) {
-            if (currentResult != null) {
-                currentResult.setMessage(buffer);
-                currentResult.setWrittenSize(currentResult.getWrittenSize()
-                        + written);
-                currentResult.setDstAddress(
-                        connection.getPeerAddress());
-            }
-        } else {
-            throw new IOException("Error writing to peer");
-        }
-
-        return written;
-    }
-
-    int write0(final Connection connection, final BufferArray bufferArray)
-    throws IOException {
-
-        final TCPAIOConnection tcpConnection = (TCPAIOConnection) connection;
-        final int written = writeGathered(tcpConnection, bufferArray);
-
-        if (LOGGER.isLoggable(Level.FINE)) {
-            LOGGER.log(Level.FINE, "TCPAIOConnection ({0}) (composite) write {1} bytes",
-                    new Object[]{connection, written});
-        }
-
-        return written;
-    }
-
-    int write0(final Connection connection, final Buffer buffer)
-    throws IOException {
-
-        final TCPAIOConnection tcpConnection = (TCPAIOConnection) connection;
-        final int written = writeSimple(tcpConnection, buffer);
-        if (LOGGER.isLoggable(Level.FINE)) {
-            LOGGER.log(Level.FINE, "TCPAIOConnection ({0}) (plain) write {1} bytes",
-                    new Object[]{connection, written});
-        }
-
-        return written;
-    }
-    
-    private static int writeSimple(final TCPAIOConnection tcpConnection,
-            final Buffer buffer) throws IOException {
-        final SocketChannel socketChannel = (SocketChannel) tcpConnection.getChannel();
-
-        if (!buffer.hasRemaining()) return 0;
-
-        if (!buffer.isDirect()) {
-            final int length = buffer.remaining();
-            final DirectByteBufferRecord record = obtainDirectByteBuffer(length);
-            final ByteBuffer directByteBuffer = record.strongRef;
-
-            try {
-
-                if (length < directByteBuffer.remaining()) {
-                    directByteBuffer.limit(directByteBuffer.position() + length);
-                }
-
-                buffer.get(directByteBuffer);
-
-                final int written = flushDirectByteBuffer(socketChannel, directByteBuffer);
-                final int remaining = directByteBuffer.remaining();
-                if (remaining > 0) {
-                    buffer.position(buffer.position() - remaining);
-                }
-
-                return written;
-            } finally {
-                directByteBuffer.clear();
-                releaseDirectByteBuffer(record);
-            }
-
-        } else {
-            return socketChannel.write(buffer.toByteBuffer());
-        }
-
-    }
-
-    private static int writeGathered(final TCPAIOConnection tcpConnection,
-            final BufferArray bufferArray)
-            throws IOException {
-
-        final Buffer[] buffers = bufferArray.getArray();
-        final int length = bufferArray.size();
-        
-        final SocketChannel socketChannel = (SocketChannel) tcpConnection.getChannel();
-
-        int written = 0;
-        DirectByteBufferRecord record = null;
-        ByteBuffer directByteBuffer = null;
-
-        int next;
-
-        for (int i = findNextAvailBuffer(buffers, -1, length); i < length; i = next) {
-
-            final Buffer buffer = buffers[i];
-            next = findNextAvailBuffer(buffers, i, length);
-
-            final boolean isFlush = next == length || buffers[next].isDirect();
-            
-            // If Buffer is not direct - copy it to the direct buffer and write
-            if (!buffer.isDirect()) {
-                if (record == null) {
-                    record = obtainDirectByteBuffer(tcpConnection.getWriteBufferSize());
-                    directByteBuffer = record.strongRef;
-                }
-
-                final int currentBufferRemaining = buffer.remaining();
-
-                final boolean isAdaptByteBuffer =
-                        currentBufferRemaining < directByteBuffer.remaining();
-
-
-                if (isAdaptByteBuffer) {
-                    directByteBuffer.limit(directByteBuffer.position() + currentBufferRemaining);
-                }
-
-                buffer.get(directByteBuffer);
-
-                if (isAdaptByteBuffer) {
-                    directByteBuffer.limit(directByteBuffer.capacity());
-                }
-
-                if (!directByteBuffer.hasRemaining() || isFlush) {
-                    written += flushDirectByteBuffer(socketChannel, directByteBuffer);
-                    int remaining = directByteBuffer.remaining();
-                    if (remaining > 0) {
-                        while (remaining > 0) {
-                            final Buffer revertBuffer = buffers[i];
-                            final int shift = Math.min(remaining,
-                                    revertBuffer.position() - bufferArray.getInitialPosition(i));
-                            revertBuffer.position(revertBuffer.position() - shift);
-                            i--;
-                            remaining -= shift;
-                        }
-                        
-                        break;
-                    }
-                    
-                    directByteBuffer.clear();
-
-                    if (buffer.hasRemaining()) {
-                        // continue the same buffer
-                        next = i;
-                    }
-                }
-            } else { // if it's direct buffer
-                final ByteBuffer byteBuffer = buffer.toByteBuffer();
-                written += socketChannel.write(byteBuffer);
-                if (byteBuffer.hasRemaining()) {
-                    break;
-                }
-
-            }
-        }
-
-        if (record != null) {
-            directByteBuffer.clear();
-            releaseDirectByteBuffer(record);
-        }
-
-        return written;
-    }
-
-    private static int findNextAvailBuffer(final Buffer[] buffers, final int start, final int end) {
-        for (int i = start + 1; i < end; i++) {
-            if (buffers[i].hasRemaining()) {
-                return i;
-            }
-        }
-
-        return end;
-    }
-
-
-    private static int flushDirectByteBuffer(final SocketChannel channel,
-                                             final ByteBuffer directByteBuffer)
-    throws IOException {
-        
-        directByteBuffer.flip();
-
-        return channel.write(directByteBuffer);
-    }
-
-    private static final ThreadCache.CachedTypeIndex<DirectByteBufferRecord> CACHE_IDX =
-            ThreadCache.obtainIndex("direct-buffer-cache", DirectByteBufferRecord.class, 1);
-    
-    private static DirectByteBufferRecord obtainDirectByteBuffer(final int size) {
-        DirectByteBufferRecord record = ThreadCache.takeFromCache(CACHE_IDX);
-        final ByteBuffer byteBuffer;
-        if (record != null) {
-            if ((byteBuffer = record.switchToStrong()) != null) {
-                if (byteBuffer.remaining() >= size) {
-                    return record;
-                }
-            }
-        } else {
-            record = new DirectByteBufferRecord();
-        }
-
-        record.reset(ByteBuffer.allocateDirect(size));
-        return record;
-    }
-
-    private static void releaseDirectByteBuffer(
-            final DirectByteBufferRecord directByteBufferRecord) {
-        directByteBufferRecord.switchToSoft();
-        ThreadCache.putToCache(CACHE_IDX, directByteBufferRecord);
-    }
-
-    static final class DirectByteBufferRecord {
-        private ByteBuffer strongRef;
-        private SoftReference<ByteBuffer> softRef;
-
-        void reset(ByteBuffer byteBuffer) {
-            strongRef = byteBuffer;
-            softRef = null;
-        }
-
-        ByteBuffer switchToStrong() {
-            if (strongRef == null && softRef != null) {
-                strongRef = softRef.get();
-            }
-
-            return strongRef;
-        }
-
-        void switchToSoft() {
-            if (strongRef != null && softRef == null) {
-                softRef = new SoftReference<>(strongRef);
-            }
-
-            strongRef = null;
-        }
-    }
-
     /**
      * {@inheritDoc}
      */
@@ -1141,7 +764,7 @@ public final class TCPAIOTransport extends AIOTransport implements
 //        return new org.glassfish.grizzly.aio.transport.jmx.TCPAIOTransport(this);
         return null;
     }
-
+    
     /**
      * Transport default {@link TCPAIOConnectorHandler}.
      */

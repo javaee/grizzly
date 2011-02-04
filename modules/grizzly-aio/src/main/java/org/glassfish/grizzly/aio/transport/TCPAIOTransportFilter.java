@@ -46,6 +46,7 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.util.logging.Filter;
+import java.net.SocketAddress;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.GrizzlyFuture;
@@ -77,13 +78,16 @@ public final class TCPAIOTransportFilter extends BaseFilter {
 
         final Buffer buffer;
         if (!isBlocking) {
-            buffer = transport.read(connection, null);
+            final TCPAIOConnection.IOResult lastReadResult =
+                    connection.getLastReadResult();
+            buffer = lastReadResult.getBuffer();
+            lastReadResult.reset();
         } else {
-            GrizzlyFuture<ReadResult> future =
-                    transport.getTemporarySelectorIO().getReader().read(
+            final GrizzlyFuture<ReadResult<Buffer, SocketAddress>> future =
+                    transport.getBlockingIO().getReader().read(
                     connection, null);
             try {
-                ReadResult<Buffer, ?> result = future.get();
+                final ReadResult<Buffer, SocketAddress> result = future.get();
                 buffer = result.getMessage();
                 future.recycle(true);
             } catch (ExecutionException e) {

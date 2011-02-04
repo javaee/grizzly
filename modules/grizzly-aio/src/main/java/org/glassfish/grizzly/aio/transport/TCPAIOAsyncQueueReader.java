@@ -43,7 +43,6 @@ package org.glassfish.grizzly.aio.transport;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.ReadResult;
 import java.io.IOException;
-import java.net.SocketAddress;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Interceptor;
@@ -69,32 +68,21 @@ public final class TCPAIOAsyncQueueReader extends AbstractAIOAsyncQueueReader {
             final AIOConnection connection,
             final AsyncReadQueueRecord queueRecord)
             throws IOException {
-
-        ((TCPAIOTransport) transport).read(connection,
+        ((TCPAIOConnection) connection).readAsync(
                 (Buffer) queueRecord.getMessage(),
-                queueRecord);
+                queueRecord, queueRecord.getCurrentResult());
     }
 
     @Override
     public void processAsync(final Connection connection) throws IOException {
-        final AIOConnection aioConnection = (TCPAIOConnection) connection;
-        AIOReadResult readResult = aioConnection.obtainLastReadResult();
-
-        final AsyncReadQueueRecord readQueueRecord = readResult.getAttachment();
-        final ReadResult currentResult = readQueueRecord.getCurrentResult();
-        final Buffer buffer = (Buffer) readQueueRecord.getMessage();
-
-
-
-        currentResult.setMessage(buffer);
-        currentResult.setReadSize(currentResult.getReadSize() +
-                readResult.getReadSize());
-        readResult.recycle();
-        currentResult.setSrcAddress((SocketAddress) connection.getPeerAddress());
-
+        final TCPAIOConnection.IOResult lastReadResult =
+                ((TCPAIOConnection) connection).getLastReadResult();
+        
+        lastReadResult.reset();
+        
         super.processAsync(connection);
     }
-
+    
     protected void addRecord(final Connection connection,
             final Buffer buffer,
             final CompletionHandler completionHandler,
@@ -104,29 +92,5 @@ public final class TCPAIOAsyncQueueReader extends AbstractAIOAsyncQueueReader {
                 ReadResult.create(connection),
                 completionHandler, interceptor);
         ((TCPAIOConnection) connection).getAsyncReadQueue().getQueue().add(record);
-    }
-    
-//    @Override
-//    protected ReadCompletionHandler createReadCompletionHandler() {
-//        return new TCPAIOReadCompletionHandler();
-//    }    
-//
-//    protected class TCPAIOReadCompletionHandler extends ReadCompletionHandler {
-//
-//        @Override
-//        public void completed(final Integer bytesRead,
-//                final AsyncReadQueueRecord readQueueRecord) {
-//            final TCPAIOConnection connection =
-//                    (TCPAIOConnection) readQueueRecord.getConnection();
-//            final ReadResult currentResult = readQueueRecord.getCurrentResult();
-//            final Buffer buffer = (Buffer) readQueueRecord.getMessage();
-//           
-//            
-//            
-//            currentResult.setMessage(buffer);
-//            currentResult.setReadSize(currentResult.getReadSize() + bytesRead);
-//            currentResult.setSrcAddress((SocketAddress) connection.getPeerAddress());
-//            super.completed(bytesRead, readQueueRecord);
-//        }
-//    }    
+    } 
 }

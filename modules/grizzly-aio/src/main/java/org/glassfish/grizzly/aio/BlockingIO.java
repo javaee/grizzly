@@ -38,46 +38,27 @@
  * holder.
  */
 
-package org.glassfish.grizzly.aio.transport;
-
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
-import java.io.IOException;
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.aio.AIOConnection;
-import org.glassfish.grizzly.aio.AIOTransport;
-import org.glassfish.grizzly.aio.AbstractAIOAsyncQueueWriter;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
+package org.glassfish.grizzly.aio;
 
 /**
- * The TCP transport {@link AsyncQueueWriter} implementation, based on
- * the Java AIO
  *
- * @author Alexey Stashok
+ * @author oleksiys
  */
-public final class TCPAIOAsyncQueueWriter extends AbstractAIOAsyncQueueWriter {
+public class BlockingIO {
+    private final AIOBlockingReader blockingReader;
+    private final AIOBlockingWriter blockingWriter;
 
-    public TCPAIOAsyncQueueWriter(AIOTransport transport) {
-        super(transport);
+    public BlockingIO(final AIOBlockingReader blockingReader,
+            final AIOBlockingWriter blockingWriter) {
+        this.blockingReader = blockingReader;
+        this.blockingWriter = blockingWriter;
     }
 
-    @Override
-    protected void write0(final AIOConnection connection,
-            final AsyncWriteQueueRecord queueRecord)
-            throws IOException {
-        final Buffer buffer = queueRecord.getOutputBuffer();
-        
-        ((TCPAIOConnection) connection).writeAsync(buffer, queueRecord,
-                queueRecord.getCurrentResult());
+    public AIOBlockingReader getReader() {
+        return blockingReader;
     }
 
-    @Override
-    public void processAsync(final Connection connection) throws IOException {
-        final TCPAIOConnection.IOResult lastWriteResult =
-                ((TCPAIOConnection) connection).getLastWriteResult();
-        final int justWritten = lastWriteResult.getBytesProcessed();
-        lastWriteResult.reset();
-        
-        super.processAsync(connection, justWritten);
+    public AIOBlockingWriter getWriter() {
+        return blockingWriter;
     }
 }

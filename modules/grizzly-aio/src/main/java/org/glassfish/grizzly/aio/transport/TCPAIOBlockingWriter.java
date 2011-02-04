@@ -40,44 +40,31 @@
 
 package org.glassfish.grizzly.aio.transport;
 
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import java.io.IOException;
+import java.net.SocketAddress;
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.aio.AIOConnection;
-import org.glassfish.grizzly.aio.AIOTransport;
-import org.glassfish.grizzly.aio.AbstractAIOAsyncQueueWriter;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.aio.AIOBlockingWriter;
 
 /**
- * The TCP transport {@link AsyncQueueWriter} implementation, based on
- * the Java AIO
  *
- * @author Alexey Stashok
+ * @author oleksiys
  */
-public final class TCPAIOAsyncQueueWriter extends AbstractAIOAsyncQueueWriter {
+public class TCPAIOBlockingWriter extends AIOBlockingWriter {
 
-    public TCPAIOAsyncQueueWriter(AIOTransport transport) {
+    public TCPAIOBlockingWriter(final TCPAIOTransport transport) {
         super(transport);
     }
 
     @Override
-    protected void write0(final AIOConnection connection,
-            final AsyncWriteQueueRecord queueRecord)
-            throws IOException {
-        final Buffer buffer = queueRecord.getOutputBuffer();
+    protected int write0(final Connection connection,
+            final SocketAddress dstAddress, final Buffer buffer,
+            final WriteResult currentResult) throws IOException {
+                
+        final TCPAIOConnection aioConnection = (TCPAIOConnection) connection;
+        final int bytesWritten = aioConnection.writeBlocking(buffer, currentResult);
         
-        ((TCPAIOConnection) connection).writeAsync(buffer, queueRecord,
-                queueRecord.getCurrentResult());
-    }
-
-    @Override
-    public void processAsync(final Connection connection) throws IOException {
-        final TCPAIOConnection.IOResult lastWriteResult =
-                ((TCPAIOConnection) connection).getLastWriteResult();
-        final int justWritten = lastWriteResult.getBytesProcessed();
-        lastWriteResult.reset();
-        
-        super.processAsync(connection, justWritten);
+        return bytesWritten;
     }
 }
