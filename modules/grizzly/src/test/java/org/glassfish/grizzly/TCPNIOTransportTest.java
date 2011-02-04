@@ -563,8 +563,8 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             Arrays.fill(firstChunk, (byte) 1);
             writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
             writer.writeByteArray(firstChunk);
-            Future writeFuture = writer.flush();
-            assertTrue("First chunk write timeout", writeFuture.isDone());
+            Future<Integer> writeFuture = writer.flush();
+            assertTrue("First chunk write timeout", writeFuture.get(10, TimeUnit.SECONDS) > 0);
 
             Thread.sleep(1000);
             
@@ -572,7 +572,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             Arrays.fill(secondChunk, (byte) 2);
             writer.writeByteArray(secondChunk);
             writeFuture = writer.flush();
-            assertTrue("Second chunk write timeout", writeFuture.isDone());
+            assertTrue("Second chunk write timeout", writeFuture.get(10, TimeUnit.SECONDS) > 0);
 
             reader = StandaloneProcessor.INSTANCE.getStreamReader(connection);
             Future readFuture = reader.notifyAvailable(fullMessageSize);
