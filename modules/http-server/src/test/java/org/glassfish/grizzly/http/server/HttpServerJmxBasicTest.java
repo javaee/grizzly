@@ -52,8 +52,8 @@ public class HttpServerJmxBasicTest {
     public void transport() throws Exception {
         HttpServer gws = new HttpServer();
         HttpServer gws1 = new HttpServer();
-        NetworkListener listener1 = new NetworkListener("listener1", "localhost", 8080);
-        NetworkListener listener2 = new NetworkListener("listener2", "localhost", 8081);
+        NetworkListener listener1 = new NetworkListener("listener1", "localhost", 19080);
+        NetworkListener listener2 = new NetworkListener("listener2", "localhost", 19081);
         gws.addListener(listener1);
         gws1.addListener(listener2);
 
