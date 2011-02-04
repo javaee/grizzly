@@ -1476,13 +1476,13 @@ public class Response {
     /**
      * Suspend the {@link Response}. Suspending a {@link Response} will
      * tell the underlying container to avoid recycling objects associated with
-     * the current instance, and also to avoid commiting response.
+     * the current instance, and also to avoid committing response.
      *
      * @param timeout The maximum amount of time,
      * a {@link Response} can be suspended. When the timeout expires (because
      * nothing has been written or because the {@link Response#resume()}
      * or {@link Response#cancel()}), the {@link Response} will be automatically
-     * resumed and commited. Usage of any methods of a {@link Response} that
+     * resumed and committed. Usage of any methods of a {@link Response} that
      * times out will throw an {@link IllegalStateException}.
      * @param timeunit timeout units
      *
@@ -1510,11 +1510,11 @@ public class Response {
      * will be automatically resumed and committed. Usage of any methods of a
      * {@link Response} that times out will throw an {@link IllegalStateException}.
      * @param timeunit timeout units
-     * @param competionHandler a {@link org.glassfish.grizzly.CompletionHandler}
+     * @param completionHandler a {@link org.glassfish.grizzly.CompletionHandler}
      */
     public void suspend(final long timeout, final TimeUnit timeunit,
-            final CompletionHandler<Response> competionHandler) {
-        suspend(timeout, timeunit, competionHandler, null);
+            final CompletionHandler<Response> completionHandler) {
+        suspend(timeout, timeunit, completionHandler, null);
     }
 
     /**
@@ -1536,11 +1536,11 @@ public class Response {
      * will be automatically resumed and committed. Usage of any methods of a
      * {@link Response} that times out will throw an {@link IllegalStateException}.
      * @param timeunit timeout units
-     * @param competionHandler a {@link org.glassfish.grizzly.CompletionHandler}
+     * @param completionHandler a {@link org.glassfish.grizzly.CompletionHandler}
      * @param timeoutHandler {@link TimeoutHandler} to customize the suspended <tt>Response</tt> timeout logic.
      */
     public void suspend(final long timeout, final TimeUnit timeunit,
-            final CompletionHandler<Response> competionHandler,
+            final CompletionHandler<Response> completionHandler,
             final TimeoutHandler timeoutHandler) {
 
         checkResponse();
@@ -1550,7 +1550,7 @@ public class Response {
                 throw new IllegalStateException("Already Suspended");
             }
 
-            suspendedContext.completionHandler = competionHandler;
+            suspendedContext.completionHandler = completionHandler;
             suspendedContext.timeoutHandler = timeoutHandler;
 
             if (timeout > 0) {
