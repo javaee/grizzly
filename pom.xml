@@ -130,11 +130,20 @@
             <url>http://download.java.net/maven/glassfish/</url>
             <layout>default</layout>
         </repository>
+        <repository>
+            <id>java.net</id>
+            <name>Java.net Repository for Grizzly</name>
+            <url>http://download.java.net/maven/2</url>
+        </repository>
     </repositories>
     <pluginRepositories>
         <pluginRepository>
             <id>glassfish</id>
             <url>http://download.java.net/maven/glassfish/</url>
+        </pluginRepository>
+        <pluginRepository>
+            <id>java.net</id>
+            <url>http://download.java.net/maven/2/</url>
         </pluginRepository>
     </pluginRepositories>
     <build>
