@@ -65,7 +65,7 @@
                 <configuration>
                     <instructions>
                         <Import-Package>*</Import-Package>
-                        <Export-Package>org.glassfish.grizzly.*</Export-Package>
+                        <Export-Package>org.glassfish.grizzly.comet.*</Export-Package>
                     </instructions>
                 </configuration>
             </plugin>
@@ -125,12 +125,6 @@
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-framework</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.glassfish.grizzly</groupId>
-            <artifactId>grizzly-framework</artifactId>
-            <classifier>tests</classifier>
             <version>${project.version}</version>
         </dependency>
         <dependency>
