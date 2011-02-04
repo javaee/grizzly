@@ -912,7 +912,6 @@ public abstract class HttpCodecFilter extends BaseFilter
         if (parsingState.isContentLengthHeader) {
             parsingState.isContentLengthHeader =
                     (size == Constants.CONTENT_LENGTH_HEADER_BYTES.length);
-            System.out.println("isCL=" + parsingState.isContentLengthHeader + " hasCL=" + parsingState.hasContentLength);
             if (parsingState.isContentLengthHeader &&
                     parsingState.hasContentLength) {
                 throw new IllegalStateException("Two content-length headers are not allowed");
