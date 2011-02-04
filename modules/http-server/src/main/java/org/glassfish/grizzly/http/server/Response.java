@@ -1467,7 +1467,7 @@ public class Response {
     /**
      * Suspend the {@link Response}. Suspending a {@link Response} will
      * tell the underlying container to avoid recycling objects associated with
-     * the current instance, and also to avoid commiting response.
+     * the current instance, and also to avoid committing response.
      */
     public void suspend() {
         suspend(DelayedExecutor.UNSET_TIMEOUT, TimeUnit.MILLISECONDS);
