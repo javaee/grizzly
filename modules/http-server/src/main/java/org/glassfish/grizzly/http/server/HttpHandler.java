@@ -192,7 +192,7 @@ public abstract class HttpHandler {
      * Sets if the custom status messages (reason phrases) are allowed for
      * this response.
      *
-     * @param allowCustomReasonPhrase <code>true</code> if custom status
+     * @param allowCustomStatusMessage <code>true</code> if custom status
      * messages (reason phrases) are allowed for this response,
      * or <code>false</tt> otherwise.
      */
@@ -243,7 +243,6 @@ public abstract class HttpHandler {
 
     /**
      * Customize the error page.
-     * @param serverFilterConfig the {@link HttpServerFilter} configuration.
      * @param req The {@link Request} object
      * @param res The {@link Response} object
      * @throws Exception
