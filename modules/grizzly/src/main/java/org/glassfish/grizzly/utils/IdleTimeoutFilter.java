@@ -54,6 +54,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.attributes.NullaryFunction;
 
 /**
  *
@@ -68,7 +69,13 @@ public class IdleTimeoutFilter extends BaseFilter {
     public static final String IDLE_ATTRIBUTE_NAME = "connection-idle-attribute";
     private static final Attribute<IdleRecord> IDLE_ATTR =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-            IDLE_ATTRIBUTE_NAME);
+            IDLE_ATTRIBUTE_NAME, new NullaryFunction<IdleRecord>() {
+
+        @Override
+        public IdleRecord evaluate() {
+            return new IdleRecord();
+        }
+    });
     
     private final long timeoutMillis;
     private final DelayedExecutor executor;
@@ -129,10 +136,7 @@ public class IdleTimeoutFilter extends BaseFilter {
 
     @Override
     public NextAction handleAccept(final FilterChainContext ctx) throws IOException {
-        final Connection connection = ctx.getConnection();
-
-        IDLE_ATTR.set(connection, new IdleRecord());
-        queue.add(connection, FOREVER, TimeUnit.MILLISECONDS);
+        queue.add(ctx.getConnection(), FOREVER, TimeUnit.MILLISECONDS);
 
         queueAction(ctx);
         return ctx.getInvokeAction();
@@ -140,10 +144,7 @@ public class IdleTimeoutFilter extends BaseFilter {
 
     @Override
     public NextAction handleConnect(final FilterChainContext ctx) throws IOException {
-        final Connection connection = ctx.getConnection();
-
-        IDLE_ATTR.set(connection, new IdleRecord());
-        queue.add(connection, FOREVER, TimeUnit.MILLISECONDS);
+        queue.add(ctx.getConnection(), FOREVER, TimeUnit.MILLISECONDS);
 
         queueAction(ctx);
         return ctx.getInvokeAction();
@@ -190,7 +191,8 @@ public class IdleTimeoutFilter extends BaseFilter {
 
         @Override
         public boolean removeTimeout(final Connection connection) {
-            return IDLE_ATTR.remove(connection) != null;
+            IDLE_ATTR.get(connection).timeoutMillis.set(0);
+            return true;
         }
 
         @Override

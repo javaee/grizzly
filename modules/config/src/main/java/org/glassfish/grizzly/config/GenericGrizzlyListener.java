@@ -101,7 +101,7 @@ import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.utils.DelayedExecutor;
-import org.glassfish.grizzly.utils.SilentConnectionFilter;
+import org.glassfish.grizzly.utils.IdleTimeoutFilter;
 import org.jvnet.hk2.component.Habitat;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 
@@ -123,6 +123,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     protected FilterChain rootFilterChain;
     private volatile ExecutorService auxExecutorService;
     private volatile DelayedExecutor delayedExecutor;
+    private volatile long idleConnectionTimeoutMillis = -1;
 
     @Override
     public String getName() {
@@ -437,7 +438,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     protected void configureHttpProtocol(final Habitat habitat,
         final Http http, final FilterChain filterChain) {
         final int idleTimeoutSeconds = Integer.parseInt(http.getTimeoutSeconds());
-        filterChain.add(new SilentConnectionFilter(delayedExecutor, idleTimeoutSeconds,
+        filterChain.add(new IdleTimeoutFilter(delayedExecutor, idleTimeoutSeconds,
             TimeUnit.SECONDS));
         final int maxHeaderSize = Integer.parseInt(http.getHeaderBufferLengthBytes());
         final boolean chunkingEnabled = Boolean.parseBoolean(http.getChunkingEnabled());
