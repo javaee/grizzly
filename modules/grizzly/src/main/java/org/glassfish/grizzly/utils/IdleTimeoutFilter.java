@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -51,6 +51,8 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
 /**
@@ -60,21 +62,22 @@ import java.util.logging.Logger;
 public class IdleTimeoutFilter extends BaseFilter {
     private static final Logger LOGGER = Grizzly.logger(IdleTimeoutFilter.class);
     
-    public static final long UNLIMITED_TIMEOUT = -1;
-    public static final long UNSET_TIMEOUT = 0;
+    public static final Long FOREVER = Long.MAX_VALUE;
+    public static final Long FOREVER_SPECIAL = FOREVER - 1;
     
     public static final String IDLE_ATTRIBUTE_NAME = "connection-idle-attribute";
-    public static final Attribute<Long> idleAttribute =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(IDLE_ATTRIBUTE_NAME);
+    private static final Attribute<IdleRecord> IDLE_ATTR =
+            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+            IDLE_ATTRIBUTE_NAME);
     
-    private volatile boolean isHandleAccepted;
-    private volatile boolean isHandleConnected;
-
     private final long timeoutMillis;
     private final DelayedExecutor executor;
     private final DelayedExecutor.DelayQueue<Connection> queue;
 
     private final boolean wasExecutorStarted;
+
+    private final FilterChainContext.CompletionListener contextCompletionListener =
+            new ContextCompletionListener();
 
     public IdleTimeoutFilter(long timeout, TimeUnit timeunit) {
         this(new DelayedExecutor(Executors.newSingleThreadExecutor(new ThreadFactory() {
@@ -118,70 +121,60 @@ public class IdleTimeoutFilter extends BaseFilter {
                 return true;
             }
         }, new Resolver());
-
-        isHandleAccepted = true;
-        isHandleConnected = true;
     }
 
     public long getTimeout(TimeUnit timeunit) {
         return timeunit.convert(timeoutMillis, TimeUnit.MILLISECONDS);
     }
 
-    public boolean isHandleAccepted() {
-        return isHandleAccepted;
-    }
-
-    public void setHandleAccepted(boolean isHandleAccepted) {
-        this.isHandleAccepted = isHandleAccepted;
-    }
-
-    public boolean isHandleConnected() {
-        return isHandleConnected;
-    }
-
-    public void setHandleConnected(boolean isHandleConnected) {
-        this.isHandleConnected = isHandleConnected;
-    }
-
     @Override
-    public NextAction handleAccept(FilterChainContext ctx) throws IOException {
-        if (isHandleAccepted) {
-            queue.add(ctx.getConnection(), timeoutMillis, TimeUnit.MILLISECONDS);
-        }
+    public NextAction handleAccept(final FilterChainContext ctx) throws IOException {
+        final Connection connection = ctx.getConnection();
 
+        IDLE_ATTR.set(connection, new IdleRecord());
+        queue.add(connection, FOREVER, TimeUnit.MILLISECONDS);
+
+        queueAction(ctx);
         return ctx.getInvokeAction();
     }
 
     @Override
-    public NextAction handleConnect(FilterChainContext ctx) throws IOException {
-        if (isHandleConnected()) {
-            queue.add(ctx.getConnection(), timeoutMillis, TimeUnit.MILLISECONDS);
-        }
+    public NextAction handleConnect(final FilterChainContext ctx) throws IOException {
+        final Connection connection = ctx.getConnection();
 
+        IDLE_ATTR.set(connection, new IdleRecord());
+        queue.add(connection, FOREVER, TimeUnit.MILLISECONDS);
+
+        queueAction(ctx);
         return ctx.getInvokeAction();
     }
     
     @Override
-    public NextAction handleRead(FilterChainContext ctx) throws IOException {
-        resetTimeout(ctx.getConnection());
+    public NextAction handleRead(final FilterChainContext ctx) throws IOException {
+        queueAction(ctx);
         return ctx.getInvokeAction();
     }
 
     @Override
-    public NextAction handleWrite(FilterChainContext ctx) throws IOException {
-        resetTimeout(ctx.getConnection());
+    public NextAction handleWrite(final FilterChainContext ctx) throws IOException {
+        queueAction(ctx);
         return ctx.getInvokeAction();
     }
 
     @Override
-    public NextAction handleClose(FilterChainContext ctx) throws IOException {
+    public NextAction handleClose(final FilterChainContext ctx) throws IOException {
         queue.remove(ctx.getConnection());
         return ctx.getInvokeAction();
     }
 
+    protected void queueAction(final FilterChainContext ctx) {
+        final Connection connection = ctx.getConnection();
+        final IdleRecord idleRecord = IDLE_ATTR.get(connection);
+        if (idleRecord.counter.getAndIncrement() == 0) {
+            idleRecord.timeoutMillis.set(FOREVER);
+        }
 
-    protected void resetTimeout(Connection connection) {
-        idleAttribute.set(connection, System.currentTimeMillis() + timeoutMillis);
+        ctx.addCompletionListener(contextCompletionListener);
     }
 
     @Override
@@ -196,18 +189,46 @@ public class IdleTimeoutFilter extends BaseFilter {
     private static final class Resolver implements DelayedExecutor.Resolver<Connection> {
 
         @Override
-        public boolean removeTimeout(Connection connection) {
-            return idleAttribute.remove(connection) != null;
+        public boolean removeTimeout(final Connection connection) {
+            return IDLE_ATTR.remove(connection) != null;
         }
 
         @Override
-        public Long getTimeoutMillis(Connection connection) {
-            return idleAttribute.get(connection);
+        public Long getTimeoutMillis(final Connection connection) {
+            return IDLE_ATTR.get(connection).timeoutMillis.get();
         }
 
         @Override
-        public void setTimeoutMillis(Connection connection, long timeoutMillis) {
-            idleAttribute.set(connection, timeoutMillis);
+        public void setTimeoutMillis(final Connection connection,
+                final long timeoutMillis) {
+            IDLE_ATTR.get(connection).timeoutMillis.set(timeoutMillis);
         }
+    }
+
+    private static final class IdleRecord {
+        private final AtomicLong timeoutMillis;
+        private final AtomicInteger counter;
+
+        public IdleRecord() {
+            counter = new AtomicInteger();
+            timeoutMillis = new AtomicLong();
+        }
+    }
+
+    private final class ContextCompletionListener
+            implements FilterChainContext.CompletionListener {
+
+        @Override
+        public void onComplete(final FilterChainContext ctx) {
+            final Connection connection = ctx.getConnection();
+            final IdleRecord idleRecord = IDLE_ATTR.get(connection);
+            // Small trick to not synchronize this block and queueAction();
+            idleRecord.timeoutMillis.set(FOREVER_SPECIAL);
+            if (idleRecord.counter.decrementAndGet() == 0) {
+                idleRecord.timeoutMillis.compareAndSet(FOREVER_SPECIAL,
+                        System.currentTimeMillis() + timeoutMillis);
+            }
+        }
+
     }
 }

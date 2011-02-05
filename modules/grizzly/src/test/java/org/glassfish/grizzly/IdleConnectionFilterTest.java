@@ -119,9 +119,6 @@ public class IdleConnectionFilterTest extends GrizzlyTestCase {
 
         IdleTimeoutFilter idleTimeoutFilter = new IdleTimeoutFilter(2,
                 TimeUnit.SECONDS);
-        idleTimeoutFilter.setHandleAccepted(false);
-        idleTimeoutFilter.setHandleConnected(true);
-
 
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
