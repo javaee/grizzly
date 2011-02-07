@@ -406,8 +406,8 @@ try {
     generally a handful of threads servicing all requests. A long running
     transaction in this case would tie up one of the processing threads
     preventing it from servicing other requests. If enough of these long
-    running transactions were initiated, it could lead to a denial of service.
-    </para>
+    running transactions were initiated, it could lead to a denial of
+    service.</para>
 
     <para>To support these use cases without negatively impacting the server,
     Grizzly allows a response to be suspended until such time that the long
@@ -541,13 +541,18 @@ try {
         ...
     }</programlisting>
 
-    <para>So, what exactly happens when the a response is suspended? In the
-    simple case, where Response.suspend() is invoked with no arguments, the
-    response will be moved to another processing queue. Once suspend()
-    returns, generally the service() method of the HttpHandler will exit. The
-    Response will not be recycled nor will the response be committed. Once the
-    long running task is complete, Response.resume() will be invoked and the
-    final processing of the response may be completed. </para>
+    <para>The following diagram describes a typical suspend/resume
+    scenario:</para>
+
+    <figure>
+      <title>Suspend/Resume</title>
+
+      <mediaobject>
+        <imageobject>
+          <imagedata fileref="../images/httpserverframework/susres.svg"></imagedata>
+        </imageobject>
+      </mediaobject>
+    </figure>
   </section>
 
   <section>
