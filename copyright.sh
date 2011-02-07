@@ -40,35 +40,48 @@
 
 valid() {
 	echo $* | \
-		 grep -vi .apt | \
-		 grep -vi .args | \
-		 grep -vi .bundle | \
-		 grep -vi .class | \
-		 grep -vi .gif | \
-		 grep -vi .ico | \
-		 grep -vi .iml | \
-		 grep -vi .ipr | \
-		 grep -vi .iws | \
-		 grep -vi .jar | \
-		 grep -vi .jks | \
-		 grep -vi .jpg | \
-		 grep -vi .svg | \
-		 grep -vi .js | \
-		 grep -vi .mm | \
-		 grep -vi .ods | \
-		 grep -vi .png | \
-		 grep -vi .project | \
-		 grep -vi ChangesFrom1_9.txt | \
-		 grep -vi copyright.sh | \
-		 grep -vi copyrightcheck.out | \
-		 grep -vi last-occupied-test-port.info | \
-		 grep -vi license.txt | \
-		 grep -vi manifest.mf | \
-		 grep -vi readme.txt | \
-		 grep -vwi readme | \
-		 grep -vi Grizzly-Migration-Guide | \
-		 grep -vi GrizzlyPex.hudson | \
-		 grep -vi zzzzzzzzzzzzzzzzzzz
+		grep -vi .apt | \
+		grep -vi .args | \
+		grep -vi .bundle | \
+		grep -vi .class | \
+		grep -vi .gif | \
+		grep -vi .ico | \
+		grep -vi .iml | \
+		grep -vi .ipr | \
+		grep -vi .iws | \
+		grep -vi .jar | \
+		grep -vi .jks | \
+		grep -vi .jpg | \
+		grep -vi .svg | \
+		grep -vi .js | \
+		grep -vi .mm | \
+		grep -vi .ods | \
+		grep -vi .png | \
+		grep -vi .project | \
+		grep -vi ChangesFrom1_9.txt | \
+		grep -vi copyright.sh | \
+		grep -vi copyrightcheck.out | \
+		grep -vi last-occupied-test-port.info | \
+		grep -vi license.txt | \
+		grep -vi manifest.mf | \
+		grep -vi ./modules/http-servlet/src/main/resources/javaee_web_services_client_1_2.xsd | \
+		grep -vi ./modules/http-servlet/src/main/resources/javaee_web_services_client_1_2.xsd | \
+		grep -vi ./modules/http-servlet/src/main/resources/javaee_web_services_client_1_3.xsd | \
+		grep -vi ./modules/http-servlet/src/main/resources/javaee_web_services_client_1_3.xsd | \
+		grep -vi ./modules/http-servlet/src/main/resources/web-app_3_0.xsd | \
+		grep -vi ./modules/http-servlet/src/main/resources/web-app_3_0.xsd | \
+		grep -vi ./modules/http-servlet/src/main/resources/javaee_5.xsd | \
+		grep -vi ./modules/http-servlet/src/main/resources/javaee_5.xsd | \
+		grep -vi ./modules/http-servlet/src/main/resources/javaee_6.xsd | \
+		grep -vi ./modules/http-servlet/src/main/resources/javaee_6.xsd | \
+		grep -vi ./modules/http-servlet/src/main/resources/web-app_2_5.xsd | \
+		grep -vi ./modules/http-servlet/src/main/resources/web-app_2_5.xsd | \
+		grep -vi ./modules/http-servlet/src/main/resources/xml.xsd | \
+		grep -vi readme.txt | \
+		grep -vwi readme | \
+		grep -vi Grizzly-Migration-Guide | \
+		grep -vi GrizzlyPex.hudson | \
+		grep -vi zzzzzzzzzzzzzzzzzzz
 }
 
 run() {
