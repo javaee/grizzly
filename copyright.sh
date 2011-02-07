@@ -73,7 +73,7 @@ valid() {
 
 run() {
 	echo $JAVA -jar copyright.jar  $* 
-	$JAVA -jar $0/../copyright.jar  $* | while read LINE
+	$JAVA -jar copyright.jar  $* | while read LINE
 	do
 		valid $LINE
 	done
@@ -85,7 +85,7 @@ then
 	JAVA=java
 fi
 
-$JAVA -jar $0/../copyright.jar -V
+$JAVA -jar copyright.jar -V
 rm -f copyrightcheck.out
 run $* | tee copyrightcheck.out
 
