@@ -78,7 +78,6 @@ public class CounterHandler implements CometHandler<HttpServletResponse> {
     }
 
     public void onInterrupt(CometEvent event) throws IOException {
-        System.out.println("CounterHandler.onInterrupt:    hashCode() = " + hashCode());
         httpResponse.addHeader("X-JSON", "{\"counter\":" + counter.get() + " }");
 
         PrintWriter writer = httpResponse.getWriter();

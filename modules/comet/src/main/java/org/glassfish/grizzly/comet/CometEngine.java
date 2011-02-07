@@ -40,9 +40,7 @@
 package org.glassfish.grizzly.comet;
 
 import java.io.IOException;
-import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -74,26 +72,30 @@ import org.glassfish.grizzly.localization.LogMessages;
  */
 public class CometEngine {
     // Disable suspended connection time out for a {@link CometContext#setExpirationDelay}
+    @Deprecated
     public final static int DISABLE_SUSPEND_TIMEOUT = -1;
     // Disable client detection close for a {@link CometContext#setExpirationDelay}
+    @Deprecated
     public final static int DISABLE_CLIENT_DISCONNECTION_DETECTION = 0;
     /**
      * The token used to support BEFORE_REQUEST_PROCESSING polling.
      */
+    @Deprecated
     public final static int BEFORE_REQUEST_PROCESSING = 0;
     /**
      * The token used to support AFTER_SERVLET_PROCESSING polling.
      */
+    @Deprecated
     public final static int AFTER_SERVLET_PROCESSING = 1;
     /**
      * The token used to support BEFORE_RESPONSE_PROCESSING polling.
      */
+    @Deprecated
     public final static int AFTER_RESPONSE_PROCESSING = 2;
     /**
      * Main logger
      */
     protected final static Logger logger = Logger.getLogger(CometEngine.class.getName());
-    private final static IllegalStateException ISE = new IllegalStateException("Invalid state");
     /**
      * The {@link ExecutorService} used to execute
      */
@@ -107,10 +109,6 @@ public class CometEngine {
      */
     protected final ConcurrentHashMap<String, CometContext> activeContexts;
     /**
-     * cached CometContexts
-     */
-    protected final Queue<CometContext> cometContextCache;
-    /**
      * Is Grizzly ARP enabled? By default we set it to false.
      */
     private boolean isCometSupported;
@@ -119,7 +117,6 @@ public class CometEngine {
      * Create a singleton and initialize all lists required.
      */
     protected CometEngine() {
-        cometContextCache = new ConcurrentLinkedQueue<CometContext>();
         activeContexts = new ConcurrentHashMap<String, CometContext>(16, 0.75f, 64);
     }
 
@@ -167,7 +164,7 @@ public class CometEngine {
      * @return CometContext a configured {@link CometContext}.
      */
     public <E> CometContext<E> register(String topic) {
-        return register(topic, AFTER_SERVLET_PROCESSING);
+        return register(topic, DefaultNotificationHandler.class);
     }
 
     /**
@@ -175,25 +172,23 @@ public class CometEngine {
      * <code>type</code>.
      *
      * @param topic the context path used to create the {@link CometContext}
-     * @param type when the request will be suspended, e.g. {@link CometEngine#BEFORE_REQUEST_PROCESSING}, {@link
-     * CometEngine#AFTER_SERVLET_PROCESSING} or {@link CometEngine#AFTER_RESPONSE_PROCESSING}
+     * @param type when the request will be suspended
      *
      * @return CometContext a configured {@link CometContext}.
+     * @deprecated Use {@link #register(String)} instead
      */
     public <E> CometContext<E> register(String topic, int type) {
-        return register(topic, type, DefaultNotificationHandler.class);
+        return register(topic);
     }
+
 
     /**
      * Instantiate a new {@link CometContext}.
      *
      * @param topic the topic the new {@link CometContext} will represent.
-     * @param type when the request will be suspended, e.g. {@link CometEngine#BEFORE_REQUEST_PROCESSING}, {@link
-     * CometEngine#AFTER_SERVLET_PROCESSING} or {@link CometEngine#AFTER_RESPONSE_PROCESSING}
-     *
      * @return a new {@link CometContext} if not already created, or the existing one.
      */
-    public <E> CometContext<E> register(String topic, int type, Class<? extends NotificationHandler> notificationClass) {
+    public <E> CometContext<E> register(String topic, Class<? extends NotificationHandler> notificationClass) {
         // Double checked locking used used to prevent the otherwise static/global 
         // locking, cause example code does heavy usage of register calls
         // for existing topics from http get calls etc.
@@ -202,12 +197,7 @@ public class CometEngine {
             synchronized (activeContexts) {
                 cometContext = activeContexts.get(topic);
                 if (cometContext == null) {
-                    cometContext = cometContextCache.poll();
-                    if (cometContext != null) {
-                        cometContext.topic = topic;
-                    } else {
-                        cometContext = new CometContext<E>(this, topic, type);
-                    }
+                    cometContext = new CometContext<E>(this, topic);
                     NotificationHandler notificationHandler;
                     try {
                         notificationHandler = notificationClass.newInstance();
@@ -228,7 +218,6 @@ public class CometEngine {
 
             }
         }
-        cometContext.continuationType = type;
         return cometContext;
     }
 
@@ -246,11 +235,14 @@ public class CometEngine {
      *
      * @param handler The {@link CometHandler} encapsulating the suspended connection.
      * @param finishExecution Finish the current execution.
+     *
+     * @see CometContext#interrupt(CometHandler, boolean)
+     * @deprecated use the CometContext version
      */
-    protected boolean interrupt(final CometHandler handler, final boolean finishExecution) throws IOException {
+    protected boolean interrupt(CometHandler handler, boolean finishExecution) throws IOException {
         final CometContext cometContext = handler.getCometContext();
         final boolean removed = cometContext.removeCometHandler(handler, finishExecution);
-        if (removed && ! finishExecution) {
+        if (removed && !finishExecution) {
             interrupt0(handler, finishExecution);
         }
         return removed;
@@ -263,6 +255,9 @@ public class CometEngine {
      *
      * @param handler The {@link CometHandler} encapsulating the suspended connection.
      * @param finishExecution Finish the current execution.
+     *
+     * @see CometContext#interrupt0(CometHandler, boolean)
+     * @deprecated use the CometContext version
      */
     protected void interrupt0(CometHandler handler, boolean finishExecution) throws IOException {
         if (finishExecution) {
@@ -271,7 +266,6 @@ public class CometEngine {
             } catch (IOException e) {
             }
         }
-        System.out.println("CometEngine.interrupt0:   handler.hashCode() = " + handler.hashCode());
         handler.getResponse().finish();
     }
 

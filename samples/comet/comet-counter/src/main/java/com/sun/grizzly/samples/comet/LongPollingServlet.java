@@ -82,7 +82,6 @@ public class LongPollingServlet extends HttpServlet {
         CometEngine engine = CometEngine.getEngine();
         CometContext<HttpServletResponse> context = engine.getCometContext(contextPath);
         final int hash = context.addCometHandler(handler);
-        System.out.println("LongPollingServlet.doGet:    hashcode = " + hash);
     }
 
     protected CounterHandler buildHandler(final HttpServletResponse res) {
@@ -93,7 +92,7 @@ public class LongPollingServlet extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse res)
     throws ServletException, IOException {
         counter.incrementAndGet();
-        
+
         CometEngine engine = CometEngine.getEngine();
         CometContext<HttpServletResponse> context = engine.getCometContext(contextPath);
         context.notify(null);

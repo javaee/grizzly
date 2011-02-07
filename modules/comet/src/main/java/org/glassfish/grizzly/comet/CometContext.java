@@ -108,10 +108,6 @@ public class CometContext<E> {
      */
     protected String topic;
     /**
-     * The {@link CometContext} continuationType. See {@link CometEngine}
-     */
-    protected int continuationType = CometEngine.AFTER_SERVLET_PROCESSING;
-    /**
      * The default delay expiration before a {@link CometContext}'s {@link CometHandler} are interrupted.
      */
     private long expirationDelay;
@@ -120,28 +116,21 @@ public class CometContext<E> {
      */
     protected NotificationHandler notificationHandler;
     /**
-     * time stamp for next idle check used to limit the frequency of actual performed resets.
-     */
-    private volatile long nextIdleClear;
-    /**
      * The list of registered {@link CometHandler}
      */
     private final List<CometHandler> handlers;
     protected final CometEvent<CometContext> eventInterrupt;
     protected final CometEvent<CometContext> eventTerminate;
     private final CometEvent<CometContext> eventInitialize;
-    private CometEngine cometEngine;
 
     /**
      * Create a new instance
      *
      * @param contextTopic the context path
-     * @param type when the Comet processing will happen (see {@link CometEngine}).
+     *
      */
-    public CometContext(CometEngine engine, String contextTopic, int type) {
-        cometEngine = engine;
+    public CometContext(CometEngine engine, String contextTopic) {
         topic = contextTopic;
-        continuationType = type;
         attributes = new ConcurrentHashMap();
         handlers = new CopyOnWriteArrayList<CometHandler>();
         eventInterrupt = new CometEvent<CometContext>(CometEvent.Type.INTERRUPT, this);
@@ -155,7 +144,6 @@ public class CometContext<E> {
      */
     private void initDefaultValues() {
         expirationDelay = 30 * 1000;
-        nextIdleClear = 0;
     }
 
     /**
@@ -223,7 +211,7 @@ public class CometContext<E> {
      *
      * @return The {@link CometHandler#hashCode} value.
      */
-    public int addCometHandler(final CometHandler<E> handler) {
+    public int addCometHandler(CometHandler<E> handler) {
         if (handler == null) {
             throw new IllegalStateException(INVALID_COMET_HANDLER);
         }
@@ -265,7 +253,6 @@ public class CometContext<E> {
         topic = null;
         notificationHandler = null;
         initDefaultValues();
-        cometEngine.cometContextCache.offer(this);
     }
 
     /**
@@ -324,8 +311,40 @@ public class CometContext<E> {
      * @return <tt>true</tt> if the operation succeeded.
      */
     public boolean resumeCometHandler(CometHandler handler) throws IOException {
-        System.out.println("CometContext.resumeCometHandler:   handler.hashCode() = " + handler.hashCode());
-        return CometEngine.getEngine().interrupt(handler, false);
+        return interrupt(handler, false);
+    }
+
+    /**
+     * Interrupt a {@link CometHandler} by invoking {@link CometHandler#onInterrupt}
+     *
+     * @param handler The {@link CometHandler} encapsulating the suspended connection.
+     * @param finishExecution Finish the current execution.
+     */
+    public boolean interrupt(CometHandler handler, boolean finishExecution) throws IOException {
+        final CometContext cometContext = handler.getCometContext();
+        final boolean removed = cometContext.removeCometHandler(handler, finishExecution);
+        if (removed && ! finishExecution) {
+            interrupt0(handler, finishExecution);
+        }
+        return removed;
+    }
+
+    /**
+     * Interrupt logic in its own method, so it can be executed either async or sync.<br> cometHandler.onInterrupt is
+     * performed async due to its functionality is unknown, hence not safe to run in the performance critical selector
+     * thread.
+     *
+     * @param handler The {@link CometHandler} encapsulating the suspended connection.
+     * @param finishExecution Finish the current execution.
+     */
+    protected void interrupt0(CometHandler handler, boolean finishExecution) throws IOException {
+        if (finishExecution) {
+            try {
+                handler.onInterrupt(eventInterrupt);
+            } catch (IOException e) {
+            }
+        }
+        handler.getResponse().resume();
     }
 
     /**
@@ -344,7 +363,7 @@ public class CometContext<E> {
      *
      * @param attachment An object shared amongst {@link CometHandler}.
      */
-    public void notify(final E attachment) throws IOException {
+    public void notify(E attachment) throws IOException {
         notify(attachment, CometEvent.Type.NOTIFY);
     }
 
@@ -354,8 +373,7 @@ public class CometContext<E> {
      * @param attachment An object shared amongst {@link CometHandler}.
      * @param {@link CometHandler} to notify.
      */
-    public void notify(final E attachment, final CometHandler cometHandler)
-        throws IOException {
+    public void notify(E attachment, CometHandler cometHandler) throws IOException {
         notify(attachment, CometEvent.Type.NOTIFY, cometHandler);
     }
 
@@ -374,7 +392,7 @@ public class CometContext<E> {
      * @param eventType The type of notification.
      * @param {@link CometHandler} to notify.
      */
-    public void notify(final E attachment, final CometEvent.Type eventType, final CometHandler cometHandler)
+    public void notify(E attachment, CometEvent.Type eventType, CometHandler cometHandler)
         throws IOException {
         if (cometHandler == null) {
             throw new IllegalStateException(INVALID_COMET_HANDLER);
@@ -454,7 +472,7 @@ public class CometContext<E> {
         return notificationHandler;
     }
 
-    private static void notifyOnAsyncRead(final CometHandler handler) {
+    private static void notifyOnAsyncRead(CometHandler handler) {
         try {
             handler.onEvent(new CometEvent(CometEvent.Type.READ));
         } catch (IOException e) {
@@ -465,21 +483,16 @@ public class CometContext<E> {
     private class CometCompletionHandler implements CompletionHandler<Response> {
         private final CometHandler handler;
 
-        public CometCompletionHandler(final CometHandler handler) {
+        public CometCompletionHandler(CometHandler handler) {
             this.handler = handler;
         }
 
         @Override
         public void cancelled() {
-//            try {
-//                handler.onInterrupt(eventInterrupt);
-//            } catch (IOException e) {
-//                throw new RuntimeException(e.getMessage(), e);
-//            }
         }
 
         @Override
-        public void failed(final Throwable throwable) {
+        public void failed(Throwable throwable) {
             try {
                 handler.onInterrupt(eventInterrupt);
             } catch (IOException e) {
@@ -488,7 +501,7 @@ public class CometContext<E> {
         }
 
         @Override
-        public void completed(final Response result) {
+        public void completed(Response result) {
             try {
                 handler.onInterrupt(eventInterrupt);
             } catch (IOException e) {
@@ -497,21 +510,20 @@ public class CometContext<E> {
         }
 
         @Override
-        public void updated(final Response result) {
+        public void updated(Response result) {
         }
     }
 
     private class CometTimeoutHandler implements TimeoutHandler {
         private final CometHandler handler;
 
-        public CometTimeoutHandler(final CometHandler handler) {
+        public CometTimeoutHandler(CometHandler handler) {
             this.handler = handler;
         }
 
         @Override
-        public boolean onTimeout(final Response response) {
+        public boolean onTimeout(Response response) {
             try {
-                System.out.println("CometContext$CometTimeoutHandler.onTimeout:   handler.hashCode() = " + handler.hashCode());
                 handler.onInterrupt(eventInterrupt);
             } catch (IOException e) {
                 logger.log(Level.SEVERE, e.getMessage());
@@ -525,8 +537,8 @@ public class CometContext<E> {
         final NIOInputStream nioInputStream;
         private final CometHandler handler;
 
-        public CometInputHandler(final NIOInputStream nioInputStream,
-            final CometHandler handler) {
+        public CometInputHandler(NIOInputStream nioInputStream,
+            CometHandler handler) {
             this.nioInputStream = nioInputStream;
             this.handler = handler;
         }
