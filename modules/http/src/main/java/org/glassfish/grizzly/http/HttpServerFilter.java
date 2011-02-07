@@ -641,14 +641,14 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
 
         // Check host header
-        if (hostDC != null) {
-            parseHost(hostDC.getBufferChunk(), request, response, state);
-        } else if (isHttp11) {
+        if (hostDC == null && isHttp11) {
             state.error = true;
             // 400 - Bad request
             HttpStatus.BAD_REQUEST_400.setValues(response);
             return;
         }
+
+        parseHost(hostDC, request, response, state);
 
         if (!state.contentDelimitation) {
             // If there's no content length
@@ -687,18 +687,18 @@ public class HttpServerFilter extends HttpCodecFilter {
     }
 
 
-    private static void parseHost(BufferChunk valueBC,
-                                  HttpRequestPacket request,
-                                  HttpResponsePacket response,
-                                  ProcessingState state) {
+    private static void parseHost(final DataChunk hostDC,
+                                  final HttpRequestPacket request,
+                                  final HttpResponsePacket response,
+                                  final ProcessingState state) {
 
-        if (valueBC == null || valueBC.isNull()) {
+        if (hostDC == null) {
             // HTTP/1.0
             // Default is what the socket tells us. Overridden if a host is
             // found/parsed
-            Connection connection = request.getConnection();
+            final Connection connection = request.getConnection();
             request.setServerPort(((InetSocketAddress) connection.getLocalAddress()).getPort());
-            InetAddress localAddress = ((InetSocketAddress) connection.getLocalAddress()).getAddress();
+            final InetAddress localAddress = ((InetSocketAddress) connection.getLocalAddress()).getAddress();
             // Setting the socket-related fields. The adapter doesn't know
             // about socket.
             request.setLocalHost(localAddress.getHostName());
@@ -706,16 +706,16 @@ public class HttpServerFilter extends HttpCodecFilter {
             return;
         }
 
-
-        int valueS = valueBC.getStart();
-        int valueL = valueBC.getEnd() - valueS;
+        final BufferChunk valueBC = hostDC.getBufferChunk();
+        final int valueS = valueBC.getStart();
+        final int valueL = valueBC.getEnd() - valueS;
         int colonPos = -1;
 
-        Buffer valueB = valueBC.getBuffer();
-        boolean ipv6 = (valueB.get(valueS) == '[');
+        final Buffer valueB = valueBC.getBuffer();
+        final boolean ipv6 = (valueB.get(valueS) == '[');
         boolean bracketClosed = false;
         for (int i = 0; i < valueL; i++) {
-            char b = (char) valueB.get(i + valueS);
+            final byte b = valueB.get(i + valueS);
             if (b == ']') {
                 bracketClosed = true;
             } else if (b == ':') {
@@ -734,8 +734,9 @@ public class HttpServerFilter extends HttpCodecFilter {
                 // 443 - Default HTTPS port
                 request.setServerPort(443);
             }
+            request.serverName().setBuffer(valueB, valueS, valueS + valueL);
         } else {
-            request.serverName().setBuffer(valueB, valueS, colonPos + valueS);
+            request.serverName().setBuffer(valueB, valueS, valueS + colonPos);
 
             int port = 0;
             int mult = 1;
