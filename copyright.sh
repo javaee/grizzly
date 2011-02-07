@@ -68,6 +68,7 @@ valid() {
 		 grep -vi prototype.js | \
 		 grep -vi readme.txt | \
 		 grep -vwi readme | \
+		 grep -vi BayeuxClient.java | \
 		 grep -vi Grizzly-Migration-Guide | \
 		 grep -vi target/ | \
 		 grep -vi zzzzzzzzzzzzzzzzzzz
