@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -66,11 +66,12 @@ public class DelayedExecutor {
 
     private final long checkIntervalMillis;
 
-    public DelayedExecutor(ExecutorService threadPool) {
+    public DelayedExecutor(final ExecutorService threadPool) {
         this(threadPool, 1000, TimeUnit.MILLISECONDS);
     }
 
-    public DelayedExecutor(ExecutorService threadPool, long checkInterval, TimeUnit timeunit) {
+    public DelayedExecutor(final ExecutorService threadPool,
+            final long checkInterval, final TimeUnit timeunit) {
         this.threadPool = threadPool;
         this.checkIntervalMillis = TimeUnit.MILLISECONDS.convert(checkInterval, timeunit);
     }
@@ -97,8 +98,8 @@ public class DelayedExecutor {
         return threadPool;
     }
 
-    public <E> DelayQueue<E> createDelayQueue(Worker<E> worker,
-            Resolver<E> resolver) {
+    public <E> DelayQueue<E> createDelayQueue(final Worker<E> worker,
+            final Resolver<E> resolver) {
         
         final DelayQueue<E> queue = new DelayQueue(worker, resolver);
 
@@ -169,12 +170,12 @@ public class DelayedExecutor {
         final Worker<E> worker;
         final Resolver<E> resolver;
 
-        public DelayQueue(Worker<E> worker, Resolver<E> resolver) {
+        public DelayQueue(final Worker<E> worker, final Resolver<E> resolver) {
             this.worker = worker;
             this.resolver = resolver;
         }
 
-        public void add(E elem, long delay, TimeUnit timeUnit) {
+        public void add(final E elem, final long delay, final TimeUnit timeUnit) {
             if (delay >= 0) {
                 resolver.setTimeoutMillis(elem, System.currentTimeMillis() +
                         TimeUnit.MILLISECONDS.convert(delay, timeUnit));
@@ -182,7 +183,7 @@ public class DelayedExecutor {
             }
         }
 
-        public void remove(E elem) {
+        public void remove(final E elem) {
             resolver.removeTimeout(elem);
         }
 

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -57,9 +57,11 @@ import java.util.Queue;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.utils.DelayedExecutor;
 
 /**
  * Abstract {@link java.util.concurrent.ExecutorService} implementation.
@@ -74,6 +76,9 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
     public static final int DEFAULT_MIN_THREAD_COUNT;
     // Max number of worker threads in a pool
     public static final int DEFAULT_MAX_THREAD_COUNT;
+
+    // "Never stop the thread by timeout" value
+    private static final Long NEVER_TIMEOUT = Long.MAX_VALUE;
 
     static {
         int processorsBasedThreadCount =
@@ -99,6 +104,40 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
     protected final Map<Worker, Long> workers = new HashMap<Worker, Long>();
     protected volatile boolean running = true;
     protected final ThreadPoolConfig config;
+    protected final long transactionTimeoutMillis;
+    protected final DelayedExecutor.DelayQueue<Worker> delayedQueue;
+    
+    private final DelayedExecutor.Worker<Worker> transactionWorker =
+            new DelayedExecutor.Worker<Worker>() {
+
+        @Override
+        public boolean doWork(final Worker worker) {
+            worker.t.interrupt();
+            delayedQueue.add(worker, NEVER_TIMEOUT, TimeUnit.MILLISECONDS);
+            return true;
+        }
+    };
+
+    private static final DelayedExecutor.Resolver<Worker> transactionResolver =
+            new DelayedExecutor.Resolver<Worker>() {
+
+        @Override
+        public boolean removeTimeout(final Worker element) {
+            element.transactionExpirationTime = -1;
+            return true;
+        }
+
+        @Override
+        public Long getTimeoutMillis(final Worker element) {
+            return element.transactionExpirationTime;
+        }
+
+        @Override
+        public void setTimeoutMillis(final Worker element,
+                final long timeoutMillis) {
+            element.transactionExpirationTime = timeoutMillis;
+        }
+    };
 
     /**
      * ThreadPool probes
@@ -124,13 +163,24 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
         if (config.getThreadFactory() == null) {
             config.setThreadFactory(getDefaultThreadFactory());
         }
+
+        transactionTimeoutMillis = config.getTransactionTimeout(TimeUnit.MILLISECONDS);
+        final DelayedExecutor transactionMonitor = transactionTimeoutMillis > 0 ?
+            config.getTransactionMonitor() : null;
+
+        if (transactionMonitor != null) {
+            delayedQueue = transactionMonitor.createDelayQueue(
+                    transactionWorker, transactionResolver);
+        } else {
+            delayedQueue = null;
+        }
     }
 
     /**
      * must hold statelock while calling this method.
      * @param worker
      */
-    protected void startWorker(Worker worker) {
+    protected void startWorker(final Worker worker) {
         final Thread thread = config.getThreadFactory().newThread(worker);
 
         thread.setName(config.getPoolName() + "(" + nextThreadId() + ")");
@@ -248,10 +298,16 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * should generally invoke <tt>super.beforeExecute</tt> at the end of
      * this method.
      *
+     * @param worker the {@link Worker}, running the the thread t
      * @param t the thread that will run task r.
      * @param r the task that will be executed.
      */
-    protected void beforeExecute(Thread t, Runnable r) {
+    protected void beforeExecute(final Worker worker, final Thread t,
+            final Runnable r) {
+        if (delayedQueue != null) {
+            worker.transactionExpirationTime =
+                    System.currentTimeMillis() + transactionTimeoutMillis;
+        }
     }
 
     /**
@@ -272,12 +328,18 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * should generally invoke <tt>super.afterExecute</tt> at the
      * beginning of this method.
      *
+     * @param worker the {@link Worker}, running the the thread t
      * @param thread
      * @param r the runnable that has completed.
      * @param t the exception that caused termination, or null if
      * execution completed normally.
      */
-    protected void afterExecute(Thread thread, Runnable r, Throwable t) {
+    protected void afterExecute(final Worker worker, final Thread thread,
+            final Runnable r,
+            final Throwable t) {
+        if (delayedQueue != null) {
+            worker.transactionExpirationTime = NEVER_TIMEOUT;
+        }
     }
 
     /**
@@ -300,7 +362,11 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      *
      * @param worker
      */
-    protected void onWorkerStarted(Worker worker) {
+    protected void onWorkerStarted(final Worker worker) {
+        if (delayedQueue != null) {
+            delayedQueue.add(worker, NEVER_TIMEOUT, TimeUnit.MILLISECONDS);
+        }
+        
         ProbeNotifier.notifyThreadAllocated(this, worker.t);
     }
 
@@ -414,7 +480,8 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
     public abstract class Worker implements Runnable {
 
         protected Thread t;
-
+        protected volatile long transactionExpirationTime;
+        
         @Override
         public void run() {
             try {
@@ -438,13 +505,13 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
                     onTaskDequeued(r);
                     Throwable error = null;
                     try {
-                        beforeExecute(thread, r); //inside try. to ensure balance
+                        beforeExecute(this, thread, r); //inside try. to ensure balance
                         r.run();
                         onTaskCompletedEvent(r);
                     } catch (Exception e) {
                         error = e;
                     } finally {
-                        afterExecute(thread, r, error);
+                        afterExecute(this, thread, r, error);
                     }
                 } catch (Exception ignore) {
                 }

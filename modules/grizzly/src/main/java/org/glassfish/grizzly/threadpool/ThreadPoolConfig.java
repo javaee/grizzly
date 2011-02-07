@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -46,6 +46,7 @@ import java.util.Queue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.monitoring.MonitoringConfigImpl;
+import org.glassfish.grizzly.utils.DelayedExecutor;
 
 /**
  * @author Oleksiy Stashok
@@ -58,7 +59,7 @@ public class ThreadPoolConfig {
             null, AbstractThreadPool.DEFAULT_MAX_TASKS_QUEUED,
             AbstractThreadPool.DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT,
             TimeUnit.MILLISECONDS,
-            null, Thread.MAX_PRIORITY, null);
+            null, Thread.MAX_PRIORITY, null, null, -1);
 
     public static ThreadPoolConfig defaultConfig() {
         return DEFAULT.clone();
@@ -73,6 +74,8 @@ public class ThreadPoolConfig {
     protected ThreadFactory threadFactory;
     protected int priority = Thread.MAX_PRIORITY;
     protected MemoryManager mm;
+    protected DelayedExecutor transactionMonitor;
+    protected long transactionTimeoutMillis;
 
     /**
      * Thread pool probes
@@ -90,7 +93,9 @@ public class ThreadPoolConfig {
             TimeUnit timeUnit,
             ThreadFactory threadFactory,
             int priority,
-            MemoryManager mm) {
+            MemoryManager mm,
+            DelayedExecutor transactionMonitor,
+            long transactionTimeoutMillis) {
         this.poolName        = poolName;
         this.corePoolSize    = corePoolSize;
         this.maxPoolSize     = maxPoolSize;
@@ -106,6 +111,9 @@ public class ThreadPoolConfig {
         this.threadFactory   = threadFactory;
         this.priority        = priority;
         this.mm              = mm;
+        this.transactionMonitor = transactionMonitor;
+        this.transactionTimeoutMillis = transactionTimeoutMillis;
+        
         threadPoolMonitoringConfig = new MonitoringConfigImpl<ThreadPoolProbe>(
                 ThreadPoolProbe.class);
     }
@@ -121,6 +129,8 @@ public class ThreadPoolConfig {
         this.keepAliveTimeMillis   = cfg.keepAliveTimeMillis;
         this.mm              = cfg.mm;
         this.threadPoolMonitoringConfig = cfg.threadPoolMonitoringConfig;
+        this.transactionMonitor = cfg.transactionMonitor;
+        this.transactionTimeoutMillis = cfg.transactionTimeoutMillis;
     }
 
     @Override
@@ -269,6 +279,46 @@ public class ThreadPoolConfig {
         return threadPoolMonitoringConfig;
     }
 
+    public DelayedExecutor getTransactionMonitor() {
+        return transactionMonitor;
+    }
+
+    public ThreadPoolConfig setTransactionMonitor(
+            final DelayedExecutor transactionMonitor) {
+        this.transactionMonitor = transactionMonitor;
+
+        return this;
+    }
+
+    public long getTransactionTimeout(final TimeUnit timeUnit) {
+        if (transactionTimeoutMillis > 0) {
+            return timeUnit.convert(transactionTimeoutMillis, TimeUnit.MILLISECONDS);
+        }
+
+        return 0;
+    }
+
+    public ThreadPoolConfig setTransactionTimeout(
+            final long transactionTimeout, final TimeUnit timeunit) {
+
+        if (transactionTimeout > 0) {
+            this.transactionTimeoutMillis = TimeUnit.MILLISECONDS.convert(
+                    transactionTimeout, timeunit);
+        } else {
+            transactionTimeoutMillis = 0;
+        }
+        return this;
+    }
+
+    public ThreadPoolConfig setTransactionTimeout(
+            final DelayedExecutor transactionMonitor,
+            final long transactionTimeout, final TimeUnit timeunit) {
+
+        this.transactionMonitor = transactionMonitor;
+
+        return setTransactionTimeout(transactionTimeout, timeunit);
+    }
+
     @Override
     public String toString() {
         return ThreadPoolConfig.class.getSimpleName() + " :\r\n"
@@ -279,6 +329,8 @@ public class ThreadPoolConfig {
                 + "  queueLimit: " + queueLimit + "\r\n"
                 + "  keepAliveTime (millis): " + keepAliveTimeMillis + "\r\n"
                 + "  threadFactory: " + threadFactory + "\r\n"
+                + "  transactionMonitor: " + transactionMonitor + "\r\n"
+                + "  transactionTimeoutMillis: " + transactionTimeoutMillis + "\r\n"
                 + "  priority: " + priority + "\r\n";
     }
 }

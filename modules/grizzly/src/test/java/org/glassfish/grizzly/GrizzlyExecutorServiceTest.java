@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,11 +40,14 @@
 
 package org.glassfish.grizzly;
 
+import java.util.concurrent.ExecutorService;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import java.util.LinkedList;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import org.glassfish.grizzly.utils.DelayedExecutor;
 
 /**
  *
@@ -58,7 +61,7 @@ public class GrizzlyExecutorServiceTest extends GrizzlyTestCase {
     public void testCreateInstance() throws Exception {
         int threads = 100;
         ThreadPoolConfig cfg = new ThreadPoolConfig("test", -1, threads,
-                null, -1, 0, null, null, Thread.NORM_PRIORITY, null);
+                null, -1, 0, null, null, Thread.NORM_PRIORITY, null, null, -1);
         GrizzlyExecutorService r = GrizzlyExecutorService.createInstance(cfg);
         final int tasks = 2000000;
         doTest(r,tasks);
@@ -90,6 +93,43 @@ public class GrizzlyExecutorServiceTest extends GrizzlyTestCase {
         assertTrue(a+"!="+tasks,a == tasks);*/
     }
 
+    public void testTransactionTimeout() throws Exception {
+        final ExecutorService threadPool = Executors.newSingleThreadExecutor();
+
+        try {
+            final DelayedExecutor delayedExecutor =
+                    new DelayedExecutor(threadPool);
+
+            final int tasksNum = 10;
+            final long transactionTimeoutMillis = 5000;
+
+            final CountDownLatch cdl = new CountDownLatch(tasksNum);
+            final ThreadPoolConfig tpc = ThreadPoolConfig.defaultConfig()
+                    .setTransactionTimeout(delayedExecutor, transactionTimeoutMillis, TimeUnit.MILLISECONDS)
+                    .setCorePoolSize(tasksNum / 2).setMaxPoolSize(tasksNum / 2);
+
+            final GrizzlyExecutorService ges = GrizzlyExecutorService.createInstance(tpc);
+
+            for (int i = 0; i < tasksNum; i++) {
+                ges.execute(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        try {
+                            Thread.sleep(transactionTimeoutMillis);
+                        } catch (InterruptedException e) {
+                            cdl.countDown();
+                        }
+                    }
+                });
+            }
+
+            cdl.await(transactionTimeoutMillis * 3 / 2, TimeUnit.MILLISECONDS);
+        } finally {
+            threadPool.shutdownNow();
+        }
+    }
+    
     private void doTest(GrizzlyExecutorService r, int tasks) throws Exception{
         final CountDownLatch cl = new CountDownLatch(tasks);
         while(tasks-->0){
