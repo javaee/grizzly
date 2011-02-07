@@ -59,6 +59,7 @@ valid() {
 		grep -vi .png | \
 		grep -vi .project | \
 		grep -vi ChangesFrom1_9.txt | \
+		grep -vi catalog.cat | \
 		grep -vi copyright.sh | \
 		grep -vi copyrightcheck.out | \
 		grep -vi last-occupied-test-port.info | \
