@@ -1,7 +1,7 @@
 #
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 #
-# Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
 #
 # The contents of this file are subject to the terms of either the GNU
 # General Public License Version 2 only ("GPL") or the Common Development
@@ -73,7 +73,7 @@ valid() {
 
 run() {
 	echo $JAVA -jar copyright.jar  $* 
-	$JAVA -jar copyright.jar  $* | while read LINE
+	$JAVA -jar $0/../copyright.jar  $* | while read LINE
 	do
 		valid $LINE
 	done
@@ -85,7 +85,7 @@ then
 	JAVA=java
 fi
 
-$JAVA -jar copyright.jar -V
+$JAVA -jar $0/../copyright.jar -V
 rm -f copyrightcheck.out
 run $* | tee copyrightcheck.out
 

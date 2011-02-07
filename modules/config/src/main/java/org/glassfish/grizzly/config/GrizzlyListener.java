@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2006-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2006-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -60,17 +60,17 @@ import org.jvnet.hk2.component.Habitat;
  */
 public interface GrizzlyListener {
     
-    public void start() throws IOException;
+    void start() throws IOException;
 
-    public void stop() throws IOException;
+    void stop() throws IOException;
 
-    public void destroy();
+    void destroy();
 
-    public String getName();
+    String getName();
     
-    public InetAddress getAddress();
+    InetAddress getAddress();
 
-    public int getPort();
+    int getPort();
 
     /*
     * Configures the given grizzlyListener.
@@ -80,9 +80,9 @@ public interface GrizzlyListener {
     
     // TODO: Must get the information from domain.xml Config objects.
     // TODO: Pending Grizzly issue 54
-    public void configure(Habitat habitat, NetworkListener networkListener) throws IOException;
+    void configure(Habitat habitat, NetworkListener networkListener) throws IOException;
 
-    public void processDynamicConfigurationChange(Habitat habitat, PropertyChangeEvent[] events);
+    void processDynamicConfigurationChange(Habitat habitat, PropertyChangeEvent[] events);
 
-    public <T> T getAdapter(Class<T> adapterClass);
+    <T> T getAdapter(Class<T> adapterClass);
 }
