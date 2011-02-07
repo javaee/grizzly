@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -51,9 +51,11 @@ import org.jvnet.hk2.config.DomDocument;
 import javax.xml.stream.XMLInputFactory;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.management.ManagementFactory;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Grizzly;
@@ -197,5 +199,17 @@ public class Utils {
             clazz = Utils.class.getClassLoader().loadClass(classname);
         }
         return clazz;
+    }
+
+    public static boolean isDebugVM() {
+        boolean debugMode = false;
+        final List<String> l = ManagementFactory.getRuntimeMXBean().getInputArguments();
+        for (String s : l) {
+            if (s.trim().startsWith("-Xrunjdwp:") || s.contains("jdwp")) {
+                debugMode = true;
+                break;
+            }
+        }
+        return debugMode;
     }
 }

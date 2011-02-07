@@ -386,8 +386,10 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         poolConfig.setMaxPoolSize(maxThreads);
         poolConfig.setQueueLimit(maxQueueSize);
         poolConfig.setKeepAliveTime(timeout < 0 ? Long.MAX_VALUE : timeout, TimeUnit.SECONDS);
-        poolConfig.setTransactionTimeout(delayedExecutor,
-                transactionTimeoutMillis, TimeUnit.MILLISECONDS);
+        if (transactionTimeoutMillis > 0 && !Utils.isDebugVM()) {
+            poolConfig.setTransactionTimeout(delayedExecutor,
+                    transactionTimeoutMillis, TimeUnit.MILLISECONDS);
+        }
         
 //            List<String> l = ManagementFactory.getRuntimeMXBean().getInputArguments();
 //            boolean debugMode = false;
