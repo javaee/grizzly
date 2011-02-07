@@ -123,7 +123,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     protected FilterChain rootFilterChain;
     private volatile ExecutorService auxExecutorService;
     private volatile DelayedExecutor delayedExecutor;
-    private volatile long idleConnectionTimeoutMillis = -1;
+    private volatile long transactionTimeoutMillis = -1;
 
     @Override
     public String getName() {
@@ -386,6 +386,9 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         poolConfig.setMaxPoolSize(maxThreads);
         poolConfig.setQueueLimit(maxQueueSize);
         poolConfig.setKeepAliveTime(timeout < 0 ? Long.MAX_VALUE : timeout, TimeUnit.SECONDS);
+        poolConfig.setTransactionTimeout(delayedExecutor,
+                transactionTimeoutMillis, TimeUnit.MILLISECONDS);
+        
 //            List<String> l = ManagementFactory.getRuntimeMXBean().getInputArguments();
 //            boolean debugMode = false;
 //            for (String s : l) {
@@ -437,6 +440,8 @@ public class GenericGrizzlyListener implements GrizzlyListener {
 
     protected void configureHttpProtocol(final Habitat habitat,
         final Http http, final FilterChain filterChain) {
+        transactionTimeoutMillis =
+                Integer.parseInt(http.getRequestTimeoutSeconds()) * 1000;
         final int idleTimeoutSeconds = Integer.parseInt(http.getTimeoutSeconds());
         filterChain.add(new IdleTimeoutFilter(delayedExecutor, idleTimeoutSeconds,
             TimeUnit.SECONDS));
