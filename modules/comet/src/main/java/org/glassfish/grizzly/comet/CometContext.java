@@ -49,6 +49,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.http.server.Request;
@@ -127,7 +128,6 @@ public class CometContext<E> {
      * Create a new instance
      *
      * @param contextTopic the context path
-     *
      */
     public CometContext(CometEngine engine, String contextTopic) {
         topic = contextTopic;
@@ -219,15 +219,17 @@ public class CometContext<E> {
             throw new IllegalStateException(COMET_NOT_ENABLED);
         }
         handlers.add(handler);
-        Attribute<Request> httpRequestInProcessAttr = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.
-            createAttribute("HttpServerFilter.Request");
-        final Response response = httpRequestInProcessAttr.get(Request.getConnection()).getResponse();
+        Attribute<Request> httpRequestInProcessAttr = Grizzly.DEFAULT_ATTRIBUTE_BUILDER
+            .createAttribute("HttpServerFilter.Request");
+        final Connection c = Request.getConnection();
+        final Response response = httpRequestInProcessAttr.get(c).getResponse();
         handler.setResponse(response);
         handler.setCometContext(this);
         try {
-        initialize(handler);
-        response.suspend(getExpirationDelay(), TimeUnit.MILLISECONDS, new CometCompletionHandler(handler),
-            new CometTimeoutHandler(handler));
+            initialize(handler);
+            final CometCompletionHandler ccHandler = new CometCompletionHandler(handler);
+            c.addCloseListener(ccHandler);
+            response.suspend(getExpirationDelay(), TimeUnit.MILLISECONDS, ccHandler, new CometTimeoutHandler(handler));
             // Register asynchronous read-event listener
             final NIOInputStream nioInputStream = response.getRequest().getInputStream(false);
             if (!nioInputStream.notifyAvailable(new CometInputHandler(nioInputStream, handler)) &&
@@ -237,7 +239,7 @@ public class CometContext<E> {
         } catch (IOException e) {
             throw new RuntimeException(e.getMessage(), e);
         }
-            return handler.hashCode();
+        return handler.hashCode();
     }
 
     /**
@@ -323,7 +325,7 @@ public class CometContext<E> {
     public boolean interrupt(CometHandler handler, boolean finishExecution) throws IOException {
         final CometContext cometContext = handler.getCometContext();
         final boolean removed = cometContext.removeCometHandler(handler, finishExecution);
-        if (removed && ! finishExecution) {
+        if (removed && !finishExecution) {
             interrupt0(handler, finishExecution);
         }
         return removed;
@@ -480,7 +482,8 @@ public class CometContext<E> {
         }
     }
 
-    private class CometCompletionHandler implements CompletionHandler<Response> {
+    private class CometCompletionHandler implements CompletionHandler<Response>,
+        Connection.CloseListener {
         private final CometHandler handler;
 
         public CometCompletionHandler(CometHandler handler) {
@@ -512,6 +515,16 @@ public class CometContext<E> {
         @Override
         public void updated(Response result) {
         }
+
+        @Override
+        public void onClosed(Connection connection) throws IOException {
+            try {
+                handler.onInterrupt(eventInterrupt);
+            } catch (IOException e) {
+                throw new RuntimeException(e.getMessage(), e);
+            }
+            connection.removeCloseListener(this);
+        }
     }
 
     private class CometTimeoutHandler implements TimeoutHandler {
@@ -531,6 +544,8 @@ public class CometContext<E> {
             }
             return true;
         }
+
+
     }
 
     private class CometInputHandler implements ReadHandler {
