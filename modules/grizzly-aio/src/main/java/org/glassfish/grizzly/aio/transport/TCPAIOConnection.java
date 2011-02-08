@@ -584,16 +584,23 @@ public class TCPAIOConnection extends AIOConnection {
             final IOResult ioResult = attachment.done(processedBytes);
             final Buffer buffer = ioResult.getBuffer();
 
-            final ByteBufferArray array = ioResult.getCompositeBufferArray();
-            if (array != null) {
+            if (processedBytes > 0) {
+                buffer.position(ioResult.getOldBufferPos() + processedBytes);
+                final Result result = ioResult.getResult();
+                if (result != null) {
+                    updateResult(result, buffer, processedBytes);
+                }
+            }
+
+            if (buffer.isComposite()) {
                 if (LOGGER.isLoggable(Level.FINE)) {
                     LOGGER.log(Level.FINE, "TCPAIOConnection ({0}) (composite) "
                             + "{1} processed {2} bytes",
                             new Object[]{TCPAIOConnection.this, getClass(),
                                 processedBytes});
+                    restoreCompositeBufferArray(
+                            ioResult.getCompositeBufferArray(), ioResult);
                 }                
-                array.restore();
-                array.recycle();
             } else {
                 if (LOGGER.isLoggable(Level.FINE)) {
                     LOGGER.log(Level.FINE, "TCPAIOConnection ({0}) (plain) "
@@ -603,15 +610,14 @@ public class TCPAIOConnection extends AIOConnection {
                 }
             }
             
-            if (processedBytes > 0) {
-                buffer.position(ioResult.getOldBufferPos() + processedBytes);
-                final Result result = ioResult.getResult();
-                if (result != null) {
-                    updateResult(result, buffer, processedBytes);
-                }
-            }
 
             notifyProcessed(ioResult, buffer, processedBytes);
+        }
+        
+        protected void restoreCompositeBufferArray(final ByteBufferArray array,
+                final IOResult ioResult) {
+            array.restore();
+            array.recycle();
         }
         
         protected abstract int getProcessedBytes(A processedBytesObj);
@@ -753,11 +759,22 @@ public class TCPAIOConnection extends AIOConnection {
             final Buffer buffer, final int written) {
                 
             onWrite(buffer, written);
-            
+
             if (buffer.hasRemaining()) {
+                attachment.oldBufferPos = buffer.position();
+                
                 if (buffer.isComposite()) {
-                    writeC
+                    final ByteBufferArray compositeBufferArray = 
+                            attachment.getCompositeBufferArray();
+                    writeBlockingComposite(compositeBufferArray.getArray(),
+                            0, compositeBufferArray.size(),
+                            attachment, blockingWriteCompositeCompletionHandler);
+                } else {
+                    writeBlockingSimple(buffer.toByteBuffer(), attachment,
+                            blockingWriteCompletionHandler);
                 }
+                
+                return;
             }
             
             ((FutureImpl<Integer>) attachment.getAttachment()).result(written);
@@ -769,7 +786,17 @@ public class TCPAIOConnection extends AIOConnection {
                 final IOResult attachment) {
                     
             ((FutureImpl<Integer>) attachment.done(-1).getAttachment()).failure(e);
-        }        
+        }
+
+        @Override
+        protected void restoreCompositeBufferArray(final ByteBufferArray array,
+                final IOResult ioResult) {
+            if (!ioResult.buffer.hasRemaining()) {
+                super.restoreCompositeBufferArray(array, ioResult);
+            }
+        }
+
+        
     }
     
     public final IOResult getLastReadResult() {

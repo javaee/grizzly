@@ -296,6 +296,9 @@ public class TCPAIOTransportTest extends GrizzlyTestCase {
     }
 
     public void testSeveralPacketsEcho() throws Exception {
+        int packetsNumber = 100;
+        final int packetSize = 170644;
+        
         Connection connection = null;
         StreamReader reader;
         StreamWriter writer;
@@ -309,7 +312,6 @@ public class TCPAIOTransportTest extends GrizzlyTestCase {
         try {
             transport.bind(PORT);
             transport.start();
-            transport.configureBlocking(true);
 
             Future<Connection> connectFuture = transport.connect(
                     new InetSocketAddress("localhost", PORT),
@@ -318,6 +320,7 @@ public class TCPAIOTransportTest extends GrizzlyTestCase {
                         @Override
                         public void completed(final Connection connection) {
                             connection.configureStandalone(true);
+                            connection.configureBlocking(true);
                         }
                     });
                     
@@ -327,8 +330,9 @@ public class TCPAIOTransportTest extends GrizzlyTestCase {
             reader = StandaloneProcessor.INSTANCE.getStreamReader(connection);
             writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
 
-            for (int i = 0; i < 100; i++) {
-                byte[] originalMessage = ("Hello world #" + i).getBytes();
+            for (int i = 0; i < packetsNumber; i++) {
+                byte[] originalMessage = new byte[packetSize];
+                Arrays.fill(originalMessage, (byte) i);
                 writer.writeByteArray(originalMessage);
                 Future<Integer> writeFuture = writer.flush();
 
@@ -358,15 +362,6 @@ public class TCPAIOTransportTest extends GrizzlyTestCase {
 
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
-        filterChainBuilder.add(new BaseFilter() {
-
-            @Override
-            public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                System.out.println("MSG=" + ctx.getMessage());
-                return super.handleRead(ctx);
-            }
-            
-        });
         filterChainBuilder.add(new EchoFilter());
         
         TCPAIOTransport transport = TCPAIOTransportBuilder.newInstance().build();
@@ -398,7 +393,6 @@ public class TCPAIOTransportTest extends GrizzlyTestCase {
 
 
             reader = StandaloneProcessor.INSTANCE.getStreamReader(connection);
-            System.out.println("READER=" + reader);
             Future readFuture = reader.notifyAvailable(originalMessage.length);
             assertTrue("Read timeout", readFuture.get(10, TimeUnit.SECONDS) != null);
 
