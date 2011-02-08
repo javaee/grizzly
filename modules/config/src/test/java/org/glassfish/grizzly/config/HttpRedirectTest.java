@@ -40,10 +40,6 @@
 
 package org.glassfish.grizzly.config;
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
-import javax.net.SocketFactory;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,13 +47,17 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
+import javax.net.SocketFactory;
 
-@Test
-public class HttpRedirectTest extends BaseGrizzlyConfigTest {
+import org.junit.Assert;
+import org.junit.Test;
+
+public class HttpRedirectTest extends BaseTestGrizzlyConfig {
 
 
     // ------------------------------------------------------------ Test Methods
 
+    @Test
     public void legacyHttpToHttpsRedirect() throws IOException {
         doTest(SocketFactory.getDefault(),
                "legacy-http-https-redirect.xml",
@@ -66,6 +66,7 @@ public class HttpRedirectTest extends BaseGrizzlyConfigTest {
                 "location: https://localhost:48480/");
     }
 
+    @Test
     public void legacyHttpsToHttpRedirect() throws IOException {
         doTest(getSSLSocketFactory(),
                "legacy-https-http-redirect.xml",
@@ -74,6 +75,7 @@ public class HttpRedirectTest extends BaseGrizzlyConfigTest {
                 "location: http://localhost:48480/");
     }
 
+    @Test
     public void httpToHttpsSamePortRedirect() throws IOException {
         doTest(SocketFactory.getDefault(),
                "http-https-redirect-same-port.xml",
@@ -82,6 +84,7 @@ public class HttpRedirectTest extends BaseGrizzlyConfigTest {
                 "location: https://localhost:48480/");
     }
 
+    @Test
     public void httpsToHttpSamePortRedirect() throws IOException {
         doTest(getSSLSocketFactory(),
                "https-http-redirect-same-port.xml",
@@ -90,6 +93,7 @@ public class HttpRedirectTest extends BaseGrizzlyConfigTest {
                 "location: http://localhost:48480/");
     }
 
+    @Test
     public void httpToHttpsDifferentPortRedirect() throws IOException {
         doTest(getSSLSocketFactory(),
                "http-https-redirect-different-port.xml",
@@ -98,6 +102,7 @@ public class HttpRedirectTest extends BaseGrizzlyConfigTest {
                 "location: https://localhost:48481/");
     }
 
+    @Test
     public void httpsToHttpDifferentPortRedirect() throws IOException {
         doTest(SocketFactory.getDefault(),
                "https-http-redirect-different-port.xml",
@@ -147,14 +152,14 @@ public class HttpRedirectTest extends BaseGrizzlyConfigTest {
                     }
 
                     // will fail here
-                    Assert.assertEquals(line.toLowerCase(), expectedLocation);
+                    Assert.assertEquals(expectedLocation, line.toLowerCase());
                 }
             }
             if (!found) {
                 Assert.fail("Unable to find Location header in response - no redirect occurred.");
             }
         } catch (Exception e) {
-            Assert.fail(e.toString(), e);
+            Assert.fail(e.toString());
         } finally {
             grizzlyConfig.shutdownNetwork();
         }

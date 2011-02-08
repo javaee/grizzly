@@ -53,13 +53,13 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+
 import org.glassfish.grizzly.http.server.HttpServerFilter;
-
 import org.glassfish.grizzly.http.server.StaticHttpHandler;
+import org.junit.Assert;
 import org.jvnet.hk2.config.Dom;
-import org.testng.Assert;
 
-public class BaseGrizzlyConfigTest {
+public class BaseTestGrizzlyConfig {
     protected String getContent(URLConnection connection) {
         try {
             InputStream inputStream = connection.getInputStream();
@@ -82,7 +82,7 @@ public class BaseGrizzlyConfigTest {
             }
         } catch (IOException e) {
             e.printStackTrace();
-            Assert.fail(e.getMessage(), e);
+            Assert.fail(e.getMessage());
         }
         return "";
     }
@@ -104,7 +104,7 @@ public class BaseGrizzlyConfigTest {
                 }
             }
         } catch (IOException e) {
-            Assert.fail(e.getMessage(), e);
+            Assert.fail(e.getMessage());
         }
         
         final List<HttpServerFilter> httpServerFilters = listener.getFilters(HttpServerFilter.class);

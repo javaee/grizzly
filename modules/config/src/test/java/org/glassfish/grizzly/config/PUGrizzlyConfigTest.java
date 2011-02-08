@@ -42,31 +42,25 @@ package org.glassfish.grizzly.config;
 
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.URL;
-import java.net.URLConnection;
-import java.util.List;
 import javax.net.ssl.HttpsURLConnection;
-import org.glassfish.grizzly.http.server.HttpServerFilter;
-import org.glassfish.grizzly.http.server.StaticHttpHandler;
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import org.junit.Assert;
+import org.junit.Test;
+
 /**
  * Created Jan 5, 2009
  *
  * @author <a href="mailto:justin.d.lee@oracle.com">Justin Lee</a>
  */
-@Test(enabled=true)
-public class PUGrizzlyConfigTest extends BaseGrizzlyConfigTest {
+public class PUGrizzlyConfigTest extends BaseTestGrizzlyConfig {
     static int count;
 
+    @Test
     public void puConfig() throws IOException, InstantiationException {
         GrizzlyConfig grizzlyConfig = null;
         
@@ -77,10 +71,10 @@ public class PUGrizzlyConfigTest extends BaseGrizzlyConfigTest {
                 addStaticHttpHandler((GenericGrizzlyListener) listener, count++);
             }
             final String httpContent = getContent(new URL("http://localhost:38082").openConnection());
-            Assert.assertEquals(httpContent, "<html><body>You've found the server on port 38082</body></html>");
+            Assert.assertEquals("<html><body>You've found the server on port 38082</body></html>", httpContent);
 
             final String xProtocolContent = getXProtocolContent("localhost", 38082);
-            Assert.assertEquals(xProtocolContent, "X-Protocol-Response");
+            Assert.assertEquals("X-Protocol-Response", xProtocolContent);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException(e.getMessage());
@@ -91,6 +85,7 @@ public class PUGrizzlyConfigTest extends BaseGrizzlyConfigTest {
         }
     }
 
+    @Test
     public void puHttpHttpsSamePortConfig() throws IOException, InstantiationException {
         GrizzlyConfig grizzlyConfig = null;
 
@@ -101,11 +96,11 @@ public class PUGrizzlyConfigTest extends BaseGrizzlyConfigTest {
                 addStaticHttpHandler((GenericGrizzlyListener) listener, count++);
             }
             final String httpContent1 = getContent(new URL("http://localhost:38082").openConnection());
-            Assert.assertEquals(httpContent1, "<html><body>You've found the server on port 38082</body></html>");
+            Assert.assertEquals("<html><body>You've found the server on port 38082</body></html>", httpContent1);
 
             HttpsURLConnection.setDefaultSSLSocketFactory(getSSLSocketFactory());
             final String httpContent2 = getContent(new URL("https://localhost:38082").openConnection());
-            Assert.assertEquals(httpContent2, "<html><body>You've found the server on port 38082</body></html>");
+            Assert.assertEquals("<html><body>You've found the server on port 38082</body></html>", httpContent2);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException(e.getMessage());
@@ -116,6 +111,7 @@ public class PUGrizzlyConfigTest extends BaseGrizzlyConfigTest {
         }
     }
 
+    @Test
     public void wrongPuConfigLoop() throws IOException, InstantiationException {
         GrizzlyConfig grizzlyConfig = null;
 
@@ -132,8 +128,7 @@ public class PUGrizzlyConfigTest extends BaseGrizzlyConfigTest {
             }
         }
 
-        Assert.assertTrue(isIllegalState,
-                "Double http definition should throw IllegalStateException");
+        Assert.assertTrue("Double http definition should throw IllegalStateException", isIllegalState);
     }
         
 //    private String getContent(URLConnection connection) throws IOException {

@@ -37,7 +37,6 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.config;
 
 import java.io.File;
@@ -48,8 +47,8 @@ import java.util.List;
 
 import org.glassfish.grizzly.config.dom.NetworkListener;
 import org.glassfish.grizzly.config.dom.ThreadPool;
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * Created Jan 5, 2009
@@ -57,8 +56,8 @@ import org.testng.annotations.Test;
  * @author <a href="mailto:justin.d.lee@oracle.com">Justin Lee</a>
  */
 @SuppressWarnings({"IOResourceOpenedButNotSafelyClosed"})
-@Test
-public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
+public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
+    @Test
     public void processConfig() throws IOException, InstantiationException {
         GrizzlyConfig grizzlyConfig = null;
         try {
@@ -70,13 +69,14 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
             }
             final String content = getContent(new URL("http://localhost:38082").openConnection());
             final String content2 = getContent(new URL("http://localhost:38083").openConnection());
-            Assert.assertEquals(content, "<html><body>You've found the server on port 38082</body></html>");
-            Assert.assertEquals(content2, "<html><body>You've found the server on port 38083</body></html>");
+            Assert.assertEquals("<html><body>You've found the server on port 38082</body></html>", content);
+            Assert.assertEquals("<html><body>You've found the server on port 38083</body></html>", content2);
         } finally {
             grizzlyConfig.shutdown();
         }
     }
 
+    @Test
     public void references() throws IOException {
         GrizzlyConfig grizzlyConfig = null;
         try {
@@ -87,36 +87,37 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
             for (NetworkListener ref : listener.findProtocol().findNetworkListeners()) {
                 found |= ref.getName().equals(listener.getName());
             }
-            Assert.assertTrue(found, "Should find the NetworkListener in the list of references from Protocol");
+            Assert.assertTrue("Should find the NetworkListener in the list of references from Protocol", found);
             found = false;
             for (NetworkListener ref : listener.findTransport().findNetworkListeners()) {
                 found |= ref.getName().equals(listener.getName());
             }
-            Assert.assertTrue(found, "Should find the NetworkListener in the list of references from Transport");
+            Assert.assertTrue("Should find the NetworkListener in the list of references from Transport", found);
             found = false;
             for (NetworkListener ref : listener.findThreadPool().findNetworkListeners()) {
                 found |= ref.getName().equals(listener.getName());
             }
-            Assert.assertTrue(found, "Should find the NetworkListener in the list of references from ThreadPool");
+            Assert.assertTrue("Should find the NetworkListener in the list of references from ThreadPool", found);
         } finally {
             grizzlyConfig.shutdown();
         }
     }
 
+    @Test
     public void defaults() throws IOException {
         GrizzlyConfig grizzlyConfig = null;
         try {
             grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
             final ThreadPool threadPool = grizzlyConfig.getConfig().getNetworkListeners().getThreadPool().get(0);
-            Assert.assertEquals(threadPool.getMaxThreadPoolSize(), "5");
+            Assert.assertEquals("5", threadPool.getMaxThreadPoolSize());
         } finally {
-            if(grizzlyConfig != null) {
+            if (grizzlyConfig != null) {
                 grizzlyConfig.shutdown();
             }
         }
     }
 
-    @Test(enabled = false)
+//    @Test
     public void ssl() throws URISyntaxException, IOException {
         GrizzlyConfig grizzlyConfig = null;
         try {
@@ -137,8 +138,8 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
                 throw new RuntimeException(e.getMessage());
             }
 */
-            Assert.assertEquals(getContent(new URL("https://localhost:38083").openConnection()),
-                "<html><body>You've found the server on port 38083</body></html>");
+            Assert.assertEquals("<html><body>You've found the server on port 38083</body></html>",
+                getContent(new URL("https://localhost:38083").openConnection()));
         } finally {
             grizzlyConfig.shutdown();
         }
@@ -146,13 +147,15 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
 
     private void configure() throws URISyntaxException {
         ClassLoader cl = getClass().getClassLoader();
-        System.setProperty("javax.net.ssl.trustStore", new File(cl.getResource("cacerts.jks").toURI()).getAbsolutePath());
+        System
+            .setProperty("javax.net.ssl.trustStore", new File(cl.getResource("cacerts.jks").toURI()).getAbsolutePath());
         System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
-        System.setProperty("javax.net.ssl.keyStore", new File(cl.getResource("keystore.jks").toURI()).getAbsolutePath());
+        System
+            .setProperty("javax.net.ssl.keyStore", new File(cl.getResource("keystore.jks").toURI()).getAbsolutePath());
         System.setProperty("javax.net.ssl.keyStorePassword", "changeit");
     }
 
-    @Test(expectedExceptions = {GrizzlyConfigException.class}, enabled = false)
+//    @Test(expected = GrizzlyConfigException.class)
     public void badConfig() throws IOException {
         GrizzlyConfig grizzlyConfig = null;
         try {
