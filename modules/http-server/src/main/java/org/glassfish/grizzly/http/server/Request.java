@@ -2143,12 +2143,12 @@ public class Request {
      *
      * @param create Create a new session if one does not exist
      */
-    public Session getSession(boolean create) {
+    public Session getSession(final boolean create) {
         return doGetSession(create);
     }
 
 
-    protected Session doGetSession(boolean create) {
+    protected Session doGetSession(final boolean create) {
         // Return the current session if it exists and is valid
         if ((session != null) && !session.isValid()) {
             session = null;
@@ -2185,7 +2185,7 @@ public class Request {
 
         // Creating a new session cookie based on the newly created session
         if (session != null) {
-            Cookie cookie = new Cookie(Globals.SESSION_COOKIE_NAME,
+            final Cookie cookie = new Cookie(Globals.SESSION_COOKIE_NAME,
                     session.getIdInternal());
             configureSessionCookie(cookie);
             response.addCookie(cookie);
@@ -2245,7 +2245,7 @@ public class Request {
      *
      * @param cookie The JSESSIONID cookie to be configured
      */
-    protected void configureSessionCookie(Cookie cookie) {
+    protected void configureSessionCookie(final Cookie cookie) {
         cookie.setMaxAge(-1);
         cookie.setPath("/");
 
