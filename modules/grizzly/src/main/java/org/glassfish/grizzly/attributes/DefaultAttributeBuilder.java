@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -53,14 +53,14 @@ import java.util.Map;
  * @author Alexey Stashok
  */
 public class DefaultAttributeBuilder implements AttributeBuilder {
-    protected List<Attribute> attributes = new ArrayList<Attribute>();
-    protected Map<String, Attribute> name2Attribute = new HashMap<String, Attribute>();    
+    protected final List<Attribute> attributes = new ArrayList<Attribute>();
+    protected final Map<String, Attribute> name2Attribute = new HashMap<String, Attribute>();
     
     /**
      * {@inheritDoc}
      */
     @Override
-    public synchronized <T> Attribute<T> createAttribute(String name) {
+    public synchronized <T> Attribute<T> createAttribute(final String name) {
         return createAttribute(name, (T) null);
     }
 
@@ -68,8 +68,8 @@ public class DefaultAttributeBuilder implements AttributeBuilder {
      * {@inheritDoc}
      */
     @Override
-    public synchronized <T> Attribute<T> createAttribute(String name, 
-            T defaultValue) {
+    public synchronized <T> Attribute<T> createAttribute(final String name,
+            final T defaultValue) {
         Attribute<T> attribute = name2Attribute.get(name);
         if (attribute == null) {
             attribute = new Attribute<T>(this, name, attributes.size(), defaultValue);
@@ -84,8 +84,8 @@ public class DefaultAttributeBuilder implements AttributeBuilder {
      * {@inheritDoc}
      */
     @Override
-    public synchronized <T> Attribute<T> createAttribute(String name, 
-            NullaryFunction<T> initializer) {
+    public synchronized <T> Attribute<T> createAttribute(final String name,
+            final NullaryFunction<T> initializer) {
         Attribute<T> attribute = name2Attribute.get(name);
         if (attribute == null) {
             attribute = new Attribute<T>(this, name, attributes.size(), initializer);
@@ -96,11 +96,11 @@ public class DefaultAttributeBuilder implements AttributeBuilder {
         return attribute;
     }
 
-    protected Attribute getAttributeByName(String name) {
+    protected Attribute getAttributeByName(final String name) {
         return name2Attribute.get(name);
     }
 
-    protected Attribute getAttributeByIndex(int index) {
+    protected Attribute getAttributeByIndex(final int index) {
         return attributes.get(index);
     }
 }

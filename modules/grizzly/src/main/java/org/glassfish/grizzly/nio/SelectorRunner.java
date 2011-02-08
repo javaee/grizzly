@@ -52,6 +52,7 @@ import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.util.ArrayDeque;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.Set;
@@ -59,7 +60,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.utils.LinkedTransferQueue;
-import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -100,7 +100,7 @@ public final class SelectorRunner implements Runnable {
         stateHolder = new StateHolder<State>(State.STOP);
 
         pendingTasks = new LinkedTransferQueue<SelectorHandlerTask>();
-        postponedTasks = new LinkedList<SelectorHandlerTask>();
+        postponedTasks = new ArrayDeque<SelectorHandlerTask>();
     }
 
     public NIOTransport getTransport() {
