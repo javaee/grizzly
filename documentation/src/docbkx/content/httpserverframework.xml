@@ -416,7 +416,7 @@ try {
     <para>Let's cover the methods related to response suspend/resume. The
     following methods are available on the Response object itself:</para>
 
-    <programlisting>    /**
+    <programlisting language="java">    /**
      * Suspend the {@link Response}. Suspending a {@link Response} will
      * tell the underlying container to avoid recycling objects associated with
      * the current instance, and also to avoid committing response.
@@ -553,18 +553,328 @@ try {
         </imageobject>
       </mediaobject>
     </figure>
+
+    <para>The "Suspended Response Queue" warrants some explaination. If a
+    suspended Response has defined a timeout, it will be added to the
+    "Suspended Response Queue". When the queue is processed, the current time
+    will be evaluated against the timeout as defined within the Response's
+    SuspendContext. If the timeout has been exceeded, the response will be
+    committed and the Response object within the queue will be marked for
+    removal. So in the case no timeout has been defined, the response will not
+    be added to the queue, and the task may run indefiniately.</para>
   </section>
 
   <section>
     <title>NIO Streams</title>
 
-    <para></para>
+    <para>In Grizzly 1.9, it was possible to write data to the client using
+    non-blocking I/O, however, when reading post data from within a
+    GrizzlyAdapter implementation, all I/O in that case was blocking. In
+    Grizzly 2.0, it's very simple using the InputStream/Reader from the
+    request and read data in a non-blocking manner. As far as writing, all I/O
+    will be written in non-blocking mode, but there is some extra features on
+    the OutputStream vended by the Response instance that will be covered that
+    expose advanced non-blocking operations.</para>
+
+    <section>
+      <title>Non-Blocking Writing</title>
+
+      <para>The methods getOutputStream() and getWriter() on Response return
+      instances of NIOOutputStream and NIOWriter. In addition to the methods
+      defined by java.io.OutputStream and java.io.Writer, these entities both
+      implement the NIOOutputSink interface.</para>
+
+      <programlisting language="java">/**
+ * &lt;p&gt;
+ * This interface defines methods to allow an {@link java.io.OutputStream} or
+ * {@link java.io.Writer} to allow the developer to check with the runtime
+ * whether or not it's possible to write a certain amount of data, or if it's
+ * not possible, to be notified when it is.
+ * &lt;/p&gt;
+ *
+ * @since 2.0
+ */
+public interface NIOOutputSink {
+
+
+    /**
+     * Instructs the &lt;code&gt;NIOOutputSink&lt;/code&gt; to invoke the provided
+     * {@link WriteHandler} when it is possible to write &lt;code&gt;length&lt;/code&gt;
+     * bytes.
+     *
+     * Note that once the {@link WriteHandler} has been notified, it will not
+     * be considered for notification again at a later point in time. 
+     *
+     * @param handler the {@link WriteHandler} that should be notified
+     *  when it's possible to write &lt;code&gt;length&lt;/code&gt; bytes.
+     * @param length the number of bytes that require writing.
+     *
+     * @return &lt;code&gt;true&lt;code&gt; if the specified &lt;code&gt;handler&lt;/code&gt; has
+     *  been accepted and will be notified as it becomes possible to write,
+     *  otherwise returns &lt;code&gt;false&lt;/code&gt; which means data is currently
+     *  available to write without blocking.
+     *
+     * @throws IllegalStateException if this method is invoked and a handler
+     *  from a previous invocation is still present (due to not having yet been
+     *  notified).  
+     */
+    boolean notifyCanWrite(final WriteHandler handler, final int length);
+
+
+    /**
+     * @param length specifies the number of bytes that require writing
+     *
+     * @return &lt;code&gt;true&lt;/code&gt; if a write to this &lt;code&gt;NIOOutputSink&lt;/code&gt;
+     *  will succeed, otherwise returns &lt;code&gt;false&lt;/code&gt;.
+     */
+    boolean canWrite(final int length);
+
+}</programlisting>
+
+      <para>The typical flow when using these methods is to call canWrite()
+      with the desired length. Whether or not the desired amount of data will
+      depened, primarily, on the configuration value of maxPendingWrites
+      property on the NetworkListener being used to process the current
+      request. </para>
+
+      <para>For example, if the client is on a slow connection, and the OS
+      network buffer is full, the write queue maintained by the Transport
+      implementation would start to full up. If an attempt to write is made
+      that will exeed the queue limit, a
+      PendingWriteQueueLimitExceededException will be thrown. However, if the
+      developer calls canWrite() with the desired length, and the return value
+      is false, then it is know there, that the write would fail. This
+      condition can be gracefully be handled by calling notifyCanWrite()
+      providing a WriteHandler and the desired length. Once the pending write
+      queue drains enough to support the length, the WriteHandler will be
+      notified to allow the developer to continue sending content to the
+      client.</para>
+
+      <para>For Grizzly 2.0 HTTP applications that deal in primarily binary
+      data and are using Grizzly Buffers, they can leverage an additional
+      method available on the NIOOutputStream specified by the
+      BinaryNIOutputSink interface. This interface allows the direct writing
+      of Buffer instances. This optimizes away the need to copy bytes to a
+      Buffer implementation under the covers.</para>
+
+      <programlisting language="java">/**
+ * Adds the ability for binary based {@link NIOOutputSink}s to write a 
+ * {@link Buffer} instead of having to convert to those types supported by
+ * {@link java.io.OutputStream}.
+ *
+ * @since 2.0
+ */
+public interface BinaryNIOOutputSink extends NIOOutputSink {
+
+    /**
+     * Writes the contents of the specified {@link org.glassfish.grizzly.Buffer}.
+     *
+     * @param buffer the {@link org.glassfish.grizzly.Buffer to write}
+     */
+    void write(final Buffer buffer) throws IOException;
+    
+}</programlisting>
+    </section>
+
+    <section>
+      <title>Non-Blocking Reading</title>
+
+      <para>On the input, side, Grizzly provides a similar interface for
+      non-blocking reads called NIOInputSource.</para>
+
+      <programlisting language="java">/**
+ * &lt;p&gt;
+ * This interface defines methods to allow an {@link InputStream} or
+ * {@link Reader} to notify the developer &lt;em&gt;when&lt;/em&gt; and &lt;em&gt;how much&lt;/em&gt;
+ * data is ready to be read without blocking.
+ * &lt;/p&gt;
+ *
+ * @since 2.0
+ */
+public interface NIOInputSource {
+
+
+    /**
+     * &lt;p&gt;
+     * Notify the specified {@link ReadHandler} when any number of bytes
+     * can be read without blocking.
+     * &lt;/p&gt;
+     *
+     * &lt;p&gt;
+     * Invoking this method is equivalent to calling: notifyAvailable(handler, 0).
+     * &lt;/p&gt;
+     *
+     * @param handler the {@link ReadHandler} to notify.
+     *
+     * @return &lt;code&gt;true&lt;code&gt; if the specified &lt;code&gt;handler&lt;/code&gt; has
+     *  been accepted and will be notified as data becomes available to write,
+     *  otherwise returns &lt;code&gt;false&lt;/code&gt; which means data is available to
+     *  be read without blocking.
+     *
+     * @see ReadHandler#onDataAvailable()
+     * @see ReadHandler#onAllDataRead()
+     */
+    boolean notifyAvailable(final ReadHandler handler);
+
+
+    /**
+     * &lt;p&gt;
+     * Notify the specified {@link ReadHandler} when the number of bytes that
+     * can be read without blocking is greater or equal to the specified
+     * &lt;code&gt;size&lt;/code&gt;.
+     * &lt;/p&gt;
+     *
+     * @param handler the {@link ReadHandler} to notify.
+     * @param size the least number of bytes that must be available before
+     *  the {@link ReadHandler} is invoked.  If size is &lt;code&gt;0&lt;/code&gt;, the
+     *  handler will be notified as soon as data is available no matter the
+     *  size.
+     *
+     * @return &lt;code&gt;true&lt;code&gt; if the specified &lt;code&gt;handler&lt;/code&gt; has
+     *  been accepted and will be notified as data becomes available to write,
+     *  otherwise returns &lt;code&gt;false&lt;/code&gt; which means data is available to
+     *  be read without blocking.
+     *
+     * @see ReadHandler#onDataAvailable()
+     * @see ReadHandler#onAllDataRead()
+     */
+    boolean notifyAvailable(final ReadHandler handler, final int size);
+
+
+    /**
+     * @return &lt;code&gt;true&lt;/code&gt; when all data for this particular request
+     *  has been read, otherwise returns &lt;code&gt;false&lt;/code&gt;.
+     */
+    boolean isFinished();
+
+
+    /**
+     * @return the number of bytes (or characters) that may be obtained
+     *  without blocking.  Note when dealing with characters, this method
+     *  will return an estimate on the number of characters available. 
+     */
+    int readyData();
+
+
+    /**
+     * @return &lt;code&gt;true&lt;/code&gt; if data can be obtained without blocking,
+     *  otherwise returns &lt;code&gt;false&lt;/code&gt;.
+     */
+    boolean isReady();
+
+
+    /**
+     * &lt;p&gt;
+     * Returns the underlying {@link Buffer} that backs this
+     *  &lt;code&gt;NIOInputSource&lt;/code&gt;.
+     * &lt;/p&gt;
+     *
+     * &lt;p&gt;
+     * It should be noted that for character-based &lt;code&gt;NIOInputSource&lt;/code&gt;s,
+     * the {@link Buffer} is the raw bytes.  Any character conversion
+     * would have to be applied manually.
+     * &lt;/p&gt;
+     *
+     * @return the underlying {@link Buffer} that backs this
+     *  &lt;code&gt;NIOInputSource&lt;/code&gt;.
+     */
+    Buffer getBuffer();
+
+}</programlisting>
+
+      <para>The general idea behind non-blocking writes holds true for
+      non-blocking reads. The developer can check to see if data is available
+      to be read without blocking by calling isReady() or checking for a
+      non-zero return from readyData(). If no data can be read without
+      blocking, use notifyAvailable(ReadHander) or
+      notifyAvailable(ReadHandler, int). When data is becomes available, the
+      ReadHandler will be invoked. Note that if no length is provided to the
+      notifyAvailable() methods, the ReadHandler will be invoked as soon as
+      any data becomes available. In this case, it's a good idea to check how
+      much can be read by another call to readyData(). </para>
+    </section>
   </section>
 
   <section>
     <title>File Cache</title>
 
-    <para></para>
+    <para>The FileCache allows for efficient caching of static content. File
+    caching can be enabled or disabled by calling:</para>
+
+    <programlisting language="java">getFileCache().setEnabled();</programlisting>
+
+    <para>on a NetworkListener instance. By default, FileCaching is enabled on
+    new NetworkListener instances.</para>
+
+    <para>There are several configuration options that allow fine tuning of
+    each FileCache instance:</para>
+
+    <table>
+      <title>FileCache Configuration Properties</title>
+
+      <tgroup cols="2">
+        <tbody>
+          <row>
+            <entry>secondsMaxAge</entry>
+
+            <entry>Specifies how long an resource may exist within the cache.
+            If the value is zero or less, the resource may be cached
+            indefinately. If not specified, the value defaults to -1.</entry>
+          </row>
+
+          <row>
+            <entry>maxCacheEntries</entry>
+
+            <entry>Specified how many resources may be cached. An attempt to
+            add an entry that causes the max number of entries to be exceeded,
+            the resource will be removed from the cache. The default number of
+            cached entries is 1024.</entry>
+          </row>
+
+          <row>
+            <entry>minEntrySize</entry>
+
+            <entry>The maximum size, in bytes, a file must be in order to be
+            cached in the heap cache. This defaults to Long.MIN_VALUE.</entry>
+          </row>
+
+          <row>
+            <entry>maxEntrySize</entry>
+
+            <entry>The maximum size, in bytes, a resource may be before it can
+            no longer be considered cachable. This defaults to
+            Long.MAX_VALUE.</entry>
+          </row>
+
+          <row>
+            <entry>maxLargeFileCacheSize</entry>
+
+            <entry>The maximum size, in bytes, of the memory mapped cache for
+            large files. This defaults to Long.MAX_VALUE.</entry>
+          </row>
+
+          <row>
+            <entry>maxSmallFileCacheSize</entry>
+
+            <entry>The maximum size, in bytes, a file must be in order to be
+            cached in the heap cachevs the mapped memory cache. This defaults
+            to 1048576.</entry>
+          </row>
+
+          <row>
+            <entry>enabled</entry>
+
+            <entry>Whether or not the FileCache is enabled. This defaults to
+            true on new NetworkListener instances.</entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </table>
+
+    <para>All properties of the FileCache can be manipulated by obtaining the
+    FileCache instance via the followign call:</para>
+
+    <programlisting language="java">NetworkLister.getFileCache()</programlisting>
   </section>
 
   <section>
