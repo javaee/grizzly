@@ -278,11 +278,6 @@ public class Response {
         this.delayQueue = delayQueue;
         this.suspendStatus = suspendStatus;
 
-        final Locale locale = response.getLocale();
-
-        if (locale == null) {
-            response.setLocale(DEFAULT_LOCALE);
-        }
     }
 
     /**
@@ -621,7 +616,12 @@ public class Response {
      */
     public Locale getLocale() {
         checkResponse();
-        return response.getLocale();
+        Locale locale = response.getLocale();
+        if (locale == null) {
+            locale = DEFAULT_LOCALE;
+            response.setLocale(locale);
+        }
+        return locale;
     }
 
 

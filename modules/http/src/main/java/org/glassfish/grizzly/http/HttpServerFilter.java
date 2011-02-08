@@ -122,7 +122,11 @@ public class HttpServerFilter extends HttpCodecFilter {
                             int maxHeadersSize,
                             KeepAlive keepAlive,
                             DelayedExecutor executor) {
-        this(chunkingEnabled, maxHeadersSize, null, keepAlive, executor);
+        this(chunkingEnabled,
+             maxHeadersSize,
+             Constants.DEFAULT_RESPONSE_TYPE,
+             keepAlive,
+             executor);
     }
 
 
