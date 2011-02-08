@@ -49,6 +49,11 @@ A:active {
     font-weight: bold;
 }
 
+.hl-tag {
+    color: #191970;
+    font-weight: bold;
+}
+
 .hl-string {
     color: #006400;
     font-weight: bold;

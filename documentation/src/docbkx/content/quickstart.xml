@@ -55,13 +55,13 @@
   <para>First, it is necessary to depend on the correct Grizzly 2.0 <link
   xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-framework/">core</link>
   artifact. Maven developers will need to add following dependency to the
-  pom:<programlisting language="java">&lt;dependency&gt;
+  pom:<programlisting language="xml">&lt;dependency&gt;
     &lt;groupId&gt;org.glassfish.grizzly&lt;/groupId&gt;
     &lt;artifactId&gt;grizzly-framework&lt;/artifactId&gt;
     &lt;version&gt;2.0.0&lt;/version&gt;
 &lt;/dependency&gt;</programlisting></para>
 
-  <para>Maven repository to be used is<programlisting language="java">&lt;repository&gt;
+  <para>Maven repository to be used is<programlisting language="xml">&lt;repository&gt;
     &lt;id&gt;glassfish-maven2-repository.dev.java.net&lt;/id&gt;
     &lt;name&gt;Java.net Maven 2 Repository for GlassFish&lt;/name&gt;
     &lt;url&gt;http://download.java.net/maven/glassfish/&lt;/url&gt;

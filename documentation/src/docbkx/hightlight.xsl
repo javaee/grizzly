@@ -19,4 +19,8 @@
   <i class="hl-string"><xsl:apply-templates/></i>
 </xsl:template>
 
+<xsl:template match='xslthl:tag'>
+  <i class="hl-tag"><xsl:apply-templates/></i>
+</xsl:template>
+
 </xsl:stylesheet>
