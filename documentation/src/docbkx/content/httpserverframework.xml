@@ -792,22 +792,25 @@ public interface NIOInputSource {
       notifyAvailable() methods, the ReadHandler will be invoked as soon as
       any data becomes available. In this case, it's a good idea to check how
       much can be read by another call to readyData(). </para>
+
+      <para>One final word on NIOInputSource implementations with respect to
+      the Request object. In order for these methods to function properly,
+      developers must obtain the desired NIOInputSource by calling
+      Request.getInputStream(false) or Request.getReader(false). Specifiy a
+      value of false sets the NIOInputSources to work in non-blocking mode. If
+      the a value of true is provided to the getRead() or getInputStream()
+      methods, the NIOInputSource will be set to blocking mode. It's not
+      possible to change the mode after the initial invocations of these
+      methods.</para>
     </section>
   </section>
 
   <section>
     <title>File Cache</title>
 
-    <para>The FileCache allows for efficient caching of static content. File
-    caching can be enabled or disabled by calling:</para>
-
-    <programlisting language="java">getFileCache().setEnabled();</programlisting>
-
-    <para>on a NetworkListener instance. By default, FileCaching is enabled on
-    new NetworkListener instances.</para>
-
-    <para>There are several configuration options that allow fine tuning of
-    each FileCache instance:</para>
+    <para>The FileCache allows for efficient caching of static content. There
+    are several configuration options that allow fine tuning of each FileCache
+    instance:</para>
 
     <table>
       <title>FileCache Configuration Properties</title>
@@ -872,14 +875,448 @@ public interface NIOInputSource {
     </table>
 
     <para>All properties of the FileCache can be manipulated by obtaining the
-    FileCache instance via the followign call:</para>
-
-    <programlisting language="java">NetworkLister.getFileCache()</programlisting>
+    FileCache instance by calling NetworkListener.getFileCache().</para>
   </section>
 
   <section>
     <title>Samples</title>
 
-    <para></para>
+    <para>The following example is a composite showing both the suspend/resume
+    as well as the NIO streams. First we'll show the server side. Note that
+    the following code snippets are part of a single example that makes use
+    nested classes.</para>
+
+    <programlisting language="java" linenumbering="numbered"
+                    startinglinenumber="303">/**
+     * This handler using non-blocking streams to read POST data and echo it
+     * back to the client.
+     */
+    private static class NonBlockingEchoHandler extends HttpHandler {
+
+
+        // -------------------------------------------- Methods from HttpHandler
+
+
+        @Override
+        public void service(final Request request,
+                            final Response response) throws Exception {
+
+            final char[] buf = new char[128];
+            final NIOReader in = request.getReader(false); // false argument puts the stream in non-blocking mode
+            final NIOWriter out = response.getWriter();
+
+            do {
+                // continue reading ready data until no more can be read without
+                // blocking
+                while (in.isReady()) {
+                    final int ready = in.readyData();
+                    int read = in.read(buf, 0, ready);
+                    if (read == -1) {
+                        break;
+                    }
+                    System.out.println("INITIAL READ: " + new String(buf, 0, ready));
+                    out.write(buf, 0, ready);
+                }
+
+                // try to install a ReadHandler.  If this fails,
+                // continue at the top of the loop and read available data,
+                // otherwise break the look and allow the handler to wait for
+                // data to become available.
+                boolean installed = in.notifyAvailable(new ReadHandler() {
+
+                    @Override
+                    public void onDataAvailable() {
+                        System.out.println("[onDataAvailable] length: " + in.readyData());
+                        doWrite(this, in, buf, out, false);
+                    }
+
+                    @Override
+                    public void onError(Throwable t) {
+                        System.out.println("[onError]" + t);
+                    }
+
+                    @Override
+                    public void onAllDataRead() {
+                        System.out.println("[onAllDataRead] length: " + in.readyData());
+                        doWrite(this, in, buf, out, true);
+                        response.resume();
+                    }
+                });
+
+                if (installed) {
+                    break;
+                }
+            } while (!in.isFinished());
+
+            response.suspend();
+
+        }
+
+        private void doWrite(ReadHandler handler,
+                             NIOReader in,
+                             char[] buf,
+                             NIOWriter out,
+                             boolean flush) {
+            try {
+                if (in.readyData() &lt;= 0) {
+                    if (flush) {
+                        out.flush();
+                    }
+                    return;
+                }
+                for (;;) {
+                    int len = in.read(buf);
+                    System.out.println("READ: " + new String(buf, 0, len));
+                    out.write(buf, 0, len);
+                    if (flush) {
+                        out.flush();
+                    }
+                    if (!in.isReady()) {
+                        // no more data is available, install the handler again.
+                        in.notifyAvailable(handler);
+                        break;
+                    }
+                }
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+            }
+        }
+
+    } // END NonBlockingEchoHandler</programlisting>
+
+    <para>As can be gleened from the name of the class, this HttpHandler
+    implementation simply echoes POST data back to the client. </para>
+
+    <para>Let's cover the major points of this part of the example:</para>
+
+    <itemizedlist>
+      <listitem>
+        <para>lines 324-332 - If possible read any data that is available
+        early into servicing the request. </para>
+      </listitem>
+
+      <listitem>
+        <para>lines 338-357 - When no more data is available to be read
+        without blocking, install a ReadHandler() to echo data back to the
+        client as it becomes available.</para>
+      </listitem>
+
+      <listitem>
+        <para>lines 359-361 - if we successfully installed the ReadHandler,
+        break the do-while loop so we can suspend the response until more data
+        is available (line 364). If the ReadHandler wasn't installed, more
+        data has become available to be read without blocking, so we continue
+        at the top of the do-while loop.</para>
+      </listitem>
+
+      <listitem>
+        <para>line 343 - onDataAvailable() call back will be invoked when data
+        becomes available that can be read without blocking.</para>
+      </listitem>
+
+      <listitem>
+        <para>lines 380-392 - Continue writing data until we can't read any
+        more content without blocking.</para>
+      </listitem>
+
+      <listitem>
+        <para>lines 354-355 - onAllDataRead() callback is invoked. Read
+        whatever content remains and resume the response. This will write the
+        last data read and commit the response.</para>
+      </listitem>
+    </itemizedlist>
+
+    <para>Now we need to create a server and install this HttpHandler:</para>
+
+    <programlisting language="java" linenumbering="numbered"
+                    startinglinenumber="108">public static void main(String[] args) {
+
+    // create a basic server that listens on port 8080.
+    final HttpServer server = HttpServer.createSimpleServer();
+
+    final ServerConfiguration config = server.getServerConfiguration();
+
+    // Map the path, /echo, to the NonBlockingEchoHandler
+    config.addHttpHandler(new NonBlockingEchoHandler(), "/echo");
+
+    try {
+        server.start();
+        Client client = new Client();
+        client.run();
+    } catch (IOException ioe) {
+        LOGGER.log(Level.SEVERE, ioe.toString(), ioe);
+    } finally {
+        server.stop();
+    }
+}</programlisting>
+
+    <para>This part of the example is pretty straight forward. Create the
+    server, install the HttpHandler to service requests made to /echo, and
+    start the server.</para>
+
+    <para>The client code which will follow will be sending data slowly to
+    exercise the non-blocking HttpHandler. The client code relies on the http
+    module primitives, so there's a little more code here to get this part of
+    the example going. Let's start with the client Filter that sends
+    request.</para>
+
+    <programlisting language="java" linenumbering="numbered"
+                    startinglinenumber="199">private static final class ClientFilter extends BaseFilter {
+
+            private static final String[] CONTENT = {
+                "contentA-",
+                "contentB-",
+                "contentC-",
+                "contentD"
+            };
+
+            private FutureImpl&lt;String&gt; future;
+
+            private StringBuilder sb = new StringBuilder();
+
+            // ---------------------------------------------------- Constructors
+
+
+            private ClientFilter(FutureImpl&lt;String&gt; future) {
+                this.future = future;                
+            }
+
+
+            // ----------------------------------------- Methods from BaseFilter
+
+
+            @SuppressWarnings({"unchecked"})
+            @Override
+            public NextAction handleConnect(FilterChainContext ctx) throws IOException {
+                System.out.println("\nClient connected!\n");
+
+                HttpRequestPacket request = createRequest();
+                System.out.println("Writing request:\n");
+                System.out.println(request.toString());
+                ctx.write(request); // write the request
+
+                // for each of the content parts in CONTENT, wrap in a Buffer,
+                // create the HttpContent to wrap the buffer and write the
+                // content.
+                MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
+                for (int i = 0, len = CONTENT.length; i &lt; len; i++) {
+                    HttpContent.Builder contentBuilder = request.httpContentBuilder();
+                    Buffer b = Buffers.wrap(mm, CONTENT[i]);
+                    contentBuilder.content(b);
+                    HttpContent content = contentBuilder.build();
+                    System.out.println(b.toStringContent());
+                    ctx.write(content);
+                    try {
+                        Thread.sleep(2000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace(); 
+                    }
+                }
+
+                // since the request created by createRequest() is chunked,
+                // we need to write the trailer to signify the end of the
+                // POST data
+                ctx.write(request.httpTrailerBuilder().build());
+
+                System.out.println("\n");
+
+                return ctx.getStopAction(); // discontinue filter chain execution
+
+            }
+
+
+            @Override
+            public NextAction handleRead(FilterChainContext ctx) throws IOException {
+
+                HttpContent c = (HttpContent) ctx.getMessage();
+                Buffer b = c.getContent();
+                if (b.hasRemaining()) {
+                    sb.append(b.toStringContent());
+                }
+
+                // Last content from the server, set the future result so
+                // the client can display the result and gracefully exit.
+                if (c.isLast()) {
+                    future.result(sb.toString());
+                }
+                return ctx.getStopAction(); // discontinue filter chain execution
+
+            }
+
+
+            // ------------------------------------------------- Private Methods
+
+
+            private HttpRequestPacket createRequest() {
+
+                HttpRequestPacket.Builder builder = HttpRequestPacket.builder();
+                builder.method("POST");
+                builder.protocol("HTTP/1.1");
+                builder.uri("/echo");
+                builder.chunked(true);
+                HttpRequestPacket packet = builder.build();
+                packet.addHeader("Host", HOST + ':' + PORT);
+                return packet;
+
+            }
+
+        }
+
+    } // END Client</programlisting>
+
+    <para>High level points about this code:</para>
+
+    <itemizedlist>
+      <listitem>
+        <para>lines 225-264 - When the connection is established with the
+        server, the handleConnect() method of this Filter will be invoked.
+        When this happens we create a HttpRequestPacket, which contains only
+        message part of a POST request. wThe request is then written. </para>
+
+        <itemizedlist>
+          <listitem>
+            <para>lines 236-249 writes the body of the message in 2 second
+            intervals.</para>
+          </listitem>
+        </itemizedlist>
+      </listitem>
+
+      <listitem>
+        <para>line 254 - Write the trailer to signify the end of the request
+        since the chunked transfer encoding is being used.</para>
+      </listitem>
+
+      <listitem>
+        <para>lines 264-279 - Read the response from the server. Store the
+        final result in a future to be retrieved later.</para>
+      </listitem>
+    </itemizedlist>
+
+    <para>Lastly we need to define a client that utilizes the Filter that was
+    just described:</para>
+
+    <programlisting language="java" linenumbering="numbered"
+                    startinglinenumber="133">private static final class Client {
+
+    private static final String HOST = "localhost";
+    private static final int PORT = 8080;
+
+    public void run() throws IOException {
+        final FutureImpl&lt;String&gt; completeFuture = SafeFutureImpl.create();
+
+        // Build HTTP client filter chain
+        FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+        // Add transport filter
+        clientFilterChainBuilder.add(new TransportFilter());
+
+        // Add HttpClientFilter, which transforms Buffer &lt;-&gt; HttpContent
+        clientFilterChainBuilder.add(new HttpClientFilter());
+        // Add ClientFilter
+        clientFilterChainBuilder.add(new ClientFilter(completeFuture));
+
+
+        // Initialize Transport
+        final TCPNIOTransport transport =
+               TCPNIOTransportBuilder.newInstance().build();
+        // Set filterchain as a Transport Processor
+        transport.setProcessor(clientFilterChainBuilder.build());
+
+        try {
+            // start the transport
+            transport.start();
+
+            Connection connection = null;
+
+            // Connecting to a remote Web server
+            Future&lt;Connection&gt; connectFuture = transport.connect(HOST, PORT);
+            try {
+                // Wait until the client connect operation will be completed
+                // Once connection has been established, the POST will
+                // be sent to the server.
+                connection = connectFuture.get(10, TimeUnit.SECONDS);
+
+                // Wait no longer than 30 seconds for the response from the
+                // server to be complete.
+                String result = completeFuture.get(30, TimeUnit.SECONDS);
+
+                // Display the echoed content
+                System.out.println("\nEchoed POST Data: " + result + '\n');
+            } catch (Exception e) {
+                if (connection == null) {
+                    LOGGER.log(Level.WARNING, "Connection failed.  Server is not listening.");
+                } else {
+                    LOGGER.log(Level.WARNING, "Unexpected error communicating with the server.");
+                }
+            } finally {
+                // Close the client connection
+                if (connection != null) {
+                    connection.close();
+                }
+            }
+        } finally {
+            // stop the transport
+            transport.stop();
+        }
+    }</programlisting>
+
+    <para>The comments within the Client code should be sufficient to explain
+    what's going on here. When running the complete example the output will
+    look something like:</para>
+
+    <screen>Feb 7, 2011 5:09:50 PM org.glassfish.grizzly.http.server.NetworkListener start
+INFO: Started listener bound to [0.0.0.0:8080]
+Feb 7, 2011 5:09:50 PM org.glassfish.grizzly.http.server.HttpServer start
+INFO: [HttpServer] Started.
+
+Client connected!
+
+Writing request:
+
+HttpRequestPacket (
+   method=POST
+   url=/echo
+   query=null
+   protocol=HTTP_1_1
+   content-length=-1
+   headers=[
+      Host=localhost:8080]
+)
+WRITE: contentA-
+[onDataAvailable] length: 9
+READ: contentA-
+
+(delay 2 seconds)
+
+WRITE: contentB-
+[onDataAvailable] length: 9
+READ: contentB-
+
+(delay 2 seconds)
+
+WRITE: contentC-
+[onDataAvailable] length: 9
+READ: contentC-
+
+(delay 2 seconds)
+
+WRITE: contentD
+[onDataAvailable] length: 8
+READ: contentD
+
+(delay 2 seconds)
+
+[onAllDataRead] length: 0
+
+Echoed POST Data: contentA-contentB-contentC-contentD
+
+Feb 7, 2011 5:09:58 PM org.glassfish.grizzly.http.server.NetworkListener stop
+INFO: Stopped listener bound to [0.0.0.0:8080]</screen>
+
+    <para>A quick note about the output above, the (delay 2 seconds) isn't
+    actually output. It's been added to visualize the artificial delay added
+    by the Filter used by the client.</para>
+
+    <para>This example in it's entirety is available within the samples
+    section of the Grizzly 2.0 repository.</para>
   </section>
 </chapter>

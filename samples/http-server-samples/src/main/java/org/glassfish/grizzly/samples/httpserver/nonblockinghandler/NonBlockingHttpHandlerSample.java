@@ -239,7 +239,7 @@ public class NonBlockingHttpHandlerSample {
                     Buffer b = Buffers.wrap(mm, CONTENT[i]);
                     contentBuilder.content(b);
                     HttpContent content = contentBuilder.build();
-                    System.out.println(b.toStringContent());
+                    System.out.println("WRITE: " + b.toStringContent());
                     ctx.write(content);
                     try {
                         Thread.sleep(2000);
@@ -385,7 +385,7 @@ public class NonBlockingHttpHandlerSample {
                         out.flush();
                     }
                     if (!in.isReady()) {
-                        // no more data is available, isntall the handler again.
+                        // no more data is available, install the handler again.
                         in.notifyAvailable(handler);
                         break;
                     }
