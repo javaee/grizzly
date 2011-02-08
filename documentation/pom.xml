@@ -98,9 +98,13 @@
                                 <copy todir="target/docbkx/html/images">
                                     <fileset dir="src/docbkx/images" />
                                 </copy>
+                                <copy todir="target/docbkx/html/css">
+                                    <fileset dir="src/docbkx/css" />
+                                </copy>
                             </preProcess>
                             <imgSrcPath>images/</imgSrcPath>
                             <chunkedOutput>true</chunkedOutput>
+                            <htmlStylesheet>css/style.css</htmlStylesheet>
                             <!-- Any parameters specific to HTML version go here -->
                         </configuration>
                         <phase>install</phase>

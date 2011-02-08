@@ -1,0 +1,45 @@
+
+BODY {
+    background-color: #ffffff;
+    font-size: 100%;
+}
+
+BODY, DIV, P, TD, TH {
+    font-family: tahoma, verdana, sans-serif;
+    font-size: 11px;
+    color: #000000;
+}
+
+PRE {
+    font-size: 10pt;
+    font-family: courier new, monospaced, serif;
+    margin: 0;
+}
+
+FIELDSET LEGEND {
+    color: #000000;
+}
+
+A {
+}
+
+A:link {
+    color: #000000;
+}
+
+A:visited {
+    color: #808080;
+}
+
+A:hover {
+    color: #FF0000;
+    text-decoration: none;
+}
+
+A:active {
+    color: #FF0000;
+}
+
+
+
+
