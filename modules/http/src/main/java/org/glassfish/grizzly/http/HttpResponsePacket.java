@@ -365,12 +365,12 @@ public abstract class HttpResponsePacket extends HttpHeader {
         contentLanguage = locale.getLanguage();
         if ((contentLanguage != null) && (contentLanguage.length() > 0)) {
             final String country = locale.getCountry();
-            final StringBuilder value = new StringBuilder(contentLanguage);
             if ((country != null) && (country.length() > 0)) {
+                final StringBuilder value = new StringBuilder(contentLanguage);
                 value.append('-');
                 value.append(country);
+                contentLanguage = value.toString();
             }
-            contentLanguage = value.toString();
         }
 
     }
