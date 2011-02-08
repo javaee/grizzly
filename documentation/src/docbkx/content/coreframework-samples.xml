@@ -59,7 +59,7 @@
                 <listitem>
                     <para>If we don't have enough data to build an application message - we stop the
                         FilterChain processing and store the incomplete buffer by
-                        returning<programlisting>return filterChainContext.getStopAction(buffer);</programlisting></para>
+                        returning<programlisting language="java">return filterChainContext.getStopAction(buffer);</programlisting></para>
                 </listitem>
                 <listitem>
                     <para>If the source Buffer contains more than one message at once - we're
@@ -77,12 +77,12 @@
                         FilterChain to continue execution, by calling the next Filter in the chain,
                         and store the remainder to be processed later (once processing of this
                         message is
-                        complete).<programlisting>return filterChainContext.getInvokeAction(remainder);</programlisting></para>
+                        complete).<programlisting language="java">return filterChainContext.getInvokeAction(remainder);</programlisting></para>
                 </listitem>
             </itemizedlist></para>
         <para>Here is an example of parsing Filter, parses the incoming Buffer and creates a
             GIOPMessage, which has following
-            structure<programlisting>public class GIOPMessage {
+            structure<programlisting language="java">public class GIOPMessage {
     private byte G;
     private byte I;
     private byte O;
@@ -99,7 +99,7 @@
     private byte[] body;
 }</programlisting></para>
         <para>So the actual parser Filter code
-            is<programlisting>    private static final int HEADER_SIZE = 12;
+            is<programlisting language="java">    private static final int HEADER_SIZE = 12;
 
     /**
      * Method is called, when new data was read from the Connection and ready
@@ -190,7 +190,7 @@
             ex. database access), and to not make entire server unresponsive, we'd want to execute
             such a task in our custom thread pool and let Grizzly service other Connections.</para>
         <para>This might be easily implemented with Grizzly using code like (not working
-            sample):<programlisting>    public NextAction handleRead(final FilterChainContext ctx) throws IOException {
+            sample):<programlisting language="java">    public NextAction handleRead(final FilterChainContext ctx) throws IOException {
     
             // Get the SuspendAction in advance, cause once we execute LongLastTask in the
             // custom thread - we lose control over the context
@@ -217,7 +217,7 @@
         <para>during processing IOEvent. We have to understand that by instructing Grizzly to
             suspend the IOEvent execution, we're becoming responsible for resuming the execution at
             one point of time (when long lasting task or blocking I/O operation
-            completes).<programlisting>public void run() {
+            completes).<programlisting language="java">public void run() {
     doLongLastingTask();
 
     // Resume the FilterChain IOEvent processing
@@ -228,7 +228,7 @@
                 SuspendAction!</emphasis> So the "suspender", has to distunguish two types of
             processing - the regular and resumed to avoid neverending loop. So coming back to our
             Filter sample, we should introduce some flag to distinguish the processing
-            type.<programlisting>    public NextAction handleRead(final FilterChainContext ctx) throws IOException {
+            type.<programlisting language="java">    public NextAction handleRead(final FilterChainContext ctx) throws IOException {
 <emphasis role="bold">        // Check if it's resuming phase?
         final Boolean isResumed = isResumedAttribute.remove(ctx);
         if (!isResumed) {

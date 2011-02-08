@@ -141,7 +141,7 @@
   <para>Let's take a look which I/O events could be processed by a <emphasis
   role="italic">FilterChain</emphasis>, for that purpose we can just take a
   look at the <emphasis role="italic">Filter</emphasis> interface
-  methods:<programlisting>public NextAction handleRead(FilterChainContext ctx) throws IOException;
+  methods:<programlisting language="java">public NextAction handleRead(FilterChainContext ctx) throws IOException;
 
 public NextAction handleWrite(FilterChainContext ctx) throws IOException;
 
@@ -193,7 +193,7 @@ public NextAction handleClose(FilterChainContext ctx) throws IOException;</progr
 
   <para>Additionally FilterChain Filters are able to initiate and handle
   custom event notifications. The event initiator may chose to emit the event
-  upstream or downstream by FilterChain like:<programlisting>public NextAction handleRead(FilterChainContext ctx) throws IOException {
+  upstream or downstream by FilterChain like:<programlisting language="java">public NextAction handleRead(FilterChainContext ctx) throws IOException {
         // Here we decide to notify downstream Filters
         ctx.notifyDownstream(new MyEvent(...));
 
@@ -202,7 +202,7 @@ public NextAction handleClose(FilterChainContext ctx) throws IOException;</progr
 }</programlisting></para>
 
   <para>The Filters in FilterChain are able to intercept and process custom
-  Events by implementing method:<programlisting>public NextAction handleEvent(FilterChainContext ctx, FilterChainEvent event) throws IOException;</programlisting></para>
+  Events by implementing method:<programlisting language="java">public NextAction handleEvent(FilterChainContext ctx, FilterChainEvent event) throws IOException;</programlisting></para>
 
   <para>As we see each Filter "handle" method has FilterChainContext parameter
   and returns NextAction result.</para>
@@ -264,7 +264,7 @@ public NextAction handleClose(FilterChainContext ctx) throws IOException;</progr
             <listitem>
               <para><emphasis role="bold">Read</emphasis></para>
 
-              <para><programlisting>ReadResult readResult = ctx.read();</programlisting></para>
+              <para><programlisting language="java">ReadResult readResult = ctx.read();</programlisting></para>
 
               <para>This operation performs a blocking FilterChain read
               starting at the first Filter in chain (inclusive) upstream to
@@ -277,7 +277,7 @@ public NextAction handleClose(FilterChainContext ctx) throws IOException;</progr
             </listitem>
 
             <listitem>
-              <para><emphasis role="bold">Write</emphasis><programlisting>ctx.write(message);
+              <para><emphasis role="bold">Write</emphasis><programlisting language="java">ctx.write(message);
 
 or
 
@@ -295,7 +295,7 @@ ctx.write(address, message, completionHandler);  // Unbound UDP only</programlis
             </listitem>
 
             <listitem>
-              <para><emphasis role="bold">Flush</emphasis><programlisting>ctx.flush();
+              <para><emphasis role="bold">Flush</emphasis><programlisting language="java">ctx.flush();
 
 or
 
@@ -310,7 +310,7 @@ ctx.flush(completionHandler);</programlisting></para>
 
             <listitem>
               <para><emphasis role="bold">Event
-              notification</emphasis><programlisting>ctx.notifyUpstream(event);
+              notification</emphasis><programlisting language="java">ctx.notifyUpstream(event);
 
 or
 
@@ -334,7 +334,7 @@ ctx.notifyDownstream(event);</programlisting></para>
             <listitem>
               <para><emphasis role="bold">InvokeAction</emphasis></para>
 
-              <para><programlisting>return ctx.getInvokeAction();</programlisting></para>
+              <para><programlisting language="java">return ctx.getInvokeAction();</programlisting></para>
 
               <para>instructs the FilterChain to run next Filter in chain
               according to the natural execution order.</para>
@@ -342,7 +342,7 @@ ctx.notifyDownstream(event);</programlisting></para>
               <para>It's possible to create the InvokeAction with a remainder
               parameter:</para>
 
-              <para><programlisting>return ctx.getInvokeAction(remainder);</programlisting></para>
+              <para><programlisting language="java">return ctx.getInvokeAction(remainder);</programlisting></para>
 
               <para>this instructs the FilterChain to store the remainder and
               continue FilterChain execution like it was with
@@ -361,7 +361,7 @@ ctx.notifyDownstream(event);</programlisting></para>
             <listitem>
               <para><emphasis role="bold">StopAction</emphasis></para>
 
-              <para><programlisting>return ctx.getStopAction();</programlisting></para>
+              <para><programlisting language="java">return ctx.getStopAction();</programlisting></para>
 
               <para>instructs the FilterChain to stop the processing of this
               I/O Event. Usually StopAction is returned when there isn't
@@ -369,7 +369,7 @@ ctx.notifyDownstream(event);</programlisting></para>
               Filter in the chain.</para>
 
               <para>Like InvokeAction, StopAction also could be
-              parameterized<programlisting>return ctx.getStopAction(remainder);
+              parameterized<programlisting language="java">return ctx.getStopAction(remainder);
 
 or
 
@@ -395,7 +395,7 @@ return ctx.getStopAction(remainder, appender);</programlisting></para>
 
             <listitem>
               <para><emphasis
-              role="bold">RerunFilterAction</emphasis><programlisting>return ctx.getRerunFilterAction();</programlisting></para>
+              role="bold">RerunFilterAction</emphasis><programlisting language="java">return ctx.getRerunFilterAction();</programlisting></para>
 
               <para>Instructs the FilterChain to re-run this Filter one more
               time. This can useful to simplify I/O event processing code and
@@ -405,11 +405,11 @@ return ctx.getStopAction(remainder, appender);</programlisting></para>
             <listitem xml:id="suspend-action">
               <para><emphasis role="bold">SuspendAction</emphasis></para>
 
-              <programlisting>return ctx.getSuspendAction();</programlisting>
+              <programlisting language="java">return ctx.getSuspendAction();</programlisting>
 
               <para>Instructs the FilterChain to terminate (leave) the I/O
               event processing in the current thread. The user will be able to
-              resume the I/O event processing by calling<programlisting>ctx.resume();</programlisting></para>
+              resume the I/O event processing by calling<programlisting language="java">ctx.resume();</programlisting></para>
 
               <para>Once <emphasis role="italic">ctx.resume()</emphasis> is
               called, FilterChain resumes processing at the same Filter it was
@@ -427,7 +427,7 @@ return ctx.getStopAction(remainder, appender);</programlisting></para>
 
             <listitem>
               <para><emphasis
-              role="bold">SuspendStopAction</emphasis><programlisting>return ctx.getSuspendStopAction();</programlisting></para>
+              role="bold">SuspendStopAction</emphasis><programlisting language="java">return ctx.getSuspendStopAction();</programlisting></para>
 
               <para>This NextAction is very similar to <link
               linkend="suspend-action">SuspendAction</link>, except for one

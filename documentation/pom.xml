@@ -61,7 +61,7 @@
             <plugin>
                 <groupId>com.agilejava.docbkx</groupId>
                 <artifactId>docbkx-maven-plugin</artifactId>
-                <version>2.0.11</version>
+                <version>2.0.9</version>
                 <dependencies>
                     <dependency>
                         <groupId>net.sf.docbook</groupId>
@@ -73,17 +73,20 @@
                     </dependency>
                 </dependencies>
                 <executions>
+                    <!--
                     <execution>
                         <id>create-pdf-docs</id>
                         <goals>
                             <goal>generate-pdf</goal>
                         </goals>
                         <configuration>
-                            <!-- Any parameters specific to the PDF version go here -->
+
                             <imgSrcPath>file:///${basedir}/src/docbkx/</imgSrcPath>
+                            <highlightSource>true</highlightSource>
                         </configuration>
                         <phase>install</phase>
                     </execution>
+                    -->
                     <execution>
                         <id>create-html-docs</id>
                         <goals>
@@ -105,7 +108,12 @@
 
                 </executions>
                 <configuration>
-                    <highlightSource>1</highlightSource>
+                    <highlightSource>true</highlightSource>
+                    <highlightDefaultLanguage>java</highlightDefaultLanguage>
+                    <useExtensions>1</useExtensions>
+                    <linenumberingExtension>1</linenumberingExtension>
+                    <linenumberingEveryNth>1</linenumberingEveryNth>
+                    <calloutsExtension>1</calloutsExtension>
                     <xincludeSupported>true</xincludeSupported>
                 </configuration>
             </plugin>

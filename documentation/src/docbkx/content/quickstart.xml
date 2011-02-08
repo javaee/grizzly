@@ -55,13 +55,13 @@
   <para>First, it is necessary to depend on the correct Grizzly 2.0 <link
   xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-framework/">core</link>
   artifact. Maven developers will need to add following dependency to the
-  pom:<programlisting>&lt;dependency&gt;
+  pom:<programlisting language="java">&lt;dependency&gt;
     &lt;groupId&gt;org.glassfish.grizzly&lt;/groupId&gt;
     &lt;artifactId&gt;grizzly-framework&lt;/artifactId&gt;
     &lt;version&gt;2.0.0&lt;/version&gt;
 &lt;/dependency&gt;</programlisting></para>
 
-  <para>Maven repository to be used is<programlisting>&lt;repository&gt;
+  <para>Maven repository to be used is<programlisting language="java">&lt;repository&gt;
     &lt;id&gt;glassfish-maven2-repository.dev.java.net&lt;/id&gt;
     &lt;name&gt;Java.net Maven 2 Repository for GlassFish&lt;/name&gt;
     &lt;url&gt;http://download.java.net/maven/glassfish/&lt;/url&gt;
@@ -79,7 +79,7 @@
       <title>Create echo filter</title>
       <para>First of all let's implement echo filter, which will echo the received message (despite
         its type) back to the Grizzly
-        Connection.<programlisting> 1  import java.io.IOException;
+        Connection.<programlisting language="java"> 1  import java.io.IOException;
  2  import org.glassfish.grizzly.filterchain.BaseFilter;
  3  import org.glassfish.grizzly.filterchain.FilterChain;
  4  import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -116,7 +116,7 @@
     <section>
       <title>Server initialization code</title>
       <para>All the server FilterChain bricks are ready - let's initialize and start the
-        server.<programlisting> 1  import java.io.IOException;
+        server.<programlisting language="java"> 1  import java.io.IOException;
  2  import java.nio.charset.Charset;
  3  import java.util.logging.Logger;
  4  import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -176,7 +176,7 @@
       <title>Running echo server</title>
       <para>As we see in the code above, EchoServer class declares main method, so it could be
         easily run from command line
-        like:<programlisting>java -classpath grizzly-framework.jar EchoServer</programlisting></para>
+        like:<programlisting language="java">java -classpath grizzly-framework.jar EchoServer</programlisting></para>
       <para>or using your favorite IDE.</para>
     </section>
     
@@ -190,7 +190,7 @@
       <para>Client filter is responsible for redirecting server response to the standard output.
         Please note, the ClientFilter requires FilterChainContext messages to be java.lang.String
         (line 21), so it relies StringFilter is preceding it in the
-        FilterChain.<programlisting> 1  import java.io.IOException;
+        FilterChain.<programlisting language="java"> 1  import java.io.IOException;
  2  import org.glassfish.grizzly.filterchain.BaseFilter;
  3  import org.glassfish.grizzly.filterchain.FilterChainContext;
  4  import org.glassfish.grizzly.filterchain.NextAction;
@@ -220,7 +220,7 @@
     <section>
       <title>Client initialization code</title>
       <para>Now we're ready to initialize the client, which includes FilterChain and Transport
-        initialization<programlisting> 1          Connection connection = null;
+        initialization<programlisting language="java"> 1          Connection connection = null;
  2
  3          // Create a FilterChain using FilterChainBuilder
  4          FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
@@ -244,7 +244,7 @@
       <title>Adding user interaction and client shutdown code</title>
       <para>Let's complete the code above by adding the logic, which reads user data from the
         standard input, sends it to the server and client shutdown being executed on end of
-        input.<programlisting> 1  import java.io.BufferedReader;
+        input.<programlisting language="java"> 1  import java.io.BufferedReader;
  2  import java.io.IOException;
  3  import java.io.InputStreamReader;
  4  import java.nio.charset.Charset;
@@ -325,13 +325,13 @@
     <section>
       <title>Running echo client</title>
       <para>EchoClient could be run easily using command line
-        like<programlisting>java -classpath grizzly-framework.jar EchoClient</programlisting></para>
+        like<programlisting language="java">java -classpath grizzly-framework.jar EchoClient</programlisting></para>
       <para>or your favorite IDE.</para>
       <para>By default, if standard input and outtput were not changed - you'll see the following on
-        the console:<programlisting>Ready... ("q" to exit)</programlisting></para>
+        the console:<programlisting language="java">Ready... ("q" to exit)</programlisting></para>
       <para>Now the client is ready for your input. Each time you typed a line and pressed
         &lt;ENTER> - the line will be sent to the server and response
-        got:<programlisting>Ready... ("q" to exit)
+        got:<programlisting language="java">Ready... ("q" to exit)
 Hey there!
 Server echo: Hey there!</programlisting></para>
     </section>

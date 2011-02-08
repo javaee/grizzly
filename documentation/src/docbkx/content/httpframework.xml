@@ -144,20 +144,20 @@
       objects in order to create new instances. For example, in order to
       create a response for a particular request:</para>
 
-      <programlisting>final HttpResponsePacket.Builder builder = response.builder(request);
+      <programlisting language="java">final HttpResponsePacket.Builder builder = response.builder(request);
 final HttpResponsePacket response = builder.chunked(true).status(200).reasonPhrase("OK").build();</programlisting>
 
       <para>Building off the example above, a message body can be added to the
       response that was just created:</para>
 
-      <programlisting>final HttpContent.Builder contentBuilder = response.httpContentBuilder();
+      <programlisting language="java">final HttpContent.Builder contentBuilder = response.httpContentBuilder();
 final HttpContent = contentBuilder.setContent(
                          Buffers.wrap(null, "&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;Hello!&lt;/body&gt;&lt;/html&gt;")).setLast(true).build();</programlisting>
 
       <para>Finally, since the response body is chunked, a HttpTrailer needs
       to be included:</para>
 
-      <programlisting>final HttpTrailer.Builder trailerBuilder = response.httpTrailerBuilder();
+      <programlisting language="java">final HttpTrailer.Builder trailerBuilder = response.httpTrailerBuilder();
 final HttpTrailer trailer = trailderBuilder.build();</programlisting>
 
       <para>Each of the created HttpPacket entites from above can then be
@@ -173,7 +173,7 @@ ctx.write(trailer);  </programlisting>
       HttpContent.Builder eliminated completely since HttpTrailer is a
       specialized form of HttpContent:</para>
 
-      <programlisting>final HttpResponsePacket.Builder builder = response.builder(request);
+      <programlisting language="java">final HttpResponsePacket.Builder builder = response.builder(request);
 final HttpResponsePacket response = builder.chunked(true).status(200).reasonPhrase("OK").build();
 final HttpTrailder.Builder trailerBuilder = response.httpTrailderBuilder();
 trailerBuilder.setContent(null, "&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;Hello!&lt;/body&gt;&lt;/html&gt;").setLast(true).build();
@@ -223,7 +223,7 @@ ctx.write(trailer);</programlisting>
       <para>Custom transfer-encoding implementations may be provided by
       implementing the TransferEncoding interface:</para>
 
-      <programlisting>/**
+      <programlisting language="java">/**
  * Abstraction, which represents HTTP transfer-encoding.
  * The implementation should take care about possible HTTP content fragmentation.
  *
@@ -308,7 +308,7 @@ public interface TransferEncoding {
       <para>Custom content-encodings can be provided by implementing the
       ContentEncoding interface:</para>
 
-      <programlisting>/**
+      <programlisting language="java">/**
  * Abstraction, which represents HTTP content-encoding.
  * Implementation should take care of HTTP content encoding and decoding.
  *

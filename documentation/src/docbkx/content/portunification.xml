@@ -114,7 +114,7 @@
       passed integer values. The services protocol could be descibed by the following ABNF:<itemizedlist>
         <listitem>
           <para><emphasis role="bold"
-            >add</emphasis><programlisting>protocol  =  magic
+            >add</emphasis><programlisting language="java">protocol  =  magic
              value1
              value2
 magic     =  "add"
@@ -126,7 +126,7 @@ BYTE      =  OCTET</programlisting></para>
       </itemizedlist><itemizedlist>
         <listitem>
           <para><emphasis role="bold"
-            >sub</emphasis><programlisting>protocol  =  magic
+            >sub</emphasis><programlisting language="java">protocol  =  magic
              value1
              value2
 magic     =  "sub"
@@ -139,7 +139,7 @@ BYTE      =  OCTET</programlisting></para>
     <para>From the protocol description, it's obvious we can distinguish two services and their
       protocols by 3-bytes magic header, add-service has "add", sub-service "sub". So it's what
       service's ProtocolFinder should address. For example add-service ProtocolFinder may look
-      like:<programlisting>/**
+      like:<programlisting language="java">/**
  * {@link ProtocolFinder}, responsible to determine if incoming byte buffer
  * represents ADD-service request.
  */
@@ -184,7 +184,7 @@ public class AddProtocolFinder implements ProtocolFinder {
         </listitem>
       </itemizedlist></para>
     <para>The PUProtocol initialization and registration for add-service will look following
-      way:<programlisting>        // Create PUFilter
+      way:<programlisting language="java">        // Create PUFilter
         final PUFilter puFilter = new PUFilter();
 
         // Create ADD-service ProtocolFinder
@@ -206,7 +206,7 @@ public class AddProtocolFinder implements ProtocolFinder {
         puFilter.register(addServicePUProtocol);</programlisting></para>
     <para>Similar coding is required for the sub-service. Finally port unification Filter (PUFilter)
       should be added to the main FilterChain and Transport could be
-      started<programlisting>        // Construct the main filter chain
+      started<programlisting language="java">        // Construct the main filter chain
         final FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.stateless()
                 .add(new TransportFilter())
                 .add(puFilter);
