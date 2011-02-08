@@ -157,15 +157,14 @@
       <title>ByteBufferManager</title>
 
       <para>The <emphasis>ByteBufferManager</emphasis> implementation vends
-      Buffers that wrap JDK ByteBuffer instances. </para>
+      Buffers that wrap JDK ByteBuffer instances.</para>
 
       <figure>
         <title>ByteBufferManager UML Diagram</title>
 
         <mediaobject>
           <imageobject>
-            <imagedata fileref="../images/coreframework/bbmmanager-uml.svgz"
-                       scale="40"></imagedata>
+            <imagedata fileref="../images/coreframework/bbmmanager-uml.svgz"></imagedata>
           </imageobject>
         </mediaobject>
       </figure>
@@ -222,8 +221,7 @@
 
         <mediaobject>
           <imageobject>
-            <imagedata fileref="../images/coreframework/mmflow.svgz"
-                       scale="50"></imagedata>
+            <imagedata fileref="../images/coreframework/mmflow.svgz"></imagedata>
           </imageobject>
         </mediaobject>
       </figure>
@@ -291,7 +289,7 @@
       <emphasis>Buffer</emphasis> instances. The CompositeBuffer maintains a
       virtual position, limit, and capacity based on the
       <emphasis>Buffers</emphasis> that have been appended and can be treated
-      as a simple <emphasis>Buffer</emphasis> instance. </para>
+      as a simple <emphasis>Buffer</emphasis> instance.</para>
 
       <para>Please see the javadocs for further details on
       <emphasis>CompositeBuffer</emphasis>.</para>
