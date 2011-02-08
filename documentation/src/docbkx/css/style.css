@@ -49,6 +49,11 @@ A:active {
     font-weight: bold;
 }
 
+.hl-string {
+    color: #006400;
+    font-weight: bold;
+}
+
 .programlisting {
     background-color: #F0F0F0;
     border-style: solid;

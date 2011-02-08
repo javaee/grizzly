@@ -15,4 +15,8 @@
   <i class="hl-comment"><xsl:apply-templates/></i>
 </xsl:template>
 
+<xsl:template match='xslthl:string'>
+  <i class="hl-string"><xsl:apply-templates/></i>
+</xsl:template>
+
 </xsl:stylesheet>
