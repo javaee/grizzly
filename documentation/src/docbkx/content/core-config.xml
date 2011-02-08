@@ -365,8 +365,8 @@
 
       <para>This pool will be selected when the queueLimit property is less
       than zero, and the max and core pool sizes are the same. The
-      FixedThreadPool has no synchronization when executing tasks, so it offers
-      better performance.</para>
+      FixedThreadPool has no synchronization when executing tasks, so it
+      offers better performance.</para>
     </section>
 
     <section>
@@ -394,72 +394,26 @@
     <para>Here are some examples of using the TCPNIOTransportBuilder to
     configure the Transport and/or thread pool.</para>
 
-    <programlisting language="java">final TCPNIOTransportBuilder builder = TCPNIOTranportBuilder.newInstance(); <co
-        linkends="ex1-1" xml:id="ex1new" />
-final TCPNIOTransport transport = builder.build(); <co linkends="ex1-2"
-        xml:id="ex1bld" /></programlisting>
+    <programlisting language="java" xml:space="preserve">final TCPNIOTransportBuilder builder = TCPNIOTranportBuilder.newInstance(); 
+final TCPNIOTransport transport = builder.build(); </programlisting>
 
-    <calloutlist>
-      <callout arearefs="ex1new" xml:id="ex1-1">
-        <para>Create a new TCPNIOTransportBuilder instance.</para>
-      </callout>
+    <para>Creates a new TCPNIOTransport using all default configuration
+    values.</para>
 
-      <callout arearefs="ex1bld" xml:id="ex1-2">
-        <para>Creates a new TCPNIOTransport using defaults. Adjustments to the
-        Transport configuration can still be made at this point as long as the
-        Transport has not been started.</para>
-      </callout>
-    </calloutlist>
+    <programlisting language="java">final TCPNIOTransportBuilder builder = TCPNIOTransportBuilder.newInstance(); 
+final TCPNIOTransport transport = builder.setIOStrategy(new SameThreadIOStrategy()).setTcpNoDelay(true).build();     </programlisting>
 
-    <programlisting language="java">
-final TCPNIOTransportBuilder builder = TCPNIOTransportBuilder.newInstance(); <co linkends="ex2-1" xml:id="ex2-1-co" />
-final TCPNIOTransport transport = builder.setIOStrategy(new SameThreadIOStrategy()).setTcpNoDelay(true).build(); <co linkends="ex2-2" xml:id="ex2-2-co" />
-    </programlisting>
+    <para>Creates a new TCPNIOTransport instance using the
+    SameThreadIOStrategy, and tcp-no-delay set to true. Note that
+    configuration calls can be chained.</para>
 
-    <calloutlist>
-      <callout arearefs="ex2-1-co" xml:id="ex2-1">
-        <para>Create a new TCPNIOTransportBuilder instance.</para>
-      </callout>
+    <programlisting language="java">final TCPNIOTransportBuilder builder = TCPNIOTransportBuilder.newInstance(); 
+final ThreadPoolConfig config = builder.getWorkerThreadPoolConfig(); 
+config.setCorePoolSize(5).setMaxPoolSize(5).setQueueLimit(-1); 
+final TCPNIOTransport transport = builder.build(); </programlisting>
 
-      <callout arearefs="ex2-2-co" xml:id="ex2-2">
-        <para>Creates a new TCPNIOTransport using the SameThreadIOStrategy and
-        setting tcp no-delay to true. Notice you can chain configuration calls
-        with the builder implementation.</para>
-      </callout>
-    </calloutlist>
-
-    <programlisting language="java">final TCPNIOTransportBuilder builder = TCPNIOTransportBuilder.newInstance(); <co
-        linkends="ex3-1" xml:id="ex3-1-co" />
-final ThreadPoolConfig config = builder.getWorkerThreadPoolConfig(); <co
-        linkends="ex3-2" xml:id="ex3-2-co" />
-config.setCorePoolSize(5).setMaxPoolSize(5).setQueueLimit(-1); <co
-        linkends="ex3-3" xml:id="ex3-3-co" />
-final TCPNIOTransport transport = builder.build(); <co linkends="ex3-4"
-        xml:id="ex3-4-co" /></programlisting>
-
-    <calloutlist>
-      <callout arearefs="ex3-1-co" xml:id="ex3-1">
-        <para>Create a new TCPNIOTransportBuilder instance.</para>
-      </callout>
-
-      <callout arearefs="ex3-2-co" xml:id="ex3-2">
-        <para>Obtains the ThreadPoolConfig. Note that depending on the
-        IOStrategy being used, this may return null. Since the default
-        IOStrategy is WorkerThreadIOStrategy, this call will return a non-null
-        value.</para>
-      </callout>
-
-      <callout arearefs="ex3-3-co" xml:id="ex3-3">
-        <para>Update the worker thread pool configuration to have no queue
-        limit, and have the same core and max pool size values. This will
-        bring the FixedThreadPool implementation into play when the runtime is
-        started.</para>
-      </callout>
-
-      <callout arearefs="ex3-4-co" xml:id="ex3-4">
-        <para>Creates a new TCPNIOTransport based on the builder
-        configuration.</para>
-      </callout>
-    </calloutlist>
+    <para>This example will configure the TCPNIOTransport to use the
+    FixedThreadPool implementation due to the fact that there is no queue
+    limit and the core and max pool sizes are the same.</para>
   </section>
 </section>
