@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly;
 
+import java.net.InetSocketAddress;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.junit.Test;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
@@ -314,12 +315,19 @@ public class SSLTest {
             transport.configureBlocking(isBlocking);
 
             for (int i = 0; i < connectionsNum; i++) {
-                Future<Connection> future = transport.connect("localhost", PORT);
+                Future<Connection> future = transport.connect(
+                        new InetSocketAddress("localhost", PORT),
+                        new EmptyCompletionHandler<Connection>()  {
+
+                            @Override
+                            public void completed(final Connection connection) {
+                                connection.configureStandalone(true);
+                                connection.setReadTimeout(10, TimeUnit.SECONDS);
+                            }
+                        });
+
                 connection = future.get(10, TimeUnit.SECONDS);
                 assertTrue(connection != null);
-
-                connection.configureStandalone(true);
-                connection.setReadTimeout(10, TimeUnit.SECONDS);
 
                 StreamReader connectionStreamReader =
                         StandaloneProcessor.INSTANCE.getStreamReader(connection);
