@@ -50,6 +50,7 @@ import org.glassfish.grizzly.utils.StateHolder;
 import java.io.IOException;
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedSelectorException;
+import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.ArrayDeque;
@@ -405,15 +406,25 @@ public final class SelectorRunner implements Runnable {
      * @param runLogLevel logger {@link Level} to use, if transport is in running state
      * @param stoppedLogLevel logger {@link Level} to use, if transport is not in running state
      */
-    private void notifyConnectionException(SelectionKey key, String description, 
-            Exception e, Level runLogLevel,
-            Level stoppedLogLevel) {
+    private void notifyConnectionException(final SelectionKey key,
+            final String description,
+            final Exception e, final Level runLogLevel,
+            final Level stoppedLogLevel) {
         if (isRunning()) {
             logger.log(runLogLevel, description, e);
 
             if (key != null) {
                 try {
-                    transport.getSelectionKeyHandler().cancel(key);
+                    final Connection connection =
+                            transport.getSelectionKeyHandler().getConnectionForKey(key);
+
+                    if (connection != null) {
+                        connection.close();
+                    } else {
+                        final SelectableChannel channel = key.channel();
+                        transport.getSelectionKeyHandler().cancel(key);
+                        channel.close();
+                    }
                 } catch (IOException cancelException) {
                     logger.log(Level.FINE, "IOException during cancelling key",
                             cancelException);

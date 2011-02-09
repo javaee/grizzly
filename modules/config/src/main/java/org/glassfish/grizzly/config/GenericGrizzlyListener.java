@@ -376,7 +376,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         final ThreadPool threadPool) {
 //            Http http = listener.findHttpProtocol().getHttp();
 //            int keepAlive = http == null ? 0 : Integer.parseInt(http.getTimeoutSeconds());
-        final int maxQueueSize = threadPool.getMaxQueueSize() != null ? Integer.MAX_VALUE
+        final int maxQueueSize = threadPool.getMaxQueueSize() == null ? Integer.MAX_VALUE
             : Integer.parseInt(threadPool.getMaxQueueSize());
         final int minThreads = Integer.parseInt(threadPool.getMinThreadPoolSize());
         final int maxThreads = Integer.parseInt(threadPool.getMaxThreadPoolSize());
