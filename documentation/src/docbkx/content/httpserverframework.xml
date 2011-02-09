@@ -635,7 +635,7 @@ public interface NIOOutputSink {
       with the desired length. Whether or not the desired amount of data will
       depened, primarily, on the configuration value of maxPendingWrites
       property on the NetworkListener being used to process the current
-      request. </para>
+      request.</para>
 
       <para>For example, if the client is on a slow connection, and the OS
       network buffer is full, the write queue maintained by the Transport
@@ -762,24 +762,6 @@ public interface NIOInputSource {
      */
     boolean isReady();
 
-
-    /**
-     * &lt;p&gt;
-     * Returns the underlying {@link Buffer} that backs this
-     *  &lt;code&gt;NIOInputSource&lt;/code&gt;.
-     * &lt;/p&gt;
-     *
-     * &lt;p&gt;
-     * It should be noted that for character-based &lt;code&gt;NIOInputSource&lt;/code&gt;s,
-     * the {@link Buffer} is the raw bytes.  Any character conversion
-     * would have to be applied manually.
-     * &lt;/p&gt;
-     *
-     * @return the underlying {@link Buffer} that backs this
-     *  &lt;code&gt;NIOInputSource&lt;/code&gt;.
-     */
-    Buffer getBuffer();
-
 }</programlisting>
 
       <para>The general idea behind non-blocking writes holds true for
@@ -791,7 +773,33 @@ public interface NIOInputSource {
       ReadHandler will be invoked. Note that if no length is provided to the
       notifyAvailable() methods, the ReadHandler will be invoked as soon as
       any data becomes available. In this case, it's a good idea to check how
-      much can be read by another call to readyData(). </para>
+      much can be read by another call to readyData().</para>
+
+      <para>For optimized reading of binary data, there is the specialized
+      interface, BinaryNIOInputSource, that allows direct access to the Buffer
+      used to store the incoming data:</para>
+
+      <programlisting language="java">/**
+ * Adds the ability for binary based {@link NIOInputSource}s to obtain the
+ * incoming {@link org.glassfish.grizzly.Buffer} directly without having to
+ * use intermediate objects to copy the data to.
+ *
+ * @since 2.0
+ */
+public interface BinaryNIOInputSource extends NIOInputSource {
+
+    /**
+     * &lt;p&gt;
+     * Returns the underlying {@link org.glassfish.grizzly.Buffer} that backs this
+     *  &lt;code&gt;NIOInputSource&lt;/code&gt;.
+     * &lt;/p&gt;
+     *
+     * @return the underlying {@link org.glassfish.grizzly.Buffer} that backs this
+     *  &lt;code&gt;NIOInputSource&lt;/code&gt;.
+     */
+    Buffer getBuffer();
+
+}</programlisting>
 
       <para>One final word on NIOInputSource implementations with respect to
       the Request object. In order for these methods to function properly,
@@ -985,14 +993,14 @@ public interface NIOInputSource {
     } // END NonBlockingEchoHandler</programlisting>
 
     <para>As can be gleened from the name of the class, this HttpHandler
-    implementation simply echoes POST data back to the client. </para>
+    implementation simply echoes POST data back to the client.</para>
 
     <para>Let's cover the major points of this part of the example:</para>
 
     <itemizedlist>
       <listitem>
         <para>lines 324-332 - If possible read any data that is available
-        early into servicing the request. </para>
+        early into servicing the request.</para>
       </listitem>
 
       <listitem>
@@ -1171,7 +1179,7 @@ public interface NIOInputSource {
         <para>lines 225-264 - When the connection is established with the
         server, the handleConnect() method of this Filter will be invoked.
         When this happens we create a HttpRequestPacket, which contains only
-        message part of a POST request. wThe request is then written. </para>
+        message part of a POST request. wThe request is then written.</para>
 
         <itemizedlist>
           <listitem>
