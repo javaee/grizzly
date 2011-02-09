@@ -1963,9 +1963,16 @@ public class Request {
             double quality = 1.0;
             int semi = entry.indexOf(";q=");
             if (semi >= 0) {
-                try {
-                    quality = Double.parseDouble(entry.substring(semi + 3));
-                } catch (NumberFormatException e) {
+                final String qvalue = entry.substring(semi + 3);
+                // qvalues, according to the RFC, may not contain more
+                // than three values after the decimal.
+                if (qvalue.length() <= 5) {
+                    try {
+                        quality = Double.parseDouble(qvalue);
+                    } catch (NumberFormatException e) {
+                        quality = 0.0;
+                    }
+                } else {
                     quality = 0.0;
                 }
                 entry = entry.substring(0, semi);
