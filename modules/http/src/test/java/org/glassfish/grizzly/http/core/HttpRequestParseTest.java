@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.http.core;
 
 import org.glassfish.grizzly.NIOTransportBuilder;
+import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
@@ -169,7 +170,14 @@ public class HttpRequestParseTest extends TestCase {
         MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
         Buffer input = Buffers.wrap(mm, request);
         
-        HttpServerFilter filter = new HttpServerFilter(true, limit, null, null);
+        HttpServerFilter filter = new HttpServerFilter(true, limit, null, null) {
+
+            @Override
+            protected void onHttpError(final HttpHeader httpHeader,
+                    final FilterChainContext ctx) throws IOException {
+                throw new IllegalStateException();
+            }
+        };
         FilterChainContext ctx = FilterChainContext.create(new StandaloneConnection());
         ctx.setMessage(input);
 

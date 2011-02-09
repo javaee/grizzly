@@ -165,12 +165,15 @@ public abstract class HttpCodecFilter extends BaseFilter
     /**
      * <p>
      * Callback which is invoked when parsing an HTTP message fails.
+     * The processing logic has to take care about error handling and following
+     * connection closing.
      * </p>
      *
      * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
      * @param ctx the {@link FilterChainContext} processing this request
      */
-    abstract void onHttpError(HttpHeader httpHeader, FilterChainContext ctx) throws IOException;
+    abstract protected void onHttpError(HttpHeader httpHeader,
+            FilterChainContext ctx) throws IOException;
 
     /**
      * Constructor, which creates <tt>HttpCodecFilter</tt> instance, with the specific
@@ -289,10 +292,11 @@ public abstract class HttpCodecFilter extends BaseFilter
 
         HttpProbeNotifier.notifyDataReceived(this, connection, input);
 
+         // Check if HTTP header has been parsed
+        final boolean wasHeaderParsed = httpPacket.isHeaderParsed();
+        final HttpHeader httpHeader = (HttpHeader) httpPacket;
+
         try {
-            // Check if HTTP header has been parsed
-            final boolean wasHeaderParsed = httpPacket.isHeaderParsed();
-            final HttpHeader httpHeader = (HttpHeader) httpPacket;
             if (!wasHeaderParsed) {
                 // if header wasn't parsed - parse
                 if (!decodeHttpPacket(httpPacket, input)) {
@@ -307,18 +311,14 @@ public abstract class HttpCodecFilter extends BaseFilter
                     // recycle header parsing state
                     httpPacket.getHeaderParsingState().recycle();
 
-                    if (onHttpHeaderParsed((HttpHeader) httpPacket, input, ctx)) {
-                        onHttpError((HttpHeader) httpPacket, ctx);
-
-                        HttpProbeNotifier.notifyProbesError(this, connection, null);
-
-                        return ctx.getStopAction();
+                    if (onHttpHeaderParsed(httpHeader, input, ctx)) {
+                        throw new IllegalStateException("Bad HTTP headers");
                     }
 
                     input = input.hasRemaining() ? input.slice() : Buffers.EMPTY_BUFFER;
 
-                    setTransferEncodingOnParsing((HttpHeader) httpPacket);
-                    setContentEncodingsOnParsing((HttpHeader) httpPacket);
+                    setTransferEncodingOnParsing(httpHeader);
+                    setContentEncodingsOnParsing(httpHeader);
 
                     HttpProbeNotifier.notifyHeaderParse(this, connection,
                             (HttpHeader) httpPacket, headerSizeInBytes);
@@ -380,7 +380,14 @@ public abstract class HttpCodecFilter extends BaseFilter
 
         } catch (RuntimeException re) {
             HttpProbeNotifier.notifyProbesError(this, connection, re);
-            throw re;
+            onHttpError(httpHeader, ctx);
+
+            // make the connection deaf to any following input
+            // onHttpError call will take care of error processing
+            // and closing the connection
+            final NextAction suspendAction = ctx.getSuspendAction();
+            ctx.completeAndRecycle();
+            return suspendAction;
         }
     }
 

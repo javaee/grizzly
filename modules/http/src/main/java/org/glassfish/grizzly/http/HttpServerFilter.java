@@ -287,10 +287,11 @@ public class HttpServerFilter extends HttpCodecFilter {
     }
 
     @Override
-    final boolean onHttpPacketParsed(HttpHeader httpHeader, FilterChainContext ctx) {
-        HttpRequestPacketImpl request = (HttpRequestPacketImpl) httpHeader;
+    final boolean onHttpPacketParsed(final HttpHeader httpHeader,
+            final FilterChainContext ctx) {
+        final HttpRequestPacketImpl request = (HttpRequestPacketImpl) httpHeader;
 
-        boolean error = request.getProcessingState().error;
+        final boolean error = request.getProcessingState().error;
         if (!error) {
             httpRequestInProcessAttr.remove(ctx.getConnection());
         }
@@ -298,25 +299,35 @@ public class HttpServerFilter extends HttpCodecFilter {
     }
 
     @Override
-    void onHttpError(HttpHeader httpHeader, FilterChainContext ctx) throws IOException {
+    protected void onHttpError(final HttpHeader httpHeader,
+            final FilterChainContext ctx) throws IOException {
 
-        HttpRequestPacketImpl request = (HttpRequestPacketImpl) httpHeader;
+        final HttpRequestPacketImpl request = (HttpRequestPacketImpl) httpHeader;
+        final HttpResponsePacket response = request.getResponse();
+
+        // If error response status is not set - use 400
+        if (response.getHttpStatus().getStatusCode() < 400) {
+            // 400 - Bad request
+            HttpStatus.BAD_REQUEST_400.setValues(response);
+        }
 
         // commit the response
-        final HttpContent errorHttpResponse = customizeErrorResponse(request.getResponse());
-        Buffer resBuf = encodeHttpPacket(ctx.getConnection(), errorHttpResponse);
+        final HttpContent errorHttpResponse = customizeErrorResponse(response);
+        final Buffer resBuf = encodeHttpPacket(ctx.getConnection(), errorHttpResponse);
         ctx.write(resBuf);
+        ctx.flush(FLUSH_AND_CLOSE_HANDLER);
     }
 
     @Override
-    protected Buffer encodeHttpPacket(Connection connection, HttpPacket input) {
-        HttpHeader header;
+    protected Buffer encodeHttpPacket(final Connection connection,
+            final HttpPacket input) {
+        final HttpHeader header;
         if (input.isHeader()) {
             header = (HttpHeader) input;
         } else {
             header = ((HttpContent) input).getHttpHeader();
         }
-        HttpResponsePacketImpl response = (HttpResponsePacketImpl) header;
+        final HttpResponsePacketImpl response = (HttpResponsePacketImpl) header;
         if (!response.isCommitted() && response.getUpgrade() == null) {
             prepareResponse(response.getRequest(), response);
         }
@@ -476,8 +487,8 @@ public class HttpServerFilter extends HttpCodecFilter {
     }
 
 
-    private void prepareResponse(HttpRequestPacket request,
-                                 HttpResponsePacketImpl response) {
+    private void prepareResponse(final HttpRequestPacket request,
+                                 final HttpResponsePacketImpl response) {
         final Protocol protocol = request.getProtocol();
 
         response.setProtocol(protocol);
@@ -588,6 +599,8 @@ public class HttpServerFilter extends HttpCodecFilter {
             HttpStatus.HTTP_VERSION_NOT_SUPPORTED_505.setValues(response);
             protocol = Protocol.HTTP_1_1;
             request.setProtocol(protocol);
+            
+            return;
         }
 
         final MimeHeaders headers = request.getHeaders();
@@ -649,8 +662,6 @@ public class HttpServerFilter extends HttpCodecFilter {
         // Check host header
         if (hostDC == null && isHttp11) {
             state.error = true;
-            // 400 - Bad request
-            HttpStatus.BAD_REQUEST_400.setValues(response);
             return;
         }
 
@@ -670,7 +681,9 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
     }
 
-    protected HttpContent customizeErrorResponse(HttpResponsePacket response) {
+    protected HttpContent customizeErrorResponse(
+            final HttpResponsePacket response) {
+        
         response.setContentLength(0);
         return HttpContent.builder(response).last(true).build();
     }
