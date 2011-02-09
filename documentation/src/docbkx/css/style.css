@@ -65,6 +65,22 @@ A:active {
     border-width: 1px;
 }
 
+div.navheader th:first-child {
+    background-color: #8fbc8f;
+    border-bottom: solid;
+    border-width: 1px;
+}
+
+div.navfooter table {
+    border-collapse: collapse;
+}
+
+div.navfooter tr:last-child {
+    background-color: #8fbc8f;
+    border-top: solid;
+    border-width: 1px;
+}
+
 
 
 
