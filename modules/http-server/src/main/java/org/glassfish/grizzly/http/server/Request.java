@@ -473,40 +473,6 @@ public class Request {
      */
     private StringParser parser = new StringParser();
 
-    /**
-     * Local port
-     */
-    protected int localPort = -1;
-
-    /**
-     * Remote address.
-     */
-    protected String remoteAddr = null;
-
-
-    /**
-     * Remote host.
-     */
-    protected String remoteHost = null;
-
-
-    /**
-     * Remote port
-     */
-    protected int remotePort = -1;
-
-    /**
-     * Local address
-     */
-    protected String localName = null;
-
-
-    /**
-     * Local address
-     */
-    protected String localAddr = null;
-
-
     // START S1AS 4703023
     /**
      * The current application dispatch depth.
@@ -592,12 +558,6 @@ public class Request {
         locales.clear();
         localesParsed = false;
         secure = false;
-        remoteAddr = null;
-        remoteHost = null;
-        remotePort = -1;
-        localPort = -1;
-        localAddr = null;
-        localName = null;
         inputStream = null;
         reader = null;
 

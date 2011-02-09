@@ -47,7 +47,6 @@ import org.glassfish.grizzly.http.util.RequestURIRef;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import org.glassfish.grizzly.http.util.ContentType;
 
 /**
  * The {@link HttpHeader} object, which represents HTTP request message.
