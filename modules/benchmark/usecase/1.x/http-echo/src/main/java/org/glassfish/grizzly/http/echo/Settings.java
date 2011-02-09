@@ -57,6 +57,8 @@ public class Settings {
 
     private boolean binary = true;
 
+    private boolean chunked = true;
+
     private Settings() {
     }
 
@@ -88,6 +90,8 @@ public class Settings {
                 settings.setUseLeaderFollower(Boolean.valueOf(value));
             } else if ("-binary".equalsIgnoreCase(param)) {
                 settings.setBinary(Boolean.valueOf(value));
+            } else if ("-chunked".equalsIgnoreCase(param)) {
+                settings.setChunked(Boolean.valueOf(value));
             }
         }
 
@@ -146,6 +150,14 @@ public class Settings {
         this.binary = binary;
     }
 
+    public boolean isChunked() {
+        return chunked;
+    }
+
+    public void setChunked(boolean chunked) {
+        this.chunked = chunked;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -156,6 +168,7 @@ public class Settings {
         sb.append("\nWorker threads: ").append(getWorkerThreads());
         sb.append("\nSelector threads: ").append(getSelectorThreads());
         sb.append("\nuseLeaderFollower: ").append(isUseLeaderFollower());
+        sb.append("\nchunked: ").append(isChunked());
         sb.append("\nStream Type: ").append(((isBinary()) ? "binary" : "character"));
 
         return sb.toString();

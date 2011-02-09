@@ -74,6 +74,7 @@ final class EchoServer {
         StatsThreadPool pool = new StatsThreadPool(poolSize, poolSize, -1, StatsThreadPool.DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT, TimeUnit.MILLISECONDS);
         pool.start();
         selector.setThreadPool(pool);
+        selector.setUseChunking(settings.isChunked());
         final Controller controller = new Controller();
         controller.setReadThreadsCount(settings.getSelectorThreads() - 1);
         controller.setHandleReadWriteConcurrently(true);
