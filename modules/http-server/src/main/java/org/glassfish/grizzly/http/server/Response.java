@@ -971,7 +971,8 @@ public class Response {
      * string "JSESSIONID=" or "JSESSIONIDSSO="
      */
     public void removeSessionCookies() {
-        response.getHeaders().removeHeader("Set-Cookie", Constants.SESSION_COOKIE_PATTERN);
+        response.getHeaders().removeHeaderMatches("Set-Cookie",
+                Constants.SESSION_COOKIE_PATTERN);
     }
     
     /**

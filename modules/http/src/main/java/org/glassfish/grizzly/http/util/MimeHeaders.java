@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -382,12 +382,30 @@ public class MimeHeaders {
      * @param name The name of the headers to be removed
      * @param str The string to check the header values against
      */
-    public void removeHeader(String name, String str) {
+    public void removeHeader(final String name, final String str) {
         for (int i = 0; i < count; i++) {
             if (headers[i].getName().equalsIgnoreCase(name)
                     && getValue(i) != null
                     && getValue(i).toString() != null
                     && getValue(i).toString().indexOf(str) != -1) {
+                removeHeader(i--);
+            }
+        }
+    }
+
+        /**
+     * Removes the headers with the given name whose values contain the
+     * given string.
+     *
+     * @param name The name of the headers to be removed
+     * @param regex The regex string to check the header values against
+     */
+    public void removeHeaderMatches(final String name, final String regex) {
+        for (int i = 0; i < count; i++) {
+            if (headers[i].getName().equalsIgnoreCase(name)
+                    && getValue(i) != null
+                    && getValue(i).toString() != null
+                    && getValue(i).toString().matches(regex)) {
                 removeHeader(i--);
             }
         }

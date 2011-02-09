@@ -155,7 +155,7 @@ public class Cookie implements Cloneable {
      *
      */
 
-    public Cookie(String name, String value) {
+    public Cookie(final String name, final String value) {
         checkName(name);
 
 	this.name = name;
@@ -166,7 +166,7 @@ public class Cookie implements Cloneable {
      * Validate the cookie name
      * @param name cookie name
      */
-    protected static void checkName(String name) {
+    protected static void checkName(final String name) {
 	if (!isToken(name)
 		|| name.equalsIgnoreCase("Comment")	// rfc2019
 		|| name.equalsIgnoreCase("Discard")	// 2019++
