@@ -126,22 +126,4 @@ public interface NIOInputSource {
      */
     boolean isReady();
 
-
-    /**
-     * <p>
-     * Returns the underlying {@link Buffer} that backs this
-     *  <code>NIOInputSource</code>.
-     * </p>
-     *
-     * <p>
-     * It should be noted that for character-based <code>NIOInputSource</code>s,
-     * the {@link Buffer} is the raw bytes.  Any character conversion
-     * would have to be applied manually.
-     * </p>
-     *
-     * @return the underlying {@link Buffer} that backs this
-     *  <code>NIOInputSource</code>.
-     */
-    Buffer getBuffer();
-
 }

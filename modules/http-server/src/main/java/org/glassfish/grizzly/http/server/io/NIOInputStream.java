@@ -49,7 +49,7 @@ import java.io.InputStream;
  *
  * @since 2.0
  */
-public class NIOInputStream extends InputStream implements NIOInputSource {
+public class NIOInputStream extends InputStream implements BinaryNIOInputSource {
 
     private final InputBuffer inputBuffer;
 
@@ -182,6 +182,9 @@ public class NIOInputStream extends InputStream implements NIOInputSource {
     public boolean isReady() {
         return (inputBuffer.available() > 0);
     }
+
+
+    // --------------------------------------- Methods from BinaryNIOInputSource
 
     /**
      * {@inheritDoc}
