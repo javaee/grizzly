@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.aio;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.util.concurrent.TimeoutException;
@@ -100,7 +101,7 @@ public abstract class AIOBlockingReader extends AbstractReader<SocketAddress> {
 
             return ReadyFutureImpl.create(currentResult);
         } else {
-            return ReadyFutureImpl.create(new TimeoutException());
+            return ReadyFutureImpl.create(new EOFException());
         }
     }
 
