@@ -210,11 +210,4 @@ public class NIOReader extends Reader implements NIOInputSource {
         return (inputBuffer.availableChar() > 0);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Buffer getBuffer() {
-        return inputBuffer.getBuffer();
-    }
 }
