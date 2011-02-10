@@ -44,77 +44,105 @@
          xmlns:xlink="http://www.w3.org/1999/xlink"
          xmlns:xi="http://www.w3.org/2001/XInclude"
          xmlns:svg="http://www.w3.org/2000/svg"
+         xmlns:ns="http://docbook.org/ns/docbook"
          xmlns:m="http://www.w3.org/1998/Math/MathML"
          xmlns:html="http://www.w3.org/1999/xhtml">
-  <title>Port unification</title>
+  <title>Port Unification</title>
 
   <section>
     <title>Overview</title>
-    <para>When implementing network application, which provides several network services, such as
-      Web server (HTTP, HTTPS), Corba, JMS, we may think about how these services will be
-      published.</para>
-    <para>The natural way of publishing different types of services - is to make them available on
-      separate TCP ports (one TCP port per service). Usually HTTP is published on port 80, HTTPS 81
-      etc... There might be no problems with that approach, the service consumer just must remember
-      its own TCP port number, but sometimes, due to certain admin restrictions, we're not able to
-      make all the required TCP ports available for the external consumers on Internet. What if
-      we're limited just by one TCP port accessible for the external (Internet) service consumers?
-      In that case we have to have a solution, which let's us share single TCP port among different
-      services, and depending on incoming service request, redirect it to the corresponding service.
-      And this is what Grizzly port unification is about.</para>
+
+    <para>When implementing a network application which provides several
+    network services such as Web server (HTTP, HTTPS), Corba, JMS, we may
+    think about how these services will be published.</para>
+
+    <para>The natural way of publishing different types of services - is to
+    make them available on separate TCP ports (one TCP port per service).
+    Usually HTTP is published on port 80, HTTPS 443, and so on. There might be
+    no problems with that approach; the service consumer just must remember
+    its own TCP port number, but sometimes, due to certain admin restrictions,
+    we're not able to make all the required TCP ports available for the
+    external consumers on Internet. What if we're limited just by one TCP port
+    accessible for the external (Internet) service consumers? For that case,
+    we have to have a solution which let's us share a single TCP port among
+    different services and, depending on incoming service request, redirect it
+    to the corresponding service. This solution is called Port
+    Unification.</para>
   </section>
+
   <section>
     <title>How it works</title>
-    <para>The port unification in Grizzly is represented by PUFilter. which is a Grizzly 2.0
-      FilterChain Filter, this filter plays role of a fork in the FilterChain.</para>
-    <para>Each "unified" protocol, should be represented by a object pair:<itemizedlist>
+
+    <para>Port Unification, in Grizzly, is represented by PUFilter which is a
+    Grizzly 2.0 FilterChain Filter. This filter plays role of a fork in the
+    FilterChain.</para>
+
+    <para>Each "unified" protocol, should be represented by a object
+    pair:<itemizedlist>
         <listitem>
-          <para><emphasis role="bold">ProtocolFinder</emphasis>, which is responsible for parsing
-            incoming data and figuring out if the data belongs to the specific protocol;</para>
+          <para><emphasis role="bold">ProtocolFinder</emphasis>, which is
+          responsible for parsing incoming data and figuring out if the data
+          belongs to the specific protocol;</para>
         </listitem>
+
         <listitem>
-          <para><emphasis role="bold">FilterChain</emphasis>, represents specific protocol
-            FilterChain.</para>
+          <para><emphasis role="bold">FilterChain</emphasis>, represents
+          specific protocol FilterChain.</para>
         </listitem>
       </itemizedlist></para>
+
     <para>So the final FilterChain will look like:</para>
+
     <para><inlinemediaobject>
-      <imageobject>
-        <imagedata fileref="../images/portunification/portunification-diagram.svg"></imagedata>
-      </imageobject>
-    </inlinemediaobject></para>
-    <para>For better usability, Grizzly port unification introduces the PUProtocol abstraction,
-      which holds ProtocolFinder + FilterChain pair.</para>
-    <para>The picture above is not complete, one piece is missed. We can imagine how new data comes
-      from network, comes into main FilterChain, it redirects it to the corresponding protocol
-      FilterChain.</para>
-    <para>But what about opposite connection? Imagine HttpServerFilter wants to send data back to
-      the client, so it constructs HttpPacket and send it by the custom protocol FilterChain.
-      HttpFilter intercepts the HttpPacket, decodes it into a Buffer and... there is no Filter in
-      the custom protocol FilterChain to pass the Buffer to, so it never comes to TransportFilter
-      and never gets sent! In order to fix that, we need to add utility back channel Filter as the
-      first Filter in the protocol FilterChain, which will be reponsible for redirecting custom
-      protocol FilterChain processing back to the main FilterChain. So finally complete picture will
-      look like:</para>
+        <imageobject>
+          <imagedata fileref="../images/portunification/portunification-diagram.svg"></imagedata>
+        </imageobject>
+      </inlinemediaobject></para>
+
+    <para>For better usability, Grizzly Port Unification introduces the
+    PUProtocol abstraction, which holds ProtocolFinder + FilterChain
+    pair.</para>
+
+    <para>The picture above is not complete, one piece is missing. We can
+    imagine how new data comes from network, comes into main FilterChain, it
+    redirects it to the corresponding protocol FilterChain.</para>
+
+    <para>But what about opposite direction? Imagine HttpServerFilter wants to
+    send data back to the client, so it constructs HttpPacket and send it by
+    the custom protocol FilterChain. HttpFilter intercepts the HttpPacket,
+    decodes it into a Buffer and... there is no Filter in the custom protocol
+    FilterChain to pass the Buffer to, so it never comes to TransportFilter
+    and never gets sent! In order to fix that, we need to add utility back
+    channel Filter as the first Filter in the protocol FilterChain, which will
+    be reponsible for redirecting custom protocol FilterChain processing back
+    to the main FilterChain. So finally complete picture will look
+    like:</para>
+
     <para><inlinemediaobject>
-      <imageobject>
-        <imagedata fileref="../images/portunification/portunification-diagram2.svg"></imagedata>
-      </imageobject>
-    </inlinemediaobject></para>
-    <para>The PUFilter logic could be described using follwoing flowchart diagram:</para>
+        <imageobject>
+          <imagedata fileref="../images/portunification/portunification-diagram2.svg"></imagedata>
+        </imageobject>
+      </inlinemediaobject></para>
+
+    <para>The PUFilter logic could be described using follwoing flowchart
+    diagram:</para>
+
     <para><inlinemediaobject>
-      <imageobject>
-        <imagedata scale="70" fileref="../images/portunification/pufilter-flowchart.svg"></imagedata>
-      </imageobject>
-    </inlinemediaobject></para>
+        <imageobject>
+          <imagedata fileref="../images/portunification/pufilter-flowchart.svg"></imagedata>
+        </imageobject>
+      </inlinemediaobject></para>
   </section>
+
   <section>
     <title>Sample</title>
-    <para>Assume we have two services: add and sub, which are responsible for adding and subtracting
-      passed integer values. The services protocol could be descibed by the following ABNF:<itemizedlist>
+
+    <para>Assume we have two services: add and sub, which are responsible for
+    adding and subtracting passed integer values. The services protocol could
+    be descibed by the following ABNF:<itemizedlist>
         <listitem>
-          <para><emphasis role="bold"
-            >add</emphasis><programlisting language="java">protocol  =  magic
+          <para><emphasis role="bold">add</emphasis><programlisting
+          language="java">protocol  =  magic
              value1
              value2
 magic     =  "add"
@@ -125,8 +153,8 @@ BYTE      =  OCTET</programlisting></para>
         </listitem>
       </itemizedlist><itemizedlist>
         <listitem>
-          <para><emphasis role="bold"
-            >sub</emphasis><programlisting language="java">protocol  =  magic
+          <para><emphasis role="bold">sub</emphasis><programlisting
+          language="java">protocol  =  magic
              value1
              value2
 magic     =  "sub"
@@ -136,10 +164,12 @@ INT       =  4*BYTE
 BYTE      =  OCTET</programlisting></para>
         </listitem>
       </itemizedlist></para>
-    <para>From the protocol description, it's obvious we can distinguish two services and their
-      protocols by 3-bytes magic header, add-service has "add", sub-service "sub". So it's what
-      service's ProtocolFinder should address. For example add-service ProtocolFinder may look
-      like:<programlisting language="java">/**
+
+    <para>From the protocol description, it's obvious we can distinguish two
+    services and their protocols by 3-bytes magic header, add-service has
+    "add", sub-service "sub". So it's what service's ProtocolFinder should
+    address. For example add-service ProtocolFinder may look
+    like:<programlisting language="java">/**
  * {@link ProtocolFinder}, responsible to determine if incoming byte buffer
  * represents ADD-service request.
  */
@@ -173,18 +203,21 @@ public class AddProtocolFinder implements ProtocolFinder {
     }
 
 }</programlisting></para>
+
     <para>The add-service FilterChain will contain two Filters:<itemizedlist>
         <listitem>
-          <para><emphasis role="bold">AddServerMessageFilter</emphasis>, responsible for
-            parsing/serializing add-service messages</para>
+          <para><emphasis role="bold">AddServerMessageFilter</emphasis>,
+          responsible for parsing/serializing add-service messages</para>
         </listitem>
+
         <listitem>
-          <para><emphasis role="bold">AddServiceFilter</emphasis> the actual service
-            implementation</para>
+          <para><emphasis role="bold">AddServiceFilter</emphasis> the actual
+          service implementation</para>
         </listitem>
       </itemizedlist></para>
-    <para>The PUProtocol initialization and registration for add-service will look following
-      way:<programlisting language="java">        // Create PUFilter
+
+    <para>The PUProtocol initialization and registration for add-service will
+    look following way:<programlisting language="java">        // Create PUFilter
         final PUFilter puFilter = new PUFilter();
 
         // Create ADD-service ProtocolFinder
@@ -204,9 +237,10 @@ public class AddProtocolFinder implements ProtocolFinder {
 
         // Register add-service pu protocol
         puFilter.register(addServicePUProtocol);</programlisting></para>
-    <para>Similar coding is required for the sub-service. Finally port unification Filter (PUFilter)
-      should be added to the main FilterChain and Transport could be
-      started<programlisting language="java">        // Construct the main filter chain
+
+    <para>Similar coding is required for the sub-service. Finally port
+    unification Filter (PUFilter) should be added to the main FilterChain and
+    Transport could be started<programlisting language="java">        // Construct the main filter chain
         final FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.stateless()
                 .add(new TransportFilter())
                 .add(puFilter);
@@ -219,8 +253,8 @@ public class AddProtocolFinder implements ProtocolFinder {
         transport.bind(PORT);
         // Start
         transport.start();</programlisting></para>
+
     <para>Complete sample code could be found <link
-        xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/portunif/src/main/java/org/glassfish/grizzly/samples/portunif"
-        >here</link>.</para>
+    xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/portunif/src/main/java/org/glassfish/grizzly/samples/portunif">here</link>.</para>
   </section>
 </chapter>
