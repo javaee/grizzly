@@ -91,10 +91,10 @@ sub buildGrizzly {
 # Trims a string value.
 #
 sub trim {
-	my $string = shift;
-	$string =~ s/^\s+//;
-	$string =~ s/\s+$//;
-	return $string;
+    my $string = shift;
+    $string =~ s/^\s+//;
+    $string =~ s/\s+$//;
+    return $string;
 }
 
 #
@@ -140,20 +140,24 @@ sub startBMServer {
     my @vmargs = split /,/, @prog[1];
     my @progargs = split /,/, @prog[2];
     my $command = "java @vmargs -jar $jar @progargs > server.log 2>&1";
+    print "Starting server process: ${command}\n";
     my $pid = fork();
-    die "unable to fork: $!" unless defined($pid);
-    if (!$pid) {  # child
+    if (defined $pid && $pid == 0) {
+        # child processing here
+        close(STDOUT);
         exec($command);
-        die "unable to exec: $!";
-    }       
-    # parent continues here, pid of child is in $pid
+        exit(0);
+    }
     chdir($pwd);
     return $pid;
 }
 
 sub stopBMServer {
+    print "Stopping server process...\n";
     my $pid = shift;
-    `kill -9 $pid`;
+    kill 9, $pid;
+    kill 9, $pid + 1;
+    sleep 10;
 }
 
 
