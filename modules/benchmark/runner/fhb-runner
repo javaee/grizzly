@@ -47,8 +47,8 @@ use strict;
 
 # -------------------------------- GLOBALS
 
-my $FABAN_FILE = "faban-kit-101509.tar.gz";
-my $FABAN_URL = "http://www.opensparc.net/sunsource/faban/www/nightly/$FABAN_FILE";
+my $FABAN_FILE = "faban-kit-1.0.tar.gz";
+my $FABAN_URL = "http://www.opensparc.net/sunsource/faban/www/downloads/$FABAN_FILE";
 my $PORT = 5000;
 my $HOST = "0.0.0.0";
 my $FABAN = "faban/bin/fhb";
