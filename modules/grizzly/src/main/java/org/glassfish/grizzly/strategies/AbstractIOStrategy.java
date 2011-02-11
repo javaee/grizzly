@@ -55,6 +55,9 @@ import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
 import java.io.IOException;
 import java.util.concurrent.Executor;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.glassfish.grizzly.Transport;
 
 /**
@@ -100,6 +103,32 @@ public abstract class AbstractIOStrategy implements IOStrategy {
 
     protected static Executor getWorkerThreadPool(final Connection c) {
         return c.getTransport().getWorkerThreadPool();
+    }
+
+    protected static void fireIOEvent(final Connection connection,
+                                      final IOEvent ioEvent,
+                                      final PostProcessor pp,
+                                      final Logger logger) {
+        try {
+            connection.getTransport().fireIOEvent(ioEvent, connection, pp);
+        } catch (IOException e) {
+            logger.log(Level.FINE, "Uncaught exception: ", e);
+            try {
+                connection.close().markForRecycle(true);
+            } catch (IOException ee) {
+                logger.log(Level.WARNING, "Exception occurred when " +
+                        "closing the connection: ", ee);
+            }
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Uncaught exception: ", e);
+            try {
+                connection.close().markForRecycle(true);
+            } catch (IOException ee) {
+                logger.log(Level.WARNING, "Exception occurred when " +
+                        "closing the connection: ", ee);
+            }
+        }
+
     }
 
 

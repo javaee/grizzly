@@ -113,26 +113,9 @@ public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
     private static void run0(final Connection connection,
                              final IOEvent ioEvent,
                              final PostProcessor postProcessor) {
-        try {
-            connection.getTransport().fireIOEvent(ioEvent, connection,
-                    postProcessor);
-        } catch (IOException e) {
-            logger.log(Level.FINE, "Uncaught exception: ", e);
-            try {
-                connection.close().markForRecycle(true);
-            } catch (IOException ee) {
-                logger.log(Level.WARNING, "Exception occurred when " +
-                        "closing the connection: ", ee);
-            }
-        } catch (Exception e) {
-            logger.log(Level.WARNING, "Uncaught exception: ", e);
-            try {
-                connection.close().markForRecycle(true);
-            } catch (IOException ee) {
-                logger.log(Level.WARNING, "Exception occurred when " +
-                        "closing the connection: ", ee);
-            }
-        }
+
+        fireIOEvent(connection, ioEvent, postProcessor, logger);
+
     }
 
 }

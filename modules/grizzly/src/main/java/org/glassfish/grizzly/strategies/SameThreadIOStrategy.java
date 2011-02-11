@@ -41,8 +41,11 @@
 package org.glassfish.grizzly.strategies;
 
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.PostProcessor;
 import org.glassfish.grizzly.Transport;
@@ -56,6 +59,8 @@ import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 public final class SameThreadIOStrategy extends AbstractIOStrategy {
 
     private static final SameThreadIOStrategy INSTANCE = new SameThreadIOStrategy();
+
+    private static final Logger logger = Grizzly.logger(SameThreadIOStrategy.class);
 
 
     // ------------------------------------------------------------ Constructors
@@ -84,10 +89,13 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
             connection.disableIOEvent(ioEvent);
             pp = enableInterestPostProcessor;
         }
-        
-        connection.getTransport().fireIOEvent(ioEvent, connection, pp);
+
+        fireIOEvent(connection, ioEvent, pp, logger);
+
         return true;
     }
+
+
 
 
     // ----------------------------------- Methods from WorkerThreadPoolConfigProducer

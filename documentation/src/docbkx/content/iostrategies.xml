@@ -145,7 +145,7 @@
   <para>Grizzly 2.0 provides general interface <emphasis
   role="italic">org.glassfish.grizzly.IOStrategy:</emphasis></para>
 
-  <programlisting language="java">public interface Strategy { 
+  <programlisting language="java">public interface IOStrategy { 
     boolean executeIoEvent(Connection connection, IOEvent ioEvent) 
     throws IOException; 
 }</programlisting>

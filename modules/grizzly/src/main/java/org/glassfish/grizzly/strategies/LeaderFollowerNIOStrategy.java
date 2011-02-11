@@ -41,7 +41,10 @@
 package org.glassfish.grizzly.strategies;
 
 import java.io.IOException;
+import java.util.logging.Logger;
+
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.PostProcessor;
 import org.glassfish.grizzly.nio.NIOConnection;
@@ -56,6 +59,8 @@ import org.glassfish.grizzly.nio.SelectorRunner;
 public final class LeaderFollowerNIOStrategy extends AbstractIOStrategy {
 
     private static final LeaderFollowerNIOStrategy INSTANCE = new LeaderFollowerNIOStrategy();
+
+    private static final Logger logger = Grizzly.logger(LeaderFollowerNIOStrategy.class);
 
 
     // ------------------------------------------------------------ Constructors
@@ -93,11 +98,11 @@ public final class LeaderFollowerNIOStrategy extends AbstractIOStrategy {
             final SelectorRunner runner = nioConnection.getSelectorRunner();
             runner.postpone();
             getWorkerThreadPool(connection).execute(runner);
-            connection.getTransport().fireIOEvent(ioEvent, connection, pp);
+            fireIOEvent(connection, ioEvent, pp, logger);
 
             return false;
         } else {
-            connection.getTransport().fireIOEvent(ioEvent, connection, pp);
+            fireIOEvent(connection, ioEvent, pp, logger);
             return true;
         }
     }
