@@ -1326,8 +1326,7 @@ public abstract class HttpCodecFilter extends BaseFilter
             }
         }
 
-        throw new ContentEncodingException("Unknown content encoding: "
-                + bc.toString().substring(startIdx, endIdx));
+        return null;
     }
     
     private ParsingResult parseWithTransferEncoding(final Connection connection,
