@@ -1270,10 +1270,10 @@ public abstract class HttpCodecFilter extends BaseFilter
                 commaIdx = bc.indexOf(',', currentIdx);
                 final ContentEncoding ce = lookupContentEncoding(bc, currentIdx,
                         commaIdx >= 0 ? commaIdx : bc.getLength());
-                if (ce.wantDecode(httpHeader)) {
+                if (ce != null && ce.wantDecode(httpHeader)) {
                     encodings.add(ce);
                 } else {
-                    // if one content encoding doesn't want to decode -
+                    // if encoding was not found or doesn't want to decode -
                     // following could not be applied
                     return;
                 }
