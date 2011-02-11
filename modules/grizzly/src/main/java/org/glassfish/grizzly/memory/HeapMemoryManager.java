@@ -51,7 +51,8 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Cacheable;
 
 /**
- * TODO Documentation
+ * A {@link WrapperAware} {@link MemoryManager} implementation for
+ * managing {@link HeapBuffer} instances.
  *
  * @see 2.0
  */
@@ -67,36 +68,57 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
     // ---------------------------------------------- Methods from MemoryManager
 
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public HeapBuffer allocate(final int size) {
         return allocateHeapBuffer(size);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public HeapBuffer allocateAtLeast(final int size) {
         return allocateHeapBufferAtLeast(size);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public HeapBuffer reallocate(final HeapBuffer oldBuffer, final int newSize) {
         return reallocateHeapBuffer(oldBuffer, newSize);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void release(final HeapBuffer buffer) {
         releaseHeapBuffer(buffer);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public JmxMonitoringConfig<MemoryProbe> getMonitoringConfig() {
         return monitoringConfig;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public ThreadLocalPool createThreadLocalPool() {
         return new HeapBufferThreadLocalPool(this);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected JmxObject createJmxManagementObject() {
         return new org.glassfish.grizzly.memory.jmx.HeapMemoryManager(this);
@@ -106,26 +128,41 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
     // ----------------------------------------------- Methods from WrapperAware
 
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public HeapBuffer wrap(final byte[] data) {
         return createTrimAwareBuffer(data, 0, data.length);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public HeapBuffer wrap(final byte[] data, final int offset, final int length) {
         return createTrimAwareBuffer(data, offset, length);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public HeapBuffer wrap(final String s) {
         return wrap(s, Charset.defaultCharset());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public HeapBuffer wrap(final String s, final Charset charset) {
         return wrap(s.getBytes(charset));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Buffer wrap(final ByteBuffer byteBuffer) {
         if (byteBuffer.hasArray()) {
