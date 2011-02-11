@@ -70,9 +70,12 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.glassfish.grizzly.Grizzly;
 
 public class NIOOutputSinksTest extends TestCase {
-
+    private static final Logger LOGGER = Grizzly.logger(NIOOutputSinksTest.class);
     private static final int PORT = 9339;
 
     public void testBinaryOutputSink() throws Exception {
@@ -218,6 +221,7 @@ public class NIOOutputSinksTest extends TestCase {
                 assertEquals(writeCounter.get(), length);
                 assertTrue(callbackInvoked.get());
             } finally {
+                LOGGER.log(Level.INFO, "Written {0}", writeCounter);
                 // Close the client connection
                 if (connection != null) {
                     connection.close();
