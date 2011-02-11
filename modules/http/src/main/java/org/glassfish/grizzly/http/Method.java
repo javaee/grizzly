@@ -48,15 +48,19 @@ import org.glassfish.grizzly.http.util.DataChunk;
  * 
  * @author Alexey Stashok
  */
-public enum Method {
-    OPTIONS ("OPTIONS"),
-    GET ("GET"),
-    HEAD ("HEAD"),
-    POST ("POST"),
-    PUT ("PUT"),
-    DELETE ("DELETE"),
-    TRACE ("TRACE"),
-    CONNECT ("CONNECT");
+public final class Method {
+    public static final Method OPTIONS = new Method("OPTIONS");
+    public static final Method GET = new Method("GET");
+    public static final Method HEAD = new Method("HEAD");
+    public static final Method POST = new Method("POST");
+    public static final Method PUT = new Method("PUT");
+    public static final Method DELETE = new Method("DELETE");
+    public static final Method TRACE = new Method("TRACE");
+    public static final Method CONNECT = new Method("CONNECT");
+
+    public static Method CUSTOM(final String methodName) {
+        return new Method(methodName);
+    }
 
     public static Method parseDataChunk(final DataChunk methodC) {
         if (methodC.equals(Method.GET.getMethodString())) {
@@ -76,19 +80,19 @@ public enum Method {
         } else if (methodC.equals(Method.OPTIONS.getMethodString())) {
             return Method.OPTIONS;
         } else {
-            throw new IllegalStateException("Unknown method " + methodC.toString());
+            return CUSTOM(methodC.toString());
         }
     }
 
     private final String methodString;
     private byte[] methodBytes;
 
-    private Method(String protocolString) {
-        this.methodString = protocolString;
+    private Method(final String methodString) {
+        this.methodString = methodString;
         try {
-            this.methodBytes = protocolString.getBytes("US-ASCII");
+            this.methodBytes = methodString.getBytes("US-ASCII");
         } catch (UnsupportedEncodingException ignored) {
-            this.methodBytes = protocolString.getBytes();
+            this.methodBytes = methodString.getBytes();
         }
     }
 
