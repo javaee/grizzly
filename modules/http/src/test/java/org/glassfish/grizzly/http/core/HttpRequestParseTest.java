@@ -88,6 +88,10 @@ public class HttpRequestParseTest extends TestCase {
     
     public static int PORT = 19000;
 
+    public void testCustomMethod() throws Exception {
+        doHttpRequestTest("TAKE", "/index.html", "HTTP/1.0", Collections.<String, Pair<String, String>>emptyMap(), "\r\n");
+    }
+
     public void testHeaderlessRequestLine() throws Exception {
         doHttpRequestTest("GET", "/index.html", "HTTP/1.0", Collections.<String, Pair<String, String>>emptyMap(), "\r\n");
     }
@@ -117,7 +121,7 @@ public class HttpRequestParseTest extends TestCase {
         headers.put("Content-length", new Pair<String,String>("2345", "2345"));
         doHttpRequestTest("GET", "/index.html", "HTTP/1.1", headers, "\n");
     }
-
+    
     public void testDecoderOK() {
         try {
             doTestDecoder("GET /index.html HTTP/1.0\n\n", 4096);
