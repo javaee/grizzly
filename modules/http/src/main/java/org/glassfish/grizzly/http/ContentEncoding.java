@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -65,6 +65,16 @@ public interface ContentEncoding {
      * @return the <tt>ContentEncoding</tt> aliases.
      */
     String[] getAliases();
+
+    /**
+     * Method should implement the logic, which decides if HTTP packet with
+     * the specific {@link HttpHeader} should be decoded using this <tt>ContentEncoding</tt>.
+     *
+     * @param header HTTP packet header.
+     * @return <tt>true</tt>, if this <tt>ContentEncoding</tt> should be used to
+     * decode the HTTP packet, or <tt>false</tt> otherwise.
+     */
+    boolean wantDecode(HttpHeader header);
 
     /**
      * Method should implement the logic, which decides if HTTP packet with

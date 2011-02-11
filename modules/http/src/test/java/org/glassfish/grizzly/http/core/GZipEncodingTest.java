@@ -106,6 +106,24 @@ public class GZipEncodingTest extends TestCase {
 
                 return bc != null && bc.indexOf("gzip", 0) != -1;
             }
+
+            @Override
+            public boolean applyDecoding(HttpHeader httpPacket) {
+                return false;
+            }
+        });
+
+        GZipContentEncoding gzipClientContentEncoding =
+                new GZipContentEncoding(512, 512, new EncodingFilter() {
+            @Override
+            public boolean applyEncoding(HttpHeader httpPacket) {
+                return false;
+            }
+
+            @Override
+            public boolean applyDecoding(HttpHeader httpPacket) {
+                return true;
+            }
         });
 
         HttpRequestPacket request = HttpRequestPacket.builder()
@@ -123,11 +141,37 @@ public class GZipEncodingTest extends TestCase {
 
         final MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
         result.setContent(Buffers.wrap(mm, "Echo: <nothing>"));
-        doTest(request, result, gzipServerContentEncoding, null);
+        doTest(request, result, gzipServerContentEncoding, gzipClientContentEncoding);
     }
 
 
     public void testGZipRequest() throws Throwable {
+        GZipContentEncoding gzipServerContentEncoding =
+                new GZipContentEncoding(512, 512, new EncodingFilter() {
+            @Override
+            public boolean applyEncoding(HttpHeader httpPacket) {
+                return false;
+            }
+
+            @Override
+            public boolean applyDecoding(HttpHeader httpPacket) {
+                return true;
+            }
+        });
+
+        GZipContentEncoding gzipClientContentEncoding =
+                new GZipContentEncoding(512, 512, new EncodingFilter() {
+            @Override
+            public boolean applyEncoding(HttpHeader httpPacket) {
+                return false;
+            }
+
+            @Override
+            public boolean applyDecoding(HttpHeader httpPacket) {
+                return false;
+            }
+        });
+
         final MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
 
         String reqString = "GZipped hello. Works?";
@@ -159,7 +203,7 @@ public class GZipEncodingTest extends TestCase {
         result.addHeader("!content-encoding", "gzip");
         result.setContent(Buffers.wrap(mm, "Echo: " + reqString));
 
-        doTest(reqHttpContent, result, null, null);
+        doTest(reqHttpContent, result, gzipServerContentEncoding, gzipClientContentEncoding);
     }
 
 
@@ -174,6 +218,24 @@ public class GZipEncodingTest extends TestCase {
                 final DataChunk bc = httpRequest.getHeaders().getValue("accept-encoding");
 
                 return bc != null && bc.indexOf("gzip", 0) != -1;
+            }
+
+            @Override
+            public boolean applyDecoding(HttpHeader httpPacket) {
+                return true;
+            }
+        });
+
+        GZipContentEncoding gzipClientContentEncoding =
+                new GZipContentEncoding(512, 512, new EncodingFilter() {
+            @Override
+            public boolean applyEncoding(HttpHeader httpPacket) {
+                return false;
+            }
+
+            @Override
+            public boolean applyDecoding(HttpHeader httpPacket) {
+                return true;
             }
         });
 
@@ -209,7 +271,7 @@ public class GZipEncodingTest extends TestCase {
         result.addHeader("content-encoding", "gzip");
         result.setContent(Buffers.wrap(mm, "Echo: " + reqString));
 
-        doTest(reqHttpContent, result, gzipServerContentEncoding, null);
+        doTest(reqHttpContent, result, gzipServerContentEncoding, gzipClientContentEncoding);
     }
 
     public void testGZipRequestResponseChunking() throws Throwable {
@@ -223,6 +285,24 @@ public class GZipEncodingTest extends TestCase {
                 final DataChunk bc = httpRequest.getHeaders().getValue("accept-encoding");
 
                 return bc != null && bc.indexOf("gzip", 0) != -1;
+            }
+
+            @Override
+            public boolean applyDecoding(HttpHeader httpPacket) {
+                return true;
+            }
+        });
+
+        GZipContentEncoding gzipClientContentEncoding =
+                new GZipContentEncoding(512, 512, new EncodingFilter() {
+            @Override
+            public boolean applyEncoding(HttpHeader httpPacket) {
+                return false;
+            }
+
+            @Override
+            public boolean applyDecoding(HttpHeader httpPacket) {
+                return true;
             }
         });
 
@@ -258,7 +338,7 @@ public class GZipEncodingTest extends TestCase {
         result.addHeader("content-encoding", "gzip");
         result.setContent(Buffers.wrap(mm, "Echo: " + reqString));
 
-        doTest(reqHttpContent, result, gzipServerContentEncoding, null);
+        doTest(reqHttpContent, result, gzipServerContentEncoding, gzipClientContentEncoding);
     }
     
     // --------------------------------------------------------- Private Methods

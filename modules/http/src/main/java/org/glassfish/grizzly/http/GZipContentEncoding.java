@@ -100,8 +100,13 @@ public class GZipContentEncoding implements ContentEncoding {
         } else {
             this.encoderFilter = new EncodingFilter() {
                 @Override
-                public boolean applyEncoding(HttpHeader httpPacket) {
+                public boolean applyEncoding(final HttpHeader httpPacket) {
                     return false;
+                }
+
+                @Override
+                public boolean applyDecoding(final HttpHeader httpPacket) {
+                    return true;
                 }
             };
         }
@@ -118,12 +123,18 @@ public class GZipContentEncoding implements ContentEncoding {
     }
 
     @Override
-    public boolean wantEncode(HttpHeader header) {
+    public final boolean wantDecode(final HttpHeader header) {
+        return encoderFilter.applyDecoding(header);
+    }
+
+    @Override
+    public final boolean wantEncode(final HttpHeader header) {
         return encoderFilter.applyEncoding(header);
     }
 
     @Override
-    public ParsingResult decode(Connection connection, HttpContent httpContent) {
+    public ParsingResult decode(final Connection connection,
+            final HttpContent httpContent) {
         final HttpHeader httpHeader = httpContent.getHttpHeader();
 
         final Buffer input = httpContent.getContent();

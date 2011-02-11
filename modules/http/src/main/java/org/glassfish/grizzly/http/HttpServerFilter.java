@@ -166,11 +166,6 @@ public class HttpServerFilter extends HttpCodecFilter {
             processKeepAlive = false;
         }
         this.defaultResponseContentType = defaultResponseContentType;
-
-        final ContentEncoding enc = new GZipContentEncoding(
-                GZipContentEncoding.DEFAULT_IN_BUFFER_SIZE,
-                GZipContentEncoding.DEFAULT_OUT_BUFFER_SIZE);
-        contentEncodings.add(enc);
     }
 
     // ----------------------------------------------------------- Configuration
@@ -235,7 +230,7 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         final Connection c = ctx.getConnection();
         
-        if (event == RESPONSE_COMPLETE_EVENT && c.isOpen()) {
+        if (event.type() == RESPONSE_COMPLETE_EVENT.type() && c.isOpen()) {
 
             if (processKeepAlive) {
                 final KeepAliveContext keepAliveContext =
@@ -467,7 +462,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
 
         if (found) {
-            final DataChunk requestURIBC = httpRequest.getRequestURIRef().getRequestURIBC();
+            final DataChunk requestURIBC = httpRequest.getRequestURIRef().getOriginalRequestURIBC();
             requestURIBC.setBuffer(input, state.start, offset);
             if (state.checkpoint != -1) {
                 // cut RequestURI to not include query string
@@ -610,7 +605,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         // Check for a full URI (including protocol://host:port/)
         // Check for a full URI (including protocol://host:port/)
         final BufferChunk uriBC =
-                request.getRequestURIRef().getRequestURIBC().getBufferChunk();
+                request.getRequestURIRef().getOriginalRequestURIBC().getBufferChunk();
         if (uriBC.startsWithIgnoreCase("http", 0)) {
 
             int pos = uriBC.indexOf("://", 4);

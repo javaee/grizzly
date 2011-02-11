@@ -1266,15 +1266,19 @@ public abstract class HttpCodecFilter extends BaseFilter
             int currentIdx = 0;
 
             int commaIdx;
-            while((commaIdx = bc.indexOf(',', currentIdx)) != -1) {
-                final ContentEncoding ce = lookupContentEncoding(bc, currentIdx, commaIdx);
-                encodings.add(ce);
+            do {
+                commaIdx = bc.indexOf(',', currentIdx);
+                final ContentEncoding ce = lookupContentEncoding(bc, currentIdx,
+                        commaIdx >= 0 ? commaIdx : bc.getLength());
+                if (ce.wantDecode(httpHeader)) {
+                    encodings.add(ce);
+                } else {
+                    // if one content encoding doesn't want to decode -
+                    // following could not be applied
+                    return;
+                }
                 currentIdx = commaIdx + 1;
-            }
-
-            // last ContentEncoding
-            final ContentEncoding ce = lookupContentEncoding(bc, currentIdx, bc.getLength());
-            encodings.add(ce);
+            } while (commaIdx >= 0);
         }
     }
 

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -74,7 +74,7 @@ public class HttpRequestURIDecoder {
      * @param urlDecoder - The urlDecoder to use to decode.
      * @throws java.lang.Exception
      */
-    public static void decode(MessageBytes decodedURI, UDecoder urlDecoder)
+    public static void decode(final MessageBytes decodedURI, final UDecoder urlDecoder)
             throws Exception {
         decode(decodedURI, urlDecoder, null, null);
     }
@@ -89,8 +89,9 @@ public class HttpRequestURIDecoder {
      * @param b2cConverter the Bytes to Char Converter.
      * @throws java.lang.Exception
      */
-    public static void decode(MessageBytes decodedURI, UDecoder urlDecoder,
-            String encoding, B2CConverter b2cConverter) throws Exception {
+    public static void decode(final MessageBytes decodedURI,
+            final UDecoder urlDecoder, String encoding,
+            final B2CConverter b2cConverter) throws Exception {
         // %xx decoding of the URL
         urlDecoder.convert(decodedURI, false);
 
@@ -115,7 +116,7 @@ public class HttpRequestURIDecoder {
      * @param decodedURI - The bytes to decode
      * @throws java.lang.Exception
      */
-    public static void decode(DataChunk decodedURI)
+    public static void decode(final DataChunk decodedURI)
             throws CharConversionException {
         decode(decodedURI, false, UTF8_CHARSET);
     }
@@ -126,8 +127,8 @@ public class HttpRequestURIDecoder {
      * @param isSlashAllowed allow encoded slashes
      * @throws java.lang.Exception
      */
-    public static void decode(DataChunk decodedURI, boolean isSlashAllowed)
-            throws CharConversionException {
+    public static void decode(final DataChunk decodedURI,
+            final boolean isSlashAllowed) throws CharConversionException {
         decode(decodedURI, isSlashAllowed, UTF8_CHARSET);
     }
 
@@ -140,15 +141,28 @@ public class HttpRequestURIDecoder {
     public static void decode(final DataChunk decodedURI,
             final boolean isSlashAllowed, final Charset encoding)
             throws CharConversionException {
-        
-        // %xx decoding of the URL
-        URLDecoder.decode(decodedURI, isSlashAllowed);
+        decode(decodedURI, decodedURI, isSlashAllowed, encoding);
+    }
 
-        if (!normalize(decodedURI)) {
+    /**
+     * Decode the HTTP request represented by the bytes inside {@link DataChunk}.
+     * @param decodedURI - The bytes to decode
+     * @param targetDecodedURI the target {@link DataChunk} URI will be decoded to
+     * @param encoding the encoding value, default is UTF-8
+     * @throws java.lang.Exception
+     */
+    public static void decode(final DataChunk originalURI,
+            final DataChunk targetDecodedURI, final boolean isSlashAllowed,
+            final Charset encoding) throws CharConversionException {
+
+        // %xx decoding of the URL
+        URLDecoder.decode(originalURI, targetDecodedURI, isSlashAllowed);
+
+        if (!normalize(targetDecodedURI)) {
             throw new CharConversionException("Invalid URI character encoding");
         }
 
-        convertToChars(decodedURI, encoding);
+        convertToChars(targetDecodedURI, encoding);
     }
 
     /**

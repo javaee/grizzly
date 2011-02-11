@@ -166,6 +166,15 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
         isSet=true;
     }
 
+    public void ensureCapacity(final int size) {
+        if( buff==null || buff.length < size ) {
+            buff=new char[size];
+            limit = -1;
+        }
+
+        start=0;
+        end=0;
+    }
 
     public void setOptimizedWrite(boolean optimizedWrite) {
         this.optimizedWrite = optimizedWrite;

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly.http.util;
 
+import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.Buffer;
 import java.io.CharConversionException;
 import java.nio.charset.Charset;
 import static org.glassfish.grizzly.http.util.Charsets.*;
@@ -49,19 +51,31 @@ import static org.glassfish.grizzly.http.util.Charsets.*;
  * @author Alexey Stashok
  */
 public class RequestURIRef {
-    private final DataChunk requestURIBC = DataChunk.newInstance();
     private boolean isDecoded;
     private Charset decodedURIEncoding;
     private boolean wasSlashAllowed = true;
 
     private Charset defaultURIEncoding = UTF8_CHARSET;
-    
-    public final DataChunk getRequestURIBC() {
-        return requestURIBC;
+
+    private final DataChunk originalRequestURIBC = DataChunk.newInstance();
+    private final DataChunk decodedRequestURIBC = DataChunk.newInstance();
+
+    private Buffer preallocatedDecodedURIBuffer;
+
+    public final DataChunk getOriginalRequestURIBC() {
+        return originalRequestURIBC;
     }
 
     public final DataChunk getDecodedRequestURIBC() throws CharConversionException {
         return getDecodedRequestURIBC(wasSlashAllowed, defaultURIEncoding);
+    }
+
+    public final DataChunk getRequestURIBC() {
+        if (isDecoded) {
+            return decodedRequestURIBC;
+        }
+
+        return originalRequestURIBC;
     }
 
     public DataChunk getDecodedRequestURIBC(boolean isSlashAllowed)
@@ -72,35 +86,35 @@ public class RequestURIRef {
     public DataChunk getDecodedRequestURIBC(final boolean isSlashAllowed,
             final Charset charset) throws CharConversionException {
 
-        if (isDecoded) {
-            if (isSlashAllowed != wasSlashAllowed)
-                throw new IllegalStateException(
-                        "URI was already decoded with isSlashAllowed=" + wasSlashAllowed);
-            if (charset == decodedURIEncoding) {
-                return requestURIBC;
-            } else {
-                HttpRequestURIDecoder.convertToChars(requestURIBC, charset);
-            }
-        } else {
-            HttpRequestURIDecoder.decode(requestURIBC, isSlashAllowed, charset);
-            isDecoded = true;
-            wasSlashAllowed = isSlashAllowed;
+        if (isDecoded && isSlashAllowed == wasSlashAllowed
+                && charset == decodedURIEncoding) {
+            return decodedRequestURIBC;
         }
 
+        checkDecodedURICapacity(originalRequestURIBC.getLength());
+        decodedRequestURIBC.setBuffer(preallocatedDecodedURIBuffer, 0,
+                preallocatedDecodedURIBuffer.limit());
+
+        HttpRequestURIDecoder.decode(originalRequestURIBC, decodedRequestURIBC,
+                isSlashAllowed, charset);
+        
+        isDecoded = true;
+        wasSlashAllowed = isSlashAllowed;
+
         decodedURIEncoding = charset;
-        return requestURIBC;
+        return decodedRequestURIBC;
     }
 
     public String getURI() {
         return getURI(null);
     }
 
-    public String getURI(Charset encoding) {
-        return requestURIBC.toString(encoding);
+    public String getURI(final Charset encoding) {
+        return getRequestURIBC().toString(encoding);
     }
 
-    public void setURI(String uri) {
-        requestURIBC.setString(uri);
+    public void setURI(final String uri) {
+        getRequestURIBC().setString(uri);
     }
 
     public final String getDecodedURI() throws CharConversionException {
@@ -116,12 +130,12 @@ public class RequestURIRef {
         
         getDecodedRequestURIBC(isSlashAllowed, encoding);
 
-        final String strValue = requestURIBC.toString();
+        final String strValue = decodedRequestURIBC.toString();
         return strValue;
     }
 
     public void setDecodedURI(String uri) {
-        requestURIBC.setString(uri);
+        decodedRequestURIBC.setString(uri);
         isDecoded = true;
     }
 
@@ -142,10 +156,22 @@ public class RequestURIRef {
     }
 
     public void recycle() {
-        requestURIBC.recycle();
+        originalRequestURIBC.recycle();
+        decodedRequestURIBC.recycle();
         isDecoded = false;
         wasSlashAllowed = true;
         decodedURIEncoding = null;
         defaultURIEncoding = UTF8_CHARSET;
+    }
+
+    private void checkDecodedURICapacity(final int size) {
+        if (preallocatedDecodedURIBuffer == null) {
+            // for static allocation it's better to wrap byte[]
+            preallocatedDecodedURIBuffer = Buffers.wrap(null, new byte[size]);
+        } else if (preallocatedDecodedURIBuffer.clear().remaining() < size) {
+            preallocatedDecodedURIBuffer.dispose();
+            // for static allocation it's better to wrap byte[]
+            preallocatedDecodedURIBuffer = Buffers.wrap(null, new byte[size]);
+        }
     }
 }
