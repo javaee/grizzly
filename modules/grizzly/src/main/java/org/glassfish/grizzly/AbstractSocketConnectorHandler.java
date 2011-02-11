@@ -113,7 +113,7 @@ public abstract class AbstractSocketConnectorHandler
      * Set the default {@link Processor} to process {@link IOEvent}, occurring
      * on connection phase.
      *
-     * @param defaultProcessor the default {@link Processor} to process
+     * @param processor the default {@link Processor} to process
      * {@link IOEvent}, occurring on connection phase.
      */
     public void setProcessor(Processor processor) {
@@ -135,7 +135,7 @@ public abstract class AbstractSocketConnectorHandler
      * Sets the default {@link ProcessorSelector}, which will be used to get
      * {@link Processor} to process I/O events, occurring on connection phase.
      *
-     * @param defaultProcessorSelector the default {@link ProcessorSelector},
+     * @param processorSelector the default {@link ProcessorSelector},
      * which will be used to get {@link Processor} to process I/O events,
      * occurring on connection phase.
      */

@@ -123,7 +123,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      *
      * <p>
      * The builder's worker thread pool configuration will be based on the return
-     * value of {@link IOStrategy#createDefaultWorkerPoolConfig(org.glassfish.grizzly.nio.NIOTransport)}.
+     * value of {@link IOStrategy#createDefaultWorkerPoolConfig(Transport)}.
      * If worker thread configuration is non-null, the initial selector thread pool
      * configuration will be cloned from it, otherwise a default configuration
      * will be chosen.

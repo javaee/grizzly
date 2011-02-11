@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,7 +55,7 @@ public interface ConnectorHandler<E> {
 
     /**
      * Creates, initializes and connects socket to the specific
-     * {@link SocketAddress} and returns {@link Connection}, representing socket.
+     * {@link java.net.SocketAddress} and returns {@link Connection}, representing socket.
      *
      * @param remoteAddress remote address to connect to.
      * @return {@link Future} of connect operation, which could be used to get
@@ -68,7 +68,7 @@ public interface ConnectorHandler<E> {
 
     /**
      * Creates, initializes and connects socket to the specific
-     * {@link SocketAddress} and returns {@link Connection}, representing socket.
+     * {@link java.net.SocketAddress} and returns {@link Connection}, representing socket.
      *
      * @param remoteAddress remote address to connect to.
      * @param completionHandler {@link CompletionHandler}.
@@ -82,7 +82,7 @@ public interface ConnectorHandler<E> {
 
     /**
      * Creates, initializes socket, binds it to the specific local and remote
-     * {@link SocketAddress} and returns {@link Connection}, representing socket.
+     * {@link java.net.SocketAddress} and returns {@link Connection}, representing socket.
      *
      * @param remoteAddress remote address to connect to.
      * @param localAddress local address to bind socket to.
@@ -96,7 +96,7 @@ public interface ConnectorHandler<E> {
 
     /**
      * Creates, initializes socket, binds it to the specific local and remote
-     * {@link SocketAddress} and returns {@link Connection}, representing socket.
+     * {@link java.net.SocketAddress} and returns {@link Connection}, representing socket.
      *
      * @param remoteAddress remote address to connect to.
      * @param localAddress local address to bind socket to.

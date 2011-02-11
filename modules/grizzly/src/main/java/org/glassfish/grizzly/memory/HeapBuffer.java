@@ -61,7 +61,7 @@ import org.glassfish.grizzly.Buffer;
  * @author Alexey Stashok
  * @author Ryan Lubke
  *
- * @isnce 2.0
+ * @since 2.0
  */
 public class HeapBuffer implements Buffer {
     public static volatile boolean DEBUG_MODE = false;
