@@ -68,7 +68,7 @@ public abstract class HttpRequestPacket extends HttpHeader {
     private int remotePort = -1;
     private int localPort = -1;
 
-    private RequestURIRef requestURIRef = new RequestURIRef();
+    private final RequestURIRef requestURIRef = new RequestURIRef();
 
     private String localHost;
 
