@@ -71,6 +71,8 @@ public final class TCPAIOServerConnection extends TCPAIOConnection {
     }
 
     public void listen() throws IOException {
+        if (isStandalone()) return;
+        
         ((AsynchronousServerSocketChannel) channel).accept(null,
                 new java.nio.channels.CompletionHandler<AsynchronousSocketChannel, Object>()    {
 
