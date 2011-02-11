@@ -128,7 +128,7 @@ public abstract class HttpHandler {
                 try {
                     requestURIRef.getDecodedRequestURIBC(allowEncodedSlash);
                 } catch (CharConversionException e) {
-                    response.setStatus(HttpStatus.NOT_FOUND_404);
+                    response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
                     response.setDetailMessage("Invalid URI: " + e.getMessage());
                     return;
                 }
