@@ -401,7 +401,7 @@ final TCPNIOTransport transport = builder.build(); </programlisting>
     values.</para>
 
     <programlisting language="java">final TCPNIOTransportBuilder builder = TCPNIOTransportBuilder.newInstance(); 
-final TCPNIOTransport transport = builder.setIOStrategy(new SameThreadIOStrategy()).setTcpNoDelay(true).build();     </programlisting>
+final TCPNIOTransport transport = builder.setIOStrategy(SameThreadIOStrategy.getInstance()).setTcpNoDelay(true).build();     </programlisting>
 
     <para>Creates a new TCPNIOTransport instance using the
     SameThreadIOStrategy, and tcp-no-delay set to true. Note that
