@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.aio.transport;
 
+import java.util.concurrent.ExecutorService;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.ProcessorSelector;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueIO;
@@ -196,10 +197,8 @@ public final class TCPAIOTransport extends AIOTransport implements
 //                selectorRunnersCount = Math.max(1, Runtime.getRuntime().availableProcessors() / 2 * 3);
 //            }
 
-            if (kernelPool == null) {
-                setKernelPool0(GrizzlyExecutorService.createInstance(kernelPoolConfig));
-            }
-
+            checkKernelPool();
+            
             if (workerThreadPool == null) {
                 if (workerPoolConfig != null) {
                     workerPoolConfig.getInitialMonitoringConfig().addProbes(
@@ -211,9 +210,6 @@ public final class TCPAIOTransport extends AIOTransport implements
             if (strategy == null) {
                 strategy = WorkerThreadIOStrategy.getInstance();
             }
-
-            asynchronousChannelGroup =
-                    AsynchronousChannelGroup.withThreadPool(getKernelThreadPool());
             
             listenServerConnections();
 
@@ -348,7 +344,7 @@ public final class TCPAIOTransport extends AIOTransport implements
 
         try {
             AsynchronousServerSocketChannel serverSocketChannel =
-                    AsynchronousServerSocketChannel.open(asynchronousChannelGroup);
+                    AsynchronousServerSocketChannel.open(getAsynchronousChannelGroup());
             
             final TCPAIOServerConnection serverConnection =
                     obtainServerAIOConnection(serverSocketChannel);
@@ -535,7 +531,24 @@ public final class TCPAIOTransport extends AIOTransport implements
         }
     }
 
+    void checkKernelPool() {
+        if (kernelPool == null) {
+            setKernelPool0(GrizzlyExecutorService.createInstance(kernelPoolConfig));
+        }
+    }
+    
     AsynchronousChannelGroup getAsynchronousChannelGroup() {
+        if (asynchronousChannelGroup == null) {
+            checkKernelPool();
+            try {
+                asynchronousChannelGroup =
+                        AsynchronousChannelGroup.withThreadPool(kernelPool);
+            } catch (IOException e) {
+                throw new IllegalStateException(
+                        "Can not initialize AsynchronousChannelGroup", e);
+            }
+        }
+        
         return asynchronousChannelGroup;
     }
     
