@@ -107,7 +107,7 @@ public abstract class AIOTransportBuilder<T extends AIOTransportBuilder> {
      * <p>
      * The builder's worker thread pool configuration will be based on the return
      * value of {@link IOStrategy#createDefaultWorkerPoolConfig(org.glassfish.grizzly.aio.AIOTransport)}.
-     * If worker thread configuration is non-null, the initial selector thread pool
+     * If worker thread configuration is non-null, the initial kernel thread pool
      * configuration will be cloned from it, otherwise a default configuration
      * will be chosen.
      * </p>
@@ -122,14 +122,14 @@ public abstract class AIOTransportBuilder<T extends AIOTransportBuilder> {
 
         transport = transportClass.newInstance();
         final ThreadPoolConfig workerConfig = strategy.createDefaultWorkerPoolConfig(transport);
-        final ThreadPoolConfig selectorConfig = configSelectorPool((workerConfig != null)
+        final ThreadPoolConfig kernelConfig = configKernelPool((workerConfig != null)
                                                    ? workerConfig.clone()
                                                    : ThreadPoolConfig.defaultConfig().clone());
         transport.setMemoryManager(DEFAULT_MEMORY_MANAGER);
         transport.setAttributeBuilder(DEFAULT_ATTRIBUTE_BUILDER);
         transport.setIOStrategy(strategy);
         transport.setWorkerThreadPoolConfig(workerConfig);
-        transport.setKernelThreadPoolConfig(selectorConfig);
+        transport.setKernelThreadPoolConfig(kernelConfig);
 
     }
 
@@ -151,8 +151,8 @@ public abstract class AIOTransportBuilder<T extends AIOTransportBuilder> {
      *  {@link java.util.concurrent.ExecutorService} which will run the {@link AIOTransport}'s
      *  {@link org.glassfish.grizzly.nio.SelectorRunner}s.
      */
-    public ThreadPoolConfig getSelectorThreadPoolConfig() {
-        return transport.getSelectorRunnerThreadPoolConfig();
+    public ThreadPoolConfig getKernelThreadPoolConfig() {
+        return transport.getKernelThreadPoolConfig();
     }
 
     /**
@@ -320,7 +320,7 @@ public abstract class AIOTransportBuilder<T extends AIOTransportBuilder> {
      * </p>
      * @param config
      */
-    protected ThreadPoolConfig configSelectorPool(final ThreadPoolConfig config) {
+    protected ThreadPoolConfig configKernelPool(final ThreadPoolConfig config) {
         final int runnerCount = getRunnerCount();
         return config.setCorePoolSize(runnerCount).setMaxPoolSize(runnerCount);
     }

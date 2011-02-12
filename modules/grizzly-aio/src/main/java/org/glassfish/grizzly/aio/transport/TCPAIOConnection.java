@@ -580,7 +580,6 @@ public class TCPAIOConnection extends AIOConnection {
         public final void completed(final A processedBytesObj,
                 final IOResult attachment) {
 
-            Thread.dumpStack();
             final int processedBytes = getProcessedBytes(processedBytesObj);
             final IOResult ioResult = attachment.done(processedBytes);
             final Buffer buffer = ioResult.getBuffer();

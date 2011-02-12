@@ -74,6 +74,7 @@ import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import java.net.StandardSocketOption;
 import java.nio.channels.AsynchronousChannel;
+import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.concurrent.TimeUnit;
@@ -153,6 +154,8 @@ public final class TCPAIOTransport extends AIOTransport implements
     private final TCPAIOConnectorHandler connectorHandler =
             new TransportConnectorHandler();
     
+    private volatile AsynchronousChannelGroup asynchronousChannelGroup;
+    
     public TCPAIOTransport() {
         this(DEFAULT_TRANSPORT_NAME);
     }
@@ -193,15 +196,15 @@ public final class TCPAIOTransport extends AIOTransport implements
 //                selectorRunnersCount = Math.max(1, Runtime.getRuntime().availableProcessors() / 2 * 3);
 //            }
 
-            if (selectorPool == null) {
-                setSelectorPool0(GrizzlyExecutorService.createInstance(selectorConfig));
+            if (kernelPool == null) {
+                setKernelPool0(GrizzlyExecutorService.createInstance(kernelPoolConfig));
             }
 
-            if (threadPool == null) {
-                if (workerConfig != null) {
-                    workerConfig.getInitialMonitoringConfig().addProbes(
+            if (workerThreadPool == null) {
+                if (workerPoolConfig != null) {
+                    workerPoolConfig.getInitialMonitoringConfig().addProbes(
                         getThreadPoolMonitoringConfig().getProbes());
-                    setThreadPool0(GrizzlyExecutorService.createInstance(workerConfig));
+                    setWorkerThreadPool0(GrizzlyExecutorService.createInstance(workerPoolConfig));
                 }
             }
 
@@ -209,6 +212,9 @@ public final class TCPAIOTransport extends AIOTransport implements
                 strategy = WorkerThreadIOStrategy.getInstance();
             }
 
+            asynchronousChannelGroup =
+                    AsynchronousChannelGroup.withThreadPool(getKernelThreadPool());
+            
             listenServerConnections();
 
             state.setState(State.START);
@@ -245,10 +251,17 @@ public final class TCPAIOTransport extends AIOTransport implements
             state.setState(State.STOP);
 
 //            stopSelectorRunners();
-
-            if (threadPool != null && managedWorkerPool) {
-                threadPool.shutdown();
-                threadPool = null;
+            final AsynchronousChannelGroup asyncChannelGroupLocal =
+                    asynchronousChannelGroup;
+            asynchronousChannelGroup = null;
+            
+            if (asyncChannelGroupLocal != null) {
+                asyncChannelGroupLocal.shutdown();
+            }
+            
+            if (workerThreadPool != null && managedWorkerPool) {
+                workerThreadPool.shutdown();
+                workerThreadPool = null;
             }
 
             notifyProbesStop(this);
@@ -335,7 +348,7 @@ public final class TCPAIOTransport extends AIOTransport implements
 
         try {
             AsynchronousServerSocketChannel serverSocketChannel =
-                    AsynchronousServerSocketChannel.open();
+                    AsynchronousServerSocketChannel.open(asynchronousChannelGroup);
             
             final TCPAIOServerConnection serverConnection =
                     obtainServerAIOConnection(serverSocketChannel);
@@ -522,6 +535,10 @@ public final class TCPAIOTransport extends AIOTransport implements
         }
     }
 
+    AsynchronousChannelGroup getAsynchronousChannelGroup() {
+        return asynchronousChannelGroup;
+    }
+    
     TCPAIOConnection obtainAIOConnection(final AsynchronousSocketChannel channel) {
         final TCPAIOConnection connection = new TCPAIOConnection(this, channel);
         configureAIOConnection(connection);

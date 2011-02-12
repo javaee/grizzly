@@ -109,8 +109,10 @@ public class TCPAIOConnectorHandler extends AbstractSocketConnectorHandler {
             final SocketAddress localAddress,
             final CompletionHandler<Connection> completionHandler)
             throws IOException {
+        final TCPAIOTransport aioTransport = (TCPAIOTransport) transport;
+
         final AsynchronousSocketChannel socketChannel =
-                AsynchronousSocketChannel.open();
+                AsynchronousSocketChannel.open(aioTransport.getAsynchronousChannelGroup());
 
         socketChannel.setOption(StandardSocketOption.SO_REUSEADDR,
                 isReuseAddress);
@@ -119,7 +121,6 @@ public class TCPAIOConnectorHandler extends AbstractSocketConnectorHandler {
             socketChannel.bind(localAddress);
         }
 
-        final TCPAIOTransport aioTransport = (TCPAIOTransport) transport;
         final TCPAIOConnection connection = aioTransport.obtainAIOConnection(socketChannel);
 
         preConfigure(connection);
