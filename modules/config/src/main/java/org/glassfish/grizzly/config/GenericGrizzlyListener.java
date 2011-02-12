@@ -365,7 +365,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     protected void configureThreadPool(final Habitat habitat,
         final ThreadPool threadPool) {
         try {
-            transport.setThreadPool(GrizzlyExecutorService.createInstance(
+            transport.setWorkerThreadPool(GrizzlyExecutorService.createInstance(
                 configureThreadPoolConfig(habitat, threadPool)));
         } catch (NumberFormatException ex) {
             logger.log(Level.WARNING, " Invalid thread-pool attribute", ex);

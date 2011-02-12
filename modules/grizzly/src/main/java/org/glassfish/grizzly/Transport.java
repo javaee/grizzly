@@ -50,7 +50,6 @@ import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.threadpool.ThreadPoolProbe;
 import org.glassfish.grizzly.utils.StateHolder;
 import java.io.IOException;
-import java.nio.channels.Selector;
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -292,45 +291,48 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
     void setWriteBufferSize(int writeBufferSize);
 
     /**
-     * Get a thread pool, which will process transport internal tasks like
-     * NIO {@link Selector} polling etc.
+     * Get a thread pool, which will run IOEvent processing
+     * (depending on Transport {@link IOStrategy}) to let kernel threads continue
+     * their job.
      *
-     * @return {@link ExecutorService} transport thread pool.
+     * @return {@link ExecutorService} transport worker thread pool.
      */
     ExecutorService getWorkerThreadPool();
 
 
     /**
-     * @return {@link ExecutorService} responsible for running {@link org.glassfish.grizzly.nio.SelectorRunner}
-     *  threads.
+     * @return {@link ExecutorService} responsible for running Transport internal
+     * tasks. For example {@link org.glassfish.grizzly.nio.SelectorRunner}
+     *  threads for NIO.
      */
-    ExecutorService getSelectorRunnerThreadPool();
+    ExecutorService getKernelThreadPool();
 
     /**
-     * Set a thread pool, which will process transport internal tasks like
-     * NIO {@link Selector} polling etc.
+     * Set a thread pool, which will run IOEvent processing
+     * (depending on Transport {@link IOStrategy}) to let kernel threads continue
+     * their job.
      *
-     * @param threadPool {@link ExecutorService} transport thread pool.
+     * @param threadPool {@link ExecutorService} transport worker thread pool.
      */
-    void setThreadPool(ExecutorService threadPool);
+    void setWorkerThreadPool(ExecutorService threadPool);
 
     /**
-     * Set a thread pool which will run {@link org.glassfish.grizzly.nio.SelectorRunner}
-     * threads.
+     * Set a thread pool which will run Transport internal tasks. For example
+     * {@link org.glassfish.grizzly.nio.SelectorRunner} threads for NIO.
      *
      * @param threadPool {@link ExecutorService} for {@link org.glassfish.grizzly.nio.SelectorRunner}s
      */
-    void setSelectorRunnerThreadPool(ExecutorService threadPool);
+    void setKernelThreadPool(ExecutorService threadPool);
 
 
     /**
-     * Set the {@link ThreadPoolConfig} to be used by the {@link org.glassfish.grizzly.nio.SelectorRunner}
+     * Set the {@link ThreadPoolConfig} to be used by the Transport internal
      * thread pool.
      *
-     * @param runnerConfig {@link org.glassfish.grizzly.nio.SelectorRunner} thread
+     * @param kernelConfig kernel thread
      *  pool configuration.
      */
-    void setSelectorRunnerThreadPoolConfig(final ThreadPoolConfig runnerConfig);
+    void setKernelThreadPoolConfig(final ThreadPoolConfig kernelConfig);
 
     /**
      * Set the {@link ThreadPoolConfig} to be used by the worker thread pool.

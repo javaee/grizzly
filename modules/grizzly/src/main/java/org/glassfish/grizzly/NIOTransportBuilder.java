@@ -148,7 +148,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
         transport.setAttributeBuilder(DEFAULT_ATTRIBUTE_BUILDER);
         transport.setIOStrategy(strategy);
         transport.setWorkerThreadPoolConfig(workerConfig);
-        transport.setSelectorRunnerThreadPoolConfig(selectorConfig);
+        transport.setKernelThreadPoolConfig(selectorConfig);
         transport.setSelectorRunnersCount(selectorConfig.getMaxPoolSize());
 
     }

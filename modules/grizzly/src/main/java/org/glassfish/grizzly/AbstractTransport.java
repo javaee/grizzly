@@ -351,7 +351,7 @@ public abstract class AbstractTransport implements Transport {
      * {@inheritDoc}
      */
     @Override
-    public ExecutorService getSelectorRunnerThreadPool() {
+    public ExecutorService getKernelThreadPool() {
         return selectorPool;
     }
 
@@ -359,7 +359,7 @@ public abstract class AbstractTransport implements Transport {
      * {@inheritDoc}
      */
     @Override
-    public void setSelectorRunnerThreadPool(ExecutorService selectorPool) {
+    public void setKernelThreadPool(ExecutorService selectorPool) {
         this.selectorPool = selectorPool;
     }
 
@@ -367,7 +367,7 @@ public abstract class AbstractTransport implements Transport {
      * {@inheritDoc}
      */
     @Override
-    public void setSelectorRunnerThreadPoolConfig(ThreadPoolConfig selectorConfig) {
+    public void setKernelThreadPoolConfig(ThreadPoolConfig selectorConfig) {
         if (isStopped()) {
             this.selectorConfig = selectorConfig;
         }
@@ -403,7 +403,7 @@ public abstract class AbstractTransport implements Transport {
      * {@inheritDoc}
      */
     @Override
-    public void setThreadPool(final ExecutorService threadPool) {
+    public void setWorkerThreadPool(final ExecutorService threadPool) {
         managedWorkerPool = false;
         if (threadPool instanceof MonitoringAware) {
             ((MonitoringAware<ThreadPoolProbe>) threadPool).getMonitoringConfig()

@@ -145,7 +145,7 @@ public final class SelectorRunner implements Runnable {
         }
         
         stateHolder.setState(State.STARTING);
-        transport.getSelectorRunnerThreadPool().execute(this);
+        transport.getKernelThreadPool().execute(this);
     }
     
     public void startBlocking(int timeout) throws TimeoutException {
