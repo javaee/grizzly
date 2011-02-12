@@ -90,8 +90,8 @@ public abstract class NIOTransport extends AbstractTransport {
 
     public void setSelectorRunnersCount(final int selectorRunnersCount) {
         this.selectorRunnersCount = selectorRunnersCount;
-        selectorConfig.setCorePoolSize(selectorRunnersCount);
-        selectorConfig.setMaxPoolSize(selectorRunnersCount);
+        kernelPoolConfig.setCorePoolSize(selectorRunnersCount);
+        kernelPoolConfig.setMaxPoolSize(selectorRunnersCount);
         notifyProbesConfigChanged(this);
     }
 

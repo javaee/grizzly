@@ -101,12 +101,12 @@ public abstract class AbstractTransport implements Transport {
     /**
      * Worker thread pool
      */
-    protected ExecutorService threadPool;
+    protected ExecutorService workerThreadPool;
 
     /**
-     * SelectorRunner thread pool.
+     * Kernel thread pool.
      */
-    protected ExecutorService selectorPool;
+    protected ExecutorService kernelPool;
 
     /**
      * Transport AttributeBuilder, which will be used to create Attributes
@@ -123,9 +123,9 @@ public abstract class AbstractTransport implements Transport {
      */
     protected int writeBufferSize;
 
-    protected ThreadPoolConfig workerConfig;
+    protected ThreadPoolConfig workerPoolConfig;
 
-    protected ThreadPoolConfig selectorConfig;
+    protected ThreadPoolConfig kernelPoolConfig;
 
     protected boolean managedWorkerPool = true;
 
@@ -344,7 +344,7 @@ public abstract class AbstractTransport implements Transport {
      */
     @Override
     public ExecutorService getWorkerThreadPool() {
-        return threadPool;
+        return workerThreadPool;
     }
 
     /**
@@ -352,24 +352,24 @@ public abstract class AbstractTransport implements Transport {
      */
     @Override
     public ExecutorService getKernelThreadPool() {
-        return selectorPool;
+        return kernelPool;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void setKernelThreadPool(ExecutorService selectorPool) {
-        this.selectorPool = selectorPool;
+    public void setKernelThreadPool(ExecutorService kernelPool) {
+        this.kernelPool = kernelPool;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void setKernelThreadPoolConfig(ThreadPoolConfig selectorConfig) {
+    public void setKernelThreadPoolConfig(ThreadPoolConfig kernelPoolConfig) {
         if (isStopped()) {
-            this.selectorConfig = selectorConfig;
+            this.kernelPoolConfig = kernelPoolConfig;
         }
     }
 
@@ -377,9 +377,9 @@ public abstract class AbstractTransport implements Transport {
      * {@inheritDoc}
      */
     @Override
-    public void setWorkerThreadPoolConfig(ThreadPoolConfig workerConfig) {
+    public void setWorkerThreadPoolConfig(ThreadPoolConfig workerPoolConfig) {
         if (isStopped()) {
-            this.workerConfig = workerConfig;
+            this.workerPoolConfig = workerPoolConfig;
         }
     }
 
@@ -387,8 +387,8 @@ public abstract class AbstractTransport implements Transport {
      * {@inheritDoc}
      */
     @Override
-    public ThreadPoolConfig getSelectorRunnerThreadPoolConfig() {
-        return ((isStopped()) ? selectorConfig : selectorConfig.clone());
+    public ThreadPoolConfig getKernelThreadPoolConfig() {
+        return ((isStopped()) ? kernelPoolConfig : kernelPoolConfig.clone());
     }
 
     /**
@@ -396,7 +396,7 @@ public abstract class AbstractTransport implements Transport {
      */
     @Override
     public ThreadPoolConfig getWorkerThreadPoolConfig() {
-        return ((isStopped()) ? workerConfig : workerConfig.clone());
+        return ((isStopped()) ? workerPoolConfig : workerPoolConfig.clone());
     }
 
     /**
@@ -410,16 +410,16 @@ public abstract class AbstractTransport implements Transport {
                     .addProbes(threadPoolMonitoringConfig.getProbes());
         }
 
-        setThreadPool0(threadPool);
+        setWorkerThreadPool0(threadPool);
     }
 
-    protected void setThreadPool0(final ExecutorService threadPool) {
-        this.threadPool = threadPool;
+    protected void setWorkerThreadPool0(final ExecutorService threadPool) {
+        this.workerThreadPool = threadPool;
         notifyProbesConfigChanged(this);
     }
 
-    protected void setSelectorPool0(final ExecutorService selectorPool) {
-        this.selectorPool = selectorPool;
+    protected void setKernelPool0(final ExecutorService kernelPool) {
+        this.kernelPool = kernelPool;
     }
 
     /**

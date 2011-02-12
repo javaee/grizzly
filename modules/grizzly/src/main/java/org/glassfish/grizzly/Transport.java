@@ -344,10 +344,11 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
     /**
      * @return the {@link ThreadPoolConfig} that will be used to construct the
      *  {@link java.util.concurrent.ExecutorService} which will run the
-     *  {@link org.glassfish.grizzly.Transport}'s
-     *  {@link org.glassfish.grizzly.nio.SelectorRunner}s.
+     *  {@link org.glassfish.grizzly.Transport}'s internal tasks.
+     *  For example
+     *  {@link org.glassfish.grizzly.nio.SelectorRunner}s for NIO.
      */
-    ThreadPoolConfig getSelectorRunnerThreadPoolConfig();
+    ThreadPoolConfig getKernelThreadPoolConfig();
 
     /**
      * @return the {@link ThreadPoolConfig} that will be used to construct the

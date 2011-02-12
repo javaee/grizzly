@@ -129,7 +129,7 @@ public abstract class AIOTransportBuilder<T extends AIOTransportBuilder> {
         transport.setAttributeBuilder(DEFAULT_ATTRIBUTE_BUILDER);
         transport.setIOStrategy(strategy);
         transport.setWorkerThreadPoolConfig(workerConfig);
-        transport.setSelectorRunnerThreadPoolConfig(selectorConfig);
+        transport.setKernelThreadPoolConfig(selectorConfig);
 
     }
 

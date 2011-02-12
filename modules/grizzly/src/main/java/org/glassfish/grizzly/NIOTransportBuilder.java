@@ -172,7 +172,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      *  {@link org.glassfish.grizzly.nio.SelectorRunner}s.
      */
     public ThreadPoolConfig getSelectorThreadPoolConfig() {
-        return transport.getSelectorRunnerThreadPoolConfig();
+        return transport.getKernelThreadPoolConfig();
     }
 
     /**

@@ -438,15 +438,15 @@ public final class UDPNIOTransport extends NIOTransport implements
                 nioChannelDistributor = new RoundRobinConnectionDistributor(this);
             }
 
-            if (selectorPool == null) {
-                setSelectorPool0(GrizzlyExecutorService.createInstance(selectorConfig));
+            if (kernelPool == null) {
+                setKernelPool0(GrizzlyExecutorService.createInstance(kernelPoolConfig));
             }
 
-            if (threadPool == null) {
-                if (workerConfig != null) {
-                    workerConfig.getInitialMonitoringConfig().addProbes(
+            if (workerThreadPool == null) {
+                if (workerPoolConfig != null) {
+                    workerPoolConfig.getInitialMonitoringConfig().addProbes(
                         getThreadPoolMonitoringConfig().getProbes());
-                    setThreadPool0(GrizzlyExecutorService.createInstance(workerConfig));
+                    setWorkerThreadPool0(GrizzlyExecutorService.createInstance(workerPoolConfig));
                 }
             }
 
@@ -454,12 +454,12 @@ public final class UDPNIOTransport extends NIOTransport implements
             to the number of processing threads */
             int selectorPoolSize =
                     TemporarySelectorPool.DEFAULT_SELECTORS_COUNT;
-            if (threadPool instanceof AbstractThreadPool) {
+            if (workerThreadPool instanceof AbstractThreadPool) {
                 if (strategy instanceof SameThreadIOStrategy) {
                     selectorPoolSize = selectorRunnersCount;
                 } else {
                     selectorPoolSize = Math.min(
-                           ((AbstractThreadPool) threadPool).getConfig().getMaxPoolSize(),
+                           ((AbstractThreadPool) workerThreadPool).getConfig().getMaxPoolSize(),
                            selectorPoolSize);
                 }
             }
@@ -505,9 +505,9 @@ public final class UDPNIOTransport extends NIOTransport implements
             state.setState(State.STOP);
             stopSelectorRunners();
 
-            if (threadPool != null && managedWorkerPool) {
-                threadPool.shutdown();
-                threadPool = null;
+            if (workerThreadPool != null && managedWorkerPool) {
+                workerThreadPool.shutdown();
+                workerThreadPool = null;
             }
 
             notifyProbesStop(this);
