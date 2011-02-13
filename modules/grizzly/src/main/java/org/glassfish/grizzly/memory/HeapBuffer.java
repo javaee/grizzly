@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -384,22 +384,20 @@ public class HeapBuffer implements Buffer {
 
         final int oldPos = src.position();
         final int oldLim = src.limit();
+
+        final int thisPos = pos; // Save the current pos for case, if src == this
         Buffers.setPositionLimit(src, position, position + length);
 
-        try {
-
-            src.get(heap, offset + pos, length);
-            pos += length;
-        } finally {
-            Buffers.setPositionLimit(src, oldPos, oldLim);
-        }
+        src.get(heap, offset + thisPos, length);
+        Buffers.setPositionLimit(src, oldPos, oldLim);
+        pos = thisPos + length;
 
 
         return this;
     }
 
     @Override
-    public Buffer get(ByteBuffer dst) {
+    public Buffer get(final ByteBuffer dst) {
         final int length = dst.remaining();
         
         dst.put(heap, offset + pos, length);
@@ -409,7 +407,7 @@ public class HeapBuffer implements Buffer {
     }
 
     @Override
-    public Buffer get(ByteBuffer dst, int position, int length) {
+    public Buffer get(final ByteBuffer dst, final int position, final int length) {
         final int oldPos = dst.position();
         final int oldLim = dst.limit();
 

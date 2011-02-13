@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,7 +43,6 @@ package org.glassfish.grizzly;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.memory.AbstractMemoryManager;
 import org.glassfish.grizzly.memory.HeapBuffer;
 import org.glassfish.grizzly.memory.HeapMemoryManager;
 import org.glassfish.grizzly.memory.MemoryManager;
@@ -333,6 +332,28 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
         };
 
         testInWorkerThread(mm, r);
+    }
+
+    public void testBufferPut() {
+        final HeapMemoryManager mm = new HeapMemoryManager();
+        final Buffer b = mm.allocate(127);
+
+        int i = 0;
+        while (b.hasRemaining()) {
+            b.put((byte) i++);
+        }
+
+        b.flip();
+
+        b.put(b, 10, 127 - 10).flip();
+
+        
+        assertEquals(127 - 10, b.remaining());
+
+        i = 10;
+        while (b.hasRemaining()) {
+            assertEquals(i++, b.get());
+        }
     }
 
     public void testCompositeBufferDispose() throws Exception {
