@@ -257,7 +257,7 @@ public final class BuffersBuffer extends CompositeBuffer {
     }
 
     @Override
-    public BuffersBuffer position(int newPosition) {
+    public BuffersBuffer position(final int newPosition) {
         checkDispose();
         setPosLim(newPosition, limit);
         return this;
@@ -270,9 +270,9 @@ public final class BuffersBuffer extends CompositeBuffer {
     }
 
     @Override
-    public BuffersBuffer limit(int newLimit) {
+    public BuffersBuffer limit(final int newLimit) {
         checkDispose();
-        setPosLim(position, newLimit);
+        setPosLim(position <= newLimit ? position : newLimit, newLimit);
         return this;
     }
 

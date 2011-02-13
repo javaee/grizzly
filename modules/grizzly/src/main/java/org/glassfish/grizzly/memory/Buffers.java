@@ -499,9 +499,26 @@ public class Buffers {
      * @return the cloned {@link Buffer}.
      */
     public static Buffer cloneBuffer(final Buffer srcBuffer) {
-        final int srcLength = srcBuffer.remaining();
+        return cloneBuffer(srcBuffer, srcBuffer.position(), srcBuffer.limit());
+    }
+
+    /**
+     * Clones the source {@link Buffer}.
+     * The method returns a new {@link Buffer} instance, which has the same content.
+     * Please note, source and result {@link Buffer}s have the same content,
+     * but it is *not* shared, so the following content changes in one of the
+     * {@link Buffer}s won't be visible in another one.
+     *
+     * @param srcBuffer the source {@link Buffer}.
+     * @param position the start position in the srcBuffer
+     * @param limit the end position in the srcBuffer
+     * @return the cloned {@link Buffer}.
+     */
+    public static Buffer cloneBuffer(final Buffer srcBuffer,
+            final int position, final int limit) {
+        final int srcLength = limit - position;
         final Buffer clone = getDefaultMemoryManager().allocate(srcLength);
-        clone.put(srcBuffer, srcBuffer.position(), srcLength);
+        clone.put(srcBuffer, position, srcLength);
 
         return clone.flip();
     }
