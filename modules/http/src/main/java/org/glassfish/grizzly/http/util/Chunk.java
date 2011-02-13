@@ -57,8 +57,10 @@ public interface Chunk {
     public void setStart(int start);
 
     public int getEnd();
-    
+
     public void setEnd(int end);
+
+    public int getLength();
 
     public String toString(int start, int end);
 
@@ -67,4 +69,9 @@ public interface Chunk {
     public int indexOf(String s, int start);
 
     public void delete(int start, int end);
+
+    /**
+     * Notify the Chunk that its content is going to be changed directly
+     */
+    public void notifyDirectUpdate();
 }

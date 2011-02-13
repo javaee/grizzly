@@ -80,7 +80,7 @@ public abstract class HttpHandler {
     /**
      * Is the URL decoded
      */
-    private boolean decodeURL = true;
+    private boolean decodeURL = false;
 
     /**
      * Request URI encoding

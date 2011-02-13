@@ -108,7 +108,7 @@ public class HttpRequestParseTest extends TestCase {
         Map<String, Pair<String, String>> headers =
                 new HashMap<String, Pair<String, String>>();
         headers.put("Host", new Pair<String,String>("localhost", "localhost"));
-        headers.put("Multi-line", new Pair<String,String>("first\r\n          second\r\n       third", "first seconds third"));
+        headers.put("Multi-line", new Pair<String,String>("first\r\n          second\r\n       third", "first second third"));
         headers.put("Content-length", new Pair<String,String>("2345", "2345"));
         doHttpRequestTest("GET", "/index.html", "HTTP/1.1", headers, "\r\n");
     }
@@ -117,11 +117,31 @@ public class HttpRequestParseTest extends TestCase {
         Map<String, Pair<String, String>> headers =
                 new HashMap<String, Pair<String, String>>();
         headers.put("Host", new Pair<String,String>("localhost", "localhost"));
-        headers.put("Multi-line", new Pair<String,String>("first\r\n          second\n       third", "first seconds third"));
+        headers.put("Multi-line", new Pair<String,String>("first\r\n          second\n       third", "first second third"));
         headers.put("Content-length", new Pair<String,String>("2345", "2345"));
         doHttpRequestTest("GET", "/index.html", "HTTP/1.1", headers, "\n");
     }
-    
+
+    public void testCompleteURI() throws Exception {
+        Map<String, Pair<String, String>> headers =
+                new HashMap<String, Pair<String, String>>();
+        headers.put("Host", new Pair<String,String>(null, "localhost:8180"));
+        headers.put("Content-length", new Pair<String,String>("2345", "2345"));
+        doHttpRequestTest(new Pair<String, String>("GET", "GET"),
+                new Pair<String, String>("http://localhost:8180/index.html", "/index.html"),
+                new Pair("HTTP/1.1", "HTTP/1.1"), headers, "\n");
+    }
+
+    public void testCompleteEmptyURI() throws Exception {
+        Map<String, Pair<String, String>> headers =
+                new HashMap<String, Pair<String, String>>();
+        headers.put("Host", new Pair<String,String>(null, "localhost:8180"));
+        headers.put("Content-length", new Pair<String,String>("2345", "2345"));
+        doHttpRequestTest(new Pair<String, String>("GET", "GET"),
+                new Pair<String, String>("http://localhost:8180", "/"),
+                new Pair("HTTP/1.1", "HTTP/1.1"), headers, "\n");
+    }
+
     public void testDecoderOK() {
         try {
             doTestDecoder("GET /index.html HTTP/1.0\n\n", 4096);
@@ -196,6 +216,15 @@ public class HttpRequestParseTest extends TestCase {
     private void doHttpRequestTest(String method, String requestURI,
             String protocol, Map<String, Pair<String, String>> headers, String eol)
             throws Exception {
+        doHttpRequestTest(new Pair<String, String>(method, method),
+                new Pair(requestURI, requestURI), new Pair(protocol, protocol),
+                headers, eol);
+    }
+
+    private void doHttpRequestTest(Pair<String, String> method,
+            Pair<String, String> requestURI, Pair<String, String> protocol,
+            Map<String, Pair<String, String>> headers, String eol)
+            throws Exception {
         
         final FutureImpl<Boolean> parseResult = SafeFutureImpl.create();
 
@@ -207,7 +236,7 @@ public class HttpRequestParseTest extends TestCase {
         filterChainBuilder.add(new ChunkingFilter(2));
         filterChainBuilder.add(new HttpServerFilter());
         filterChainBuilder.add(new HTTPRequestCheckFilter(parseResult,
-                method, requestURI, protocol, Collections.<String, Pair<String, String>>emptyMap()));
+                method, requestURI, protocol, headers));
 
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
@@ -224,10 +253,15 @@ public class HttpRequestParseTest extends TestCase {
 
             StringBuilder sb = new StringBuilder();
 
-            sb.append(method).append(" ").append(requestURI).append(" ").append(protocol).append(eol);
+            sb.append(method.getFirst()).append(" ")
+                    .append(requestURI.getFirst()).append(" ")
+                    .append(protocol.getFirst()).append(eol);
 
             for (Entry<String, Pair<String, String>> entry : headers.entrySet()) {
-                sb.append(entry.getKey()).append(": ").append(entry.getValue().getFirst()).append(eol);
+                final String value = entry.getValue().getFirst();
+                if (value != null) {
+                    sb.append(entry.getKey()).append(": ").append(value).append(eol);
+                }
             }
 
             sb.append(eol);
@@ -241,7 +275,7 @@ public class HttpRequestParseTest extends TestCase {
             assertTrue("Write timeout", writeFuture.isDone());
             assertEquals(message.length, (int) writeFuture.get());
 
-            assertTrue(parseResult.get(10, TimeUnit.SECONDS));
+            assertTrue(parseResult.get(1000, TimeUnit.SECONDS));
         } finally {
             if (connection != null) {
                 connection.close();
@@ -258,13 +292,15 @@ public class HttpRequestParseTest extends TestCase {
         private final String protocol;
         private final Map<String, Pair<String, String>> headers;
 
-        public HTTPRequestCheckFilter(FutureImpl<Boolean> parseResult, String method,
-                String requestURI, String protocol,
+        public HTTPRequestCheckFilter(FutureImpl<Boolean> parseResult,
+                Pair<String, String> method,
+                Pair<String, String> requestURI,
+                Pair<String, String> protocol,
                 Map<String, Pair<String, String>> headers) {
             this.parseResult = parseResult;
-            this.method = method;
-            this.requestURI = requestURI;
-            this.protocol = protocol;
+            this.method = method.getSecond();
+            this.requestURI = requestURI.getSecond();
+            this.protocol = protocol.getSecond();
             this.headers = headers;
         }
 

@@ -745,9 +745,9 @@ public abstract class HttpCodecFilter extends BaseFilter
             final MimeHeaders mimeHeaders, final HeaderParsingState parsingState,
             final Buffer input) {
         
-        int subState = parsingState.subState;
-
         while (true) {
+            final int subState = parsingState.subState;
+
             switch (subState) {
                 case 0: { // start to parse the header
                     parsingState.start = parsingState.offset;
@@ -784,6 +784,8 @@ public abstract class HttpCodecFilter extends BaseFilter
                     if (result == -1) {
                         return false;
                     } else if (result == -2) {
+                        // Multiline header detected. Skip preceding spaces
+                        parsingState.subState = 2;
                         break;
                     }
 

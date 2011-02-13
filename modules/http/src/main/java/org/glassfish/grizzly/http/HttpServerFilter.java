@@ -462,15 +462,16 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
 
         if (found) {
-            final DataChunk requestURIBC = httpRequest.getRequestURIRef().getOriginalRequestURIBC();
-            requestURIBC.setBuffer(input, state.start, offset);
+            int requestURIEnd = offset;
             if (state.checkpoint != -1) {
                 // cut RequestURI to not include query string
-                requestURIBC.getBufferChunk().setEnd(state.checkpoint);
+                requestURIEnd = state.checkpoint;
 
                 httpRequest.getQueryStringDC().setBuffer(input,
                         state.checkpoint + 1, offset);
             }
+
+            httpRequest.getRequestURIRef().init(input, state.start, requestURIEnd);
 
             state.start = -1;
             state.checkpoint = -1;
@@ -603,9 +604,8 @@ public class HttpServerFilter extends HttpCodecFilter {
         DataChunk hostDC = null;
         
         // Check for a full URI (including protocol://host:port/)
-        // Check for a full URI (including protocol://host:port/)
         final BufferChunk uriBC =
-                request.getRequestURIRef().getOriginalRequestURIBC().getBufferChunk();
+                request.getRequestURIRef().getRequestURIBC().getBufferChunk();
         if (uriBC.startsWithIgnoreCase("http", 0)) {
 
             int pos = uriBC.indexOf("://", 4);
@@ -617,16 +617,17 @@ public class HttpServerFilter extends HttpCodecFilter {
                 if (slashPos == -1) {
                     slashPos = uriBC.getLength();
                     // Set URI as "/"
-                    uriBC.setBufferChunk(uriB, uriBCStart + pos + 1, 1);
+                    uriBC.setBufferChunk(uriB, uriBCStart + pos + 1,
+                            uriBCStart + pos + 2);
                 } else {
                     uriBC.setBufferChunk(uriB,
                                     uriBCStart + slashPos,
-                                    uriBC.getLength() - slashPos);
+                                    uriBC.getEnd());
                 }
                 hostDC = headers.setValue("host");
                 hostDC.setBuffer(uriB,
                                  uriBCStart + pos + 3,
-                                 slashPos - pos - 3);
+                                 uriBCStart + slashPos);
             }
 
         }

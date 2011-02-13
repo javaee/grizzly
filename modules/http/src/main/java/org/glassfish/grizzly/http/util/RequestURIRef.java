@@ -47,7 +47,12 @@ import java.nio.charset.Charset;
 import static org.glassfish.grizzly.http.util.Charsets.*;
 
 /**
- *
+ * Request URI holder.
+ * Contains 3 types of URI:
+ *      1) Original, which represents the URI's original state at time it was set.
+ *      2) Decoded, which has represents URI after being URI and String decoded (internally used by Mapper).
+ *      3) Actual, which is supposed as URI value returned to user.
+ * 
  * @author Alexey Stashok
  */
 public class RequestURIRef {
@@ -57,25 +62,47 @@ public class RequestURIRef {
 
     private Charset defaultURIEncoding = UTF8_CHARSET;
 
-    private final DataChunk originalRequestURIBC = DataChunk.newInstance();
-    private final DataChunk decodedRequestURIBC = DataChunk.newInstance();
+    // Original Request URI
+    private final DataChunk originalRequestURIDC = DataChunk.newInstance();
+    // Actual Request URI
+    private final DataChunk requestURIDC = DataChunk.newInstance(
+            new BufferChunk() {
+
+                @Override
+                public void notifyDirectUpdate() {
+                    super.notifyDirectUpdate();
+
+                    final Buffer currentBuffer = getBuffer();
+                    if (currentBuffer ==
+                            originalRequestURIDC.getBufferChunk().getBuffer()) {
+                        final Buffer newBuffer = Buffers.cloneBuffer(currentBuffer,
+                                getStart(), getEnd());
+                        setBufferChunk(newBuffer,
+                                newBuffer.position(), newBuffer.limit());
+                    }
+                }
+            },
+            new CharChunk(), null);
+    // Decoded Request URI
+    private final DataChunk decodedRequestURIDC = DataChunk.newInstance();
 
     private Buffer preallocatedDecodedURIBuffer;
 
+    public void init(final Buffer input, final int start, final int end) {
+        originalRequestURIDC.setBuffer(input, start, end);
+        requestURIDC.setBuffer(input, start, end);
+    }
+
     public final DataChunk getOriginalRequestURIBC() {
-        return originalRequestURIBC;
+        return originalRequestURIDC;
+    }
+
+    public final DataChunk getRequestURIBC() {
+        return requestURIDC;
     }
 
     public final DataChunk getDecodedRequestURIBC() throws CharConversionException {
         return getDecodedRequestURIBC(wasSlashAllowed, defaultURIEncoding);
-    }
-
-    public final DataChunk getRequestURIBC() {
-        if (isDecoded) {
-            return decodedRequestURIBC;
-        }
-
-        return originalRequestURIBC;
     }
 
     public DataChunk getDecodedRequestURIBC(boolean isSlashAllowed)
@@ -88,21 +115,21 @@ public class RequestURIRef {
 
         if (isDecoded && isSlashAllowed == wasSlashAllowed
                 && charset == decodedURIEncoding) {
-            return decodedRequestURIBC;
+            return decodedRequestURIDC;
         }
 
-        checkDecodedURICapacity(originalRequestURIBC.getLength());
-        decodedRequestURIBC.setBuffer(preallocatedDecodedURIBuffer, 0,
+        checkDecodedURICapacity(originalRequestURIDC.getLength());
+        decodedRequestURIDC.setBuffer(preallocatedDecodedURIBuffer, 0,
                 preallocatedDecodedURIBuffer.limit());
 
-        HttpRequestURIDecoder.decode(originalRequestURIBC, decodedRequestURIBC,
+        HttpRequestURIDecoder.decode(originalRequestURIDC, decodedRequestURIDC,
                 isSlashAllowed, charset);
         
         isDecoded = true;
         wasSlashAllowed = isSlashAllowed;
 
         decodedURIEncoding = charset;
-        return decodedRequestURIBC;
+        return decodedRequestURIDC;
     }
 
     public String getURI() {
@@ -130,21 +157,17 @@ public class RequestURIRef {
         
         getDecodedRequestURIBC(isSlashAllowed, encoding);
 
-        final String strValue = decodedRequestURIBC.toString();
+        final String strValue = decodedRequestURIDC.toString();
         return strValue;
     }
 
     public void setDecodedURI(String uri) {
-        decodedRequestURIBC.setString(uri);
+        decodedRequestURIDC.setString(uri);
         isDecoded = true;
     }
 
     public boolean isDecoded() {
         return isDecoded;
-    }
-
-    public void setDecoded(boolean isDecoded) {
-        this.isDecoded = isDecoded;
     }
 
     public Charset getDefaultURIEncoding() {
@@ -156,8 +179,10 @@ public class RequestURIRef {
     }
 
     public void recycle() {
-        originalRequestURIBC.recycle();
-        decodedRequestURIBC.recycle();
+        originalRequestURIDC.recycle();
+        decodedRequestURIDC.recycle();
+        requestURIDC.recycle();
+
         isDecoded = false;
         wasSlashAllowed = true;
         decodedURIEncoding = null;

@@ -55,17 +55,30 @@ public class DataChunk {
     public enum Type {None, Buffer, Chars, String};
     
     public static DataChunk newInstance() {
-        return new DataChunk();
+        return newInstance(new BufferChunk(), new CharChunk(), null);
+    }
+
+    public static DataChunk newInstance(final BufferChunk bufferChunk,
+            final CharChunk charChunk, final String stringValue) {
+        return new DataChunk(bufferChunk, charChunk, stringValue);
     }
     
     Type type = Type.None;
 
-    final BufferChunk bufferChunk = new BufferChunk();
-    final CharChunk charChunk = new CharChunk();
+    final BufferChunk bufferChunk;
+    final CharChunk charChunk;
     
     String stringValue;
 
     protected DataChunk() {
+        this(new BufferChunk(), new CharChunk(), null);
+    }
+
+    protected DataChunk(final BufferChunk bufferChunk,
+            final CharChunk charChunk, final String stringValue) {
+        this.bufferChunk = bufferChunk;
+        this.charChunk = charChunk;
+        this.stringValue = stringValue;
     }
 
     public DataChunk toImmutable() {
@@ -101,6 +114,17 @@ public class DataChunk {
         }
 
         onContentChanged();
+    }
+
+    public void notifyDirectUpdate() {
+        switch (type) {
+            case Buffer:
+                bufferChunk.notifyDirectUpdate();
+                return;
+            case Chars:
+                charChunk.notifyDirectUpdate();
+                return;
+        }
     }
 
     public BufferChunk getBufferChunk() {
@@ -257,11 +281,14 @@ public class DataChunk {
         switch (type) {
             case Buffer:
                 bufferChunk.delete(from, to);
+                return;
             case String:
                 stringValue = stringValue.substring(0, from) +
                         stringValue.substring(to, stringValue.length());
+                return;
             case Chars:
                 charChunk.delete(from, to);
+                return;
         }
     }
 

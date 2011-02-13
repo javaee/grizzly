@@ -247,6 +247,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
     /**
      * Returns the length of the bytes.
      */
+    @Override
     public int getLength() {
         return end-start;
     }
@@ -531,6 +532,13 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
         tmp = null;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void notifyDirectUpdate() {
+    }
+
     // -------------------- Conversion and getters --------------------
 
     @Override
@@ -551,7 +559,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
             return "";
         }
 
-        return new String(buff, start, end - start);
+        return new String(buff, this.start + start, end - start);
     }
 
     public String toStringInternal() {

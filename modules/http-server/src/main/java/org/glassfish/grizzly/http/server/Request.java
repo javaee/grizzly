@@ -112,7 +112,6 @@ import static org.glassfish.grizzly.http.util.Constants.FORM_POST_CONTENT_TYPE;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.FastHttpDateFormat;
 import org.glassfish.grizzly.http.util.Parameters;
-import org.glassfish.grizzly.http.util.RequestURIRef;
 import org.glassfish.grizzly.http.util.StringManager;
 import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.ssl.SSLSupport;
@@ -2225,9 +2224,10 @@ public class Request {
      * Parse session id in URL.
      */
     protected void parseSessionId() {
-
-        final RequestURIRef ref = request.getRequestURIRef();
-        final DataChunk uriDC = ref.getRequestURIBC();
+        if (sessionParsed) return;
+        
+        sessionParsed = true;
+        final DataChunk uriDC = request.getRequestURIRef().getRequestURIBC();
 
         switch (uriDC.getType()) {
             case Buffer:
@@ -2247,26 +2247,30 @@ public class Request {
 
         if (semicolon > 0) {
             // Parse session ID, and extract it from the decoded request URI
-            final int start = uriChunk.getStart();
+//            final int start = uriChunk.getStart();
 
-            final int sessionIdStart = start + semicolon + match.length();
+            final int sessionIdStart = semicolon + match.length();
             final int semicolon2 = uriChunk.indexOf(';', sessionIdStart);
 
-            final int end = semicolon2 >= 0 ? semicolon2 : uriChunk.getEnd();
+            final int end = semicolon2 >= 0 ? semicolon2 : uriChunk.getLength();
 
             final String sessionId = uriChunk.toString(sessionIdStart, end);
             
             final int jrouteIndex = sessionId.lastIndexOf(':');
             if (jrouteIndex > 0) {
                 setRequestedSessionId(sessionId.substring(0, jrouteIndex));
-                if (jrouteIndex < (sessionId.length()-1)) {
-                    setJrouteId(sessionId.substring(jrouteIndex+1));
+                if (jrouteIndex < (sessionId.length() - 1)) {
+                    setJrouteId(sessionId.substring(jrouteIndex + 1));
                 }
             } else {
                 setRequestedSessionId(sessionId);
             }
 
             setRequestedSessionURL(true);
+
+            if (semicolon2 >= 0) {
+                uriChunk.notifyDirectUpdate();
+            }
 
             uriChunk.delete(semicolon, end);
         } else {

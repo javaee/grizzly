@@ -107,6 +107,7 @@ public class BufferChunk implements Chunk {
         resetStringCache();
     }
 
+    @Override
     public final int getLength() {
         return end - start;
     }
@@ -123,32 +124,39 @@ public class BufferChunk implements Chunk {
 
     @Override
     public void delete(final int start, final int end) {
-        final int diff = this.end - end;
+        final int absDeleteStart = this.start + start;
+        final int absDeleteEnd = this.start + end;
+
+        final int diff = this.end - absDeleteEnd;
         if (diff == 0) {
-            this.end = start;
+            this.end = absDeleteStart;
         } else {
             final int oldPos = buffer.position();
             final int oldLim = buffer.limit();
 
             try {
-                Buffers.setPositionLimit(buffer, start, start + diff);
-                buffer.put(buffer, end, diff);
-                this.end = start + diff;
+                Buffers.setPositionLimit(buffer, absDeleteStart, absDeleteStart + diff);
+                buffer.put(buffer, absDeleteEnd, diff);
+                this.end = absDeleteStart + diff;
             } finally {
                 Buffers.setPositionLimit(buffer, oldPos, oldLim);
             }
         }
+
+        resetStringCache();
     }
     
     @Override
-    public final int indexOf(char c, int fromIndex) {
-        return indexOf(buffer, start + fromIndex, end, c);
+    public final int indexOf(final char c, final int fromIndex) {
+        final int idx = indexOf(buffer, start + fromIndex, end, c);
+        return idx >= start ? idx - start : -1;
     }
 
 
     @Override
-    public final int indexOf(String s, int fromIndex) {
-        return indexOf(buffer, start + fromIndex, end, s);
+    public final int indexOf(final String s, final int fromIndex) {
+        final int idx = indexOf(buffer, start + fromIndex, end, s);
+        return idx >= start ? idx - start : -1;
     }
 
     boolean startsWith(String s, int pos) {
@@ -266,8 +274,9 @@ public class BufferChunk implements Chunk {
     }
 
     @Override
-    public String toString(int start, int end) {
-        return buffer.toStringContent(UTF8_CHARSET, start, end);
+    public String toString(final int start, final int end) {
+        return buffer.toStringContent(UTF8_CHARSET, this.start + start,
+                this.start + end);
     }
 
     protected final void resetStringCache() {
@@ -286,6 +295,12 @@ public class BufferChunk implements Chunk {
         reset();
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void notifyDirectUpdate() {
+    }
 
     public static int indexOf(final Buffer buffer, int off, final int end, final char qq) {
         // Works only for UTF

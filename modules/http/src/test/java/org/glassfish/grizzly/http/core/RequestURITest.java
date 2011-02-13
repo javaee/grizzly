@@ -44,6 +44,7 @@ import java.io.CharConversionException;
 import java.net.URLEncoder;
 import junit.framework.TestCase;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.http.util.BufferChunk;
 import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.RequestURIRef;
@@ -57,21 +58,28 @@ public class RequestURITest extends TestCase {
     private final String rus = "\u043F\u0440\u0438\u0432\u0435\u0442\u043C\u0438\u0440";
     private final String rusEncoded;
     private final String url;
-    private final Buffer buffer;
+    private Buffer buffer;
 
     public RequestURITest() throws Exception {
         rusEncoded = URLEncoder.encode(rus, "UTF-8");
         url = "http://localhost:4848/management/domain/resources/jdbc-resource/" +
                 rusEncoded + "/jdbc%2F__TimerPool.xml";
+    }
+
+    @Override
+    protected void setUp() throws Exception {
+        super.setUp();
+
         buffer = Buffers.wrap(null, url);
     }
+
 
     public void testBufferChunk() throws Exception {
         RequestURIRef rur = new RequestURIRef();
         DataChunk originalURIDataChunk = rur.getOriginalRequestURIBC();
         assertTrue(originalURIDataChunk.isNull());
 
-        originalURIDataChunk.setBuffer(buffer, 0, buffer.capacity());
+        rur.init(buffer, 0, buffer.capacity());
 
         try {
             rur.getDecodedRequestURIBC(false);
@@ -88,19 +96,40 @@ public class RequestURITest extends TestCase {
         // Try correct charset
         decodedDC = rur.getDecodedRequestURIBC(true, Charsets.UTF8_CHARSET);
         assertEquals(DataChunk.Type.Chars, decodedDC.getType());
-        // there shouldn't be our decoded word
+        // there should be our decoded word
         assertTrue(decodedDC.toString().indexOf(rus) >= 0);
 
         // One more time the same
         decodedDC = rur.getDecodedRequestURIBC(true, Charsets.UTF8_CHARSET);
         assertEquals(DataChunk.Type.Chars, decodedDC.getType());
-        // there shouldn't be our decoded word
+        // there should be our decoded word
         assertTrue(decodedDC.toString().indexOf(rus) >= 0);
 
         // there shouldn't be our decoded word
-        assertTrue(rur.getURI().indexOf(rus) >= 0);
+        assertTrue(rur.getURI().indexOf(rus) < 0);
 
         // Original should be the same
         assertEquals(url, rur.getOriginalRequestURIBC().toString());
+    }
+
+    public void testURIChangeTrigger() {
+        RequestURIRef rur = new RequestURIRef();
+        rur.init(buffer, 0, buffer.capacity());
+
+        final DataChunk originalRequestURIBC = rur.getOriginalRequestURIBC();
+        final DataChunk actualRequestURIBC = rur.getRequestURIBC();
+
+        assertTrue(originalRequestURIBC.getBufferChunk().getBuffer() ==
+                actualRequestURIBC.getBufferChunk().getBuffer());
+
+        final BufferChunk actualBufferChunk = actualRequestURIBC.getBufferChunk();
+        actualBufferChunk.notifyDirectUpdate();
+        actualBufferChunk.delete(actualBufferChunk.getStart(), actualBufferChunk.getStart() + 7);
+
+        assertFalse(originalRequestURIBC.getBufferChunk().getBuffer() ==
+                actualRequestURIBC.getBufferChunk().getBuffer());
+
+        assertEquals(url, originalRequestURIBC.toString());
+        assertEquals(url.substring(7), actualRequestURIBC.toString());
     }
 }
