@@ -66,7 +66,7 @@ public class Buffers {
 
     public static final Appender BUFFER_APPENDER = new Appender<Buffer>() {
         @Override
-        public Buffer append(Buffer element1, Buffer element2) {
+        public Buffer append(final Buffer element1, final Buffer element2) {
             if (element1.isComposite()) {
                 ((CompositeBuffer) element1).append(element2);
                 return element1;
@@ -99,8 +99,8 @@ public class Buffers {
      *
      * @return {@link Buffer} wrapper on top of passed {@link String}.
      */
-    public static Buffer wrap(MemoryManager memoryManager,
-            String s) {
+    public static Buffer wrap(final MemoryManager memoryManager,
+            final String s) {
         return wrap(memoryManager, s, Charset.defaultCharset());
     }
 
@@ -116,10 +116,10 @@ public class Buffers {
      *
      * @return {@link Buffer} wrapper on top of passed {@link String}.
      */
-    public static Buffer wrap(MemoryManager memoryManager,
-            String s, Charset charset) {
+    public static Buffer wrap(final MemoryManager memoryManager,
+            final String s, final Charset charset) {
         try {
-            byte[] byteRepresentation = s.getBytes(charset.name());
+            final byte[] byteRepresentation = s.getBytes(charset.name());
             return wrap(memoryManager, byteRepresentation);
         } catch (UnsupportedEncodingException e) {
             throw new IllegalStateException(e);
@@ -135,8 +135,8 @@ public class Buffers {
      *
      * @return {@link Buffer} wrapper on top of passed byte array.
      */
-    public static Buffer wrap(MemoryManager memoryManager,
-            byte[] array) {
+    public static Buffer wrap(final MemoryManager memoryManager,
+            final byte[] array) {
         return wrap(memoryManager, array, 0, array.length);
     }
 
@@ -153,16 +153,16 @@ public class Buffers {
      * @return {@link Buffer} wrapper on top of passed byte array.
      */
     public static Buffer wrap(MemoryManager memoryManager,
-            byte[] array, int offset, int length) {
+            final byte[] array, final int offset, final int length) {
         if (memoryManager == null) {
-            memoryManager = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
+            memoryManager = getDefaultMemoryManager();
         }
 
         if (memoryManager instanceof WrapperAware) {
             return ((WrapperAware) memoryManager).wrap(array, offset, length);
         }
 
-        Buffer buffer = memoryManager.allocate(length);
+        final Buffer buffer = memoryManager.allocate(length);
         buffer.put(array, offset, length);
         buffer.flip();
         return buffer;
@@ -177,8 +177,8 @@ public class Buffers {
      *
      * @return {@link Buffer} wrapper on top of passed {@link ByteBuffer}.
      */
-    public static Buffer wrap(MemoryManager memoryManager,
-            ByteBuffer byteBuffer) {
+    public static Buffer wrap(final MemoryManager memoryManager,
+            final ByteBuffer byteBuffer) {
         if (memoryManager instanceof WrapperAware) {
             return ((WrapperAware) memoryManager).wrap(byteBuffer);
         } else if (byteBuffer.hasArray()) {
@@ -201,9 +201,9 @@ public class Buffers {
      *
      * @return sliced {@link ByteBuffer} of required size.
      */
-    public static ByteBuffer slice(ByteBuffer chunk, int size) {
+    public static ByteBuffer slice(final ByteBuffer chunk, final int size) {
         chunk.limit(chunk.position() + size);
-        ByteBuffer view = chunk.slice();
+        final ByteBuffer view = chunk.slice();
         chunk.position(chunk.limit());
         chunk.limit(chunk.capacity());
 
@@ -237,8 +237,8 @@ public class Buffers {
         return slice;
     }
 
-    public static String toStringContent(ByteBuffer byteBuffer, Charset charset,
-            int position, int limit) {
+    public static String toStringContent(final ByteBuffer byteBuffer,
+            Charset charset, final int position, final int limit) {
 
         if (charset == null) {
             charset = Charset.defaultCharset();
@@ -257,11 +257,11 @@ public class Buffers {
 //                    position + byteBuffer.arrayOffset(),
 //                    limit - position, charset);
         } else {
-            int oldPosition = byteBuffer.position();
-            int oldLimit = byteBuffer.limit();
+            final int oldPosition = byteBuffer.position();
+            final int oldLimit = byteBuffer.limit();
             setPositionLimit(byteBuffer, position, limit);
 
-            byte[] tmpBuffer = new byte[limit - position];
+            final byte[] tmpBuffer = new byte[limit - position];
             byteBuffer.get(tmpBuffer);
 
             setPositionLimit(byteBuffer, oldPosition, oldLimit);
@@ -314,8 +314,8 @@ public class Buffers {
         }
     }
 
-    public static void put(Buffer src, int position, int length,
-            Buffer dstBuffer) {
+    public static void put(final Buffer src, final int position,
+            final int length, final Buffer dstBuffer) {
 
         if (dstBuffer.remaining() < length) {
             throw new BufferOverflowException();
@@ -357,8 +357,8 @@ public class Buffers {
         }
     }
 
-    public static void get(ByteBuffer srcBuffer,
-            byte[] dstBytes, int dstOffset, int length) {
+    public static void get(final ByteBuffer srcBuffer,
+            final byte[] dstBytes, final int dstOffset, final int length) {
 
         if (srcBuffer.hasArray()) {
             if (length > srcBuffer.remaining()) {
@@ -374,8 +374,8 @@ public class Buffers {
         }
     }
 
-    public static void put(byte[] srcBytes, int srcOffset, int length,
-            ByteBuffer dstBuffer) {
+    public static void put(final byte[] srcBytes, final int srcOffset,
+            final int length, final ByteBuffer dstBuffer) {
         if (dstBuffer.hasArray()) {
             if (length > dstBuffer.remaining()) {
                 throw new BufferOverflowException();
@@ -389,8 +389,8 @@ public class Buffers {
         }
     }
 
-    public static Buffer appendBuffers(MemoryManager memoryManager,
-            Buffer buffer1, Buffer buffer2) {
+    public static Buffer appendBuffers(final MemoryManager memoryManager,
+            final Buffer buffer1, final Buffer buffer2) {
 
         if (buffer1 == null) {
             return buffer2;
@@ -405,7 +405,7 @@ public class Buffers {
             ((CompositeBuffer) buffer2).prepend(buffer1);
             return buffer2;
         } else {
-            CompositeBuffer compositeBuffer =
+            final CompositeBuffer compositeBuffer =
                     CompositeBuffer.newBuffer(memoryManager);
 
             compositeBuffer.append(buffer1);
@@ -422,7 +422,7 @@ public class Buffers {
      * @param buffer {@link Buffer}
      * @param b value
      */
-    public static void fill(Buffer buffer, byte b) {
+    public static void fill(final Buffer buffer, final byte b) {
         fill(buffer, buffer.position(), buffer.limit(), b);
     }
 
@@ -435,7 +435,8 @@ public class Buffers {
      * @param limit {@link Buffer} limit, where filling ends (exclusive)
      * @param b value
      */
-    public static void fill(Buffer buffer, int position, int limit, byte b) {
+    public static void fill(final Buffer buffer, final int position,
+            final int limit, final byte b) {
         if (!buffer.isComposite()) {
             final ByteBuffer byteBuffer = buffer.toByteBuffer();
             fill(byteBuffer, position, limit, b);
@@ -461,7 +462,7 @@ public class Buffers {
      * @param byteBuffer {@link ByteBuffer}
      * @param b value
      */
-    public static void fill(ByteBuffer byteBuffer, byte b) {
+    public static void fill(final ByteBuffer byteBuffer, final byte b) {
         fill(byteBuffer, byteBuffer.position(), byteBuffer.limit(), b);
     }
 
@@ -474,8 +475,8 @@ public class Buffers {
      * @param limit {@link Buffer} limit, where filling ends (exclusive)
      * @param b value
      */
-    public static void fill(ByteBuffer byteBuffer, int position,
-            int limit, byte b) {
+    public static void fill(final ByteBuffer byteBuffer, final int position,
+            final int limit, final byte b) {
         if (byteBuffer.hasArray()) {
             final int arrayOffset = byteBuffer.arrayOffset();
             Arrays.fill(byteBuffer.array(), arrayOffset + position,
@@ -485,5 +486,27 @@ public class Buffers {
                 byteBuffer.put(i, b);
             }
         }
+    }
+
+    /**
+     * Clones the source {@link Buffer}.
+     * The method returns a new {@link Buffer} instance, which has the same content.
+     * Please note, source and result {@link Buffer}s have the same content,
+     * but it is *not* shared, so the following content changes in one of the
+     * {@link Buffer}s won't be visible in another one.
+     *
+     * @param srcBuffer the source {@link Buffer}.
+     * @return the cloned {@link Buffer}.
+     */
+    public static Buffer cloneBuffer(final Buffer srcBuffer) {
+        final int srcLength = srcBuffer.remaining();
+        final Buffer clone = getDefaultMemoryManager().allocate(srcLength);
+        clone.put(srcBuffer, srcBuffer.position(), srcLength);
+
+        return clone.flip();
+    }
+
+    private static MemoryManager getDefaultMemoryManager() {
+        return NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
     }
 }
