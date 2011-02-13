@@ -164,6 +164,7 @@ public class HttpRedirectFilter extends BaseFilter implements
             final HttpResponsePacket response = HttpResponsePacket.builder(request)
                     .status(302)
                     .header("Location", sb.toString())
+                    .contentLength(0)
                     .build();
             ctx.write(response);
             ctx.flush(new EmptyCompletionHandler() {
