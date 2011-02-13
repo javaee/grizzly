@@ -137,7 +137,7 @@ public class HttpSemanticsTest extends TestCase {
                 .build();
 
         ExpectedResult result = new ExpectedResult();
-        result.setProtocol("HTTP/0.9");
+        result.setProtocol("HTTP/1.1");
         result.setStatusCode(200);
         result.addHeader("!Connection", "close");
         result.setStatusMessage("ok");
@@ -155,7 +155,7 @@ public class HttpSemanticsTest extends TestCase {
                 .build();
 
         ExpectedResult result = new ExpectedResult();
-        result.setProtocol("HTTP/1.0");
+        result.setProtocol("HTTP/1.1");
         result.setStatusCode(200);
         result.addHeader("Connection", "close");
         result.setStatusMessage("ok");
@@ -210,7 +210,7 @@ public class HttpSemanticsTest extends TestCase {
                 .protocol("HTTP/1.0")
                 .build();
         ExpectedResult result = new ExpectedResult();
-        result.setProtocol("HTTP/1.0");
+        result.setProtocol("HTTP/1.1");
         result.setStatusCode(200);
         result.addHeader("Connection", "close");
         result.setStatusMessage("ok");

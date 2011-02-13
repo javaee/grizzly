@@ -484,12 +484,12 @@ public class HttpServerFilter extends HttpCodecFilter {
 
     private void prepareResponse(final HttpRequestPacket request,
                                  final HttpResponsePacketImpl response) {
-        final Protocol protocol = request.getProtocol();
+        final Protocol requestProtocol = request.getProtocol();
 
-        response.setProtocol(protocol);
+        response.setProtocol(Protocol.HTTP_1_1);
         final ProcessingState state = response.getProcessingState();
 
-        if (protocol == Protocol.HTTP_0_9) {
+        if (requestProtocol == Protocol.HTTP_0_9) {
             return;
         }
 
@@ -504,7 +504,7 @@ public class HttpServerFilter extends HttpCodecFilter {
             state.contentDelimitation = true;
         }
 
-        final boolean isHttp11 = protocol == Protocol.HTTP_1_1;
+        final boolean isHttp11 = (requestProtocol == Protocol.HTTP_1_1);
         final MimeHeaders headers = response.getHeaders();
 
         final long contentLength = response.getContentLength();
