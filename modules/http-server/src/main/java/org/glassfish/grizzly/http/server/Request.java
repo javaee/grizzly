@@ -1889,7 +1889,7 @@ public class Request {
      *
      * @return The POST body of this request
      */
-    protected Buffer getPostBody(final int len) throws IOException {
+    public Buffer getPostBody(final int len) throws IOException {
         inputBuffer.fillFully(len);
         return inputBuffer.getBuffer();
     }
