@@ -72,7 +72,8 @@ public class WebSocketConnectorHandler {
     /**
      * Construct a <tt>WebSocketConnectorHandler</tt> basing on the specific TCP
      * {@link org.glassfish.grizzly.Transport} object.
-     * The underlying Grizzly {@link Connection} will use a default websockets {@link FilterChain}.
+     * The underlying Grizzly {@link Connection} will use a default websockets
+     * {@link org.glassfish.grizzly.filterchain.FilterChain}.
      *
      * @param transport {@link TCPNIOTransport}
      */
