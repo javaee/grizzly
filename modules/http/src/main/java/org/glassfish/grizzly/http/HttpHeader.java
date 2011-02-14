@@ -467,6 +467,7 @@ public abstract class HttpHeader extends HttpPacket
         String ret = contentType;
 
         if (ret != null
+                && !isRequest()
                 && quotedCharsetValue != null
                 && charsetSet) {
 
