@@ -89,7 +89,7 @@ public class StaticHttpHandler extends HttpHandler {
      * under the <tt>docRoot</tt>. If the <tt>docRoot</tt> is <tt>null</tt> -
      * static pages won't be served by this <tt>HttpHandler</tt>
      *
-     * @param docRoot the folder where the static resource are located.
+     * @param docRoots the folder(s) where the static resource are located.
      * If the <tt>docRoot</tt> is <tt>null</tt> - static pages won't be served
      * by this <tt>HttpHandler</tt>
      */
@@ -177,8 +177,8 @@ public class StaticHttpHandler extends HttpHandler {
     /**
      * Based on the {@link Request} URI, try to map the file from the
      * {@link #getDocRoots()}, and send it back to a client.
-     * @param req the {@link Request}
-     * @param res the {@link Response}
+     * @param request the {@link Request}
+     * @param response the {@link Response}
      * @throws Exception
      */
     @Override
@@ -212,7 +212,7 @@ public class StaticHttpHandler extends HttpHandler {
      * The method will be called, if the static resource requested by the {@link Request}
      * wasn't found, so {@link StaticHttpHandler} implementation may try to
      * workaround this situation.
-     * The default implementation - sends a 404 response page by calling {@link #customizedErrorPage(org.glassfish.grizzly.http.server.HttpServer, org.glassfish.grizzly.http.server.Request, org.glassfish.grizzly.http.server.Response)}.
+     * The default implementation - sends a 404 response page by calling {@link #customizedErrorPage(Request, Response)}.
      *
      * @param request the {@link Request}
      * @param response the {@link Response}

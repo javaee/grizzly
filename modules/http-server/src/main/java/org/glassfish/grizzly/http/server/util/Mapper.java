@@ -163,7 +163,6 @@ public class Mapper {
 
     /**
      * The Port this instance is used for mapping.
-     * @return
      */
     public void setPort(int port){
          this.port = port;
@@ -171,8 +170,7 @@ public class Mapper {
 
 
     /**
-     * The Port this instance is used for mapping.
-     * @return
+     * @return the port this instance is used for mapping.
      */
     public int getPort(){
         return port;
@@ -180,8 +178,6 @@ public class Mapper {
 
 
     /**
-     * Get default host.
-     *
      * @return Default host name
      */
     public String getDefaultHostName() {

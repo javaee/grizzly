@@ -1897,7 +1897,7 @@ public class Request {
     /**
      * Skips the POST body of this request.
      *
-     * @return The POST body of this request
+     * @param len how much of the POST body to skip.
      */
     protected void skipPostBody(final int len) throws IOException {
         inputBuffer.skip(len, false);
