@@ -60,21 +60,21 @@ import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import java.util.logging.Logger;
 
 /**
- * This ProtocolFilter is an implementation of a Resource Consumption Management
+ * This {@link org.glassfish.grizzly.filterchain.Filter} is an implementation of a Resource Consumption Management
  * (RCM) system. RCM system are allowing you to enable virtualization of system
  * resources per web application, similar to Solaris 10 Zone or the outcome of
  * the upcoming JSR 284.
  *
- * This ProtocolFiler uses a {@link ProtocolParser} to determine which
+ * This {@link org.glassfish.grizzly.filterchain.Filter} uses system properties to determine which
  * token to use to enable virtualization. As an example, configuring this class
  * to use the <code>ContextRootAlgorithm</code> will allow virtualization
  * and isolation of http request. As an example, if you define:
  *
  * -Dcom.glassfish.grizzly.rcm.policyMetric="/myApplication|0.9"
  *
- * This ProtocolFilter will allocate 90% of the current threads count to
+ * This {@link org.glassfish.grizzly.filterchain.Filter} will allocate 90% of the current threads count to
  * application myApplication, and the remaining 10% to any other context-root
- * (or application). See com.glassfish.grizzly.rcm.RCM for an example.
+ * (or application).
  *
  * @author Jeanfrancois Arcand
  */
