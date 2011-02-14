@@ -150,12 +150,14 @@ public class Utils {
     }
 
     /**
-     * Load {@link AsyncFilter} with the specific service name and classname.
+     * Load or create an Object with the specific service name and class name.
      *
-     * @param habitat
-     * @param name
-     * @param realClassName
-     * @return
+     * @param habitat the HK2 {@link Habitat}
+     * @param clazz the class as mapped within the {@link Habitat}
+     * @param name the service name
+     * @param realClassName the class name of the service
+     * @return a service matching based on name and realClassName input
+     *  arguments.
      */
     public static <E> E newInstance(Habitat habitat, Class<E> clazz,
             final String name, final String realClassName) {
