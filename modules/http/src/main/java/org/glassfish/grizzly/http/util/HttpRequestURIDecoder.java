@@ -304,11 +304,13 @@ public class HttpRequestURIDecoder {
             }
         }
 
-        // Check for "//"
-        for (pos = start; pos < (end - 1); pos++) {
-            if (c[pos] == '/') {
-                if (c[pos + 1] == '/') {
-                    return false;
+        if (COLLAPSE_ADJACENT_SLASHES) {
+            // Check for "//"
+            for (pos = start; pos < (end - 1); pos++) {
+                if (c[pos] == '/') {
+                    if (c[pos + 1] == '/') {
+                        return false;
+                    }
                 }
             }
         }
