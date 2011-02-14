@@ -141,12 +141,22 @@ public class CometEngine {
     }
 
     /**
-     * Unregister the {@link CometHandler} to the list of the {@link CometContext}. Invoking this method will invoke all
+     * Calls through to {@link #deregister(String)}.
+     *
+     * @deprecated
+     */
+    @Deprecated
+    public CometContext unregister(String topic) {
+        return deregister(topic);
+    }
+
+    /**
+     * Deregister the {@link CometHandler} to the list of the {@link CometContext}. Invoking this method will invoke all
      * {@link CometHandler#onTerminate(CometEvent)} before removing the associated {@link CometContext}. Invoking that
      * method will also resume the underlying connection associated with the {@link CometHandler}, similar to what
      * {@link CometContext#resumeCometHandler(CometHandler)} do.
      */
-    public CometContext unregister(String topic) {
+    public CometContext deregister(String topic) {
         CometContext cometContext = activeContexts.remove(topic);
         if (cometContext != null) {
             cometContext.recycle();

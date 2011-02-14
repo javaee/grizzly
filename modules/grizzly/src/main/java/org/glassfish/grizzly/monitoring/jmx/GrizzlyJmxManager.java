@@ -108,11 +108,11 @@ public abstract class GrizzlyJmxManager {
     /**
      * Unregister Grizzly {@link JmxObject}.
      *
-     * @param object {@link JmxObject} to unregister.
+     * @param object {@link JmxObject} to deregister.
      */
-    public void unregister(JmxObject object) {
+    public void deregister(JmxObject object) {
         mom.unregister(object);
-        object.onUnregister(this);
+        object.onDeregister(this);
     }
 
     private static class DefaultJmxManager extends GrizzlyJmxManager {

@@ -83,7 +83,7 @@ public class MemoryManager extends JmxObject {
     }
 
     @Override
-    protected void onUnregister(GrizzlyJmxManager mom) {
+    protected void onDeregister(GrizzlyJmxManager mom) {
         memoryManager.getMonitoringConfig().removeProbes(probe);
     }
 

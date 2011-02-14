@@ -141,7 +141,7 @@ public class KeepAlive extends JmxObject {
      * </p>
      */
     @Override
-    protected void onUnregister(GrizzlyJmxManager mom) {
+    protected void onDeregister(GrizzlyJmxManager mom) {
         keepAlive.getMonitoringConfig().removeProbes(keepAliveProbe);
     }
 

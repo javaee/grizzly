@@ -270,7 +270,7 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
 
         JmxObject jmx = monitors.get(httpHandler);
         if (jmx != null) {
-            httpServer.jmxManager.unregister(jmx);
+            httpServer.jmxManager.deregister(jmx);
         }
 
     }

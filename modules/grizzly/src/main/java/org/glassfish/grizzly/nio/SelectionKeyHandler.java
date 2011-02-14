@@ -51,22 +51,22 @@ import java.nio.channels.SelectionKey;
  * @author Alexey Stashok
  */
 public interface SelectionKeyHandler {
-    public void onKeyRegistered(SelectionKey key);
+    void onKeyRegistered(SelectionKey key);
     
-    public void onKeyUnregistered(SelectionKey key);
+    void onKeyDeregistered(SelectionKey key);
 
-    public boolean onProcessInterest(SelectionKey key, int interest) throws IOException;
+    boolean onProcessInterest(SelectionKey key, int interest) throws IOException;
 
-    public void cancel(SelectionKey key) throws IOException;
+    void cancel(SelectionKey key) throws IOException;
     
-    public NIOConnection getConnectionForKey(SelectionKey selectionKey);
+    NIOConnection getConnectionForKey(SelectionKey selectionKey);
 
-    public void setConnectionForKey(NIOConnection connection, 
+    void setConnectionForKey(NIOConnection connection,
             SelectionKey selectionKey);
 
-    public int ioEvent2SelectionKeyInterest(IOEvent ioEvent);
+    int ioEvent2SelectionKeyInterest(IOEvent ioEvent);
     
-    public IOEvent selectionKeyInterest2IoEvent(int selectionKeyInterest);
+    IOEvent selectionKeyInterest2IoEvent(int selectionKeyInterest);
 
-    public IOEvent[] getIOEvents(int interest);
+    IOEvent[] getIOEvents(int interest);
 }

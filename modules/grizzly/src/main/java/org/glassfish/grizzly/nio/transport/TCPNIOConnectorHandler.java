@@ -192,7 +192,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
             connection.resetProperties();
 
-            // Unregister OP_CONNECT interest
+            // Deregister OP_CONNECT interest
             connection.disableIOEvent(IOEvent.CLIENT_CONNECTED);
 
             tcpTransport.configureChannel(channel);

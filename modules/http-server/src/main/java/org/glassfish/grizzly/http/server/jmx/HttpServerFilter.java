@@ -95,7 +95,7 @@ public class HttpServerFilter extends JmxObject {
     }
 
     @Override
-    protected void onUnregister(GrizzlyJmxManager mom) {
+    protected void onDeregister(GrizzlyJmxManager mom) {
         httpServerFilter.getMonitoringConfig().removeProbes(probe);
     }
 

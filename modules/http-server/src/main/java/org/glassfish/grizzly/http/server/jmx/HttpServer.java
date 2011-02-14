@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.http.server.jmx;
 
-import org.glassfish.grizzly.http.server.*;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.monitoring.jmx.GrizzlyJmxManager;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
@@ -103,7 +102,7 @@ public class HttpServer extends JmxObject {
      * {@inheritDoc}
      */
     @Override
-    protected synchronized void onUnregister(GrizzlyJmxManager mom) {
+    protected synchronized void onDeregister(GrizzlyJmxManager mom) {
         this.mom = null;
     }
 
@@ -138,7 +137,7 @@ public class HttpServer extends JmxObject {
             if (currentListener != l) {
                 if (currentListener != null) {
                     final JmxObject listenerJmx = listenersJmx.get(l.getName());
-                    mom.unregister(listenerJmx);
+                    mom.deregister(listenerJmx);
 
                     currentListeners.remove(l.getName());
                     listenersJmx.remove(l.getName());

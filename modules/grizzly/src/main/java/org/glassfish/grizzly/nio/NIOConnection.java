@@ -241,7 +241,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         this.selectorRunner = null;
 
         if (selectorRunnerLocal != null) {
-            transport.getSelectorHandler().unregisterChannel(selectorRunnerLocal,
+            transport.getSelectorHandler().deregisterChannel(selectorRunnerLocal,
                     channel);
         }
     }
@@ -635,6 +635,6 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         
         final SelectorHandler selectorHandler = transport.getSelectorHandler();
 
-        selectorHandler.unregisterKeyInterest(selectorRunner, selectionKey, interest);
+        selectorHandler.deregisterKeyInterest(selectorRunner, selectionKey, interest);
     }
 }

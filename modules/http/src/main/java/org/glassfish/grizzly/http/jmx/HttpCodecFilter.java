@@ -106,7 +106,7 @@ public class HttpCodecFilter extends JmxObject {
      * {@inheritDoc}
      */
     @Override
-    protected void onUnregister(GrizzlyJmxManager mom) {
+    protected void onDeregister(GrizzlyJmxManager mom) {
         httpCodecFilter.getMonitoringConfig().removeProbes(probe);
     }
 

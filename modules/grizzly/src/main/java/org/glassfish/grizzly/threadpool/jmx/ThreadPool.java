@@ -101,7 +101,7 @@ public class ThreadPool extends JmxObject {
      * {@inheritDoc}
      */
     @Override
-    protected void onUnregister(GrizzlyJmxManager mom) {
+    protected void onDeregister(GrizzlyJmxManager mom) {
         threadPool.getMonitoringConfig().removeProbes(probe);
     }
 

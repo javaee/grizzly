@@ -476,7 +476,7 @@ public class HttpServer {
     protected void disableJMX() {
 
         if (jmxManager != null) {
-            jmxManager.unregister(getManagementObject(true));
+            jmxManager.deregister(getManagementObject(true));
         }
 
     }

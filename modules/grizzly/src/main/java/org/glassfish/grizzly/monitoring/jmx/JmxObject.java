@@ -68,5 +68,5 @@ public abstract class JmxObject {
      *
      * @param mom {@link GrizzlyJmxManager} Grizzly JMX manager.
      */
-    protected abstract void onUnregister(GrizzlyJmxManager mom);
+    protected abstract void onDeregister(GrizzlyJmxManager mom);
 }

@@ -147,7 +147,7 @@ public class FileCache extends JmxObject {
      * </p>
      */
     @Override
-    protected void onUnregister(GrizzlyJmxManager mom) {
+    protected void onDeregister(GrizzlyJmxManager mom) {
         fileCache.getMonitoringConfig().removeProbes(fileCacheProbe);
     }
 

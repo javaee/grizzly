@@ -52,61 +52,67 @@ import java.util.Set;
  * @author Alexey Stashok
  */
 public interface SelectorHandler {
-    public long getSelectTimeout();
+    long getSelectTimeout();
 
-    public void setSelectTimeout(long selectTimeout);
+    void setSelectTimeout(long selectTimeout);
     
-    public void preSelect(SelectorRunner selectorRunner)
-            throws IOException;
+    void preSelect(SelectorRunner selectorRunner) throws IOException;
     
-    public Set<SelectionKey> select(
-            SelectorRunner selectorRunner) throws IOException;
+    Set<SelectionKey> select(SelectorRunner selectorRunner) throws IOException;
     
-    public void postSelect(SelectorRunner selectorRunner)
-            throws IOException;
+    void postSelect(SelectorRunner selectorRunner) throws IOException;
     
-    public void registerKeyInterest(SelectorRunner selectorRunner,
-            SelectionKey key, int interest) throws IOException;
+    void registerKeyInterest(SelectorRunner selectorRunner,
+                             SelectionKey key,
+                             int interest)
+    throws IOException;
     
-    public void unregisterKeyInterest(SelectorRunner selectorRunner,
-            SelectionKey key, int interest) throws IOException;
+    void deregisterKeyInterest(SelectorRunner selectorRunner,
+                               SelectionKey key,
+                               int interest)
+    throws IOException;
 
-    public void registerChannel(SelectorRunner selectorRunner,
-            SelectableChannel channel, int interest, Object attachment)
-            throws IOException;
+    void registerChannel(SelectorRunner selectorRunner,
+                         SelectableChannel channel,
+                         int interest,
+                         Object attachment)
+    throws IOException;
 
-    public GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
-            SelectorRunner selectorRunner, SelectableChannel channel,
-            int interest, Object attachment, 
-            CompletionHandler<RegisterChannelResult> completionHandler)
-            throws IOException;
+    GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
+                                    SelectorRunner selectorRunner,
+                                    SelectableChannel channel,
+                                    int interest,
+                                    Object attachment,
+                                    CompletionHandler<RegisterChannelResult> completionHandler)
+    throws IOException;
 
     /**
-     * Unregister the channel from the {@link SelectorRunnaer}'s Selector.
+     * Deregister the channel from the {@link SelectorRunner}'s Selector.
      * @param selectorRunner {@link SelectorRunner}
-     * @param channel {@link SelectableChannel} channel to unregister
+     * @param channel {@link SelectableChannel} channel to deregister
      * @throws IOException
      */
-    public void unregisterChannel(SelectorRunner selectorRunner,
-            SelectableChannel channel) throws IOException;
+    void deregisterChannel(SelectorRunner selectorRunner,
+                           SelectableChannel channel) throws IOException;
 
     /**
-     * Unregister the channel from the {@link SelectorRunnaer}'s Selector.
+     * Deregister the channel from the {@link SelectorRunner}'s Selector.
      * @param selectorRunner {@link SelectorRunner}
-     * @param channel {@link SelectableChannel} channel to unregister
+     * @param channel {@link SelectableChannel} channel to deregister
      * @param completionHandler {@link CompletionHandler}
      * @throws IOException
      */
-    public GrizzlyFuture<RegisterChannelResult> unregisterChannelAsync(
-            SelectorRunner selectorRunner,
-            SelectableChannel channel,
-            CompletionHandler<RegisterChannelResult> completionHandler)
-            throws IOException;
+    GrizzlyFuture<RegisterChannelResult> deregisterChannelAsync(
+                                    SelectorRunner selectorRunner,
+                                    SelectableChannel channel,
+                                    CompletionHandler<RegisterChannelResult> completionHandler)
+    throws IOException;
 
 
-    public GrizzlyFuture<Runnable> executeInSelectorThread(
-            final SelectorRunner selectorRunner, final Runnable runnableTask,
-            final CompletionHandler<Runnable> completionHandler);
+    GrizzlyFuture<Runnable> executeInSelectorThread(
+                                    final SelectorRunner selectorRunner,
+                                    final Runnable runnableTask,
+                                    final CompletionHandler<Runnable> completionHandler);
 
-    public boolean onSelectorClosed(SelectorRunner selectorRunner);
+    boolean onSelectorClosed(SelectorRunner selectorRunner);
 }

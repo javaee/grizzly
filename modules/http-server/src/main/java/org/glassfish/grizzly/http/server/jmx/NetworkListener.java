@@ -114,7 +114,7 @@ public class NetworkListener extends JmxObject {
      * {@inheritDoc}
      */
     @Override
-    protected synchronized void onUnregister(GrizzlyJmxManager mom) {
+    protected synchronized void onDeregister(GrizzlyJmxManager mom) {
         this.mom = null;
     }
 
@@ -230,7 +230,7 @@ public class NetworkListener extends JmxObject {
         final FileCache fileCache = listener.getFileCache();
         if (currentFileCache != fileCache) {
             if (currentFileCache != null) {
-                mom.unregister(fileCacheJmx);
+                mom.deregister(fileCacheJmx);
 
                 currentFileCache = null;
                 fileCacheJmx = null;
@@ -247,7 +247,7 @@ public class NetworkListener extends JmxObject {
         final Transport transport = listener.getTransport();
         if (currentTransport != transport) {
             if (currentTransport != null) {
-                mom.unregister(transportJmx);
+                mom.deregister(transportJmx);
 
                 currentTransport = null;
                 transportJmx = null;
@@ -264,7 +264,7 @@ public class NetworkListener extends JmxObject {
         final KeepAlive keepAlive = listener.getKeepAlive();
         if (currentKeepAlive != keepAlive) {
             if (currentKeepAlive != null) {
-                mom.unregister(keepAliveJmx);
+                mom.deregister(keepAliveJmx);
 
                 currentKeepAlive = null;
                 keepAliveJmx = null;
@@ -281,7 +281,7 @@ public class NetworkListener extends JmxObject {
         final HttpServerFilter filter = listener.getHttpServerFilter();
         if (currentHttpServerFilter != filter) {
             if (currentHttpServerFilter != null) {
-                mom.unregister(webServerFilterJmx);
+                mom.deregister(webServerFilterJmx);
 
                 currentHttpServerFilter = null;
                 webServerFilterJmx = null;
@@ -298,7 +298,7 @@ public class NetworkListener extends JmxObject {
         final HttpCodecFilter codecFilter = listener.getHttpCodecFilter();
         if (currentHttpCodecFilter != codecFilter) {
             if (currentHttpCodecFilter != null) {
-                mom.unregister(httpCodecFilterJmx);
+                mom.deregister(httpCodecFilterJmx);
 
                 currentHttpCodecFilter = null;
                 httpCodecFilterJmx = null;

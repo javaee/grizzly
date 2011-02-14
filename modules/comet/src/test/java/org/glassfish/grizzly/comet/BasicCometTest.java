@@ -139,7 +139,7 @@ public class BasicCometTest extends TestCase {
         HttpURLConnection conn = getConnection(alias, 5000);
         conn.getHeaderFields();
 
-        CometEngine.getEngine().unregister(cometContext.topic);
+        CometEngine.getEngine().deregister(cometContext.topic);
         final CountDownCometHandler cometHandler = (CountDownCometHandler) httpHandler.cometHandler;
         assertTrue(cometHandler.onTerminate.await(10, TimeUnit.SECONDS));
         assertEquals(conn.getHeaderField(onInitialize), onInitialize);

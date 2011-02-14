@@ -129,7 +129,7 @@ public class NIOTransport extends JmxObject {
     }
 
     @Override
-    protected void onUnregister(GrizzlyJmxManager mom) {
+    protected void onDeregister(GrizzlyJmxManager mom) {
         synchronized(subtreeLock) {
             transport.getMonitoringConfig().removeProbes(probe);
             transport.getConnectionMonitoringConfig().removeProbes(connectionProbe);
@@ -241,7 +241,7 @@ public class NIOTransport extends JmxObject {
         final MemoryManager memoryManager = transport.getMemoryManager();
         if (currentMemoryManager != memoryManager) {
             if (currentMemoryManager != null) {
-                mom.unregister(memoryManagerJmx);
+                mom.deregister(memoryManagerJmx);
                 
                 currentMemoryManager = null;
                 memoryManagerJmx = null;
@@ -258,7 +258,7 @@ public class NIOTransport extends JmxObject {
         final GrizzlyExecutorService threadPool = (GrizzlyExecutorService) transport.getWorkerThreadPool();
         if (currentThreadPool != threadPool) {
             if (currentThreadPool != null) {
-                mom.unregister(threadPoolJmx);
+                mom.deregister(threadPoolJmx);
 
                 currentThreadPool = null;
                 threadPoolJmx = null;

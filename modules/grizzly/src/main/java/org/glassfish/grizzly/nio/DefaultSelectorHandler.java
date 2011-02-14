@@ -150,12 +150,12 @@ public class DefaultSelectorHandler implements SelectorHandler {
     }
 
     @Override
-    public void unregisterKeyInterest(final SelectorRunner selectorRunner,
-            final SelectionKey key, final int interest) throws IOException {
+    public void deregisterKeyInterest(final SelectorRunner selectorRunner,
+                                      final SelectionKey key, final int interest) throws IOException {
         if (Thread.currentThread() == selectorRunner.getRunnerThread()) {
-            unregisterKey0(key, interest);
+            deregisterKey0(key, interest);
         } else {
-            final SelectorHandlerTask task = new UnRegisterKeyTask(key, interest);
+            final SelectorHandlerTask task = new DeRegisterKeyTask(key, interest);
             addPendingTask(selectorRunner, task);
         }
     }
@@ -199,12 +199,12 @@ public class DefaultSelectorHandler implements SelectorHandler {
     }
 
     @Override
-    public void unregisterChannel(final SelectorRunner selectorRunner,
-            final SelectableChannel channel)
+    public void deregisterChannel(final SelectorRunner selectorRunner,
+                                  final SelectableChannel channel)
             throws IOException {
 
         final Future<RegisterChannelResult> future =
-                unregisterChannelAsync(selectorRunner, channel, null);
+                deregisterChannelAsync(selectorRunner, channel, null);
         try {
             future.get(selectTimeout, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
@@ -213,7 +213,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
     }
 
     @Override
-    public GrizzlyFuture<RegisterChannelResult> unregisterChannelAsync(
+    public GrizzlyFuture<RegisterChannelResult> deregisterChannelAsync(
             final SelectorRunner selectorRunner, final SelectableChannel channel,
             final CompletionHandler<RegisterChannelResult> completionHandler)
             throws IOException {
@@ -222,10 +222,10 @@ public class DefaultSelectorHandler implements SelectorHandler {
                 SafeFutureImpl.create();
 
         if (Thread.currentThread() == selectorRunner.getRunnerThread()) {
-            unregisterChannel0(selectorRunner, channel,
+            deregisterChannel0(selectorRunner, channel,
                     completionHandler, future);
         } else {
-            final SelectorHandlerTask task = new UnregisterChannelOperation(
+            final SelectorHandlerTask task = new DeregisterChannelOperation(
                     channel, future, completionHandler);
 
             addPendingTask(selectorRunner, task);
@@ -297,7 +297,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
         }
     }
 
-    private void unregisterKey0(final SelectionKey selectionKey, final int interest) {
+    private void deregisterKey0(final SelectionKey selectionKey, final int interest) {
         if (selectionKey.isValid()) {
             int currentOps = selectionKey.interestOps();
             if ((currentOps & interest) != 0) {
@@ -371,10 +371,10 @@ public class DefaultSelectorHandler implements SelectorHandler {
         }
     }
 
-    private void unregisterChannel0(final SelectorRunner selectorRunner,
-            final SelectableChannel channel,
-            final CompletionHandler completionHandler,
-            final FutureImpl<RegisterChannelResult> future) throws IOException {
+    private void deregisterChannel0(final SelectorRunner selectorRunner,
+                                    final SelectableChannel channel,
+                                    final CompletionHandler completionHandler,
+                                    final FutureImpl<RegisterChannelResult> future) throws IOException {
 
         if (future == null || !future.isCancelled()) {
             final Throwable error;
@@ -391,7 +391,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
 
                     selectorRunner.getTransport().
                             getSelectionKeyHandler().
-                            onKeyUnregistered(key);
+                            onKeyDeregistered(key);
 
                     final RegisterChannelResult result =
                             new RegisterChannelResult(selectorRunner,
@@ -490,11 +490,11 @@ public class DefaultSelectorHandler implements SelectorHandler {
         }
     }
 
-    protected final class UnRegisterKeyTask implements SelectorHandlerTask {
+    protected final class DeRegisterKeyTask implements SelectorHandlerTask {
         private final SelectionKey selectionKey;
         private final int interest;
 
-        public UnRegisterKeyTask(SelectionKey selectionKey, int interest) {
+        public DeRegisterKeyTask(SelectionKey selectionKey, int interest) {
             this.selectionKey = selectionKey;
             this.interest = interest;
         }
@@ -506,7 +506,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
                 localSelectionKey = checkIfSpinnedKey(selectorRunner, selectionKey);
             }
 
-            unregisterKey0(localSelectionKey, interest);
+            deregisterKey0(localSelectionKey, interest);
         }
     }
 
@@ -535,14 +535,14 @@ public class DefaultSelectorHandler implements SelectorHandler {
         }
     }
 
-    protected final class UnregisterChannelOperation implements SelectorHandlerTask {
+    protected final class DeregisterChannelOperation implements SelectorHandlerTask {
         private final SelectableChannel channel;
         private final FutureImpl<RegisterChannelResult> future;
         private final CompletionHandler<RegisterChannelResult> completionHandler;
 
-        private UnregisterChannelOperation(final SelectableChannel channel,
-                final FutureImpl<RegisterChannelResult> future,
-                final CompletionHandler<RegisterChannelResult> completionHandler) {
+        private DeregisterChannelOperation(final SelectableChannel channel,
+                                           final FutureImpl<RegisterChannelResult> future,
+                                           final CompletionHandler<RegisterChannelResult> completionHandler) {
             this.channel = channel;
             this.future = future;
             this.completionHandler = completionHandler;
@@ -550,7 +550,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
 
         @Override
         public void run(final SelectorRunner selectorRunner) throws IOException {
-            unregisterChannel0(selectorRunner, channel, completionHandler, future);
+            deregisterChannel0(selectorRunner, channel, completionHandler, future);
         }
     }
     
