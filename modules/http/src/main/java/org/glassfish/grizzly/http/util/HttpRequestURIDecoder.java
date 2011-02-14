@@ -146,8 +146,9 @@ public class HttpRequestURIDecoder {
 
     /**
      * Decode the HTTP request represented by the bytes inside {@link DataChunk}.
-     * @param decodedURI - The bytes to decode
+     * @param originalURI - The bytes to decode
      * @param targetDecodedURI the target {@link DataChunk} URI will be decoded to
+     * @param isSlashAllowed is '/' an allowable character
      * @param encoding the encoding value, default is UTF-8
      * @throws java.lang.Exception
      */
@@ -284,7 +285,7 @@ public class HttpRequestURIDecoder {
      * return false if sequences that are supposed to be normalized are still
      * present in the URI.
      *
-     * @param uriMB URI to be checked (should be chars)
+     * @param uriCC URI to be checked (should be chars)
      */
     public static boolean checkNormalize(final CharChunk uriCC) {
 

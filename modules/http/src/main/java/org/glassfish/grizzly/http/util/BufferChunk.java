@@ -399,7 +399,7 @@ public class BufferChunk implements Chunk {
 
     /**
      * Convert a {@link BufferChunk} using the specified encoding.
-     * @param charChank char array to put result to.
+     * @param cc char array to put result to.
      * @param encoding the encoding value
      * @throws java.lang.Exception
      */
