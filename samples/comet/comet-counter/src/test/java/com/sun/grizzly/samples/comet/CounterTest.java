@@ -45,7 +45,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.net.HttpURLConnection;
 import java.net.Socket;
 import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
@@ -85,15 +84,14 @@ public class CounterTest {
     public void testCounter() throws IOException, ExecutionException, TimeoutException, InterruptedException {
         int attempt = 0;
         while (attempt++ < 20) {
-            System.out.println("Trying attempt " + attempt);
             Future request = request(attempt);
-            executorService.submit(new HttpRequest(attempt, "POST")).get(10, TimeUnit.SECONDS);
+            executorService.submit(new HttpRequest("POST")).get(10, TimeUnit.SECONDS);
             request.get(30, TimeUnit.SECONDS);
         }
     }
 
     private Future<?> request(int attempt) throws InterruptedException {
-        final HttpRequest task = new HttpRequest(attempt, "GET");
+        final HttpRequest task = new HttpRequest("GET");
         final Future<?> future = executorService.submit(task);
         task.pause();
         return future;
@@ -107,22 +105,17 @@ public class CounterTest {
 
     private class HttpRequest implements Runnable {
         private CountDownLatch connected = new CountDownLatch(1);
-        private int attempt;
         private String method;
         private OutputStream os;
-        private String prefix;
 
-        public HttpRequest(int attempt, String method) {
-            this.attempt = attempt;
+        public HttpRequest(String method) {
             this.method = method;
         }
 
         @Override
         public void run() {
-            final HttpURLConnection connection;
             try {
                 Thread.sleep(500);
-                System.out.printf("attempt %s %s\n", method, attempt);
                 Socket socket = new Socket("localhost", PORT);
                 try {
                     os = socket.getOutputStream();
@@ -130,7 +123,6 @@ public class CounterTest {
                     write("Host: localhost:" + PORT);
                     write("");
                     connected.countDown();
-                    prefix = attempt + ": " + method;
                     readResponse(socket.getInputStream());
                 } finally {
                     socket.close();
@@ -146,7 +138,7 @@ public class CounterTest {
             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
             try {
                 do {
-                    System.out.println(prefix + ": " + reader.readLine());
+                    reader.readLine();
                 } while (reader.ready());
             } finally {
                 try {
@@ -155,7 +147,6 @@ public class CounterTest {
                     throw new RuntimeException(e.getMessage(), e);
                 }
             }
-            System.out.printf("%s %s done\n", method, attempt);
         }
 
         private void write(String line) throws IOException {

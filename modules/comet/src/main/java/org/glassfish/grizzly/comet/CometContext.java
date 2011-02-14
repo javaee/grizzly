@@ -518,11 +518,7 @@ public class CometContext<E> {
 
         @Override
         public void onClosed(Connection connection) throws IOException {
-            try {
-                handler.onInterrupt(eventInterrupt);
-            } catch (IOException e) {
-                throw new RuntimeException(e.getMessage(), e);
-            }
+            removeCometHandler(handler);
             connection.removeCloseListener(this);
         }
     }

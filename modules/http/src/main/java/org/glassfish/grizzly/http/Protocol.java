@@ -54,14 +54,13 @@ public enum Protocol {
     HTTP_1_1 ("HTTP/1.1");
 
     public static Protocol parseDataChunk(final DataChunk protocolC) {
-        if (protocolC.isNull() || protocolC.getLength() == 0) {
+        if (protocolC.isNull() || protocolC.getLength() == 0
+            || protocolC.equals(Protocol.HTTP_0_9.getProtocolString())) {
             return Protocol.HTTP_0_9;
         } else if (protocolC.equals(Protocol.HTTP_1_1.getProtocolString())) {
             return Protocol.HTTP_1_1;
         } else if (protocolC.equals(Protocol.HTTP_1_0.getProtocolString())) {
             return Protocol.HTTP_1_0;
-        } else if (protocolC.equals(Protocol.HTTP_0_9.getProtocolString())) {
-            return Protocol.HTTP_0_9;
         } else {
             throw new IllegalStateException("Unknown protocol " + protocolC.toString());
         }
@@ -70,12 +69,12 @@ public enum Protocol {
     private final String protocolString;
     private byte[] protocolBytes;
 
-    private Protocol(String protocolString) {
+    Protocol(String protocolString) {
         this.protocolString = protocolString;
         try {
-            this.protocolBytes = protocolString.getBytes("US-ASCII");
+            protocolBytes = protocolString.getBytes("US-ASCII");
         } catch (UnsupportedEncodingException ignored) {
-            this.protocolBytes = protocolString.getBytes();
+            protocolBytes = protocolString.getBytes();
         }
     }
 
