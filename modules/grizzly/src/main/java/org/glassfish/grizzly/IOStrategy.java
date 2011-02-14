@@ -55,6 +55,9 @@ import java.io.IOException;
 public interface IOStrategy extends WorkerThreadPoolConfigProducer {
 
     /**
+     * The {@link org.glassfish.grizzly.nio.SelectorRunner} will invoke this
+     * method to allow the strategy implementation to decide how the
+     * {@link IOEvent} will be handled.
      *
      * @param connection the {@link Connection} upon which the provided
      *  {@link IOEvent} occurred.

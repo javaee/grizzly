@@ -54,7 +54,7 @@ import org.glassfish.grizzly.Cacheable;
  * A {@link WrapperAware} {@link MemoryManager} implementation for
  * managing {@link HeapBuffer} instances.
  *
- * @see 2.0
+ * @since 2.0
  */
 public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> implements WrapperAware {
 

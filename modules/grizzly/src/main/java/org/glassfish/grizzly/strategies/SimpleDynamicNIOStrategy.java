@@ -52,12 +52,14 @@ import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 /**
  * Simple dynamic strategy, which switches I/O processing strategies, basing
  * on statistics. This implementation takes in consideration number of
- * {@link SelectionKey}s, which were selected last time by {@link Selector}.
+ * {@link java.nio.channels.SelectionKey}s, which were selected last time by
+ * {@link java.nio.channels.Selector}.
  *
  * <tt>SimpleDynamicIOStrategy</tt> is able to use 2 strategies underneath:
  * {@link SameThreadIOStrategy}, {@link WorkerThreadIOStrategy}.
  * And is able to switch between them basing on corresponding threshold
- * (threshold represents the number of selected {@link SelectionKey}s).
+ * (threshold represents the number of selected
+ * {@link java.nio.channels.SelectionKey}s).
  *
  * So the strategy is getting applied following way:
  *

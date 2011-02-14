@@ -41,15 +41,20 @@
 package org.glassfish.grizzly.memory;
 
 /**
- * TODO Documentation
+ * This interface may be implemented by custom {@link MemoryManager} implementations
+ * in order to provide per-thread memory management.
+ *
+ * When Grizzly managed threads are created, if the {@link MemoryManager} implements
+ * this interface, {@link #createThreadLocalPool()} will be invoked and the resulting
+ * {@link ThreadLocalPool} will be passed to the {@link Thread}.
  *
  * @since 2.0
  */
 public interface ThreadLocalPoolProvider {
 
     /**
-     * TODO Documentation
-     * @return
+     * @return a new {@link ThreadLocalPool} implementation.  This method
+     *  must return a new {@link ThreadLocalPool} instance per invocation.
      */
     ThreadLocalPool createThreadLocalPool();
 

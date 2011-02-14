@@ -671,7 +671,7 @@ public final class TCPNIOTransport extends NIOTransport implements
 
     /**
      * Set the default server connection backlog size.
-     * @serverConnectionBackLog the default server connection backlog size.
+     * @param serverConnectionBackLog the default server connection backlog size.
      */
     public void setServerConnectionBackLog(final int serverConnectionBackLog) {
         this.serverConnectionBackLog = serverConnectionBackLog;

@@ -198,7 +198,7 @@ public class ArraySet<T> implements Set<T> {
     /**
      * Get the underlying array.
      * Please note, it's not appropriate to modify the returned array's content.
-     * Please use {@link #add(Object[])} and {@link #remove(Object[])} instead.
+     * Please use {@link #add(Object)} and {@link #remove(Object)} instead.
      *
      * @return the array.
      */
@@ -225,7 +225,6 @@ public class ArraySet<T> implements Set<T> {
     /**
      * Get the copy of the underlying array. If the underlying array is
      * <tt>null</tt> - then empty array will be returned.
-     * @param clazz type of the array elements.
      *
      * @return the copy of the underlying array. If the underlying array is
      * <tt>null</tt> - then empty array will be returned.

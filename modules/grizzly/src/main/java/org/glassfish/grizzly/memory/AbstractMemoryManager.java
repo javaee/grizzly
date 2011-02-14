@@ -47,7 +47,8 @@ import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
 
 
 /**
- * TODO Documentation
+ * A {@link MemoryManager} abstraction to provide utilities that may be useful
+ * across different {@link MemoryManager} implementations.
  *
  * @since 2.0
  */
@@ -55,13 +56,16 @@ public abstract class AbstractMemoryManager<E extends Buffer> implements MemoryM
 
 
     /**
-     * TODO: Document
+     * The maximum size of the memory pool that is to be maintained by
+     * either the MemoryManager itself or any {@link ThreadLocalPool}s.
      */
     public static final int DEFAULT_MAX_BUFFER_SIZE = 1024 * 128;
 
 
     /**
-     * TODO: Document
+     * Basic monitoring support.  Concrete implementations of this class need
+     * only to implement the {@link #createJmxManagementObject()}  method
+     * to plug into the Grizzly 2.0 JMX framework.
      */
     protected final AbstractJmxMonitoringConfig<MemoryProbe> monitoringConfig =
             new AbstractJmxMonitoringConfig<MemoryProbe>(MemoryProbe.class) {
@@ -80,7 +84,8 @@ public abstract class AbstractMemoryManager<E extends Buffer> implements MemoryM
 
 
     /**
-     * TODO: Document
+     * Creates a new <code>AbstractMemoryManager</code> using a max buffer size
+     * of {@value #DEFAULT_MAX_BUFFER_SIZE}.
      */
     public AbstractMemoryManager() {
 
@@ -89,8 +94,10 @@ public abstract class AbstractMemoryManager<E extends Buffer> implements MemoryM
     }
 
     /**
-     * TODO: Document
-     * @param maxBufferSize
+     * Creates a new <code>AbstractMemoryManager</code> using the specified
+     * buffer size.
+     *
+     * @param maxBufferSize max size of the maintained buffer.
      */
     public AbstractMemoryManager(final int maxBufferSize) {
 
@@ -118,8 +125,8 @@ public abstract class AbstractMemoryManager<E extends Buffer> implements MemoryM
 
 
     /**
-     * TODO Documentation
-     * @return
+     * @return the max size of the buffer maintained by this
+     * <code>AbstractMemoryManager</code>.
      */
     public int getMaxBufferSize() {
         return maxBufferSize;
@@ -130,10 +137,13 @@ public abstract class AbstractMemoryManager<E extends Buffer> implements MemoryM
 
 
     /**
-     * TODO Documentation
-     * @param threadLocalCache
-     * @param size
-     * @return
+     * Allocate a {@link Buffer} using the provided {@link ThreadLocalPool}.
+     *
+     * @param threadLocalCache the {@link ThreadLocalPool} to allocate from.
+     * @param size the amount to allocate.
+     *
+     * @return an memory buffer, or <code>null</code> if the requested size
+     *  exceeds the remaining free memory of the {@link ThreadLocalPool}.
      */
     protected Object allocateFromPool(final ThreadLocalPool threadLocalCache,
                                       final int size) {
@@ -148,8 +158,8 @@ public abstract class AbstractMemoryManager<E extends Buffer> implements MemoryM
 
 
     /**
-     * TODO Documentation
-     * @return
+     * @return the {@link JmxObject} used to register/deregister with the
+     *  JMX runtime.
      */
     protected abstract JmxObject createJmxManagementObject();
 
@@ -174,7 +184,8 @@ public abstract class AbstractMemoryManager<E extends Buffer> implements MemoryM
     // ---------------------------------------------------------- Nested Classes
 
     /**
-     * TODO: Documentation
+     * This is a marker interface indicating a particular {@link Buffer}
+     * implementation can be trimmed.
      */
     protected static interface TrimAware extends Cacheable { }
 
