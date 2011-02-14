@@ -142,7 +142,7 @@ public class PUFilter extends BaseFilter {
 
     /**
      * Get the back channel {@link Filter} implementation, which should connect the
-     * custom protocol {@link FilterChain} with the main {@link ProtocolChain}.
+     * custom protocol {@link FilterChain} with the main {@link FilterChain}.
      * Usually developers shouldn't use this method, if they build custom protocol
      * chains using {@link #getPUFilterChainBuilder()}, otherwise they have to
      * make sure there custom protocol {@link FilterChain} contains back channel

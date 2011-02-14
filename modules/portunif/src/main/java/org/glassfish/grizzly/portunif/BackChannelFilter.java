@@ -49,9 +49,9 @@ import org.glassfish.grizzly.filterchain.FilterChainEvent;
 import org.glassfish.grizzly.filterchain.NextAction;
 
 /**
- * The {@link Filter}, which is responsible to connect custom protocol {@link FilterChain} with
- * main {@link FilterChain}. Usually this {@link Filter} is getting added to the
- * custom protocol {@link FilterChain} as first {@link Filter}.
+ * The {@link org.glassfish.grizzly.filterchain.Filter}, which is responsible to connect custom protocol {@link FilterChain} with
+ * main {@link FilterChain}. Usually this {@link org.glassfish.grizzly.filterchain.Filter} is getting added to the
+ * custom protocol {@link FilterChain} as first {@link org.glassfish.grizzly.filterchain.Filter}.
  * 
  * @author Alexey Stashok
  */
