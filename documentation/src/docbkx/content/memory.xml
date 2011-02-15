@@ -164,7 +164,7 @@
 
         <mediaobject>
           <imageobject>
-            <imagedata fileref="../images/coreframework/bbmmanager-uml.svgz"
+            <imagedata fileref="../images/coreframework/bbmmanager-uml.svg"
                        scale="99"></imagedata>
           </imageobject>
         </mediaobject>
@@ -186,7 +186,7 @@
 
         <mediaobject>
           <imageobject>
-            <imagedata fileref="../images/coreframework/heapmmanager-uml.svgz"
+            <imagedata fileref="../images/coreframework/heapmmanager-uml.svg"
                        scale="99"></imagedata>
           </imageobject>
         </mediaobject>
@@ -222,8 +222,7 @@
 
         <mediaobject>
           <imageobject>
-            <imagedata fileref="../images/coreframework/mmflow.svgz"
-                       scale="99"></imagedata>
+            <imagedata fileref="../images/coreframework/mmflow.svg" scale="99"></imagedata>
           </imageobject>
         </mediaobject>
       </figure>
