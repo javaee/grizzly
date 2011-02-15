@@ -149,7 +149,7 @@ final class EchoServer {
                 setPoolName(POOL_NAME).
                 setCorePoolSize(poolSize).setMaxPoolSize(poolSize);
 
-        transport.setThreadPool(GrizzlyExecutorService.createInstance(tpc));
+        transport.setWorkerThreadPool(GrizzlyExecutorService.createInstance(tpc));
 
     }
 
