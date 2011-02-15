@@ -146,6 +146,38 @@ public class HttpSessionTest extends TestCase {
 
     }
 
+    public void testCreateSession() throws Exception {
+        final HttpHandler httpHandler = new HttpCreaeteSessionHandler();
+        final HttpPacket request = createRequest("/session", null);
+        final HttpContent response = doTest(httpHandler, request, 10);
+
+        final String responseContent = response.getContent().toStringContent();
+        Map<String, String> props = new HashMap<String, String>();
+
+        String cookieSessionId = null;
+        int sessionCookiesNum = 0;
+        Iterable<String> it = response.getHttpHeader().getHeaders().values("Set-Cookie");
+        for (String value : it) {
+            sessionCookiesNum++;
+            cookieSessionId = value;
+        }
+
+        assertEquals(1, sessionCookiesNum);
+
+        // Check session-id in the content
+        BufferedReader reader = new BufferedReader(new StringReader(responseContent));
+        String line;
+        while((line = reader.readLine()) != null) {
+            String[] nameValue = line.split("=");
+            assertEquals(2, nameValue.length);
+            props.put(nameValue[0], nameValue[1]);
+        }
+
+        String sessionId = props.get("session-id");
+        assertNotNull(sessionId);
+        assertTrue(cookieSessionId.indexOf(sessionId) >= 0);
+    }
+    
     @SuppressWarnings({"unchecked"})
     private HttpPacket createRequest(String uri, Map<String, String> headers) {
 
@@ -290,5 +322,18 @@ public class HttpSessionTest extends TestCase {
             }
         }
 
+    }
+
+    public class HttpCreaeteSessionHandler extends HttpHandler {
+
+        @Override
+        public void service(Request request, Response response) throws Exception {
+            final Session session = request.getSession(true);
+            if (session != null) {
+                response.getWriter().write("session-id=" + session.getIdInternal() + "\n");
+            } else {
+                response.getWriter().write("FAILED\n");
+            }
+        }
     }
 }
