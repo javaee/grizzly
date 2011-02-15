@@ -236,7 +236,7 @@ public class KeepAliveTest extends TestCase {
                         .header("Host", "localhost:" + PORT)
                         .build());
 
-                final Buffer buffer = resultFuture.get(10000, TimeUnit.SECONDS);
+                final Buffer buffer = resultFuture.get(10, TimeUnit.SECONDS);
 
                 fail("IOException expected");
             } catch (ExecutionException ee) {
