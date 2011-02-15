@@ -46,7 +46,7 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 
 /**
- * The ADD-service {@link Filter}, responsible for adding two values :)
+ * The ADD-service {@link org.glassfish.grizzly.filterchain.Filter}, responsible for adding two values :)
  * 
  * @author Alexey Stashok
  */

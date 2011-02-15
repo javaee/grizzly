@@ -46,7 +46,7 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 
 /**
- * The SUB-service {@link Filter}, responsible for subtracting two values :)
+ * The SUB-service {@link org.glassfish.grizzly.filterchain.Filter}, responsible for subtracting two values :)
  *
  * @author Alexey Stashok
  */
