@@ -117,13 +117,11 @@
             <row>
               <entry>NetworkListener</entry>
 
-              <entry>This is an abstraction of the Grizzly NIOTransport and
-              Filter implementations. It also allows the enabling/disabling of
-              HTTP-related features such as Comet, WebSockets, the chunked
-              transfer-encoding, etc. HttpServer can support multiple
-              NetworkListeners. Also, keep in mind that all HttpHandlers added
-              to the ServerConfiguration will be shared across all
-              listeners.</entry>
+              <entry>This is an abstraction of the Grizzly NIOTransport and Filter implementations.
+                It also allows the enabling/disabling of HTTP-related features such as keep-alive,
+                chunked transfer-encoding, cusom addons etc. HttpServer can support multiple
+                NetworkListeners. Also, keep in mind that all HttpHandlers added to the
+                ServerConfiguration will be shared across all listeners.</entry>
             </row>
 
             <row>
@@ -169,6 +167,11 @@
               <entry>This Filter provides static resource caching capabilites.
               Like the HttpServerFilter, if file caching is enabled, this
               Filter will be added automatically.</entry>
+            </row>
+            <row>
+              <entry>AddOn</entry>
+              <entry>The general interface for HttpServer addons, which suppose to extend basic
+                HttpServer functionality.</entry>
             </row>
           </tbody>
         </tgroup>
@@ -319,17 +322,10 @@ try {
           </row>
 
           <row>
-            <entry>cometEnabled</entry>
+            <entry>addons</entry>
 
-            <entry>Enable/disable Comet support (defaults to
-            disabled).</entry>
-          </row>
-
-          <row>
-            <entry>webSocketsEnabled</entry>
-
-            <entry>Enable/disable WebSocket support (defaults to
-            disabled).</entry>
+            <entry>The set of addons, which suppose to extend basic HttpServer
+              functionality.</entry>
           </row>
 
           <row>
@@ -884,6 +880,51 @@ public interface BinaryNIOInputSource extends NIOInputSource {
 
     <para>All properties of the FileCache can be manipulated by obtaining the
     FileCache instance by calling NetworkListener.getFileCache().</para>
+  </section>
+  <section>
+    <title>AddOn</title>
+    <para>The AddOn abstraction provides a simple and generic way how to extend existing HttpServer
+    functionality. The interface looks very simple:</para>
+    <programlisting language="java">/**
+ * The {@link HttpServer} addon interface, responsible for adding
+ * features like WebSockets, Comet to HttpServer.
+ */
+public interface AddOn {
+    /**
+     * The method, which will be invoked by {@link HttpServer} in order to
+     * initialize the AddOn on the passed {@link NetworkListener}.
+     * Most of the time the AddOn implementation will update the passed
+     * {@link NetworkListener}'s {@link FilterChainBuilder} by adding custom
+     * {@link Filter}(s), which implement AddOn's logic.
+     * 
+     * @param networkListener the {@link NetworkListener} the addon is being
+     *          initialized on.
+     * @param builder the {@link FilterChainBuilder},
+     *          representing the {@link NetworkListener} logic.
+     */
+    public void setup(NetworkListener networkListener,
+            FilterChainBuilder builder);
+}</programlisting>
+    <para>So basically custom AddOn should implement only one method, and most of the time AddOn
+      just inserts a custom logic Filter into the given FilterChainBuilder. Here is example of
+      WebSocketAddOn:<programlisting>/**
+ * WebSockets {@link AddOn} for the {@link org.glassfish.grizzly.http.server.HttpServer}.
+ */
+public class WebSocketAddOn implements AddOn {
+
+    @Override
+    public void setup(final NetworkListener networkListener,
+            final FilterChainBuilder builder) {
+
+        // Get the index of HttpCodecFilter in the HttpServer filter chain
+        final int httpCodecFilterIdx = builder.indexOfType(HttpCodecFilter.class);
+
+        if (httpCodecFilterIdx >= 0) {
+            // Insert the WebSocketFilter right after HttpCodecFilter
+            builder.add(httpCodecFilterIdx + 1, new WebSocketFilter());
+        }
+    }
+}</programlisting></para>    
   </section>
 
   <section>
