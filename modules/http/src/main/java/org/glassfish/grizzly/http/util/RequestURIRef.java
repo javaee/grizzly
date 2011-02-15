@@ -118,11 +118,11 @@ public class RequestURIRef {
             return decodedRequestURIDC;
         }
 
-        checkDecodedURICapacity(originalRequestURIDC.getLength());
+        checkDecodedURICapacity(requestURIDC.getLength());
         decodedRequestURIDC.setBuffer(preallocatedDecodedURIBuffer, 0,
                 preallocatedDecodedURIBuffer.limit());
 
-        HttpRequestURIDecoder.decode(originalRequestURIDC, decodedRequestURIDC,
+        HttpRequestURIDecoder.decode(requestURIDC, decodedRequestURIDC,
                 isSlashAllowed, charset);
         
         isDecoded = true;
