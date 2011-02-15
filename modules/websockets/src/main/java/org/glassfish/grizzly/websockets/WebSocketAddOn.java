@@ -52,13 +52,18 @@ import org.glassfish.grizzly.http.server.NetworkListener;
  */
 public class WebSocketAddOn implements AddOn {
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void setup(final NetworkListener networkListener,
             final FilterChainBuilder builder) {
+        // Get the index of HttpCodecFilter in the HttpServer filter chain
         final int httpCodecFilterIdx = builder.indexOfType(HttpCodecFilter.class);
+
         if (httpCodecFilterIdx >= 0) {
+            // Insert the WebSocketFilter right after HttpCodecFilter
             builder.add(httpCodecFilterIdx + 1, new WebSocketFilter());
         }
     }
-
 }
