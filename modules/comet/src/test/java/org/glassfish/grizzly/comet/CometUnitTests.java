@@ -126,7 +126,7 @@ public class CometUnitTests /*extends TestCase*/ {
 //            setSpreadNotifyToManyToThreads(spreadNotify);
         testisdone = false;
         msgc.set(0);
-        CometTestAdapter.useStreaming = streaming;
+        CometTestHttpHandler.useStreaming = streaming;
         final CountDownLatch threadsAreDone = new CountDownLatch(threadCount);
         status = true;
         for (int i = 0; i < threadCount; i++) {
@@ -171,11 +171,11 @@ public class CometUnitTests /*extends TestCase*/ {
             if (streaming) {
                 if (size < (spreadNotify ? threadCount : 1) * 100) {
                     for (int i = 0; i < broadcasts; i++) {
-                        CometTestAdapter.cometContext.notify(joinMessage);
+                        CometTestHttpHandler.cometContext.notify(joinMessage);
                     }
                 }
             } else {
-                CometTestAdapter.cometContext.notify(joinMessage);
+                CometTestHttpHandler.cometContext.notify(joinMessage);
             }
             synchronized (connectString) {
                 connectString.wait(waitTime);
@@ -208,7 +208,7 @@ public class CometUnitTests /*extends TestCase*/ {
                 out.flush();
                 int b;
                 if (notifyBeforeRead) {
-                    CometTestAdapter.cometContext.notify(joinMessage);
+                    CometTestHttpHandler.cometContext.notify(joinMessage);
                 }
                 while ((b = in.read()) != joinMessage && !testisdone) {
                 }
@@ -230,7 +230,7 @@ public class CometUnitTests /*extends TestCase*/ {
                 boolean _status = true;
                 while (streaming && _status && !testisdone) {
                     if (notifyBeforeRead) {
-                        CometTestAdapter.cometContext.notify(joinMessage);
+                        CometTestHttpHandler.cometContext.notify(joinMessage);
                     }
                     b = in.read();
                     in.read();

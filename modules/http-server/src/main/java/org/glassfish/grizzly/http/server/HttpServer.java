@@ -60,7 +60,6 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.Processor;
 import org.glassfish.grizzly.TransportProbe;
-import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
@@ -528,14 +527,6 @@ public class HttpServer {
                     serverConfig.getMonitoringConfig().getHttpConfig().getProbes());
             builder.add(httpServerFilter);
 
-            if (listener.isCometEnabled()) {
-                builder.add(loadFilter("org.glassfish.grizzly.comet.CometFilter"));
-            }
-
-            if (listener.isWebSocketsEnabled()) {
-                builder.add(loadFilter("org.glassfish.grizzly.websockets.WebSocketFilter"));
-            }
-
             final FileCache fileCache = listener.getFileCache();
             fileCache.initialize(listener.getTransport().getMemoryManager(), delayedExecutor);
             final FileCacheFilter fileCacheFilter = new FileCacheFilter(fileCache);
@@ -548,20 +539,20 @@ public class HttpServer {
             
             webServerFilter.getMonitoringConfig().addProbes(
                     serverConfig.getMonitoringConfig().getWebServerConfig().getProbes());
+
+            final AddOn[] addons = listener.getAddOnSet().getArray();
+            if (addons != null) {
+                for (AddOn addon : addons) {
+                    addon.setup(listener, builder);
+                }
+            }
+
             builder.add(webServerFilter);
 
             chain = builder.build();
             listener.setFilterChain(chain);
         }
         configureMonitoring(listener);
-    }
-
-    private Filter loadFilter(final String className) {
-        try {
-            return (Filter) Class.forName(className).newInstance();
-        } catch (Exception e) {
-            throw new RuntimeException(e.getMessage(), e);
-        }
     }
 
     private void configureMonitoring(final NetworkListener listener) {

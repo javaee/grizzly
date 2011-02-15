@@ -51,12 +51,12 @@ import org.glassfish.grizzly.http.server.io.NIOOutputStream;
 /**
  * @author Gustav Trede
  */
-public class CometTestAdapter extends HttpHandler {
+public class CometTestHttpHandler extends HttpHandler {
     private final boolean useConcurrentCometHandler;
     static CometContext<Byte> cometContext;
     static volatile boolean useStreaming;
 
-    public CometTestAdapter(String name, boolean useHandler, int idleTimeout) {
+    public CometTestHttpHandler(String name, boolean useHandler, int idleTimeout) {
         cometContext = CometEngine.getEngine().<Byte>register(name);
         cometContext.setExpirationDelay(idleTimeout);
         useConcurrentCometHandler = useHandler;

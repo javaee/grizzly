@@ -75,7 +75,7 @@ public class BasicCometTest extends TestCase {
         httpServer = HttpServer.createSimpleServer("./", PORT);
         final Collection<NetworkListener> listeners = httpServer.getListeners();
         for (NetworkListener listener : listeners) {
-            listener.setCometEnabled(true);
+            listener.registerAddOn(new CometAddOn());
         }
         httpServer.start();
         cometContext = CometEngine.getEngine().<String>register("GrizzlyAdapter");

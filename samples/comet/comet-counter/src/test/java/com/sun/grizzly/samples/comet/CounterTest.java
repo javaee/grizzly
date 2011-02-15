@@ -54,6 +54,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.glassfish.grizzly.comet.CometAddOn;
 
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
@@ -75,7 +76,7 @@ public class CounterTest {
             QUERY_PATH);
         final Collection<NetworkListener> listeners = httpServer.getListeners();
         for (NetworkListener listener : listeners) {
-            listener.setCometEnabled(true);
+            listener.registerAddOn(new CometAddOn());
         }
         httpServer.start();
     }

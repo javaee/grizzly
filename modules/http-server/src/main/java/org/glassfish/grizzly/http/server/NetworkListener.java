@@ -58,6 +58,7 @@ import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
+import org.glassfish.grizzly.utils.ArraySet;
 
 public class NetworkListener {
     private static final Logger LOGGER = Grizzly.logger(NetworkListener.class);
@@ -102,14 +103,12 @@ public class NetworkListener {
      * Flag indicating whether or not this listener is secure.  Defaults to <code>false</code>
      */
     private boolean secure;
+
     /**
-     * Flag indicating whether or not comet is enabled.  Defaults to <code>false</code>
+     * AddOns registered for the network listener
      */
-    private boolean cometEnabled;
-    /**
-     * Flag indicating whether or not Web Sockets is enabled.  Defaults to <code>false</code>
-     */
-    private boolean webSocketsEnabled;
+    private final ArraySet<AddOn> addons = new ArraySet<AddOn>(AddOn.class);
+
     /**
      * Flag indicating whether or not the chunked transfer encoding is enabled.  Defaults to <code>true</code>.
      */
@@ -271,34 +270,53 @@ public class NetworkListener {
 
     }
 
-    public boolean isCometEnabled() {
-        return cometEnabled;
-    }
-
-    public void setCometEnabled(final boolean cometEnabled) {
-        this.cometEnabled = cometEnabled;
-    }
-
     /**
-     * @return <code>true</code> if Web Sockets is enabled, otherwise, returns <code>false</code>.
-     */
-    public boolean isWebSocketsEnabled() {
-        return webSocketsEnabled;
-
-    }
-
-    /**
-     * Enables/disables Web Sockets support for this listener.
+     * Return the array of the registered {@link AddOn}s.
+     * Please note, possible array modifications wont affect the
+     * {@link NetworkListener}'s addons list.
      *
-     * @param webSocketsEnabled <code>true</code> if Web Sockets support should be enabled.
+     * @return the array of the registered {@link AddOn}s.
      */
-    public void setWebSocketsEnabled(boolean webSocketsEnabled) {
-        this.webSocketsEnabled = webSocketsEnabled;
-
+    public AddOn[] getAddOns() {
+        return addons.obtainArrayCopy();
     }
 
     /**
-     * @return <code>true</code> if the http response bodies should be chunked if not content length has been explicitly
+     * Returns the direct addons collection, registered on the NetworkListener.
+     * @return the direct addons collection, registered on the NetworkListener.
+     */
+    protected ArraySet<AddOn> getAddOnSet() {
+        return addons;
+    }
+
+    /**
+     * Registers {@link AddOn} on this NetworkListener.
+     * @param addon the {@link AddOn} to be registered.
+     *
+     * @return <tt>true</tt>, if the same ({@link AddOn#equals(java.lang.Object)})
+     *          {@link AddOn} wasn't registered before so it was added to the
+     *          addon list, or <tt>false</tt>, if the same ({@link AddOn#equals(java.lang.Object)})
+     *          {@link AddOn} has been already registered, so the passed {@link AddOn}
+     *          replaced it.
+     */
+    public boolean registerAddOn(final AddOn addon) {
+        return addons.add(addon);
+    }
+
+    /**
+     * Deregisters {@link AddOn} from this NetworkListener.
+     * @param addon the {@link AddOn} to deregister.
+     *
+     * @return <tt>true</tt>, if the {@link AddOn} was successfully removed, or
+     *          <tt>false</tt> the the {@link AddOn} wasn't registered on the
+     *          NetworkListener.
+     */
+    public boolean deregisterAddOn(final AddOn addon) {
+        return addons.remove(addon);
+    }
+
+    /**
+     * @return <code>true</code> if the HTTP response bodies should be chunked if not content length has been explicitly
      *         specified.
      */
     public boolean isChunkingEnabled() {
@@ -307,7 +325,7 @@ public class NetworkListener {
     }
 
     /**
-     * Enable/disable chunking of an http response body if no content length has been explictly specified.  Chunking is
+     * Enable/disable chunking of an HTTP response body if no content length has been explictly specified.  Chunking is
      * enabled by default.
      *
      * @param chunkingEnabled <code>true</code> to enable chunking; <code>false</code> to disable.

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -96,7 +96,17 @@ import java.io.IOException;
  */
 public interface FilterChain extends Processor, List<Filter> {
     FilterChainContext obtainFilterChainContext(Connection connection);
-    
+
+    /**
+     * Get the index of {@link Filter} in chain, which type is filterType, or
+     * <tt>-1</tt> if the {@link Filter} of required type was not found.
+     * 
+     * @param filterType the type of {@link Filter} to search.
+     * @return the index of {@link Filter} in chain, which type is filterType, or
+     * <tt>-1</tt> if the {@link Filter} of required type was not found.
+     */
+    int indexOfType(final Class<? extends Filter> filterType);
+
     /**
      * Method processes occurred {@link IOEvent} on this {@link FilterChain}.
      *

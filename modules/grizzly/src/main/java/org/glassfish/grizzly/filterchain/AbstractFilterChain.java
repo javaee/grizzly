@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -57,6 +57,22 @@ import org.glassfish.grizzly.utils.IOEventMask;
 public abstract class AbstractFilterChain implements FilterChain {
     // By default interested in all client connection related events
     protected final IOEventMask interestedIoEventsMask = IOEventMask.ALL_EVENTS_MASK;
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int indexOfType(final Class<? extends Filter> filterType) {
+        final int size = size();
+        for (int i = 0; i < size; i++) {
+            final Filter filter = get(i);
+            if (filterType.isAssignableFrom(filter.getClass())) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
 
     /**
      * {@inheritDoc}

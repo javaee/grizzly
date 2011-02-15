@@ -111,10 +111,5 @@
             <artifactId>grizzly-rcm</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.glassfish.grizzly</groupId>
-            <artifactId>grizzly-websockets</artifactId>
-            <version>${project.version}</version>
-        </dependency>
     </dependencies>
 </project>
