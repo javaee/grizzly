@@ -64,7 +64,11 @@ public interface IOStrategy extends WorkerThreadPoolConfigProducer {
      * @param ioEvent the {@link IOEvent} that triggered execution of this
      *  <code>strategy</code>
      *
-     * @return
+     * @return <tt>true</tt>, if this thread should keep processing IOEvents on
+     * the current and other Connections, or <tt>false</tt> if this thread
+     * should hand-off the farther IOEvent processing on any Connections,
+     * which means IOStrategy is becoming responsible for continuing IOEvent
+     * processing (possibly starting new thread, which will handle IOEvents).
      *
      * @throws IOException if an error occurs processing the {@link IOEvent}.
      */
