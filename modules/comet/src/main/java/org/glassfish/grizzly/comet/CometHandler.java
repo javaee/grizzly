@@ -44,16 +44,16 @@ import java.io.IOException;
 import org.glassfish.grizzly.http.server.Response;
 
 /**
- * This interface represents a suspended connection (or response). Passing an instance of this class to {@link
- * CometContext#addCometHandler} automatically tells Grizzly Comet to suspend the underlying connection and to avoid
- * commiting the response. Since the response is not committed, the connection is considered as suspended and can be
+ * This interface represents a suspended connection (or response). Passing an instance of this class to
+ * {@link CometContext#addCometHandler(CometHandler)} automatically tells Grizzly Comet to suspend the underlying connection and to avoid
+ * committing the response. Since the response is not committed, the connection is considered as suspended and can be
  * resumed later when an event happens by invoking {@link CometContext#resumeCometHandler(CometHandler)}, from {@link
- * CometHandler#onEvent}.  {@link CometContext#resumeCometHandler(CometHandler), resume the connection by commiting the
+ * CometHandler#onEvent}.  {@link CometContext#resumeCometHandler(CometHandler)}, resume the connection by committing the
  * response. As an example, a browser icons will spins when a connection is suspended, as the complete response hasn't
  * been sent back.
  * <p/>
- * Components that implement this interface will be notified {@link CometContext#notify(String)} is invoked or when the
- * {@link CometContext#getExpirationDelay()} expires.
+ * Components that implement this interface will be notified {@link org.glassfish.grizzly.comet.CometContext#notify()} is invoked
+ * or when the {@link CometContext#getExpirationDelay()} expires.
  */
 public interface CometHandler<E> {
     /**

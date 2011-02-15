@@ -59,7 +59,7 @@ import org.glassfish.grizzly.http.server.io.NIOInputStream;
 import org.glassfish.grizzly.http.server.io.ReadHandler;
 
 /**
- * The main object used by {@link CometHandler} and Servlet to push information amongs suspended request/response. The
+ * The main object used by {@link CometHandler} and Servlet to push information amongst suspended request/response. The
  * {@link CometContext} is always available for {@link CometHandler} and can be used to {@link #notify}, or share
  * information with other {@link CometHandler}. This is the equivalent of server push as the CometContext will invoke
  * all registered CometHandler ({@link #addCometHandler}) sequentially. <p/> <p>A CometContext can be considered as a
@@ -209,7 +209,7 @@ public class CometContext<E> {
      *
      * @param handler a new {@link CometHandler}
      *
-     * @return The {@link CometHandler#hashCode} value.
+     * @return The hash code of the handler.
      */
     public int addCometHandler(CometHandler<E> handler) {
         if (handler == null) {
@@ -370,10 +370,10 @@ public class CometContext<E> {
     }
 
     /**
-     * Notify a single {@link CometHandler#onEvent(CometEvent}.
+     * Notify a single {@link CometHandler#onEvent(CometEvent)}.
      *
      * @param attachment An object shared amongst {@link CometHandler}.
-     * @param {@link CometHandler} to notify.
+     * @param cometHandler {@link CometHandler} to notify.
      */
     public void notify(E attachment, CometHandler cometHandler) throws IOException {
         notify(attachment, CometEvent.Type.NOTIFY, cometHandler);
@@ -383,16 +383,16 @@ public class CometContext<E> {
      * Notify a single {@link CometHandler}. The {@link CometEvent#getType()} will determine which {@link CometHandler}
      * method will be invoked:
      * <pre><code>
-     * CometEvent.INTERRUPT -> {@link CometHandler#onInterrupt}
-     * CometEvent.Type.NOTIFY -> {@link CometHandler#onEvent}
-     * CometEvent.INITIALIZE -> {@link CometHandler#onInitialize}
-     * CometEvent.TERMINATE -> {@link CometHandler#onTerminate}
-     * CometEvent.READ -> {@link CometHandler#onEvent}
+     * CometEvent.INTERRUPT -> {@link CometHandler#onInterrupt(CometEvent)}
+     * CometEvent.Type.NOTIFY -> {@link CometHandler#onEvent(CometEvent)}
+     * CometEvent.INITIALIZE -> {@link CometHandler#onInitialize(CometEvent)}
+     * CometEvent.TERMINATE -> {@link CometHandler#onTerminate(CometEvent)}
+     * CometEvent.READ -> {@link CometHandler#onEvent(CometEvent)}
      * </code></pre>
      *
      * @param attachment An object shared amongst {@link CometHandler}.
      * @param eventType The type of notification.
-     * @param {@link CometHandler} to notify.
+     * @param cometHandler {@link CometHandler} to notify.
      */
     public void notify(E attachment, CometEvent.Type eventType, CometHandler cometHandler)
         throws IOException {
@@ -434,18 +434,18 @@ public class CometContext<E> {
     }
 
     /**
-     * Return the {@link long} delay, in millisecond, before a request is resumed.
+     * Return the <code>long</code> delay, in millisecond, before a request is resumed.
      *
-     * @return long the {@link long} delay, in millisecond, before a request is resumed.
+     * @return long the <code>long</code> delay, in millisecond, before a request is resumed.
      */
     public long getExpirationDelay() {
         return expirationDelay;
     }
 
     /**
-     * Set the {@link long} delay before a request is resumed.
+     * Set the <code>long</code> delay before a request is resumed.
      *
-     * @param expirationDelay the {@link long} delay before a request is resumed. Value is in milliseconds.
+     * @param expirationDelay the <code>long</code> delay before a request is resumed. Value is in milliseconds.
      */
     public void setExpirationDelay(long expirationDelay) {
         this.expirationDelay = expirationDelay;

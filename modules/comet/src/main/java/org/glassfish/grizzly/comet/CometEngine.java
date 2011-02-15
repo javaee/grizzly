@@ -60,7 +60,7 @@ import org.glassfish.grizzly.localization.LogMessages;
  *     {@link CometContext#addCometHandler}. Executing this operation
  *     will tells Grizzly to suspend the response.
  * (3) Finally, you can {@link CometContext#notify} other {@link CometHandler}
- *     to share information between {@ CometHandler}. When notified,
+ *     to share information between {@link CometHandler}. When notified,
  *     {@link CometHandler} can decides to push back the data, resume the
  *     response, or simply ignore the content of the notification.
  * </code></pre>
