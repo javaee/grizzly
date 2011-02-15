@@ -280,7 +280,6 @@ public class HttpSessionTest extends TestCase {
         @Override
         public void service(Request request, Response response) throws Exception {
             String sessionId = request.getRequestedSessionId();
-            System.out.println("url=" + request.getRequestURI() + " sessionId=" + sessionId);
             if (sessionId != null) {
                 response.getWriter().write("session-id=" + sessionId + "\n");
             }
