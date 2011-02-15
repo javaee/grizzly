@@ -69,8 +69,8 @@
       </listitem>
 
       <listitem>
-        <para>HTP Server framework which offers high level abstractions to the
-        HTTP protocol (not unlike Servlets)</para>
+        <para>HTTP Server framework which offers high level abstractions to
+        the HTTP protocol (not unlike Servlets)</para>
       </listitem>
     </itemizedlist>
   </section>
@@ -110,12 +110,12 @@
 
       <listitem>
         <para><link
-        xlink:href="http://antwerks.com">http://antwerkz.com</link></para>
+        xlink:href="http://antwerkz.com">http://antwerkz.com</link></para>
       </listitem>
 
       <listitem>
         <para><link
-        xlink:href="http://blogs.sun/com/rlubke">http://blogs.sun/com/rlubke</link></para>
+        xlink:href="http://blogs.sun/com/rlubke">http://blogs.sun.com/rlubke</link></para>
       </listitem>
 
       <listitem>

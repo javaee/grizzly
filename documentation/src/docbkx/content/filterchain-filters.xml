@@ -192,7 +192,7 @@ public NextAction handleClose(FilterChainContext ctx) throws IOException;</progr
   observed.</emphasis></para>
 
   <para>Additionally FilterChain Filters are able to initiate and handle
-  custom event notifications. The event initiator may chose to emit the event
+  custom event notifications. The event initiator may choose to emit the event
   upstream or downstream by FilterChain like:<programlisting language="java">public NextAction handleRead(FilterChainContext ctx) throws IOException {
         // Here we decide to notify downstream Filters
         ctx.notifyDownstream(new MyEvent(...));
@@ -277,7 +277,8 @@ public NextAction handleClose(FilterChainContext ctx) throws IOException;</progr
             </listitem>
 
             <listitem>
-              <para><emphasis role="bold">Write</emphasis><programlisting language="java">ctx.write(message);
+              <para><emphasis role="bold">Write</emphasis><programlisting
+              language="java">ctx.write(message);
 
 or
 
@@ -295,7 +296,8 @@ ctx.write(address, message, completionHandler);  // Unbound UDP only</programlis
             </listitem>
 
             <listitem>
-              <para><emphasis role="bold">Flush</emphasis><programlisting language="java">ctx.flush();
+              <para><emphasis role="bold">Flush</emphasis><programlisting
+              language="java">ctx.flush();
 
 or
 
@@ -395,7 +397,8 @@ return ctx.getStopAction(remainder, appender);</programlisting></para>
 
             <listitem>
               <para><emphasis
-              role="bold">RerunFilterAction</emphasis><programlisting language="java">return ctx.getRerunFilterAction();</programlisting></para>
+              role="bold">RerunFilterAction</emphasis><programlisting
+              language="java">return ctx.getRerunFilterAction();</programlisting></para>
 
               <para>Instructs the FilterChain to re-run this Filter one more
               time. This can useful to simplify I/O event processing code and
@@ -409,7 +412,8 @@ return ctx.getStopAction(remainder, appender);</programlisting></para>
 
               <para>Instructs the FilterChain to terminate (leave) the I/O
               event processing in the current thread. The user will be able to
-              resume the I/O event processing by calling<programlisting language="java">ctx.resume();</programlisting></para>
+              resume the I/O event processing by calling<programlisting
+              language="java">ctx.resume();</programlisting></para>
 
               <para>Once <emphasis role="italic">ctx.resume()</emphasis> is
               called, FilterChain resumes processing at the same Filter it was
@@ -427,7 +431,8 @@ return ctx.getStopAction(remainder, appender);</programlisting></para>
 
             <listitem>
               <para><emphasis
-              role="bold">SuspendStopAction</emphasis><programlisting language="java">return ctx.getSuspendStopAction();</programlisting></para>
+              role="bold">SuspendStopAction</emphasis><programlisting
+              language="java">return ctx.getSuspendStopAction();</programlisting></para>
 
               <para>This NextAction is very similar to <link
               linkend="suspend-action">SuspendAction</link>, except for one

@@ -45,44 +45,51 @@
          xmlns:xlink="http://www.w3.org/1999/xlink"
          xmlns:xi="http://www.w3.org/2001/XInclude"
          xmlns:svg="http://www.w3.org/2000/svg"
+         xmlns:ns="http://docbook.org/ns/docbook"
          xmlns:m="http://www.w3.org/1998/Math/MathML"
          xmlns:html="http://www.w3.org/1999/xhtml">
   <title>Samples</title>
 
   <section>
-      <title>Parsing an incoming message</title>
-        <para>When writing network application, very often we need to parse incoming bytes into
-            application specific message.</para>
-        <para>The problem is that chunk of data been read from NIO Connection may contain just a
-            part of application message, or contain several of them at once. So how parsing Filter
-            should work out these scenarious?<itemizedlist>
-                <listitem>
-                    <para>If we don't have enough data to build an application message - we stop the
-                        FilterChain processing and store the incomplete buffer by
-                        returning<programlisting language="java">return filterChainContext.getStopAction(buffer);</programlisting></para>
-                </listitem>
-                <listitem>
-                    <para>If the source Buffer contains more than one message at once - we're
-                        splitting up the source Buffer into two chunks:<orderedlist>
-                            <listitem>
-                                <para>The Buffer, which belongs to the first complete application
-                                    message;</para>
-                            </listitem>
-                            <listitem>
-                                <para>The remainder.</para>
-                            </listitem>
-                        </orderedlist></para>
-                    <para>The 1st chunk could be parsed immediately and correspondent application
-                        message created. After completing the parsing we may want to instruct
-                        FilterChain to continue execution, by calling the next Filter in the chain,
-                        and store the remainder to be processed later (once processing of this
-                        message is
-                        complete).<programlisting language="java">return filterChainContext.getInvokeAction(remainder);</programlisting></para>
-                </listitem>
-            </itemizedlist></para>
-        <para>Here is an example of parsing Filter, parses the incoming Buffer and creates a
-            GIOPMessage, which has following
-            structure<programlisting language="java">public class GIOPMessage {
+    <title>Parsing an incoming message</title>
+
+    <para>When writing network application, very often we need to parse
+    incoming bytes into application specific message.</para>
+
+    <para>The problem is that chunk of data been read from NIO Connection may
+    contain just a part of application message, or contain several of them at
+    once. So how parsing Filter should work out these scenarious?<itemizedlist>
+        <listitem>
+          <para>If we don't have enough data to build an application message -
+          we stop the FilterChain processing and store the incomplete buffer
+          by returning<programlisting language="java">return filterChainContext.getStopAction(buffer);</programlisting></para>
+        </listitem>
+
+        <listitem>
+          <para>If the source Buffer contains more than one message at once -
+          we're splitting up the source Buffer into two chunks:<orderedlist>
+              <listitem>
+                <para>The Buffer, which belongs to the first complete
+                application message;</para>
+              </listitem>
+
+              <listitem>
+                <para>The remainder.</para>
+              </listitem>
+            </orderedlist></para>
+
+          <para>The 1st chunk could be parsed immediately and correspondent
+          application message created. After completing the parsing we may
+          want to instruct FilterChain to continue execution, by calling the
+          next Filter in the chain, and store the remainder to be processed
+          later (once processing of this message is complete).<programlisting
+          language="java">return filterChainContext.getInvokeAction(remainder);</programlisting></para>
+        </listitem>
+      </itemizedlist></para>
+
+    <para>Here is an example of parsing Filter, parses the incoming Buffer and
+    creates a GIOPMessage, which has following structure<programlisting
+    language="java">public class GIOPMessage {
     private byte G;
     private byte I;
     private byte O;
@@ -98,14 +105,14 @@
 
     private byte[] body;
 }</programlisting></para>
-        <para>So the actual parser Filter code
-            is<programlisting language="java">    private static final int HEADER_SIZE = 12;
+
+    <para>So the actual parser Filter code is<programlisting language="java">    private static final int HEADER_SIZE = 12;
 
     /**
      * Method is called, when new data was read from the Connection and ready
      * to be processed.
      *
-     * We override this method to perform Buffer -> GIOPMessage transformation.
+     * We override this method to perform Buffer -&gt; GIOPMessage transformation.
      * 
      * @param ctx Context of {@link FilterChainContext} processing
      * @return the next action
@@ -139,7 +146,7 @@
 
         // Check if the source buffer has more than 1 complete GIOP message
         // If yes - split up the first message and the remainder
-        final Buffer remainder = sourceBufferLength > completeMessageLength ? 
+        final Buffer remainder = sourceBufferLength &gt; completeMessageLength ? 
             sourceBuffer.split(completeMessageLength) : null;
 
         // Construct a GIOP message
@@ -178,23 +185,30 @@
         // Instruct FilterChain to store the remainder (if any) and continue execution
         <emphasis role="bold">return ctx.getInvokeAction(remainder);</emphasis>
     }</programlisting></para>
-      <para>The complete GIOP sample code could be found <link xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/filterchain">here</link></para>
+
+    <para>The complete GIOP sample code could be found <link
+    xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/filterchain">here</link></para>
   </section>
-    <section>
-        <title>Asynchronous FilterChain execution</title>
-        <para>During the FilterChain execution, we might want to continue IOEvent processing in the
-            different/custom thread.</para>
-        <para>For example, we've chosen the SameThreadStrategy for our usecase to avoid redundant
-            thread context switches and it fits great to our usecase, but at the same time we still
-            have some scenarious, which either execute long lasting tasks, or use blocking I/O (for
-            ex. database access), and to not make entire server unresponsive, we'd want to execute
-            such a task in our custom thread pool and let Grizzly service other Connections.</para>
-        <para>This might be easily implemented with Grizzly using code like (not working
-            sample):<programlisting language="java">    public NextAction handleRead(final FilterChainContext ctx) throws IOException {
+
+  <section>
+    <title>Asynchronous FilterChain execution</title>
+
+    <para>During the FilterChain execution, we might want to continue IOEvent
+    processing in the different/custom thread.</para>
+
+    <para>For example, we've chosen the SameThreadStrategy for our usecase to
+    avoid redundant thread context switches and it fits great to our usecase,
+    but at the same time we still have some scenarious, which either execute
+    long lasting tasks, or use blocking I/O (for ex. database access), and to
+    not make entire server unresponsive, we'd want to execute such a task in
+    our custom thread pool and let Grizzly service other Connections.</para>
+
+    <para>This might be easily implemented with Grizzly using code like (not
+    working sample):<programlisting language="java">    public NextAction handleRead(final FilterChainContext ctx) throws IOException {
     
             // Get the SuspendAction in advance, cause once we execute LongLastTask in the
             // custom thread - we lose control over the context
-            final NextAction suspendActipn = ctx.getSuspendAction();
+            final NextAction suspendAction = ctx.getSuspendAction();
             
             // suspend the current execution
             ctx.suspend();
@@ -212,23 +226,26 @@
             }, 5, TimeUnit.SECONDS);
 
             // return suspend status
-            return suspendActipn;
+            return suspendAction;
     }</programlisting></para>
-        <para>during processing IOEvent. We have to understand that by instructing Grizzly to
-            suspend the IOEvent execution, we're becoming responsible for resuming the execution at
-            one point of time (when long lasting task or blocking I/O operation
-            completes).<programlisting language="java">public void run() {
+
+    <para>during processing IOEvent. We have to understand that by instructing
+    Grizzly to suspend the IOEvent execution, we're becoming responsible for
+    resuming the execution at one point of time (when long lasting task or
+    blocking I/O operation completes).<programlisting language="java">public void run() {
     doLongLastingTask();
 
     // Resume the FilterChain IOEvent processing
     ctx.resume();
 }</programlisting></para>
-        <para><emphasis role="bold">Please note, once we resume the FilterChain processing - the
-                FilterChain will resume the execution starting from the Filter, which returned
-                SuspendAction!</emphasis> So the "suspender", has to distunguish two types of
-            processing - the regular and resumed to avoid neverending loop. So coming back to our
-            Filter sample, we should introduce some flag to distinguish the processing
-            type.<programlisting language="java">    public NextAction handleRead(final FilterChainContext ctx) throws IOException {
+
+    <para><emphasis role="bold">Please note, once we resume the FilterChain
+    processing - the FilterChain will resume the execution starting from the
+    Filter, which returned SuspendAction!</emphasis> So the "suspender", has
+    to distunguish two types of processing - the regular and resumed to avoid
+    neverending loop. So coming back to our Filter sample, we should introduce
+    some flag to distinguish the processing type.<programlisting
+    language="java">    public NextAction handleRead(final FilterChainContext ctx) throws IOException {
 <emphasis role="bold">        // Check if it's resuming phase?
         final Boolean isResumed = isResumedAttribute.remove(ctx);
         if (!isResumed) {
@@ -262,51 +279,61 @@
         // If we reach this point - the processing was resumed - so let's continue FilterChain execution
         return ctx.getInvokeAction();</emphasis>
     }</programlisting></para>
-        <para>The asynchronous EchoFilter example could be found <link xlink:href="http://java.net/projects/grizzly/sources/svn/content/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/echo/EchoFilterAsync.java">here</link>.</para>
-    </section>
+
+    <para>The asynchronous EchoFilter example could be found <link
+    xlink:href="http://java.net/projects/grizzly/sources/svn/content/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/echo/EchoFilterAsync.java">here</link>.</para>
+  </section>
+
+  <section>
+    <title>Other samples</title>
+
     <section>
-        <title>Other samples</title>
-        <section>
-            <title>Echo sample</title>
-            <para>Our favorite Echo sample, including AsyncEchoFilter ;) <link
-                    xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/echo/"
-                    >link</link></para>
-        </section>
-        <section>
-            <title>Connection lifecycle</title>
-            <para>The Connection lifecycle demo. <link
-                    xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/lifecycle/"
-                    >link</link></para>
-        </section>
-        <section>
-            <title>Simple auth sample</title>
-            <para>Simple custom authentication. <link
-                    xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/simpleauth/"
-                    >link</link></para>
-        </section>
-        <section>
-            <title>SSL Echo sample</title>
-            <para>SSL Echo filter. <link
-                    xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/ssl/"
-                    >link</link></para>
-        </section>
-        <section>
-            <title>Set strategy sample</title>
-            <para>How to set strategy? <link
-                    xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/strategy/"
-                    >link</link></para>
-        </section>
-        <section>
-            <title>Tunneling sample</title>
-            <para>Network tunneling sample. <link
-                    xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/tunnel/"
-                    >link</link></para>
-        </section>
-        <section>
-            <title>UDP echo sample</title>
-            <para>Echo sample based on UDP protocol. <link
-                    xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/udpecho/"
-                    >link</link></para>
-        </section>
+      <title>Echo sample</title>
+
+      <para>Our favorite Echo sample, including AsyncEchoFilter ;) <link
+      xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/echo/">link</link></para>
     </section>
+
+    <section>
+      <title>Connection lifecycle</title>
+
+      <para>The Connection lifecycle demo. <link
+      xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/lifecycle/">link</link></para>
+    </section>
+
+    <section>
+      <title>Simple auth sample</title>
+
+      <para>Simple custom authentication. <link
+      xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/simpleauth/">link</link></para>
+    </section>
+
+    <section>
+      <title>SSL Echo sample</title>
+
+      <para>SSL Echo filter. <link
+      xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/ssl/">link</link></para>
+    </section>
+
+    <section>
+      <title>Set strategy sample</title>
+
+      <para>How to set strategy? <link
+      xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/strategy/">link</link></para>
+    </section>
+
+    <section>
+      <title>Tunneling sample</title>
+
+      <para>Network tunneling sample. <link
+      xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/tunnel/">link</link></para>
+    </section>
+
+    <section>
+      <title>UDP echo sample</title>
+
+      <para>Echo sample based on UDP protocol. <link
+      xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/udpecho/">link</link></para>
+    </section>
+  </section>
 </section>
