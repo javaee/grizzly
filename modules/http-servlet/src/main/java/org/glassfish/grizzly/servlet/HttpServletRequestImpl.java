@@ -86,7 +86,7 @@ import org.glassfish.grizzly.http.util.StringManager;
 import org.glassfish.grizzly.localization.LogMessages;
 
 /**
- * Facade class that wraps a {@link GrizzlyRequest} request object.  
+ * Facade class that wraps a {@link Request} request object.
  * All methods are delegated to the wrapped request.
  *
  * @author Craig R. McClanahan
@@ -137,7 +137,6 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     /**
      * Construct a wrapper for the specified request.
      *
-     * @param request The request to be wrapped
      * @throws IOException if an input/output error occurs
      */
     protected HttpServletRequestImpl() {

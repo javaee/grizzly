@@ -57,7 +57,7 @@ import org.glassfish.grizzly.http.server.Session;
 import org.glassfish.grizzly.localization.LogMessages;
 
 /**
- * Basic {@link HttpSession} based on {@link GrizzlySession} support.
+ * Basic {@link HttpSession} based on {@link Session} support.
  * 
  * @author Jeanfrancois Arcand
  */
@@ -374,7 +374,7 @@ public class HttpSessionImpl implements HttpSession {
     }
 
     /**
-     * Set the {@link GrizzlySession}
+     * Set the {@link Session}
      */
     protected void setSession(Session session) {
         this.session = session;

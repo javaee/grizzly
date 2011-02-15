@@ -288,7 +288,7 @@ public class CookieWrapper extends Cookie {
      *			to the server only when using a secure protocol;
      *			if <tt>false</tt>, sent on any protocol
      *
-     * @see #getSecure
+     * @see #isSecure()
      *
      */
  

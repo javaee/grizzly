@@ -74,12 +74,11 @@ import org.glassfish.grizzly.http.util.HttpRequestURIDecoder;
 import org.glassfish.grizzly.localization.LogMessages;
 
 /**
- * Adapter class that can initiate a {@link javax.servlet.FilterChain} and execute its
+ * HttpHandler class that can initiate a {@link javax.servlet.FilterChain} and execute its
  * {@link Filter} and its {@link Servlet}
  * 
- * Configuring a {@link com.sun.grizzly.http.embed.GrizzlyWebServer} or
- * {@link com.sun.grizzly.http.SelectorThread} to use this
- * {@link GrizzlyAdapter} implementation add the ability of servicing {@link Servlet}
+ * Configuring a {@link org.glassfish.grizzly.http.server.HttpServer} to use this
+ * {@link HttpHandler} implementation, adds the ability of servicing {@link Servlet}
  * as well as static resources. 
  * 
  * This class can be used to programatically configure a Servlet, Filters, listeners,
@@ -90,7 +89,7 @@ import org.glassfish.grizzly.localization.LogMessages;
  * As an example:
  * 
  * <pre><code>
- *      GrizzlyWebServer ws = new GrizzlyWebServer("/var/www");
+ *      HttpServer hs = new HttpServer("/var/www");
 try{
 ServletHandler sa = new ServletHandler();
 sa.setRootFolder("/Path/To/Exploded/War/File");
@@ -109,9 +108,9 @@ sa.addInitParameter("password","hello");
 sa.setServletPath("/MyServletPath");
 sa.setContextPath("/myApp");
 
-ws.addGrizzlyAdapter(sa);
+hs.getServerConfiguration().addHttpHandler(sa, "/MyServletPath);
 
-ws.start();
+hs.start();
 } catch (IOException ex){
 // Something when wrong.
 }
@@ -216,7 +215,7 @@ public class ServletHandler extends HttpHandler {
      * @param contextParameters Context parameters.
      * @param servletInitParameters servlet initialization parameters.
      * @param listeners Listeners.
-     * @param initialize false only when the {@link #newServletAdapter()} is invoked.
+     * @param initialize false only when the {@link #newServletHandler(javax.servlet.Servlet)} is invoked.
      */
     protected ServletHandler(ServletContextImpl servletCtx,
             Map<String, String> contextParameters, Map<String, String> servletInitParameters,
@@ -235,7 +234,7 @@ public class ServletHandler extends HttpHandler {
      * @param servletCtx {@link ServletContextImpl} to be used by new instance.
      * @param contextParameters Context parameters.
      * @param servletInitParameters servlet initialization parameters.
-     * @param initialize false only when the {@link #newServletAdapter()} is invoked.
+     * @param initialize false only when the {@link #newServletHandler(javax.servlet.Servlet)} is invoked.
      */
     protected ServletHandler(ServletContextImpl servletCtx,
             Map<String, String> contextParameters, Map<String, String> servletInitParameters,
@@ -428,8 +427,8 @@ public class ServletHandler extends HttpHandler {
     }
 
     /**
-     * Configure the {@link com.sun.grizzly.http.servlet.ServletContextImpl}
-     * and {@link com.sun.grizzly.http.servlet.ServletConfigImpl}
+     * Configure the {@link ServletContextImpl}
+     * and {@link ServletConfigImpl}
      * 
      * @throws javax.servlet.ServletException Error while configuring
      * {@link Servlet}.
@@ -508,8 +507,7 @@ public class ServletHandler extends HttpHandler {
     }
 
     /**
-     * Add a {@link Filter} to the
-     * {@link com.sun.grizzly.http.servlet.ServletAdapter.FilterChainImpl}
+     * Add a {@link Filter} to the {@link FilterChain}.
      *
      * @param filter an instance of Filter
      * @param filterName the Filter's name
@@ -524,15 +522,15 @@ public class ServletHandler extends HttpHandler {
     }
 
     /**
-     * Return the {@link Servlet} instance used by this {@link ServletAdapter}
-     * @return {@link Servlet} isntance.
+     * Return the {@link Servlet} instance used by this {@link ServletHandler}
+     * @return {@link Servlet} instance.
      */
     public Servlet getServletInstance() {
         return servletInstance;
     }
 
     /**
-     * Set the {@link Servlet} instance used by this {@link ServletAdapter}
+     * Set the {@link Servlet} instance used by this {@link ServletHandler}
      * @param servletInstance an instance of Servlet.
      */
     public void setServletInstance(Servlet servletInstance) {
@@ -648,8 +646,8 @@ public class ServletHandler extends HttpHandler {
 
     /**
      * Return a configured property. Property apply to
-     * {@link com.sun.grizzly.http.servlet.ServletContextImpl}
-     * and {@link com.sun.grizzly.http.servlet.ServletConfigImpl}
+     * {@link ServletContextImpl}
+     * and {@link ServletConfigImpl}
      *
      * @param name Name of property to get.
      * @return Value of property.
@@ -660,8 +658,8 @@ public class ServletHandler extends HttpHandler {
 
     /**
      * Set a configured property. Property apply to
-     * {@link com.sun.grizzly.http.servlet.ServletContextImpl}
-     * and {@link com.sun.grizzly.http.servlet.ServletConfigImpl}.
+     * {@link ServletContextImpl}
+     * and {@link ServletConfigImpl}.
      * Use this method to map what's you usually
      * have in a web.xml like display-name, context-param, etc.
      * @param name Name of the property to set
@@ -705,8 +703,8 @@ public class ServletHandler extends HttpHandler {
 
     /** 
      * Remove a configured property. Property apply to
-     * {@link com.sun.grizzly.http.servlet.ServletContextImpl}
-     * and {@link com.sun.grizzly.http.servlet.ServletConfigImpl}
+     * {@link ServletContextImpl}
+     * and {@link ServletConfigImpl}
      *
      * @param name Property name to remove.
      */
@@ -754,12 +752,12 @@ public class ServletHandler extends HttpHandler {
     }
 
     /**
-     * Create a new {@link ServletAdapter} instance that will share the same 
-     * {@link com.sun.grizzly.http.servlet.ServletContextImpl} and Servlet's
+     * Create a new {@link ServletHandler} instance that will share the same
+     * {@link ServletContextImpl} and Servlet's
      * listener but with an empty map of init-parameters.
      *
-     * @param servlet - The Servlet associated with the {@link ServletAdapter}
-     * @return a new {@link ServletAdapter}
+     * @param servlet - The Servlet associated with the {@link ServletHandler}
+     * @return a new {@link ServletHandler}
      */
     public ServletHandler newServletHandler(Servlet servlet) {
         ServletHandler sa = new ServletHandler(servletCtx, contextParameters,

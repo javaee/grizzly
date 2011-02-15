@@ -184,7 +184,7 @@ public final class FilterConfigImpl implements FilterConfig {
     
     /**
      * Set the {@link Filter}'s name associated with this object.
-     * @param filter
+     * @param filterName the name of this {@link Filter}.
      */    
     protected void setFilterName(String filterName) {
         this.filterName = filterName;
@@ -193,7 +193,7 @@ public final class FilterConfigImpl implements FilterConfig {
     
     /**
      * Set the init parameters associated with this associated {@link Filter}.
-     * @param filter
+     * @param initParameters the configuration parameters for this {@link Filter}
      */    
     protected void setInitParameters(Map initParameters) {
         this.initParameters = initParameters;

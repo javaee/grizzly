@@ -76,7 +76,7 @@ import org.glassfish.grizzly.http.util.StringManager;
 
 
 /**
- * Facade class that wraps a {@link GrizzlyResponse} object. 
+ * Facade class that wraps a {@link Response} object.
  * All methods are delegated to the wrapped response.
  *
  * @author Remy Maucherat
@@ -138,8 +138,6 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 
     /**
      * Construct a wrapper for the specified response.
-     *
-     * @param response The response to be wrapped
      */
     protected HttpServletResponseImpl() {
         outputStream = new ServletOutputStreamImpl();
