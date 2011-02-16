@@ -187,6 +187,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         return getFilters(clazz, rootFilterChain, new ArrayList<E>(2));
     }
 
+    @SuppressWarnings({"unchecked"})
     public static <E> List<E> getFilters(Class<E> clazz,
         FilterChain filterChain, List<E> filters) {
         for (final Filter filter : filterChain) {
@@ -440,6 +441,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         }
     }
 
+    @SuppressWarnings({"deprecation"})
     protected void configureHttpProtocol(Habitat habitat,
         Http http, FilterChain filterChain) {
         transactionTimeoutMillis = Integer.parseInt(http.getRequestTimeoutSeconds()) * 1000;
