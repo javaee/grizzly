@@ -134,7 +134,7 @@ public class NetworkListener {
     /**
      * Maximum size, in bytes, of all data waiting to be written.
      */
-    private volatile int maxPendingBytes;
+    private volatile int maxPendingBytes = -1;
     /**
      * Flag indicating the paused state of this listener.
      */
@@ -452,6 +452,8 @@ public class NetworkListener {
 
     /**
      * @return the maximum size, in bytes, of all data waiting to be written to the associated {@link Connection}.
+     *  If not explicitly set, the value will be -1 which effectively disables
+     *  resource enforcement.
      */
     public int getMaxPendingBytes() {
         return maxPendingBytes;
@@ -460,6 +462,7 @@ public class NetworkListener {
 
     /**
      * The maximum size, in bytes, of all data waiting to be written to the associated {@link Connection}.
+     * If the value is zero or less, then no resource enforcement will take place.
      *
      * @param maxPendingBytes the maximum size, in bytes, of all data waiting to be written to the associated {@link
      * Connection}.
@@ -467,8 +470,8 @@ public class NetworkListener {
     public void setMaxPendingBytes(int maxPendingBytes) {
         this.maxPendingBytes = maxPendingBytes;
         transport.getAsyncQueueIO().getWriter().setMaxPendingBytesPerConnection(maxPendingBytes);
-
     }
+
     // ---------------------------------------------------------- Public Methods
 
     /**

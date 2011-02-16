@@ -83,7 +83,7 @@ public abstract class AbstractNIOAsyncQueueWriter
     
     protected final NIOTransport transport;
 
-    protected volatile int maxPendingBytes = Integer.MAX_VALUE;
+    protected volatile int maxPendingBytes = -1;
 
     public AbstractNIOAsyncQueueWriter(NIOTransport transport) {
         this.transport = transport;
@@ -95,6 +95,9 @@ public abstract class AbstractNIOAsyncQueueWriter
      */
     @Override
     public boolean canWrite(Connection connection, int size) {
+        if (maxPendingBytes < 0) {
+            return true;
+        }
         final TaskQueue<AsyncWriteQueueRecord> connectionQueue =
                 ((NIOConnection) connection).getAsyncWriteQueue();
         return connectionQueue.spaceInBytes() + size < maxPendingBytes;
@@ -106,7 +109,11 @@ public abstract class AbstractNIOAsyncQueueWriter
      */
     @Override
     public void setMaxPendingBytesPerConnection(final int maxPendingBytes) {
-        this.maxPendingBytes = maxPendingBytes;
+        if (maxPendingBytes <= 0) {
+            this.maxPendingBytes = -1;
+        } else {
+            this.maxPendingBytes = maxPendingBytes;
+        }
     }
 
     /**
@@ -163,7 +170,13 @@ public abstract class AbstractNIOAsyncQueueWriter
                 connectionQueue.getCurrentElementAtomic();
 
         final int bufferSize = buffer.remaining();
-        final int pendingBytes = connectionQueue.reserveSpace(bufferSize);
+
+        int pendingBytes;
+        if (maxPendingBytes > 0) {
+            pendingBytes = connectionQueue.reserveSpace(bufferSize);
+        } else {
+            pendingBytes = bufferSize;
+        }
         
         final boolean isLocked = currentElement.compareAndSet(null, LOCK_RECORD);
         if (isLogFine) {
@@ -174,8 +187,10 @@ public abstract class AbstractNIOAsyncQueueWriter
         try {
             if (isLocked) {
                 final int bytesWritten = write0(connection, queueRecord);
-                connectionQueue.releaseSpace(bytesWritten, true);
-            } else if (pendingBytes > maxPendingBytes && bufferSize > 0) {
+                if (maxPendingBytes > 0) {
+                    connectionQueue.releaseSpace(bytesWritten, true);
+                }
+            } else if (maxPendingBytes > 0 && pendingBytes > maxPendingBytes && bufferSize > 0) {
                 connectionQueue.releaseSpace(bufferSize, false);
                 throw new PendingWriteQueueLimitExceededException(
                         "Max queued data limit exceeded: " +
