@@ -81,13 +81,11 @@ public class Utils {
             }
         }
         Habitat habitat = null;
-        if (url != null) {
-            try {
-                habitat = getHabitat(url.openStream());
-            } catch (IOException e) {
-                e.printStackTrace();
-                throw new RuntimeException(e.getMessage());
-            }
+        try {
+            habitat = getHabitat(url.openStream());
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e.getMessage());
         }
         return habitat;
     }
@@ -97,8 +95,8 @@ public class Utils {
             final Habitat habitat = getNewHabitat();
             final ConfigParser parser = new ConfigParser(habitat);
             XMLInputFactory xif = XMLInputFactory.class.getClassLoader() == null
-                    ? XMLInputFactory.newInstance()
-                    : XMLInputFactory.newInstance(XMLInputFactory.class.getName(),
+                    ? XMLInputFactory.newFactory()
+                    : XMLInputFactory.newFactory(XMLInputFactory.class.getName(),
                     XMLInputFactory.class.getClassLoader());
             final DomDocument document = parser.parse(xif.createXMLStreamReader(inputStream));
 
@@ -159,6 +157,7 @@ public class Utils {
      * @return a service matching based on name and realClassName input
      *  arguments.
      */
+    @SuppressWarnings({"unchecked"})
     public static <E> E newInstance(Habitat habitat, Class<E> clazz,
             final String name, final String realClassName) {
         boolean isInitialized = false;
