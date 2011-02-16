@@ -399,5 +399,6 @@
         <servlet-version>2.5</servlet-version>
         <felix-version>2.1.0</felix-version>
         <gmbal.version>3.0.0-b023</gmbal.version>
+        <maven.compiler.argument>-Xlint:unchecked,deprecation,fallthrough,finally,cast,dep-ann,empty,overrides</maven.compiler.argument>
     </properties>
 </project>
