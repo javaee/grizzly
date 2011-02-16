@@ -667,11 +667,9 @@ public class GenericGrizzlyListener implements GrizzlyListener {
                     if (noCompressionUserAgents.length > 0) {
                         final DataChunk userAgentValueDC =
                             requestHeaders.getValue("user-agent");
-                        if (userAgentValueDC != null) {
-                            if (userAgentValueDC != null &&
-                                indexOf(noCompressionUserAgents, userAgentValueDC) != -1) {
-                                return false;
-                            }
+                        if (userAgentValueDC != null &&
+                             indexOf(noCompressionUserAgents, userAgentValueDC) != -1) {
+                            return false;
                         }
                     }
                     // Check if sufficient len to trig the compression

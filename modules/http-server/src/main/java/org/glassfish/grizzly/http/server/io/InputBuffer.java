@@ -130,12 +130,6 @@ public class InputBuffer {
     private CharsetDecoder decoder;
 
     /**
-     * This {@link ByteBuffer} is used when content being converted to characters
-     * exceeds the capacity of the current character buffer.
-     */
-    private ByteBuffer remainder;
-
-    /**
      * Flag indicating all request content has been read.
      */
     private boolean contentRead;
@@ -227,7 +221,6 @@ public class InputBuffer {
 
         connection = null;
         decoder = null;
-        remainder = null;
         ctx = null;
         handler = null;
 
@@ -440,8 +433,7 @@ public class InputBuffer {
         if (!processingChars) {
             throw new IllegalStateException();
         }
-        return ((remainder != null && remainder.hasRemaining())
-                   || (compositeBuffer.hasRemaining())
+        return (compositeBuffer.hasRemaining()
                    || request.isExpectContent());
 
     }
@@ -803,11 +795,10 @@ public class InputBuffer {
                          boolean block,
                          boolean flip) throws IOException {
 
-        final boolean hasRemainder = remainder != null && remainder.hasRemaining();
-        if ((hasRemainder || compositeBuffer.hasRemaining()) || !block) {
+        if (compositeBuffer.hasRemaining() || !block) {
             final CharsetDecoder decoderLocal = getDecoder();
             int charPos = dst.position();
-            final ByteBuffer bb = (hasRemainder ? remainder : compositeBuffer.toByteBuffer());
+            final ByteBuffer bb = compositeBuffer.toByteBuffer();
             int bbPos = bb.position();
             CoderResult result = decoderLocal.decode(bb, dst, false);
 
@@ -815,19 +806,11 @@ public class InputBuffer {
             int readBytes = bb.position() - bbPos;
             bb.position(bbPos);
             if (result == CoderResult.UNDERFLOW) {
-                if (!hasRemainder) {
-                    compositeBuffer.position(compositeBuffer.position() + readBytes);
-                    compositeBuffer.shrink();
-                } else {
-                    remainder = null;
-                }
+                compositeBuffer.position(compositeBuffer.position() + readBytes);
+                compositeBuffer.shrink();
             } else {
-                if (hasRemainder) {
-                    remainder.position(remainder.position() + readBytes);
-                } else {
-                    compositeBuffer.position(compositeBuffer.position() + readBytes);
-                    compositeBuffer.shrink();
-                }
+                compositeBuffer.position(compositeBuffer.position() + readBytes);
+                compositeBuffer.shrink();
             }
             
             if (compositeBuffer.hasRemaining() && readChars < requestedLen) {
