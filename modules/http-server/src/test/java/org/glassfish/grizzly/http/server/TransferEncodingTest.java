@@ -43,7 +43,6 @@ package org.glassfish.grizzly.http.server;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
-import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Future;
@@ -72,79 +71,51 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 
 /**
- * Checking the request-uri passed to HttpHandler
+ * Test transfer-encoding application
  * 
  * @author Alexey Stashok
  */
-public class RequestURITest extends TestCase {
-    private static final int PORT = 8040;
+public class TransferEncodingTest extends TestCase {
+    private static final int PORT = 8041;
 
-    public void testSimpleURI () throws Exception {
-        final HttpHandler httpHandler = new RequestURIHttpHandler();
-        final HttpPacket request = createRequest("/index.html;jsessionid=123456", null);
+    public void testExplicitContentType() throws Exception {
+        final int msgSize = 10;
+
+        final HttpHandler httpHandler = new ExplicitContentLengthHandler(msgSize);
+        final HttpPacket request = createRequest("/index.html", null);
         final HttpContent response = doTest(httpHandler, request, 10);
 
-        final String responseContent = response.getContent().toStringContent();
-        Map<String, String> props = new HashMap<String, String>();
-
-        BufferedReader reader = new BufferedReader(new StringReader(responseContent));
-        String line;
-        while((line = reader.readLine()) != null) {
-            String[] nameValue = line.split("=");
-            assertEquals(2, nameValue.length);
-            props.put(nameValue[0], nameValue[1]);
-        }
-
-        String uri = props.get("uri");
-        assertNotNull(uri);
-        assertEquals("/index.html", uri);
+        assertEquals(msgSize, response.getHttpHeader().getContentLength());
     }
 
-    public void testEncodedSimpleURI () throws Exception {
-        final String rusURI = "/\u043F\u0440\u0438\u0432\u0435\u0442\u043C\u0438\u0440";
-        final String rusEncodedURI = URLEncoder.encode(rusURI, "UTF-8");
+    public void testExplicitChunking() throws Exception {
+        final int msgSize = 10;
 
-        final HttpHandler httpHandler = new RequestURIHttpHandler();
-
-        final HttpPacket request = createRequest(rusEncodedURI, null);
+        final HttpHandler httpHandler = new ExplicitChunkingHandler(msgSize);
+        final HttpPacket request = createRequest("/index.html", null);
         final HttpContent response = doTest(httpHandler, request, 10);
 
-        final String responseContent = response.getContent().toStringContent();
-        Map<String, String> props = new HashMap<String, String>();
-
-        BufferedReader reader = new BufferedReader(new StringReader(responseContent));
-        String line;
-        while((line = reader.readLine()) != null) {
-            String[] nameValue = line.split("=");
-            assertEquals(2, nameValue.length);
-            props.put(nameValue[0], nameValue[1]);
-        }
-
-        String uri = props.get("uri");
-        assertNotNull(uri);
-        assertEquals(rusEncodedURI, uri);
+        assertTrue(response.getHttpHeader().isChunked());
     }
 
-    public void testCompleteURI () throws Exception {
-        final HttpHandler httpHandler = new RequestURIHttpHandler();
-        final HttpPacket request = createRequest("http://localhost:" + PORT +
-                "/index.html;jsessionid=123456", null);
+    public void testSmallMessageAutoContentLength() throws Exception {
+        final int msgSize = 10;
+
+        final HttpHandler httpHandler = new AutoTransferEncodingHandler(msgSize);
+        final HttpPacket request = createRequest("/index.html", null);
+        final HttpContent response = doTest(httpHandler, request, 10000);
+
+        assertEquals(msgSize, response.getHttpHeader().getContentLength());
+    }
+
+    public void testLargeMessageAutoChunking() throws Exception {
+        final int msgSize = 1024 * 1024;
+
+        final HttpHandler httpHandler = new AutoTransferEncodingHandler(msgSize);
+        final HttpPacket request = createRequest("/index.html", null);
         final HttpContent response = doTest(httpHandler, request, 10);
 
-        final String responseContent = response.getContent().toStringContent();
-        Map<String, String> props = new HashMap<String, String>();
-
-        BufferedReader reader = new BufferedReader(new StringReader(responseContent));
-        String line;
-        while((line = reader.readLine()) != null) {
-            String[] nameValue = line.split("=");
-            assertEquals(2, nameValue.length);
-            props.put(nameValue[0], nameValue[1]);
-        }
-
-        String uri = props.get("uri");
-        assertNotNull(uri);
-        assertEquals("/index.html", uri);
+        assertTrue(response.getHttpHeader().isChunked());
     }
 
     @SuppressWarnings({"unchecked"})
@@ -175,7 +146,7 @@ public class RequestURITest extends TestCase {
             server.start();
             FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter());
-            clientFilterChainBuilder.add(new ChunkingFilter(4));
+            clientFilterChainBuilder.add(new ChunkingFilter(3));
             clientFilterChainBuilder.add(new HttpClientFilter());
             clientFilterChainBuilder.add(new ClientFilter(testResultFuture));
             clientTransport.setProcessor(clientFilterChainBuilder.build());
@@ -276,14 +247,60 @@ public class RequestURITest extends TestCase {
 
     } // END ClientFilter
 
-    public class RequestURIHttpHandler extends HttpHandler {
+    public class ExplicitContentLengthHandler extends HttpHandler {
+        private final int length;
+
+        public ExplicitContentLengthHandler(int length) {
+            this.length = length;
+        }
 
         @Override
         public void service(Request request, Response response) throws Exception {
-            final String uri = request.getRequestURI();
-
-            response.getWriter().write("uri=" + uri + "\n");
+            response.setContentLength(length);
+            final StringBuilder sb = new StringBuilder(length);
+            for (int i = 0; i < length; i++) {
+                sb.append((char) ('0' + (i % 10)));
+            }
+            
+            response.getWriter().write(sb.toString());
         }
 
+    }
+
+    public class ExplicitChunkingHandler extends HttpHandler {
+        private final int length;
+
+        public ExplicitChunkingHandler(int length) {
+            this.length = length;
+        }
+
+        @Override
+        public void service(Request request, Response response) throws Exception {
+            response.getResponse().setChunked(true);
+            final StringBuilder sb = new StringBuilder(length);
+            for (int i = 0; i < length; i++) {
+                sb.append((char) ('0' + (i % 10)));
+            }
+
+            response.getWriter().write(sb.toString());
+        }
+    }
+
+    public class AutoTransferEncodingHandler extends HttpHandler {
+        private final int length;
+
+        public AutoTransferEncodingHandler(int length) {
+            this.length = length;
+        }
+
+        @Override
+        public void service(Request request, Response response) throws Exception {
+            final StringBuilder sb = new StringBuilder(length);
+            for (int i = 0; i < length; i++) {
+                sb.append((char) ('0' + (i % 10)));
+            }
+
+            response.getWriter().write(sb.toString());
+        }
     }
 }

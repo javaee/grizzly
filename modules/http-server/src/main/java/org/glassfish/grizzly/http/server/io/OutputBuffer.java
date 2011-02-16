@@ -239,12 +239,7 @@ public class OutputBuffer {
      */
     public void commit() {
 
-        if (committed) {
-            return;
-        }
-        // The response is now committed
-        committed = true;
-
+        doCommit();
     }
 
 
@@ -391,7 +386,7 @@ public class OutputBuffer {
         // commit the response (mark it as commited)
         final boolean isJustCommited = doCommit();
         // Try to commit the content chunk together with headers (if there were not commited before)
-        if (!writeContentChunk(true) && (isJustCommited || response.isChunked())) {
+        if (!writeContentChunk(!isJustCommited, true) && (isJustCommited || response.isChunked())) {
             // If there is no ready content chunk to commit,
             // but headers were not commited yet, or this is chunked encoding
             // and we need to send trailer
@@ -410,7 +405,7 @@ public class OutputBuffer {
     public void flush() throws IOException {
 
         final boolean isJustCommited = doCommit();
-        if (!writeContentChunk(false) && isJustCommited) {
+        if (!writeContentChunk(!isJustCommited, false) && isJustCommited) {
             forceCommitHeaders(false);
         }
 
@@ -539,7 +534,8 @@ public class OutputBuffer {
     }
 
     
-    private boolean writeContentChunk(final boolean isLast) throws IOException {
+    private boolean writeContentChunk(final boolean areHeadersCommited,
+            final boolean isLast) throws IOException {
         handleAsyncErrors();
 
         final Buffer bufferToFlush;
@@ -557,6 +553,11 @@ public class OutputBuffer {
         }
 
         if (bufferToFlush != null) {
+            if (isLast && !areHeadersCommited &&
+                    response.getContentLength() == -1 && !response.isChunked()) {
+                response.setContentLength(bufferToFlush.remaining());
+            }
+
             final HttpContent.Builder builder = response.httpContentBuilder();
 
             builder.content(bufferToFlush).last(isLast);
@@ -608,7 +609,7 @@ public class OutputBuffer {
     }
 
     
-    private boolean doCommit() throws IOException {
+    private boolean doCommit() {
 
         if (!committed) {
             committed = true;
@@ -638,11 +639,11 @@ public class OutputBuffer {
         return buffer;
     }
 
-    private void flushCharsToBuf(CharBuffer charBuf) throws IOException {
+    private void flushCharsToBuf(final CharBuffer charBuf) throws IOException {
 
         handleAsyncErrors();
         // flush the buffer - need to take care of encoding at this point
-        CharsetEncoder enc = getEncoder();
+        final CharsetEncoder enc = getEncoder();
         checkCurrentBuffer();
         ByteBuffer currentByteBuffer = currentBuffer.toByteBuffer();
         int pos = currentByteBuffer.position();
@@ -654,8 +655,8 @@ public class OutputBuffer {
         updateBufferPosition(currentBuffer, currentByteBuffer, pos);
         
         while (res == CoderResult.OVERFLOW) {
-            commit();
-            writeContentChunk(false);
+            final boolean isJustCommited = doCommit();
+            writeContentChunk(!isJustCommited, false);
             checkCurrentBuffer();
             currentByteBuffer = currentBuffer.toByteBuffer();
             pos = currentByteBuffer.position();

@@ -346,7 +346,7 @@ public class FileCacheTest {
                             final HttpResponsePacket response = (HttpResponsePacket) httpPacket;
                             final HttpRequestPacket request;
                             final DataChunk acceptEncoding;
-                            if (response.isChunked() && (request = response.getRequest()) != null
+                            if (/*response.isChunked() && */(request = response.getRequest()) != null
                                     && (acceptEncoding = request.getHeaders().getValue("Accept-Encoding")) != null
                                     && acceptEncoding.indexOf("gzip", 0) >= 0) {
                                 return true;
