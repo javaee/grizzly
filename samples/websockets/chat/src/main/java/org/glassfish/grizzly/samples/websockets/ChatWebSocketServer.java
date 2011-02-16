@@ -43,8 +43,10 @@ package org.glassfish.grizzly.samples.websockets;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.HttpServerFilter;
+import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.websockets.WebSocketAddOn;
 import org.glassfish.grizzly.websockets.WebSocketApplication;
 import org.glassfish.grizzly.websockets.WebSocketEngine;
 import org.glassfish.grizzly.websockets.WebSocketFilter;
@@ -68,21 +70,12 @@ public class ChatWebSocketServer {
 
         final String webappDir = args[0];
 
-        // Initiate the server filterchain to work with websockets
-        FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.stateless();
-        // Transport filter
-        serverFilterChainBuilder.add(new TransportFilter());
-        // HTTP server side filter
-        serverFilterChainBuilder.add(new HttpServerFilter());
-        // WebSocket filter to intercept websocket messages
-        serverFilterChainBuilder.add(new WebSocketFilter());
-        // Simple Web server filter to process requests to a static resources
-        serverFilterChainBuilder.add(new SimpleWebServerFilter(webappDir));
+        // create a Grizzly HttpServer to server static resources from 'webapp',
+        // on PORT.
+        final HttpServer server = HttpServer.createSimpleServer(webappDir, PORT);
 
-        // initialize transport
-        final TCPNIOTransport transport =
-                TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(serverFilterChainBuilder.build());
+        // Register the WebSockets addon with the HttpServer
+        server.getListener("grizzly").registerAddOn(new WebSocketAddOn());
 
         // initialize websocket chat application
         final WebSocketApplication chatApplication = new ChatApplication();
@@ -91,17 +84,12 @@ public class ChatWebSocketServer {
         WebSocketEngine.getEngine().registerApplication("/grizzly-websockets-chat/chat", chatApplication);
 
         try {
-            // bind TCP listener
-            transport.bind(PORT);
-            // start the transport
-            transport.start();
-
-
+            server.start();
             System.out.println("Press any key to stop the server...");
             System.in.read();
         } finally {
-            // stop the transport
-            transport.stop();
+            // stop the server
+            server.stop();
         }
     }
 }
