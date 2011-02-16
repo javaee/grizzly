@@ -54,7 +54,8 @@ public interface AddOn {
      * initialize the AddOn on the passed {@link NetworkListener}.
      * Most of the time the AddOn implementation will update the passed
      * {@link NetworkListener}'s {@link FilterChainBuilder} by adding custom
-     * {@link Filter}(s), which implement AddOn's logic.
+     * {@link org.glassfish.grizzly.filterchain.Filter}(s), which implement
+     * AddOn's logic.
      * 
      * @param networkListener the {@link NetworkListener} the addon is being
      *          initialized on.

@@ -293,11 +293,9 @@ public class NetworkListener {
      * Registers {@link AddOn} on this NetworkListener.
      * @param addon the {@link AddOn} to be registered.
      *
-     * @return <tt>true</tt>, if the same ({@link AddOn#equals(java.lang.Object)})
-     *          {@link AddOn} wasn't registered before so it was added to the
-     *          addon list, or <tt>false</tt>, if the same ({@link AddOn#equals(java.lang.Object)})
-     *          {@link AddOn} has been already registered, so the passed {@link AddOn}
-     *          replaced it.
+     * @return <tt>true</tt>, if the {@link AddOn} wasn't registered before,
+     *  otherwise the existing {@link AddOn} will be replaced and this method
+     *  returns <tt>false</tt>.
      */
     public boolean registerAddOn(final AddOn addon) {
         return addons.add(addon);
