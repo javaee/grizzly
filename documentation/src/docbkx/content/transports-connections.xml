@@ -68,7 +68,7 @@
 
         <para><inlinemediaobject>
             <imageobject>
-              <imagedata fileref="../images/coreframework/transport-diagram.svg"></imagedata>
+              <imagedata fileref="../images/coreframework/transport-diagram.png"></imagedata>
             </imageobject>
           </inlinemediaobject></para>
 
@@ -143,7 +143,7 @@
 
         <para><inlinemediaobject>
             <imageobject>
-              <imagedata fileref="../images/coreframework/connection-diagram.svg"></imagedata>
+              <imagedata fileref="../images/coreframework/connection-diagram.png"></imagedata>
             </imageobject>
           </inlinemediaobject></para>
 
@@ -194,7 +194,7 @@
 
         <para><inlinemediaobject>
             <imageobject>
-              <imagedata fileref="../images/coreframework/connectorhandler-diagram.svg"></imagedata>
+              <imagedata fileref="../images/coreframework/connectorhandler-diagram.png"></imagedata>
             </imageobject>
           </inlinemediaobject></para>
 
@@ -224,7 +224,7 @@ Connection clientConnection = clientConnectionFuture.get();</programlisting></pa
 
         <para><inlinemediaobject>
             <imageobject>
-              <imagedata fileref="../images/coreframework/connectorhandler-seq1.svg"></imagedata>
+              <imagedata fileref="../images/coreframework/connectorhandler-seq1.png"></imagedata>
             </imageobject>
           </inlinemediaobject></para>
 
@@ -260,7 +260,7 @@ Connection clientConnection = clientConnectionFuture.get();</programlisting></pa
 
         <para><inlinemediaobject>
             <imageobject>
-              <imagedata fileref="../images/coreframework/connectorhandler-seq2.svg"></imagedata>
+              <imagedata fileref="../images/coreframework/connectorhandler-seq2.png"></imagedata>
             </imageobject>
           </inlinemediaobject></para>
 

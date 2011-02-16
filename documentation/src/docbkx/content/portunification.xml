@@ -95,7 +95,7 @@
 
     <para><inlinemediaobject>
         <imageobject>
-          <imagedata fileref="../images/portunification/portunification-diagram.svg"></imagedata>
+          <imagedata fileref="../images/portunification/portunification-diagram.png"></imagedata>
         </imageobject>
       </inlinemediaobject></para>
 
@@ -120,7 +120,7 @@
 
     <para><inlinemediaobject>
         <imageobject>
-          <imagedata fileref="../images/portunification/portunification-diagram2.svg"></imagedata>
+          <imagedata fileref="../images/portunification/portunification-diagram2.png"></imagedata>
         </imageobject>
       </inlinemediaobject></para>
 
@@ -129,7 +129,7 @@
 
     <para><inlinemediaobject>
         <imageobject>
-          <imagedata fileref="../images/portunification/pufilter-flowchart.svg"></imagedata>
+          <imagedata fileref="../images/portunification/pufilter-flowchart.png"></imagedata>
         </imageobject>
       </inlinemediaobject></para>
   </section>

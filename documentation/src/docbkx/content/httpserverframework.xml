@@ -545,7 +545,7 @@ try {
 
       <mediaobject>
         <imageobject>
-          <imagedata fileref="../images/httpserverframework/susres.svg"></imagedata>
+          <imagedata fileref="../images/httpserverframework/susres.png"></imagedata>
         </imageobject>
       </mediaobject>
     </figure>
