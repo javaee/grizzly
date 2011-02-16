@@ -235,15 +235,6 @@ public class OutputBuffer {
 
 
     /**
-     * Commit the response.
-     */
-    public void commit() {
-
-        doCommit();
-    }
-
-
-    /**
      * Acknowledge a HTTP <code>Expect</code> header.  The response status
      * code and reason phrase should be set before invoking this method.
      *
@@ -383,12 +374,12 @@ public class OutputBuffer {
         }
         closed = true;
 
-        // commit the response (mark it as commited)
-        final boolean isJustCommited = doCommit();
-        // Try to commit the content chunk together with headers (if there were not commited before)
-        if (!writeContentChunk(!isJustCommited, true) && (isJustCommited || response.isChunked())) {
+        // commit the response (mark it as committed)
+        final boolean isJustCommitted = doCommit();
+        // Try to commit the content chunk together with headers (if there were not committed before)
+        if (!writeContentChunk(!isJustCommitted, true) && (isJustCommitted || response.isChunked())) {
             // If there is no ready content chunk to commit,
-            // but headers were not commited yet, or this is chunked encoding
+            // but headers were not committed yet, or this is chunked encoding
             // and we need to send trailer
             forceCommitHeaders(true);
         }
@@ -404,8 +395,8 @@ public class OutputBuffer {
      */
     public void flush() throws IOException {
 
-        final boolean isJustCommited = doCommit();
-        if (!writeContentChunk(!isJustCommited, false) && isJustCommited) {
+        final boolean isJustCommitted = doCommit();
+        if (!writeContentChunk(!isJustCommitted, false) && isJustCommitted) {
             forceCommitHeaders(false);
         }
 
@@ -655,8 +646,8 @@ public class OutputBuffer {
         updateBufferPosition(currentBuffer, currentByteBuffer, pos);
         
         while (res == CoderResult.OVERFLOW) {
-            final boolean isJustCommited = doCommit();
-            writeContentChunk(!isJustCommited, false);
+            final boolean isJustCommitted = doCommit();
+            writeContentChunk(!isJustCommitted, false);
             checkCurrentBuffer();
             currentByteBuffer = currentBuffer.toByteBuffer();
             pos = currentByteBuffer.position();
