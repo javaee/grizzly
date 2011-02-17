@@ -198,6 +198,7 @@ public class CometEngine {
      * @param topic the topic the new {@link CometContext} will represent.
      * @return a new {@link CometContext} if not already created, or the existing one.
      */
+    @SuppressWarnings({"unchecked"})
     public <E> CometContext<E> register(String topic, Class<? extends NotificationHandler> notificationClass) {
         // Double checked locking used used to prevent the otherwise static/global 
         // locking, cause example code does heavy usage of register calls
@@ -236,6 +237,7 @@ public class CometEngine {
      *
      * @param topic the topic used to creates the {@link CometContext}
      */
+    @SuppressWarnings({"unchecked"})
     public <E> CometContext<E> getCometContext(String topic) {
         return activeContexts.get(topic);
     }

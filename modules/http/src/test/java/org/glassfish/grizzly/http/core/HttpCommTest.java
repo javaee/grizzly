@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.http.core;
 
-import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.http.HttpClientFilter;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpPacket;

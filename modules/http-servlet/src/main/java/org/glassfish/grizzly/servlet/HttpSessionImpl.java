@@ -156,6 +156,7 @@ public class HttpSessionImpl implements HttpSession {
     /**
      * {@inheritDoc}
      */
+    @SuppressWarnings({"deprecation"})
     @Override
     public HttpSessionContext getSessionContext() {
         return null;

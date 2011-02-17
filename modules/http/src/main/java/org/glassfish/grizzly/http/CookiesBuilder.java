@@ -150,6 +150,7 @@ public class CookiesBuilder {
 
         protected final List<Cookie> cookies = new ArrayList<Cookie>(4);
 
+        @SuppressWarnings({"unchecked"})
         public E addCookie(Cookie cookie) {
             cookies.add(cookie);
 

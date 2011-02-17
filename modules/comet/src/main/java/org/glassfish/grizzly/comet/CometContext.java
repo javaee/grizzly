@@ -103,7 +103,7 @@ public class CometContext<E> {
     private final static String COMET_NOT_ENABLED = "Make sure you have enabled Comet or make sure the thread"
         + " invoking that method is the same as the Servlet.service() thread.";
     protected final static Logger logger = Logger.getLogger(CometContext.class.getName());
-    private final Map attributes;
+    private final Map<Object,Object> attributes;
     /**
      * The context path associated with this instance.
      */
@@ -131,7 +131,7 @@ public class CometContext<E> {
      */
     public CometContext(CometEngine engine, String contextTopic) {
         topic = contextTopic;
-        attributes = new ConcurrentHashMap();
+        attributes = new ConcurrentHashMap<Object,Object>();
         handlers = new CopyOnWriteArrayList<CometHandler>();
         eventInterrupt = new CometEvent<CometContext>(CometEvent.Type.INTERRUPT, this);
         eventInitialize = new CometEvent<CometContext>(CometEvent.Type.INITIALIZE, this);

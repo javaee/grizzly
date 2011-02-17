@@ -125,7 +125,6 @@ public class B2CConverter {
     }
 
     /** Convert a buffer of bytes into a chars
-     * @deprecated
      */
     public void convert(ByteChunk bb, CharChunk cb)
             throws IOException {

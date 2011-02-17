@@ -506,7 +506,7 @@ public abstract class HttpHeader extends HttpPacket
         while (index != -1) {
             semicolonIndex = index;
             index++;
-            while (index < len && Character.isSpace(type.charAt(index))) {
+            while (index < len && type.charAt(index) == ' ') {
                 index++;
             }
             if (index+8 < len

@@ -92,6 +92,7 @@ public final class UTF8Decoder extends B2CConverter {
     public void recycle() {
     }
 
+    @SuppressWarnings({"deprecation"})
     @Override
     public void convert(ByteChunk mb, CharChunk cb)
             throws IOException {

@@ -58,13 +58,13 @@ public class CookiesTest extends TestCase {
 
     private static Pair[] TEST_CASE_CLIENT_COOKIE =
             new Pair[] {
-        new Pair("CUSTOMER=WILE_E_COYOTE", new Checker[]{
+        new Pair<String,Checker[]>("CUSTOMER=WILE_E_COYOTE", new Checker[]{
             new Checker(0, "CUSTOMER", CheckValue.NAME),
             new Checker(0, "WILE_E_COYOTE", CheckValue.VALUE),
             new Checker(0, 0, CheckValue.VERSION)
         }),
 
-        new Pair("CUSTOMER=WILE_E_COYOTE; PART_NUMBER=ROCKET_LAUNCHER_0001", new Checker[]{
+        new Pair<String,Checker[]>("CUSTOMER=WILE_E_COYOTE; PART_NUMBER=ROCKET_LAUNCHER_0001", new Checker[]{
             new Checker(0, "CUSTOMER", CheckValue.NAME),
             new Checker(0, "WILE_E_COYOTE", CheckValue.VALUE),
             new Checker(0, 0, CheckValue.VERSION),
@@ -73,14 +73,14 @@ public class CookiesTest extends TestCase {
             new Checker(1, 0, CheckValue.VERSION)
         }),
 
-        new Pair("$Version=\"1\"; Customer=\"WILE_E_COYOTE\"; $Path=\"/acme\"", new Checker[]{
+        new Pair<String,Checker[]>("$Version=\"1\"; Customer=\"WILE_E_COYOTE\"; $Path=\"/acme\"", new Checker[]{
             new Checker(0, "Customer", CheckValue.NAME),
             new Checker(0, "WILE_E_COYOTE", CheckValue.VALUE),
             new Checker(0, "/acme", CheckValue.PATH),
             new Checker(0, 1, CheckValue.VERSION)
         }),
 
-        new Pair("$Version=\"1\"; Customer=\"WILE_E_COYOTE\"; $Path=\"/acme\"; $Domain=\"mydomain.com\"; Part_Number=\"Rocket_Launcher_0001\"; $Path=\"/acme\"", new Checker[]{
+        new Pair<String,Checker[]>("$Version=\"1\"; Customer=\"WILE_E_COYOTE\"; $Path=\"/acme\"; $Domain=\"mydomain.com\"; Part_Number=\"Rocket_Launcher_0001\"; $Path=\"/acme\"", new Checker[]{
             new Checker(0, "Customer", CheckValue.NAME),
             new Checker(0, "WILE_E_COYOTE", CheckValue.VALUE),
             new Checker(0, "/acme", CheckValue.PATH),
@@ -92,7 +92,7 @@ public class CookiesTest extends TestCase {
             new Checker(1, 1, CheckValue.VERSION)
         }),
 
-        new Pair("$Version=\"1\"; Part_Number=\"Riding_Rocket_0023\"; $Path=\"/acme/ammo\"; Part_Number=\"Rocket_Launcher_0001\"; $Path=\"/acme\"", new Checker[]{
+        new Pair<String,Checker[]>("$Version=\"1\"; Part_Number=\"Riding_Rocket_0023\"; $Path=\"/acme/ammo\"; Part_Number=\"Rocket_Launcher_0001\"; $Path=\"/acme\"", new Checker[]{
             new Checker(0, "Part_Number", CheckValue.NAME),
             new Checker(0, "Riding_Rocket_0023", CheckValue.VALUE),
             new Checker(0, "/acme/ammo", CheckValue.PATH),
@@ -106,21 +106,21 @@ public class CookiesTest extends TestCase {
 
     private static Pair[] TEST_CASE_SERVER_COOKIE =
             new Pair[] {
-        new Pair("CUSTOMER=WILE_E_COYOTE; path=/; expires=Wednesday, 09-Nov-99 23:12:40 GMT", new Checker[]{
+        new Pair<String,Checker[]>("CUSTOMER=WILE_E_COYOTE; path=/; expires=Wednesday, 09-Nov-99 23:12:40 GMT", new Checker[]{
             new Checker(0, "CUSTOMER", CheckValue.NAME),
             new Checker(0, "WILE_E_COYOTE", CheckValue.VALUE),
             new Checker(0, expire2MaxAge("Wednesday, 09-Nov-99 23:12:40 GMT"), CheckValue.MAX_AGE),
             new Checker(0, 0, CheckValue.VERSION)
         }),
 
-        new Pair("Part_Number=\"Rocket_Launcher_0001\"; Version=\"1\"; Path=\"/acme\"", new Checker[]{
+        new Pair<String,Checker[]>("Part_Number=\"Rocket_Launcher_0001\"; Version=\"1\"; Path=\"/acme\"", new Checker[]{
             new Checker(0, "Part_Number", CheckValue.NAME),
             new Checker(0, "Rocket_Launcher_0001", CheckValue.VALUE),
             new Checker(0, "/acme", CheckValue.PATH),
             new Checker(0, 1, CheckValue.VERSION)
         }),
 
-        new Pair("Part_Number=\"Rocket_Launcher_0001\"; Version=\"1\"; Path=\"/acme\", Customer=\"WILE_E_COYOTE\"; Version=\"1\"; Path=\"/acme/path\"", new Checker[]{
+        new Pair<String,Checker[]>("Part_Number=\"Rocket_Launcher_0001\"; Version=\"1\"; Path=\"/acme\", Customer=\"WILE_E_COYOTE\"; Version=\"1\"; Path=\"/acme/path\"", new Checker[]{
             new Checker(0, "Part_Number", CheckValue.NAME),
             new Checker(0, "Rocket_Launcher_0001", CheckValue.VALUE),
             new Checker(0, "/acme", CheckValue.PATH),
@@ -131,7 +131,8 @@ public class CookiesTest extends TestCase {
             new Checker(1, 1, CheckValue.VERSION)
         }),
     };
-    
+
+    @SuppressWarnings({"unchecked"})
     public void testClientCookie() {
         for (Pair<String, Checker[]> testCase : TEST_CASE_CLIENT_COOKIE) {
             String cookieString = testCase.getFirst();
@@ -169,6 +170,7 @@ public class CookiesTest extends TestCase {
         }
     }
 
+    @SuppressWarnings({"unchecked"})
     public void testServerCookie() {
         for (Pair<String, Checker[]> testCase : TEST_CASE_SERVER_COOKIE) {
             String cookieString = testCase.getFirst();

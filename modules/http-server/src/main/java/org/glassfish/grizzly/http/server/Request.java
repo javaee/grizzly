@@ -660,6 +660,7 @@ public class Request {
      * @param name the {@link Note} name.
      * @return the {@link Note}.
      */
+    @SuppressWarnings({"unchecked"})
     public static <E> Note<E> createNote(final String name) {
         return new Note(ATTR_BUILDER.createAttribute(name));
     }

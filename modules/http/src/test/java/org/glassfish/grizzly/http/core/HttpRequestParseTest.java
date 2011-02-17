@@ -129,7 +129,7 @@ public class HttpRequestParseTest extends TestCase {
         headers.put("Content-length", new Pair<String,String>("2345", "2345"));
         doHttpRequestTest(new Pair<String, String>("GET", "GET"),
                 new Pair<String, String>("http://localhost:8180/index.html", "/index.html"),
-                new Pair("HTTP/1.1", "HTTP/1.1"), headers, "\n");
+                new Pair<String,String>("HTTP/1.1", "HTTP/1.1"), headers, "\n");
     }
 
     public void testCompleteEmptyURI() throws Exception {
@@ -139,7 +139,7 @@ public class HttpRequestParseTest extends TestCase {
         headers.put("Content-length", new Pair<String,String>("2345", "2345"));
         doHttpRequestTest(new Pair<String, String>("GET", "GET"),
                 new Pair<String, String>("http://localhost:8180", "/"),
-                new Pair("HTTP/1.1", "HTTP/1.1"), headers, "\n");
+                new Pair<String,String>("HTTP/1.1", "HTTP/1.1"), headers, "\n");
     }
 
     public void testDecoderOK() {
@@ -217,7 +217,7 @@ public class HttpRequestParseTest extends TestCase {
             String protocol, Map<String, Pair<String, String>> headers, String eol)
             throws Exception {
         doHttpRequestTest(new Pair<String, String>(method, method),
-                new Pair(requestURI, requestURI), new Pair(protocol, protocol),
+                new Pair<String,String>(requestURI, requestURI), new Pair<String,String>(protocol, protocol),
                 headers, eol);
     }
 

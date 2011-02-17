@@ -1099,8 +1099,8 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     /**
      * {@inheritDoc}
      */    
-    @SuppressWarnings({"deprecation", "deprecation"})
     @Override
+    @SuppressWarnings({"deprecation"})
     public boolean isRequestedSessionIdFromUrl() {
         return isRequestedSessionIdFromURL();
     }

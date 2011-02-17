@@ -789,6 +789,7 @@ public final class IntrospectionUtils {
     }
 
     // -------------------- Mapping command line params to setters
+    @SuppressWarnings({"unchecked"})
     public static boolean processArgs(Object proxy, String args[])
             throws Exception {
         String args0[] = null;

@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.http.server.io;
 
 import java.io.IOException;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
@@ -53,6 +54,7 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -106,8 +108,8 @@ public class OutputBuffer {
 
     private int bufferSize = DEFAULT_BUFFER_SIZE;
 
-    private final CompletionHandler asyncCompletionHandler =
-            new EmptyCompletionHandler() {
+    private final CompletionHandler<WriteResult> asyncCompletionHandler =
+            new EmptyCompletionHandler<WriteResult>() {
 
                 @Override
                 public void failed(Throwable throwable) {
