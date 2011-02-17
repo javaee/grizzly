@@ -61,6 +61,7 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
  */
 public class GIOPClient {
 
+    @SuppressWarnings("unchecked")
     public static void main(String[] args) throws Exception {
         Connection connection = null;
 

@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.samples.simpleauth;
 
+import java.util.logging.Level;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
@@ -78,6 +79,7 @@ import java.util.logging.Logger;
 public class Client {
     private static final Logger logger = Logger.getLogger(Client.class.getName());
 
+    @SuppressWarnings("unchecked")
     public static void main(String[] args) throws Exception {
         // Create a FilterChain using FilterChainBuilder
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
@@ -119,7 +121,7 @@ public class Client {
 
                 // Send echo message
                 final MultiLinePacket request = MultiLinePacket.create("echo", input);
-                logger.info("---------Client is sending the request:\n" + request);
+                logger.log(Level.INFO, "---------Client is sending the request:\n{0}", request);
 
                 connection.write(request);
             }

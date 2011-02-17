@@ -140,6 +140,7 @@ public class SSLEchoClient {
          * @throws IOException
          */
         @Override
+        @SuppressWarnings("unchecked")
         public NextAction handleConnect(FilterChainContext ctx)
                 throws IOException {
             final Connection connection = ctx.getConnection();

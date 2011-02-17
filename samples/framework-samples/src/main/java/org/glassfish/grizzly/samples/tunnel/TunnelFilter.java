@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.samples.tunnel;
 
+import java.util.logging.Level;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
@@ -87,7 +88,8 @@ public class TunnelFilter extends BaseFilter {
     @Override
     public NextAction handleRead(final FilterChainContext ctx)
             throws IOException {
-        logger.finest("Connection: " + ctx.getConnection() + " handleRead: " + ctx.getMessage());
+        logger.log(Level.FINEST, "Connection: {0} handleRead: {1}",
+                new Object[]{ctx.getConnection(), ctx.getMessage()});
         
         final Connection connection = ctx.getConnection();
         final Connection peerConnection = peerConnectionAttribute.get(connection);
@@ -137,12 +139,14 @@ public class TunnelFilter extends BaseFilter {
      * @param peerConnection peer {@link Connection}
      * @throws IOException
      */
+    @SuppressWarnings("unchecked")
     private static void redirectToPeer(final FilterChainContext context,
             final Connection peerConnection) throws IOException {
 
         final Connection srcConnection = context.getConnection();
         final Object message = context.getMessage();
-        logger.fine("Redirecting from " + srcConnection.getPeerAddress() + " to " + peerConnection.getPeerAddress() + " message: " + message);
+        logger.log(Level.FINE, "Redirecting from {0} to {1} message: {2}",
+                new Object[]{srcConnection.getPeerAddress(), peerConnection.getPeerAddress(), message});
         peerConnection.write(message);
     }
     

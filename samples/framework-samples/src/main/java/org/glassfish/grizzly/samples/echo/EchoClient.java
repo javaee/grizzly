@@ -65,6 +65,7 @@ import org.glassfish.grizzly.utils.StringFilter;
 public class EchoClient {
     private static final Logger logger = Grizzly.logger(EchoClient.class);
 
+    @SuppressWarnings("unchecked")
     public static void main(String[] args) throws IOException,
             ExecutionException, InterruptedException, TimeoutException {
 
