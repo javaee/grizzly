@@ -41,7 +41,12 @@ package org.glassfish.grizzly.http.echo;
 
 import org.glassfish.grizzly.IOStrategy;
 import org.glassfish.grizzly.Transport;
-import org.glassfish.grizzly.http.server.*;
+import org.glassfish.grizzly.http.server.HttpHandler;
+import org.glassfish.grizzly.http.server.HttpServer;
+import org.glassfish.grizzly.http.server.NetworkListener;
+import org.glassfish.grizzly.http.server.Request;
+import org.glassfish.grizzly.http.server.Response;
+import org.glassfish.grizzly.http.server.ServerConfiguration;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
 import org.glassfish.grizzly.http.server.io.NIOReader;
 import org.glassfish.grizzly.http.server.io.NIOWriter;
@@ -56,9 +61,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import org.glassfish.grizzly.http.server.io.NIOOutputStream;
 
@@ -135,7 +138,7 @@ final class EchoServer {
             transport.getMemoryManager().getMonitoringConfig().addProbes(probe);
         }
 
-        IOStrategy strategy = loadStrategy(settings.getStrategyClass(), transport);
+        IOStrategy strategy = loadStrategy(settings.getStrategyClass());
 
         final int selectorCount = settings.getSelectorThreads();
         ((NIOTransport) transport).setSelectorRunnersCount(selectorCount);
@@ -154,7 +157,7 @@ final class EchoServer {
     }
 
 
-    private static IOStrategy loadStrategy(Class<? extends IOStrategy> strategy, Transport transport) {
+    private static IOStrategy loadStrategy(Class<? extends IOStrategy> strategy) {
         try {
             final Method m = strategy.getMethod("getInstance");
             return (IOStrategy) m.invoke(null);
@@ -254,11 +257,9 @@ final class EchoServer {
                         break;
                     }
 
-                    // try to install a ReadHandler.  If this fails,
-                    // continue at the top of the loop and read available data,
-                    // otherwise break the look and allow the handler to wait for
-                    // data to become available.
-                    boolean installed = in.notifyAvailable(new ReadHandler() {
+                    response.suspend();
+
+                    in.notifyAvailable(new ReadHandler() {
 
                         @Override
                         public void onDataAvailable() {
@@ -276,13 +277,7 @@ final class EchoServer {
                         }
                     });
 
-                    if (installed) {
-                        break;
-                    }
                 } while (!in.isFinished());
-                if (!in.isFinished()) {
-                    response.suspend();
-                }
             } else {
                 final NIOReader in = request.getReader(false);
                 final NIOWriter out = response.getWriter();
@@ -302,11 +297,8 @@ final class EchoServer {
                         break;
                     }
 
-                    // try to install a ReadHandler.  If this fails,
-                    // continue at the top of the loop and read available data,
-                    // otherwise break the look and allow the handler to wait for
-                    // data to become available.
-                    boolean installed = in.notifyAvailable(new ReadHandler() {
+                    response.suspend();
+                    in.notifyAvailable(new ReadHandler() {
 
                         @Override
                         public void onDataAvailable() {
@@ -324,14 +316,7 @@ final class EchoServer {
                         }
                     });
 
-                    if (installed) {
-                        break;
-                    }
                 } while (!in.isFinished());
-
-                if (!in.isFinished()) {
-                    response.suspend();
-                }
             }
         }
 
@@ -356,7 +341,7 @@ final class EchoServer {
                         out.flush();
                     }
                     if (!in.isReady()) {
-                        // no more data is available, isntall the handler again.
+                        // no more data is available, install the handler again.
                         in.notifyAvailable(handler);
                         break;
                     }
@@ -385,7 +370,7 @@ final class EchoServer {
                         out.flush();
                     }
                     if (!in.isReady()) {
-                        // no more data is available, isntall the handler again.
+                        // no more data is available, install the handler again.
                         in.notifyAvailable(handler);
                         break;
                     }
