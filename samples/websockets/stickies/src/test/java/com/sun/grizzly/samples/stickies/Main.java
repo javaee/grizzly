@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,13 +40,14 @@
 
 package com.sun.grizzly.samples.stickies;
 
-import java.io.IOException;
 import com.sun.grizzly.arp.DefaultAsyncHandler;
 import com.sun.grizzly.http.SelectorThread;
-import com.sun.grizzly.http.servlet.ServletAdapter;
+import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.websockets.WebSocketAsyncFilter;
 import com.sun.grizzly.websockets.WebSocketEngine;
+
+import java.io.IOException;
 
 public class Main {
     public static void main(String[] args) throws IOException, InstantiationException, InterruptedException {
@@ -68,8 +69,9 @@ public class Main {
         st.setMaxThreads(2);
         st.setPort(8080);
         st.setDisplayConfiguration(Utils.VERBOSE_TESTS);
-//        st.setAdapter(new StaticResourcesAdapter("src/main/webapp"));
-        final ServletAdapter adapter = new ServletAdapter(new CometServlet());
+        final StaticResourcesAdapter adapter = new StaticResourcesAdapter("src/main/webapp");
+        st.setAdapter(adapter);
+//        final ServletAdapter adapter = new ServletAdapter(new CometServlet());
         adapter.addRootFolder("src/main/webapp");
         st.setAdapter(adapter);
         st.setAsyncHandler(new DefaultAsyncHandler());
@@ -78,6 +80,7 @@ public class Main {
         st.setTcpNoDelay(true);
         st.listen();
 
+        WebSocketEngine.setWebSocketEnabled(true);
         WebSocketEngine.getEngine().register(new StickiesApplication());
 
         return st;

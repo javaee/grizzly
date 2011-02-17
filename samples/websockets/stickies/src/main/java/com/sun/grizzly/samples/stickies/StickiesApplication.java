@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,18 +40,18 @@
 
 package com.sun.grizzly.samples.stickies;
 
+import com.sun.grizzly.tcp.Request;
+import com.sun.grizzly.websockets.DataFrame;
+import com.sun.grizzly.websockets.WebSocket;
+import com.sun.grizzly.websockets.WebSocketApplication;
+import com.sun.grizzly.websockets.WebSocketEngine;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.websockets.DataFrame;
-import com.sun.grizzly.websockets.WebSocket;
-import com.sun.grizzly.websockets.WebSocketApplication;
-import com.sun.grizzly.websockets.WebSocketEngine;
 
 public class StickiesApplication extends WebSocketApplication {
     static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
@@ -60,7 +60,7 @@ public class StickiesApplication extends WebSocketApplication {
 
     @Override
     public boolean isApplicationRequest(Request request) {
-        return request.requestURI().equals("/stickies");
+        return request.requestURI().equals("/");
     }
 
     public void onMessage(WebSocket socket, DataFrame frame) throws IOException {
