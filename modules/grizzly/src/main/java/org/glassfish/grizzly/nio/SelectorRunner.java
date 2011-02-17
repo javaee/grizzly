@@ -80,8 +80,9 @@ public final class SelectorRunner implements Runnable {
     private final Queue<SelectorHandlerTask> pendingTasks;
     private final Queue<SelectorHandlerTask> postponedTasks;
 
-    private volatile Selector selector;
-    private volatile Thread selectorRunnerThread;
+    private volatile int dumbVolatile = 1;
+    private Selector selector;
+    private Thread selectorRunnerThread;
 
     // State fields
     private boolean isResume;
@@ -91,11 +92,11 @@ public final class SelectorRunner implements Runnable {
     private SelectionKey key = null;
     private int keyReadyOps;
 
-    public SelectorRunner(NIOTransport transport) {
+    public SelectorRunner(final NIOTransport transport) {
         this(transport, null);
     }
 
-    public SelectorRunner(NIOTransport transport, Selector selector) {
+    public SelectorRunner(final NIOTransport transport, final Selector selector) {
         this.transport = transport;
         this.selector = selector;
         stateHolder = new StateHolder<State>(State.STOP);
@@ -109,15 +110,34 @@ public final class SelectorRunner implements Runnable {
     }
 
     public Selector getSelector() {
-        return selector;
+        if (dumbVolatile != 0) {
+            return selector;
+        }
+
+        return null;
     }
 
-    public void setSelector(Selector selector) {
+    /**
+     * Sets the {@link Selector}, associated with the runner.
+     * The method should be called from the runner thread.
+     * @param selector
+     */
+    public void setSelector(final Selector selector) {
         this.selector = selector;
+        dumbVolatile++;
+    }
+
+    private void setRunnerThread(final Thread runnerThread) {
+        this.selectorRunnerThread = runnerThread;
+        dumbVolatile++;
     }
 
     public Thread getRunnerThread() {
-        return selectorRunnerThread;
+        if (dumbVolatile != 0) {
+            return selectorRunnerThread;
+        }
+        
+        return null;
     }
 
     public StateHolder<State> getStateHolder() {
@@ -136,6 +156,7 @@ public final class SelectorRunner implements Runnable {
         
         selectorRunnerThread = null;
         isResume = true;
+        dumbVolatile++;
     }
 
     public synchronized void start() {
@@ -167,7 +188,7 @@ public final class SelectorRunner implements Runnable {
         pendingTasks.clear();
         postponedTasks.clear();
         
-        final Selector localSelector = selector;
+        final Selector localSelector = getSelector();
         if (localSelector != null) {
             try {
                 SelectionKey[] keys = new SelectionKey[0];
@@ -206,7 +227,7 @@ public final class SelectorRunner implements Runnable {
     }
     
     public void wakeupSelector() {
-        final Selector localSelector = selector;
+        final Selector localSelector = getSelector();
         if (localSelector != null) {
             try {
                 localSelector.wakeup();
@@ -219,14 +240,14 @@ public final class SelectorRunner implements Runnable {
     @Override
     public void run() {
         final Thread currentThread = Thread.currentThread();
-        selectorRunnerThread = currentThread;
+        setRunnerThread(currentThread);
         final boolean isWorkerThread = currentThread instanceof WorkerThread;
         if (isWorkerThread) {
             ((WorkerThread) currentThread).setSelectorThread(true);
         }
         
         if (!isResume) {
-            selectorRunnerThread.setName(selectorRunnerThread.getName() +
+            currentThread.setName(currentThread.getName() +
                     " SelectorRunner");
 
             stateHolder.setState(State.START);
@@ -252,7 +273,7 @@ public final class SelectorRunner implements Runnable {
         } finally {
             if (!isSkipping) {
                 stateHolder.setState(State.STOP);
-                selectorRunnerThread = null;
+                setRunnerThread(null);
             }
 
             if (isWorkerThread) {
@@ -461,7 +482,7 @@ public final class SelectorRunner implements Runnable {
             }
         }
 
-        selector = newSelector;
+        setSelector(newSelector);
 
         try {
             oldSelector.close();

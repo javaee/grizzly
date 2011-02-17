@@ -66,13 +66,15 @@ import java.util.logging.Logger;
  * @author Alexey Stashok
  */
 public class DefaultSelectorHandler implements SelectorHandler {
+    private static final long DEFAULT_SELECT_TIMEOUT_MILLIS = 30000;
+
     private static final Logger logger = Grizzly.logger(DefaultSelectorHandler.class);
 
     public static final boolean IS_WORKAROUND_SELECTOR_SPIN =
             System.getProperty("os.name").equalsIgnoreCase("linux") &&
                 !System.getProperty("java.version").startsWith("1.7");
     
-    protected volatile long selectTimeout = 30000;
+    protected final long selectTimeout;
 
     // Selector spin workaround artifacts
 
@@ -89,6 +91,12 @@ public class DefaultSelectorHandler implements SelectorHandler {
     // ----------------
 
     public DefaultSelectorHandler() {
+        this(DEFAULT_SELECT_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
+    }
+
+    public DefaultSelectorHandler(final long selectTimeout, final TimeUnit timeunit) {
+        this.selectTimeout = TimeUnit.MILLISECONDS.convert(selectTimeout, timeunit);
+
         spinnedSelectorsHistory = new WeakHashMap<Selector, Long>();
         spinSync = new Object();
     }
@@ -97,11 +105,6 @@ public class DefaultSelectorHandler implements SelectorHandler {
     public long getSelectTimeout() {
         return selectTimeout;
     }
-
-    @Override
-    public void setSelectTimeout(long selectTimeout) {
-        this.selectTimeout = selectTimeout;
-    }    
 
     @Override
     public void preSelect(SelectorRunner selectorRunner) throws IOException {
