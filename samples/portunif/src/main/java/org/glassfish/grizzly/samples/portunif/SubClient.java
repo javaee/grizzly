@@ -67,6 +67,7 @@ import org.glassfish.grizzly.samples.portunif.subservice.SubResponseMessage;
  *
  * @author Alexey Stashok
  */
+@SuppressWarnings("unchecked")
 public class SubClient {
     private static final Logger LOGGER = Grizzly.logger(PUServer.class);
 
