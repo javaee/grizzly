@@ -84,6 +84,7 @@ public class HttpCommTest extends TestCase {
 
     public static int PORT = 19002;
 
+    @SuppressWarnings("unchecked")
     public void testSinglePacket() throws Exception {
         FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.stateless();
         serverFilterChainBuilder.add(new TransportFilter());
