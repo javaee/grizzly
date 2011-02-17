@@ -67,6 +67,7 @@ import static org.junit.Assert.*;
  * 
  * @author Alexey Stashok
  */
+@SuppressWarnings("unchecked")
 public class BasicPUTest {
     public static final int PORT = 17400;
     public static final Charset CHARSET = Charset.forName("UTF-8");

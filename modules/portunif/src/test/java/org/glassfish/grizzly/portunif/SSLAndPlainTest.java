@@ -86,6 +86,7 @@ import static org.junit.Assert.*;
  *
  * @author Alexey Stashok
  */
+@SuppressWarnings("unchecked")
 public class SSLAndPlainTest {
     public static final int PORT = 17401;
     public static final Charset CHARSET = Charset.forName("ISO-8859-1");

@@ -74,6 +74,7 @@ import org.glassfish.grizzly.memory.CompositeBuffer;
  * 
  * @author Alexey Stashok
  */
+@SuppressWarnings("unchecked")
 public class FilterChainReadTest extends TestCase {
     public static int PORT = 7785;
 

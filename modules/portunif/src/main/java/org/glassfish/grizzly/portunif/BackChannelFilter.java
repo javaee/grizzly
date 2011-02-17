@@ -98,6 +98,7 @@ public class BackChannelFilter extends BaseFilter {
 
 
     @Override
+    @SuppressWarnings("unchecked")
     public NextAction handleWrite(final FilterChainContext ctx) throws IOException {
         final FilterChainContext suspendedParentContext =
                 puFilter.suspendedContextAttribute.get(ctx);
