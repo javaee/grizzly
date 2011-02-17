@@ -54,6 +54,7 @@ import org.glassfish.grizzly.utils.StringEncoder;
 import org.glassfish.grizzly.utils.StringFilter;
 import java.io.EOFException;
 import java.io.IOException;
+import java.net.SocketAddress;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -229,7 +230,7 @@ public class FilterChainReadTest extends TestCase {
                 }
 
 
-                Future<WriteResult> writeFuture =
+                Future<WriteResult<Buffer, SocketAddress>> writeFuture =
                         transport.getAsyncQueueIO().getWriter().write(connection, bb);
 
                 assertTrue("Write timeout loop: " + i,
