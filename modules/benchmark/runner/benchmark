@@ -103,8 +103,8 @@ sub trim {
 sub parseCommandLine {
     my $result = GetOptions('port:i' => \$PORT, 'host:s' => \$HOST, 'benchmark=s' => \$BM);
     if (!$result || $BM eq '') {
-       print "\nUsage: benchmark [--runner-port <network port; defaults to 5000> ]\n" . 
-             "                   [--runner-host <network host; defaults to localhost>]\n" .
+       print "\nUsage: benchmark [--port <network port of fhb-runner; defaults to 5000> ]\n" .
+             "                   [--host <network hostof fhb-runner; defaults to localhost>]\n" .
              "                   --benchmark <file containing benchmark info>\n\n";
        exit 1;
     }
@@ -155,8 +155,8 @@ sub startBMServer {
 sub stopBMServer {
     print "Stopping server process...\n";
     my $pid = shift;
-    kill 9, $pid;
-    kill 9, $pid + 1;
+    kill 'TERM', $pid;
+    kill 'TERM', $pid + 1;
     sleep 10;
 }
 
