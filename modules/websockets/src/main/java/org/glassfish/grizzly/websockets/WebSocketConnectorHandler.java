@@ -131,7 +131,7 @@ public class WebSocketConnectorHandler {
         }
 
         final FutureImpl<WebSocket> future = SafeFutureImpl.create();
-        // create a connect handler to following TCP connection process.
+//        // create a connect handler to following TCP connection process.
         final WebSocketConnectHandler connectHandler =
                 new WebSocketConnectHandler(future);
 
@@ -144,7 +144,7 @@ public class WebSocketConnectorHandler {
             @Override
             protected void preConfigure(Connection connection) {
                 super.preConfigure(connection);
-                engine.setClientConnectContext(connection, meta, handler, connectHandler);
+                engine.setClientConnectContext(connection, meta, handler, future);
             }
         };
 

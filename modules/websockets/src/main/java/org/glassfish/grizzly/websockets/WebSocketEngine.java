@@ -49,6 +49,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.impl.FutureImpl;
 
 /**
  * WebSockets engine implementation (singlton), which handles {@link WebSocketApplication}s
@@ -195,10 +196,10 @@ public class WebSocketEngine {
      */
     void setClientConnectContext(Connection connection,
             ClientWebSocketMeta meta, WebSocketClientHandler handler,
-            WebSocketConnectHandler connectHandler) {
+            FutureImpl<WebSocket> future) {
 
         webSocketAttr.set(connection, new WebSocketHolder(null,
-                new Object[] {meta, handler, connectHandler}));
+                new Object[] {meta, handler, future}));
     }
 
     /**
@@ -212,6 +213,7 @@ public class WebSocketEngine {
      * 
      * @throws HandshakeException
      */
+    @SuppressWarnings("unchecked")
     WebSocket handleServerHandshake(
             final Connection connection, final ClientWebSocketMeta clientMeta)
             throws HandshakeException {
@@ -233,7 +235,6 @@ public class WebSocketEngine {
         WebSocket websocket = app.createWebSocket(connection, serverMeta);
         if (websocket == null) {
             websocket = new WebSocketBase(connection, serverMeta, app);
-
         }
 
         webSocketAttr.set(connection, new WebSocketHolder(websocket, null));
@@ -252,6 +253,7 @@ public class WebSocketEngine {
      *
      * @throws HandshakeException
      */
+    @SuppressWarnings("unchecked")
     WebSocket handleClientHandshake(Connection connection,
             ServerWebSocketMeta serverMeta) throws HandshakeException {
 
@@ -259,7 +261,7 @@ public class WebSocketEngine {
         final Object[] context = (Object[]) holder.context;
         final ClientWebSocketMeta meta = (ClientWebSocketMeta) context[0];
         final WebSocketClientHandler handler = (WebSocketClientHandler) context[1];
-        final WebSocketConnectHandler connectHandler = (WebSocketConnectHandler) context[2];
+        final FutureImpl<WebSocket> future = (FutureImpl<WebSocket>) context[2];
         
         try {
             final byte[] patternServerKey =
@@ -280,14 +282,14 @@ public class WebSocketEngine {
             holder.websocket = websocket;
             holder.context = null;
 
-            connectHandler.completed(websocket);
+            future.result(websocket);
             
             return websocket;
         } catch (HandshakeException e) {
-            connectHandler.failed(e);
+            future.failure(e);
             throw e;
         } catch (Exception e) {
-            connectHandler.failed(e);
+            future.failure(e);
             throw new HandshakeException(e.getClass().getName() + ": " + e.getMessage());
         }
     }

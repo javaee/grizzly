@@ -59,7 +59,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class WebSocketBase implements WebSocket {
     protected final WebSocketMeta meta;
     protected final Connection connection;
-    protected final WebSocketHandler handler;
+    protected final WebSocketHandler<WebSocketBase> handler;
     
     /**
      * The {@link Frame}, which is being currently parsed.
@@ -75,7 +75,7 @@ public class WebSocketBase implements WebSocket {
      * @param meta {@link WebSocketMeta} info
      */
     public WebSocketBase(Connection connection, WebSocketMeta meta,
-            WebSocketHandler handler) {
+            WebSocketHandler<WebSocketBase> handler) {
         this.connection = connection;
         this.meta = meta;
         this.handler = handler;
@@ -126,6 +126,7 @@ public class WebSocketBase implements WebSocket {
      * {@inheritDoc}
      */
     @Override
+    @SuppressWarnings("unchecked")
     public GrizzlyFuture<Frame> send(Frame frame,
             CompletionHandler<Frame> completionHandler) throws IOException {
         return connection.write(frame, completionHandler);
@@ -135,6 +136,7 @@ public class WebSocketBase implements WebSocket {
      * {@inheritDoc}
      */
     @Override
+    @SuppressWarnings("unchecked")
     public void close() throws IOException {
         if (!isClosed.getAndSet(true)) {
             getHandler().onClose(this);

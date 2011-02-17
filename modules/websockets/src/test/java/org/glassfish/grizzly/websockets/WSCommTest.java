@@ -166,7 +166,7 @@ public class WSCommTest extends TestCase {
         }
     }
 
-    private static class EchoApplication extends WebSocketApplication {
+    private static class EchoApplication extends WebSocketApplication<WebSocket> {
         private volatile String state = "INITIAL";
         final FutureImpl<String> cycleCompleteFuture;
 

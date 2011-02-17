@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.websockets;
 
-import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
@@ -211,7 +210,7 @@ public class WSSCommTest extends TestCase {
         }
     }
 
-    private static class EchoApplication extends WebSocketApplication {
+    private static class EchoApplication extends WebSocketApplication<WebSocket> {
         private volatile String state = "INITIAL";
         final FutureImpl<String> cycleCompleteFuture;
 

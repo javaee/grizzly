@@ -180,6 +180,7 @@ public class WebSocketFilter extends BaseFilter {
      * @throws {@link IOException}
      */
     @Override
+    @SuppressWarnings("unchecked")
     public NextAction handleRead(FilterChainContext ctx) throws IOException {
         // Get the Grizzly Connection
         final Connection connection = ctx.getConnection();
@@ -365,6 +366,7 @@ public class WebSocketFilter extends BaseFilter {
      *
      * @throws {@link IOException}
      */
+    @SuppressWarnings("unchecked")
     private void handleServerHandshake(FilterChainContext ctx,
             HttpContent requestContent) throws IOException {
         // get HTTP request headers
@@ -412,6 +414,7 @@ public class WebSocketFilter extends BaseFilter {
      *
      * @throws {@link IOException}
      */
+    @SuppressWarnings("unchecked")
     private void handleClientHandshake(FilterChainContext ctx,
             HttpContent responseContent) throws IOException {
 

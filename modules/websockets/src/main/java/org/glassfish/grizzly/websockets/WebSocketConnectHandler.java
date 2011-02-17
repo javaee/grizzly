@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.websockets;
 
 import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.impl.FutureImpl;
 
 /**
@@ -49,7 +50,7 @@ import org.glassfish.grizzly.impl.FutureImpl;
  * 
  * @author Alexey Stashok
  */
-class WebSocketConnectHandler implements CompletionHandler {
+class WebSocketConnectHandler implements CompletionHandler<Connection> {
 
     private final FutureImpl<WebSocket> future;
 
@@ -58,10 +59,7 @@ class WebSocketConnectHandler implements CompletionHandler {
     }
 
     @Override
-    public void completed(Object result) {
-        if (result instanceof WebSocket) {
-            future.result((WebSocket) result);
-        }
+    public void completed(Connection result) {
     }
 
     @Override
@@ -75,6 +73,6 @@ class WebSocketConnectHandler implements CompletionHandler {
     }
 
     @Override
-    public void updated(Object result) {
+    public void updated(Connection result) {
     }
 }
