@@ -59,7 +59,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class WebSocketBase implements WebSocket {
     protected final WebSocketMeta meta;
     protected final Connection connection;
-    protected final WebSocketHandler<WebSocketBase> handler;
+    protected final WebSocketHandler<? extends WebSocketBase> handler;
     
     /**
      * The {@link Frame}, which is being currently parsed.
@@ -75,7 +75,7 @@ public class WebSocketBase implements WebSocket {
      * @param meta {@link WebSocketMeta} info
      */
     public WebSocketBase(Connection connection, WebSocketMeta meta,
-            WebSocketHandler<WebSocketBase> handler) {
+            WebSocketHandler<? extends WebSocketBase> handler) {
         this.connection = connection;
         this.meta = meta;
         this.handler = handler;
