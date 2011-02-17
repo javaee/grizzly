@@ -83,8 +83,7 @@ import org.glassfish.grizzly.http.util.StringManager;
  * @author Jean-Francois Arcand
  * @version $Revision: 1.9 $ $Date: 2007/05/05 05:32:43 $
  */
-
-
+@SuppressWarnings("deprecation")
 public class HttpServletResponseImpl implements HttpServletResponse {
 
     private final ServletOutputStreamImpl outputStream;
@@ -285,6 +284,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
      * {@inheritDoc}
      */
     @Override
+    @SuppressWarnings("unchecked")
     public void setContentType(String type) {
 
         if (isCommitted())
@@ -332,6 +332,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
      * {@inheritDoc}
      */
     @Override
+    @SuppressWarnings("unchecked")
     public void flushBuffer()
         throws IOException {
 

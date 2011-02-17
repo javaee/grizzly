@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,7 +49,6 @@ import javax.servlet.http.HttpSession;
 import javax.servlet.http.HttpSessionAttributeListener;
 import javax.servlet.http.HttpSessionBindingEvent;
 import javax.servlet.http.HttpSessionBindingListener;
-import javax.servlet.http.HttpSessionContext;
 import javax.servlet.http.HttpSessionEvent;
 import javax.servlet.http.HttpSessionListener;
 import org.glassfish.grizzly.Grizzly;
@@ -61,6 +60,7 @@ import org.glassfish.grizzly.localization.LogMessages;
  * 
  * @author Jeanfrancois Arcand
  */
+@SuppressWarnings("deprecation")
 public class HttpSessionImpl implements HttpSession {
 
     private static final Logger LOGGER = Grizzly.logger(HttpSessionImpl.class);
@@ -156,9 +156,8 @@ public class HttpSessionImpl implements HttpSession {
     /**
      * {@inheritDoc}
      */
-    @SuppressWarnings({"deprecation"})
     @Override
-    public HttpSessionContext getSessionContext() {
+    public javax.servlet.http.HttpSessionContext getSessionContext() {
         return null;
     }
 

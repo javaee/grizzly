@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -90,6 +90,7 @@ import org.glassfish.grizzly.localization.LogMessages;
  * 
  * @author Jeanfrancois Arcand
  */
+@SuppressWarnings({"unchecked", "deprecation"})
 public class ServletContextImpl implements ServletContext {
 
     /**
@@ -101,7 +102,7 @@ public class ServletContextImpl implements ServletContext {
      * The merged context initialization parameters for this Context.
      */
     private final ConcurrentHashMap<String, String> parameters =
-            new ConcurrentHashMap(16, 0.75f, 64);
+            new ConcurrentHashMap<String, String>(16, 0.75f, 64);
     /**
      * The context attributes for this context.
      */

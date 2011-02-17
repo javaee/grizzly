@@ -65,11 +65,6 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
-<!--                        <Import-Package>
-                            org.glassfish.grizzly.*,
-                            java.xml.bind.*,
-                            javax.servlet.http.*;
-                        </Import-Package>-->
                         <Export-Package>org.glassfish.grizzly.servlet.*;version=${project.version}</Export-Package>
                     </instructions>
                     <unpackBundle>true</unpackBundle>
@@ -150,5 +145,6 @@
     </dependencies>
     <properties>
         <jersey-version>1.1.5</jersey-version>
+        <maven.compiler.argument>-Xlint:unchecked,-deprecation,fallthrough,finally,cast,dep-ann,empty,overrides</maven.compiler.argument>
     </properties>
 </project>

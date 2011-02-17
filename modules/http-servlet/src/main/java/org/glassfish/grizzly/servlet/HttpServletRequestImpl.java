@@ -94,6 +94,7 @@ import org.glassfish.grizzly.localization.LogMessages;
  * @author Jean-Francois Arcand
  * @version $Revision: 1.7 $ $Date: 2007/08/01 19:04:28 $
  */
+@SuppressWarnings("deprecation")
 public class HttpServletRequestImpl implements HttpServletRequest {
     private static final Logger logger = Grizzly.logger(HttpServletRequestImpl.class);
       
@@ -679,8 +680,8 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     /**
      * {@inheritDoc}
      */
-    @SuppressWarnings("unchecked")
     @Override
+    @SuppressWarnings("unchecked")
     public RequestDispatcher getRequestDispatcher(String path) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
@@ -690,8 +691,8 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     /**
      * {@inheritDoc}
      */
-    @SuppressWarnings("deprecation")
     @Override
+    @SuppressWarnings("deprecation")
     public String getRealPath(String path) {
         return contextImpl.getRealPath(path);
     }
