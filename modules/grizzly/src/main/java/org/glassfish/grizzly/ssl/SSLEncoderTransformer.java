@@ -74,13 +74,13 @@ public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buf
             TransformationResult.createErrorResult(
             NEED_HANDSHAKE_ERROR, "Handshake was not executed");
     
-    private final MemoryManager<Buffer> memoryManager;
+    private final MemoryManager memoryManager;
 
     public SSLEncoderTransformer() {
         this(NIOTransportBuilder.DEFAULT_MEMORY_MANAGER);
     }
 
-    public SSLEncoderTransformer(MemoryManager<Buffer> memoryManager) {
+    public SSLEncoderTransformer(MemoryManager memoryManager) {
         this.memoryManager = memoryManager;
     }
 

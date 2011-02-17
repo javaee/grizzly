@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -64,7 +64,7 @@ public final class ReadyFutureImpl<R> implements GrizzlyFuture<R> {
      * Construct cancelled {@link Future}.
      */
     public static <R> ReadyFutureImpl<R> create() {
-        final ReadyFutureImpl future = ThreadCache.takeFromCache(CACHE_IDX);
+        final ReadyFutureImpl<R> future = takeFromCache();
         if (future != null) {
             future.isCancelled = true;
             return future;
@@ -77,7 +77,7 @@ public final class ReadyFutureImpl<R> implements GrizzlyFuture<R> {
      * Construct {@link Future} with the result.
      */
     public static <R> ReadyFutureImpl<R> create(R result) {
-        final ReadyFutureImpl future = ThreadCache.takeFromCache(CACHE_IDX);
+        final ReadyFutureImpl<R> future = takeFromCache();
         if (future != null) {
             future.result = result;
             return future;
@@ -90,7 +90,7 @@ public final class ReadyFutureImpl<R> implements GrizzlyFuture<R> {
      * Construct failed {@link Future}.
      */
     public static <R> ReadyFutureImpl<R> create(Throwable failure) {
-        final ReadyFutureImpl future = ThreadCache.takeFromCache(CACHE_IDX);
+        final ReadyFutureImpl<R> future = takeFromCache();
         if (future != null) {
             future.failure = failure;
             return future;
@@ -98,6 +98,12 @@ public final class ReadyFutureImpl<R> implements GrizzlyFuture<R> {
 
         return new ReadyFutureImpl<R>(failure);
     }
+
+    @SuppressWarnings("unchecked")
+    private static <R> ReadyFutureImpl<R> takeFromCache() {
+        return ThreadCache.takeFromCache(CACHE_IDX);
+    }
+
 
     protected R result;
     private Throwable failure;

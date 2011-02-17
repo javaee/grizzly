@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -309,7 +309,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
     private void registerChannel0(final SelectorRunner selectorRunner,
             final SelectableChannel channel, final int interest,
             final Object attachment,
-            final CompletionHandler completionHandler,
+            final CompletionHandler<RegisterChannelResult> completionHandler,
             final FutureImpl<RegisterChannelResult> future) throws IOException {
 
         if (future == null || !future.isCancelled()) {
@@ -373,7 +373,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
 
     private void deregisterChannel0(final SelectorRunner selectorRunner,
                                     final SelectableChannel channel,
-                                    final CompletionHandler completionHandler,
+                                    final CompletionHandler<RegisterChannelResult> completionHandler,
                                     final FutureImpl<RegisterChannelResult> future) throws IOException {
 
         if (future == null || !future.isCancelled()) {

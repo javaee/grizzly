@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -481,12 +481,14 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
         addAll(c);
     }
 
+    @Override
     public void put(E e) throws InterruptedException {
         if (e == null) throw new NullPointerException();
         if (Thread.interrupted()) throw new InterruptedException();
         xfer(e, NOWAIT, 0);
     }
 
+    @Override
     public boolean offer(E e, long timeout, TimeUnit unit)
         throws InterruptedException {
         if (e == null) throw new NullPointerException();
@@ -495,18 +497,21 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
         return true;
     }
 
+    @Override
     public boolean offer(E e) {
         if (e == null) throw new NullPointerException();
         xfer(e, NOWAIT, 0);
         return true;
     }
 
+    @Override
     public boolean add(E e) {
         if (e == null) throw new NullPointerException();
         xfer(e, NOWAIT, 0);
         return true;
     }
 
+    @Override
     public void transfer(E e) throws InterruptedException {
         if (e == null) throw new NullPointerException();
         if (xfer(e, WAIT, 0) == null) {
@@ -515,6 +520,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
         }
     }
 
+    @Override
     public boolean tryTransfer(E e, long timeout, TimeUnit unit)
         throws InterruptedException {
         if (e == null) throw new NullPointerException();
@@ -525,11 +531,14 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
         throw new InterruptedException();
     }
 
+    @Override
     public boolean tryTransfer(E e) {
         if (e == null) throw new NullPointerException();
         return fulfill(e) != null;
     }
 
+    @Override
+    @SuppressWarnings("unchecked")
     public E take() throws InterruptedException {
         Object e = xfer(null, WAIT, 0);
         if (e != null)
@@ -538,6 +547,8 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
         throw new InterruptedException();
     }
 
+    @Override
+    @SuppressWarnings("unchecked")
     public E poll(long timeout, TimeUnit unit) throws InterruptedException {
         Object e = xfer(null, TIMEOUT, unit.toNanos(timeout));
         if (e != null || !Thread.interrupted())
@@ -545,10 +556,13 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
         throw new InterruptedException();
     }
 
+    @Override
+    @SuppressWarnings("unchecked")
     public E poll() {
         return (E)fulfill(null);
     }
 
+    @Override
     public int drainTo(Collection<? super E> c) {
         if (c == null)
             throw new NullPointerException();
@@ -563,6 +577,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
         return n;
     }
 
+    @Override
     public int drainTo(Collection<? super E> c, int maxElements) {
         if (c == null)
             throw new NullPointerException();
@@ -608,6 +623,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
     }
 
 
+    @Override
     public Iterator<E> iterator() {
         return new Itr();
     }
@@ -634,6 +650,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
         /**
          * Ensures next points to next valid node, or null if none.
          */
+        @SuppressWarnings("unchecked")
         void findNext() {
             for (;;) {
                 QNode pred = pnext;
@@ -660,10 +677,12 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
             }
         }
 
+        @Override
         public boolean hasNext() {
             return next != null;
         }
 
+        @Override
         public E next() {
             if (next == null) throw new NoSuchElementException();
             pcurr = pnext;
@@ -675,6 +694,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
             return x;
         }
 
+        @Override
         public void remove() {
             QNode p = curr;
             if (p == null)
@@ -685,6 +705,8 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
         }
     }
 
+    @Override
+    @SuppressWarnings("unchecked")
     public E peek() {
         for (;;) {
             QNode h = traversalHead();
@@ -701,6 +723,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
         }
     }
 
+    @Override
     public boolean isEmpty() {
         for (;;) {
             QNode h = traversalHead();
@@ -717,6 +740,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
         }
     }
 
+    @Override
     public boolean hasWaitingConsumer() {
         for (;;) {
             QNode h = traversalHead();
@@ -741,6 +765,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
      *
      * @return the number of elements in this queue
      */
+    @Override
     public int size() {
         int count = 0;
         QNode h = traversalHead();
@@ -754,6 +779,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
         return count;
     }
 
+    @Override
     public int getWaitingConsumerCount() {
         int count = 0;
         QNode h = traversalHead();
@@ -766,10 +792,12 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
         return count;
     }
 
+    @Override
     public int remainingCapacity() {
         return Integer.MAX_VALUE;
     }
 
+    @Override
     public boolean remove(Object o) {
         if (o == null)
             return false;

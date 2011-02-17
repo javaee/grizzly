@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -61,14 +61,14 @@ import java.util.ListIterator;
 public class ChainProcessorSelector implements ProcessorSelector,
         List<ProcessorSelector> {
 
-    private List<ProcessorSelector> selectorChain;
+    private final List<ProcessorSelector> selectorChain;
 
     public ChainProcessorSelector() {
         this(new ArrayList<ProcessorSelector>());
     }
 
     public ChainProcessorSelector(ProcessorSelector... selectorChain) {
-        this(new ArrayList(Arrays.asList(selectorChain)));
+        this(new ArrayList<ProcessorSelector>(Arrays.asList(selectorChain)));
     }
 
     public ChainProcessorSelector(List<ProcessorSelector> selectorChain) {

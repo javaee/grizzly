@@ -53,7 +53,7 @@ public abstract class AbstractTransformer<K, L> implements Transformer<K, L> {
     protected AttributeBuilder attributeBuilder =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER;
 
-    protected Attribute<LastResultAwareState> stateAttr;
+    protected Attribute<LastResultAwareState<K, L>> stateAttr;
 
     private MemoryManager memoryManager;
 
@@ -80,7 +80,7 @@ public abstract class AbstractTransformer<K, L> implements Transformer<K, L> {
     @Override
     public final TransformationResult<K, L> getLastResult(
             final AttributeStorage storage) {
-        final LastResultAwareState state = stateAttr.get(storage);
+        final LastResultAwareState<K, L> state = stateAttr.get(storage);
         if (state != null) {
             return state.getLastResult();
         }
@@ -132,10 +132,10 @@ public abstract class AbstractTransformer<K, L> implements Transformer<K, L> {
         return defaultValue;
     }
 
-    protected final LastResultAwareState obtainStateObject(
+    protected final LastResultAwareState<K, L> obtainStateObject(
             final AttributeStorage storage) {
         
-        LastResultAwareState value = stateAttr.get(storage);
+        LastResultAwareState<K, L> value = stateAttr.get(storage);
         if (value == null) {
             value = createStateObject();
             stateAttr.set(storage, value);
@@ -144,18 +144,18 @@ public abstract class AbstractTransformer<K, L> implements Transformer<K, L> {
         return value;
     }
     
-    protected LastResultAwareState createStateObject() {
-        return new LastResultAwareState();
+    protected LastResultAwareState<K, L> createStateObject() {
+        return new LastResultAwareState<K, L>();
     }
 
-    public static class LastResultAwareState {
-        private TransformationResult lastResult;
+    public static class LastResultAwareState<K, L> {
+        private TransformationResult<K, L> lastResult;
 
-        public TransformationResult getLastResult() {
+        public TransformationResult<K, L> getLastResult() {
             return lastResult;
         }
 
-        public void setLastResult(TransformationResult lastResult) {
+        public void setLastResult(TransformationResult<K, L> lastResult) {
             this.lastResult = lastResult;
         }
     }

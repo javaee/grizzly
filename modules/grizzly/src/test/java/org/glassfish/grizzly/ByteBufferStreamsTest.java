@@ -86,7 +86,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
     private Connection clientconnection = null;
     private TCPNIOTransport servertransport = null;
     private StreamWriter clientWriter = null;
-    private final BlockingQueue<Checker> checkerQueue = new LinkedTransferQueue();
+    private final BlockingQueue<Checker> checkerQueue = new LinkedTransferQueue<Checker>();
     private TCPNIOTransport clienttransport;
 
     interface Checker {
@@ -1139,8 +1139,8 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
         AbstractStreamReader reader = new AbstractStreamReader(null, source) {
 
             @Override
-            public GrizzlyFuture notifyCondition(Condition condition,
-                    CompletionHandler completionHandler) {
+            public GrizzlyFuture<Integer> notifyCondition(Condition condition,
+                    CompletionHandler<Integer> completionHandler) {
                 throw new UnsupportedOperationException("Not supported yet.");
             }
         };

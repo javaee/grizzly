@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,7 +41,7 @@
 package org.glassfish.grizzly;
 
 /**
- * Result of read operation, retuned by {@link Readable}.
+ * Result of read operation, returned by {@link Readable}.
  * 
  * @author Alexey Stashok
  */
@@ -51,20 +51,20 @@ public class ReadResult<K, L> implements Result, Cacheable {
 
     private boolean isRecycled = false;
 
-    public static ReadResult create(Connection connection) {
-        final ReadResult readResult = ThreadCache.takeFromCache(CACHE_IDX);
+    public static <K, L> ReadResult<K, L> create(Connection connection) {
+        final ReadResult<K, L> readResult = takeFromCache();
         if (readResult != null) {
             readResult.connection = connection;
             readResult.isRecycled = false;
             return readResult;
         }
 
-        return new ReadResult(connection);
+        return new ReadResult<K, L>(connection);
     }
 
-    public static <K, L> ReadResult create(Connection connection,
+    public static <K, L> ReadResult<K, L> create(Connection connection,
             K message, L srcAddress, int readSize) {
-        final ReadResult readResult = ThreadCache.takeFromCache(CACHE_IDX);
+        final ReadResult<K, L> readResult = takeFromCache();
         if (readResult != null) {
             readResult.connection = connection;
             readResult.message = message;
@@ -75,8 +75,12 @@ public class ReadResult<K, L> implements Result, Cacheable {
             return readResult;
         }
 
-        return new ReadResult(connection, message, srcAddress, readSize);
+        return new ReadResult<K, L>(connection, message, srcAddress, readSize);
+    }
 
+    @SuppressWarnings("unchecked")
+    private static <K, L> ReadResult<K, L> takeFromCache() {
+        return ThreadCache.takeFromCache(CACHE_IDX);
     }
 
     /**

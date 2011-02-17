@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -45,6 +45,7 @@ import java.net.SocketAddress;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorWriter;
 
 /**
@@ -57,8 +58,9 @@ public final class UDPNIOTemporarySelectorWriter extends TemporarySelectorWriter
     }
 
     @Override
-    protected int writeNow0(Connection connection, SocketAddress dstAddress,
-            Buffer buffer, WriteResult currentResult) throws IOException {
+    protected int writeNow0(NIOConnection connection, SocketAddress dstAddress,
+            Buffer buffer, WriteResult<Buffer, SocketAddress> currentResult)
+            throws IOException {
 
         return ((UDPNIOTransport) transport).write((UDPNIOConnection) connection,
                 dstAddress, buffer, currentResult);

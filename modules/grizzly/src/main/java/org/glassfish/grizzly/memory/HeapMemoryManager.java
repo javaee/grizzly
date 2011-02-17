@@ -183,7 +183,7 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
             return createTrimAwareBuffer(size);
         }
 
-        final ThreadLocalPool<ByteBuffer> threadLocalCache = getThreadLocalPool();
+        final ThreadLocalPool<HeapBuffer> threadLocalCache = getHeapBufferThreadLocalPool();
         if (threadLocalCache != null) {
             final int remaining = threadLocalCache.remaining();
 
@@ -203,7 +203,7 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
             return createTrimAwareBuffer(size);
         }
 
-        final ThreadLocalPool<ByteBuffer> threadLocalCache = getThreadLocalPool();
+        final ThreadLocalPool<HeapBuffer> threadLocalCache = getHeapBufferThreadLocalPool();
         if (threadLocalCache != null) {
             int remaining = threadLocalCache.remaining();
 
@@ -221,7 +221,7 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
     protected HeapBuffer reallocateHeapBuffer(HeapBuffer oldHeapBuffer, int newSize) {
         if (oldHeapBuffer.capacity() >= newSize) return oldHeapBuffer;
 
-        final ThreadLocalPool<HeapBuffer> memoryPool = getThreadLocalPool();
+        final ThreadLocalPool<HeapBuffer> memoryPool = getHeapBufferThreadLocalPool();
         if (memoryPool != null) {
             final HeapBuffer newBuffer =
                     memoryPool.reallocate(oldHeapBuffer, newSize);
@@ -241,7 +241,7 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
 
 
     protected void releaseHeapBuffer(final HeapBuffer heapBuffer) {
-        final ThreadLocalPool<HeapBuffer> memoryPool = getThreadLocalPool();
+        final ThreadLocalPool<HeapBuffer> memoryPool = getHeapBufferThreadLocalPool();
         if (memoryPool != null) {
 
             if (memoryPool.release(heapBuffer.clear())) {
@@ -294,6 +294,10 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
         return new RecyclableByteBufferWrapper(underlyingByteBuffer);
     }
 
+    @SuppressWarnings("unchecked")
+    private static HeapBufferThreadLocalPool getHeapBufferThreadLocalPool() {
+        return (HeapBufferThreadLocalPool) getThreadLocalPool();
+    }
     // ---------------------------------------------------------- Nested Classes
 
 

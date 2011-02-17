@@ -60,7 +60,7 @@ public abstract class AsyncQueueRecord<R> implements Cacheable {
     protected Future future;
     protected R currentResult;
     protected CompletionHandler completionHandler;
-    protected Interceptor<R> interceptor;
+    protected Interceptor interceptor;
 
     protected boolean isRecycled = false;
     protected DebugPoint recycleTrack;
@@ -68,7 +68,7 @@ public abstract class AsyncQueueRecord<R> implements Cacheable {
     public AsyncQueueRecord(final Connection connection,
             final Object originalMessage, final Future future,
             final R currentResult, final CompletionHandler completionHandler,
-            final Interceptor<R> interceptor) {
+            final Interceptor interceptor) {
 
         set(connection, originalMessage, future, currentResult,
                 completionHandler, interceptor);
@@ -77,7 +77,7 @@ public abstract class AsyncQueueRecord<R> implements Cacheable {
     protected final void set(final Connection connection,
             final Object originalMessage, final Future future,
             final R currentResult, final CompletionHandler completionHandler,
-            final Interceptor<R> interceptor) {
+            final Interceptor interceptor) {
 
         checkRecycled();
         this.connection = connection;
@@ -128,7 +128,7 @@ public abstract class AsyncQueueRecord<R> implements Cacheable {
         return completionHandler;
     }
 
-    public final Interceptor<R> getInterceptor() {
+    public final Interceptor getInterceptor() {
         checkRecycled();
         return interceptor;
     }

@@ -63,6 +63,7 @@ public abstract class AbstractCodecFilter<K, L> extends BaseFilter
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public NextAction handleRead(FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
         final K message = (K) ctx.getMessage();
@@ -94,6 +95,7 @@ public abstract class AbstractCodecFilter<K, L> extends BaseFilter
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public NextAction handleWrite(FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
         final L message = (L) ctx.getMessage();

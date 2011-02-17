@@ -79,13 +79,6 @@ import java.util.concurrent.ExecutionException;
  */
 public final class DefaultFilterChain extends ListFacadeFilterChain {
 
-//    Comment the mapping array, because "if"s work faster
-//    private static final Operation[] IOEVENT_2_OPERATION = new Operation[] {
-//        Operation.NONE, Operation.NONE, Operation.ACCEPT,
-//        Operation.NONE, Operation.CONNECT,
-//        Operation.READ, Operation.NONE, Operation.CLOSE
-//    };
-
     public enum FILTER_STATE_TYPE {
         INCOMPLETE, REMAINDER
     }
@@ -151,6 +144,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public ReadResult read(final FilterChainContext context) throws IOException {
         final Connection connection = context.getConnection();
         if (!context.getTransportContext().isBlocking()) {
@@ -198,7 +192,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             Object dstAddress, Object message,
             CompletionHandler completionHandler)
             throws IOException {
-        final FutureImpl<WriteResult> future = SafeFutureImpl.create();
+        final FutureImpl<WriteResult> future = SafeFutureImpl.<WriteResult>create();
 
         final FilterChainContext context = obtainFilterChainContext(connection);
         context.transportFilterContext.future = future;
@@ -343,6 +337,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
      *          filter operation to process {@link IOEvent}.
      * @return TODO: Update
      */
+    @SuppressWarnings("unchecked")
     protected final FilterExecution executeChainPart(FilterChainContext ctx,
             FilterExecutor executor,
             int start,
@@ -539,6 +534,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
      * @param filtersState {@link FiltersState} associated with the Connection
      * @param filterIdx the current filter index
      */
+    @SuppressWarnings("unchecked")
     private void checkStoredMessage(final FilterChainContext ctx,
             final FiltersState filtersState, final int filterIdx) {
 
@@ -573,9 +569,9 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
      * @param appender
      * @return
      */
-    private FiltersState storeMessage(final FilterChainContext ctx,
+    private <M> FiltersState storeMessage(final FilterChainContext ctx,
             FiltersState filtersState, FILTER_STATE_TYPE type, final int filterIdx,
-            final Object messageToStore, final Appender appender) {
+            final M messageToStore, final Appender<M> appender) {
 
         if (filtersState == null) {
             final Connection connection = ctx.getConnection();
@@ -586,14 +582,16 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         final Operation operation = ctx.getOperation();
 
         filtersState.setState(operation, filterIdx,
-                new FilterStateElement(type, messageToStore, appender));
+                FilterStateElement.create(type, messageToStore, appender));
 
         return filtersState;
     }
 
     private void notifyComplete(final FilterChainContext context) {
-        final CompletionHandler completionHandler = context.operationCompletionHandler;
-        final FutureImpl future = context.operationCompletionFuture;
+        final CompletionHandler<FilterChainContext> completionHandler =
+                context.operationCompletionHandler;
+        final FutureImpl<FilterChainContext> future =
+                context.operationCompletionFuture;
 
         if (completionHandler != null) {
             completionHandler.completed(context);
@@ -606,8 +604,9 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
 
         // If TransportFilter was invoked on the way - the following CompletionHandler and Future
         // will be null.
-        final CompletionHandler transportCompletionHandler = context.transportFilterContext.completionHandler;
-        final FutureImpl transportFuture = context.transportFilterContext.future;
+        final CompletionHandler<?> transportCompletionHandler =
+                context.transportFilterContext.completionHandler;
+        final FutureImpl<?> transportFuture = context.transportFilterContext.future;
 
         if (transportCompletionHandler != null) {
             transportCompletionHandler.completed(null);
@@ -735,7 +734,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                 final FILTER_STATE_TYPE type,
                 final Object remainder) {
             if (remainder instanceof Buffer) {
-                return create(type, remainder,
+                return create(type, (Buffer) remainder,
                         Buffers.BUFFER_APPENDER);
             } else {
                 return create(type, (Appendable) remainder);

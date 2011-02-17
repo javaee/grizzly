@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -193,7 +193,7 @@ public final class StateHolder<E> {
 
             resultFuture = ReadyFutureImpl.create(state);
         } else {
-            final FutureImpl<E> future = SafeFutureImpl.create();
+            final FutureImpl<E> future = SafeFutureImpl.<E>create();
             final ConditionElement elem = new ConditionElement(
                     condition, future, completionHandler);
 
@@ -227,18 +227,18 @@ public final class StateHolder<E> {
 
     protected final class ConditionElement {
         private final Condition condition;
-        private final FutureImpl future;
-        private final CompletionHandler completionHandler;
+        private final FutureImpl<E> future;
+        private final CompletionHandler<E> completionHandler;
         
-        public ConditionElement(Condition condition, FutureImpl future,
-                CompletionHandler completionHandler) {
+        public ConditionElement(Condition condition, FutureImpl<E> future,
+                CompletionHandler<E> completionHandler) {
             this.condition = condition;
             this.future = future;
             this.completionHandler = completionHandler;
         }
 
 
-        public CompletionHandler getCompletionHandler() {
+        public CompletionHandler<E> getCompletionHandler() {
             return completionHandler;
         }
 
@@ -246,7 +246,7 @@ public final class StateHolder<E> {
             return condition;
         }
 
-        public FutureImpl getFuture() {
+        public FutureImpl<E> getFuture() {
             return future;
         }
     }

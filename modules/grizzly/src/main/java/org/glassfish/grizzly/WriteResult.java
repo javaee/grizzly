@@ -51,20 +51,20 @@ public final class WriteResult<K, L> implements Result, Cacheable {
 
     private boolean isRecycled = false;
 
-    public static WriteResult create(Connection connection) {
-        final WriteResult writeResult = ThreadCache.takeFromCache(CACHE_IDX);
+    public static <K, L> WriteResult<K, L> create(Connection connection) {
+        final WriteResult<K, L> writeResult = takeFromCache();
         if (writeResult != null) {
             writeResult.connection = connection;
             writeResult.isRecycled = false;
             return writeResult;
         }
 
-        return new WriteResult(connection);
+        return new WriteResult<K, L>(connection);
     }
 
-    public static <K, L> WriteResult create(Connection connection,
+    public static <K, L> WriteResult<K, L> create(Connection connection,
             K message, L dstAddress, int writeSize) {
-        final WriteResult writeResult = ThreadCache.takeFromCache(CACHE_IDX);
+        final WriteResult<K, L> writeResult = takeFromCache();
         if (writeResult != null) {
             writeResult.connection = connection;
             writeResult.message = message;
@@ -75,10 +75,15 @@ public final class WriteResult<K, L> implements Result, Cacheable {
             return writeResult;
         }
 
-        return new WriteResult(connection, message, dstAddress, writeSize);
+        return new WriteResult<K, L>(connection, message, dstAddress, writeSize);
 
     }
 
+    @SuppressWarnings("unchecked")
+    private static <K, L> WriteResult<K, L> takeFromCache() {
+        return ThreadCache.takeFromCache(CACHE_IDX);
+    }
+    
     /**
      * Connection, from which data were read.
      */

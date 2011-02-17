@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,6 +42,7 @@ package org.glassfish.grizzly.localization;
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
@@ -54,7 +55,7 @@ import java.util.ResourceBundle;
 public class Localizer {
 
     private final Locale _locale;
-    private final HashMap _resourceBundles;
+    private final Map<String, ResourceBundle> _resourceBundles;
 
     public Localizer() {
         this(Locale.getDefault());
@@ -62,7 +63,7 @@ public class Localizer {
 
     public Localizer(Locale l) {
         _locale = l;
-        _resourceBundles = new HashMap();
+        _resourceBundles = new HashMap<String, ResourceBundle>();
     }
 
     public Locale getLocale() {

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -48,6 +48,7 @@ import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import org.glassfish.grizzly.Buffer;
 
 /**
  * The simple Buffer manager implementation, which works as wrapper above
@@ -132,7 +133,7 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
     @Override
     public ByteBufferWrapper reallocate(ByteBufferWrapper oldBuffer,
             int newSize) {
-        return wrap(reallocateByteBuffer(oldBuffer.underlying(), newSize));
+        return wrap(reallocateByteBuffer((ByteBuffer) oldBuffer.underlying(), newSize));
     }
 
     /**
@@ -222,6 +223,7 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
      * @return allocated {@link ByteBuffer}.
      */
     @Override
+    @SuppressWarnings("unchecked")
     public ByteBuffer allocateByteBuffer(final int size) {
           if (size > maxBufferSize) {
             // Don't use pool
@@ -250,6 +252,7 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
      * @return allocated {@link ByteBuffer}.
      */
     @Override
+    @SuppressWarnings("unchecked")
     public ByteBuffer allocateByteBufferAtLeast(final int size) {
           if (size > maxBufferSize) {
             // Don't use pool
@@ -272,6 +275,7 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
     }
     
     @Override
+    @SuppressWarnings("unchecked")
     public ByteBuffer reallocateByteBuffer(ByteBuffer oldByteBuffer, int newSize) {
         if (oldByteBuffer.capacity() >= newSize) return oldByteBuffer;
 
@@ -293,6 +297,7 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void releaseByteBuffer(ByteBuffer byteBuffer) {
         ThreadLocalPool<ByteBuffer> memoryPool = getThreadLocalPool();
         if (memoryPool != null) {
@@ -512,12 +517,13 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public void trim() {
             final int sizeToReturn = visible.capacity() - visible.position();
 
 
             if (sizeToReturn > 0) {
-                final ThreadLocalPool threadLocalCache = getThreadLocalPool();
+                final ThreadLocalPool<ByteBuffer> threadLocalCache = getThreadLocalPool();
                 if (threadLocalCache != null) {
 
                     if (threadLocalCache.isLastAllocated(visible)) {
@@ -574,7 +580,7 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
      * other words it's possible to return unused {@link org.glassfish.grizzly.Buffer} space to
      * pool.
      */
-    private final class SmallByteBufferWrapper extends ByteBufferWrapper implements Cacheable {
+    protected final class SmallByteBufferWrapper extends ByteBufferWrapper implements Cacheable {
 
         private SmallByteBufferWrapper(ByteBuffer underlyingByteBuffer) {
             super(underlyingByteBuffer);

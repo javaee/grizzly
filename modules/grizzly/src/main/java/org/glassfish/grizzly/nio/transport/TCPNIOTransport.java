@@ -124,7 +124,7 @@ public final class TCPNIOTransport extends NIOTransport implements
     /**
      * Transport AsyncQueueIO
      */
-    AsyncQueueIO asyncQueueIO;
+    AsyncQueueIO<SocketAddress> asyncQueueIO;
     /**
      * Transport TemporarySelectorIO, used for blocking I/O simulation
      */
@@ -188,7 +188,8 @@ public final class TCPNIOTransport extends NIOTransport implements
 
         selectorRegistrationHandler = new RegisterChannelCompletionHandler();
 
-        asyncQueueIO = new AsyncQueueIO(new TCPNIOAsyncQueueReader(this),
+        asyncQueueIO = new AsyncQueueIO<SocketAddress>(
+                new TCPNIOAsyncQueueReader(this),
                 new TCPNIOAsyncQueueWriter(this));
 
         temporarySelectorIO = new TemporarySelectorIO(
@@ -634,7 +635,7 @@ public final class TCPNIOTransport extends NIOTransport implements
     }
 
     @Override
-    public AsyncQueueIO getAsyncQueueIO() {
+    public AsyncQueueIO<SocketAddress> getAsyncQueueIO() {
         return asyncQueueIO;
     }
 
@@ -791,7 +792,7 @@ public final class TCPNIOTransport extends NIOTransport implements
      * {@inheritDoc}
      */
     @Override
-    public Reader getReader(final Connection connection) {
+    public Reader<SocketAddress> getReader(final Connection connection) {
         return getReader(connection.isBlocking());
     }
 
@@ -799,7 +800,7 @@ public final class TCPNIOTransport extends NIOTransport implements
      * {@inheritDoc}
      */
     @Override
-    public Reader getReader(final boolean isBlocking) {
+    public Reader<SocketAddress> getReader(final boolean isBlocking) {
         if (isBlocking) {
             return getTemporarySelectorIO().getReader();
         } else {
@@ -811,7 +812,7 @@ public final class TCPNIOTransport extends NIOTransport implements
      * {@inheritDoc}
      */
     @Override
-    public Writer getWriter(final Connection connection) {
+    public Writer<SocketAddress> getWriter(final Connection connection) {
         return getWriter(connection.isBlocking());
     }
 
@@ -819,7 +820,7 @@ public final class TCPNIOTransport extends NIOTransport implements
      * {@inheritDoc}
      */
     @Override
-    public Writer getWriter(final boolean isBlocking) {
+    public Writer<SocketAddress> getWriter(final boolean isBlocking) {
         if (isBlocking) {
             return getTemporarySelectorIO().getWriter();
         } else {
@@ -1002,6 +1003,7 @@ public final class TCPNIOTransport extends NIOTransport implements
         return write(connection, buffer, null);
     }
 
+    @SuppressWarnings("unchecked")
     public int write(Connection connection, Buffer buffer,
             WriteResult currentResult) throws IOException {
 

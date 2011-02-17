@@ -64,7 +64,7 @@ import org.glassfish.grizzly.NIOTransportBuilder;
 public class Buffers {
     private static final Logger LOGGER = Grizzly.logger(Buffers.class);
 
-    public static final Appender BUFFER_APPENDER = new Appender<Buffer>() {
+    public static final Appender<Buffer> BUFFER_APPENDER = new Appender<Buffer>() {
         @Override
         public Buffer append(final Buffer element1, final Buffer element2) {
             if (element1.isComposite()) {

@@ -265,7 +265,7 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         private final FutureImpl<Connection> connectFuture;
         private final CompletionHandler<Connection> completionHandler;
 
-        private EnableReadPostProcessor(FutureImpl connectFuture,
+        private EnableReadPostProcessor(FutureImpl<Connection> connectFuture,
                 CompletionHandler<Connection> completionHandler) {
             this.connectFuture = connectFuture;
             this.completionHandler = completionHandler;

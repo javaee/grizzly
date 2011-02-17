@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -65,10 +65,12 @@ public final class UDPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
     }
 
     @Override
-    protected int write0(Connection connection, AsyncWriteQueueRecord queueRecord) throws IOException {
+    @SuppressWarnings("unchecked")
+    protected int write0(final NIOConnection connection,
+            final AsyncWriteQueueRecord queueRecord) throws IOException {
         final Buffer outputBuffer = queueRecord.getOutputBuffer();
         final SocketAddress dstAddress = (SocketAddress) queueRecord.getDstAddress();
-        final WriteResult currentResult = queueRecord.getCurrentResult();
+        final WriteResult<Buffer, SocketAddress> currentResult = queueRecord.getCurrentResult();
         return ((UDPNIOTransport) transport).write((UDPNIOConnection) connection,
                 dstAddress, outputBuffer, currentResult);
     }

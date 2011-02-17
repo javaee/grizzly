@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -71,6 +71,7 @@ public class ArraySet<T> implements Set<T> {
      * element(s) was/were present in the set and, as the result, the set values
      * were just reset.
      */
+    @SuppressWarnings("unchecked")
     public final boolean addAll(final T... elements) {
         if (elements.length == 0) {
             return false;
@@ -103,6 +104,7 @@ public class ArraySet<T> implements Set<T> {
      * {@inheritDoc}
      */
     @Override
+    @SuppressWarnings("unchecked")
     public boolean addAll(Collection<? extends T> collection) {
         if (collection.isEmpty()) {
             return false;
@@ -229,6 +231,7 @@ public class ArraySet<T> implements Set<T> {
      * @return the copy of the underlying array. If the underlying array is
      * <tt>null</tt> - then empty array will be returned.
      */
+    @SuppressWarnings("unchecked")
     public final T[] obtainArrayCopy() {
         final T[] localArray = array;
         if (localArray == null) return (T[]) Array.newInstance(clazz, 0);
@@ -266,6 +269,7 @@ public class ArraySet<T> implements Set<T> {
      * {@inheritDoc}
      */
     @Override
+    @SuppressWarnings("unchecked")
     public boolean add(T e) {
         return addAll(e);
     }
@@ -304,6 +308,7 @@ public class ArraySet<T> implements Set<T> {
      * {@inheritDoc}
      */
     @Override
+    @SuppressWarnings("unchecked")
     public <K> K[] toArray(K[] a) {
         final Object[] localArray = array;
 
@@ -356,6 +361,7 @@ public class ArraySet<T> implements Set<T> {
      * {@inheritDoc}
      */
     @Override
+    @SuppressWarnings("unchecked")
     public boolean retainAll(final Collection<?> collection) {
         final T[] localArray = array;
         if (localArray == null) {
@@ -385,6 +391,7 @@ public class ArraySet<T> implements Set<T> {
      * {@inheritDoc}
      */
     @Override
+    @SuppressWarnings("unchecked")
     public boolean removeAll(Collection<?> collection) {
         final T[] localArray = array;
         if (localArray == null) {
@@ -457,6 +464,7 @@ public class ArraySet<T> implements Set<T> {
             lastRet = null;
         }
 
+        @SuppressWarnings("unchecked")
         private void advance() {
             final Object[] localArray = array;
             if (localArray == null || cursor >= localArray.length) {

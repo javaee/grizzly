@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,6 +42,7 @@ package org.glassfish.grizzly.nio.tmpselectors;
 
 import org.glassfish.grizzly.Grizzly;
 import java.io.IOException;
+import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.logging.Level;
@@ -55,18 +56,20 @@ import java.util.logging.Logger;
  * @author oleksiys
  */
 public class TemporarySelectorIO {
-    private static Logger logger = Grizzly.logger(TemporarySelectorIO.class);
+    private static final Logger LOGGER = Grizzly.logger(TemporarySelectorIO.class);
 
     protected TemporarySelectorPool selectorPool;
 
-    private final Reader reader;
-    private final Writer writer;
+    private final Reader<SocketAddress> reader;
+    private final Writer<SocketAddress> writer;
 
-    public TemporarySelectorIO(Reader reader, Writer writer) {
+    public TemporarySelectorIO(Reader<SocketAddress> reader,
+            Writer<SocketAddress> writer) {
         this(reader, writer, null);
     }
 
-    public TemporarySelectorIO(Reader reader, Writer writer,
+    public TemporarySelectorIO(Reader<SocketAddress> reader,
+            Writer<SocketAddress> writer,
             TemporarySelectorPool selectorPool) {
         this.reader = reader;
         this.writer = writer;
@@ -81,11 +84,11 @@ public class TemporarySelectorIO {
         this.selectorPool = selectorPool;
     }
 
-    public Reader getReader() {
+    public Reader<SocketAddress> getReader() {
         return reader;
     }
 
-    public Writer getWriter() {
+    public Writer<SocketAddress> getWriter() {
         return writer;
     }
 
@@ -96,7 +99,7 @@ public class TemporarySelectorIO {
             try {
                 selectionKey.cancel();
             } catch (Exception e) {
-                logger.log(Level.WARNING,
+                LOGGER.log(Level.WARNING,
                         "Unexpected exception, when canceling the SelectionKey: " +
                         selectionKey, e);
             }
@@ -107,12 +110,12 @@ public class TemporarySelectorIO {
                 selector.selectNow();
                 selectorPool.offer(selector);
             } catch (IOException e) {
-                logger.log(Level.WARNING,
+                LOGGER.log(Level.WARNING,
                         "Temporary Selector failure. Creating new one", e);
                 try {
                     selectorPool.offer(SelectorFactory.instance().create());
                 } catch (IOException ee) {
-                    logger.log(Level.WARNING,
+                    LOGGER.log(Level.WARNING,
                             "Error creating new Selector", ee);
                 }
             }

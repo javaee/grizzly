@@ -402,6 +402,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @SuppressWarnings("unchecked")
     @Override
     public void setWorkerThreadPool(final ExecutorService threadPool) {
         managedWorkerPool = false;

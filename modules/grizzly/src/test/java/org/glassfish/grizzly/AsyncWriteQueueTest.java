@@ -46,6 +46,7 @@ import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import java.io.IOException;
+import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -118,16 +119,16 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
 
             reader = ((StandaloneProcessor) connection.getProcessor()).getStreamReader(connection);
 
-            final Writer asyncQueueWriter = transport.getAsyncQueueIO().getWriter();
+            final Writer<SocketAddress> asyncQueueWriter = transport.getAsyncQueueIO().getWriter();
             final MemoryManager mm = transport.getMemoryManager();
             final Connection con = connection;
 
             final CountDownLatch latch = new CountDownLatch(packetNumber);
 
-            final CompletionHandler completionHandler =
-                    new EmptyCompletionHandler() {
+            final CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler =
+                    new EmptyCompletionHandler<WriteResult<Buffer, SocketAddress>>() {
                 @Override
-                public void completed(Object result) {
+                public void completed(WriteResult<Buffer, SocketAddress> result) {
                     latch.countDown();
                 }
             };
@@ -136,7 +137,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
                     new ArrayList<Callable<Object>>(packetNumber + 1);
             for (int i = 0; i < packetNumber; i++) {
                 final byte b = (byte) i;
-                sendTasks.add(new Callable() {
+                sendTasks.add(new Callable<Object>() {
                     @Override
                     public Object call() throws Exception {
                         byte[] originalMessage = new byte[packetSize];
@@ -232,7 +233,8 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
             assertTrue(connection != null);
             connection.configureStandalone(true);
 
-            final AsyncQueueWriter asyncQueueWriter = transport.getAsyncQueueIO().getWriter();
+            final AsyncQueueWriter<SocketAddress> asyncQueueWriter =
+                    transport.getAsyncQueueIO().getWriter();
             asyncQueueWriter.setMaxPendingBytesPerConnection(queueLimit);
             final MemoryManager mm = transport.getMemoryManager();
             final Connection con = connection;
@@ -257,7 +259,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
                     } else {
                         if (loopCount == 3) {
                             asyncQueueWriter.write(con, buffer,
-                                    new EmptyCompletionHandler() {
+                                    new EmptyCompletionHandler<WriteResult<Buffer, SocketAddress>>() {
 
                                         @Override
                                         public void failed(Throwable throwable) {

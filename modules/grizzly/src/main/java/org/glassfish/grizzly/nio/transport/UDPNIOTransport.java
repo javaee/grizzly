@@ -125,7 +125,7 @@ public final class UDPNIOTransport extends NIOTransport implements
     /**
      * Transport AsyncQueueIO
      */
-    protected AsyncQueueIO asyncQueueIO;
+    protected AsyncQueueIO<SocketAddress> asyncQueueIO;
     /**
      * Server socket backlog.
      */
@@ -150,7 +150,8 @@ public final class UDPNIOTransport extends NIOTransport implements
 
         registerChannelCompletionHandler = new RegisterChannelCompletionHandler();
 
-        asyncQueueIO = new AsyncQueueIO(new UDPNIOAsyncQueueReader(this),
+        asyncQueueIO = new AsyncQueueIO<SocketAddress>(
+                new UDPNIOAsyncQueueReader(this),
                 new UDPNIOAsyncQueueWriter(this));
 
         temporarySelectorIO = new TemporarySelectorIO(
@@ -671,7 +672,7 @@ public final class UDPNIOTransport extends NIOTransport implements
     }
 
     private int readConnected(final UDPNIOConnection connection, Buffer buffer,
-            final ReadResult currentResult) throws IOException {
+            final ReadResult<Buffer, SocketAddress> currentResult) throws IOException {
         final SocketAddress peerAddress = connection.getPeerAddress();
 
         final int read;
@@ -708,7 +709,8 @@ public final class UDPNIOTransport extends NIOTransport implements
     }
 
     private int readNonConnected(final UDPNIOConnection connection, Buffer buffer,
-            final ReadResult currentResult) throws IOException {
+            final ReadResult<Buffer, SocketAddress> currentResult)
+            throws IOException {
         final SocketAddress peerAddress;
 
         final int read;
@@ -747,7 +749,8 @@ public final class UDPNIOTransport extends NIOTransport implements
     }
 
     public int read(final UDPNIOConnection connection, Buffer buffer,
-            final ReadResult currentResult) throws IOException {
+            final ReadResult<Buffer, SocketAddress> currentResult)
+            throws IOException {
 
         int read = 0;
 
@@ -783,7 +786,7 @@ public final class UDPNIOTransport extends NIOTransport implements
     }
 
     public int write(final UDPNIOConnection connection, final SocketAddress dstAddress,
-            final Buffer buffer, final WriteResult currentResult)
+            final Buffer buffer, final WriteResult<Buffer, SocketAddress> currentResult)
             throws IOException {
 
         final int written;

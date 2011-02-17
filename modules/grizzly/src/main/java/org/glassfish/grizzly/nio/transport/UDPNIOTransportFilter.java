@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -64,6 +64,7 @@ import org.glassfish.grizzly.filterchain.FilterChainEvent;
  * 
  * @author Alexey Stashok
  */
+@SuppressWarnings("unchecked")
 public final class UDPNIOTransportFilter extends BaseFilter {
     private final UDPNIOTransport transport;
 
@@ -80,11 +81,11 @@ public final class UDPNIOTransportFilter extends BaseFilter {
         final ReadResult<Buffer, SocketAddress> readResult;
 
         if (!isBlocking) {
-            readResult = ReadResult.create(connection);
+            readResult = ReadResult.<Buffer, SocketAddress>create(connection);
             transport.read(connection, null, readResult);
 
         } else {
-            GrizzlyFuture<ReadResult> future =
+            GrizzlyFuture<ReadResult<Buffer, SocketAddress>> future =
                     transport.getTemporarySelectorIO().getReader().read(
                     connection, null);
             try {

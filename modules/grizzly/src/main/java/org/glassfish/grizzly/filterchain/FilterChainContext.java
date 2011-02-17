@@ -294,6 +294,7 @@ public final class FilterChainContext implements AttributeStorage {
      *
      * @return message object, associated with the current processing.
      */
+    @SuppressWarnings("unchecked")
     public <T> T getMessage() {
         return (T) message;
     }
@@ -467,7 +468,7 @@ public final class FilterChainContext implements AttributeStorage {
      */
     public NextAction getStopAction(Object unknownObject) {
         if (unknownObject instanceof Buffer) {
-            return getStopAction(unknownObject, Buffers.BUFFER_APPENDER);
+            return getStopAction((Buffer) unknownObject, Buffers.BUFFER_APPENDER);
         }
 
         return getStopAction((Appendable) unknownObject);
@@ -562,7 +563,8 @@ public final class FilterChainContext implements AttributeStorage {
     }
 
     public void notifyUpstream(final FilterChainEvent event,
-            final CompletionHandler completionHandler) throws IOException {
+            final CompletionHandler<FilterChainContext> completionHandler)
+            throws IOException {
         
         final FilterChainContext newContext =
                 getFilterChain().obtainFilterChainContext(getConnection());
@@ -584,7 +586,8 @@ public final class FilterChainContext implements AttributeStorage {
     }
 
     public void notifyDownstream(final FilterChainEvent event,
-            final CompletionHandler completionHandler) throws IOException {
+            final CompletionHandler<FilterChainContext> completionHandler)
+            throws IOException {
         final FilterChainContext newContext =
                 getFilterChain().obtainFilterChainContext(getConnection());
 

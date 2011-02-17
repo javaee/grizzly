@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,6 +55,7 @@ import org.glassfish.grizzly.streams.BufferedInput;
  *
  * @author Alexey Stashok
  */
+@SuppressWarnings("unchecked")
 public final class DefaultStreamReader extends AbstractStreamReader {
 
     public DefaultStreamReader(Connection connection) {
@@ -79,14 +80,14 @@ public final class DefaultStreamReader extends AbstractStreamReader {
             final Reader reader = transport.getReader(connection);
 
             reader.read(connection, null, null,
-                    new Interceptor() {
+                    new Interceptor<ReadResult<Buffer, ?>> () {
 
                         @Override
-                        public int intercept(int event, Object context, Object result) {
+                        public int intercept(int event, Object context,
+                                ReadResult<Buffer, ?> result) {
                             if (event == Reader.READ_EVENT) {
-                                final ReadResult readResult = (ReadResult) result;
-                                final Buffer buffer = (Buffer) readResult.getMessage();
-                                readResult.setMessage(null);
+                                final Buffer buffer = result.getMessage();
+                                result.setMessage(null);
 
                                 if (buffer == null) {
                                     return Interceptor.INCOMPLETED;

@@ -47,6 +47,7 @@ import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import org.glassfish.grizzly.nio.AbstractNIOAsyncQueueWriter;
 import org.glassfish.grizzly.nio.NIOTransport;
 import java.io.IOException;
+import java.net.SocketAddress;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
@@ -73,12 +74,12 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
     @Override
     protected AsyncWriteQueueRecord createRecord(
             final Connection connection,
-            final Object message,
-            final Future future,
-            final WriteResult currentResult,
-            final CompletionHandler completionHandler,
-            final Interceptor interceptor,
-            final Object dstAddress,
+            final Buffer message,
+            final Future<WriteResult<Buffer, SocketAddress>> future,
+            final WriteResult<Buffer, SocketAddress> currentResult,
+            final CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler,
+            final Interceptor<WriteResult<Buffer, SocketAddress>> interceptor,
+            final SocketAddress dstAddress,
             final Buffer outputBuffer,
             final boolean isCloned) {
         return TCPNIOQueueRecord.create(connection, message, future,
@@ -89,10 +90,12 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
 
 
     @Override
-    protected int write0(Connection connection,
-            AsyncWriteQueueRecord queueRecord) throws IOException {
+    @SuppressWarnings("unchecked")
+    protected int write0(final NIOConnection connection,
+            final AsyncWriteQueueRecord queueRecord) throws IOException {
                 
-        final WriteResult currentResult = queueRecord.getCurrentResult();
+        final WriteResult<Buffer, SocketAddress> currentResult =
+                queueRecord.getCurrentResult();
         final Buffer buffer = queueRecord.getOutputBuffer();
         final TCPNIOQueueRecord record = (TCPNIOQueueRecord) queueRecord;
 

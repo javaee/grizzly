@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -63,8 +63,9 @@ public class UnsafeFutureImpl<R> implements FutureImpl<R> {
     /**
      * Construct {@link Future}.
      */
+    @SuppressWarnings("unchecked")
     public static <R> UnsafeFutureImpl<R> create() {
-        final UnsafeFutureImpl future = ThreadCache.takeFromCache(CACHE_IDX);
+        final UnsafeFutureImpl<R> future = ThreadCache.takeFromCache(CACHE_IDX);
         if (future != null) {
             return future;
         }

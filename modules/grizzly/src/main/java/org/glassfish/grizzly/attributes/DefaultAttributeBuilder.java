@@ -68,6 +68,7 @@ public class DefaultAttributeBuilder implements AttributeBuilder {
      * {@inheritDoc}
      */
     @Override
+    @SuppressWarnings("unchecked")
     public synchronized <T> Attribute<T> createAttribute(final String name,
             final T defaultValue) {
         Attribute<T> attribute = name2Attribute.get(name);
@@ -84,6 +85,7 @@ public class DefaultAttributeBuilder implements AttributeBuilder {
      * {@inheritDoc}
      */
     @Override
+    @SuppressWarnings("unchecked")
     public synchronized <T> Attribute<T> createAttribute(final String name,
             final NullaryFunction<T> initializer) {
         Attribute<T> attribute = name2Attribute.get(name);

@@ -101,7 +101,7 @@ public class DelayedExecutor {
     public <E> DelayQueue<E> createDelayQueue(final Worker<E> worker,
             final Resolver<E> resolver) {
         
-        final DelayQueue<E> queue = new DelayQueue(worker, resolver);
+        final DelayQueue<E> queue = new DelayQueue<E>(worker, resolver);
 
         queues.add(queue);
 
@@ -114,6 +114,7 @@ public class DelayedExecutor {
 
     private class DelayedRunnable implements Runnable {
 
+        @SuppressWarnings("unchecked")
         @Override
         public void run() {
             while(isStarted) {

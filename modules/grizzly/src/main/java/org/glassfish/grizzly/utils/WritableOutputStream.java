@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -48,12 +48,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Writable;
+import org.glassfish.grizzly.WriteResult;
 
 /**
  * Bridge between {@link org.glassfish.grizzly.Writable} and {@link OutputStream}
  * 
  * @author Alexey Stashok
  */
+@SuppressWarnings("unchecked")
 public class WritableOutputStream extends OutputStream {
     private Writable writable;
     private Buffer buffer;
@@ -108,7 +110,7 @@ public class WritableOutputStream extends OutputStream {
 
     @Override
     public void flush() throws IOException {
-        Future future = writable.write(buffer);
+        Future<WriteResult<Buffer, ?>> future = writable.write(buffer);
 
         try {
             future.get(timeout, TimeUnit.MILLISECONDS);

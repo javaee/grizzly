@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,9 +41,10 @@
 package org.glassfish.grizzly.nio.transport;
 
 import java.io.IOException;
+import java.net.SocketAddress;
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.ReadResult;
+import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorReader;
 
 /**
@@ -56,8 +57,9 @@ public final class TCPNIOTemporarySelectorReader extends TemporarySelectorReader
     }
 
     @Override
-    protected final int readNow0(final Connection connection, Buffer buffer,
-            final ReadResult currentResult) throws IOException {
+    protected final int readNow0(final NIOConnection connection, Buffer buffer,
+            final ReadResult<Buffer, SocketAddress> currentResult)
+            throws IOException {
         final int oldPosition = buffer != null ? buffer.position() : 0;
         
         if ((buffer = ((TCPNIOTransport) transport).read(connection, buffer)) != null) {

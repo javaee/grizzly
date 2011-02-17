@@ -70,6 +70,7 @@ import org.glassfish.grizzly.memory.Buffers;
  *
  * @author Alexey Stashok
  */
+@SuppressWarnings("unchecked")
 public class FilterChainTest extends TestCase {
     private static final int PORT = 7788;
     
@@ -117,10 +118,11 @@ public class FilterChainTest extends TestCase {
 
         final FutureImpl<Boolean> resultFuture = SafeFutureImpl.create();
         
-        final CompletionHandler completionHandler = new EmptyCompletionHandler() {
+        final CompletionHandler<FilterChainContext> completionHandler =
+                new EmptyCompletionHandler<FilterChainContext>() {
 
             @Override
-            public void completed(Object result) {
+            public void completed(FilterChainContext result) {
                 resultFuture.result(true);
             }
 
@@ -151,10 +153,11 @@ public class FilterChainTest extends TestCase {
 
         final FutureImpl<Boolean> resultFuture = SafeFutureImpl.create();
 
-        final CompletionHandler completionHandler = new EmptyCompletionHandler() {
+        final CompletionHandler<FilterChainContext> completionHandler =
+                new EmptyCompletionHandler<FilterChainContext>() {
 
             @Override
-            public void completed(Object result) {
+            public void completed(FilterChainContext result) {
                 resultFuture.result(true);
             }
 
@@ -255,10 +258,10 @@ public class FilterChainTest extends TestCase {
                 final Connection c = ctx.getConnection();
                 final Buffer buffer = bufferAttr.remove(c);
 
-                ctx.write(buffer, new EmptyCompletionHandler() {
+                ctx.write(buffer, new EmptyCompletionHandler<WriteResult>() {
 
                     @Override
-                    public void completed(Object result) {
+                    public void completed(WriteResult result) {
                         ctx.setFilterIdx(ctx.getFilterIdx() - 1);
                         ctx.resume();
                     }

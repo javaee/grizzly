@@ -116,7 +116,7 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
      * {@inheritDoc}
      */
     @Override
-    protected LastResultAwareState createStateObject() {
+    protected GZipOutputState createStateObject() {
         return new GZipOutputState();
     }
 
@@ -299,7 +299,8 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
         buffer.put((byte) ((value >> 8) & 0xff));
     }
 
-    protected static final class GZipOutputState extends LastResultAwareState {
+    protected static final class GZipOutputState
+            extends LastResultAwareState<Buffer, Buffer> {
         private boolean isInitialized;
 
         /**

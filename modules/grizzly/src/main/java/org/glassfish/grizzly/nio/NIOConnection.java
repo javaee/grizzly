@@ -325,6 +325,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         return read(null);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public <M> GrizzlyFuture<ReadResult<M, SocketAddress>> read(
             CompletionHandler<ReadResult<M, SocketAddress>> completionHandler)
@@ -347,6 +348,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         return write(null, message, completionHandler);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(
             SocketAddress dstAddress, M message,

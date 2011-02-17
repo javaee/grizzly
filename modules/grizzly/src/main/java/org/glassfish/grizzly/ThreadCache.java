@@ -66,19 +66,20 @@ public final class ThreadCache {
 
     }
 
+    @SuppressWarnings("unchecked")
     public static synchronized <E> CachedTypeIndex<E> obtainIndex(String name,
             Class<E> clazz, int size) {
 
-        CachedTypeIndex typeIndex = typeIndexMap.get(name);
+        CachedTypeIndex<E> typeIndex = typeIndexMap.get(name);
         if (typeIndex == null) {
-            typeIndex = new CachedTypeIndex(indexCounter++, name, clazz, size);
+            typeIndex = new CachedTypeIndex<E>(indexCounter++, name, clazz, size);
             typeIndexMap.put(name, typeIndex);
         }
 
         return typeIndex;
     }
 
-    public static boolean putToCache(CachedTypeIndex index, Object o) {
+    public static <E> boolean putToCache(CachedTypeIndex<E> index, E o) {
         final Thread currentThread = Thread.currentThread();
         if (currentThread instanceof DefaultWorkerThread) {
             return ((DefaultWorkerThread) currentThread).putToCache(index, o);
@@ -135,6 +136,7 @@ public final class ThreadCache {
             return objectCache.put(o);
         }
 
+        @SuppressWarnings("unchecked")
         public <E> E get(CachedTypeIndex<E> index) {
             final int idx;
             if (objectCacheElements != null &&

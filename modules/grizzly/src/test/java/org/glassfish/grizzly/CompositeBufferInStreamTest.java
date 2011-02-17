@@ -65,6 +65,7 @@ public class CompositeBufferInStreamTest extends GrizzlyTestCase {
     public static final int PORT = 7783;
     private static final Logger LOGGER = Grizzly.logger(CompositeBufferInStreamTest.class);
 
+    @SuppressWarnings("unchecked")
     public void testCompositeBuffer() throws Exception {
         Connection connection = null;
         final TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
@@ -73,14 +74,14 @@ public class CompositeBufferInStreamTest extends GrizzlyTestCase {
         final Buffer portion2 = Buffers.wrap(transport.getMemoryManager(), " ");
         final Buffer portion3 = Buffers.wrap(transport.getMemoryManager(), "world!");
 
-        final FutureImpl lock1 = SafeFutureImpl.create();
-        final FutureImpl lock2 = SafeFutureImpl.create();
-        final FutureImpl lock3 = SafeFutureImpl.create();
+        final FutureImpl<Integer> lock1 = SafeFutureImpl.<Integer>create();
+        final FutureImpl<Integer> lock2 = SafeFutureImpl.<Integer>create();
+        final FutureImpl<Integer> lock3 = SafeFutureImpl.<Integer>create();
 
-        final Pair<Buffer, FutureImpl>[] portions = new Pair[]{
-            new Pair<Buffer, FutureImpl>(portion1, lock1),
-            new Pair<Buffer, FutureImpl>(portion2, lock2),
-            new Pair<Buffer, FutureImpl>(portion3, lock3)
+        final Pair<Buffer, FutureImpl<Integer>>[] portions = new Pair[] {
+            new Pair<Buffer, FutureImpl<Integer>>(portion1, lock1),
+            new Pair<Buffer, FutureImpl<Integer>>(portion2, lock2),
+            new Pair<Buffer, FutureImpl<Integer>>(portion3, lock3)
         };
 
         try {
@@ -104,12 +105,12 @@ public class CompositeBufferInStreamTest extends GrizzlyTestCase {
                     ((StandaloneProcessor) connection.getProcessor()).
                     getStreamWriter(connection);
 
-            for (Pair<Buffer, FutureImpl> portion : portions) {
+            for (Pair<Buffer, FutureImpl<Integer>> portion : portions) {
                 final Buffer buffer = portion.getFirst().duplicate();
-                final Future locker = portion.getSecond();
+                final Future<Integer> locker = portion.getSecond();
 
                 writer.writeBuffer(buffer);
-                final Future writeFuture = writer.flush();
+                final Future<Integer> writeFuture = writer.flush();
                 writeFuture.get(5000, TimeUnit.MILLISECONDS);
 
                 locker.get(5000, TimeUnit.MILLISECONDS);
@@ -128,7 +129,7 @@ public class CompositeBufferInStreamTest extends GrizzlyTestCase {
 
     private void startEchoServerThread(final TCPNIOTransport transport,
             final TCPNIOServerConnection serverConnection,
-            final Pair<Buffer, FutureImpl>[] portions) {
+            final Pair<Buffer, FutureImpl<Integer>>[] portions) {
         new Thread(new Runnable() {
 
             @Override
@@ -148,8 +149,8 @@ public class CompositeBufferInStreamTest extends GrizzlyTestCase {
                         int i = 0;
                         try {
                             for (; i < portions.length; i++) {
-                                final Pair<Buffer, FutureImpl> portion = portions[i];
-                                final FutureImpl currentLocker = portion.getSecond();
+                                final Pair<Buffer, FutureImpl<Integer>> portion = portions[i];
+                                final FutureImpl<Integer> currentLocker = portion.getSecond();
 
                                 availableExp += portion.getFirst().remaining();
                                 Future readFuture = reader.notifyAvailable(availableExp);

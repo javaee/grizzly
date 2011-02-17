@@ -59,6 +59,7 @@ import java.io.IOException;
  *
  * @author Alexey Stashok
  */
+@SuppressWarnings("unchecked")
 public class TransformerOutput extends BufferedOutput {
 
     private final Attribute<CompositeBuffer> outputBufferAttr;

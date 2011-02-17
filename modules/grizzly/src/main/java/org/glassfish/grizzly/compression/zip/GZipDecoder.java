@@ -106,7 +106,7 @@ public class GZipDecoder extends AbstractTransformer<Buffer, Buffer> {
      * {@inheritDoc}
      */
     @Override
-    protected LastResultAwareState createStateObject() {
+    protected GZipInputState createStateObject() {
         return new GZipInputState();
     }
 
@@ -421,7 +421,8 @@ public class GZipDecoder extends AbstractTransformer<Buffer, Buffer> {
         }
     }
     
-    protected static final class GZipInputState extends LastResultAwareState {
+    protected static final class GZipInputState
+            extends LastResultAwareState<Buffer, Buffer> {
         private boolean isInitialized;
 
         /**

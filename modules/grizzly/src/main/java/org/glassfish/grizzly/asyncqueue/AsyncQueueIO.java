@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -46,11 +46,11 @@ package org.glassfish.grizzly.asyncqueue;
  * 
  * @author Alexey Stashok
  */
-public class AsyncQueueIO {
-    private final AsyncQueueReader reader;
-    private final AsyncQueueWriter writer;
+public class AsyncQueueIO<L> {
+    private final AsyncQueueReader<L> reader;
+    private final AsyncQueueWriter<L> writer;
 
-    public AsyncQueueIO(AsyncQueueReader reader, AsyncQueueWriter writer) {
+    public AsyncQueueIO(AsyncQueueReader<L> reader, AsyncQueueWriter<L> writer) {
         this.reader = reader;
         this.writer = writer;
     }
@@ -60,7 +60,7 @@ public class AsyncQueueIO {
      * 
      * @return {@link AsyncQueueReader} implementation.
      */
-    public AsyncQueueReader getReader() {
+    public AsyncQueueReader<L> getReader() {
         return reader;
     }
 
@@ -69,7 +69,7 @@ public class AsyncQueueIO {
      *
      * @return {@link AsyncQueueWriter} implementation.
      */
-    public AsyncQueueWriter getWriter() {
+    public AsyncQueueWriter<L> getWriter() {
         return writer;
     }
 }

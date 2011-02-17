@@ -148,11 +148,11 @@ public class GZipTest extends TestCase {
 
     private static final class ClientEchoCheckFilter extends BaseFilter {
         private final String[] messages;
-        private final FutureImpl future;
+        private final FutureImpl<Boolean> future;
 
         private final AtomicInteger idx = new AtomicInteger();
 
-        public ClientEchoCheckFilter(FutureImpl future, String... messages) {
+        public ClientEchoCheckFilter(FutureImpl<Boolean> future, String... messages) {
             this.messages = messages;
             this.future = future;
         }

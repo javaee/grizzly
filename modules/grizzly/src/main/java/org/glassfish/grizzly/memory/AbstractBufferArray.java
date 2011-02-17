@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -58,6 +58,7 @@ public abstract class AbstractBufferArray<E> {
     protected abstract int getPosition(E buffer);
     protected abstract int getLimit(E buffer);
 
+    @SuppressWarnings("unchecked")
     protected AbstractBufferArray(Class<E> clazz) {
         this.clazz = clazz;
         byteBufferArray = (E[]) Array.newInstance(clazz, 4);

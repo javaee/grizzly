@@ -68,6 +68,7 @@ import java.util.Queue;
  * 
  * @author Alexey Stashok
  */
+@SuppressWarnings("unchecked")
 public abstract class AbstractNIOAsyncQueueReader
         extends AbstractReader<SocketAddress>
         implements AsyncQueueReader<SocketAddress> {
@@ -105,7 +106,8 @@ public abstract class AbstractNIOAsyncQueueReader
                 ((NIOConnection) connection).getAsyncReadQueue();
 
 
-        final ReadResult currentResult = ReadResult.create(connection,
+        final ReadResult<Buffer, SocketAddress> currentResult =
+                ReadResult.<Buffer, SocketAddress>create(connection,
                 buffer, null, 0);
 
         // create and initialize the read queue record
@@ -162,7 +164,8 @@ public abstract class AbstractNIOAsyncQueueReader
                         queueRecord.setMessage(null);
                     }
 
-                    final FutureImpl future = SafeFutureImpl.create();
+                    final FutureImpl<ReadResult<Buffer, SocketAddress>> future =
+                            SafeFutureImpl.<ReadResult<Buffer, SocketAddress>>create();
                     queueRecord.setFuture(future);
                     currentElement.set(queueRecord);
                     
@@ -176,7 +179,8 @@ public abstract class AbstractNIOAsyncQueueReader
 
             } else { // Read queue is not empty - add new element to a queue
                 // Create future
-                final FutureImpl future = SafeFutureImpl.create();
+                final FutureImpl<ReadResult<Buffer, SocketAddress>> future =
+                        SafeFutureImpl.<ReadResult<Buffer, SocketAddress>>create();
                 queueRecord.setFuture(future);
 
                 connectionQueue.getQueue().offer(queueRecord);

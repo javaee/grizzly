@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -45,6 +45,7 @@ import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import java.io.IOException;
+import java.net.SocketAddress;
 import java.util.logging.Filter;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
@@ -79,11 +80,11 @@ public final class TCPNIOTransportFilter extends BaseFilter {
         if (!isBlocking) {
             buffer = transport.read(connection, null);
         } else {
-            GrizzlyFuture<ReadResult> future =
+            GrizzlyFuture<ReadResult<Buffer, SocketAddress>> future =
                     transport.getTemporarySelectorIO().getReader().read(
                     connection, null);
             try {
-                ReadResult<Buffer, ?> result = future.get();
+                ReadResult<Buffer, SocketAddress> result = future.get();
                 buffer = result.getMessage();
                 future.recycle(true);
             } catch (ExecutionException e) {
@@ -111,9 +112,10 @@ public final class TCPNIOTransportFilter extends BaseFilter {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public NextAction handleWrite(final FilterChainContext ctx)
             throws IOException {
-        final Object message = ctx.getMessage();
+        final Buffer message = ctx.getMessage();
         if (message != null) {
             ctx.setMessage(null);
             final Connection connection = ctx.getConnection();
@@ -133,8 +135,8 @@ public final class TCPNIOTransportFilter extends BaseFilter {
                 writeCompletionHandler = completionHandler;
             }
 
-            transport.getWriter(transportContext.isBlocking()).write(connection,
-                    (Buffer) message, writeCompletionHandler).markForRecycle(
+            ((TCPNIOTransport) transport).getWriter(transportContext.isBlocking()).write(connection,
+                    message, writeCompletionHandler).markForRecycle(
                     !hasFuture);
 
             transportContext.setFuture(null);
@@ -146,6 +148,7 @@ public final class TCPNIOTransportFilter extends BaseFilter {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public NextAction handleEvent(final FilterChainContext ctx,
             final FilterChainEvent event) throws IOException {
         if (event.type() == TransportFilter.FlushEvent.TYPE) {

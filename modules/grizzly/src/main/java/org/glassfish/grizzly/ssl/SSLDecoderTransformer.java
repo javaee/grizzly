@@ -74,13 +74,13 @@ public final class SSLDecoderTransformer extends AbstractTransformer<Buffer, Buf
 
     private static final Logger LOGGER = Grizzly.logger(SSLDecoderTransformer.class);
 
-    private final MemoryManager<Buffer> memoryManager;
+    private final MemoryManager memoryManager;
 
     public SSLDecoderTransformer() {
         this(NIOTransportBuilder.DEFAULT_MEMORY_MANAGER);
     }
 
-    public SSLDecoderTransformer(MemoryManager<Buffer> memoryManager) {
+    public SSLDecoderTransformer(MemoryManager memoryManager) {
         this.memoryManager = memoryManager;
     }
 

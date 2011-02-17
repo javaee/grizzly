@@ -82,7 +82,7 @@ import static org.glassfish.grizzly.ssl.SSLUtils.*;
 public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     private static final Logger LOGGER = Grizzly.logger(SSLFilter.class);
 
-    private final Attribute<CompletionHandler> handshakeCompletionHandlerAttr;
+    private final Attribute<CompletionHandler<SSLEngine>> handshakeCompletionHandlerAttr;
     private final SSLEngineConfigurator serverSSLEngineConfigurator;
     private final SSLEngineConfigurator clientSSLEngineConfigurator;
 
@@ -521,7 +521,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
 
         final Connection connection = ctx.getConnection();
 
-        final CompletionHandler completionHandler =
+        final CompletionHandler<SSLEngine> completionHandler =
                 handshakeCompletionHandlerAttr.get(connection);
         final boolean isPendingHandler = completionHandler instanceof PendingWriteCompletionHandler;
 

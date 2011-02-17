@@ -64,6 +64,7 @@ import java.util.logging.Logger;
  *
  * @author Alexey Stashok
  */
+@SuppressWarnings("unchecked")
 public class ProtocolChainCodecTest extends GrizzlyTestCase {
     private static final Logger logger = Grizzly.logger(ProtocolChainCodecTest.class);
     public static final int PORT = 7784;

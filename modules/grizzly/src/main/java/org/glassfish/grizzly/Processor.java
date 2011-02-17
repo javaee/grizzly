@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -71,8 +71,8 @@ public interface Processor<E extends Context> {
     public GrizzlyFuture<ReadResult> read(Connection connection,
             CompletionHandler<ReadResult> completionHandler) throws IOException;
 
-    public <M> GrizzlyFuture<WriteResult> write(Connection connection,
-            Object dstAddress, M message,
+    public  GrizzlyFuture<WriteResult> write(Connection connection,
+            Object dstAddress, Object message,
             CompletionHandler<WriteResult> completionHandler) throws IOException;
     
     /**

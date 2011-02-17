@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -116,10 +116,12 @@ public abstract class TemporarySelectorReader
                     "Connection should be NIOConnection and cannot be null.");
         }
 
+        final NIOConnection nioConnection = (NIOConnection) connection;
+        
         final ReadResult<Buffer, SocketAddress> currentResult =
                 ReadResult.<Buffer, SocketAddress>create(connection, message, null, 0);
 
-        final int readBytes = read0(connection, interceptor,
+        final int readBytes = read0(nioConnection, interceptor,
                 currentResult, message, timeout, timeunit);
 
         if (readBytes > 0) {
@@ -132,15 +134,15 @@ public abstract class TemporarySelectorReader
                 interceptor.intercept(COMPLETE_EVENT, connection, currentResult);
             }
 
-            return ReadyFutureImpl.create(currentResult);
+            return ReadyFutureImpl.<ReadResult<Buffer, SocketAddress>>create(currentResult);
         } else {
-            return ReadyFutureImpl.create(new TimeoutException());
+            return ReadyFutureImpl.<ReadResult<Buffer, SocketAddress>>create(new TimeoutException());
         }
     }
 
-    private int read0(Connection connection,
+    private int read0(NIOConnection connection,
             Interceptor<ReadResult> interceptor,
-            ReadResult currentResult, Buffer buffer,
+            ReadResult<Buffer, SocketAddress> currentResult, Buffer buffer,
             long timeout, TimeUnit timeunit) throws IOException {
 
         boolean isCompleted = false;
@@ -162,7 +164,8 @@ public abstract class TemporarySelectorReader
         return currentResult.getReadSize();
     }
 
-    protected final int read0(final Connection connection, final ReadResult currentResult,
+    protected final int read0(final NIOConnection connection,
+            final ReadResult<Buffer, SocketAddress> currentResult,
             final Buffer buffer, final long timeout, final TimeUnit timeunit)
             throws IOException {
 
@@ -175,7 +178,7 @@ public abstract class TemporarySelectorReader
         final long readTimeout = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
 
         try {
-            bytesRead = readNow0(connection, buffer, currentResult);
+            bytesRead = readNow0(nioConnection, buffer, currentResult);
 
             if (bytesRead == 0) {
                 readSelector = transport.getTemporarySelectorIO().
@@ -195,7 +198,7 @@ public abstract class TemporarySelectorReader
                     return bytesRead; // Return on the main Selector and try again.
                 }
 
-                bytesRead = readNow0(connection, buffer, currentResult);
+                bytesRead = readNow0(nioConnection, buffer, currentResult);
             }
 
             if (bytesRead == -1) {
@@ -209,8 +212,9 @@ public abstract class TemporarySelectorReader
         return bytesRead;
     }
 
-    protected abstract int readNow0(Connection connection,
-            Buffer buffer, ReadResult currentResult) throws IOException;
+    protected abstract int readNow0(NIOConnection connection,
+            Buffer buffer, ReadResult<Buffer, SocketAddress> currentResult)
+            throws IOException;
 
     protected Buffer acquireBuffer(Connection connection) {
         Transport connectionTransport = connection.getTransport();

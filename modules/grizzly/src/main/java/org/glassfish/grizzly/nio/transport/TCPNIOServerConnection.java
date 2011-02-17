@@ -82,10 +82,10 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
     }
 
     public void listen() throws IOException {
-        final CompletionHandler registerCompletionHandler =
+        final CompletionHandler<RegisterChannelResult> registerCompletionHandler =
                 ((TCPNIOTransport) transport).selectorRegistrationHandler;
 
-        final Future future =
+        final Future<RegisterChannelResult> future =
                 transport.getNIOChannelDistributor().registerChannelAsync(
                 channel, SelectionKey.OP_ACCEPT, this, registerCompletionHandler);
         try {
@@ -143,7 +143,7 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
         }
 
         synchronized (acceptSync) {
-            final FutureImpl future = SafeFutureImpl.create();
+            final FutureImpl<Connection> future = SafeFutureImpl.<Connection>create();
             final SocketChannel acceptedChannel = doAccept();
             if (acceptedChannel != null) {
                 configureAcceptedChannel(acceptedChannel);
@@ -163,21 +163,22 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
         return serverChannel.accept();
     }
 
-    private void configureAcceptedChannel(SocketChannel acceptedChannel)
+    private void configureAcceptedChannel(final SocketChannel acceptedChannel)
             throws IOException {
         final TCPNIOTransport tcpNIOTransport = (TCPNIOTransport) transport;
         tcpNIOTransport.configureChannel(acceptedChannel);
     }
 
-    private void registerAcceptedChannel(SocketChannel acceptedChannel,
-            FutureImpl listener) throws IOException {
+    private void registerAcceptedChannel(final SocketChannel acceptedChannel,
+            final FutureImpl<Connection> listener) throws IOException {
 
         final TCPNIOTransport tcpNIOTransport = (TCPNIOTransport) transport;
         final NIOConnection connection =
                 tcpNIOTransport.obtainNIOConnection(acceptedChannel);
 
-        final CompletionHandler handler = (listener == null)
-                ? defaultCompletionHandler
+        final CompletionHandler<RegisterChannelResult> handler =
+                (listener == null) ?
+                defaultCompletionHandler
                 : new RegisterAcceptedChannelCompletionHandler(listener);
 
         if (processor != null) {
@@ -272,14 +273,14 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
     protected final class RegisterAcceptedChannelCompletionHandler
             extends EmptyCompletionHandler<RegisterChannelResult> {
 
-        private final FutureImpl listener;
+        private final FutureImpl<Connection> listener;
 
         public RegisterAcceptedChannelCompletionHandler() {
             this(null);
         }
 
         public RegisterAcceptedChannelCompletionHandler(
-                FutureImpl listener) {
+                FutureImpl<Connection> listener) {
             this.listener = listener;
         }
 

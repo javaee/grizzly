@@ -88,6 +88,7 @@ import static org.junit.Assert.*;
  * @author Alexey Stashok
  */
 @RunWith(Parameterized.class)
+@SuppressWarnings("unchecked")
 public class SSLTest {
     private final static Logger logger = Grizzly.logger(SSLTest.class);
     

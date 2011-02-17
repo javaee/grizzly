@@ -694,7 +694,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         public GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
                 final SelectableChannel channel, final int interestOps,
                 final Object attachment,
-                final CompletionHandler completionHandler)
+                final CompletionHandler<RegisterChannelResult> completionHandler)
                 throws IOException {
             final SelectorRunner runner = getSelectorRunner();
 

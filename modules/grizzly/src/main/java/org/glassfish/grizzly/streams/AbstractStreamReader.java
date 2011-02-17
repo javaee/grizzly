@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -77,7 +77,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public abstract class AbstractStreamReader implements StreamReader {
 
     private static final boolean DEBUG = false;
-    private static Logger logger = Grizzly.logger(AbstractStreamReader.class);
+    private static final Logger LOGGER = Grizzly.logger(AbstractStreamReader.class);
 
     protected final Connection connection;
 
@@ -86,7 +86,7 @@ public abstract class AbstractStreamReader implements StreamReader {
     protected final AtomicBoolean isClosed = new AtomicBoolean(false);
     
     private static void msg(final String msg) {
-        logger.info("READERSTREAM:DEBUG:" + msg);
+        LOGGER.info("READERSTREAM:DEBUG:" + msg);
     }
 
     private static void msg(final Exception exc) {
@@ -400,13 +400,13 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     @Override
     public <E> GrizzlyFuture<E> decode(Transformer<Stream, E> decoder, CompletionHandler<E> completionHandler) {
-        final FutureImpl<E> future = SafeFutureImpl.create();
+        final FutureImpl<E> future = SafeFutureImpl.<E>create();
 
-        final DecodeCompletionHandler completionHandlerWrapper =
-                new DecodeCompletionHandler(future, completionHandler);
+        final DecodeCompletionHandler<E, Integer> completionHandlerWrapper =
+                new DecodeCompletionHandler<E, Integer>(future, completionHandler);
 
         notifyCondition(
-                new StreamDecodeCondition(this, decoder, completionHandlerWrapper),
+                new StreamDecodeCondition<E>(this, decoder, completionHandlerWrapper),
                 completionHandlerWrapper);
         
         return future;

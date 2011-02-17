@@ -136,7 +136,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         newConnection.setProcessorSelector(getProcessorSelector());
 
         try {
-            final FutureImpl connectFuture = SafeFutureImpl.create();
+            final FutureImpl<Connection> connectFuture = SafeFutureImpl.<Connection>create();
 
             final boolean isConnected = socketChannel.connect(remoteAddress);
 
@@ -282,7 +282,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         private final FutureImpl<Connection> connectFuture;
         private final CompletionHandler<Connection> completionHandler;
 
-        private EnableReadPostProcessor(FutureImpl connectFuture,
+        private EnableReadPostProcessor(FutureImpl<Connection> connectFuture,
                 CompletionHandler<Connection> completionHandler) {
             this.connectFuture = connectFuture;
             this.completionHandler = completionHandler;

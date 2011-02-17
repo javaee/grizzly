@@ -54,6 +54,7 @@ import org.glassfish.grizzly.utils.StringEncoder;
 import org.glassfish.grizzly.utils.StringFilter;
 import java.io.EOFException;
 import java.io.IOException;
+import java.net.SocketAddress;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -67,6 +68,7 @@ import org.glassfish.grizzly.memory.CompositeBuffer;
  * 
  * @author Alexey Stashok
  */
+@SuppressWarnings("unchecked")
 public class FilterChainReadTest extends TestCase {
     public static int PORT = 7785;
 
@@ -262,7 +264,7 @@ public class FilterChainReadTest extends TestCase {
                 }
 
 
-                Future<WriteResult> writeFuture =
+                Future<WriteResult<Buffer, SocketAddress>> writeFuture =
                         transport.getAsyncQueueIO().getWriter().write(connection, bb);
 
                 assertTrue("Write timeout loop: " + i,
@@ -293,7 +295,7 @@ public class FilterChainReadTest extends TestCase {
     public void testBlockingReadError() throws Exception {
         Connection connection = null;
 
-        final BlockingQueue intermResultQueue = new LinkedTransferQueue();
+        final BlockingQueue<Object> intermResultQueue = new LinkedTransferQueue<Object>();
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new StringFilter());

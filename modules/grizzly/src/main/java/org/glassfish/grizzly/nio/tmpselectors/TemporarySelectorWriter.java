@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -118,10 +118,13 @@ public abstract class TemporarySelectorWriter
                     "Connection should be NIOConnection and cannot be null.");
         }
 
-        final WriteResult writeResult =
-                WriteResult.create(connection, message, dstAddress, 0);
+        final NIOConnection nioConnection = (NIOConnection) connection;
+        
+        final WriteResult<Buffer, SocketAddress> writeResult =
+                WriteResult.<Buffer, SocketAddress>create(connection,
+                message, dstAddress, 0);
 
-        write0(connection, dstAddress, message, writeResult,
+        write0(nioConnection, dstAddress, message, writeResult,
                 timeout, timeunit);
 
         final GrizzlyFuture<WriteResult<Buffer, SocketAddress>> writeFuture =
@@ -150,13 +153,12 @@ public abstract class TemporarySelectorWriter
      * 
      * @throws java.io.IOException
      */
-    protected int write0(final Connection connection,
+    protected int write0(final NIOConnection connection,
             final SocketAddress dstAddress, final Buffer buffer,
-            final WriteResult currentResult,
+            final WriteResult<Buffer, SocketAddress> currentResult,
             final long timeout, final TimeUnit timeunit) throws IOException {
 
-        final NIOConnection nioConnection = (NIOConnection) connection;
-        final SelectableChannel channel = nioConnection.getChannel();
+        final SelectableChannel channel = connection.getChannel();
         final long writeTimeout = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
 
         SelectionKey key = null;
@@ -205,7 +207,8 @@ public abstract class TemporarySelectorWriter
         return transport;
     }
 
-    protected abstract int writeNow0(Connection connection,
-            SocketAddress dstAddress, Buffer buffer, WriteResult currentResult)
+    protected abstract int writeNow0(NIOConnection connection,
+            SocketAddress dstAddress, Buffer buffer,
+            WriteResult<Buffer, SocketAddress> currentResult)
             throws IOException;
 }

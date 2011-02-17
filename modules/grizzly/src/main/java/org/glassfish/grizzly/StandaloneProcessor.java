@@ -62,6 +62,7 @@ import java.net.Socket;
  *
  * @author Alexey Stashok
  */
+@SuppressWarnings("unchecked")
 public class StandaloneProcessor implements Processor {
     public static final StandaloneProcessor INSTANCE = new StandaloneProcessor();
 

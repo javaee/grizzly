@@ -64,10 +64,11 @@ public class TransformationResult<I, O> implements Cacheable {
         return create(Status.INCOMPLETE, null, externalRemainder, 0, null);
     }
 
+    @SuppressWarnings("unchecked")
     private static <I, O> TransformationResult<I, O> create(Status status,
             O message, I externalRemainder, int errorCode, String errorDescription) {
         
-        final TransformationResult result = ThreadCache.takeFromCache(CACHE_IDX);
+        final TransformationResult<I, O> result = ThreadCache.takeFromCache(CACHE_IDX);
         if (result != null) {
             result.setStatus(status);
             result.setMessage(message);
@@ -78,7 +79,7 @@ public class TransformationResult<I, O> implements Cacheable {
             return result;
         }
 
-        return new TransformationResult(status, message, externalRemainder,
+        return new TransformationResult<I, O>(status, message, externalRemainder,
                 errorCode, errorDescription);
     }
 
