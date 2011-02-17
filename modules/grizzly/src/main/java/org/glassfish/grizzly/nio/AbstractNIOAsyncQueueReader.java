@@ -81,6 +81,10 @@ public abstract class AbstractNIOAsyncQueueReader
     protected int defaultBufferSize = DEFAULT_BUFFER_SIZE;
     protected final NIOTransport transport;
 
+    // Cached EOFException to throw from onClose()
+    // Probably we shouldn't even care it's not volatile
+    private EOFException cachedEOFException;
+
     public AbstractNIOAsyncQueueReader(NIOTransport transport) {
         this.transport = transport;
 
@@ -310,7 +314,11 @@ public abstract class AbstractNIOAsyncQueueReader
             AsyncReadQueueRecord record =
                     readQueue.getCurrentElementAtomic().getAndSet(LOCK_RECORD);
 
-            final Throwable error = new EOFException("Connection closed");
+            EOFException error = cachedEOFException;
+            if (error == null) {
+                error = new EOFException("Connection closed");
+                cachedEOFException = error;
+            }
 
             if (record != LOCK_RECORD) {
                 failReadRecord(connection, record, error);

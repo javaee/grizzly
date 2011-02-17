@@ -86,6 +86,10 @@ public abstract class AbstractNIOAsyncQueueWriter
 
     protected volatile int maxPendingBytes = -1;
 
+    // Cached IOException to throw from onClose()
+    // Probably we shouldn't even care it's not volatile
+    private IOException cachedIOException;
+
     public AbstractNIOAsyncQueueWriter(NIOTransport transport) {
         this.transport = transport;
     }
@@ -440,7 +444,11 @@ public abstract class AbstractNIOAsyncQueueWriter
             AsyncWriteQueueRecord record =
                     writeQueue.getCurrentElementAtomic().getAndSet(LOCK_RECORD);
 
-            final Throwable error = new IOException("Connection closed");
+            IOException error = cachedIOException;
+            if (error == null) {
+                error = new IOException("Connection closed");
+                cachedIOException = error;
+            }
             
             if (record != LOCK_RECORD) {
                 failWriteRecord(connection, record, error);
