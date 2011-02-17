@@ -140,7 +140,8 @@ public class HttpServerFilter extends HttpCodecFilter {
      * @param defaultResponseContentType the content type that the response should
      *  use if no content had been specified at the time the response is committed.
      * @param keepAlive keep-alive configuration for this filter instance.
-     * @param executor {@link DelayedExecutor} for handling keep-alive.
+     * @param executor {@link DelayedExecutor} for handling keep-alive. If <tt>null</tt> -
+     *  keep-alive idle connections should be managed outside HttpServerFilter.
      */
     public HttpServerFilter(boolean chunkingEnabled,
                             int maxHeadersSize,
@@ -155,16 +156,14 @@ public class HttpServerFilter extends HttpCodecFilter {
         this.keepAliveContextAttr = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.
                 createAttribute("HttpServerFilter.KeepAliveContext");
 
-        if (executor != null) {
-            keepAliveQueue = executor.createDelayQueue(new KeepAliveWorker(keepAlive),
-                                                       new KeepAliveResolver());
-            this.keepAlive = keepAlive;
-            processKeepAlive = true;
-        } else {
-            keepAliveQueue = null;
-            this.keepAlive = null;
-            processKeepAlive = false;
-        }
+        keepAliveQueue = executor != null ?
+            executor.createDelayQueue(
+            new KeepAliveWorker(keepAlive), new KeepAliveResolver()) :
+            null;
+
+        this.keepAlive = keepAlive;
+        this.processKeepAlive = keepAlive != null;
+        
         this.defaultResponseContentType = defaultResponseContentType;
     }
 
@@ -215,7 +214,9 @@ public class HttpServerFilter extends HttpCodecFilter {
                                               connection,
                                               requestsProcessed);
                 }
-                keepAliveQueue.remove(keepAliveContext);
+                if (keepAliveQueue != null) {
+                    keepAliveQueue.remove(keepAliveContext);
+                }
             }
             httpRequestInProcessAttr.set(connection, httpRequest);
         }
@@ -235,9 +236,12 @@ public class HttpServerFilter extends HttpCodecFilter {
             if (processKeepAlive) {
                 final KeepAliveContext keepAliveContext =
                         keepAliveContextAttr.get(c);
-                keepAliveQueue.add(keepAliveContext,
-                        keepAlive.getIdleTimeoutInSeconds(),
-                        TimeUnit.SECONDS);
+                if (keepAliveQueue != null) {
+                    keepAliveQueue.add(keepAliveContext,
+                            keepAlive.getIdleTimeoutInSeconds(),
+                            TimeUnit.SECONDS);
+                }
+                
                 final HttpRequestPacket httpRequest = keepAliveContext.request;
                 final boolean isStayAlive = isKeepAlive(httpRequest, keepAliveContext);
                 if (!isStayAlive) {

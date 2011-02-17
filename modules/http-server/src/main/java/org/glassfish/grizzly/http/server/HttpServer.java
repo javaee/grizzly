@@ -79,7 +79,6 @@ import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
 import org.glassfish.grizzly.threadpool.ThreadPoolProbe;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 import org.glassfish.grizzly.utils.IdleTimeoutFilter;
-import org.glassfish.grizzly.utils.SilentConnectionFilter;
 
 
 /**
@@ -511,11 +510,13 @@ public class HttpServer {
                                         ? org.glassfish.grizzly.http.HttpServerFilter.DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE
                                         : listener.getMaxHttpHeaderSize();
 
+            // Passing null value for the delayed executor, because IdleTimeoutFilter should
+            // handle idle connections for us
             final org.glassfish.grizzly.http.HttpServerFilter httpServerFilter =
                     new org.glassfish.grizzly.http.HttpServerFilter(listener.isChunkingEnabled(),
                                          maxHeaderSize,
                                          listener.getKeepAlive(),
-                                         delayedExecutor);
+                                         null);
             final Set<ContentEncoding> contentEncodings = listener.getContentEncodings();
             for (ContentEncoding contentEncoding : contentEncodings) {
                 httpServerFilter.addContentEncoding(contentEncoding);
