@@ -79,6 +79,7 @@ import static org.junit.Assert.*;
  * @author Alexey Stashok
  */
 
+@SuppressWarnings("unchecked")
 public class SkipRemainderTest {
     public static final int PORT = 18892;
 

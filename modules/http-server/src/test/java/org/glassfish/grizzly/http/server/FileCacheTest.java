@@ -96,6 +96,7 @@ import static org.junit.Assert.*;
  * @author Alexey Stashok
  */
 @RunWith(Parameterized.class)
+@SuppressWarnings("unchecked")
 public class FileCacheTest {
 
     public static final int PORT = 18891;

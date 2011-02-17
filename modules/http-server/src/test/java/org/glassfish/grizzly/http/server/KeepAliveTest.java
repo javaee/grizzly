@@ -72,6 +72,7 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
  * 
  * @author Alexey Stashok
  */
+@SuppressWarnings("unchecked")
 public class KeepAliveTest extends TestCase {
     private static final int PORT = 18895;
     

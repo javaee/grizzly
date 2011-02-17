@@ -72,6 +72,7 @@ import org.glassfish.grizzly.utils.ChunkingFilter;
  * 
  * @author Alexey Stashok
  */
+@SuppressWarnings("unchecked")
 public class TransferEncodingTest extends TestCase {
     private static final int PORT = 8041;
 

@@ -76,6 +76,7 @@ import org.glassfish.grizzly.utils.ChunkingFilter;
  * 
  * @author Alexey Stashok
  */
+@SuppressWarnings("unchecked")
 public class RequestURITest extends TestCase {
     private static final int PORT = 8040;
 
@@ -147,7 +148,6 @@ public class RequestURITest extends TestCase {
         assertEquals("/index.html", uri);
     }
 
-    @SuppressWarnings({"unchecked"})
     private HttpPacket createRequest(String uri, Map<String, String> headers) {
 
         HttpRequestPacket.Builder b = HttpRequestPacket.builder();

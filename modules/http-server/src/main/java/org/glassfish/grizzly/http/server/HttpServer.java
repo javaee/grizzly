@@ -555,6 +555,7 @@ public class HttpServer {
         configureMonitoring(listener);
     }
 
+    @SuppressWarnings("unchecked")
     private void configureMonitoring(final NetworkListener listener) {
         final TCPNIOTransport transport = listener.getTransport();
 
