@@ -81,11 +81,8 @@
                 <configuration>
                     <instructions>
                         <Export-Package>
-                            org.glassfish.grizzly.http.*,
-                            org.glassfish.grizzly.http.jmx.*,
-                            org.glassfish.grizzly.http.util.*
+                            org.glassfish.grizzly.http.*
                         </Export-Package>
-                        <Embed-Dependency>org.glassfish.grizzly;scope=runtime</Embed-Dependency>
                     </instructions>
                 </configuration>
             </plugin>

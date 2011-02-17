@@ -76,7 +76,6 @@
                     <instructions>
                         <Import-Package>*</Import-Package>
                         <Export-Package>org.glassfish.grizzly.samples.portunif.*</Export-Package>
-                        <Embed-Dependency>org.glassfish.grizzly;scope=runtime</Embed-Dependency>
                     </instructions>
                 </configuration>
             </plugin>           

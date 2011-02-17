@@ -83,7 +83,6 @@
                         <Export-Package>
                             org.glassfish.grizzly.websockets.*
                         </Export-Package>
-                        <Embed-Dependency>org.glassfish.grizzly;scope=runtime</Embed-Dependency>
                     </instructions>
                 </configuration>
             </plugin>

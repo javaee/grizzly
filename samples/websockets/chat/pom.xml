@@ -76,8 +76,7 @@
                 <configuration>
                     <instructions>
                         <Import-Package>*</Import-Package>
-                        <Export-Package>org.glassfish.grizzly.*</Export-Package>
-                        <Embed-Dependency>org.glassfish.grizzly;scope=runtime</Embed-Dependency>
+                        <Export-Package>org.glassfish.grizzly.samples.websockets</Export-Package>
                     </instructions>
                 </configuration>
             </plugin>
