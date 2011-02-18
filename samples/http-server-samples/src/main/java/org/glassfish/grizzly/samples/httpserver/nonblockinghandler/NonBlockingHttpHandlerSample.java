@@ -61,6 +61,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 
 import java.io.IOException;
+import java.io.Writer;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -318,80 +319,58 @@ public class NonBlockingHttpHandlerSample {
             final NIOReader in = request.getReader(false); // false argument puts the stream in non-blocking mode
             final NIOWriter out = response.getWriter();
 
-            do {
-                // continue reading ready data until no more can be read without
-                // blocking
-                while (in.isReady()) {
-                    final int ready = in.readyData();
-                    int read = in.read(buf, 0, ready);
-                    if (read == -1) {
-                        break;
-                    }
-                    System.out.println("INITIAL READ: " + new String(buf, 0, ready));
-                    out.write(buf, 0, ready);
-                }
-
-                // try to install a ReadHandler.  If this fails,
-                // continue at the top of the loop and read available data,
-                // otherwise break the look and allow the handler to wait for
-                // data to become available.
-                boolean installed = in.notifyAvailable(new ReadHandler() {
-
-                    @Override
-                    public void onDataAvailable() {
-                        System.out.println("[onDataAvailable] length: " + in.readyData());
-                        doWrite(this, in, buf, out, false);
-                    }
-
-                    @Override
-                    public void onError(Throwable t) {
-                        System.out.println("[onError]" + t);
-                    }
-
-                    @Override
-                    public void onAllDataRead() {
-                        System.out.println("[onAllDataRead] length: " + in.readyData());
-                        doWrite(this, in, buf, out, true);
-                        response.resume();
-                    }
-                });
-
-                if (installed) {
+            // continue reading ready data until no more can be read without
+            // blocking
+            while (in.isReady()) {
+                final int ready = in.readyData();
+                int read = in.read(buf, 0, ready);
+                if (read == -1) {
                     break;
                 }
-            } while (!in.isFinished());
+                System.out.println("INITIAL READ: " + new String(buf, 0, ready));
+                out.write(buf, 0, ready);
+            }
+
+            if (in.isFinished()) {
+                return;
+            }
 
             response.suspend();
+
+            in.notifyAvailable(new ReadHandler() {
+
+                @Override
+                public void onDataAvailable() throws IOException {
+                    System.out.println("[onDataAvailable] length: " + in.readyData());
+                    doWrite(this, in, buf, out);
+                }
+
+                @Override
+                public void onError(Throwable t) {
+                    System.out.println("[onError]" + t);
+                }
+
+                @Override
+                public void onAllDataRead() throws IOException {
+                    System.out.println("[onAllDataRead] length: " + in.readyData());
+                    doWrite(this, in, buf, out);
+                    response.resume();
+                }
+            });
 
         }
 
         private void doWrite(ReadHandler handler,
                              NIOReader in,
                              char[] buf,
-                             NIOWriter out,
-                             boolean flush) {
-            try {
-                if (in.readyData() <= 0) {
-                    if (flush) {
-                        out.flush();
-                    }
-                    return;
-                }
-                for (;;) {
-                    int len = in.read(buf);
-                    System.out.println("READ: " + new String(buf, 0, len));
-                    out.write(buf, 0, len);
-                    if (flush) {
-                        out.flush();
-                    }
-                    if (!in.isReady()) {
-                        // no more data is available, install the handler again.
-                        in.notifyAvailable(handler);
-                        break;
-                    }
-                }
-            } catch (IOException ioe) {
-                ioe.printStackTrace();
+                             Writer out) throws IOException {
+            while(in.isReady()) {
+                int len = in.read(buf);
+                out.write(buf, 0, len);
+            }
+
+            if (!in.isFinished()) {
+                in.notifyAvailable(handler);
             }
         }
 
