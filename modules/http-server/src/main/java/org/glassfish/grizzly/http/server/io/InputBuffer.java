@@ -227,6 +227,7 @@ public class InputBuffer {
         processingChars = false;
         closed = false;
         contentRead = false;
+        asyncEnabled = false;
 
         markPos = -1;
         readAheadLimit = -1;
