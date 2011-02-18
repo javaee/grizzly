@@ -246,7 +246,7 @@ public class MultiMap {
     static final int LAST=-1;
 
     // -------------------- Internal representation --------------------
-    final class Field {
+    static final class Field {
 	MessageBytes name;
 	MessageBytes value;
 
