@@ -69,7 +69,8 @@ public interface NIOOutputSink {
      * @return <code>true<code> if the specified <code>handler</code> has
      *  been accepted and will be notified as it becomes possible to write,
      *  otherwise returns <code>false</code> which means data is currently
-     *  available to write without blocking.
+     *  available to write without blocking or that there is no limit as
+     *  to how much data can be pending to be written.
      *
      * @throws IllegalStateException if this method is invoked and a handler
      *  from a previous invocation is still present (due to not having yet been

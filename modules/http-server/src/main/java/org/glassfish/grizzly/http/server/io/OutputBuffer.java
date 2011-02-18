@@ -132,6 +132,9 @@ public class OutputBuffer {
         compositeBuffer = createCompositeBuffer();
         final Connection c = ctx.getConnection();
         asyncWriter = ((AsyncQueueWriter) c.getTransport().getWriter(c));
+        if (asyncWriter.getMaxPendingBytesPerConnection() <= 0) {
+            asyncWriter = null;
+        }
 
     }
 
@@ -457,7 +460,8 @@ public class OutputBuffer {
      * @see AsyncQueueWriter#canWrite(org.glassfish.grizzly.Connection, int)
      */
     public boolean canWrite(final int length) {
-        if (length <= 0) {
+
+        if (length <= 0 || asyncWriter == null) {
             return true;
         }
         final Connection c = ctx.getConnection();
@@ -468,6 +472,9 @@ public class OutputBuffer {
 
     public boolean notifyCanWrite(final WriteHandler handler, final int length) {
 
+        if (asyncWriter == null) {
+            return false;
+        }
         if (this.handler != null) {
             throw new IllegalStateException("Illegal attempt to set a new handler before the existing handler has been notified.");
         }
