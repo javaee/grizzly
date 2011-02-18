@@ -224,7 +224,7 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
 
                 final String ctx = getContextPath(mapping);
                 final String wrapper = getWrapperPath(ctx, mapping);
-                if (!ctx.equals("")) {
+                if (ctx.length() != 0) {
                     mapper.addContext(LOCAL_HOST, ctx, httpHandler,
                             new String[]{"index.html", "index.htm"}, null);
                 } else {
@@ -236,7 +236,7 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
                             public void service(Request request, Response response) {
                                 try {
                                     customizedErrorPage(request, response);
-                                } catch (Exception ex) {
+                                } catch (Exception ignored) {
                                 }
                             }
                         };
@@ -279,7 +279,7 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
 
         if (mapping.indexOf("*.") > 0) {
             return mapping.substring(mapping.lastIndexOf("/") + 1);
-        } else if (!ctx.equals("")) {
+        } else if (ctx.length() != 0) {
             return mapping.substring(ctx.length());
         } else {
             return mapping;

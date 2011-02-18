@@ -487,10 +487,8 @@ public class Response {
      * Create and return a ServletOutputStream to write the content
      * associated with this Response.
      *
-     * @exception java.io.IOException if an input/output error occurs
      */
-    public NIOOutputStream createOutputStream()
-        throws IOException {
+    public NIOOutputStream createOutputStream() {
         // Probably useless
         if (outputStream == null) {
             outputStream = new NIOOutputStream(outputBuffer);
@@ -502,11 +500,8 @@ public class Response {
     /**
      * Perform whatever actions are required to flush and close the output
      * stream or writer, in a single operation.
-     *
-     * @exception java.io.IOException if an input/output error occurs
      */
-    public void finish()
-        throws IOException {
+    public void finish() {
         // Writing leftover bytes
         try {
             outputBuffer.endRequest();
@@ -593,10 +588,8 @@ public class Response {
      *
      * @exception IllegalStateException if <code>getWriter</code> has
      *  already been called for this response
-     * @exception java.io.IOException if an input/output error occurs
      */
-    public NIOOutputStream getOutputStream()
-        throws IOException {
+    public NIOOutputStream getOutputStream() {
 
         if (usingWriter)
             throw new IllegalStateException
@@ -632,8 +625,7 @@ public class Response {
      *  already been called for this response
      * @exception java.io.IOException if an input/output error occurs
      */
-    public NIOWriter getWriter()
-        throws IOException {
+    public NIOWriter getWriter() {
 
         if (usingOutputStream)
             throw new IllegalStateException

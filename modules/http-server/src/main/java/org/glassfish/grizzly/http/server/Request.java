@@ -633,8 +633,7 @@ public class Request {
      *
      * @exception java.io.IOException if an input/output error occurs
      */
-    public NIOInputStream createInputStream()
-        throws IOException {
+    public NIOInputStream createInputStream() {
         if (inputStream == null) {
             inputStream = new NIOInputStream(inputBuffer);
         }
@@ -815,9 +814,8 @@ public class Request {
      *
      * @exception IllegalStateException if {@link #getReader(boolean)} has
      *  already been called for this request
-     * @exception java.io.IOException if an input/output error occurs
      */
-    public NIOInputStream getInputStream(boolean blocking) throws IOException {
+    public NIOInputStream getInputStream(boolean blocking) {
 
         if (usingReader)
             throw new IllegalStateException
@@ -864,7 +862,7 @@ public class Request {
         if (!localesParsed)
             parseLocales();
 
-        if (locales.size() > 0) {
+        if (!locales.isEmpty()) {
             return (locales.get(0));
         } else {
             return (defaultLocale);
@@ -986,9 +984,8 @@ public class Request {
      * 
      * @exception IllegalStateException if {@link #getInputStream(boolean)}
      *  has already been called for this request
-     * @exception java.io.IOException if an input/output error occurs
      */
-    public NIOReader getReader(boolean blocking) throws IOException {
+    public NIOReader getReader(boolean blocking) {
 
         if (usingInputStream)
             throw new IllegalStateException
