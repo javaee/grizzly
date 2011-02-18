@@ -448,7 +448,7 @@ public class OutputBuffer {
 
 
     public boolean canWriteChar(final int length) {
-        if (length <= 0) {
+        if (length <= 0 || asyncWriter == null) {
             return true;
         }
         CharsetEncoder e = getEncoder();
