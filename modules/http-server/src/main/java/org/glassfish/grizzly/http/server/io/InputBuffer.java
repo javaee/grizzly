@@ -91,10 +91,10 @@ public class InputBuffer {
     private boolean closed;
 
     /**
-     * Composite {@link Buffer} consisting of the bytes from the HTTP
-     * message chunks.
+     * The {@link Buffer} consisting of the bytes from the HTTP
+     * message chunk(s).
      */
-    private CompositeBuffer compositeBuffer;
+    private Buffer inputContentBuffer;
 
     /**
      * The {@link Connection} associated with this {@link org.glassfish.grizzly.http.HttpRequestPacket}.
@@ -194,15 +194,16 @@ public class InputBuffer {
         this.request = request;
         this.ctx = ctx;
         connection = ctx.getConnection();
-        compositeBuffer = CompositeBuffer.newBuffer(connection.getTransport().getMemoryManager());
-        compositeBuffer.allowBufferDispose(true);
-        compositeBuffer.allowInternalBuffersDispose(true);
+//        inputContentBuffer = CompositeBuffer.newBuffer(connection.getTransport().getMemoryManager());
+//        inputContentBuffer.allowBufferDispose(true);
+//        inputContentBuffer.allowInternalBuffersDispose(true);
         final Object message = ctx.getMessage();
         if (message instanceof HttpContent) {
-            HttpContent content = (HttpContent) message;
-            if (content.getContent().hasRemaining()) {
-                compositeBuffer.append(content.getContent());
-            }
+            final HttpContent content = (HttpContent) message;
+//            if (content.getContent().hasRemaining()) {
+//                inputContentBuffer.append(content.getContent());
+//            }
+            inputContentBuffer = content.getContent();
             contentRead = content.isLast();
             content.recycle();
         }
@@ -217,8 +218,8 @@ public class InputBuffer {
      */
     public void recycle() {
 
-        compositeBuffer.tryDispose();
-        compositeBuffer = null;
+        inputContentBuffer.tryDispose();
+        inputContentBuffer = null;
 
         connection = null;
         decoder = null;
@@ -278,7 +279,7 @@ public class InputBuffer {
         if (closed) {
             throw new IOException();
         }
-        if (!compositeBuffer.hasRemaining()) {
+        if (!inputContentBuffer.hasRemaining()) {
             if (fill(1) == -1) {
                 return -1;
             }
@@ -289,7 +290,7 @@ public class InputBuffer {
                 markPos = -1;
             }
         }
-        return compositeBuffer.get() & 0xFF;
+        return inputContentBuffer.get() & 0xFF;
 
     }
 
@@ -306,21 +307,21 @@ public class InputBuffer {
         if (len == 0) {
             return 0;
         }
-        if (!asyncEnabled && !compositeBuffer.hasRemaining()) {
+        if (!asyncEnabled && !inputContentBuffer.hasRemaining()) {
             if (fill(len) == -1) {
                 return -1;
             }
         }
 
-        int nlen = Math.min(compositeBuffer.remaining(), len);
+        int nlen = Math.min(inputContentBuffer.remaining(), len);
         if (readAheadLimit != -1) {
             readCount += nlen;
             if (readCount > readAheadLimit) {
                 markPos = -1;
             }
         }
-        compositeBuffer.get(b, off, nlen);
-        compositeBuffer.shrink();
+        inputContentBuffer.get(b, off, nlen);
+        inputContentBuffer.shrink();
         return nlen;
         
     }
@@ -331,7 +332,7 @@ public class InputBuffer {
      */
     public int available() {
 
-        return ((closed) ? 0 : compositeBuffer.remaining());
+        return ((closed) ? 0 : inputContentBuffer.remaining());
 
     }
 
@@ -341,7 +342,7 @@ public class InputBuffer {
      *  data.
      */
     public Buffer getBuffer() {
-        return compositeBuffer;
+        return inputContentBuffer;
     }
 
 
@@ -435,7 +436,7 @@ public class InputBuffer {
         if (!processingChars) {
             throw new IllegalStateException();
         }
-        return (compositeBuffer.hasRemaining()
+        return (inputContentBuffer.hasRemaining()
                    || request.isExpectContent());
 
     }
@@ -447,7 +448,7 @@ public class InputBuffer {
      * @throws IOException
      */
     public void fillFully(final int length) throws IOException {
-        int remaining = length - compositeBuffer.remaining();
+        int remaining = length - inputContentBuffer.remaining();
 
         if (remaining > 0) {
             fill(remaining);
@@ -455,7 +456,7 @@ public class InputBuffer {
     }
 
     public int availableChar() {
-        final float available = compositeBuffer.remaining() * averageCharsPerByte;
+        final float available = inputContentBuffer.remaining() * averageCharsPerByte;
         return Float.valueOf(available).intValue();
     }
 
@@ -477,7 +478,7 @@ public class InputBuffer {
         }
 
         if (readAheadLimit > 0) {
-            markPos = compositeBuffer.position();
+            markPos = inputContentBuffer.position();
             this.readAheadLimit = readAheadLimit;
         }
 
@@ -525,7 +526,7 @@ public class InputBuffer {
             }
             readCount = 0;
         }
-        compositeBuffer.position(markPos);
+        inputContentBuffer.position(markPos);
 
     }
 
@@ -557,7 +558,7 @@ public class InputBuffer {
         }
 
         if (!block) {
-            if (n > compositeBuffer.remaining()) {
+            if (n > inputContentBuffer.remaining()) {
                 throw new IllegalStateException("Can not skip more bytes than available");
             }
         }
@@ -567,18 +568,18 @@ public class InputBuffer {
                 return 0L;
             }
             if (block) {
-                if (!compositeBuffer.hasRemaining()) {
+                if (!inputContentBuffer.hasRemaining()) {
                     if (fill((int) n) == -1) {
                         return -1;
                     }
                 }
-                if (compositeBuffer.remaining() < n) {
+                if (inputContentBuffer.remaining() < n) {
                     fill((int) n);
                 }
             }
-            long nlen = Math.min(compositeBuffer.remaining(), n);
-            compositeBuffer.position(compositeBuffer.position() + (int) nlen);
-            compositeBuffer.shrink();
+            long nlen = Math.min(inputContentBuffer.remaining(), n);
+            inputContentBuffer.position(inputContentBuffer.position() + (int) nlen);
+            inputContentBuffer.shrink();
             
             return nlen;
         } else {
@@ -712,7 +713,7 @@ public class InputBuffer {
         } else {
             final int addSize = buffer.remaining();
             if (addSize > 0) {
-                compositeBuffer.append(buffer);
+                toCompositeInputContentBuffer().append(buffer);
 //                synchronized (lock) {
                 if (handler != null) {
                     final int available = ((processingChars)
@@ -764,7 +765,7 @@ public class InputBuffer {
 
     /**
      * <p>
-     * Used to add additional http message chunk content to {@link #compositeBuffer}.
+     * Used to add additional http message chunk content to {@link #inputContentBuffer}.
      * </p>
      *
      * @param requestedLen how much content should attempt to be read
@@ -782,7 +783,7 @@ public class InputBuffer {
                 final HttpContent c = (HttpContent) rr.getMessage();
                 final Buffer b = c.getContent();
                 read += b.remaining();
-                compositeBuffer.append(b);
+                toCompositeInputContentBuffer().append(b);
                 rr.recycle();
                 c.recycle();
             }
@@ -809,10 +810,10 @@ public class InputBuffer {
                          boolean block,
                          boolean flip) throws IOException {
 
-        if (compositeBuffer.hasRemaining() || !block) {
+        if (inputContentBuffer.hasRemaining() || !block) {
             final CharsetDecoder decoderLocal = getDecoder();
             int charPos = dst.position();
-            final ByteBuffer bb = compositeBuffer.toByteBuffer();
+            final ByteBuffer bb = inputContentBuffer.toByteBuffer();
             int bbPos = bb.position();
             CoderResult result = decoderLocal.decode(bb, dst, false);
 
@@ -820,14 +821,14 @@ public class InputBuffer {
             int readBytes = bb.position() - bbPos;
             bb.position(bbPos);
             if (result == CoderResult.UNDERFLOW) {
-                compositeBuffer.position(compositeBuffer.position() + readBytes);
-                compositeBuffer.shrink();
+                inputContentBuffer.position(inputContentBuffer.position() + readBytes);
+                inputContentBuffer.shrink();
             } else {
-                compositeBuffer.position(compositeBuffer.position() + readBytes);
-                compositeBuffer.shrink();
+                inputContentBuffer.position(inputContentBuffer.position() + readBytes);
+                inputContentBuffer.shrink();
             }
             
-            if (compositeBuffer.hasRemaining() && readChars < requestedLen) {
+            if (inputContentBuffer.hasRemaining() && readChars < requestedLen) {
                 readChars += fillChar(0, dst, false, false);
             }
 
@@ -846,10 +847,10 @@ public class InputBuffer {
 
             while (read < requestedLen && request.isExpectContent()) {
 
-                if (isNeedMoreInput || !compositeBuffer.hasRemaining()) {
+                if (isNeedMoreInput || !inputContentBuffer.hasRemaining()) {
                     final ReadResult rr = ctx.read();
                     final HttpContent c = (HttpContent) rr.getMessage();
-                    compositeBuffer.append(c.getContent());
+                    toCompositeInputContentBuffer().append(c.getContent());
                     last = c.isLast();
 
                     rr.recycle();
@@ -857,7 +858,7 @@ public class InputBuffer {
                     isNeedMoreInput = false;
                 }
 
-                final ByteBuffer bytes = compositeBuffer.toByteBuffer();
+                final ByteBuffer bytes = inputContentBuffer.toByteBuffer();
 
                 final int bytesPos = bytes.position();
                 final int dstPos = dst.position();
@@ -871,8 +872,8 @@ public class InputBuffer {
                 
                 if (consumedBytes > 0) {
                     bytes.position(bytesPos);
-                    compositeBuffer.position(compositeBuffer.position() + consumedBytes);
-                    compositeBuffer.shrink();
+                    inputContentBuffer.position(inputContentBuffer.position() + consumedBytes);
+                    inputContentBuffer.shrink();
                 } else {
                     isNeedMoreInput = true;
                 }
@@ -913,5 +914,18 @@ public class InputBuffer {
 
     }
 
+    private CompositeBuffer toCompositeInputContentBuffer() {
+        if (!inputContentBuffer.isComposite()) {
+            final CompositeBuffer compositeBuffer = CompositeBuffer.newBuffer(
+                    connection.getTransport().getMemoryManager());
 
+            compositeBuffer.allowBufferDispose(true);
+            compositeBuffer.allowInternalBuffersDispose(true);
+
+            compositeBuffer.append(inputContentBuffer);
+            inputContentBuffer = compositeBuffer;
+        }
+
+        return (CompositeBuffer) inputContentBuffer;
+    }
 }
