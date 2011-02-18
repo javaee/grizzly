@@ -540,8 +540,8 @@ public class OutputBuffer {
     }
 
     
-    private boolean writeContentChunk(final boolean areHeadersCommited,
-            final boolean isLast) throws IOException {
+    private boolean writeContentChunk(final boolean areHeadersCommitted,
+                                      final boolean isLast) throws IOException {
         handleAsyncErrors();
 
         final Buffer bufferToFlush;
@@ -559,7 +559,7 @@ public class OutputBuffer {
         }
 
         if (bufferToFlush != null) {
-            if (isLast && !areHeadersCommited &&
+            if (isLast && !areHeadersCommitted &&
                     response.getContentLength() == -1 && !response.isChunked()) {
                 response.setContentLength(bufferToFlush.remaining());
             }
