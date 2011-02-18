@@ -195,10 +195,10 @@ public abstract class AbstractNIOAsyncQueueWriter
             if (isLocked) {
                 final int bytesWritten = write0(nioConnection, queueRecord);
                 if (maxPendingBytes > 0) {
-                    connectionQueue.releaseSpace(bytesWritten, true);
+                    connectionQueue.releaseSpaceAndNotify(bytesWritten);
                 }
             } else if (maxPendingBytes > 0 && pendingBytes > maxPendingBytes && bufferSize > 0) {
-                connectionQueue.releaseSpace(bufferSize, false);
+                connectionQueue.releaseSpace(bufferSize);
                 throw new PendingWriteQueueLimitExceededException(
                         "Max queued data limit exceeded: " +
                         pendingBytes + ">" + maxPendingBytes);
@@ -371,7 +371,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                 }
                 
                 final int bytesWritten = write0(nioConnection, queueRecord);
-                connectionQueue.releaseSpace(bytesWritten, true);
+                connectionQueue.releaseSpaceAndNotify(bytesWritten);
 
                 // check if buffer was completely written
                 if (isFinished(connection, queueRecord)) {

@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.asyncqueue;
 
+import java.io.IOException;
 import org.glassfish.grizzly.utils.LinkedTransferQueue;
 
 import java.util.Iterator;
@@ -103,7 +104,15 @@ public abstract class TaskQueue<E> {
      *
      * @return the new memory (in bytes) consumed by the queue.
      */
-    public abstract int releaseSpace(int amount, boolean notify);
+    public abstract int releaseSpace(int amount);
+
+    /**
+     * Releases memory space in the queue and notifies registered
+     * {@link QueueMonitor}s about the update.
+     *
+     * @return the new memory (in bytes) consumed by the queue.
+     */
+    public abstract int releaseSpaceAndNotify(int amount) throws IOException;
 
     /**
      * Returns the number of queued bytes.
@@ -133,7 +142,7 @@ public abstract class TaskQueue<E> {
     }
 
 
-    public boolean addQueueMonitor(final QueueMonitor monitor) {
+    public boolean addQueueMonitor(final QueueMonitor monitor) throws IOException {
         if (monitor.shouldNotify()) {
             monitor.onNotify();
             return false;
@@ -152,7 +161,7 @@ public abstract class TaskQueue<E> {
     // ------------------------------------------------------- Protected Methods
 
 
-    protected void doNotify() {
+    protected void doNotify() throws IOException {
 
         if (!monitorQueue.isEmpty()) {
             for (final Iterator<QueueMonitor> i = monitorQueue.iterator(); i.hasNext(); ) {
@@ -204,11 +213,14 @@ public abstract class TaskQueue<E> {
         }
 
         @Override
-        public int releaseSpace(final int amount, final boolean notify) {
-            final int space = spaceInBytes.addAndGet(-amount);
-            if (notify) {
-                doNotify();
-            }
+        public int releaseSpace(final int amount) {
+            return spaceInBytes.addAndGet(-amount);
+        }
+
+        @Override
+        public int releaseSpaceAndNotify(final int amount) throws IOException {
+            final int space = releaseSpace(amount);
+            doNotify();
             return space;
         }
 
@@ -264,12 +276,16 @@ public abstract class TaskQueue<E> {
         }
 
         @Override
-        public int releaseSpace(int amount, boolean notify) {
+        public int releaseSpace(final int amount) {
             spaceInBytes -= amount;
-            if (notify) {
-                doNotify();
-            }
             return spaceInBytes;
+        }
+
+        @Override
+        public int releaseSpaceAndNotify(final int amount) throws IOException {
+            final int space = releaseSpace(amount);
+            doNotify();
+            return space;
         }
 
         @Override
@@ -294,7 +310,7 @@ public abstract class TaskQueue<E> {
          * Action(s) to perform when the current queue space meets the conditions
          * mandated by {@link #shouldNotify()}.
          */
-        public abstract void onNotify();
+        public abstract void onNotify() throws IOException;
 
         /**
          * This method will be invoked to determine if {@link #onNotify()} should

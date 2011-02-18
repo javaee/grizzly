@@ -242,81 +242,75 @@ final class EchoServer {
                 final NIOInputStream in = request.getInputStream(false);
                 final OutputStream out = response.getOutputStream();
                 final byte[] buf = new byte[1024];
-                do {
-                    // continue reading ready data until no more can be read without
-                    // blocking
-                    while (in.isReady()) {
-                        int read = in.read(buf);
-                        if (read == -1) {
-                            break;
-                        }
-                        out.write(buf, 0, read);
-                    }
-
-                    if (in.isFinished()) {
+                // continue reading ready data until no more can be read without
+                // blocking
+                while (in.isReady()) {
+                    int read = in.read(buf);
+                    if (read == -1) {
                         break;
                     }
+                    out.write(buf, 0, read);
+                }
 
-                    response.suspend();
+                if (in.isFinished()) {
+                    return;
+                }
 
-                    in.notifyAvailable(new ReadHandler() {
+                response.suspend();
 
-                        @Override
-                        public void onDataAvailable() {
-                            doWrite(this, in, buf, out, false);
-                        }
+                in.notifyAvailable(new ReadHandler() {
 
-                        @Override
-                        public void onError(Throwable t) {
-                        }
+                    @Override
+                    public void onDataAvailable() throws IOException {
+                        doWrite(this, in, buf, out, false);
+                    }
 
-                        @Override
-                        public void onAllDataRead() {
-                            doWrite(this, in, buf, out, true);
-                            response.resume();
-                        }
-                    });
+                    @Override
+                    public void onError(Throwable t) {
+                    }
 
-                } while (!in.isFinished());
+                    @Override
+                    public void onAllDataRead() throws IOException {
+                        doWrite(this, in, buf, out, true);
+                        response.resume();
+                    }
+                });
             } else {
                 final NIOReader in = request.getReader(false);
                 final NIOWriter out = response.getWriter();
                 final char[] buf = new char[1024];
-                do {
-                    // continue reading ready data until no more can be read without
-                    // blocking
-                    while (in.isReady()) {
-                        int read = in.read(buf);
-                        if (read == -1) {
-                            break;
-                        }
-                        out.write(buf, 0, read);
-                    }
-
-                    if (in.isFinished()) {
+                // continue reading ready data until no more can be read without
+                // blocking
+                while (in.isReady()) {
+                    int read = in.read(buf);
+                    if (read == -1) {
                         break;
                     }
+                    out.write(buf, 0, read);
+                }
 
-                    response.suspend();
-                    in.notifyAvailable(new ReadHandler() {
+                if (in.isFinished()) {
+                    return;
+                }
 
-                        @Override
-                        public void onDataAvailable() {
-                            doWrite(this, in, buf, out, false);
-                        }
+                response.suspend();
+                in.notifyAvailable(new ReadHandler() {
 
-                        @Override
-                        public void onError(Throwable t) {
-                        }
+                    @Override
+                    public void onDataAvailable() throws IOException {
+                        doWrite(this, in, buf, out, false);
+                    }
 
-                        @Override
-                        public void onAllDataRead() {
-                            doWrite(this, in, buf, out, true);
-                            response.resume();
-                        }
-                    });
+                    @Override
+                    public void onError(Throwable t) {
+                    }
 
-                } while (!in.isFinished());
+                    @Override
+                    public void onAllDataRead() throws IOException {
+                        doWrite(this, in, buf, out, true);
+                        response.resume();
+                    }
+                });
             }
         }
 
@@ -326,28 +320,24 @@ final class EchoServer {
                              NIOInputStream in,
                              byte[] buf,
                              OutputStream out,
-                             boolean flush) {
-            try {
-                if (in.readyData() <= 0) {
-                    if (flush) {
-                        out.flush();
-                    }
-                    return;
+                             boolean flush) throws IOException {
+            if (in.readyData() <= 0) {
+                if (flush) {
+                    out.flush();
                 }
-                for (;;) {
-                    int len = in.read(buf);
-                    out.write(buf, 0, len);
-                    if (flush) {
-                        out.flush();
-                    }
-                    if (!in.isReady()) {
-                        // no more data is available, install the handler again.
-                        in.notifyAvailable(handler);
-                        break;
-                    }
+                return;
+            }
+            for (;;) {
+                int len = in.read(buf);
+                out.write(buf, 0, len);
+                if (flush) {
+                    out.flush();
                 }
-            } catch (IOException ioe) {
-                ioe.printStackTrace();
+                if (!in.isReady()) {
+                    // no more data is available, install the handler again.
+                    in.notifyAvailable(handler);
+                    break;
+                }
             }
         }
 
@@ -355,28 +345,24 @@ final class EchoServer {
                              NIOReader in,
                              char[] buf,
                              Writer out,
-                             boolean flush) {
-            try {
-                if (in.readyData() <= 0) {
-                    if (flush) {
-                        out.flush();
-                    }
-                    return;
+                             boolean flush) throws IOException {
+            if (in.readyData() <= 0) {
+                if (flush) {
+                    out.flush();
                 }
-                for (;;) {
-                    int len = in.read(buf);
-                    out.write(buf, 0, len);
-                    if (flush) {
-                        out.flush();
-                    }
-                    if (!in.isReady()) {
-                        // no more data is available, install the handler again.
-                        in.notifyAvailable(handler);
-                        break;
-                    }
+                return;
+            }
+            for (;;) {
+                int len = in.read(buf);
+                out.write(buf, 0, len);
+                if (flush) {
+                    out.flush();
                 }
-            } catch (IOException ioe) {
-                ioe.printStackTrace();
+                if (!in.isReady()) {
+                    // no more data is available, install the handler again.
+                    in.notifyAvailable(handler);
+                    break;
+                }
             }
         }
 

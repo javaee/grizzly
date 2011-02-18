@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,34 +38,27 @@
  * holder.
  */
 
-package org.glassfish.grizzly.http.server.io;
+package org.glassfish.grizzly.utils;
 
 import java.io.IOException;
 
-
 /**
- * Callback notification mechanism that signals the developer it's possible
- * to write content.
- *
- * @since 2.0
+ * Exceptions utilities.
+ * 
+ * @author Alexey Stashok
  */
-public interface WriteHandler {
-
+public class Exceptions {
     /**
-     * This callback will be invoked when the requirements as dictated
-     * by {@link NIOOutputSink#notifyCanWrite(WriteHandler, int)} are met.
+     * Wrap the given {@link Throwable} by {@link IOException}.
      * 
-     * @throws IOException, {@link IOException} might be thrown by the custom
-     *  handler code. This exception will be delegated for processing to
-     *  {@link #onError(java.lang.Throwable)}.
+     * @param t {@link Throwable}.
+     * @return {@link IOException}.
      */
-    void onWritePossible() throws IOException;
+    public static IOException makeIOException(final Throwable t) {
+        if (IOException.class.isAssignableFrom(t.getClass())) {
+            return (IOException) t;
+        }
 
-    /**
-     * <p>
-     * Invoked when an error occurs processing the request asynchronously.
-     * </p>
-     */
-    void onError(final Throwable t);
-
+        return new IOException(t);
+    }
 }

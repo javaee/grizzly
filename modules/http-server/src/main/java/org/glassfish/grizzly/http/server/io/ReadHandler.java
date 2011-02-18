@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,7 +38,11 @@
  * holder.
  */
 
-package org.glassfish.grizzly.http.server.io;/*
+package org.glassfish.grizzly.http.server.io;
+
+import java.io.IOException;
+
+/*
 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  * 
@@ -89,8 +93,12 @@ public interface ReadHandler {
      * <p>
      * Invoked when data is available to be read without blocking.
      * </p>
+     *
+     * @throws IOException, {@link IOException} might be thrown by the custom
+     *  handler code. This exception will be delegated for processing to
+     *  {@link #onError(java.lang.Throwable)}.
      */
-    void onDataAvailable();
+    void onDataAvailable() throws IOException;
 
     
     /**
@@ -105,7 +113,11 @@ public interface ReadHandler {
      * <p>
      * Invoked when all data for the current request has been read.
      * </p>
+     * 
+     * @throws IOException, {@link IOException} might be thrown by the custom
+     *  handler code. This exception will be delegated for processing to
+     *  {@link #onError(java.lang.Throwable)}.
      */
-    void onAllDataRead();
+    void onAllDataRead() throws IOException;
 
 }

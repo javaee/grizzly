@@ -57,6 +57,7 @@ import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.memory.CompositeBuffer;
+import org.glassfish.grizzly.utils.Exceptions;
 
 /**
  * Abstraction exposing both byte and character methods to read content
@@ -165,7 +166,7 @@ public class InputBuffer {
     /**
      * Synchronization lock.
      */
-    private final Object lock = new Object();
+//    private final Object lock = new Object();
 
 
 
@@ -603,14 +604,20 @@ public class InputBuffer {
      *
      * This method shouldn't be invoked by developers directly.
      */
-    public void finished() {
+    public void finished() throws IOException {
         if (!contentRead) {
             contentRead = true;
-            synchronized (lock) {
-                if (handler != null) {
-                    handler.onAllDataRead();
-                    handler = null;
+//            synchronized (lock) {
+            final ReadHandler localHandler = handler;
+            if (localHandler != null) {
+                handler = null;
+                try {
+                    localHandler.onAllDataRead();
+                } catch (Throwable t) {
+                    localHandler.onError(t);
+                    throw Exceptions.makeIOException(t);
                 }
+//                }
             }
         }
     }
@@ -706,19 +713,25 @@ public class InputBuffer {
             final int addSize = buffer.remaining();
             if (addSize > 0) {
                 compositeBuffer.append(buffer);
-                synchronized (lock) {
-                    if (handler != null) {
-                        final int available = ((processingChars)
-                                                     ? availableChar()
-                                                     : available());
-                        if (available > requestedSize) {
-                            final ReadHandler localHandler = handler;
-                            handler = null;
+//                synchronized (lock) {
+                if (handler != null) {
+                    final int available = ((processingChars)
+                            ? availableChar()
+                            : available());
+                    if (available > requestedSize) {
+                        final ReadHandler localHandler = handler;
+                        handler = null;
+                        try {
                             localHandler.onDataAvailable();
-                            return true;
+                        } catch (Throwable t) {
+                            handler.onError(t);
+                            throw Exceptions.makeIOException(t);
                         }
+
+                        return true;
                     }
                 }
+//                }
             }
         }
 

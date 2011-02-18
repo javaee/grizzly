@@ -41,7 +41,6 @@
 package org.glassfish.grizzly.http.server.io;
 
 import java.io.IOException;
-import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
@@ -67,6 +66,7 @@ import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.NIOConnection;
+import org.glassfish.grizzly.utils.Exceptions;
 
 /**
  * Abstraction exposing both byte and character methods to write content
@@ -493,16 +493,22 @@ public class OutputBuffer {
             }
 
             @Override
-            public void onNotify() {
-                handler.onWritePossible();
+            public void onNotify() throws IOException {
                 OutputBuffer.this.handler = null;
-
+                OutputBuffer.this.monitor = null;
+                try {
+                    handler.onWritePossible();
+                } catch (Throwable t) {
+                    handler.onError(t);
+                    throw Exceptions.makeIOException(t);
+                }
             }
         };
-        if (!taskQueue.addQueueMonitor(monitor)) {
-            // monitor wasn't added because it was notified
-            this.handler = null;
-            monitor = null;
+        try {
+            // If exception occurs here - it's from WriteHandler, so it must
+            // have been processed by WriteHandler.onError().
+            taskQueue.addQueueMonitor(monitor);
+        } catch (Exception ignored) {
         }
 
         return true;
