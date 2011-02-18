@@ -250,10 +250,8 @@ public class InputBuffer {
      * any character-based methods called on this <code>InputBuffer</code> will
      * throw a {@link IllegalStateException}.
      * </p>
-     *
-     * @throws IOException if an I/O error occurs enabling character processing
      */
-    public void processingChars() throws IOException {
+    public void processingChars() {
 
         processingChars = true;
         String enc = request.getCharacterEncoding();
@@ -714,7 +712,6 @@ public class InputBuffer {
             final int addSize = buffer.remaining();
             if (addSize > 0) {
                 toCompositeInputContentBuffer().append(buffer);
-//                synchronized (lock) {
                 if (handler != null) {
                     final int available = ((processingChars)
                             ? availableChar()
@@ -725,14 +722,13 @@ public class InputBuffer {
                         try {
                             localHandler.onDataAvailable();
                         } catch (Throwable t) {
-                            handler.onError(t);
+                            localHandler.onError(t);
                             throw Exceptions.makeIOException(t);
                         }
 
                         return true;
                     }
                 }
-//                }
             }
         }
 
