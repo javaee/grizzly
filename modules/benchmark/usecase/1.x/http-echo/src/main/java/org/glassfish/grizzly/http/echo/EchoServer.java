@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -46,15 +46,12 @@ import com.sun.grizzly.http.embed.GrizzlyWebServer;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
-import com.sun.grizzly.util.GrizzlyExecutorService;
-import com.sun.grizzly.util.ThreadPoolConfig;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 final class EchoServer {
@@ -141,15 +138,9 @@ final class EchoServer {
                     OutputStream out = response.getOutputStream();
                     byte[] buf = new byte[1024];
                     int read;
-                    int total = 0;
                     try {
                         while ((read = in.read(buf)) != -1) {
-                            total += read;
                             out.write(buf, 0, read);
-                            if (total > 1024) {
-                                total = 0;
-                                out.flush();
-                            }
                         }
                     } finally {
                         in.close();
@@ -160,15 +151,9 @@ final class EchoServer {
                     Writer out = response.getWriter();
                     char[] buf = new char[1024];
                     int read;
-                    int total = 0;
                     try {
                         while ((read = in.read(buf)) != -1) {
-                            total += read;
                             out.write(buf, 0, read);
-                            if (total > 1024) {
-                                total = 0;
-                                out.flush();
-                            }
                         }
                     } finally {
                         in.close();

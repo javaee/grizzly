@@ -187,15 +187,9 @@ final class EchoServer {
                 NIOOutputStream out = response.getOutputStream();
                 byte[] buf = new byte[1024];
                 int read;
-                int total = 0;
                 try {
                     while ((read = in.read(buf)) != -1) {
-                        total += read;
                         out.write(buf, 0, read);
-                        if (total > 1024) {
-                            total = 0;
-                            out.flush();
-                        }
                     }
                 } finally {
                     in.close();
@@ -206,15 +200,9 @@ final class EchoServer {
                 Writer out = response.getWriter();
                 char[] buf = new char[1024];
                 int read;
-                int total = 0;
                 try {
                     while ((read = in.read(buf)) != -1) {
-                        total += read;
                         out.write(buf, 0, read);
-                        if (total > 1024) {
-                            total = 0;
-                            out.flush();
-                        }
                     }
                 } finally {
                     in.close();
@@ -262,7 +250,7 @@ final class EchoServer {
 
                     @Override
                     public void onDataAvailable() throws IOException {
-                        doWrite(this, in, buf, out, false);
+                        doWrite(this, in, buf, out);
                     }
 
                     @Override
@@ -271,7 +259,7 @@ final class EchoServer {
 
                     @Override
                     public void onAllDataRead() throws IOException {
-                        doWrite(this, in, buf, out, true);
+                        doWrite(this, in, buf, out);
                         response.resume();
                     }
                 });
@@ -298,7 +286,7 @@ final class EchoServer {
 
                     @Override
                     public void onDataAvailable() throws IOException {
-                        doWrite(this, in, buf, out, false);
+                        doWrite(this, in, buf, out);
                     }
 
                     @Override
@@ -307,7 +295,7 @@ final class EchoServer {
 
                     @Override
                     public void onAllDataRead() throws IOException {
-                        doWrite(this, in, buf, out, true);
+                        doWrite(this, in, buf, out);
                         response.resume();
                     }
                 });
@@ -319,50 +307,28 @@ final class EchoServer {
         private void doWrite(ReadHandler handler,
                              NIOInputStream in,
                              byte[] buf,
-                             OutputStream out,
-                             boolean flush) throws IOException {
-            if (in.readyData() <= 0) {
-                if (flush) {
-                    out.flush();
-                }
-                return;
-            }
-            for (;;) {
+                             OutputStream out) throws IOException {
+            while(in.isReady()) {
                 int len = in.read(buf);
                 out.write(buf, 0, len);
-                if (flush) {
-                    out.flush();
-                }
-                if (!in.isReady()) {
-                    // no more data is available, install the handler again.
-                    in.notifyAvailable(handler);
-                    break;
-                }
+            }
+
+            if (!in.isFinished()) {
+                in.notifyAvailable(handler);
             }
         }
 
         private void doWrite(ReadHandler handler,
                              NIOReader in,
                              char[] buf,
-                             Writer out,
-                             boolean flush) throws IOException {
-            if (in.readyData() <= 0) {
-                if (flush) {
-                    out.flush();
-                }
-                return;
-            }
-            for (;;) {
+                             Writer out) throws IOException {
+            while(in.isReady()) {
                 int len = in.read(buf);
                 out.write(buf, 0, len);
-                if (flush) {
-                    out.flush();
-                }
-                if (!in.isReady()) {
-                    // no more data is available, install the handler again.
-                    in.notifyAvailable(handler);
-                    break;
-                }
+            }
+
+            if (!in.isFinished()) {
+                in.notifyAvailable(handler);
             }
         }
 
