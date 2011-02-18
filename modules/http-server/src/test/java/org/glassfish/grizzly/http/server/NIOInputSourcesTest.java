@@ -536,6 +536,9 @@ public class NIOInputSourcesTest extends TestCase {
                 if (reader.isFinished()) {
                     return;
                 }
+
+                res.suspend();
+
                 final StringBuffer sb = new StringBuffer();
                 reader.notifyAvailable(new ReadHandler() {
 
@@ -572,7 +575,6 @@ public class NIOInputSourcesTest extends TestCase {
                         throw new RuntimeException(t);
                     }
                 }, readSize);
-                res.suspend();
             } catch (Throwable t) {
                 testResult.failure(t);
             }
@@ -647,6 +649,8 @@ public class NIOInputSourcesTest extends TestCase {
                 if (reader.isFinished()) {
                     return;
                 }
+                res.suspend();
+                
                 final StringBuilder sb = new StringBuilder();
                 reader.notifyAvailable(new ReadHandler() {
 
@@ -682,7 +686,6 @@ public class NIOInputSourcesTest extends TestCase {
                         throw new RuntimeException(t);
                     }
                 }, readSize);
-                res.suspend();
             } catch (Throwable t) {
                 testResult.failure(t);
             }
