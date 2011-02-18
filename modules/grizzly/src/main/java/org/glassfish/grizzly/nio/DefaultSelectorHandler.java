@@ -557,7 +557,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
         }
     }
     
-    protected final class RunnableTask implements SelectorHandlerTask {
+    protected static final class RunnableTask implements SelectorHandlerTask {
         private final Runnable task;
         private final FutureImpl<Runnable> future;
         private final CompletionHandler<Runnable> completionHandler;

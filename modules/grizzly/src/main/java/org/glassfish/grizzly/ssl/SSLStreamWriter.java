@@ -221,7 +221,7 @@ public class SSLStreamWriter extends TransformerStreamWriter {
         }
     }
 
-    protected final class HandshakeCompletionHandler extends
+    protected static final class HandshakeCompletionHandler extends
             CompletionHandlerAdapter<SSLEngine, Integer> {
 
         final SSLEngine sslEngine;

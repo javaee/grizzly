@@ -688,7 +688,7 @@ public final class FilterChainContext implements AttributeStorage {
         }
     }
 
-    public final class TransportContext {
+    public static final class TransportContext {
         private boolean isBlocking;
         CompletionHandler completionHandler;
         FutureImpl future;

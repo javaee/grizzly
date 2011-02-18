@@ -73,5 +73,5 @@ public interface Localizable {
      * <p>
      * Use of "new" is to create an unique instance.
      */
-    String NOT_LOCALIZABLE = new String("\u0000");
+    String NOT_LOCALIZABLE = "\u0000";
 }
