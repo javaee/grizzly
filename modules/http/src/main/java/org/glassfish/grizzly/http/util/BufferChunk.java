@@ -411,7 +411,11 @@ public class BufferChunk implements Chunk {
 
         if (UTF8_CHARSET.equals(encoding)) {
             try {
-                UTF8_DECODER.convert(this, cc);
+                final char[] ccBuf = cc.getChars();
+                final int ccStart = cc.getStart();
+
+                final int ccEnd = UTF8_DECODER.convert(this, ccBuf, ccStart);
+                cc.setEnd(ccEnd);
             } catch (IOException e) {
                 if (!(e instanceof CharConversionException)) {
                     throw new CharConversionException();
