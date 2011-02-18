@@ -117,11 +117,13 @@
             <row>
               <entry>NetworkListener</entry>
 
-              <entry>This is an abstraction of the Grizzly NIOTransport and Filter implementations.
-                It also allows the enabling/disabling of HTTP-related features such as keep-alive,
-                chunked transfer-encoding, cusom addons etc. HttpServer can support multiple
-                NetworkListeners. Also, keep in mind that all HttpHandlers added to the
-                ServerConfiguration will be shared across all listeners.</entry>
+              <entry>This is an abstraction of the Grizzly NIOTransport and
+              Filter implementations. It also allows the enabling/disabling of
+              HTTP-related features such as keep-alive, chunked
+              transfer-encoding, cusom addons etc. HttpServer can support
+              multiple NetworkListeners. Also, keep in mind that all
+              HttpHandlers added to the ServerConfiguration will be shared
+              across all listeners.</entry>
             </row>
 
             <row>
@@ -168,10 +170,12 @@
               Like the HttpServerFilter, if file caching is enabled, this
               Filter will be added automatically.</entry>
             </row>
+
             <row>
               <entry>AddOn</entry>
-              <entry>The general interface for HttpServer addons, which suppose to extend basic
-                HttpServer functionality.</entry>
+
+              <entry>The general interface for HttpServer addons, which
+              suppose to extend basic HttpServer functionality.</entry>
             </row>
           </tbody>
         </tgroup>
@@ -325,7 +329,7 @@ try {
             <entry>addons</entry>
 
             <entry>The set of addons, which suppose to extend basic HttpServer
-              functionality.</entry>
+            functionality.</entry>
           </row>
 
           <row>
@@ -881,10 +885,14 @@ public interface BinaryNIOInputSource extends NIOInputSource {
     <para>All properties of the FileCache can be manipulated by obtaining the
     FileCache instance by calling NetworkListener.getFileCache().</para>
   </section>
+
   <section>
     <title>AddOn</title>
-    <para>The AddOn abstraction provides a simple and generic way how to extend existing HttpServer
-    functionality. The interface looks very simple:</para>
+
+    <para>The AddOn abstraction provides a simple and generic way how to
+    extend existing HttpServer functionality. The interface looks very
+    simple:</para>
+
     <programlisting language="java">/**
  * The {@link HttpServer} addon interface, responsible for adding
  * features like WebSockets, Comet to HttpServer.
@@ -905,9 +913,10 @@ public interface AddOn {
     public void setup(NetworkListener networkListener,
             FilterChainBuilder builder);
 }</programlisting>
-    <para>So basically custom AddOn should implement only one method, and most of the time AddOn
-      just inserts a custom logic Filter into the given FilterChainBuilder. Here is example of
-      WebSocketAddOn:<programlisting>/**
+
+    <para>So basically custom AddOn should implement only one method, and most
+    of the time AddOn just inserts a custom logic Filter into the given
+    FilterChainBuilder. Here is example of WebSocketAddOn:<programlisting>/**
  * WebSockets {@link AddOn} for the {@link org.glassfish.grizzly.http.server.HttpServer}.
  */
 public class WebSocketAddOn implements AddOn {
@@ -919,12 +928,12 @@ public class WebSocketAddOn implements AddOn {
         // Get the index of HttpCodecFilter in the HttpServer filter chain
         final int httpCodecFilterIdx = builder.indexOfType(HttpCodecFilter.class);
 
-        if (httpCodecFilterIdx >= 0) {
+        if (httpCodecFilterIdx &gt;= 0) {
             // Insert the WebSocketFilter right after HttpCodecFilter
             builder.add(httpCodecFilterIdx + 1, new WebSocketFilter());
         }
     }
-}</programlisting></para>    
+}</programlisting></para>
   </section>
 
   <section>
@@ -936,7 +945,7 @@ public class WebSocketAddOn implements AddOn {
     nested classes.</para>
 
     <programlisting language="java" linenumbering="numbered"
-                    startinglinenumber="303">/**
+                    startinglinenumber="304">/**
      * This handler using non-blocking streams to read POST data and echo it
      * back to the client.
      */
@@ -954,80 +963,58 @@ public class WebSocketAddOn implements AddOn {
             final NIOReader in = request.getReader(false); // false argument puts the stream in non-blocking mode
             final NIOWriter out = response.getWriter();
 
-            do {
-                // continue reading ready data until no more can be read without
-                // blocking
-                while (in.isReady()) {
-                    final int ready = in.readyData();
-                    int read = in.read(buf, 0, ready);
-                    if (read == -1) {
-                        break;
-                    }
-                    System.out.println("INITIAL READ: " + new String(buf, 0, ready));
-                    out.write(buf, 0, ready);
-                }
-
-                // try to install a ReadHandler.  If this fails,
-                // continue at the top of the loop and read available data,
-                // otherwise break the look and allow the handler to wait for
-                // data to become available.
-                boolean installed = in.notifyAvailable(new ReadHandler() {
-
-                    @Override
-                    public void onDataAvailable() {
-                        System.out.println("[onDataAvailable] length: " + in.readyData());
-                        doWrite(this, in, buf, out, false);
-                    }
-
-                    @Override
-                    public void onError(Throwable t) {
-                        System.out.println("[onError]" + t);
-                    }
-
-                    @Override
-                    public void onAllDataRead() {
-                        System.out.println("[onAllDataRead] length: " + in.readyData());
-                        doWrite(this, in, buf, out, true);
-                        response.resume();
-                    }
-                });
-
-                if (installed) {
+            // continue reading ready data until no more can be read without
+            // blocking
+            while (in.isReady()) {
+                final int ready = in.readyData();
+                int read = in.read(buf, 0, ready);
+                if (read == -1) {
                     break;
                 }
-            } while (!in.isFinished());
+                System.out.println("INITIAL READ: " + new String(buf, 0, ready));
+                out.write(buf, 0, ready);
+            }
+
+            if (in.isFinished()) {
+                return;
+            }
 
             response.suspend();
+
+            in.notifyAvailable(new ReadHandler() {
+
+                @Override
+                public void onDataAvailable() throws IOException {
+                    System.out.println("[onDataAvailable] length: " + in.readyData());
+                    doWrite(this, in, buf, out);
+                }
+
+                @Override
+                public void onError(Throwable t) {
+                    System.out.println("[onError]" + t);
+                }
+
+                @Override
+                public void onAllDataRead() throws IOException {
+                    System.out.println("[onAllDataRead] length: " + in.readyData());
+                    doWrite(this, in, buf, out);
+                    response.resume();
+                }
+            });
 
         }
 
         private void doWrite(ReadHandler handler,
                              NIOReader in,
                              char[] buf,
-                             NIOWriter out,
-                             boolean flush) {
-            try {
-                if (in.readyData() &lt;= 0) {
-                    if (flush) {
-                        out.flush();
-                    }
-                    return;
-                }
-                for (;;) {
-                    int len = in.read(buf);
-                    System.out.println("READ: " + new String(buf, 0, len));
-                    out.write(buf, 0, len);
-                    if (flush) {
-                        out.flush();
-                    }
-                    if (!in.isReady()) {
-                        // no more data is available, install the handler again.
-                        in.notifyAvailable(handler);
-                        break;
-                    }
-                }
-            } catch (IOException ioe) {
-                ioe.printStackTrace();
+                             Writer out) throws IOException {
+            while(in.isReady()) {
+                int len = in.read(buf);
+                out.write(buf, 0, len);
+            }
+
+            if (!in.isFinished()) {
+                in.notifyAvailable(handler);
             }
         }
 
@@ -1045,17 +1032,9 @@ public class WebSocketAddOn implements AddOn {
       </listitem>
 
       <listitem>
-        <para>lines 338-357 - When no more data is available to be read
+        <para>lines 340-359 - When no more data is available to be read
         without blocking, install a ReadHandler() to echo data back to the
         client as it becomes available.</para>
-      </listitem>
-
-      <listitem>
-        <para>lines 359-361 - if we successfully installed the ReadHandler,
-        break the do-while loop so we can suspend the response until more data
-        is available (line 364). If the ReadHandler wasn't installed, more
-        data has become available to be read without blocking, so we continue
-        at the top of the do-while loop.</para>
       </listitem>
 
       <listitem>
@@ -1064,7 +1043,7 @@ public class WebSocketAddOn implements AddOn {
       </listitem>
 
       <listitem>
-        <para>lines 380-392 - Continue writing data until we can't read any
+        <para>lines 367-374 - Continue writing data until we can't read any
         more content without blocking.</para>
       </listitem>
 
@@ -1217,26 +1196,26 @@ public class WebSocketAddOn implements AddOn {
 
     <itemizedlist>
       <listitem>
-        <para>lines 225-264 - When the connection is established with the
+        <para>lines 226-261 - When the connection is established with the
         server, the handleConnect() method of this Filter will be invoked.
         When this happens we create a HttpRequestPacket, which contains only
         message part of a POST request. wThe request is then written.</para>
 
         <itemizedlist>
           <listitem>
-            <para>lines 236-249 writes the body of the message in 2 second
+            <para>lines 237-249 writes the body of the message in 2 second
             intervals.</para>
           </listitem>
         </itemizedlist>
       </listitem>
 
       <listitem>
-        <para>line 254 - Write the trailer to signify the end of the request
+        <para>line 255 - Write the trailer to signify the end of the request
         since the chunked transfer encoding is being used.</para>
       </listitem>
 
       <listitem>
-        <para>lines 264-279 - Read the response from the server. Store the
+        <para>lines 265-280 - Read the response from the server. Store the
         final result in a future to be retrieved later.</para>
       </listitem>
     </itemizedlist>
