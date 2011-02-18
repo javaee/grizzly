@@ -832,7 +832,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
         }
     }
 
-    private class EntryWorker implements DelayedExecutor.Worker<FileCacheEntry> {
+    private static class EntryWorker implements DelayedExecutor.Worker<FileCacheEntry> {
         @Override
         public boolean doWork(final FileCacheEntry element) {
             element.run();
@@ -840,7 +840,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
         }        
     }
 
-    private class EntryResolver implements DelayedExecutor.Resolver<FileCacheEntry> {
+    private static class EntryResolver implements DelayedExecutor.Resolver<FileCacheEntry> {
 
         @Override
         public boolean removeTimeout(FileCacheEntry element) {
