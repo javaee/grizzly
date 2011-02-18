@@ -439,6 +439,7 @@ public class OutputBuffer {
      * @throws IOException if an error occurs during the write
      */
     public void writeBuffer(final Buffer buffer) throws IOException {
+        handleAsyncErrors();
         finishCurrentBuffer();
         compositeBuffer.append(buffer);
     }
