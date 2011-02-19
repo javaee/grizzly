@@ -54,6 +54,73 @@
     <packaging>pom</packaging>
     <version>2.0.0-SNAPSHOT</version>
     <name>grizzly-modules</name>
+    <profiles>
+        <profile>
+            <id>coverage</id>
+            <dependencies>
+                <dependency>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>cobertura-maven-plugin</artifactId>
+                    <version>${cobertura.version}</version>
+                    <optional>true</optional>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.codehaus.mojo</groupId>
+                                <artifactId>cobertura-maven-plugin</artifactId>
+                                <version>${cobertura.version}</version>
+                            </dependency>
+                        </dependencies>
+                        <executions>
+                            <execution>
+                                <id>merge-cobertura-datafiles</id>
+                                <phase>process-test-classes</phase>
+                                <configuration>
+                                    <tasks>
+                                        <taskdef
+                                                classpathref="maven.runtime.classpath"
+                                                resource="tasks.properties"/>
+                                        <mkdir dir="target/cobertura"/>
+                                        <cobertura-merge
+                                                datafile="target/cobertura/cobertura.ser">
+                                            <fileset dir=".">
+                                                <include
+                                                        name="grizzly/target/cobertura/cobertura.ser"/>
+                                                <include
+                                                        name="rcm/target/cobertura/cobertura.ser"/>
+                                                <include
+                                                        name="http/target/cobertura/cobertura.ser"/>
+                                                <include
+                                                        name="http-server/target/cobertura/cobertura.ser"/>
+                                                <include
+                                                        name="http-servlet/target/cobertura/cobertura.ser"/>
+                                                <include
+                                                        name="comet/target/cobertura/cobertura.ser"/>
+                                                <include
+                                                        name="websockets/target/cobertura/cobertura.ser"/>
+                                                <include
+                                                        name="portunif/target/cobertura/cobertura.ser"/>
+                                                <include
+                                                        name="config/target/cobertura/cobertura.ser"/>
+                                            </fileset>
+                                        </cobertura-merge>
+                                    </tasks>
+                                </configuration>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
     <modules>
         <module>grizzly</module>
         <module>rcm</module>

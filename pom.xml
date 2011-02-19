@@ -80,8 +80,8 @@
             <name>Oleksiy Stashok</name>
             <email>oleksiys@dev.java.net</email>
             <url>http://blogs.sun.com/oleksiys/</url>
-            <organization>SUN Microsystems</organization>
-            <organizationUrl>http://www.sun.com</organizationUrl>
+            <organization>Oracle Corporation</organization>
+            <organizationUrl>http://www.oracle.com</organizationUrl>
         </developer>
         <developer>
             <id>rlubke</id>
@@ -399,6 +399,7 @@
         <servlet-version>2.5</servlet-version>
         <felix-version>2.1.0</felix-version>
         <gmbal.version>3.0.0-b023</gmbal.version>
+        <cobertura.version>2.4</cobertura.version>
         <maven.compiler.argument>-Xlint:unchecked,deprecation,fallthrough,finally,cast,dep-ann,empty,overrides</maven.compiler.argument>
     </properties>
 </project>
