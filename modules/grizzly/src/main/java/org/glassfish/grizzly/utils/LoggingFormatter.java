@@ -67,7 +67,7 @@ import java.util.logging.Logger;
  */
 public class LoggingFormatter extends Formatter {
 
-    private static Logger log = Logger.getLogger(LoggingFormatter.class.getName());
+    private static final Logger log = Logger.getLogger(LoggingFormatter.class.getName());
     // took that from the JDK java.util.logging.SimpleFormatter
     // Line separator string.  This is the value of the line.separator
     // property at the moment that the SimpleFormatter was created.
@@ -105,14 +105,14 @@ public class LoggingFormatter extends Formatter {
         // Create a StringBuffer to contain the formatted record
         StringBuffer sb = new StringBuffer(128);
 
-        sb.append("[").append(Thread.currentThread().getName()).append("] ");
+        sb.append('[').append(Thread.currentThread().getName()).append("] ");
 
         // Get the date from the LogRecord and add it to the buffer
         Date date = new Date(record.getMillis());
         sb.append(date.toString()).append(' ');
 
         // Get the level name and add it to the buffer
-        sb.append("[").append(record.getLevel().getLocalizedName()).append("] ");
+        sb.append('[').append(record.getLevel().getLocalizedName()).append("] ");
 
         // Get Class name
         if (record.getSourceClassName() != null) {

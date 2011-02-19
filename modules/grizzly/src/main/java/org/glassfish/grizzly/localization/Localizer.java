@@ -80,7 +80,7 @@ public class Localizer {
 
         try {
             ResourceBundle bundle =
-                (ResourceBundle) _resourceBundles.get(bundlename);
+                    _resourceBundles.get(bundlename);
 
             if (bundle == null) {
                 try {
@@ -134,8 +134,7 @@ public class Localizer {
                     args[i] = localize((Localizable) args[i]);
             }
 
-            String message = MessageFormat.format(msg, args);
-            return message;
+            return MessageFormat.format(msg, args);
 
         } catch (MissingResourceException e) {
             return getDefaultMessage(l);

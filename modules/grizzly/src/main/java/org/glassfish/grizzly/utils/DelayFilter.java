@@ -63,7 +63,7 @@ public class DelayFilter extends BaseFilter {
     public NextAction handleRead(FilterChainContext ctx) throws IOException {
         try {
             Thread.sleep(readTimeoutMillis);
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
         
         return ctx.getInvokeAction();
@@ -73,7 +73,7 @@ public class DelayFilter extends BaseFilter {
     public NextAction handleWrite(FilterChainContext ctx) throws IOException {
         try {
             Thread.sleep(writeTimeoutMillis);
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
 
         return ctx.getInvokeAction();

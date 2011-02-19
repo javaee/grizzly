@@ -57,7 +57,7 @@ public final class ThreadCache {
     
     private static int indexCounter;
 
-    private static ThreadLocal<ObjectCache> genericCacheAttr =
+    private static final ThreadLocal<ObjectCache> genericCacheAttr =
             new ThreadLocal<ObjectCache>();
 
     public static synchronized <E> CachedTypeIndex<E> obtainIndex(

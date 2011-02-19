@@ -275,7 +275,7 @@ public class NIOTransport extends JmxObject {
 
     private static class EventDate {
         private final String event;
-        private Date date;
+        private final Date date;
 
         public EventDate(String event) {
             this.event = event;
@@ -284,7 +284,7 @@ public class NIOTransport extends JmxObject {
 
         @Override
         public String toString() {
-            return event + " (" + date + ")";
+            return event + " (" + date + ')';
         }
     }
 

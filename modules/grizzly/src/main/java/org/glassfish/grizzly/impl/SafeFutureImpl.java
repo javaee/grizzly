@@ -75,7 +75,7 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
         return new SafeFutureImpl<R>();
     }
 
-    private AtomicInteger recycleMark = new AtomicInteger();
+    private final AtomicInteger recycleMark = new AtomicInteger();
 
     /** Synchronization control for FutureTask */
     private final Sync sync;

@@ -49,12 +49,10 @@ import java.nio.channels.Selector;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.logging.Logger;
 import org.glassfish.grizzly.AbstractReader;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.Interceptor;
 import org.glassfish.grizzly.ReadResult;
@@ -70,10 +68,8 @@ import org.glassfish.grizzly.nio.NIOConnection;
 public abstract class TemporarySelectorReader
         extends AbstractReader<SocketAddress> {
 
-    private static final Logger LOGGER = Grizzly.logger(TemporarySelectorReader.class);
-    
     public static final int DEFAULT_BUFFER_SIZE = 8192;
-    protected int defaultBufferSize = DEFAULT_BUFFER_SIZE;
+    protected final int defaultBufferSize = DEFAULT_BUFFER_SIZE;
     protected final TemporarySelectorsEnabledTransport transport;
 
     public TemporarySelectorReader(
@@ -88,7 +84,7 @@ public abstract class TemporarySelectorReader
             Interceptor<ReadResult> interceptor) throws IOException {
         return read(connection, message, completionHandler,
                 interceptor,
-                ((NIOConnection) connection).getReadTimeout(TimeUnit.MILLISECONDS),
+                connection.getReadTimeout(TimeUnit.MILLISECONDS),
                 TimeUnit.MILLISECONDS);
     }
 
@@ -119,7 +115,7 @@ public abstract class TemporarySelectorReader
         final NIOConnection nioConnection = (NIOConnection) connection;
         
         final ReadResult<Buffer, SocketAddress> currentResult =
-                ReadResult.<Buffer, SocketAddress>create(connection, message, null, 0);
+                ReadResult.create(connection, message, null, 0);
 
         final int readBytes = read0(nioConnection, interceptor,
                 currentResult, message, timeout, timeunit);
@@ -134,9 +130,9 @@ public abstract class TemporarySelectorReader
                 interceptor.intercept(COMPLETE_EVENT, connection, currentResult);
             }
 
-            return ReadyFutureImpl.<ReadResult<Buffer, SocketAddress>>create(currentResult);
+            return ReadyFutureImpl.create(currentResult);
         } else {
-            return ReadyFutureImpl.<ReadResult<Buffer, SocketAddress>>create(new TimeoutException());
+            return ReadyFutureImpl.create(new TimeoutException());
         }
     }
 
@@ -171,14 +167,13 @@ public abstract class TemporarySelectorReader
 
         int bytesRead;
 
-        final NIOConnection nioConnection = (NIOConnection) connection;
         Selector readSelector = null;
         SelectionKey key = null;
-        final SelectableChannel channel = nioConnection.getChannel();
+        final SelectableChannel channel = connection.getChannel();
         final long readTimeout = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
 
         try {
-            bytesRead = readNow0(nioConnection, buffer, currentResult);
+            bytesRead = readNow0(connection, buffer, currentResult);
 
             if (bytesRead == 0) {
                 readSelector = transport.getTemporarySelectorIO().
@@ -198,7 +193,7 @@ public abstract class TemporarySelectorReader
                     return bytesRead; // Return on the main Selector and try again.
                 }
 
-                bytesRead = readNow0(nioConnection, buffer, currentResult);
+                bytesRead = readNow0(connection, buffer, currentResult);
             }
 
             if (bytesRead == -1) {

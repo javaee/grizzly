@@ -106,17 +106,6 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
     protected final ThreadPoolConfig config;
     protected final long transactionTimeoutMillis;
     protected final DelayedExecutor.DelayQueue<Worker> delayedQueue;
-    
-    private final DelayedExecutor.Worker<Worker> transactionWorker =
-            new DelayedExecutor.Worker<Worker>() {
-
-        @Override
-        public boolean doWork(final Worker worker) {
-            worker.t.interrupt();
-            delayedQueue.add(worker, NEVER_TIMEOUT, TimeUnit.MILLISECONDS);
-            return true;
-        }
-    };
 
     private static final DelayedExecutor.Resolver<Worker> transactionResolver =
             new DelayedExecutor.Resolver<Worker>() {
@@ -169,6 +158,16 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
             config.getTransactionMonitor() : null;
 
         if (transactionMonitor != null) {
+            final DelayedExecutor.Worker<Worker> transactionWorker =
+                    new DelayedExecutor.Worker<Worker>() {
+
+                @Override
+                public boolean doWork(final Worker worker) {
+                    worker.t.interrupt();
+                    delayedQueue.add(worker, NEVER_TIMEOUT, TimeUnit.MILLISECONDS);
+                    return true;
+                }
+            };
             delayedQueue = transactionMonitor.createDelayQueue(
                     transactionWorker, transactionResolver);
         } else {
@@ -183,7 +182,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
     protected void startWorker(final Worker worker) {
         final Thread thread = config.getThreadFactory().newThread(worker);
 
-        thread.setName(config.getPoolName() + "(" + nextThreadId() + ")");
+        thread.setName(config.getPoolName() + '(' + nextThreadId() + ')');
         thread.setUncaughtExceptionHandler(this);
         thread.setPriority(config.getPriority());
         thread.setDaemon(true);
@@ -461,7 +460,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
                                                config.getPoolName()
                                                        + "-WorkerThread("
                                                        + counter.getAndIncrement()
-                                                       + ")",
+                                                       + ')',
                                                ((mm != null) ? mm.createThreadLocalPool() : null),
                                                r);
             }

@@ -74,7 +74,7 @@ import org.glassfish.grizzly.Grizzly;
  * @author oleksiys
  */
 public class SSLSupportImpl implements SSLSupport {
-    private static Logger logger = Grizzly.logger(SSLSupportImpl.class);
+    private static final Logger logger = Grizzly.logger(SSLSupportImpl.class);
     
     public static final String KEY_SIZE_KEY = "SSL_KEY_SIZE";
     private final SSLEngine engine;
@@ -201,7 +201,7 @@ public class SSLSupportImpl implements SSLSupport {
                     break;
                 }
             }
-            keySize = Integer.valueOf(size);
+            keySize = size;
             session.putValue(KEY_SIZE_KEY, keySize);
         }
         return keySize;

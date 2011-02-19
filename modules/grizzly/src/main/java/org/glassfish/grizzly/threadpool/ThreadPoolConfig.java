@@ -80,7 +80,7 @@ public class ThreadPoolConfig {
     /**
      * Thread pool probes
      */
-    protected MonitoringConfigImpl<ThreadPoolProbe> threadPoolMonitoringConfig;
+    protected final MonitoringConfigImpl<ThreadPoolProbe> threadPoolMonitoringConfig;
             
     
     public ThreadPoolConfig(

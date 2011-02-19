@@ -49,7 +49,7 @@ import org.glassfish.grizzly.IOEvent;
  */
 public class ArrayIOEventMask implements IOEventMask {
 
-    private boolean[] arrayMask = new boolean[IOEvent.values().length];
+    private final boolean[] arrayMask = new boolean[IOEvent.values().length];
 
     public ArrayIOEventMask() {
         this(false);

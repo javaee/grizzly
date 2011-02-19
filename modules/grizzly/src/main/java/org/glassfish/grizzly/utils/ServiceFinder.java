@@ -329,11 +329,11 @@ public final class ServiceFinder<T> implements Iterable<T> {
      * Private inner class implementing fully-lazy provider lookup
      */
     private static class LazyIterator<T> implements Iterator<T> {
-        Class<T> service;
-        ClassLoader loader;
+        final Class<T> service;
+        final ClassLoader loader;
         Enumeration<URL> configs = null;
         Iterator<String> pending = null;
-        Set<String> returned = new TreeSet<String>();
+        final Set<String> returned = new TreeSet<String>();
         String nextName = null;
         URL currentConfig = null;
 

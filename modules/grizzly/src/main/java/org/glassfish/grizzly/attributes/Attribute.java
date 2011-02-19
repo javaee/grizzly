@@ -74,7 +74,7 @@ public final class Attribute<T> {
 
     @Override
     public String toString() {
-        return "Attribute[" + name + ":" + attributeIndex + "]";
+        return "Attribute[" + name + ':' + attributeIndex + ']';
     }
 
     protected Attribute(AttributeBuilder builder, String name, int index,

@@ -56,11 +56,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public abstract class BufferedOutput implements Output {
 
-    protected static final Integer ZERO = new Integer(0);
+    protected static final Integer ZERO = 0;
     protected static final GrizzlyFuture<Integer> ZERO_READY_FUTURE =
             ReadyFutureImpl.create(0);
     
-    protected int bufferSize;
+    protected final int bufferSize;
     protected CompositeBuffer multiBufferWindow;
     private Buffer buffer;
     private int lastSlicedPosition;

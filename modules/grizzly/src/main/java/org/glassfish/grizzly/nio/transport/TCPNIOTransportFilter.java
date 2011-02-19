@@ -135,7 +135,7 @@ public final class TCPNIOTransportFilter extends BaseFilter {
                 writeCompletionHandler = completionHandler;
             }
 
-            ((TCPNIOTransport) transport).getWriter(transportContext.isBlocking()).write(connection,
+            transport.getWriter(transportContext.isBlocking()).write(connection,
                     message, writeCompletionHandler).markForRecycle(
                     !hasFuture);
 

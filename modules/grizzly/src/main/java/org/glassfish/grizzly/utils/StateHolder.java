@@ -60,13 +60,13 @@ import java.util.logging.Logger;
  * @author Alexey Stashok
  */
 public final class StateHolder<E> {
-    private static Logger _logger = Grizzly.logger(StateHolder.class);
+    private static final Logger _logger = Grizzly.logger(StateHolder.class);
     
     private volatile E state;
     
     private final ReentrantReadWriteLock readWriteLock;
     
-    private Collection<ConditionElement> conditionListeners;
+    private final Collection<ConditionElement> conditionListeners;
     
     /**
      * Constructs <code>StateHolder</code>.
@@ -193,7 +193,7 @@ public final class StateHolder<E> {
 
             resultFuture = ReadyFutureImpl.create(state);
         } else {
-            final FutureImpl<E> future = SafeFutureImpl.<E>create();
+            final FutureImpl<E> future = SafeFutureImpl.create();
             final ConditionElement elem = new ConditionElement(
                     condition, future, completionHandler);
 

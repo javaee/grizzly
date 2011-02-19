@@ -1490,7 +1490,7 @@ public final class BuffersBuffer extends CompositeBuffer {
 
     private void setPosLim(final int position, final int limit) {
         if (position > limit) {
-            throw new IllegalArgumentException("Position exceeds a limit: " + position + ">" + limit);
+            throw new IllegalArgumentException("Position exceeds a limit: " + position + '>' + limit);
         }
 
         this.position = position;

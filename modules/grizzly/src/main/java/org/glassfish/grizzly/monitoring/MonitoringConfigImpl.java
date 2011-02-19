@@ -49,12 +49,9 @@ import org.glassfish.grizzly.utils.ArraySet;
  */
 public class MonitoringConfigImpl<E> implements MonitoringConfig<E> {
 
-    private final Class<E> clazz;
-
     private final ArraySet<E> monitoringProbes;
 
     public MonitoringConfigImpl(Class<E> clazz) {
-        this.clazz = clazz;
         monitoringProbes = new ArraySet<E>(clazz);
     }
 

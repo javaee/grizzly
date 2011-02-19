@@ -65,7 +65,7 @@ public final class RoundRobinConnectionDistributor
     @Override
     public void registerChannel(final SelectableChannel channel,
             final int interestOps, final Object attachment) throws IOException {
-        final SelectorRunner runner = getSelectorRunner(interestOps);
+        final SelectorRunner runner = getSelectorRunner();
 
         transport.getSelectorHandler().registerChannel(runner, 
                 channel, interestOps, attachment);
@@ -77,13 +77,13 @@ public final class RoundRobinConnectionDistributor
             final Object attachment,
             final CompletionHandler<RegisterChannelResult> completionHandler)
             throws IOException {
-        final SelectorRunner runner = getSelectorRunner(interestOps);
+        final SelectorRunner runner = getSelectorRunner();
         
         return transport.getSelectorHandler().registerChannelAsync(
                 runner, channel, interestOps, attachment, completionHandler);
     }
     
-    private SelectorRunner getSelectorRunner(final int interestOps) {
+    private SelectorRunner getSelectorRunner() {
         final SelectorRunner[] runners = getTransportSelectorRunners();
         final int index = counter.getAndIncrement() % runners.length;
         

@@ -50,10 +50,10 @@ import org.glassfish.grizzly.attributes.AttributeStorage;
  * @author Alexey Stashok
  */
 public abstract class AbstractTransformer<K, L> implements Transformer<K, L> {
-    protected AttributeBuilder attributeBuilder =
+    protected final AttributeBuilder attributeBuilder =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER;
 
-    protected Attribute<LastResultAwareState<K, L>> stateAttr;
+    protected final Attribute<LastResultAwareState<K, L>> stateAttr;
 
     private MemoryManager memoryManager;
 

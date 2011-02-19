@@ -90,7 +90,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     }
     protected final Attribute<FiltersState> FILTERS_STATE_ATTR =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-            DefaultFilterChain.class.getName() + "-" +
+            DefaultFilterChain.class.getName() + '-' +
             System.identityHashCode(this) + ".connection-state");
     
     /**
@@ -151,7 +151,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             throw new IllegalStateException("FilterChain doesn't support standalone non blocking read. Please use Filter instead.");
         } else {
             final UnsafeFutureImpl<FilterChainContext> future =
-                    UnsafeFutureImpl.<FilterChainContext>create();
+                    UnsafeFutureImpl.create();
             context.operationCompletionFuture = future;
 
             final FilterExecutor executor = ExecutorResolver.resolve(context);
@@ -192,7 +192,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             Object dstAddress, Object message,
             CompletionHandler completionHandler)
             throws IOException {
-        final FutureImpl<WriteResult> future = SafeFutureImpl.<WriteResult>create();
+        final FutureImpl<WriteResult> future = SafeFutureImpl.create();
 
         final FilterChainContext context = obtainFilterChainContext(connection);
         context.transportFilterContext.future = future;
@@ -226,7 +226,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             final FilterChainEvent event,
             final CompletionHandler<FilterChainContext> completionHandler) throws IOException {
         final FutureImpl<FilterChainContext> future =
-                SafeFutureImpl.<FilterChainContext>create();
+                SafeFutureImpl.create();
 
         final FilterChainContext context = obtainFilterChainContext(connection);
         context.operationCompletionFuture = future;
@@ -245,7 +245,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             final FilterChainEvent event,
             final CompletionHandler<FilterChainContext> completionHandler) throws IOException {
         final FutureImpl<FilterChainContext> future =
-                SafeFutureImpl.<FilterChainContext>create();
+                SafeFutureImpl.create();
 
         final FilterChainContext context = obtainFilterChainContext(connection);
         context.operationCompletionFuture = future;
@@ -413,9 +413,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             ctx.setFilterIdx(i);
         }
 
-        if (i == end) {
-            notifyComplete(ctx);
-        }
+        notifyComplete(ctx);
 
         return FilterExecution.CONTINUE;
     }

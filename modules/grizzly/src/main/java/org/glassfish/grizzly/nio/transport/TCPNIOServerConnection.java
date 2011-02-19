@@ -143,7 +143,7 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
         }
 
         synchronized (acceptSync) {
-            final FutureImpl<Connection> future = SafeFutureImpl.<Connection>create();
+            final FutureImpl<Connection> future = SafeFutureImpl.create();
             final SocketChannel acceptedChannel = doAccept();
             if (acceptedChannel != null) {
                 configureAcceptedChannel(acceptedChannel);

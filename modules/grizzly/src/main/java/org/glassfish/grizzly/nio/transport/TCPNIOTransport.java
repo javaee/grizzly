@@ -124,7 +124,7 @@ public final class TCPNIOTransport extends NIOTransport implements
     /**
      * Transport AsyncQueueIO
      */
-    AsyncQueueIO<SocketAddress> asyncQueueIO;
+    final AsyncQueueIO<SocketAddress> asyncQueueIO;
     /**
      * Transport TemporarySelectorIO, used for blocking I/O simulation
      */
@@ -165,9 +165,9 @@ public final class TCPNIOTransport extends NIOTransport implements
     int connectionTimeout =
             TCPNIOConnectorHandler.DEFAULT_CONNECTION_TIMEOUT;
 
-    private int maxReadAttempts = 3;
+    private final int maxReadAttempts = 3;
     
-    private Filter defaultTransportFilter;
+    private final Filter defaultTransportFilter;
     final RegisterChannelCompletionHandler selectorRegistrationHandler;
 
     /**

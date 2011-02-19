@@ -111,8 +111,8 @@ public abstract class AbstractNIOAsyncQueueReader
 
 
         final ReadResult<Buffer, SocketAddress> currentResult =
-                ReadResult.<Buffer, SocketAddress>create(connection,
-                buffer, null, 0);
+                ReadResult.create(connection,
+                        buffer, null, 0);
 
         // create and initialize the read queue record
         final AsyncReadQueueRecord queueRecord = AsyncReadQueueRecord.create(
@@ -130,18 +130,18 @@ public abstract class AbstractNIOAsyncQueueReader
             if (isLocked) { // If AsyncQueue is empty - try to read Buffer here
                 doRead(connection, queueRecord);
 
-                final int interceptInstructions = intercept(connection,
+                final int interceptInstructions = intercept(
                         Reader.READ_EVENT, queueRecord, currentResult);
 
                 if ((interceptInstructions & Interceptor.COMPLETED) != 0
-                        || (interceptor == null && isFinished(connection, queueRecord))) { // if direct read is completed
+                        || (interceptor == null && isFinished(queueRecord))) { // if direct read is completed
 
                     // If message was read directly - set next queue element as current
                     AsyncReadQueueRecord nextRecord = queue.poll();
                     currentElement.set(nextRecord);
                     
                     // Notify callback handler
-                    onReadComplete(connection, queueRecord);
+                    onReadComplete(queueRecord);
 
                     if (nextRecord == null) { // if nothing in queue
                         // try one more time
@@ -156,9 +156,9 @@ public abstract class AbstractNIOAsyncQueueReader
                         onReadyToRead(connection);
                     }
 
-                    intercept(connection, COMPLETE_EVENT, queueRecord, null);
+                    intercept(COMPLETE_EVENT, queueRecord, null);
                     queueRecord.recycle();
-                    return ReadyFutureImpl.<ReadResult<Buffer, SocketAddress>>create(
+                    return ReadyFutureImpl.create(
                             currentResult);
                 } else { // If direct read is not finished
                 // Create future
@@ -169,14 +169,14 @@ public abstract class AbstractNIOAsyncQueueReader
                     }
 
                     final FutureImpl<ReadResult<Buffer, SocketAddress>> future =
-                            SafeFutureImpl.<ReadResult<Buffer, SocketAddress>>create();
+                            SafeFutureImpl.create();
                     queueRecord.setFuture(future);
                     currentElement.set(queueRecord);
                     
-                    onReadIncomplete(connection, queueRecord);
+                    onReadIncomplete(queueRecord);
                     onReadyToRead(connection);
 
-                    intercept(connection, INCOMPLETE_EVENT, queueRecord, null);
+                    intercept(INCOMPLETE_EVENT, queueRecord, null);
 
                     return future;
                 }
@@ -184,7 +184,7 @@ public abstract class AbstractNIOAsyncQueueReader
             } else { // Read queue is not empty - add new element to a queue
                 // Create future
                 final FutureImpl<ReadResult<Buffer, SocketAddress>> future =
-                        SafeFutureImpl.<ReadResult<Buffer, SocketAddress>>create();
+                        SafeFutureImpl.create();
                 queueRecord.setFuture(future);
 
                 connectionQueue.getQueue().offer(queueRecord);
@@ -246,19 +246,19 @@ public abstract class AbstractNIOAsyncQueueReader
                 final Interceptor<ReadResult> interceptor =
                         queueRecord.getInterceptor();
                 // check if message was completely read
-                final int interceptInstructions = intercept(connection,
+                final int interceptInstructions = intercept(
                         Reader.READ_EVENT, queueRecord,
                         currentResult);
 
                 if ((interceptInstructions & Interceptor.COMPLETED) != 0
-                        || (interceptor == null && isFinished(connection, queueRecord))) {
+                        || (interceptor == null && isFinished(queueRecord))) {
 
                     AsyncReadQueueRecord nextRecord = queue.poll();
                     currentElement.set(nextRecord);
 
-                    onReadComplete(connection, queueRecord);
+                    onReadComplete(queueRecord);
 
-                    intercept(connection, Reader.COMPLETE_EVENT,
+                    intercept(Reader.COMPLETE_EVENT,
                             queueRecord, null);
                     queueRecord.recycle();
 
@@ -282,8 +282,8 @@ public abstract class AbstractNIOAsyncQueueReader
                         queueRecord.setMessage(null);
                     }
 
-                    onReadIncomplete(connection, queueRecord);
-                    intercept(connection, Reader.INCOMPLETE_EVENT,
+                    onReadIncomplete(queueRecord);
+                    intercept(Reader.INCOMPLETE_EVENT,
                             queueRecord, null);
 
                     onReadyToRead(connection);
@@ -321,14 +321,14 @@ public abstract class AbstractNIOAsyncQueueReader
             }
 
             if (record != LOCK_RECORD) {
-                failReadRecord(connection, record, error);
+                failReadRecord(record, error);
             }
 
             final Queue<AsyncReadQueueRecord> recordsQueue =
                     readQueue.getQueue();
             if (recordsQueue != null) {
                 while ((record = recordsQueue.poll()) != null) {
-                    failReadRecord(connection, record, error);
+                    failReadRecord(record, error);
                 }
             }
         }
@@ -365,8 +365,7 @@ public abstract class AbstractNIOAsyncQueueReader
         return readBytes;
     }
 
-    protected final void onReadComplete(Connection connection,
-            AsyncReadQueueRecord record)
+    protected final void onReadComplete(AsyncReadQueueRecord record)
             throws IOException {
 
         final ReadResult currentResult = record.getCurrentResult();
@@ -383,8 +382,7 @@ public abstract class AbstractNIOAsyncQueueReader
         }
     }
 
-    protected final void onReadIncomplete(Connection connection,
-            AsyncReadQueueRecord record)
+    protected final void onReadIncomplete(AsyncReadQueueRecord record)
             throws IOException {
 
         final ReadResult currentResult = record.getCurrentResult();
@@ -399,15 +397,14 @@ public abstract class AbstractNIOAsyncQueueReader
     protected final void onReadFailure(Connection connection,
             AsyncReadQueueRecord failedRecord, IOException e) {
 
-        failReadRecord(connection, failedRecord, e);
+        failReadRecord(failedRecord, e);
         try {
             connection.close().markForRecycle(true);
         } catch (IOException ignored) {
         }
     }
 
-    protected final void failReadRecord(Connection connection,
-            AsyncReadQueueRecord record, Throwable e) {
+    protected final void failReadRecord(AsyncReadQueueRecord record, Throwable e) {
         if (record == null) {
             return;
         }
@@ -429,10 +426,9 @@ public abstract class AbstractNIOAsyncQueueReader
         }
     }
 
-    private int intercept(final Connection connection,
-            final int event,
-            final AsyncReadQueueRecord asyncQueueRecord,
-            final ReadResult currentResult) {
+    private int intercept(final int event,
+                          final AsyncReadQueueRecord asyncQueueRecord,
+                          final ReadResult currentResult) {
         final Interceptor<ReadResult> interceptor = asyncQueueRecord.getInterceptor();
         if (interceptor != null) {
             return interceptor.intercept(event, asyncQueueRecord, currentResult);
@@ -441,8 +437,7 @@ public abstract class AbstractNIOAsyncQueueReader
         return Interceptor.DEFAULT;
     }
 
-    private <E> boolean isFinished(final Connection connection,
-            final AsyncReadQueueRecord queueRecord) {
+    private <E> boolean isFinished(final AsyncReadQueueRecord queueRecord) {
 
         final ReadResult readResult = queueRecord.getCurrentResult();
         final Object message = readResult.getMessage();

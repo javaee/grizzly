@@ -298,7 +298,8 @@ public abstract class TaskQueue<E> {
 
     /**
      * Notification mechanism which will be invoked when
-     * {@link TaskQueue#releaseSpace(int, boolean)} is called.
+     * {@link TaskQueue#releaseSpace(int)} or {@link TaskQueue#releaseSpaceAndNotify(int)}
+     * is called.
      */
     public static abstract class QueueMonitor {
 

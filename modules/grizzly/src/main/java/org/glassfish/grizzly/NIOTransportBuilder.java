@@ -77,7 +77,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * if so desired.
      * </p>
      */
-    public static MemoryManager DEFAULT_MEMORY_MANAGER =
+    public static final MemoryManager DEFAULT_MEMORY_MANAGER =
             new HeapMemoryManager();
 
     /**
@@ -91,7 +91,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * if so desired.
      * </p>
      */
-    public static AttributeBuilder DEFAULT_ATTRIBUTE_BUILDER =
+    public static final AttributeBuilder DEFAULT_ATTRIBUTE_BUILDER =
             new DefaultAttributeBuilder();
 
     /**

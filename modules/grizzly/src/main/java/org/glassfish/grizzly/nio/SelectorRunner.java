@@ -205,7 +205,7 @@ public final class SelectorRunner implements Runnable {
                             transport.getSelectionKeyHandler().
                             getConnectionForKey(selectionKey);
                     try {
-                        ((NIOTransport) transport).closeConnection(connection);
+                        transport.closeConnection(connection);
                     } catch (IOException ignored) {
                     }
                 }
@@ -375,7 +375,7 @@ public final class SelectorRunner implements Runnable {
         final IOStrategy ioStrategy = transport.getIOStrategy();
         final IOEvent[] ioEvents = selectionKeyHandler.getIOEvents(keyReadyOps);
         final NIOConnection connection =
-                (NIOConnection) selectionKeyHandler.getConnectionForKey(key);
+                selectionKeyHandler.getConnectionForKey(key);
 
         for (IOEvent ioEvent : ioEvents) {
             NIOConnection.notifyIOEventReady(connection, ioEvent);

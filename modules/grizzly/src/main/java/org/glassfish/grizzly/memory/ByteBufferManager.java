@@ -73,7 +73,7 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
             ThreadCache.obtainIndex(TrimAwareWrapper.class, 2);
 
     private final ThreadCache.CachedTypeIndex<SmallByteBufferWrapper> SMALL_BUFFER_CACHE_IDX =
-            ThreadCache.obtainIndex(SmallByteBufferWrapper.class.getName() + "." +
+            ThreadCache.obtainIndex(SmallByteBufferWrapper.class.getName() + '.' +
             System.identityHashCode(this), SmallByteBufferWrapper.class, 16);
 
     /**
@@ -81,7 +81,7 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
      */
     protected boolean isDirect;
 
-    protected int maxSmallBufferSize;
+    protected final int maxSmallBufferSize;
 
     public ByteBufferManager() {
         this(false,
@@ -133,7 +133,7 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
     @Override
     public ByteBufferWrapper reallocate(ByteBufferWrapper oldBuffer,
             int newSize) {
-        return wrap(reallocateByteBuffer((ByteBuffer) oldBuffer.underlying(), newSize));
+        return wrap(reallocateByteBuffer(oldBuffer.underlying(), newSize));
     }
 
     /**
@@ -498,7 +498,7 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
             return "(pool=" + pool +
                     " last-allocated-index=" + (lastAllocatedIndex - 1) +
                     " allocation-history=" + Arrays.toString(allocationHistory)
-                    + ")";
+                    + ')';
         }
 
     } // END ByteBufferThreadLocalPool

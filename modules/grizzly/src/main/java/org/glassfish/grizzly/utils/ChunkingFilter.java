@@ -87,12 +87,6 @@ public class ChunkingFilter extends AbstractCodecFilter<Buffer, Buffer> {
             super(chunk);
         }
 
-        @Override
-        protected TransformationResult<Buffer, Buffer> transformImpl(
-                AttributeStorage storage,
-                Buffer input) throws TransformationException {
-            return super.transformImpl(storage, input);
-        }
     }
 
     public static final class ChunkingEncoder extends ChunkingTransformer {
@@ -101,13 +95,6 @@ public class ChunkingFilter extends AbstractCodecFilter<Buffer, Buffer> {
             super(chunk);
         }
 
-        @Override
-        protected TransformationResult<Buffer, Buffer> transformImpl(
-                AttributeStorage storage,
-                Buffer input) throws TransformationException {
-            return super.transformImpl(storage, input);
-//            return TransformationResult.createCompletedResult(input, null);
-        }
     }
 
     public static abstract class ChunkingTransformer

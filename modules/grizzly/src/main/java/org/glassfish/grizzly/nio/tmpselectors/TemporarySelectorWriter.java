@@ -86,7 +86,7 @@ public abstract class TemporarySelectorWriter
             throws IOException {
         return write(connection, dstAddress, buffer, completionHandler,
                 interceptor,
-                ((NIOConnection) connection).getWriteTimeout(TimeUnit.MILLISECONDS),
+                connection.getWriteTimeout(TimeUnit.MILLISECONDS),
                 TimeUnit.MILLISECONDS);
     }
 
@@ -121,14 +121,14 @@ public abstract class TemporarySelectorWriter
         final NIOConnection nioConnection = (NIOConnection) connection;
         
         final WriteResult<Buffer, SocketAddress> writeResult =
-                WriteResult.<Buffer, SocketAddress>create(connection,
-                message, dstAddress, 0);
+                WriteResult.create(connection,
+                        message, dstAddress, 0);
 
         write0(nioConnection, dstAddress, message, writeResult,
                 timeout, timeunit);
 
         final GrizzlyFuture<WriteResult<Buffer, SocketAddress>> writeFuture =
-                ReadyFutureImpl.<WriteResult<Buffer, SocketAddress>>create(writeResult);
+                ReadyFutureImpl.create(writeResult);
         
         if (completionHandler != null) {
             completionHandler.completed(writeResult);

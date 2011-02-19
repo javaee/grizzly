@@ -624,7 +624,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                 if (newSize > maxPendingBytes) {
                     throw new PendingWriteQueueLimitExceededException(
                             "Max queued data limit exceeded: "
-                            + newSize + ">" + maxPendingBytes);
+                            + newSize + '>' + maxPendingBytes);
                 }
                 
                 sizeInBytes = newSize;

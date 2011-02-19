@@ -108,7 +108,7 @@ public final class UDPNIOTransport extends NIOTransport implements
     /**
      * The server socket time out
      */
-    protected int serverSocketSoTimeout = 0;
+    protected final int serverSocketSoTimeout = 0;
     /**
      * The socket reuseAddress
      */
@@ -125,7 +125,7 @@ public final class UDPNIOTransport extends NIOTransport implements
     /**
      * Transport AsyncQueueIO
      */
-    protected AsyncQueueIO<SocketAddress> asyncQueueIO;
+    protected final AsyncQueueIO<SocketAddress> asyncQueueIO;
     /**
      * Server socket backlog.
      */

@@ -81,7 +81,7 @@ public final class UDPNIOTransportFilter extends BaseFilter {
         final ReadResult<Buffer, SocketAddress> readResult;
 
         if (!isBlocking) {
-            readResult = ReadResult.<Buffer, SocketAddress>create(connection);
+            readResult = ReadResult.create(connection);
             transport.read(connection, null, readResult);
 
         } else {

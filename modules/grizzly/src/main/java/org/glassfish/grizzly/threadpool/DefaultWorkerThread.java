@@ -55,7 +55,6 @@ import org.glassfish.grizzly.memory.ThreadLocalPool;
  */
 public class DefaultWorkerThread extends Thread implements WorkerThread {
 
-    private final AttributeBuilder attrBuilder;
     private final AttributeHolder attributes;
 
     private final ThreadLocalPool memoryPool;
@@ -74,7 +73,6 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
                                ThreadLocalPool pool,
                                Runnable runTask) {
         super(runTask, name);
-        this.attrBuilder = attrBuilder;
         attributes = new IndexedAttributeHolder(attrBuilder);
         memoryPool = pool;
 

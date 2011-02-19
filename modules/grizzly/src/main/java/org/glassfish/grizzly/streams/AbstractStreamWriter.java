@@ -68,11 +68,11 @@ import org.glassfish.grizzly.memory.Buffers;
 public abstract class AbstractStreamWriter implements StreamWriter {
     protected static final Logger logger = Grizzly.logger(AbstractStreamWriter.class);
     
-    protected static final Integer ZERO = new Integer(0);
+    protected static final Integer ZERO = 0;
     protected static final GrizzlyFuture<Integer> ZERO_READY_FUTURE =
             ReadyFutureImpl.create(ZERO);
     
-    private Connection connection;
+    private final Connection connection;
 
     private long timeoutMillis = 30000;
     
@@ -400,7 +400,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     public static class DisposeBufferCompletionHandler
             implements CompletionHandler {
 
-        private Buffer buffer;
+        private final Buffer buffer;
 
         public DisposeBufferCompletionHandler(Buffer buffer) {
             this.buffer = buffer;

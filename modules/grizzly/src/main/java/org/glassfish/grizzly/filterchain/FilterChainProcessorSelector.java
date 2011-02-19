@@ -59,7 +59,7 @@ public class FilterChainProcessorSelector implements ProcessorSelector {
      * {@link FilterChainBuilder}, responsible for creating {@link FilterChain}
      * instances
      */
-    protected FilterChainBuilder builder;
+    protected final FilterChainBuilder builder;
 
     public FilterChainProcessorSelector(FilterChainBuilder builder) {
         this.builder = builder;

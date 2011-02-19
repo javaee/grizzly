@@ -53,7 +53,7 @@ package org.glassfish.grizzly;
  */
 public class DefaultProcessorSelector implements ProcessorSelector {
 
-    protected Transport transport;
+    protected final Transport transport;
 
     public DefaultProcessorSelector(Transport transport) {
         this.transport = transport;

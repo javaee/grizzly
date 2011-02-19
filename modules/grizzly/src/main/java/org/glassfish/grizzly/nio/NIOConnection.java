@@ -376,7 +376,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                 @Override
                 public void run() {
                     try {
-                        ((NIOTransport) transport).closeConnection(NIOConnection.this);
+                        transport.closeConnection(NIOConnection.this);
                     } catch (IOException e) {
                         logger.log(Level.FINE, "Error during connection close", e);
                     }

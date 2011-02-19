@@ -62,7 +62,7 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
     
     protected Charset charset;
     
-    protected Attribute<Integer> lengthAttribute;
+    protected final Attribute<Integer> lengthAttribute;
 
     protected byte[] stringTerminateBytes = null;
 

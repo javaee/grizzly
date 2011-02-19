@@ -400,7 +400,7 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     @Override
     public <E> GrizzlyFuture<E> decode(Transformer<Stream, E> decoder, CompletionHandler<E> completionHandler) {
-        final FutureImpl<E> future = SafeFutureImpl.<E>create();
+        final FutureImpl<E> future = SafeFutureImpl.create();
 
         final DecodeCompletionHandler<E, Integer> completionHandlerWrapper =
                 new DecodeCompletionHandler<E, Integer>(future, completionHandler);

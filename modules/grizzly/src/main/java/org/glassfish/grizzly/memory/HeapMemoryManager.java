@@ -451,7 +451,7 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
             return "(pool=" + pool.length +
                     " pos=" + pos +
                     " cap=" + lim
-                    + ")";
+                    + ')';
         }
 
         private void clearByteBufferCache() {
