@@ -105,7 +105,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
     private final class SetContentTypePrivilegedAction
             implements PrivilegedAction {
 
-        private String contentType;
+        private final String contentType;
 
         public SetContentTypePrivilegedAction(String contentType){
             this.contentType = contentType;

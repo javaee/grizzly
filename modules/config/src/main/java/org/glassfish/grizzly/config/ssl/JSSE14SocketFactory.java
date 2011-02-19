@@ -260,7 +260,7 @@ public class JSSE14SocketFactory extends JSSESocketFactory {
             if (is != null) {
                 try {
                     is.close();
-                } catch (Exception ex) {
+                } catch (Exception ignored) {
                 }
             }
         }

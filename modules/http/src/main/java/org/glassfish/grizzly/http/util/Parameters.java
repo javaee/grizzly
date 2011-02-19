@@ -83,7 +83,7 @@ public final class Parameters extends MultiMap {
     private Hashtable paramHashStringArray=new Hashtable();
     */
     // START PWC 6057385
-    private LinkedHashMap<String, String[]> paramHashStringArray =
+    private final LinkedHashMap<String, String[]> paramHashStringArray =
         new LinkedHashMap<String, String[]>();
     // END PWC 6057385
     private boolean didQueryParameters = false;
@@ -254,7 +254,7 @@ public final class Parameters extends MultiMap {
     private void merge() {
         // recursive
         if (debug > 0) {
-            log("Before merging " + this + " " + parent + " " + didMerge);
+            log("Before merging " + this + ' ' + parent + ' ' + didMerge);
             log(paramsAsString());
         }
         // Local parameters first - they take precedence as in spec.
@@ -308,7 +308,7 @@ public final class Parameters extends MultiMap {
             return;
         }
         if (debug > 0) {
-            log("Decoding query " + queryDC + " " + queryStringEncoding);
+            log("Decoding query " + queryDC + ' ' + queryStringEncoding);
         }
         // TODO obtain the bytes instead of converter to string
         //      then call processParameters(byte[], int, int, String) directly
@@ -416,7 +416,7 @@ public final class Parameters extends MultiMap {
                 valStart = nameEnd;
                 valEnd = nameEnd;
                 if (debug > 0) {
-                    log("no equal " + nameStart + " " + nameEnd + " " +
+                    log("no equal " + nameStart + ' ' + nameEnd + ' ' +
                             buffer.toStringContent(null, nameStart, nameEnd));
                 }
             }
@@ -498,7 +498,7 @@ public final class Parameters extends MultiMap {
                 valStart = nameEnd;
                 valEnd = nameEnd;
                 if (debug > 0) {
-                    log("no equal " + nameStart + " " + nameEnd + " " + new String(chars, nameStart,
+                    log("no equal " + nameStart + ' ' + nameEnd + ' ' + new String(chars, nameStart,
                         nameEnd - nameStart));
                 }
             }
@@ -577,17 +577,17 @@ public final class Parameters extends MultiMap {
         StringBuilder sb = new StringBuilder();
         for (final String s : paramHashStringArray.keySet()) {
             // END PWC 6057385
-            sb.append(s).append("=");
+            sb.append(s).append('=');
             String v[] = paramHashStringArray.get(s);
             for (int i = 0; i < v.length; i++) {
-                sb.append(v[i]).append(",");
+                sb.append(v[i]).append(',');
             }
-            sb.append("\n");
+            sb.append('\n');
         }
         return sb.toString();
     }
 
-    private static int debug = 0;
+    private static final int debug = 0;
 
     private void log(String s) {
         if (logger.isLoggable(Level.FINEST)) {
@@ -622,7 +622,7 @@ public final class Parameters extends MultiMap {
                 valStart = nameEnd;
                 valEnd = nameEnd;
                 if (debug > 0) {
-                    log("no equal " + nameStart + " " + nameEnd + " " + str.substring(nameStart, nameEnd));
+                    log("no equal " + nameStart + ' ' + nameEnd + ' ' + str.substring(nameStart, nameEnd));
                 }
             }
             if (nameEnd == -1) {
@@ -640,8 +640,8 @@ public final class Parameters extends MultiMap {
                 continue;
             }
             if (debug > 0) {
-                log("XXX " + nameStart + " " + nameEnd + " "
-                    + valStart + " " + valEnd);
+                log("XXX " + nameStart + ' ' + nameEnd + ' '
+                    + valStart + ' ' + valEnd);
             }
             try {
                 tmpNameC.append(str, nameStart, nameEnd - nameStart);
@@ -692,7 +692,7 @@ public final class Parameters extends MultiMap {
                 valStart = nameEnd;
                 valEnd = nameEnd;
                 if (debug > 0) {
-                    log("no equal " + nameStart + " " + nameEnd + " " + str.substring(nameStart, nameEnd));
+                    log("no equal " + nameStart + ' ' + nameEnd + ' ' + str.substring(nameStart, nameEnd));
                 }
             }
             if (nameEnd == -1) {
@@ -710,8 +710,8 @@ public final class Parameters extends MultiMap {
                 continue;
             }
             if (debug > 0) {
-                log("XXX " + nameStart + " " + nameEnd + " "
-                    + valStart + " " + valEnd);
+                log("XXX " + nameStart + ' ' + nameEnd + ' '
+                    + valStart + ' ' + valEnd);
             }
             try {
                 tmpNameC.append(str, nameStart, nameEnd - nameStart);

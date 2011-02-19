@@ -252,7 +252,7 @@ public class StringManager {
     // STATIC SUPPORT METHODS
     // --------------------------------------------------------------
 
-    private static Map<String,StringManager> managers =
+    private static final Map<String,StringManager> managers =
             new HashMap<String,StringManager>();
 
     /**
@@ -295,10 +295,10 @@ public class StringManager {
     public synchronized static StringManager getManager(String packageName,
                                                         Locale loc,
                                                         ClassLoader loader) {
-        StringManager mgr = managers.get(packageName + "_" + loc.toString());
+        StringManager mgr = managers.get(packageName + '_' + loc.toString());
       if (mgr == null) {
             mgr = new StringManager(packageName, loc, loader);
-            managers.put(packageName + "_" + loc.toString(), mgr);
+            managers.put(packageName + '_' + loc.toString(), mgr);
       }
       return mgr;
     }

@@ -132,7 +132,7 @@ public abstract class JSSESocketFactory extends ServerSocketFactory {
     }
 
     public Socket acceptSocket(ServerSocket socket) throws IOException {
-        SSLSocket asock = null;
+        SSLSocket asock;
         try {
             asock = (SSLSocket) socket.accept();
             if(clientAuthNeed) {

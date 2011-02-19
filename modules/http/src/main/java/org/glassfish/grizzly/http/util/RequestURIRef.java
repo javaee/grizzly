@@ -157,8 +157,7 @@ public class RequestURIRef {
         
         getDecodedRequestURIBC(isSlashAllowed, encoding);
 
-        final String strValue = decodedRequestURIDC.toString();
-        return strValue;
+        return decodedRequestURIDC.toString();
     }
 
     public void setDecodedURI(String uri) {

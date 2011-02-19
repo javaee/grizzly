@@ -105,10 +105,10 @@ public class CookieParserUtils {
 
         int end = off + len;
         int pos = off;
-        int nameStart = 0;
-        int nameEnd = 0;
-        int valueStart = 0;
-        int valueEnd = 0;
+        int nameStart;
+        int nameEnd;
+        int valueStart;
+        int valueEnd;
         int version = 0;
 
         LazyCookie cookie = null;
@@ -330,10 +330,10 @@ public class CookieParserUtils {
 
         int end = cookiesStr.length();
         int pos = 0;
-        int nameStart = 0;
-        int nameEnd = 0;
-        int valueStart = 0;
-        int valueEnd = 0;
+        int nameStart;
+        int nameEnd;
+        int valueStart;
+        int valueEnd;
         int version = 0;
 
         Cookie cookie = null;
@@ -549,10 +549,10 @@ public class CookieParserUtils {
 
         int end = off + len;
         int pos = off;
-        int nameStart = 0;
-        int nameEnd = 0;
-        int valueStart = 0;
-        int valueEnd = 0;
+        int nameStart;
+        int nameEnd;
+        int valueStart;
+        int valueEnd;
 
         LazyCookie cookie = null;
         LazyCookieState lazyCookie = null;
@@ -799,10 +799,10 @@ public class CookieParserUtils {
 
         int end = cookiesStr.length();
         int pos = 0;
-        int nameStart = 0;
-        int nameEnd = 0;
-        int valueStart = 0;
-        int valueEnd = 0;
+        int nameStart;
+        int nameEnd;
+        int valueStart;
+        int valueEnd;
 
         Cookie cookie = null;
 

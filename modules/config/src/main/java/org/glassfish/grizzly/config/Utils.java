@@ -80,7 +80,7 @@ public class Utils {
                 throw new GrizzlyConfigException(e.getMessage());
             }
         }
-        Habitat habitat = null;
+        Habitat habitat;
         try {
             habitat = getHabitat(url.openStream());
         } catch (IOException e) {
@@ -116,7 +116,7 @@ public class Utils {
         };
         final Enumeration<URL> resources;
         try {
-            resources = Utils.class.getClassLoader().getResources(inhabitantPath + "/" + habitatName);
+            resources = Utils.class.getClassLoader().getResources(inhabitantPath + '/' + habitatName);
         } catch (IOException e) {
             throw new GrizzlyConfigException(e);
         }
@@ -144,7 +144,7 @@ public class Utils {
     }
     
     public static String composeThreadPoolName(final NetworkListener networkListener) {
-        return networkListener.getThreadPool() + "-" + networkListener.getPort();
+        return networkListener.getThreadPool() + '-' + networkListener.getPort();
     }
 
     /**
@@ -167,7 +167,7 @@ public class Utils {
             try {
                 instance = (E) newInstance(realClassName);
                 isInitialized = true;
-            } catch (Exception e) {
+            } catch (Exception ignored) {
             }
         } else {
             isInitialized = true;
@@ -193,7 +193,7 @@ public class Utils {
         if (cl != null) {
             try {
                 clazz = cl.loadClass(classname);
-            } catch (Exception cnfe) {
+            } catch (Exception ignored) {
             }
         }
         if (clazz == null) {

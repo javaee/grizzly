@@ -230,7 +230,7 @@ class JSSESupport implements SSLSupport {
                     break;
                 }
             }
-            keySize = Integer.valueOf(size);
+            keySize = size;
             session.putValue(KEY_SIZE_KEY, keySize);
         }
         return keySize;

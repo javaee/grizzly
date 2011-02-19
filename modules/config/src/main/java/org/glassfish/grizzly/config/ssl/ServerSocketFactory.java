@@ -87,7 +87,7 @@ import javax.net.ssl.SSLContext;
 public abstract class ServerSocketFactory implements Cloneable {
     private static ServerSocketFactory theFactory;
     protected SSLContext context;
-    protected Map<String, Object> attributes = new HashMap<String, Object>();
+    protected final Map<String, Object> attributes = new HashMap<String, Object>();
 
     /**
      * Constructor is used only by subclasses.

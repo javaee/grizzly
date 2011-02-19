@@ -182,7 +182,7 @@ public final class FastHttpDateFormat {
         if (cachedDate != null){
             return cachedDate;
         }
-        String newDate = null;
+        String newDate;
         Date dateValue = new Date(value);
         if (threadLocalFormat != null) {
             newDate = threadLocalFormat.format(dateValue);

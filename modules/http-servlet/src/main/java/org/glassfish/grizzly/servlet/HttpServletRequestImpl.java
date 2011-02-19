@@ -370,7 +370,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
                             sm.getString("requestFacade.nullRequest"));
         }
 
-        String[] ret = null;
+        String[] ret;
 
         /*
          * Clone the returned array only if there is a security manager
@@ -380,7 +380,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
             ret = (String[]) AccessController.doPrivileged(
                 new GetParameterValuePrivilegedAction(name));
             if (ret != null) {
-                ret = (String[]) ret.clone();
+                ret = ret.clone();
             }
         } else {
             ret = request.getParameterValues(name);
@@ -721,7 +721,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
                             sm.getString("requestFacade.nullRequest"));
         }
 
-        Cookie[] ret = null;
+        Cookie[] ret;
 
         /*
          * Clone the returned array only if there is a security manager
@@ -731,7 +731,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
             ret = (Cookie[])AccessController.doPrivileged(
                 new GetCookiesPrivilegedAction());
             if (ret != null) {
-                ret = (Cookie[]) ret.clone();
+                ret = ret.clone();
             }
         } else {
             ret = request.getCookies();
@@ -1241,10 +1241,10 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     }    
     
     
-    private final class GetRequestDispatcherPrivilegedAction
+    private static final class GetRequestDispatcherPrivilegedAction
             implements PrivilegedAction {
 
-        private String path;
+        private final String path;
 
         public GetRequestDispatcherPrivilegedAction(String path){
             this.path = path;
@@ -1260,7 +1260,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     private final class GetParameterPrivilegedAction
             implements PrivilegedAction {
 
-        public String name;
+        public final String name;
 
         public GetParameterPrivilegedAction(String name){
             this.name = name;
@@ -1286,7 +1286,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     private final class GetParameterValuePrivilegedAction
             implements PrivilegedAction {
 
-        public String name;
+        public final String name;
 
         public GetParameterValuePrivilegedAction(String name){
             this.name = name;
@@ -1322,7 +1322,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     private final class GetHeadersPrivilegedAction
             implements PrivilegedAction {
 
-        private String name;
+        private final String name;
 
         public GetHeadersPrivilegedAction(String name){
             this.name = name;
@@ -1364,10 +1364,10 @@ public class HttpServletRequestImpl implements HttpServletRequest {
         }           
     }    
     
-    private final class GetSessionPrivilegedAction
+    private static final class GetSessionPrivilegedAction
             implements PrivilegedAction {
 
-        private boolean create;
+        private final boolean create;
         
         public GetSessionPrivilegedAction(boolean create){
             this.create = create;

@@ -75,14 +75,14 @@ import org.glassfish.grizzly.http.util.DataChunk;
  */
 public class LazyCookieState {
     // Version 0 (Netscape) attributes
-    private DataChunk name = DataChunk.newInstance();
-    private DataChunk value = DataChunk.newInstance();
+    private final DataChunk name = DataChunk.newInstance();
+    private final DataChunk value = DataChunk.newInstance();
     // Expires - Not stored explicitly. Generated from Max-Age (see V1)
-    private DataChunk path = DataChunk.newInstance();
-    private DataChunk domain = DataChunk.newInstance();
+    private final DataChunk path = DataChunk.newInstance();
+    private final DataChunk domain = DataChunk.newInstance();
     private boolean secure;
     // Version 1 (RFC2109) attributes
-    private DataChunk comment = DataChunk.newInstance();
+    private final DataChunk comment = DataChunk.newInstance();
 
 
     // Note: Servlet Spec =< 2.5 only refers to Netscape and RFC2109,
@@ -135,7 +135,7 @@ public class LazyCookieState {
     // -------------------- utils --------------------
     @Override
     public String toString() {
-        return "LazyCookieState " + getName() + "=" + getValue() + " ; "
-                + " " + getPath() + " " + getDomain();
+        return "LazyCookieState " + getName() + '=' + getValue() + " ; "
+                + ' ' + getPath() + ' ' + getDomain();
     }
 }

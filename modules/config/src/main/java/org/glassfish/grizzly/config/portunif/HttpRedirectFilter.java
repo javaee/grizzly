@@ -150,7 +150,7 @@ public class HttpRedirectFilter extends BaseFilter implements
             hostPort.append(hostHeader);
         }
 
-        if (hostPort != null) {
+        if (hostPort.length() > 0) {
             String path = requestURI.getRawPath();
             if (path == null) {
                 path = "/";

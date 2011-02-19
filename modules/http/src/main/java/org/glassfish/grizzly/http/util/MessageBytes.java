@@ -97,8 +97,8 @@ public final class MessageBytes implements Cloneable, Serializable {
     private boolean caseSensitive=true;
 
     // Internal objects to represent array + offset, and specific methods
-    private ByteChunk byteC=new ByteChunk();
-    private CharChunk charC=new CharChunk();
+    private final ByteChunk byteC=new ByteChunk();
+    private final CharChunk charC=new CharChunk();
 
     // String
     private String strValue;
@@ -469,7 +469,7 @@ public final class MessageBytes implements Cloneable, Serializable {
     @Override
     public  int hashCode() {
         if( hasHashCode ) return hashCode;
-        int code = 0;
+        int code;
 
         if( caseSensitive )
             code=hash();
@@ -732,6 +732,7 @@ public final class MessageBytes implements Cloneable, Serializable {
     public static class MessageBytesFactory {
         protected MessageBytesFactory() {
         }
+        @SuppressWarnings({"deprecation"})
         public MessageBytes newInstance() {
             return new MessageBytes();
         }

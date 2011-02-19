@@ -107,7 +107,7 @@ public class CookieSerializerUtils {
             final boolean isHttpOnly) {
         // Servlet implementation checks name
         buf.append(name);
-        buf.append("=");
+        buf.append('=');
         // Servlet implementation does not check anything else
 
         version = maybeQuote2(version, buf, value, true);
@@ -316,7 +316,7 @@ public class CookieSerializerUtils {
             final Cookie cookie = cookies[i];
 
             buf.append(cookie.getName());
-            buf.append("=");
+            buf.append('=');
             // Servlet implementation does not check anything else
 
             maybeQuote2(version, buf, cookie.getValue(), true);

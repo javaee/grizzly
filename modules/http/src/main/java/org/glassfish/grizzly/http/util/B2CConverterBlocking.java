@@ -109,7 +109,7 @@ public class B2CConverterBlocking {
     }
 
     static final int BUFFER_SIZE=8192;
-    char result[]=new char[BUFFER_SIZE];
+    final char[] result=new char[BUFFER_SIZE];
 
     /** Convert a buffer of bytes into a chars
      * @deprecated
@@ -125,16 +125,17 @@ public class B2CConverterBlocking {
         throws IOException
     {
 	iis.setByteChunk( bb );
-	try {
+        int debug = 0;
+        try {
 	    // read from the reader
-            int bbLengthBeforeRead = 0;
+            int bbLengthBeforeRead;
 	    while( limit > 0 ) { // conv.ready() ) {
                 int size = limit < BUFFER_SIZE ? limit : BUFFER_SIZE;
                 bbLengthBeforeRead = bb.getLength();
 		int cnt=conv.read( result, 0, size );
 		if( cnt <= 0 ) {
 		    // End of stream ! - we may be in a bad state
-		    if( debug>0)
+		    if( debug >0)
 			log( "EOF" );
 		    return;
 		}
@@ -144,7 +145,7 @@ public class B2CConverterBlocking {
                 limit = limit - (bbLengthBeforeRead - bb.getLength());
 	    }
 	} catch( IOException ex) {
-	    if( debug>0)
+	    if( debug >0)
 		log( "Resetting the converter " + ex.toString() );
 	    reset();
 	    throw ex;
@@ -186,7 +187,6 @@ public class B2CConverterBlocking {
 	conv=new ReadConverter( iis, encoding );
     }
 
-    private final int debug=0;
     void log( String s ) {
         if (logger.isLoggable(Level.FINEST))
 	    logger.log(Level.FINEST,"B2CConverter: " + s );

@@ -72,8 +72,8 @@ import javax.net.ssl.X509KeyManager;
  * @author Jan Luehe
  */
 public final class JSSEKeyManager extends X509ExtendedKeyManager {
-    private X509KeyManager delegate;
-    private String serverKeyAlias;
+    private final X509KeyManager delegate;
+    private final String serverKeyAlias;
 
     /**
      * Constructor.

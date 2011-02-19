@@ -76,10 +76,10 @@ import java.text.SimpleDateFormat;
  * @author Alex Chaffee
  **/
 public class FastDateFormat extends DateFormat {
-    DateFormat    df;
+    final DateFormat    df;
     long          lastSec = -1;
-    StringBuffer  sb      = new StringBuffer();
-    FieldPosition fp      = new FieldPosition(DateFormat.MILLISECOND_FIELD);
+    final StringBuffer  sb      = new StringBuffer();
+    final FieldPosition fp      = new FieldPosition(DateFormat.MILLISECOND_FIELD);
 
     public FastDateFormat(DateFormat df) {
         this.df = df;
@@ -163,15 +163,15 @@ public class FastDateFormat extends DateFormat {
         FastDateFormat fdf = new FastDateFormat(sdf);
         Date d = new Date();
 
-        d.setTime(1); System.out.println(fdf.format(d) + "\t" + sdf.format(d));
-        d.setTime(20); System.out.println(fdf.format(d) + "\t" + sdf.format(d));
-        d.setTime(500); System.out.println(fdf.format(d) + "\t" + sdf.format(d));
-        d.setTime(543); System.out.println(fdf.format(d) + "\t" + sdf.format(d));
-        d.setTime(999); System.out.println(fdf.format(d) + "\t" + sdf.format(d));
-        d.setTime(1050); System.out.println(fdf.format(d) + "\t" + sdf.format(d));
-        d.setTime(2543); System.out.println(fdf.format(d) + "\t" + sdf.format(d));
-        d.setTime(12345); System.out.println(fdf.format(d) + "\t" + sdf.format(d));
-        d.setTime(12340); System.out.println(fdf.format(d) + "\t" + sdf.format(d));
+        d.setTime(1); System.out.println(fdf.format(d) + '\t' + sdf.format(d));
+        d.setTime(20); System.out.println(fdf.format(d) + '\t' + sdf.format(d));
+        d.setTime(500); System.out.println(fdf.format(d) + '\t' + sdf.format(d));
+        d.setTime(543); System.out.println(fdf.format(d) + '\t' + sdf.format(d));
+        d.setTime(999); System.out.println(fdf.format(d) + '\t' + sdf.format(d));
+        d.setTime(1050); System.out.println(fdf.format(d) + '\t' + sdf.format(d));
+        d.setTime(2543); System.out.println(fdf.format(d) + '\t' + sdf.format(d));
+        d.setTime(12345); System.out.println(fdf.format(d) + '\t' + sdf.format(d));
+        d.setTime(12340); System.out.println(fdf.format(d) + '\t' + sdf.format(d));
 
         final int reps = 100000;
         {

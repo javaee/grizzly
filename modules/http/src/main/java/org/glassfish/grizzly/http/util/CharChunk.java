@@ -103,8 +103,6 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
 
     private boolean isSet=false;  // XXX
 
-    private boolean isOutput=false;
-
     // -1: grow undefinitely
     // maximum amount to be cached
     private int limit=-1;
@@ -155,14 +153,14 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
     // -------------------- Setup --------------------
 
     public void allocate( int initial, int limit  ) {
-        isOutput=true;
+        boolean output = true;
         if( buff==null || buff.length < initial ) {
             buff=new char[initial];
         }
         this.limit=limit;
         start=0;
         end=0;
-        isOutput=true;
+        output =true;
         isSet=true;
     }
 
@@ -482,7 +480,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
     public void flushBuffer() throws IOException {
         //assert out!=null
         if( out==null ) {
-            throw new IOException( "Buffer overflow, no sink " + limit + " " +
+            throw new IOException( "Buffer overflow, no sink " + limit + ' ' +
                        buff.length  );
         }
         out.realWriteChars( buff, start, end - start );
@@ -493,7 +491,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
      *	a reserve space too. Never grow bigger than limit.
      */
     void makeSpace(int count) {
-        char[] tmp = null;
+        char[] tmp;
 
         int newSize;
         int desiredSize=end + count;

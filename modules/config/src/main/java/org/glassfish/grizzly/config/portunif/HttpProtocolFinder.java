@@ -64,9 +64,9 @@ import org.glassfish.grizzly.portunif.ProtocolFinder;
 public class HttpProtocolFinder implements ProtocolFinder {
     private static final char[] METHOD_FIRST_LETTERS = new char[] {'G', 'P', 'O', 'H', 'D', 'T', 'C'};
     private final Attribute<ParsingState> parsingStateAttribute =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.<ParsingState>createAttribute(
-            HttpProtocolFinder.class + "-" + hashCode()
-            + ".parsingStateAttribute");
+            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+                    HttpProtocolFinder.class + "-" + hashCode()
+                            + ".parsingStateAttribute");
 
     private final int maxRequestLineSize;
 

@@ -149,7 +149,7 @@ public class ServletHandler extends HttpHandler {
      * Is the Servlet initialized.
      */
     private volatile boolean filterChainConfigured = false;
-    private ReentrantLock filterChainReady = new ReentrantLock();
+    private final ReentrantLock filterChainReady = new ReentrantLock();
     /**
      * The {@link ServletContextImpl}
      */
@@ -161,7 +161,7 @@ public class ServletHandler extends HttpHandler {
     /**
      * Holder for our configured properties.
      */
-    protected Map<String, Object> properties = new HashMap<String, Object>();
+    protected final Map<String, Object> properties = new HashMap<String, Object>();
     /**
      * Initialize the {@link ServletContext}
      */
@@ -569,7 +569,7 @@ public class ServletHandler extends HttpHandler {
      */
     public void setServletPath(String servletPath) {
         this.servletPath = servletPath;
-        if (!servletPath.equals("") && !servletPath.startsWith("/")) {
+        if (servletPath.length() != 0 && !servletPath.startsWith("/")) {
             servletPath = "/" + servletPath;
         }
     }
@@ -677,14 +677,14 @@ public class ServletHandler extends HttpHandler {
          *  application is deployed.
          */
         if (name.equalsIgnoreCase(LOAD_ON_STARTUP) && value != null) {
-            if (value instanceof Boolean && ((Boolean) value) == true) {
+            if (value instanceof Boolean && ((Boolean) value)) {
                 loadOnStartup = true;
             } else {
                 try {
                     if ((new Integer(value.toString())) >= 0) {
                         loadOnStartup = true;
                     }
-                } catch (Exception e) {
+                } catch (Exception ignored) {
                 }
             }
 

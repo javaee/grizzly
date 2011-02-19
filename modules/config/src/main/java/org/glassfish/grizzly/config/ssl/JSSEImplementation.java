@@ -92,14 +92,12 @@ public class JSSEImplementation extends SSLImplementation {
 
     @Override
     public ServerSocketFactory getServerSocketFactory() {
-        ServerSocketFactory ssf = factory.getSocketFactory();
-        return ssf;
+        return factory.getSocketFactory();
     }
 
     @Override
     public SSLSupport getSSLSupport(Socket s) {
-        SSLSupport ssls = factory.getSSLSupport(s);
-        return ssls;
+        return factory.getSSLSupport(s);
     }
     // START SJSAS 6439313
 

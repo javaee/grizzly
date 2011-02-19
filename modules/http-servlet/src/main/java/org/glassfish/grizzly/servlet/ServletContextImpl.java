@@ -123,7 +123,7 @@ public class ServletContextImpl implements ServletContext {
     protected void initListeners(List<String> listeners) {
 
         for (String listenerClass : listeners) {
-            EventListener el = null;
+            EventListener el;
             try {
                 el = (EventListener) Thread.currentThread().getContextClassLoader().loadClass(listenerClass).newInstance();
                 eventListeners.add(el);
@@ -328,8 +328,7 @@ public class ServletContextImpl implements ServletContext {
             path = path.substring(1);
         }
 
-        URL url = Thread.currentThread().getContextClassLoader().getResource(path);
-        return url;
+        return Thread.currentThread().getContextClassLoader().getResource(path);
     }
 
     /**

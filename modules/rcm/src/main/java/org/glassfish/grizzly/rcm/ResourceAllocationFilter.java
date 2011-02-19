@@ -131,7 +131,7 @@ public class ResourceAllocationFilter extends BaseFilter {
     /**
      * The time this thread will sleep when a rule is delayed.
      */
-    private static long delayValue = 5 * 1000;
+    private static final long delayValue = 5 * 1000;
 
     private final int standardThreadPoolSize;
 
@@ -255,7 +255,7 @@ public class ResourceAllocationFilter extends BaseFilter {
      * Filter the request and decide which thread pool to use.
      */
     public ExecutorService filterRequest(String token) {
-        ExecutorService es = null;
+        ExecutorService es;
 
         Double threadRatio = privilegedTokens.get(token);
         boolean defaultThreadPool = false;
@@ -305,7 +305,7 @@ public class ResourceAllocationFilter extends BaseFilter {
         for (ExecutorService threadPool: collection){
             if (threadPool instanceof ThreadPoolExecutor) {
                 ThreadPoolExecutor pool = (ThreadPoolExecutor) threadPool;
-                if (pool.getQueue().size() > 0) {
+                if (!pool.getQueue().isEmpty()) {
                     return true;
                 }
             }

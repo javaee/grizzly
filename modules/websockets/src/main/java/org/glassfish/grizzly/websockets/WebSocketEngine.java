@@ -192,7 +192,7 @@ public class WebSocketEngine {
      * @param connection Grizzly {@link Connection} to associate the context with.
      * @param meta {@link ClientWebSocketMeta}.
      * @param handler {@link WebSocketClientHandler}.
-     * @param connectHandler {@link WebSocketConnectHandler}.
+     * @param future {@link FutureImpl}.
      */
     void setClientConnectContext(Connection connection,
             ClientWebSocketMeta meta, WebSocketClientHandler handler,

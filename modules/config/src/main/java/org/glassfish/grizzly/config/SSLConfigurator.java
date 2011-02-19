@@ -87,7 +87,7 @@ public class SSLConfigurator extends SSLEngineConfigurator {
      * Configures the SSL properties on the given PECoyoteConnector from the SSL config of the given HTTP listener.
      */
     protected SSLContext configureSSL() {
-        SSLContext newSslContext = null;
+        SSLContext newSslContext;
 
         final List<String> tmpSSLArtifactsList = new LinkedList<String>();
         try {

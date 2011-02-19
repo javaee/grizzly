@@ -251,6 +251,7 @@ public class CometEngine {
      * @see CometContext#interrupt(CometHandler, boolean)
      * @deprecated use the CometContext version
      */
+    @SuppressWarnings({"deprecation"})
     protected boolean interrupt(CometHandler handler, boolean finishExecution) throws IOException {
         final CometContext cometContext = handler.getCometContext();
         final boolean removed = cometContext.removeCometHandler(handler, finishExecution);

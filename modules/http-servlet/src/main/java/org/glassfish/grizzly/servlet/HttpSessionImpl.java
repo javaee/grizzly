@@ -71,7 +71,7 @@ public class HttpSessionImpl implements HttpSession {
     /**
      * The ServletContext.
      */
-    private ServletContextImpl contextImpl;
+    private final ServletContextImpl contextImpl;
     /**
      * When this session was created.
      */
@@ -341,12 +341,11 @@ public class HttpSessionImpl implements HttpSession {
         isNew = true;
 
         List listeners = contextImpl.getListeners();
-        if (listeners.size() > 0) {
+        if (!listeners.isEmpty()) {
             HttpSessionEvent event =
                     new HttpSessionEvent(this);
             for (int i = 0; i < listeners.size(); i++) {
                 Object listenerObj = listeners.get(i);
-                int j = (listeners.size() - 1) - i;
                 if (!(listenerObj instanceof HttpSessionListener)) {
                     continue;
                 }
@@ -386,7 +385,7 @@ public class HttpSessionImpl implements HttpSession {
      */
     protected void notifyNew() {
         List listeners = contextImpl.getListeners();
-        if (listeners.size() > 0) {
+        if (!listeners.isEmpty()) {
             HttpSessionEvent event =
                     new HttpSessionEvent(this);
             for (int i = 0; i < listeners.size(); i++) {

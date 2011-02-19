@@ -116,9 +116,8 @@ public class URLDecoder {
         final int srcEnd = srcBufferChunk.getEnd();
 
         final Buffer dstBuffer = dstBufferChunk.getBuffer();
-        final int dstStart = dstBufferChunk.getStart();
 
-        int idx = dstStart;
+        int idx = dstBufferChunk.getStart();
         for (int j = srcStart; j < srcEnd; j++, idx++) {
             final byte b = srcBuffer.get(j);
 
@@ -170,9 +169,8 @@ public class URLDecoder {
         final int srcEnd = srcCharChunk.getEnd();
 
         final char[] dstBuffer = dstCharChunk.getBuffer();
-        final int dstStart = dstCharChunk.getStart();
 
-        int idx = dstStart;
+        int idx = dstCharChunk.getStart();
         for (int j = srcStart; j < srcEnd; j++, idx++) {
             final char c = srcBuffer[j];
 

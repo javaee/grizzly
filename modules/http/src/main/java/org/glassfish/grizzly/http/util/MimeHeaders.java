@@ -434,10 +434,10 @@ public class MimeHeaders {
 class NamesIterator implements Iterator<String> {
 
     int pos;
-    int size;
+    final int size;
     int currentPos;
     String next;
-    MimeHeaders headers;
+    final MimeHeaders headers;
 
     NamesIterator(MimeHeaders headers) {
         this.headers = headers;
@@ -496,11 +496,11 @@ value element.
 class ValuesIterator implements Iterator<String> {
 
     int pos;
-    int size;
+    final int size;
     int currentPos;
     DataChunk next;
-    MimeHeaders headers;
-    String name;
+    final MimeHeaders headers;
+    final String name;
 
     ValuesIterator(MimeHeaders headers, String name) {
         this.name = name;

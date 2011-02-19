@@ -77,8 +77,8 @@ public class C2BConverter {
 
     private static final Logger logger = Grizzly.logger(C2BConverter.class);
     protected ByteChunk bb;
-    protected String enc;
-    protected CharsetEncoder encoder;
+    protected final String enc;
+    protected final CharsetEncoder encoder;
 
     /** Create a converter, with bytes going to a byte buffer
      */

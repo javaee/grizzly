@@ -83,7 +83,6 @@ public class B2CConverter {
     private static final Logger logger = Grizzly.logger(B2CConverter.class);
     private static final int MAX_NUMBER_OF_BYTES_PER_CHARACTER = 16;
 
-    private Charset charset;
     private CharsetDecoder decoder;
     private final ByteBuffer remainder = ByteBuffer.allocate(MAX_NUMBER_OF_BYTES_PER_CHARACTER);
 
@@ -108,7 +107,7 @@ public class B2CConverter {
                 throw new IllegalStateException("Can not initialize blocking converter");
             }
         } else {
-            charset = Charsets.lookupCharset(encoding);
+            Charset charset = Charsets.lookupCharset(encoding);
             decoder = charset.newDecoder().
                     onMalformedInput(CodingErrorAction.REPLACE).
                     onUnmappableCharacter(CodingErrorAction.REPLACE);
@@ -184,6 +183,7 @@ public class B2CConverter {
                 throw new IOException("Encoding error");
             }
         } catch (IOException ex) {
+            int debug = 0;
             if (debug > 0) {
                 log("B2CConverter " + ex.toString());
             }
@@ -235,8 +235,6 @@ public class B2CConverter {
             remainder.clear();
         }
     }
-
-    private final int debug = 0;
 
     void log(String s) {
         if (logger.isLoggable(Level.FINEST)) {

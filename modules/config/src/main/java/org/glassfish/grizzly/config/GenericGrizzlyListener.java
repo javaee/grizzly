@@ -418,7 +418,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
                 public Thread newThread(Runnable r) {
                     final Thread newThread = new DefaultWorkerThread(
                         transport.getAttributeBuilder(),
-                        getName() + "-" + threadCounter.getAndIncrement(),
+                        getName() + '-' + threadCounter.getAndIncrement(),
                         null,
                         r);
                     newThread.setDaemon(true);

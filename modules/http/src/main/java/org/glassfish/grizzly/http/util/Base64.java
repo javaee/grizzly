@@ -91,8 +91,8 @@ public final class Base64 {
 
 
     static private final byte PAD               = ( byte ) '=';
-    static private byte [] base64Alphabet       = new byte[BASELENGTH];
-    static private byte [] lookUpBase64Alphabet = new byte[LOOKUPLENGTH];
+    static private final byte [] base64Alphabet       = new byte[BASELENGTH];
+    static private final byte [] lookUpBase64Alphabet = new byte[LOOKUPLENGTH];
 
     static {
 
@@ -152,7 +152,7 @@ public final class Base64 {
         int      lengthDataBits    = binaryData.length*EIGHTBIT;
         int      fewerThan24bits   = lengthDataBits%TWENTYFOURBITGROUP;
         int      numberTriplets    = lengthDataBits/TWENTYFOURBITGROUP;
-        byte     encodedData[]     = null;
+        byte     encodedData[];
 
 
         if ( fewerThan24bits != 0 ) //data not divisible by 24 bit
@@ -160,11 +160,11 @@ public final class Base64 {
         else // 16 or 8 bit
             encodedData = new byte[ numberTriplets*4 ];
 
-        byte k=0, l=0, b1=0,b2=0,b3=0;
+        byte k, l, b1,b2,b3;
 
-        int encodedIndex = 0;
-        int dataIndex   = 0;
-        int i           = 0;
+        int encodedIndex;
+        int dataIndex;
+        int i;
         for ( i = 0; i<numberTriplets; i++ ) {
 
             dataIndex = i*3;
@@ -218,14 +218,14 @@ public final class Base64 {
      */
     public byte[] decode( byte[] base64Data ) {
         int      numberQuadruple    = base64Data.length/FOURBYTE;
-        byte     decodedData[]      = null;
-        byte     b1=0,b2=0,b3=0, b4=0, marker0=0, marker1=0;
+        byte     decodedData[];
+        byte     b1,b2,b3, b4, marker0, marker1;
 
         // Throw away anything not in base64Data
         // Adjust size
 
         int encodedIndex = 0;
-        int dataIndex    = 0;
+        int dataIndex;
         decodedData      = new byte[ numberQuadruple*3 + 1 ];
 
         for (int i = 0; i<numberQuadruple; i++ ) {
@@ -284,7 +284,7 @@ public final class Base64 {
     public static String base64Decode( String orig ) {
 	char chars[]=orig.toCharArray();
 	StringBuilder sb=new StringBuilder();
-	int i=0;
+	int i;
 
 	int shift = 0;   // # of excess bits stored in accum
 	int acc = 0;

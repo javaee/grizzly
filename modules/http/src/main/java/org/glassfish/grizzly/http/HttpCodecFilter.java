@@ -91,7 +91,7 @@ public abstract class HttpCodecFilter extends BaseFilter
     protected final ArraySet<ContentEncoding> contentEncodings =
             new ArraySet<ContentEncoding>(ContentEncoding.class);
 
-    protected boolean chunkingEnabled;
+    protected final boolean chunkingEnabled;
 
     /**
      * File cache probes
@@ -1463,10 +1463,10 @@ public abstract class HttpCodecFilter extends BaseFilter
         public int chunkContentStart = -1;
         public long chunkLength = -1;
         public long chunkRemainder = -1;
-        public MimeHeaders trailerHeaders = new MimeHeaders();
+        public final MimeHeaders trailerHeaders = new MimeHeaders();
 
         private Buffer[] contentDecodingRemainders = new Buffer[1];
-        private Buffer[] contentEncodingRemainders = new Buffer[1];
+        private final Buffer[] contentEncodingRemainders = new Buffer[1];
         
         public void recycle() {
             isLastChunk = false;

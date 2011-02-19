@@ -56,7 +56,7 @@ public class ServletConfigImpl implements ServletConfig {
     private String name;
     private final ConcurrentHashMap<String, String> initParameters =
             new ConcurrentHashMap<String, String>(16, 0.75f, 64);
-    private ServletContextImpl servletContextImpl;
+    private final ServletContextImpl servletContextImpl;
 
     protected ServletConfigImpl(ServletContextImpl servletContextImpl, Map<String, String> initParameters) {
         this.servletContextImpl = servletContextImpl;

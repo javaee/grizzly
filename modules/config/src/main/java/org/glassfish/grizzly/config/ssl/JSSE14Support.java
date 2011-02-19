@@ -98,7 +98,7 @@ class JSSE14Support extends JSSESupport {
      */
     private final static Logger logger = Grizzly.logger(JSSE14Support.class);
 
-    Listener listener = new Listener();
+    final Listener listener = new Listener();
 
     public JSSE14Support(SSLSocket sock){
         super(sock);
@@ -134,7 +134,8 @@ class JSSE14Support extends JSSESupport {
 	    if(logger.isLoggable(Level.FINE)) 
                 logger.log(Level.FINE,"Reading for try #" +i);
             try {
-                int x = in.read(b);
+                //noinspection ResultOfMethodCallIgnored
+                in.read(b);
             } catch(SSLException sslex) {
                 //logger.log(Level.SEVERE,"SSL Error getting client Certs",sslex);
                 throw sslex;
@@ -146,7 +147,7 @@ class JSSE14Support extends JSSESupport {
             }
         }
         socket.setSoTimeout(oldTimeout);
-        if (listener.completed == false) {
+        if (!listener.completed) {
             throw new SocketException("SSL Cert handshake timeout");
         }
     }
@@ -157,7 +158,7 @@ class JSSE14Support extends JSSESupport {
     protected X509Certificate [] getX509Certificates(SSLSession session) 
 	throws IOException 
     {
-        Certificate [] certs=null;
+        Certificate [] certs;
         try {
 	    certs = session.getPeerCertificates();
         } catch( Throwable t ) {

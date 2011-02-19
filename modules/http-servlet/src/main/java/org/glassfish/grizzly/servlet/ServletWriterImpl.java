@@ -117,7 +117,7 @@ public class ServletWriterImpl extends PrintWriter {
         // so the stream can be reused. We close ob.
         try {
             ob.close();
-        } catch (IOException ex) {
+        } catch (IOException ignored) {
         }
         error = false;
 

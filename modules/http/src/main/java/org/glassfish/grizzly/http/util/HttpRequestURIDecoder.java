@@ -64,7 +64,7 @@ public class HttpRequestURIDecoder {
 
     protected static final boolean ALLOW_BACKSLASH = false;
     private static final boolean COLLAPSE_ADJACENT_SLASHES =
-            Boolean.valueOf(System.getProperty("com.sun.enterprise.web.collapseAdjacentSlashes", "true")).booleanValue();
+            Boolean.valueOf(System.getProperty("com.sun.enterprise.web.collapseAdjacentSlashes", "true"));
     private static final Logger LOGGER = Grizzly.logger(HttpRequestURIDecoder.class);
 
     /**
@@ -293,7 +293,7 @@ public class HttpRequestURIDecoder {
         int start = uriCC.getStart();
         int end = uriCC.getEnd();
 
-        int pos = 0;
+        int pos;
 
         // Check for '\' and 0
         for (pos = start; pos < end; pos++) {
@@ -340,8 +340,8 @@ public class HttpRequestURIDecoder {
             return true;
         }
 
-        int pos = 0;
-        int index = 0;
+        int pos;
+        int index;
 
         // Replace '\' with '/'
         // Check for null char

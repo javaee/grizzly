@@ -123,7 +123,7 @@ public final class UTF8Decoder extends B2CConverter {
             if ((0xe0 & b0) == 0xc0) { // 110yyyyy 10xxxxxx (0x80 to 0x7ff)
                 int ch = ((0x1f & b0) << 6) + (0x3f & b1);
                 if (debug > 0) {
-                    log("Convert " + b0 + " " + b1 + " " + ch + ((char) ch));
+                    log("Convert " + b0 + ' ' + b1 + ' ' + ch + ((char) ch));
                 }
 
                 cb.append((char) ch);
@@ -140,7 +140,7 @@ public final class UTF8Decoder extends B2CConverter {
                 if ((b0 == 0xED && b1 >= 0xA0)
                         || (b0 == 0xEF && b1 == 0xBF && b2 >= 0xBE)) {
                     if (debug > 0) {
-                        log("Error " + b0 + " " + b1 + " " + b2);
+                        log("Error " + b0 + ' ' + b1 + ' ' + b2);
                     }
 
                     throw new IOException("Conversion error 2");
@@ -149,7 +149,7 @@ public final class UTF8Decoder extends B2CConverter {
                 int ch = ((0x0f & b0) << 12) + ((0x3f & b1) << 6) + (0x3f & b2);
                 cb.append((char) ch);
                 if (debug > 0) {
-                    log("Convert " + b0 + " " + b1 + " " + b2 + " " + ch
+                    log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + ch
                             + ((char) ch));
                 }
                 j++;
@@ -164,7 +164,7 @@ public final class UTF8Decoder extends B2CConverter {
             if ((0xf8 & b0) == 0xf0) {
                 if (b0 > 0xF4 || (b0 == 0xF4 && b1 >= 0x90)) {
                     if (debug > 0) {
-                        log("Convert " + b0 + " " + b1 + " " + b2 + " " + b3);
+                        log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + b3);
                     }
                     throw new IOException("Conversion error ");
                 }
@@ -172,7 +172,7 @@ public final class UTF8Decoder extends B2CConverter {
                         + ((0x3f & b2) << 6) + (0x3f & b3);
 
                 if (debug > 0) {
-                    log("Convert " + b0 + " " + b1 + " " + b2 + " " + b3 + " "
+                    log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + b3 + ' '
                             + ch + ((char) ch));
                 }
 
@@ -188,7 +188,7 @@ public final class UTF8Decoder extends B2CConverter {
             } else {
                 // XXX Throw conversion exception !!!
                 if (debug > 0) {
-                    log("Convert " + b0 + " " + b1 + " " + b2 + " " + b3);
+                    log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + b3);
                 }
                 throw new IOException("Conversion error 4");
             }
@@ -224,7 +224,7 @@ public final class UTF8Decoder extends B2CConverter {
             if ((0xe0 & b0) == 0xc0) { // 110yyyyy 10xxxxxx (0x80 to 0x7ff)
                 int ch = ((0x1f & b0) << 6) + (0x3f & b1);
                 if (debug > 0) {
-                    log("Convert " + b0 + " " + b1 + " " + ch + ((char) ch));
+                    log("Convert " + b0 + ' ' + b1 + ' ' + ch + ((char) ch));
                 }
 
                 cc.append((char) ch);
@@ -241,7 +241,7 @@ public final class UTF8Decoder extends B2CConverter {
                 if ((b0 == 0xED && b1 >= 0xA0)
                         || (b0 == 0xEF && b1 == 0xBF && b2 >= 0xBE)) {
                     if (debug > 0) {
-                        log("Error " + b0 + " " + b1 + " " + b2);
+                        log("Error " + b0 + ' ' + b1 + ' ' + b2);
                     }
 
                     throw new CharConversionException("Conversion error 2");
@@ -250,7 +250,7 @@ public final class UTF8Decoder extends B2CConverter {
                 int ch = ((0x0f & b0) << 12) + ((0x3f & b1) << 6) + (0x3f & b2);
                 cc.append((char) ch);
                 if (debug > 0) {
-                    log("Convert " + b0 + " " + b1 + " " + b2 + " " + ch
+                    log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + ch
                             + ((char) ch));
                 }
                 j++;
@@ -265,7 +265,7 @@ public final class UTF8Decoder extends B2CConverter {
             if ((0xf8 & b0) == 0xf0) {
                 if (b0 > 0xF4 || (b0 == 0xF4 && b1 >= 0x90)) {
                     if (debug > 0) {
-                        log("Convert " + b0 + " " + b1 + " " + b2 + " " + b3);
+                        log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + b3);
                     }
                     throw new CharConversionException("Conversion error ");
                 }
@@ -273,7 +273,7 @@ public final class UTF8Decoder extends B2CConverter {
                         + ((0x3f & b2) << 6) + (0x3f & b3);
 
                 if (debug > 0) {
-                    log("Convert " + b0 + " " + b1 + " " + b2 + " " + b3 + " "
+                    log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + b3 + ' '
                             + ch + ((char) ch));
                 }
 
@@ -289,7 +289,7 @@ public final class UTF8Decoder extends B2CConverter {
             } else {
                 // XXX Throw conversion exception !!!
                 if (debug > 0) {
-                    log("Convert " + b0 + " " + b1 + " " + b2 + " " + b3);
+                    log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + b3);
                 }
                 throw new CharConversionException("Conversion error 4");
             }
@@ -333,7 +333,7 @@ public final class UTF8Decoder extends B2CConverter {
             if ((0xe0 & b0) == 0xc0) { // 110yyyyy 10xxxxxx (0x80 to 0x7ff)
                 int ch = ((0x1f & b0) << 6) + (0x3f & b1);
                 if (debug > 0) {
-                    log("Convert " + b0 + " " + b1 + " " + ch + ((char) ch));
+                    log("Convert " + b0 + ' ' + b1 + ' ' + ch + ((char) ch));
                 }
 
                 c[offset++] = (char) ch;
@@ -350,7 +350,7 @@ public final class UTF8Decoder extends B2CConverter {
                 if ((b0 == 0xED && b1 >= 0xA0)
                         || (b0 == 0xEF && b1 == 0xBF && b2 >= 0xBE)) {
                     if (debug > 0) {
-                        log("Error " + b0 + " " + b1 + " " + b2);
+                        log("Error " + b0 + ' ' + b1 + ' ' + b2);
                     }
 
                     throw new CharConversionException("Conversion error 2");
@@ -359,7 +359,7 @@ public final class UTF8Decoder extends B2CConverter {
                 int ch = ((0x0f & b0) << 12) + ((0x3f & b1) << 6) + (0x3f & b2);
                 c[offset++] = (char) ch;
                 if (debug > 0) {
-                    log("Convert " + b0 + " " + b1 + " " + b2 + " " + ch
+                    log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + ch
                             + ((char) ch));
                 }
                 j++;
@@ -374,7 +374,7 @@ public final class UTF8Decoder extends B2CConverter {
             if ((0xf8 & b0) == 0xf0) {
                 if (b0 > 0xF4 || (b0 == 0xF4 && b1 >= 0x90)) {
                     if (debug > 0) {
-                        log("Convert " + b0 + " " + b1 + " " + b2 + " " + b3);
+                        log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + b3);
                     }
                     throw new CharConversionException("Conversion error ");
                 }
@@ -382,7 +382,7 @@ public final class UTF8Decoder extends B2CConverter {
                         + ((0x3f & b2) << 6) + (0x3f & b3);
 
                 if (debug > 0) {
-                    log("Convert " + b0 + " " + b1 + " " + b2 + " " + b3 + " "
+                    log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + b3 + ' '
                             + ch + ((char) ch));
                 }
 
@@ -396,7 +396,7 @@ public final class UTF8Decoder extends B2CConverter {
             } else {
                 // XXX Throw conversion exception !!!
                 if (debug > 0) {
-                    log("Convert " + b0 + " " + b1 + " " + b2 + " " + b3);
+                    log("Convert " + b0 + ' ' + b1 + ' ' + b2 + ' ' + b3);
                 }
                 throw new CharConversionException("Conversion error 4");
             }

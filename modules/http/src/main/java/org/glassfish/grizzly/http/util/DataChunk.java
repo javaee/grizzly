@@ -52,7 +52,7 @@ import org.glassfish.grizzly.Buffer;
  */
 public class DataChunk {
 
-    public enum Type {None, Buffer, Chars, String};
+    public enum Type {None, Buffer, Chars, String}
     
     public static DataChunk newInstance() {
         return newInstance(new BufferChunk(), new CharChunk(), null);
@@ -123,7 +123,6 @@ public class DataChunk {
                 return;
             case Chars:
                 charChunk.notifyDirectUpdate();
-                return;
         }
     }
 
@@ -288,7 +287,6 @@ public class DataChunk {
                 return;
             case Chars:
                 charChunk.delete(from, to);
-                return;
         }
     }
 
@@ -469,32 +467,26 @@ public class DataChunk {
 
         @Override
         public void set(DataChunk value) {
-            return;
         }
 
         @Override
         public void setBuffer(Buffer buffer, int start, int end) {
-            return;
         }
 
         @Override
         public void setString(String string) {
-            return;
         }
 
         @Override
         public void setChars(char[] chars, int position, int limit) {
-            return;
         }
 
         @Override
         protected final void resetBuffer() {
-            return;
         }
 
         @Override
         protected final void resetString() {
-            return;
         }
 
         @Override
@@ -503,12 +495,10 @@ public class DataChunk {
 
         @Override
         protected void reset() {
-            return;
         }
 
         @Override
         public void recycle() {
-            return;
         }
     }
 }

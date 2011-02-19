@@ -248,7 +248,7 @@ public class CometContext<E> {
     public void recycle() {
         try {
             notificationHandler.notify(new CometEvent<E>(CometEvent.Type.TERMINATE, this, null), handlers.iterator());
-        } catch (IOException ex) {
+        } catch (IOException ignored) {
         }
         handlers.clear();
         attributes.clear();
@@ -343,7 +343,7 @@ public class CometContext<E> {
         if (finishExecution) {
             try {
                 handler.onInterrupt(eventInterrupt);
-            } catch (IOException e) {
+            } catch (IOException ignored) {
             }
         }
         handler.getResponse().resume();
@@ -544,7 +544,7 @@ public class CometContext<E> {
 
     }
 
-    private class CometInputHandler implements ReadHandler {
+    private static class CometInputHandler implements ReadHandler {
         final NIOInputStream nioInputStream;
         private final CometHandler handler;
 

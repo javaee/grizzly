@@ -82,13 +82,13 @@ public class PUFilter extends BaseFilter {
     public PUFilter() {
         puContextAttribute =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-                        PUFilter.class.getName() + "-" + hashCode() + ".puContext");
+                        PUFilter.class.getName() + '-' + hashCode() + ".puContext");
         isProcessingAttribute =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-                PUFilter.class.getName() + "-" + hashCode() + ".isProcessing");
+                PUFilter.class.getName() + '-' + hashCode() + ".isProcessing");
         suspendedContextAttribute =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-                        PUFilter.class.getName() + "-" + hashCode() + ".suspendedContext");
+                        PUFilter.class.getName() + '-' + hashCode() + ".suspendedContext");
     }
 
     /**

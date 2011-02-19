@@ -133,7 +133,6 @@ public final class ByteChunk implements Cloneable, Serializable {
     private transient ByteInputChannel in = null;
     private transient ByteOutputChannel out = null;
 
-    private boolean isOutput=false;
     private boolean optimizedWrite=true;
 
     /**
@@ -177,7 +176,7 @@ public final class ByteChunk implements Cloneable, Serializable {
     // -------------------- Setup --------------------
 
     public void allocate( int initial, int limit  ) {
-        isOutput=true;
+        boolean output = true;
         if( buff==null || buff.length < initial ) {
             buff=new byte[initial];
         }
@@ -429,7 +428,7 @@ public final class ByteChunk implements Cloneable, Serializable {
     public void flushBuffer() throws IOException {
         //assert out!=null
         if( out==null ) {
-            throw new IOException( "Buffer overflow, no sink " + limit + " " +
+            throw new IOException( "Buffer overflow, no sink " + limit + ' ' +
                        buff.length  );
         }
         out.realWriteBytes( buff, start, end-start );
@@ -459,7 +458,7 @@ public final class ByteChunk implements Cloneable, Serializable {
      *	a reserve space too. Never grow bigger than limit.
      */
     private void makeSpace(int count) {
-        byte[] tmp = null;
+        byte[] tmp;
 
         int newSize;
         int desiredSize=end + count;
@@ -512,7 +511,7 @@ public final class ByteChunk implements Cloneable, Serializable {
     }
 
     public String toStringInternal() {
-        String strValue=null;
+        String strValue;
         try {
             if( enc==null ) enc=DEFAULT_CHARACTER_ENCODING;
             strValue = new String( buff, start, end-start, enc );

@@ -177,7 +177,7 @@ public class ServletReaderImpl extends BufferedReader {
             lineBuffer = new char[MAX_LINE_LENGTH];
         }
 
-        String result = null;
+        String result;
 
         int pos = 0;
         int end = -1;
