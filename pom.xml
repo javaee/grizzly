@@ -72,8 +72,8 @@
             <name>Oleksiy Stashok</name>
             <email>oleksiys@dev.java.net</email>
             <url>http://blogs.sun.com/oleksiys/</url>
-            <organization>SUN Microsystems</organization>
-            <organizationUrl>http://www.sun.com</organizationUrl>
+            <organization>Oracle Corporation</organization>
+            <organizationUrl>http://www.oracle.com</organizationUrl>
         </developer>
         <developer>
             <id>cheeser</id>
@@ -490,5 +490,6 @@
         <junit-version>4.7</junit-version>
         <maven-plugin.version>1.0.0</maven-plugin.version>
         <servlet-version>2.5</servlet-version>
+        <cobertura.version>2.4</cobertura.version>
     </properties>
 </project>
