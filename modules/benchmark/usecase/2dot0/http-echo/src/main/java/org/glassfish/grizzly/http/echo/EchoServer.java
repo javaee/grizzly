@@ -241,6 +241,8 @@ final class EchoServer {
                 }
 
                 if (in.isFinished()) {
+                    in.close();
+                    out.close();
                     return;
                 }
 
@@ -283,6 +285,8 @@ final class EchoServer {
                 }
 
                 if (in.isFinished()) {
+                    in.close();
+                    out.close();
                     return;
                 }
 
