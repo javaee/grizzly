@@ -163,12 +163,6 @@ public class InputBuffer {
      */
     private float averageCharsPerByte = 1.0f;
 
-    /**
-     * Synchronization lock.
-     */
-//    private final Object lock = new Object();
-
-
 
     // ------------------------------------------------------------ Constructors
 
@@ -194,15 +188,9 @@ public class InputBuffer {
         this.request = request;
         this.ctx = ctx;
         connection = ctx.getConnection();
-//        inputContentBuffer = CompositeBuffer.newBuffer(connection.getTransport().getMemoryManager());
-//        inputContentBuffer.allowBufferDispose(true);
-//        inputContentBuffer.allowInternalBuffersDispose(true);
         final Object message = ctx.getMessage();
         if (message instanceof HttpContent) {
             final HttpContent content = (HttpContent) message;
-//            if (content.getContent().hasRemaining()) {
-//                inputContentBuffer.append(content.getContent());
-//            }
             inputContentBuffer = content.getContent();
             contentRead = content.isLast();
             content.recycle();
@@ -606,7 +594,6 @@ public class InputBuffer {
     public void finished() throws IOException {
         if (!contentRead) {
             contentRead = true;
-//            synchronized (lock) {
             final ReadHandler localHandler = handler;
             if (localHandler != null) {
                 handler = null;
@@ -616,7 +603,6 @@ public class InputBuffer {
                     localHandler.onError(t);
                     throw Exceptions.makeIOException(t);
                 }
-//                }
             }
         }
     }
