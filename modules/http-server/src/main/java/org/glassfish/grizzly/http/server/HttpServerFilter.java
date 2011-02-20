@@ -105,6 +105,7 @@ public class HttpServerFilter extends BaseFilter
 
     }
 
+    @SuppressWarnings({"UnusedDeclaration"})
     public HttpHandler getHttpHandler() {
         return httpHandler;
     }
