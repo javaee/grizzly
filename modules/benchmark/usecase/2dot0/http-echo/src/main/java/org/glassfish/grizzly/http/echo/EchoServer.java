@@ -259,8 +259,13 @@ final class EchoServer {
 
                     @Override
                     public void onAllDataRead() throws IOException {
-                        doWrite(this, in, buf, out);
-                        response.resume();
+                        try {
+                            doWrite(this, in, buf, out);
+                            response.resume();
+                        } finally {
+                            out.close();
+                            in.close();
+                        }
                     }
                 });
             } else {
@@ -295,8 +300,13 @@ final class EchoServer {
 
                     @Override
                     public void onAllDataRead() throws IOException {
-                        doWrite(this, in, buf, out);
-                        response.resume();
+                        try {
+                            doWrite(this, in, buf, out);
+                            response.resume();
+                        } finally {
+                            in.close();
+                            out.close();
+                        }
                     }
                 });
             }
