@@ -263,10 +263,18 @@ final class EchoServer {
                     public void onAllDataRead() throws IOException {
                         try {
                             doWrite(this, in, buf, out);
-                            response.resume();
                         } finally {
-                            out.close();
-                            in.close();
+                            try {
+                                in.close();
+                            } catch (IOException ignored) {
+                            }
+
+                            try {
+                                out.close();
+                            } catch (IOException ignored) {
+                            }
+
+                            response.resume();
                         }
                     }
                 });
@@ -306,10 +314,18 @@ final class EchoServer {
                     public void onAllDataRead() throws IOException {
                         try {
                             doWrite(this, in, buf, out);
-                            response.resume();
                         } finally {
-                            in.close();
-                            out.close();
+                            try {
+                                in.close();
+                            } catch (IOException ignored) {
+                            }
+
+                            try {
+                                out.close();
+                            } catch (IOException ignored) {
+                            }
+
+                            response.resume();
                         }
                     }
                 });
