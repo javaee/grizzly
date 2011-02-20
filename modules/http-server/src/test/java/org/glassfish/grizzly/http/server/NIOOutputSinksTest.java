@@ -461,6 +461,7 @@ public class NIOOutputSinksTest extends TestCase {
                 for(;;) {
                     try {
                         out.write(c);
+                        out.flush();
                     } catch (PendingWriteQueueLimitExceededException p) {
                         parseResult.result(Boolean.TRUE);
                         break;
@@ -468,7 +469,6 @@ public class NIOOutputSinksTest extends TestCase {
                         parseResult.failure(e);
                         break;
                     }
-                    out.flush();
                 }
 
             }
