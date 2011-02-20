@@ -197,7 +197,7 @@ public class StaticHttpHandler extends HttpHandler {
         }
 
         final String resourcesContextPath = request.getContextPath();
-        if (!"".equals(resourcesContextPath)) {
+        if (resourcesContextPath.length() > 0) {
             if (!uri.startsWith(resourcesContextPath)) {
                 return null;
             }
@@ -290,10 +290,10 @@ public class StaticHttpHandler extends HttpHandler {
         try {
             response.setStatus(HttpStatus.OK_200);
             String substr;
-            int dot = path.lastIndexOf(".");
+            int dot = path.lastIndexOf('.');
             if (dot < 0) {
                 substr = file.toString();
-                dot = substr.lastIndexOf(".");
+                dot = substr.lastIndexOf('.');
             } else {
                 substr = path;
             }
