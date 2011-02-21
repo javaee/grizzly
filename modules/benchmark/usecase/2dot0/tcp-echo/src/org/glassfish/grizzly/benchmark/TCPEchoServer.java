@@ -40,19 +40,17 @@
 
 package org.glassfish.grizzly.benchmark;
 
-import java.lang.reflect.Constructor;
-import org.glassfish.grizzly.Strategy;
-import org.glassfish.grizzly.Transport;
-import org.glassfish.grizzly.TransportFactory;
+import java.lang.reflect.Method;
+import org.glassfish.grizzly.IOStrategy;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.memory.DefaultMemoryManager;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.memory.MemoryProbe;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.utils.EchoFilter;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -64,14 +62,14 @@ public class TCPEchoServer {
         Settings settings = Settings.parse(args);
         System.out.println(settings);
         
-        TransportFactory transportFactory = TransportFactory.getInstance();
+        TCPNIOTransportBuilder builder = TCPNIOTransportBuilder.newInstance();
+        TCPNIOTransport transport = builder.build();
 
         MemoryStatsProbe probe = null;
         if (settings.isMonitoringMemory()) {
             probe = new MemoryStatsProbe();
-            DefaultMemoryManager memoryManager = new DefaultMemoryManager();
+            final MemoryManager memoryManager = transport.getMemoryManager();
             memoryManager.getMonitoringConfig().addProbes(probe);
-            transportFactory.setDefaultMemoryManager(memoryManager);
         }
 
         int poolSize = (settings.getWorkerThreads());
@@ -80,18 +78,18 @@ public class TCPEchoServer {
                 setPoolName("Grizzly-BM").
                 setCorePoolSize(poolSize).setMaxPoolSize(poolSize);
 
-        FilterChainBuilder builder = FilterChainBuilder.stateless();
-        builder.add(new TransportFilter());
-        builder.add(new EchoFilter());
+        FilterChainBuilder fcBuilder = FilterChainBuilder.stateless();
+        fcBuilder.add(new TransportFilter());
+        fcBuilder.add(new EchoFilter());
 
-        TCPNIOTransport transport = transportFactory.createTCPTransport();
-        transport.setProcessor(builder.build());
-        transport.setThreadPool(GrizzlyExecutorService.createInstance(tpc));
+
+        transport.setProcessor(fcBuilder.build());
+        transport.setWorkerThreadPool(GrizzlyExecutorService.createInstance(tpc));
         transport.setSelectorRunnersCount(settings.getSelectorThreads());
 
-        Strategy strategy = loadStrategy(settings.getStrategyClass(), transport);
+        IOStrategy strategy = loadStrategy(settings.getStrategyClass());
 
-        transport.setStrategy(strategy);
+        transport.setIOStrategy(strategy);
 
         try {
             transport.bind(settings.getHost(), settings.getPort());
@@ -101,7 +99,6 @@ public class TCPEchoServer {
             System.in.read();
         } finally {
             transport.stop();
-            TransportFactory.getInstance().close();
         }
 
         if (probe != null) {
@@ -109,22 +106,12 @@ public class TCPEchoServer {
         }
     }
 
-    public static Strategy loadStrategy(Class<? extends Strategy> strategy, Transport transport) {
+    private static IOStrategy loadStrategy(Class<? extends IOStrategy> strategy) {
         try {
-            return strategy.newInstance();
+            final Method m = strategy.getMethod("getInstance");
+            return (IOStrategy) m.invoke(null);
         } catch (Exception e) {
-            try {
-                Constructor[] cs = strategy.getConstructors();
-                for (Constructor c : cs) {
-                    if (c.getParameterTypes().length == 1 && c.getParameterTypes()[0].isAssignableFrom(ExecutorService.class)) {
-                        return (Strategy) c.newInstance(transport.getThreadPool());
-                    }
-                }
-
-                throw new IllegalStateException("Can not initialize strategy: " + strategy);
-            } catch (Exception ee) {
-                throw new IllegalStateException("Can not initialize strategy: " + strategy + ". Error: " + ee.getClass() + ": " + ee.getMessage());
-            }
+            throw new IllegalStateException("Can not initialize IOStrategy: " + strategy + ". Error: " + e);
         }
     }
 

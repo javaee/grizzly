@@ -40,8 +40,8 @@
 
 package org.glassfish.grizzly.benchmark;
 
-import org.glassfish.grizzly.Strategy;
-import org.glassfish.grizzly.strategies.SameThreadStrategy;
+import org.glassfish.grizzly.IOStrategy;
+import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 
 /**
  *
@@ -56,7 +56,7 @@ public class Settings {
 
     private int selectorThreads = Runtime.getRuntime().availableProcessors();
 
-    private Class<? extends Strategy> strategyClass = SameThreadStrategy.class;
+    private Class<? extends IOStrategy> strategyClass = SameThreadIOStrategy.class;
 
     private boolean isMonitoringMemory = false;
 
@@ -94,7 +94,7 @@ public class Settings {
                 String strategyClass = value;
                 try {
                     settings.strategyClass =
-                            (Class<? extends Strategy>) Class.forName(strategyClass);
+                            (Class<? extends IOStrategy>) Class.forName(strategyClass);
                 } catch (Exception e) {
                     System.out.println("Warning strategy class: " +
                             strategyClass + " was not found. Default strategy: " +
@@ -144,11 +144,11 @@ public class Settings {
         this.workerThreads = workerThreads;
     }
 
-    public Class<? extends Strategy> getStrategyClass() {
+    public Class<? extends IOStrategy> getStrategyClass() {
         return strategyClass;
     }
 
-    public void setStrategyClass(Class<? extends Strategy> strategyClass) {
+    public void setStrategyClass(Class<? extends IOStrategy> strategyClass) {
         this.strategyClass = strategyClass;
     }
 
