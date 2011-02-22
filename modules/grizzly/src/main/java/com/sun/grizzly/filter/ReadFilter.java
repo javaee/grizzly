@@ -192,8 +192,7 @@ public class ReadFilter implements ProtocolFilter, ReinvokeAware {
                     ctx.getSelectorHandler().getSelectionKeyHandler();
             if (skh instanceof BaseSelectionKeyHandler){
                 ((WorkerThread)Thread.currentThread())
-                            .getAttachment().setAttribute("ConnectionCloseHandlerNotifier",
-                (BaseSelectionKeyHandler) skh);
+                            .getAttachment().setAttribute("ConnectionCloseHandlerNotifier", skh);
             }   
 
             if (exception != null){
@@ -270,7 +269,7 @@ public class ReadFilter implements ProtocolFilter, ReinvokeAware {
             if (isReinvoke
                     && state == Context.KeyRegistrationState.REGISTER
                     && Boolean.FALSE !=
-                        (Boolean)ctx.getAttribute(ProtocolFilter.SUCCESSFUL_READ)){
+                        ctx.getAttribute(ProtocolFilter.SUCCESSFUL_READ)){
                 ctx.setAttribute(ProtocolFilter.SUCCESSFUL_READ,
                                  Boolean.TRUE);
             } else {
