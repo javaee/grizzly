@@ -51,6 +51,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.WeakHashMap;
 import java.util.logging.Level;
 
 import static com.sun.grizzly.Controller.Protocol.TCP;
@@ -79,8 +80,14 @@ import java.util.concurrent.ExecutorService;
  */
 public class ReadFilter implements ProtocolFilter, ReinvokeAware {
 
+    private static final boolean WIN32 =
+            "\\".equals(System.getProperty("file.separator"));
+    private static final short MAX_ZERO_READ_COUNT = 100;
+
     public final static String DELAYED_CLOSE_NOTIFICATION = "delayedClose";
     public final static String UDP_SOCKETADDRESS = "socketAddress";
+
+    private WeakHashMap<SocketChannel,Short> zeroLengthReads;
 
 
     /**
@@ -95,6 +102,9 @@ public class ReadFilter implements ProtocolFilter, ReinvokeAware {
     protected int readAttempts = 3;
     
     public ReadFilter(){
+        if (WIN32) {
+            zeroLengthReads = new WeakHashMap<SocketChannel,Short>();
+        }
     }
 
     /**
@@ -174,6 +184,9 @@ public class ReadFilter implements ProtocolFilter, ReinvokeAware {
                             invokeNextFilter = false;
                         }
                         break;
+                    }
+                    if (WIN32) {
+                        checkEmptyRead(channel, nRead);
                     }
                 }
             } else if (protocol == UDP){
@@ -364,4 +377,37 @@ public class ReadFilter implements ProtocolFilter, ReinvokeAware {
             Controller.logger().log(Level.FINE, msg, t);
         }
     }
+
+
+    protected final void checkEmptyRead(final SocketChannel channel,
+                                        final int size) {
+
+        if (size == 0) {
+            synchronized (zeroLengthReads) {
+                Short count = zeroLengthReads.get(channel);
+                if (count == null) {
+                    count = 1;
+                } else {
+                    count++;
+                }
+                zeroLengthReads.put(channel, count);
+                if (count >= MAX_ZERO_READ_COUNT) {
+                    try {
+                        channel.close();
+                    } catch (IOException ignored) {
+                    } finally {
+                        zeroLengthReads.remove(channel);
+                    }
+                }
+            }
+        } else {
+            if (zeroLengthReads.containsKey(channel)) {
+                synchronized (zeroLengthReads) {
+                    zeroLengthReads.remove(channel);
+                }
+            }
+        }
+
+    }
+
 }
