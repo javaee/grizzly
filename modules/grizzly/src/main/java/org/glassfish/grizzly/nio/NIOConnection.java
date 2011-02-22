@@ -648,7 +648,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     protected final void checkEmptyRead(final int size) {
         if (WIN32) {
             if (size == 0) {
-                final int count = ++zeroByteReadCount;
+                final short count = ++zeroByteReadCount;
                 if (count >= MAX_ZERO_READ_COUNT) {
                     try {
                         close();
