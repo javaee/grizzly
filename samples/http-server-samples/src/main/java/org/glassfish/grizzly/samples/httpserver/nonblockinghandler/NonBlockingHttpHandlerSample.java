@@ -332,6 +332,8 @@ public class NonBlockingHttpHandlerSample {
             }
 
             if (in.isFinished()) {
+                in.close();
+                out.close();
                 return;
             }
 
@@ -353,8 +355,21 @@ public class NonBlockingHttpHandlerSample {
                 @Override
                 public void onAllDataRead() throws IOException {
                     System.out.println("[onAllDataRead] length: " + in.readyData());
-                    doWrite(this, in, buf, out);
-                    response.resume();
+                    try {
+                        doWrite(this, in, buf, out);
+                    } finally {
+                        try {
+                            in.close();
+                        } catch (IOException ignored) {
+                        }
+
+                        try {
+                            out.close();
+                        } catch (IOException ignored) {
+                        }
+
+                        response.resume();
+                    }
                 }
             });
 
