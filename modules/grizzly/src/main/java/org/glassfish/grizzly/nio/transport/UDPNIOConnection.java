@@ -200,7 +200,10 @@ public class UDPNIOConnection extends NIOConnection {
      * Method will be called, when some data was read on the connection
      */
     protected final void onRead(Buffer data, int size) {
-        notifyProbesRead(this, data, size);
+        if (size > 0) {
+            notifyProbesRead(this, data, size);
+        }
+        checkEmptyRead(size);
     }
 
     /**

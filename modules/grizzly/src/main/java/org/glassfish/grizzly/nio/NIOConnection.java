@@ -81,7 +81,9 @@ import java.util.logging.Logger;
  * @author Alexey Stashok
  */
 public abstract class NIOConnection implements Connection<SocketAddress> {
+    private static final boolean WIN32 = "\\".equals(System.getProperty("file.separator"));
     private static final Logger logger = Grizzly.logger(NIOConnection.class);
+    private static final short MAX_ZERO_READ_COUNT = 500;
 
     protected final NIOTransport transport;
 
@@ -109,6 +111,8 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
     protected volatile boolean isStandalone;
 
+    protected short zeroByteReadCount;
+
     private final Queue<CloseListener> closeListeners =
             new LinkedTransferQueue<CloseListener>();
 
@@ -117,6 +121,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      */
     protected final MonitoringConfigImpl<ConnectionProbe> monitoringConfig =
             new MonitoringConfigImpl<ConnectionProbe>(ConnectionProbe.class);
+
 
     public NIOConnection(NIOTransport transport) {
         this.transport = transport;
@@ -638,5 +643,23 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         final SelectorHandler selectorHandler = transport.getSelectorHandler();
 
         selectorHandler.deregisterKeyInterest(selectorRunner, selectionKey, interest);
+    }
+
+    protected final void checkEmptyRead(final int size) {
+        if (WIN32) {
+            if (size == 0) {
+                final int count = ++zeroByteReadCount;
+                if (count >= MAX_ZERO_READ_COUNT) {
+                    try {
+                        close();
+                    } catch (IOException ignored) {
+                    }
+                } else {
+                    zeroByteReadCount++;
+                }
+            } else {
+                zeroByteReadCount = 0;
+            }
+        }
     }
 }
