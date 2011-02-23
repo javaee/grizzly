@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+
+    Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+
+    The contents of this file are subject to the terms of either the GNU
+    General Public License Version 2 only ("GPL") or the Common Development
+    and Distribution License("CDDL") (collectively, the "License").  You
+    may not use this file except in compliance with the License.  You can
+    obtain a copy of the License at
+    https://glassfish.dev.java.net/public/CDDL+GPL_1_1.html
+    or packager/legal/LICENSE.txt.  See the License for the specific
+    language governing permissions and limitations under the License.
+
+    When distributing the software, include this License Header Notice in each
+    file and include the License file at packager/legal/LICENSE.txt.
+
+    GPL Classpath Exception:
+    Oracle designates this particular file as subject to the "Classpath"
+    exception as provided by Oracle in the GPL Version 2 section of the License
+    file that accompanied this code.
+
+    Modifications:
+    If applicable, add the following below the License Header, with the fields
+    enclosed by brackets [] replaced by your own identifying information:
+    "Portions Copyright [year] [name of copyright owner]"
+
+    Contributor(s):
+    If you wish your version of this file to be governed by only the CDDL or
+    only the GPL Version 2, indicate your decision by adding "[Contributor]
+    elects to include this software in this distribution under the [CDDL or GPL
+    Version 2] license."  If you don't indicate a single choice of license, a
+    recipient has the option to distribute your version of this file under
+    either the CDDL, the GPL Version 2 or to extend the choice of license to
+    its licensees as provided above.  However, if you add GPL Version 2 code
+    and therefore, elected the GPL Version 2 license, then the option applies
+    only if the new code is made subject to such option by the copyright
+    holder.
+
+-->
+<chapter version="5.0" xml:id="grizzly19x" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:svg="http://www.w3.org/2000/svg" xmlns:m="http://www.w3.org/1998/Math/MathML" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Grizzly 1.9.x</title>
+
+  <para>The Grizzly 1.9.x documentation</para>
+    <section>
+        <title>System Requirements</title>
+        
+        <para>The system requirements for Grizzly 1.9.x are quite simple. Basically,
+            Grizzly is able to run on any platform that <link xlink:href="http://www.oracle.com/technetwork/java/index.html">JDK
+                1.5</link> is available on.</para>
+    </section>
+    <section xml:id="sourcecode_19x">
+        <title>Source code</title>
+        <para>Grizzly source are located in the Java.Net Subversion <link xlink:href="http://java.net/projects/grizzly/sources/svn/show/">repository</link>.</para>
+        <para>Grizzly 1.9.x could be checked out using following
+            command:<programlisting>svn co https://svn.java.net/svn/grizzly~svn/trunk/code 1.9.x</programlisting></para>
+    </section>
+    <section>
+        <title>Quick Start</title>
+        
+        <para>
+            <itemizedlist>
+                <listitem>
+                    <para>Core NIO Framework<itemizedlist>
+                            <listitem>
+                                <para><link xlink:href="http://grizzly.java.net/tutorials/tutorial-framework-filter-sample/index.html">Building an Example Client Server Application</link></para>
+                            </listitem>
+                            <listitem>
+                                <para><link xlink:href="http://jerabi.com/sdionne/blog/2010/05/24/grizzly-migration-guide-part-1/">Migrating your NIO application to Grizzly</link></para>
+                            </listitem>
+                        </itemizedlist></para>
+                </listitem>
+                <listitem>
+                    <para><link xlink:href="http://jfarcand.wordpress.com/2008/07/03/extending-the-grizzly-http-runtime/">Embeddable HTTP WebServer</link></para>
+                </listitem>
+                <listitem>
+                    <para><link xlink:href="http://weblogs.java.net/blog/survivant/archive/2.09/04/grizzly_httpdep.html">Embeddable Servlet Container with Deployer</link></para>
+                </listitem>
+                <listitem>
+                    <para><link xlink:href="http://codemeself.blogspot.com/2.09/03/grizzly-osgi-http-service-guide.html">OSGI/HttpService Container</link></para>
+                </listitem>
+                <listitem>
+                    <para>Embeddable Comet WebServer<itemizedlist>
+                            <listitem>
+                                <para><link xlink:href="http://docs.sun.com/app/docs/doc/820-4496/ggrgy">English</link></para>
+                            </listitem>
+                            <listitem>
+                                <para><link xlink:href="http://www.infoq.com/jp/articles/javaone2.08_comet">Japanese</link></para>
+                            </listitem>
+                        <listitem>
+                            <para><link xlink:href="http://weblogs.javahispano.org/lasterra/entry/mi_primera_aplicacion_comet_en">Spanish</link></para>
+                        </listitem>
+                        <listitem>
+                            <para><link xlink:href="http://blog.octo.com/index.php/2.08/09/04/136-apres-ajax-le-reverse-ajax-et-le-grizzly">Francais</link></para>
+                        </listitem>
+                    </itemizedlist></para>
+                </listitem>
+            </itemizedlist>
+        </para>
+    </section>
+    <section>
+        <title>Dependencies</title>
+        
+        <para>Grizzly is built, assembled and installed using Maven. Grizzly is deployed to the
+            Java.Net maven repository at the following location: <link xlink:href="http://download.java.net/maven/glassfish/">http://download.java.net/maven/glassfish/</link>. The Grizzly modules can be
+            browsed at the following location: <link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/">http://download.java.net/maven/glassfish/com/sun/grizzly/</link>. Jars, Jar
+            sources, Jar JavaDoc and samples are all available on the java.net maven
+            repository.</para>
+        <para>An application depending on Grizzly requires that it in turn includes the set of jars that
+            Grizzly depends on. Grizzly has a pluggable component architecture so the set of jars
+            required to be include in the class path can be different for each application.</para>
+        <para>All Grizzly components are built using Java SE 5 compiler. It means, you will also
+            need at least Java SE 5 to be able to compile and run your application.</para>
+        <para>Developers using maven are likely to find it easier to include and manage dependencies of
+            their applications than developers using ant or other build technologies. This document will
+            explain to both maven and non-maven developers how to depend on Jersey for their
+            application. Ant developers are likely to find the Ant Tasks for Maven very useful.</para>
+        <para>In general, if you're not using Maven, most probably you'd need to download dependencies
+            (jar files) directly from the Maven repository.</para>
+        <para>Grizzly's runtime dependencies are categorized into the following:<itemizedlist>
+                <listitem>
+                    <para>Core framework. The Grizzly core module. The rest of Grizzly modules
+                        depend on it;</para>
+                </listitem>
+                <listitem>
+                    <para>HTTP framework. Grizzly HTTP server implementation;</para>
+                </listitem>
+                <listitem>
+                    <para>Port unification;</para>
+                </listitem>
+                <listitem>
+                    <para>HTTP Servlet framework. Basic Grizzly based Servlet support;</para>
+                </listitem>
+                <listitem>
+                    <para>HTTP Servlet Deployer framework. Provides advanced web container features
+                        support;</para>
+                </listitem>
+                <listitem>
+                    <para>Comet;</para>
+                </listitem>
+                <listitem>
+                    <para>WebSockets;</para>
+                </listitem>
+                <listitem>
+                    <para>OSGi HTTP Service. Grizzly based OSGi HTTP Service implementation.</para>
+                </listitem>
+            </itemizedlist></para>
+        
+        <section xml:id="core-dep_19x">
+            <title>Core framework</title>
+            <para>Maven developers require a dependency on the grizzly core module. The following
+                dependency needs to be added to the
+                pom:<programlisting language="xml">&lt;dependency>
+    &lt;groupId>com.sun.grizzly&lt;/groupId>
+    &lt;artifactId>grizzly-framework&lt;/artifactId>
+    &lt;version>1.9.32&lt;/version>
+&lt;/dependency></programlisting></para>
+            <para>And the following repositories need to be added to the pom:</para>
+            <programlisting language="xml">&lt;repository>
+    &lt;id>glassfish-maven2-repository.dev.java.net&lt;/id>
+    &lt;name>Java.net Maven 2 Repository for GlassFish&lt;/name>
+    &lt;url>http://download.java.net/maven/glassfish/&lt;/url>
+    &lt;layout>default&lt;/layout>
+&lt;/repository>
+&lt;repository>
+    &lt;id>java.net&lt;/id>
+    &lt;name>Java.net Repository for Grizzly&lt;/name>
+    &lt;url>http://download.java.net/maven/2&lt;/url>
+&lt;/repository></programlisting>
+            <para>Non-maven developers require:</para>
+            <itemizedlist>
+                <listitem>
+                    <para><link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-framework/1.9.32/grizzly-framework-1.9.32.jar">grizzly-framework.jar</link></para>
+                </listitem>
+                <listitem>
+                    <para><link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-utils/1.9.32/grizzly-utils-1.9.32.jar">grizzly-utils.jar</link></para>
+                </listitem>
+                <listitem>
+                    <para><link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-lzma/1.9.32/grizzly-lzma-1.9.32.jar">grizzly-lzma.jar</link></para>
+                </listitem>
+            </itemizedlist>
+            <para>or use single bundle: <link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-nio-framework/1.9.32/grizzly-nio-framework-1.9.32.jar">grizzly-nio-framework.jar</link></para>
+        </section>
+        <section xml:id="portunif-dep_19x">
+            <title>Port unification</title>
+            <para>Maven developers require a dependency on the portunif module. The following
+                dependency needs to be added to the
+                pom:<programlisting language="xml">&lt;dependency>
+     &lt;groupId>com.sun.grizzly&lt;/groupId>
+     &lt;artifactId>grizzly-portunif&lt;/artifactId>
+     &lt;version>1.9.32&lt;/version>
+&lt;/dependency></programlisting></para>
+            <para>Non-maven developers, additionally to jars, required by <link linkend="core-dep_19x">Core framework</link>, require:<itemizedlist>
+                <listitem>
+                    <para><link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-portunif/1.9.32/grizzly-portunif-1.9.32.jar">grizzly-portunif.jar</link></para>
+                </listitem>
+            </itemizedlist></para>
+        </section>
+        <section xml:id="http-dep_19x">
+            <title>HTTP framework</title>
+            <para>Maven developers require a dependency on the http module. The following dependency
+                needs to be added to the
+                pom:<programlisting language="xml">&lt;dependency>
+     &lt;groupId>com.sun.grizzly&lt;/groupId>
+     &lt;artifactId>grizzly-http&lt;/artifactId>
+     &lt;version>1.9.32&lt;/version>
+&lt;/dependency></programlisting></para>
+            <para>Non-maven developers, additionally to jars, required by <link
+                    linkend="core-dep_19x">Core framework</link> and <link
+                    linkend="portunif-dep_19x">Port unification</link>, require:<itemizedlist>
+                    <listitem>
+                        <para><link
+                                xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-http/1.9.32/grizzly-http-1.9.32.jar"
+                                >grizzly-http.jar</link></para>
+                    </listitem>
+                </itemizedlist></para>
+            <para>or use single bundle: <link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-http-webserver/1.9.32/grizzly-http-webserver-1.9.32.jar">grizzly-http-webserver.jar</link></para>
+        </section>
+        <section xml:id="http-servlet-dep_19x">
+            <title>HTTP Servlet framework</title>
+            <para>Maven developers require a dependency on the http-servlet module. The following
+                dependency needs to be added to the
+                pom:<programlisting language="xml">&lt;dependency>
+     &lt;groupId>com.sun.grizzly&lt;/groupId>
+     &lt;artifactId>grizzly-http-servlet&lt;/artifactId>
+     &lt;version>1.9.32&lt;/version>
+&lt;/dependency></programlisting></para>
+            <para>Non-maven developers require:<itemizedlist>
+                    <listitem>
+                        <para><link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-http-servlet/1.9.32/grizzly-http-servlet-1.9.32.jar">grizzly-http-servlet.jar</link></para>
+                    </listitem>
+                <listitem>
+                    <para><link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-utils/1.9.32/grizzly-utils-1.9.32.jar">grizzly-utils.jar</link></para>
+                </listitem>
+                <listitem>
+                    <para><link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-lzma/1.9.32/grizzly-lzma-1.9.32.jar">grizzly-lzma.jar</link></para>
+                </listitem>
+                <listitem>
+                    <para><link xlink:href="http://mirrors.ibiblio.org/pub/mirrors/maven2/javax/servlet/servlet-api/2.5/servlet-api-2.5.jar">servlet-api.jar</link></para>
+                </listitem>
+            </itemizedlist></para>
+            <para>or use single bundle: <link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-servlet-webserver/1.9.32/grizzly-servlet-webserver-1.9.32.jar">grizzly-servlet-webserver.jar</link></para>
+        </section>
+        <section xml:id="http-servlet-deployer-dep_19x">
+            <title>HTTP Servlet Deployer framework</title>
+            <para>Maven developers require a dependency on the http-servlet module. The following
+                dependency needs to be added to the
+                pom:<programlisting language="xml">&lt;dependency>
+     &lt;groupId>com.sun.grizzly&lt;/groupId>
+     &lt;artifactId>grizzly-servlet-deployer&lt;/artifactId>
+     &lt;version>1.9.32&lt;/version>
+&lt;/dependency></programlisting></para>
+            <para>Non-maven developers, additionally to jars, required by <link
+                    linkend="http-servlet-dep_19x">HTTP Servlet framework</link>, require:<itemizedlist>
+                    <listitem>
+                        <para><link
+                            xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-servlet-deployer/1.9.32/grizzly-servlet-deployer-1.9.32.jar"
+                                >grizzly-servlet-deployer.jar</link></para>
+                    </listitem>
+                    <listitem>
+                        <para><link
+                            xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-compat/1.9.32/grizzly-compat-1.9.32.jar"
+                                >grizzly-compat.jar</link></para>
+                    </listitem>
+                    <listitem>
+                        <para><link
+                            xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-cometd/1.9.32/grizzly-cometd-1.9.32.jar"
+                                >grizzly-cometd.jar</link></para>
+                    </listitem>
+                </itemizedlist></para>
+            <para>or use single bundle: <link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-http-servlet-deployer/1.9.32/grizzly-http-servlet-deployer-1.9.32.jar">grizzly-http-servlet-deployer.jar</link></para>
+        </section>        
+        <section xml:id="comet-dep_19x">
+            <title>Comet</title>
+            <para>Maven developers require a dependency on the http-comet module. The following
+                dependency needs to be added to the
+                pom:<programlisting language="xml">&lt;dependency>
+     &lt;groupId>com.sun.grizzly&lt;/groupId>
+     &lt;artifactId>grizzly-comet&lt;/artifactId>
+     &lt;version>1.9.32&lt;/version>
+&lt;/dependency></programlisting></para>
+            <para>Non-maven developers, additionally to jars, required by <link linkend="http-dep_19x">HTTP framework</link>, require:<itemizedlist>
+                <listitem>
+                    <para><link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-comet/1.9.32/grizzly-comet-1.9.32.jar">grizzly-comet.jar</link></para>
+                </listitem>
+            </itemizedlist></para>
+            <para>or use single bundle: <link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-comet-webserver/1.9.32/grizzly-comet-webserver-1.9.32.jar">grizzly-comet-webserver.jar</link></para>
+        </section>
+        <section xml:id="websockets-dep_19x">
+            <title>WebSockets</title>
+            <para>Maven developers require a dependency on the websockets module. The following
+                dependency needs to be added to the
+                pom:<programlisting language="xml">&lt;dependency>
+     &lt;groupId>com.sun.grizzly&lt;/groupId>
+     &lt;artifactId>grizzly-websockets&lt;/artifactId>
+     &lt;version>1.9.32&lt;/version>
+&lt;/dependency></programlisting></para>
+            <para>Non-maven developers, additionally to jars, required by <link linkend="http-dep_19x">HTTP framework</link> and , <link linkend="http-servlet-dep_19x">HTTP Servlet framework</link> require:<itemizedlist>
+                <listitem>
+                    <para><link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-websockets/1.9.32/grizzly-websockets-1.9.32.jar">grizzly-websockets.jar</link></para>
+                </listitem>
+            </itemizedlist></para>
+        </section>
+        <section xml:id="osgi-http-service-dep_19x">
+            <title>OSGi HTTP Service</title>
+            <para>Maven developers require a dependency on the http-servlet module. The following
+                dependency needs to be added to the
+                pom:<programlisting language="xml">&lt;dependency>
+     &lt;groupId>com.sun.grizzly.osgi&lt;/groupId>
+     &lt;artifactId>grizzly-httpservice&lt;/artifactId>
+     &lt;version>1.9.32&lt;/version>
+&lt;/dependency></programlisting></para>
+            <para>Non-maven developers, additionally to jars, required by <link
+                    linkend="http-dep_19x">HTTP framework</link> and , <link
+                    linkend="http-servlet-dep_19x">HTTP Servlet framework</link> require:<itemizedlist>
+                    <listitem>
+                        <para><link
+                            xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/osgi/grizzly-httpservice/1.9.32/grizzly-httpservice-1.9.32.jar"
+                                >grizzly-httpservice.jar</link></para>
+                    </listitem>
+                    <listitem>
+                        <para><link
+                            xlink:href="http://repository.ops4j.org/maven2/org/osgi/org.osgi.core/4.1.0/org.osgi.core-4.1.0.jar"
+                            >org.osgi.core.jar</link></para>
+                    </listitem>
+                        <listitem>
+                            <para><link
+                                xlink:href="http://repository.ops4j.org/maven2/org/osgi/org.osgi.compendium/4.1.0/org.osgi.compendium-4.1.0.jar"
+                                >org.osgi.compendium.jar</link></para>
+                        </listitem>
+                    </itemizedlist></para>
+            <para>or use single bundle: <link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/osgi/grizzly-httpservice-bundle/1.9.32/grizzly-httpservice-bundle-1.9.32.jar">grizzly-httpservice-bundle.jar</link></para>
+        </section>                
+    </section>    
+</chapter>
