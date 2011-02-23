@@ -134,7 +134,7 @@
       </inlinemediaobject></para>
   </section>
 
-  <section>
+  <section xml:id="pu-samples">
     <title>Sample</title>
 
     <para>Assume we have two services: add and sub, which are responsible for

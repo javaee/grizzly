@@ -429,7 +429,7 @@ public interface ContentEncoding {
     </section>
   </section>
 
-  <section>
+  <section xml:id="httpframework-samples">
     <title>Samples</title>
 
     <para>The following example demonstrates the flexibility of the http

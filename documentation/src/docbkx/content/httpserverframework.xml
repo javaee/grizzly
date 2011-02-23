@@ -936,7 +936,7 @@ public class WebSocketAddOn implements AddOn {
 }</programlisting></para>
   </section>
 
-  <section>
+  <section xml:id="httpserverframework-samples">
     <title>Samples</title>
 
     <para>The following example is a composite showing both the suspend/resume

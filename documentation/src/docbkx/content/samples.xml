@@ -3,7 +3,7 @@
 
     DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 
-    Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
 
     The contents of this file are subject to the terms of either the GNU
     General Public License Version 2 only ("GPL") or the Common Development
@@ -40,25 +40,27 @@
     holder.
 
 -->
+<chapter version="5.0" xml:id="sum-samples"
+         xmlns="http://docbook.org/ns/docbook"
+         xmlns:xlink="http://www.w3.org/1999/xlink"
+         xmlns:xi="http://www.w3.org/2001/XInclude"
+         xmlns:svg="http://www.w3.org/2000/svg"
+         xmlns:m="http://www.w3.org/1998/Math/MathML"
+         xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Samples</title>
 
-<book version="5.0" xmlns="http://docbook.org/ns/docbook"
-      xmlns:xlink="http://www.w3.org/1999/xlink"
-      xmlns:xi="http://www.w3.org/2001/XInclude"
-      xmlns:svg="http://www.w3.org/2000/svg"
-      xmlns:m="http://www.w3.org/1998/Math/MathML"
-      xmlns:html="http://www.w3.org/1999/xhtml"
-      xmlns:db="http://docbook.org/ns/docbook">
-  <info>
-    <title>Grizzly 2.0 User's Guide</title>
-    <author>
-      <personname><firstname>The Grizzly Team</firstname></personname>
-    </author>
-    <pubdate>TBD</pubdate>
-  </info>
-  <xi:include href="content/overview.xml" xpointer="element(/1)" />
-  <xi:include href="content/coreframework.xml" xpointer="element(/1)" />
-  <xi:include href="content/httpframework.xml" xpointer="element(/1)" />
-  <xi:include href="content/httpserverframework.xml" xpointer="element(/1)" />
-  <xi:include href="content/portunification.xml" xpointer="element(/1)" />
-  <xi:include href="content/samples.xml" xpointer="element(/1)" />
-</book>
+  <para>Let's summarize all the samples mentioned in this user's guide<itemizedlist>
+            <listitem>
+                <para><link linkend="coreframework-samples">Core framework</link></para>
+            </listitem>
+            <listitem>
+                <para><link linkend="httpframework-samples">HTTP framework</link></para>
+            </listitem>
+            <listitem>
+                <para><link linkend="httpserverframework-samples">HTTP Server framework</link></para>
+            </listitem>
+            <listitem>
+                <para><link linkend="pu-samples">Port unification</link></para>
+            </listitem>
+        </itemizedlist></para>
+</chapter>
