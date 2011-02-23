@@ -79,8 +79,8 @@
   <section xml:id="sourcecode">
     <title>Source code</title>
     <para>Grizzly source are located in the Java.Net Subversion <link xlink:href="http://java.net/projects/grizzly/sources/svn/show/">repository</link>.</para>
-    <db:para>Grizzly 2.0 could be checked out using following
-      command:<db:programlisting>svn co https://svn.java.net/svn/grizzly~svn/branches/2dot0/code 2dot0</db:programlisting></db:para>
+    <para>Grizzly 2.0 could be checked out using following
+      command:<programlisting>svn co https://svn.java.net/svn/grizzly~svn/branches/2dot0/code 2dot0</programlisting></para>
   </section>
 
   <section>

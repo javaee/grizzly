@@ -59,7 +59,7 @@
         application. Ant developers are likely to find the Ant Tasks for Maven very useful.</para>
     <para>In general, if you're not using Maven, most probably you'd need to download dependencies
         (jar files) directly from the Maven repository.</para>
-    <para>Grizzly's runtime dependences are categorized into the following:<itemizedlist>
+    <para>Grizzly's runtime dependencies are categorized into the following:<itemizedlist>
             <listitem>
                 <para>Core framework. The Grizzly core module. The rest of Grizzly modules depend on
                     it;</para>
@@ -82,7 +82,7 @@
             <listitem>
                 <para>WebSockets;</para>
             </listitem>
-    </itemizedlist></para>
+        </itemizedlist></para>
     
     <section xml:id="core-dep">
         <title>Core framework</title>
@@ -159,7 +159,10 @@
                 <listitem>
                     <para><link xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-http-servlet/2.0/grizzly-http-servlet-2.0.jar">grizzly-http-servlet.jar</link></para>
                 </listitem>
-            </itemizedlist></para>
+            <listitem>
+                <para><link xlink:href="http://mirrors.ibiblio.org/pub/mirrors/maven2/javax/servlet/servlet-api/2.5/servlet-api-2.5.jar">servlet-api.jar</link></para>
+            </listitem>
+        </itemizedlist></para>
     </section>
     <section xml:id="portunif-dep">
         <title>Port unification</title>
