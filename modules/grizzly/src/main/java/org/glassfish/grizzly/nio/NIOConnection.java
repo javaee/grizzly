@@ -83,7 +83,7 @@ import java.util.logging.Logger;
 public abstract class NIOConnection implements Connection<SocketAddress> {
     private static final boolean WIN32 = "\\".equals(System.getProperty("file.separator"));
     private static final Logger logger = Grizzly.logger(NIOConnection.class);
-    private static final short MAX_ZERO_READ_COUNT = 500;
+    private static final short MAX_ZERO_READ_COUNT = 100;
 
     protected final NIOTransport transport;
 
@@ -654,8 +654,6 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                         close();
                     } catch (IOException ignored) {
                     }
-                } else {
-                    zeroByteReadCount++;
                 }
             } else {
                 zeroByteReadCount = 0;
