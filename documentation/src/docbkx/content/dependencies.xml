@@ -80,11 +80,11 @@
                 <para>Comet;</para>
             </listitem>
             <listitem>
-                <para>WebSocket;</para>
+                <para>WebSockets;</para>
             </listitem>
     </itemizedlist></para>
     
-    <section>
+    <section xml:id="core-dep">
         <title>Core framework</title>
         <para>Maven developers require a dependency on the grizzly core module. The following
             dependency needs to be added to the
@@ -115,28 +115,95 @@
             </listitem>
         </itemizedlist>
     </section>
-    <section>
+    <section xml:id="http-dep">
         <title>HTTP framework</title>
-        <para/>
+        <para>Maven developers require a dependency on the http module. The following dependency
+            needs to be added to the
+            pom:<programlisting>&lt;dependency>
+     &lt;groupId>org.glassfish.grizzly&lt;/groupId>
+     &lt;artifactId>grizzly-http&lt;/artifactId>
+     &lt;version>2.0&lt;/version>
+&lt;/dependency></programlisting></para>
+        <para>Non-maven developers additionally to jars, required by <link linkend="core-dep">Core framework</link>, require:<itemizedlist>
+                <listitem>
+                    <para><link xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-http/2.0/grizzly-http-2.0.jar">grizzly-http.jar</link></para>
+                </listitem>
+            </itemizedlist></para>
     </section>
-    <section>
+    <section xml:id="http-server-dep">
         <title>HTTP Server framework</title>
-        <para/>
+        <para>Maven developers require a dependency on the http-server module. The following
+            dependency needs to be added to the
+            pom:<programlisting>&lt;dependency>
+     &lt;groupId>org.glassfish.grizzly&lt;/groupId>
+     &lt;artifactId>grizzly-http-server&lt;/artifactId>
+     &lt;version>2.0&lt;/version>
+&lt;/dependency></programlisting></para>
+        <para>Non-maven developers, additionally to jars, required by <link linkend="http-dep">HTTP framework</link>, require:<itemizedlist>
+                <listitem>
+                    <para><link xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-http-server/2.0/grizzly-http-server-2.0.jar">grizzly-http-server.jar</link></para>
+                </listitem>
+            </itemizedlist></para>
+        
     </section>
-    <section>
+    <section xml:id="http-servlet-dep">
         <title>HTTP Servlet framework</title>
-        <para/>
+        <para>Maven developers require a dependency on the http-servlet module. The following
+            dependency needs to be added to the
+            pom:<programlisting>&lt;dependency>
+     &lt;groupId>org.glassfish.grizzly&lt;/groupId>
+     &lt;artifactId>grizzly-http-servlet&lt;/artifactId>
+     &lt;version>2.0&lt;/version>
+&lt;/dependency></programlisting></para>
+        <para>Non-maven developers, additionally to jars, required by <link linkend="http-server-dep">HTTP Server framework</link>, require:<itemizedlist>
+                <listitem>
+                    <para><link xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-http-servlet/2.0/grizzly-http-servlet-2.0.jar">grizzly-http-servlet.jar</link></para>
+                </listitem>
+            </itemizedlist></para>
     </section>
-    <section>
+    <section xml:id="portunif-dep">
         <title>Port unification</title>
-        <para/>
+        <para>Maven developers require a dependency on the portunif module. The following dependency
+            needs to be added to the
+            pom:<programlisting>&lt;dependency>
+     &lt;groupId>org.glassfish.grizzly&lt;/groupId>
+     &lt;artifactId>grizzly-portunif&lt;/artifactId>
+     &lt;version>2.0&lt;/version>
+&lt;/dependency></programlisting></para>
+        <para>Non-maven developers, additionally to jars, required by <link linkend="core-dep">Core framework</link>, require:<itemizedlist>
+                <listitem>
+                    <para><link xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-portunif/2.0/grizzly-portunif-2.0.jar">grizzly-portunif.jar</link></para>
+                </listitem>
+            </itemizedlist></para>
     </section>
-    <section>
+    <section xml:id="comet-dep">
         <title>Comet</title>
-        <para/>
+        <para>Maven developers require a dependency on the http-comet module. The following
+            dependency needs to be added to the
+            pom:<programlisting>&lt;dependency>
+     &lt;groupId>org.glassfish.grizzly&lt;/groupId>
+     &lt;artifactId>grizzly-comet&lt;/artifactId>
+     &lt;version>2.0&lt;/version>
+&lt;/dependency></programlisting></para>
+        <para>Non-maven developers, additionally to jars, required by <link linkend="http-server-dep">HTTP Server framework</link>, require:<itemizedlist>
+                <listitem>
+                    <para><link xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-comet/2.0/grizzly-comet-2.0.jar">grizzly-comet.jar</link></para>
+                </listitem>
+            </itemizedlist></para>
     </section>
-    <section>
-        <title>WebSocket</title>
-        <para/>
+    <section xml:id="websockets-dep">
+        <title>WebSockets</title>
+        <para>Maven developers require a dependency on the websockets module. The following
+            dependency needs to be added to the
+            pom:<programlisting>&lt;dependency>
+     &lt;groupId>org.glassfish.grizzly&lt;/groupId>
+     &lt;artifactId>grizzly-websockets&lt;/artifactId>
+     &lt;version>2.0&lt;/version>
+&lt;/dependency></programlisting></para>
+        <para>Non-maven developers, additionally to jars, required by <link linkend="http-server-dep">HTTP Server framework</link>, require:<itemizedlist>
+                <listitem>
+                    <para><link xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-websockets/2.0/grizzly-websockets-2.0.jar">grizzly-websockets.jar</link></para>
+                </listitem>
+            </itemizedlist></para>
     </section>
 </chapter>
