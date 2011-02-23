@@ -382,8 +382,8 @@ public class ReadFilter implements ProtocolFilter, ReinvokeAware {
     protected final void checkEmptyRead(final SocketChannel channel,
                                         final int size) {
 
-        if (size == 0) {
-            synchronized (zeroLengthReads) {
+        synchronized (zeroLengthReads) {
+            if (size == 0) {
                 Short count = zeroLengthReads.get(channel);
                 if (count == null) {
                     count = 1;
@@ -399,12 +399,8 @@ public class ReadFilter implements ProtocolFilter, ReinvokeAware {
                         zeroLengthReads.remove(channel);
                     }
                 }
-            }
-        } else {
-            if (zeroLengthReads.containsKey(channel)) {
-                synchronized (zeroLengthReads) {
-                    zeroLengthReads.remove(channel);
-                }
+            } else {
+                zeroLengthReads.remove(channel);
             }
         }
 
