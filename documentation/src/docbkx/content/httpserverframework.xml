@@ -398,7 +398,7 @@ try {
   </section>
 
   <section>
-    <title>Long-lasing HTTP requests (suspend/response)</title>
+    <title>Long-lasting HTTP requests (suspend/response)</title>
 
     <para>Some HTTP interactions may need to trigger a long running
     transaction on the server and wait for the result to generate a response.
