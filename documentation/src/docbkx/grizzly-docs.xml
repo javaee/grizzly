@@ -62,5 +62,4 @@
   <xi:include href="content/portunification.xml" xpointer="element(/1)" />
   <xi:include href="content/dependencies.xml" xpointer="element(/1)" />
   <xi:include href="content/samples.xml" xpointer="element(/1)" />
-  <xi:include href="content/grizzly1x.xml" xpointer="element(/1)" />
 </book>
