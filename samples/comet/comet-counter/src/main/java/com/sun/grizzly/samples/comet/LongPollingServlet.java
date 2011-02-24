@@ -76,25 +76,16 @@ public class LongPollingServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse res)
     throws ServletException, IOException {
-
-        CounterHandler handler = buildHandler(res);
-
         CometEngine engine = CometEngine.getEngine();
         CometContext<HttpServletResponse> context = engine.getCometContext(contextPath);
-        final int hash = context.addCometHandler(handler);
-    }
-
-    protected CounterHandler buildHandler(final HttpServletResponse res) {
-        return new CounterHandler(res, counter);
+        final int hash = context.addCometHandler(new CounterHandler(res, counter));
     }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse res)
     throws ServletException, IOException {
         counter.incrementAndGet();
-
-        CometEngine engine = CometEngine.getEngine();
-        CometContext<HttpServletResponse> context = engine.getCometContext(contextPath);
+        CometContext<HttpServletResponse> context = CometEngine.getEngine().getCometContext(contextPath);
         context.notify(null);
         
         PrintWriter writer = res.getWriter();

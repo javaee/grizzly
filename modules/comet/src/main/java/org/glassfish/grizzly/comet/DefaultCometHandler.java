@@ -1,15 +1,20 @@
 package org.glassfish.grizzly.comet;
 
+import java.io.IOException;
+
 import org.glassfish.grizzly.http.server.Response;
 
 /**
  * A basic default implementation of CometHandler to take care of tracking the Response and CometContext.
  */
-public abstract class DefaultCometHandler<E> implements CometHandler<E> {
+public class DefaultCometHandler<E> implements CometHandler<E> {
     private Response response;
     private CometContext<E> cometContext;
 
-    protected DefaultCometHandler(final CometContext<E> cometContext, final Response response) {
+    public DefaultCometHandler() {
+    }
+
+    public DefaultCometHandler(final CometContext<E> cometContext, final Response response) {
         this.cometContext = cometContext;
         this.response = response;
     }
@@ -32,5 +37,21 @@ public abstract class DefaultCometHandler<E> implements CometHandler<E> {
     @Override
     public void setCometContext(final CometContext<E> cometContext) {
         this.cometContext = cometContext;
+    }
+
+    @Override
+    public void onEvent(final CometEvent event) throws IOException {
+    }
+
+    @Override
+    public void onInitialize(final CometEvent event) throws IOException {
+    }
+
+    @Override
+    public void onTerminate(final CometEvent event) throws IOException {
+    }
+
+    @Override
+    public void onInterrupt(final CometEvent event) throws IOException {
     }
 }

@@ -45,17 +45,13 @@ import java.io.PrintWriter;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.servlet.http.HttpServletResponse;
 
-import org.glassfish.grizzly.comet.CometContext;
 import org.glassfish.grizzly.comet.CometEvent;
-import org.glassfish.grizzly.comet.CometHandler;
-import org.glassfish.grizzly.http.server.Response;
+import org.glassfish.grizzly.comet.DefaultCometHandler;
 
-public class CounterHandler implements CometHandler<HttpServletResponse> {
+public class CounterHandler extends DefaultCometHandler<HttpServletResponse> {
 
     private HttpServletResponse httpResponse;
     private AtomicInteger counter;
-    private CometContext<HttpServletResponse> cometContext;
-    private Response response;
 
     CounterHandler(HttpServletResponse httpResponse, final AtomicInteger counter) {
         this.httpResponse = httpResponse;
@@ -74,37 +70,11 @@ public class CounterHandler implements CometHandler<HttpServletResponse> {
         }
     }
 
-    public void onInitialize(CometEvent event) throws IOException {
-    }
-
     public void onInterrupt(CometEvent event) throws IOException {
         httpResponse.addHeader("X-JSON", "{\"counter\":" + counter.get() + " }");
 
         PrintWriter writer = httpResponse.getWriter();
         writer.write("success");
         writer.flush();
-    }
-
-    public void onTerminate(CometEvent event) throws IOException {
-    }
-
-    @Override
-    public CometContext<HttpServletResponse> getCometContext() {
-        return cometContext;
-    }
-
-    @Override
-    public Response getResponse() {
-        return response;
-    }
-
-    @Override
-    public void setCometContext(CometContext<HttpServletResponse> context) {
-        cometContext = context;
-    }
-
-    @Override
-    public void setResponse(Response response) {
-        this.response = response;
     }
 }
