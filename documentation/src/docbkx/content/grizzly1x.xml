@@ -333,5 +333,101 @@
                     </itemizedlist></para>
             <para>or use single bundle: <link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/osgi/grizzly-httpservice-bundle/1.9.32/grizzly-httpservice-bundle-1.9.32.jar">grizzly-httpservice-bundle.jar</link></para>
         </section>                
-    </section>    
+    </section>
+    <section xml:id="samples_19x">
+        <title>Samples</title>
+        
+        <para>Let's summarize all the samples mentioned in this user's guide<itemizedlist>
+            <listitem>
+                    <para>Core framework<itemizedlist>
+                            <listitem>
+                                <para><link
+                                        xlink:href="http://java.net/projects/grizzly/sources/svn/show/trunk/code/samples/framework/filters-samples"
+                                        >filters-samples</link><programlisting>svn co https://svn.java.net/svn/grizzly~svn/trunk/code/samples/framework/filters-samples</programlisting></para>
+                            </listitem>
+                        <listitem>
+                            <para><link
+                                xlink:href="http://java.net/projects/grizzly/sources/svn/show/trunk/code/samples/framework/nio-migration-guide"
+                                >nio-migration-guide</link><programlisting>svn co https://svn.java.net/svn/grizzly~svn/trunk/code/samples/framework/nio-migration-guide</programlisting></para>
+                        </listitem>
+                    </itemizedlist></para>
+                </listitem>
+            <listitem>
+                <para>HTTP framework<itemizedlist>
+                    <listitem>
+                        <para><link
+                            xlink:href="http://java.net/projects/grizzly/sources/svn/show/trunk/code/samples/http/http-embed"
+                            >http-embed</link><programlisting>svn co https://svn.java.net/svn/grizzly~svn/trunk/code/samples/http/http-embed</programlisting></para>
+                    </listitem>
+                    <listitem>
+                        <para><link
+                            xlink:href="http://java.net/projects/grizzly/sources/svn/show/trunk/code/samples/http/multiple-adapter"
+                            >multiple-adapter</link><programlisting>svn co https://svn.java.net/svn/grizzly~svn/trunk/code/samples/http/multiple-adapter</programlisting></para>
+                    </listitem>
+                </itemizedlist></para>
+            </listitem>
+            <listitem>
+                <para>Comet<itemizedlist>
+                    <listitem>
+                        <para><link
+                            xlink:href="http://java.net/projects/grizzly/sources/svn/show/trunk/code/samples/comet/comet-chat"
+                            >comet-chat</link><programlisting>svn co https://svn.java.net/svn/grizzly~svn/trunk/code/samples/comet/comet-chat</programlisting></para>
+                    </listitem>
+                    <listitem>
+                        <para><link
+                            xlink:href="http://java.net/projects/grizzly/sources/svn/show/trunk/code/samples/comet/comet-chat-iframe"
+                            >comet-chat-iframe</link><programlisting>svn co https://svn.java.net/svn/grizzly~svn/trunk/code/samples/comet/comet-chat-iframe</programlisting></para>
+                    </listitem>
+                    <listitem>
+                        <para><link
+                            xlink:href="http://java.net/projects/grizzly/sources/svn/show/trunk/code/samples/comet/comet-counter"
+                            >comet-counter</link><programlisting>svn co https://svn.java.net/svn/grizzly~svn/trunk/code/samples/comet/comet-counter</programlisting></para>
+                    </listitem>
+                    <listitem>
+                        <para><link
+                            xlink:href="http://java.net/projects/grizzly/sources/svn/show/trunk/code/samples/comet/comet-hidden"
+                            >comet-hidden</link><programlisting>svn co https://svn.java.net/svn/grizzly~svn/trunk/code/samples/comet/comet-hidden</programlisting></para>
+                    </listitem>
+                    <listitem>
+                        <para><link
+                            xlink:href="http://java.net/projects/grizzly/sources/svn/show/trunk/code/samples/comet/comet-jmaki"
+                            >comet-jmaki</link><programlisting>svn co https://svn.java.net/svn/grizzly~svn/trunk/code/samples/comet/comet-jmaki</programlisting></para>
+                    </listitem>
+                    <listitem>
+                        <para><link
+                            xlink:href="http://java.net/projects/grizzly/sources/svn/show/trunk/code/samples/comet/twitter"
+                            >twitter</link><programlisting>svn co https://svn.java.net/svn/grizzly~svn/trunk/code/samples/comet/twitter</programlisting></para>
+                    </listitem>
+                    <listitem>
+                        <para><link
+                            xlink:href="http://java.net/projects/grizzly/sources/svn/show/trunk/code/samples/comet/cometd-chat"
+                            >cometd-chat</link><programlisting>svn co https://svn.java.net/svn/grizzly~svn/trunk/code/samples/comet/cometd-chat</programlisting></para>
+                    </listitem>
+                    <listitem>
+                        <para><link
+                            xlink:href="http://java.net/projects/grizzly/sources/svn/show/trunk/code/samples/comet/cometd-echo"
+                            >cometd-echo</link><programlisting>svn co https://svn.java.net/svn/grizzly~svn/trunk/code/samples/comet/cometd-echo</programlisting></para>
+                    </listitem>
+                    <listitem>
+                        <para><link
+                            xlink:href="http://java.net/projects/grizzly/sources/svn/show/trunk/code/samples/comet/cometd-javaapiupdate-chat"
+                            >cometd-javaapiupdate-chat</link><programlisting>svn co https://svn.java.net/svn/grizzly~svn/trunk/code/samples/comet/cometd-javaapiupdate-chat</programlisting></para>
+                    </listitem>
+                </itemizedlist></para>
+            </listitem>
+            <listitem>
+                <para>WebSockets<itemizedlist>
+                    <listitem>
+                        <para><link
+                            xlink:href="http://java.net/projects/grizzly/sources/svn/show/trunk/code/samples/websockets/chat"
+                            >chat</link><programlisting>svn co https://svn.java.net/svn/grizzly~svn/trunk/code/samples/websockets/chat</programlisting></para>
+                    </listitem>
+                    <listitem>
+                        <para><link
+                            xlink:href="http://java.net/projects/grizzly/sources/svn/show/trunk/code/samples/websockets/stickies"
+                            >stickies</link><programlisting>svn co https://svn.java.net/svn/grizzly~svn/trunk/code/samples/websockets/stickies</programlisting></para>
+                    </listitem>
+                </itemizedlist></para>
+            </listitem>
+        </itemizedlist></para>    </section>    
 </chapter>
