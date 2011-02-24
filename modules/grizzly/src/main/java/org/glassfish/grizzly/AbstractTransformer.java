@@ -149,7 +149,7 @@ public abstract class AbstractTransformer<K, L> implements Transformer<K, L> {
     }
 
     public static class LastResultAwareState<K, L> {
-        private TransformationResult<K, L> lastResult;
+        protected TransformationResult<K, L> lastResult;
 
         public TransformationResult<K, L> getLastResult() {
             return lastResult;

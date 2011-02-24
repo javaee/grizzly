@@ -77,7 +77,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * if so desired.
      * </p>
      */
-    public static final MemoryManager DEFAULT_MEMORY_MANAGER =
+    public static MemoryManager DEFAULT_MEMORY_MANAGER =
             new HeapMemoryManager();
 
     /**
@@ -91,19 +91,19 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * if so desired.
      * </p>
      */
-    public static final AttributeBuilder DEFAULT_ATTRIBUTE_BUILDER =
+    public static AttributeBuilder DEFAULT_ATTRIBUTE_BUILDER =
             new DefaultAttributeBuilder();
 
     /**
      * The default {@link SelectorHandler} used by all created builder instances.
      */
-    private static final SelectorHandler DEFAULT_SELECTOR_HANDLER =
+    private static SelectorHandler DEFAULT_SELECTOR_HANDLER =
             new DefaultSelectorHandler();
 
     /**
      * The default {@link SelectionKeyHandler} used by all created builder instances.
      */
-    private static final SelectionKeyHandler DEFAULT_SELECTION_KEY_HANDLER =
+    private static SelectionKeyHandler DEFAULT_SELECTION_KEY_HANDLER =
             new DefaultSelectionKeyHandler();
 
     /**
