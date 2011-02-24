@@ -45,7 +45,7 @@ import java.util.concurrent.CountDownLatch;
 
 import org.glassfish.grizzly.http.server.Response;
 
-public class CountDownCometHandler extends DefaultCometHandler {
+public class CountDownCometHandler extends DefaultTestCometHandler {
     public final CountDownLatch onEvent;
     public final CountDownLatch onInitialize;
     public final CountDownLatch onInterrupt;

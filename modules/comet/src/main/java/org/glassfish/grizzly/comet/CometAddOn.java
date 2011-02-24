@@ -1,4 +1,4 @@
-/*
+/*df
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
  * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
@@ -43,10 +43,11 @@ package org.glassfish.grizzly.comet;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.http.HttpCodecFilter;
 import org.glassfish.grizzly.http.server.AddOn;
+import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
 
 /**
- * Comet {@link AddOn} for the {@link org.glassfish.grizzly.http.server.HttpServer}.
+ * Comet {@link AddOn} for the {@link HttpServer}.
  * 
  * @author Alexey Stashok
  */

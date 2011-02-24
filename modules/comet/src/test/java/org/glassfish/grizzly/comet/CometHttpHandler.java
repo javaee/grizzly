@@ -48,7 +48,7 @@ import org.glassfish.grizzly.http.server.Response;
 
 public class CometHttpHandler extends HttpHandler {
     final boolean resume;
-    DefaultCometHandler cometHandler;
+    DefaultTestCometHandler cometHandler;
     CometContext<String> cometContext;
 
     public CometHttpHandler(CometContext<String> cometContext, boolean resume) {
@@ -62,7 +62,7 @@ public class CometHttpHandler extends HttpHandler {
         cometContext.addCometHandler(cometHandler);
     }
 
-    public DefaultCometHandler createHandler(Response response) {
-        return new DefaultCometHandler(cometContext, response);
+    public DefaultTestCometHandler createHandler(Response response) {
+        return new DefaultTestCometHandler(cometContext, response);
     }
 }

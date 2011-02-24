@@ -166,19 +166,6 @@ public class CometEngine {
 
     /**
      * Register a context path with this {@link CometEngine}. The {@link CometContext} returned will be of type
-     * AFTER_SERVLET_PROCESSING, which means the request target (most probably a Servlet) will be executed first and
-     * then polled.
-     *
-     * @param topic the context path used to create the {@link CometContext}
-     *
-     * @return CometContext a configured {@link CometContext}.
-     */
-    public <E> CometContext<E> register(String topic) {
-        return register(topic, DefaultNotificationHandler.class);
-    }
-
-    /**
-     * Register a context path with this {@link CometEngine}. The {@link CometContext} returned will be of type
      * <code>type</code>.
      *
      * @param topic the context path used to create the {@link CometContext}
@@ -189,6 +176,19 @@ public class CometEngine {
      */
     public <E> CometContext<E> register(String topic, int type) {
         return register(topic);
+    }
+
+    /**
+     * Register a context path with this {@link CometEngine}. The {@link CometContext} returned will be of type
+     * AFTER_SERVLET_PROCESSING, which means the request target (most probably a Servlet) will be executed first and
+     * then polled.
+     *
+     * @param topic the context path used to create the {@link CometContext}
+     *
+     * @return CometContext a configured {@link CometContext}.
+     */
+    public <E> CometContext<E> register(String topic) {
+        return register(topic, DefaultNotificationHandler.class);
     }
 
 

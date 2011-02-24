@@ -58,7 +58,7 @@ public class CountDownHttpHandler extends CometHttpHandler {
     }
 
     @Override
-    public DefaultCometHandler createHandler(Response response) {
+    public DefaultTestCometHandler createHandler(Response response) {
         return new CountDownCometHandler(cometContext, response);
     }
 

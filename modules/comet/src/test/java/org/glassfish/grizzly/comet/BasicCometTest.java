@@ -96,7 +96,7 @@ public class BasicCometTest extends TestCase {
         HttpURLConnection conn = getConnection(alias, delay + 4000);
         long t1 = System.currentTimeMillis();
         conn.getHeaderFields();
-        final DefaultCometHandler cometHandler = httpHandler.cometHandler;
+        final DefaultTestCometHandler cometHandler = httpHandler.cometHandler;
         assertNotNull("Should get a comet handler registered", cometHandler);
         assertTrue(cometHandler.onInitializeCalled.get());
         assertTrue(cometHandler.onInterruptCalled.get());
