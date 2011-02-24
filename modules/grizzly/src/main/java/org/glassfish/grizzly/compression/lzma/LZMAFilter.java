@@ -86,7 +86,7 @@ public class LZMAFilter extends BaseFilter {
                 }
 
                 case ERROR: {
-                    throw new IllegalStateException("GZip decode error. Code: "
+                    throw new IllegalStateException("LZMA decode error. Code: "
                             + result.getErrorCode() + " Description: "
                             + result.getErrorDescription());
                 }
