@@ -137,7 +137,7 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
                 return TransformationResult.createIncompletedResult(input);
             }
 
-            stringSize = (int) input.getShort();
+            stringSize = (int) input.getInt();
             lengthAttribute.set(storage, stringSize);
         }
         

@@ -108,10 +108,10 @@ public class StringEncoder extends AbstractTransformer<String, Buffer> {
         }
 
         final Buffer output =
-                obtainMemoryManager(storage).allocate(byteRepresentation.length + 2);
+                obtainMemoryManager(storage).allocate(byteRepresentation.length + 4);
 
         if (stringTerminator == null) {
-            output.putShort((short) byteRepresentation.length);
+            output.putInt(byteRepresentation.length);
         }
 
         output.put(byteRepresentation);
