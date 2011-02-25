@@ -41,7 +41,6 @@
 package org.glassfish.grizzly.strategies;
 
 import org.glassfish.grizzly.Transport;
-import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
 

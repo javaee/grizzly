@@ -45,7 +45,6 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.PostProcessor;
 import org.glassfish.grizzly.Processor;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**

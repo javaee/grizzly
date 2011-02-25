@@ -428,11 +428,9 @@ public final class BuffersBuffer extends CompositeBuffer {
 
         checkIndex(position);
         final int posBufferIndex = lastSegmentIndex;
-//        final int posBufferPos = toActiveBufferPos(position);
 
         checkIndex(limit - 1);
         final int limitBufferIndex = lastSegmentIndex;
-//        final int limitBufferLimit = toActiveBufferPos(limit);
 
         final int rightTrim = buffersSize - limitBufferIndex - 1;
 
@@ -465,25 +463,6 @@ public final class BuffersBuffer extends CompositeBuffer {
             System.arraycopy(buffers, posBufferIndex, buffers, 0, buffersSize);
             Arrays.fill(buffers, buffersSize, buffersSize + posBufferIndex, null);
         }
-
-//        if (posBufferPos > 0) {
-//            final Buffer firstBuffer = buffers[0];
-//            final int diff = posBufferPos - firstBuffer.position();
-//            if (diff > 0) {
-//                firstBuffer.position(posBufferPos);
-//
-//                position = 0;
-//                limit -= diff;
-//            }
-//        }
-
-//        if (limitBufferLimit > 0) {
-//            final Buffer lastBuffer = buffers[buffersSize - 1];
-//            final int diff = lastBuffer.limit() - limitBufferLimit;
-//            if (diff > 0) {
-//                lastBuffer.limit(limitBufferLimit);
-//            }
-//        }
 
         calcCapacity();
         resetLastLocation();
