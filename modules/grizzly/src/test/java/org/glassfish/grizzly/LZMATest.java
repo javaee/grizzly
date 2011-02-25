@@ -82,8 +82,9 @@ public class LZMATest extends TestCase {
         final int len = 2000;
         StringBuilder sb = new StringBuilder(len);
         for (int i = 0; i < len; i++ ) {
-            sb.append('a');
+            sb.append(i);
         }
+        System.out.println(sb.length());
         doTest(sb.toString());
     }
 

@@ -45,6 +45,8 @@ import org.glassfish.grizzly.TransformationResult;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.MemoryManager;
 
 import java.io.IOException;
 
@@ -105,37 +107,66 @@ public class LZMAFilter extends BaseFilter {
         final Connection connection = ctx.getConnection();
         final Buffer input = (Buffer) ctx.getMessage();
 
-        final TransformationResult<Buffer, Buffer> result =
-                encoder.transform(connection, input);
-
-        input.dispose();
-
+        int numOfPackets = input.remaining() / 512;
+        final int origLim = input.limit();
+        int curLim = origLim;
+        int pos = input.position();
+        final MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
+        Buffer finalBuffer = null;
         try {
-            switch (result.getStatus()) {
-                case COMPLETE:
-                    encoder.finish(connection);
-                case INCOMPLETE: {
-                    final Buffer readyBuffer = result.getMessage();
-                    if (readyBuffer != null) {
-                        ctx.setMessage(readyBuffer);
-                        return ctx.getInvokeAction();
-                    } else {
-                        return ctx.getStopAction();
+            do {
+                if (numOfPackets > 0) {
+                    input.limit(pos + 512);
+                } else {
+                    input.limit(origLim);
+                }
+                final TransformationResult<Buffer, Buffer> result =
+                        encoder.transform(connection, input);
+
+
+                switch (result.getStatus()) {
+                    case COMPLETE:
+                        encoder.finish(connection);
+                    case INCOMPLETE: {
+                        final Buffer readyBuffer = result.getMessage();
+                        if (readyBuffer != null) {
+                            finalBuffer = Buffers.appendBuffers(mm,
+                                    finalBuffer,
+                                    readyBuffer);
+                            break;
+                        } else {
+                            input.position(pos);
+                            input.limit(curLim);
+                            return ctx.getStopAction();
+                        }
                     }
-                }
 
-                case ERROR: {
-                    throw new IllegalStateException("LZMA encode error. Code: "
-                            + result.getErrorCode() + " Description: "
-                            + result.getErrorDescription());
-                }
+                    case ERROR: {
+                        input.position(pos);
+                        input.limit(curLim);
 
-                default:
-                    throw new IllegalStateException("Unexpected status: " +
-                            result.getStatus());
-            }
+                        throw new IllegalStateException("LZMA encode error. Code: "
+                                + result.getErrorCode() + " Description: "
+                                + result.getErrorDescription());
+                    }
+
+                    default:
+                        result.recycle();
+                        input.position(0);
+                        input.limit(curLim);
+                        throw new IllegalStateException("Unexpected status: " +
+                                result.getStatus());
+                }
+                curLim = input.limit();
+                pos = input.position();
+                result.recycle();
+            } while (--numOfPackets > -1);
+
+            ctx.setMessage(finalBuffer);
+            return ctx.getInvokeAction();
+
         } finally {
-            result.recycle();
+           input.dispose();
         }
     }
 

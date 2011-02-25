@@ -114,16 +114,8 @@ class BufferOutputStream extends OutputStream implements Cacheable {
     public void write(byte[] b, int off, int len)
             throws IOException {
 
-        final int lim = dst.limit();
-        if (len > lim) {
-            // TODO:  Need to get rid of this little gem. Might require
-            //  some surgery within the lzma code.
-            final int diff = len - lim;
-            dst = Buffers.appendBuffers(manager,
-                                        dst,
-                                        manager.allocate(diff));
-        }
         dst.put(b, off, len);
+
     }
 
 
