@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.PortRange;
 import org.glassfish.grizzly.ProcessorSelector;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueIO;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
@@ -100,6 +101,7 @@ import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.memory.BufferArray;
 import org.glassfish.grizzly.memory.ByteBufferArray;
+import org.glassfish.grizzly.utils.Exceptions;
 
 /**
  * TCP Transport NIO implementation
@@ -392,14 +394,11 @@ public final class TCPNIOTransport extends NIOTransport implements
             throws IOException {
         state.getStateLocker().writeLock().lock();
 
+        TCPNIOServerConnection serverConnection = null;
+        final ServerSocketChannel serverSocketChannel =
+                ServerSocketChannel.open();
         try {
-            ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
-            final TCPNIOServerConnection serverConnection =
-                    obtainServerNIOConnection(serverSocketChannel);
-
-            serverConnections.add(serverConnection);
-            
-            ServerSocket serverSocket = serverSocketChannel.socket();
+            final ServerSocket serverSocket = serverSocketChannel.socket();
             serverSocket.setReuseAddress(reuseAddress);
             serverSocket.setSoTimeout(serverSocketSoTimeout);
 
@@ -407,6 +406,8 @@ public final class TCPNIOTransport extends NIOTransport implements
 
             serverSocketChannel.configureBlocking(false);
 
+            serverConnection = obtainServerNIOConnection(serverSocketChannel);
+            serverConnections.add(serverConnection);
             serverConnection.resetProperties();
 
             if (!isStopped()) {
@@ -414,9 +415,46 @@ public final class TCPNIOTransport extends NIOTransport implements
             }
 
             return serverConnection;
+        } catch (Exception e) {
+            if (serverConnection != null) {
+                serverConnections.remove(serverConnection);
+
+                try {
+                    serverConnection.close();
+                } catch (IOException ignored) {
+                }
+            } else {
+                try {
+                    serverSocketChannel.close();
+                } catch (IOException ignored) {
+                }
+            }
+            
+            throw Exceptions.makeIOException(e);
         } finally {
             state.getStateLocker().writeLock().unlock();
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public TCPNIOServerConnection bind(final String host,
+            final PortRange portRange, final int backlog) throws IOException {
+
+        IOException ioException = null;
+        for (int port = portRange.getLower(); port <= portRange.getUpper(); port++) {
+            try {
+                final TCPNIOServerConnection serverConnection =
+                        bind(host, port, backlog);
+                return serverConnection;
+            } catch (IOException e) {
+                ioException = e;
+            }
+        }
+
+        throw ioException;
     }
 
     /**

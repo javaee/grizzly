@@ -203,6 +203,42 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         }
     }
 
+    public void testPortRangeBind() throws Exception {
+        final int portsTest = 10;
+        final PortRange portRange = new PortRange(PORT, PORT + portsTest - 1);
+
+        Connection connection = null;
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+
+        try {
+            for (int i = 0; i < portsTest; i++) {
+                final TCPNIOServerConnection serverConnection =
+                        transport.bind("localhost", portRange, 4096);
+
+                assertEquals(PORT + i,
+                        ((InetSocketAddress) serverConnection.getLocalAddress()).getPort());
+            }
+
+            try {
+                transport.bind("localhost", portRange, 4096);
+                fail("All ports in range had to be occupied");
+            } catch (IOException e) {
+                // must be thrown
+            }
+
+            transport.start();
+
+            for (int i = 0; i < portsTest; i++) {
+                Future<Connection> future = transport.connect("localhost", PORT + i);
+                connection = future.get(10, TimeUnit.SECONDS);
+                assertTrue(connection != null);
+                connection.close();
+            }
+        } finally {
+            transport.stop();
+        }
+    }
+    
     public void testConnectorHandlerConnectAndWrite() throws Exception {
         Connection connection = null;
         StreamWriter writer = null;

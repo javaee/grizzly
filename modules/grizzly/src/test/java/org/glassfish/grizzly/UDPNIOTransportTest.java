@@ -48,6 +48,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
+import org.glassfish.grizzly.nio.transport.UDPNIOServerConnection;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransportBuilder;
 import org.glassfish.grizzly.streams.StreamReader;
@@ -77,6 +78,44 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
         } catch (Exception e) {
             e.printStackTrace(System.out);
             assertTrue("Exception!!!", false);
+        } finally {
+            transport.stop();
+        }
+    }
+
+    public void testPortRangeBind() throws Exception {
+        final int portsTest = 10;
+        final PortRange portRange = new PortRange(PORT, PORT + portsTest - 1);
+
+        Connection connection = null;
+        UDPNIOTransport transport = UDPNIOTransportBuilder.newInstance()
+                .setReuseAddress(false)
+                .build();
+        
+        try {
+            for (int i = 0; i < portsTest; i++) {
+                final UDPNIOServerConnection serverConnection =
+                        transport.bind("localhost", portRange, 4096);
+
+                assertEquals(PORT + i,
+                        ((InetSocketAddress) serverConnection.getLocalAddress()).getPort());
+            }
+
+            try {
+                transport.bind("localhost", portRange, 4096);
+                fail("All ports in range had to be occupied");
+            } catch (IOException e) {
+                // must be thrown
+            }
+
+            transport.start();
+
+            for (int i = 0; i < portsTest; i++) {
+                Future<Connection> future = transport.connect("localhost", PORT + i);
+                connection = future.get(10, TimeUnit.SECONDS);
+                assertTrue(connection != null);
+                connection.close();
+            }
         } finally {
             transport.stop();
         }

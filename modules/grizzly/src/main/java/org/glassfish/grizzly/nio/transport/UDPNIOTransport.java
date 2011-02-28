@@ -91,8 +91,10 @@ import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.AbstractThreadPool;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import java.util.concurrent.TimeUnit;
+import org.glassfish.grizzly.PortRange;
 import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.memory.ByteBufferArray;
+import org.glassfish.grizzly.utils.Exceptions;
 
 /**
  * UDP NIO transport implementation
@@ -205,29 +207,65 @@ public final class UDPNIOTransport extends NIOTransport implements
             throws IOException {
         state.getStateLocker().writeLock().lock();
 
+        final DatagramChannel serverDatagramChannel = DatagramChannel.open();
+        UDPNIOServerConnection serverConnection = null;
+
         try {
-            DatagramChannel serverDatagramChannel = DatagramChannel.open();
-
-            final UDPNIOServerConnection serverConnection =
-                    obtainServerNIOConnection(serverDatagramChannel);
-
-            serverConnections.add(serverConnection);
-
-            DatagramSocket socket = serverDatagramChannel.socket();
+            final DatagramSocket socket = serverDatagramChannel.socket();
             socket.setReuseAddress(reuseAddress);
             socket.setSoTimeout(serverSocketSoTimeout);
             socket.bind(socketAddress);
 
             serverDatagramChannel.configureBlocking(false);
 
+            serverConnection = obtainServerNIOConnection(serverDatagramChannel);
+            serverConnections.add(serverConnection);
+
             if (!isStopped()) {
                 serverConnection.register();
             }
 
             return serverConnection;
+        } catch (Exception e) {
+            if (serverConnection != null) {
+                serverConnections.remove(serverConnection);
+
+                try {
+                    serverConnection.close();
+                } catch (IOException ignored) {
+                }
+            } else {
+                try {
+                    serverDatagramChannel.close();
+                } catch (IOException ignored) {
+                }
+            }
+
+            throw Exceptions.makeIOException(e);
         } finally {
             state.getStateLocker().writeLock().unlock();
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public UDPNIOServerConnection bind(final String host,
+            final PortRange portRange, final int backlog) throws IOException {
+
+        IOException ioException = null;
+        for (int port = portRange.getLower(); port <= portRange.getUpper(); port++) {
+            try {
+                final UDPNIOServerConnection serverConnection =
+                        bind(host, port, backlog);
+                return serverConnection;
+            } catch (IOException e) {
+                ioException = e;
+            }
+        }
+
+        throw ioException;
     }
 
     /**

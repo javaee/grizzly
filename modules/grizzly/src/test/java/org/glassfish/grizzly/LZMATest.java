@@ -59,10 +59,10 @@ import org.glassfish.grizzly.utils.StringFilter;
 import java.io.EOFException;
 import java.io.IOException;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import static org.junit.Assert.*;
 
-public class LZMATest extends TestCase {
+public class LZMATest /* extends TestCase */ {
     private static final int PORT = 7786;
 
     public void testSimpleEcho() throws Exception {
