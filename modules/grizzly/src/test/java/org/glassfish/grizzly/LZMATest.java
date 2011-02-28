@@ -39,7 +39,7 @@
  */
 package org.glassfish.grizzly;
 
-import junit.framework.TestCase;
+import org.junit.Ignore;
 import org.glassfish.grizzly.compression.lzma.LZMAFilter;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -60,15 +60,20 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.Test;
 import static org.junit.Assert.*;
 
-public class LZMATest /* extends TestCase */ {
+public class LZMATest {
     private static final int PORT = 7786;
 
+    @Ignore
+    @Test
     public void testSimpleEcho() throws Exception {
         doTest("Hello world");
     }
 
+    @Ignore
+    @Test
     public void test10Echoes() throws Exception {
         String[] array = new String[10];
         for (int i = 0; i < array.length; i++) {
@@ -78,6 +83,8 @@ public class LZMATest /* extends TestCase */ {
         doTest(array);
     }
 
+    @Ignore
+    @Test
     public void testLargeEcho() throws Exception {
         final int len = 2000;
         StringBuilder sb = new StringBuilder(len);
@@ -88,10 +95,14 @@ public class LZMATest /* extends TestCase */ {
         doTest(sb.toString());
     }
 
+    @Ignore
+    @Test
     public void testChunkedEcho() throws Exception {
         doTest(true, "Hello world");
     }
 
+    @Ignore
+    @Test
     public void testChunked10Echoes() throws Exception {
         String[] array = new String[10];
         for (int i = 0; i < array.length; i++) {
