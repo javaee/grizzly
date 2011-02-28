@@ -49,28 +49,28 @@
     <version>2.0.1-SNAPSHOT</version>
     <url>http://grizzly.java.net</url>
     <issueManagement>
-        <system>bugzilla</system>
-        <url>https://grizzly.dev.java.net/servlets/ProjectIssues</url>
+        <system>JIRA</system>
+        <url>http://java.net/jira/browse/GRIZZLY</url>
     </issueManagement>
     <mailingLists>
         <mailingList>
             <name>Grizzly Dev List</name>
-            <archive>dev@grizzly.dev.java.net</archive>
+            <archive>dev@grizzly.java.net</archive>
         </mailingList>
         <mailingList>
             <name>Grizzly Support List</name>
-            <archive>users@grizzly.dev.java.net</archive>
+            <archive>users@grizzly.java.net</archive>
         </mailingList>
         <mailingList>
             <name>Grizzly Announce List</name>
-            <archive>announces@grizzly.dev.java.net</archive>
+            <archive>announces@grizzly.java.net</archive>
         </mailingList>
     </mailingLists>
     <developers>
         <developer>
             <id>jfarcand</id>
             <name>Jeanfrancois Arcand</name>
-            <email>jfarcand@dev.java.net</email>
+            <email>jfarcand@java.net</email>
             <url>http://weblogs.java.net/blog/jfarcand/</url>
             <organization>SUN Microsystems</organization>
             <organizationUrl>http://www.sun.com</organizationUrl>
@@ -78,7 +78,7 @@
         <developer>
             <id>oleksiys</id>
             <name>Oleksiy Stashok</name>
-            <email>oleksiys@dev.java.net</email>
+            <email>oleksiys@java.net</email>
             <url>http://blogs.sun.com/oleksiys/</url>
             <organization>Oracle Corporation</organization>
             <organizationUrl>http://www.oracle.com</organizationUrl>
@@ -86,7 +86,7 @@
         <developer>
             <id>rlubke</id>
             <name>Ryan Lubke</name>
-            <email>rlubke@dev.java.net</email>
+            <email>rlubke@java.net</email>
             <url>http://blogs.sun.com/rlubke</url>
             <organization>Oracle Corporation</organization>
             <organizationUrl>http://www.oracle.com</organizationUrl>
@@ -103,13 +103,14 @@
     <licenses>
         <license>
             <name>CDDL+GPL</name>
-            <url>https://glassfish.dev.java.net/public/CDDL+GPL.html</url>
+            <url>http://glassfish.java.net/public/CDDL+GPL.html</url>
         </license>
     </licenses>
     <scm>
-        <connection>scm:svn:https://www.dev.java.net/svn/grizzly</connection>
-        <developerConnection>scm:svn:https://www.dev.java.net/svn/grizzly</developerConnection>
-        <url>https://grizzly.dev.java.net/source/browse/grizzly/#dirlist</url>
+        <connection>scm:svn:https://svn.java.net/svn/grizzly~svn/branches/2dot0/code</connection>
+        <developerConnection>scm:svn:https://svn.java.net/svn/grizzly~svn/branches/2dot0/code/</developerConnection>
+        <tag>HEAD</tag>
+        <url>http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/</url>
     </scm>
     <organization>
         <name>Oracle Corpration</name>
@@ -291,8 +292,8 @@
                     <aggregate>true</aggregate>
                     <debug>true</debug>
                     <links>
-                        <link>http://java.sun.com/javaee/6/docs/api</link>
-                        <link>http://java.sun.com/j2se/1.6.0/docs/api</link>
+                        <link>http://download.oracle.com/javaee/6/api/</link>
+                        <link>http://download.oracle.com/javase/6/docs/api/</link>
                     </links>
                 </configuration>
             </plugin>
