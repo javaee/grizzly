@@ -1,14 +1,14 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
  * may not use this file except in compliance with the License.  You can
  * obtain a copy of the License at
- * https://glassfish.dev.java.net/public/CDDL+GPL_1_1.html
+ * http://glassfish.java.net/public/CDDL+GPL_1_1.html
  * or packager/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
  *
@@ -40,36 +40,61 @@
 
 package com.sun.grizzly.websockets;
 
-import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
 
-public interface WebSocket {
+public class ClosingFrame extends DataFrame {
+    private int code;
+    private String reason;
 
-    /**
-     * Write the data to the socket.  This text will be converted to a UTF-8 encoded byte[] prior to sending.
-     * @param data
-     * @throws IOException
-     */
-    void send(String data) throws IOException;
+    public ClosingFrame() {
+        code = -1;
+        setType(FrameType.CLOSING);
+    }
 
-    void send(byte[] data) throws IOException;
+    public ClosingFrame(int code, String reason) {
+        this.code = code;
+        this.reason = reason;
+        setType(FrameType.CLOSING);
+    }
 
-    void close() throws IOException;
+    public int getCode() {
+        return code;
+    }
 
-    void close(int code) throws IOException;
-    
-    void close(int code, String reason) throws IOException;
+    public String getReason() {
+        return reason;
+    }
 
-    boolean isConnected();
+    public void unwrap(byte[] bytes) {
+        if (bytes.length > 0) {
+            code = (int) convert(Arrays.copyOfRange(bytes, 0, 2));
+            if (bytes.length > 2) {
+                try {
+                    reason = new String(bytes, 2, bytes.length - 2, "UTF-8");
+                } catch (UnsupportedEncodingException e) {
+                    throw new FramingException(e.getMessage(), e);
+                }
+            }
+        }
+    }
 
-    void onConnect() throws IOException;
+    @Override
+    public byte[] getBinaryPayload() {
+        try {
+            if (code == -1) {
+                return new byte[0];
+            }
 
-    void onMessage(DataFrame frame) throws IOException;
+            final byte[] bytes = toArray(code);
+            final byte[] reasonBytes = reason.getBytes("UTF-8");
+            final byte[] frameBytes = new byte[2 + reasonBytes.length];
+            System.arraycopy(bytes, bytes.length - 2, frameBytes, 0, 2);
+            System.arraycopy(reasonBytes, 0, frameBytes, 2, reasonBytes.length);
 
-    void onClose(DataFrame frame) throws IOException;
-
-    void onPing(DataFrame frame) throws IOException;
-
-    boolean add(WebSocketListener listener);
-
-    boolean remove(WebSocketListener listener);
+            return frameBytes;
+        } catch (UnsupportedEncodingException e) {
+            throw new FramingException(e.getMessage(), e);
+        }
+    }
 }

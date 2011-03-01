@@ -40,66 +40,75 @@
 
 package com.sun.grizzly.websockets;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 
 public enum FrameType {
-    TEXT {
-        @Override
-        public boolean accept(NetworkHandler handler) throws IOException {
-            return handler.peek((byte) 0x00);
-        }
-
-        @Override
-        public byte[] unframe(NetworkHandler handler) throws IOException {
-            ByteArrayOutputStream raw = new ByteArrayOutputStream();
-            byte b;
-            handler.get();
-            while ((b = handler.get()) != (byte) 0xFF) {
-                raw.write(b);
-            }
-
-            return raw.toByteArray();
-        }
-
-        public byte[] frame(byte[] data) {
-            ByteArrayOutputStream out = new ByteArrayOutputStream(data.length + 2);
-            out.write((byte) 0x00);
-            out.write(data, 0, data.length);
-            out.write((byte) 0xFF);
-            return out.toByteArray();
-        }
-        @Override
-        public void respond(WebSocket socket, DataFrame frame) throws IOException {
-            socket.onMessage(frame);
-        }},
-
+    CONTINUATION,
     CLOSING {
         @Override
-        public boolean accept(NetworkHandler handler) throws IOException {
-            return handler.peek((byte) 0xFF, (byte) 0x00);
+        public byte[] frame(DataFrame dataFrame) {
+            if(!(dataFrame instanceof ClosingFrame)) {
+                throw new FramingException("Invalid frame data for closing frame");
+            }
+            ((ClosingFrame)dataFrame).getBinaryPayload();
+            return super.frame(dataFrame);
         }
-
         @Override
-        public byte[] unframe(NetworkHandler handler) throws IOException {
-            return new byte[]{handler.get(), handler.get()};
-        }
-
-        @Override
-        public byte[] frame(byte[] data) {
-            return new byte[]{(byte) 0xFF, 0x00};
+        public void unframe(DataFrame dataFrame, byte[] bytes) {
+            if(!(dataFrame instanceof ClosingFrame)) {
+                throw new FramingException("Invalid frame data for closing frame");
+            }
+            ((ClosingFrame)dataFrame).unwrap(bytes);
         }
 
         @Override
         public void respond(WebSocket socket, DataFrame frame) throws IOException {
-            socket.close();
-        }};
+            socket.onClose(frame);
+        }
+    },
+    PING {
+        @Override
+        public void respond(WebSocket socket, DataFrame frame) throws IOException {
+            socket.onPing(frame);
+        }
+    },
+    PONG,
+    TEXT {
+        @Override
+        public void unframe(DataFrame frame, byte[] data) throws IOException {
+            frame.setPayload(new String(data, "UTF-8"));
+        }
 
-    public abstract boolean accept(NetworkHandler handler) throws IOException;
+        @Override
+        public byte[] frame(DataFrame dataFrame) {
+            try {
+                return dataFrame.getTextPayload().getBytes("UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                throw new FramingException(e.getMessage(), e);
+            }
+        }
+    },
+    BINARY;
 
-    public abstract byte[] unframe(NetworkHandler handler) throws IOException;
+    public void unframe(DataFrame frame, byte[] data) throws IOException {
+        frame.setPayload(data);
+        frame.setType(this);
+    }
 
-    public abstract byte[] frame(byte[] data);
+    public byte[] frame(DataFrame dataFrame) {
+        return dataFrame.getBinaryPayload();
+    }
 
-    public abstract void respond(WebSocket socket, DataFrame frame) throws IOException;
+    public void respond(WebSocket socket, DataFrame frame) throws IOException {
+        socket.onMessage(frame);
+    }
+
+    public final byte setOpcode(byte b) {
+        return (byte) (b | ordinal());
+    }
+
+    public static FrameType valueOf(byte opcodes) {
+        return values()[(opcodes & 0xF)];
+    }
 }

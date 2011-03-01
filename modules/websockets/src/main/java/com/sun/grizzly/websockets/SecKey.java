@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,63 +40,70 @@
 
 package com.sun.grizzly.websockets;
 
-import java.nio.ByteBuffer;
+import com.sun.grizzly.util.buf.Base64Utils;
+
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.Random;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Class represents {@link WebSocket}'s security key, used during the handshake phase.
- * See Sec-WebSocket-Key1, Sec-WebSocket-Key2.
  *
  * @author Alexey Stashok
  */
 public class SecKey {
-    private static final Random random = new Random();
+    private static final Random random = new SecureRandom();
 
-    private static final char[] CHARS = new char[84];
-
-    private static final long MAX_SEC_KEY_VALUE = 4294967295L;
+    public static final int KEY_SIZE = 16;
 
     /**
      * Security key string representation, which includes chars and spaces.
      */
     private final String secKey;
 
-    /**
-     * Original security key value (already divided by number of spaces).
-     */
-    private final long secKeyValue;
-    private static final BlockingQueue<MessageDigest> mds = new ArrayBlockingQueue<MessageDigest>(5);
+    private byte[] bytes;
 
-    static {
-        int idx = 0;
-        for (int i = 0x21; i <= 0x2F; i++) {
-            CHARS[idx++] = (char) i;
-        }
-
-        for (int i = 0x3A; i <= 0x7E; i++) {
-            CHARS[idx++] = (char) i;
-        }
+    public SecKey() {
+        secKey = create();
     }
 
-    private SecKey(String secKey, long secKeyValue) {
-        this.secKey = secKey;
-        this.secKeyValue = secKeyValue;
+    private String create() {
+        bytes = new byte[KEY_SIZE];
+        random.nextBytes(bytes);
+        return Base64Utils.encodeToString(bytes, false);
+    }
+
+    SecKey(String base64) {
+        if(base64 == null) {
+            throw new HandshakeException("Null keys are not allowed.");
+        }
+        secKey = base64;
     }
 
     /**
-     * Create a <tt>SecKey</tt> object basing on {@link String} representation, which
-     * includes spaces and chars. Method also performs key validation.
+     * Generate server-side security key, which gets passed to the client during
+     * the handshake phase as part of message payload.
      *
-     * @param secKey security key string representation with spaces and chars included.
-     * @return <tt>SecKey</tt>
+     * @param clientKey client's Sec-WebSocket-Key
+     * @return server key.
+     *
      */
-    public static SecKey create(String secKey) {
-        return validateSecKey(secKey);
+    public static SecKey generateServerKey(SecKey clientKey) throws HandshakeException {
+        String key = clientKey.getSecKey() + WebSocketEngine.SERVER_KEY_HASH;
+        final MessageDigest instance;
+        try {
+            instance = MessageDigest.getInstance("SHA-1");
+            instance.update(key.getBytes());
+            final byte[] digest = instance.digest();
+            if(digest.length != 20) {
+                throw new HandshakeException("Invalid key length.  Should be 20: " + digest.length);
+            }
+
+            return new SecKey(Base64Utils.encodeToString(digest, false));
+        } catch (NoSuchAlgorithmException e) {
+            throw new HandshakeException(e.getMessage());
+        }
     }
 
     /**
@@ -108,157 +115,22 @@ public class SecKey {
         return secKey;
     }
 
-    /**
-     * Gets original security key value (already divided by number of spaces).
-     *
-     * @return original security key value (already divided by number of spaces).
-     */
-    public long getSecKeyValue() {
-        return secKeyValue;
-    }
-
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder(secKey.length() + 16);
-        sb.append(secKey).append('(').append(secKeyValue).append(')');
-        return sb.toString();
+        return secKey;
     }
 
-    /**
-     * Generates random security key.
-     *
-     * @return <tt>SecKey</tt>
-     */
-    public static SecKey generateSecKey() {
-        // generate number of spaces we will use
-        int spacesNum = random.nextInt(12) + 1;
-
-        // generate the original key value
-        long number = Math.abs(random.nextLong()) % (MAX_SEC_KEY_VALUE / spacesNum);
-
-        // product number
-        long product = number * spacesNum;
-
-        StringBuilder key = new StringBuilder();
-        key.append(product);
-
-        // insert chars into product number
-        int charsNum = random.nextInt(12) + 1;
-        for (int i = 0; i < charsNum; i++) {
-            int position = random.nextInt(key.length());
-            char c = CHARS[random.nextInt(CHARS.length)];
-
-            key.insert(position, c);
+    public byte[] getBytes() {
+        if(bytes == null) {
+            bytes = Base64Utils.decode(secKey);
         }
-
-        // insert spaces into product number
-        for (int i = 0; i < spacesNum; i++) {
-            int position = random.nextInt(key.length() - 1) + 1;
-
-            key.insert(position, ' ');
-        }
-
-        // create SecKey
-        return new SecKey(key.toString(), number);
+        return bytes;
     }
 
-    /**
-     * Generate server-side security key, which gets passed to the client during
-     * the handshake phase as part of message payload.
-     *
-     * @param clientKey1 client's Sec-WebSocket-Key1
-     * @param clientKey2 client's Sec-WebSocket-Key2
-     * @param clientKey3 client's key3, which is sent as part of handshake request payload.
-     * @return server key.
-     * @throws NoSuchAlgorithmException
-     */
-    public static byte[] generateServerKey(SecKey clientKey1, SecKey clientKey2, byte[] clientKey3)
-            throws HandshakeException {
-
-        final ByteBuffer b = ByteBuffer.allocate(8);
-        b.putInt((int) clientKey1.getSecKeyValue());
-        b.putInt((int) clientKey2.getSecKeyValue());
-        b.flip();
-
-        MessageDigest md5 = null;
-        try {
-            md5 = mds.poll(30, TimeUnit.SECONDS);
-            md5.update(b);
-            return md5.digest(clientKey3);
-        } catch (InterruptedException e) {
-            throw new HandshakeException(e.getMessage());
-        } finally {
-            offer(md5);
+    public void validateServerKey(String serverKey) {
+        final SecKey key = generateServerKey(this);
+        if(!key.getSecKey().equals(serverKey)) {
+            throw new HandshakeException("Server key returned does not match expected response");
         }
-
-    }
-
-    /**
-     * Validate security key, represented as string value (which includes chars and spaces).
-     *
-     * @param key security key, represented as string value (which includes chars and spaces).
-     * @return validated <tt>SecKey</tt>
-     */
-    public static SecKey validateSecKey(String key) {
-        if (key.length() > 256) {
-            throw new InvalidSecurityKeyException("Key too long");
-        }
-
-        int charsNum = 0;
-        int spacesNum = 0;
-        long productValue = 0;
-
-        for (int i = 0; i < key.length(); i++) {
-            char c = key.charAt(i);
-            if (c >= '0' && c <= '9') {
-                productValue = productValue * 10 + (c - '0');
-                if (productValue > MAX_SEC_KEY_VALUE) {
-                    throw new InvalidSecurityKeyException("Key value too large: " + productValue);
-                }
-            } else if (c == ' ') { // count spaces
-                spacesNum++;
-                if (spacesNum > 12) {
-                    throw new InvalidSecurityKeyException("Too many spaces: " + spacesNum);
-                }
-            } else if (c >= 0x21 && c <= 0x2F || c >= 0x3A && c <= 0x7E) {  // count chars
-                charsNum++;
-                if (charsNum > 12) {
-                    throw new InvalidSecurityKeyException("Too many characters: " + charsNum);
-                }
-            } else {
-                throw new InvalidSecurityKeyException("unexpected character: '" + c + "'");
-            }
-        }
-
-        if (spacesNum < 1) {
-            throw new InvalidSecurityKeyException("number of spaces should be more than 1");
-        }
-
-        if (charsNum < 1) {
-            throw new InvalidSecurityKeyException("number of chars should be more than 1");
-        }
-
-        if (productValue % spacesNum != 0) {  // check if remainder is 0
-            throw new InvalidSecurityKeyException("remainder is not 0");
-        }
-
-        return new SecKey(key, productValue / spacesNum);
-    }
-
-    public static void init() {
-        try {
-            while (offer(MessageDigest.getInstance("MD5")) || mds.size() < 5) {
-            }
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e.getMessage());
-        }
-    }
-
-    private static boolean offer(MessageDigest md5) {
-        if (md5 != null) {
-            md5.reset();
-            return mds.offer(md5);
-        }
-        return false;
     }
 }

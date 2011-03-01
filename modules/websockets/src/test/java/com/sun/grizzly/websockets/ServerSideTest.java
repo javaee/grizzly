@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -61,7 +61,7 @@ import java.util.concurrent.TimeUnit;
 public class ServerSideTest {
     private static final int PORT = 1726;
 
-    public static final int ITERATIONS = 1000;
+    public static final int ITERATIONS = 5000;
 
     public void steadyFlow() throws IOException, InstantiationException, ExecutionException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
@@ -70,7 +70,7 @@ public class ServerSideTest {
             int count = 0;
             final Date start = new Date();
             while (count++ < ITERATIONS) {
-                if (count % 100 == 0) {
+                if (count % (ITERATIONS / 5) == 0) {
                     System.out.printf("Running iteration %s of %s\n", count, ITERATIONS);
                 }
                 socket.send("test message: " + count);
@@ -81,7 +81,7 @@ public class ServerSideTest {
             }
 
             Assert.assertTrue(socket.waitOnMessages(), "All messages should come back: " + socket.getReceived());
-            time("ServerSideTest.synchronous", start, new Date());
+            time("ServerSideTest.steadyFlow", start, new Date());
 
         } finally {
             if (socket != null) {
@@ -100,7 +100,7 @@ public class ServerSideTest {
             int count = 0;
             final Date start = new Date();
             while (count++ < ITERATIONS) {
-                if (count % 100 == 0) {
+                if (count % ITERATIONS / 5 == 0) {
                     System.out.printf("Running iteration %s of %s\n", count, ITERATIONS);
                 }
                 socket.send("test message " + count);
@@ -111,7 +111,7 @@ public class ServerSideTest {
                 socket.send("now, we're done: " + count);
                 Assert.assertTrue(socket.countDown(), "Everything should come back");
             }
-            time("ServerSideTest.asynchronous", start, new Date());
+            time("ServerSideTest.sendAndWait", start, new Date());
         } finally {
             if (socket != null) {
                 socket.close();
@@ -196,8 +196,7 @@ public class ServerSideTest {
     private void time(String method, Date start, Date end) {
         final int total = 5 * ITERATIONS;
         final double time = (end.getTime() - start.getTime()) / 1000.0;
-        System.out.printf("%s: sent %s messages in %.3fs for %.3f msg/s and %.4f s/msg\n", method, total, time,
-                total / time, time / total);
+        System.out.printf("%s: sent %s messages in %.3fs for %.3f msg/s\n", method, total, time, total / time);
     }
 
     private SelectorThread createSelectorThread(final int port, final Adapter adapter)

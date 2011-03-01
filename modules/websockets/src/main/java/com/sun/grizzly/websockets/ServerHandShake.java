@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,56 +40,106 @@
 
 package com.sun.grizzly.websockets;
 
-import com.sun.grizzly.tcp.OutputBuffer;
+import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
-import com.sun.grizzly.tcp.http11.Constants;
-import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.buf.ByteChunk;
+import com.sun.grizzly.util.buf.MessageBytes;
+import com.sun.grizzly.util.http.MimeHeaders;
 
 import java.io.IOException;
 
 public class ServerHandShake extends HandShake {
 
-    private final byte[] serverSecKey;
+    private SecKey serverSecKey;
+    private String enabledExtensions;
+    private String enabledProtocols;
 
-    public ServerHandShake(final boolean secure, final String origin, final String serverHostName, final String port,
-            final String resourcePath, final String subProtocol, final SecKey key1, final SecKey key2,
-            final byte[] key3) throws HandshakeException {
-        super(secure, origin, serverHostName, port, resourcePath);
-        setSubProtocol(subProtocol);
-        serverSecKey = key3 == null ? null : SecKey.generateServerKey(key1, key2, key3);
+    public ServerHandShake(Request request, boolean secure, ByteChunk chunk) throws IOException, HandshakeException {
+        super(secure, request.requestURI().toString());
+
+        final MimeHeaders headers = request.getMimeHeaders();
+        determineHostAndPort(headers);
+
+        checkForHeader(headers, "Upgrade", "WebSocket");
+        checkForHeader(headers, "Connection", "Upgrade");
+        
+        setSubProtocol(split(headers.getHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER)));
+        setExtensions(split(headers.getHeader(WebSocketEngine.SEC_WS_EXTENSIONS_HEADER)));
+        serverSecKey = SecKey.generateServerKey(new SecKey(headers.getHeader(WebSocketEngine.SEC_WS_KEY_HEADER)));
+
+        setOrigin(readHeader(headers, WebSocketEngine.SEC_WS_ORIGIN_HEADER));
+        setLocation(buildLocation(secure));
+        if (getServerHostName() == null || getOrigin() == null) {
+            throw new IOException("Missing required headers for WebSocket negotiation");
+        }
     }
 
-    public byte[] getKey() {
-        return serverSecKey;
+    private String[] split(final String header) {
+        return header == null ? null : header.split(";");
+    }
+
+    private void checkForHeader(MimeHeaders headers, final String header, final String validValue) {
+        final String value = headers.getHeader(header);
+        if(!validValue.equalsIgnoreCase(value)) {
+            throw new HandshakeException(String.format("Invalid %s header returned: '%s'", header, value));
+        }
+    }
+
+    /**
+     * Reads the header value using UTF-8 encoding
+     *
+     * @param headers
+     * @param name
+     * @return
+     */
+    final String readHeader(MimeHeaders headers, final String name) {
+        final MessageBytes value = headers.getValue(name);
+        return value == null ? null : value.toString();
     }
 
     public void respond(Response response) throws IOException {
         response.setStatus(101);
-        response.setMessage("Web Socket Protocol Handshake");
+        response.setMessage(WebSocketEngine.RESPONSE_CODE_MESSAGE);
         response.setHeader("Upgrade", "WebSocket");
         response.setHeader("Connection", "Upgrade");
-        if (serverSecKey == null) {
-            response.setHeader("WebSocket-Origin", getOrigin());
-            response.setHeader("WebSocket-Location", getLocation());
-            if (getSubProtocol() != null) {
-                response.setHeader("WebSocket-Protocol", getSubProtocol());
-            }
-        } else {
-            response.setHeader(WebSocketEngine.SERVER_SEC_WS_ORIGIN_HEADER, getOrigin());
-            response.setHeader(WebSocketEngine.SERVER_SEC_WS_LOCATION_HEADER, getLocation());
-            if (getSubProtocol() != null) {
-                response.setHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER, getSubProtocol());
-            }
+        response.setHeader(WebSocketEngine.SEC_WS_ACCEPT, serverSecKey.getSecKey());
+        if (getEnabledProtocols() != null) {
+            response.setHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER, join(getSubProtocol()));
+        }
+        if (getEnabledExtensions() != null) {
+            response.setHeader(WebSocketEngine.SEC_WS_EXTENSIONS_HEADER, join(getSubProtocol()));
         }
 
         response.sendHeaders();
-        if (serverSecKey != null) {
-            final OutputBuffer buffer = response.getOutputBuffer();
-            ByteChunk chunk = new ByteChunk(serverSecKey.length + Constants.CRLF_BYTES.length);
-            chunk.append(serverSecKey, 0, serverSecKey.length);
-            buffer.doWrite(chunk, response);
-        }
         response.flush();
+    }
+
+    private void determineHostAndPort(MimeHeaders headers) {
+        String header;
+        header = readHeader(headers, "host");
+        final int i = header == null ? -1 : header.indexOf(":");
+        if (i == -1) {
+            setServerHostName(header);
+            setPort("80");
+        } else {
+            setServerHostName(header.substring(0, i));
+            setPort(header.substring(i + 1));
+        }
+    }
+
+    public String getEnabledExtensions() {
+        return enabledExtensions;
+    }
+
+    public void setEnabledExtensions(String[] enabledExtensions) {
+        this.enabledExtensions = enabledExtensions != null ? join(enabledExtensions) : null;
+    }
+
+    public String getEnabledProtocols() {
+        return enabledProtocols;
+    }
+
+    public void setEnabledProtocols(String[] enabledProtocols) {
+        this.enabledProtocols = enabledProtocols != null ? join(enabledProtocols) : null;
     }
 }

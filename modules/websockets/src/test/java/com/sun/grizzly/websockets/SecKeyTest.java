@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) (c) -2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,36 +40,21 @@
 
 package com.sun.grizzly.websockets;
 
-import java.io.IOException;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
-public interface WebSocket {
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
-    /**
-     * Write the data to the socket.  This text will be converted to a UTF-8 encoded byte[] prior to sending.
-     * @param data
-     * @throws IOException
-     */
-    void send(String data) throws IOException;
+@Test
+public class SecKeyTest {
+    public void hashing() throws NoSuchAlgorithmException {
+        SecKey client = new SecKey();
+        SecKey server = SecKey.generateServerKey(client);
+        final String str = client.getSecKey() + WebSocketEngine.SERVER_KEY_HASH;
+        MessageDigest instance = MessageDigest.getInstance("SHA-1");
+        instance.update(str.getBytes());
 
-    void send(byte[] data) throws IOException;
-
-    void close() throws IOException;
-
-    void close(int code) throws IOException;
-    
-    void close(int code, String reason) throws IOException;
-
-    boolean isConnected();
-
-    void onConnect() throws IOException;
-
-    void onMessage(DataFrame frame) throws IOException;
-
-    void onClose(DataFrame frame) throws IOException;
-
-    void onPing(DataFrame frame) throws IOException;
-
-    boolean add(WebSocketListener listener);
-
-    boolean remove(WebSocketListener listener);
+        Assert.assertEquals(server.getBytes(), instance.digest());
+    }
 }

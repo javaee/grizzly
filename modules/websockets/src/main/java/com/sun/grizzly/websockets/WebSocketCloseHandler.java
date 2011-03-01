@@ -42,12 +42,13 @@ package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.util.ConnectionCloseHandler;
 
-import java.io.IOException;
 import java.nio.channels.SelectionKey;
+import java.util.Date;
 
 public class WebSocketCloseHandler implements ConnectionCloseHandler {
 
     public void locallyClosed(SelectionKey key) {
+        System.out.println(new Date() + ": WebSocketCloseHandler.locallyClosed");
         final Object o = key.attachment();
         if (o instanceof WebSocketSelectionKeyAttachment) {
             final WebSocketSelectionKeyAttachment attachment = (WebSocketSelectionKeyAttachment) key.attachment();

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -51,7 +51,6 @@ import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.net.jsse.JSSEImplementation;
 import org.testng.Assert;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
 
@@ -78,6 +77,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -93,18 +93,6 @@ public class WebSocketsTest {
     @BeforeSuite
     public void enable() {
         WebSocketEngine.setWebSocketEnabled(true);
-    }
-
-    public void securityKeys() {
-        validate("&2^3 4  1l6h85  F  3Z  31");
-        validate("k ]B28GZ8  0  x *95 Y 6  92q0");
-    }
-
-    private void validate(final String key) {
-        SecKey key1 = SecKey.create(key);
-        long number = Long.parseLong(key.replaceAll("\\D", ""));
-        int spaces = key.replaceAll("\\S", "").length();
-        Assert.assertEquals(key1.getSecKeyValue(), number / spaces);
     }
 
     @Test
@@ -208,11 +196,9 @@ public class WebSocketsTest {
 
     public void ssl() throws Exception {
         final ArrayList<String> headers = new ArrayList<String>(Arrays.asList(
-                "HTTP/1.1 101 Web Socket Protocol Handshake",
-                "Upgrade: WebSocket",
-                "Connection: Upgrade",
-                "WebSocket-Origin: https://localhost:" + PORT,
-                "WebSocket-Location: wss://localhost:" + PORT + "/echo"
+                WebSocketEngine.UPGRADE,
+                WebSocketEngine.CONNECTION,
+                WebSocketEngine.SEC_WS_ACCEPT
         ));
         SelectorThread thread = null;
         SSLSocket socket = null;
@@ -298,66 +284,38 @@ public class WebSocketsTest {
         client.send(message);
     }
 
-    @Test
-    public void testVer75ServerHandShake() throws Exception {
-        final SelectorThread thread = createSelectorThread(PORT, new StaticResourcesAdapter());
-        final WebSocketApplication app = new WebSocketApplication() {
-            public void onMessage(WebSocket socket, DataFrame data) {
-                Assert.fail("A GET should never get here.");
-            }
-
-            @Override
-            public boolean isApplicationRequest(Request request) {
-                return true;
-            }
-
-            public void onConnect(WebSocket socket) {
-            }
-
-            public void onClose(WebSocket socket) {
-            }
-        };
-        WebSocketEngine.getEngine().register(app);
-        final ArrayList<String> headers = new ArrayList<String>(Arrays.asList(
-                "HTTP/1.1 101 Web Socket Protocol Handshake",
-                "Upgrade: WebSocket",
-                "Connection: Upgrade",
-                "WebSocket-Origin: http://localhost:" + PORT,
-                "WebSocket-Location: ws://localhost:" + PORT + "/echo"
-        ));
-        Socket socket = new Socket("localhost", PORT);
-        try {
-            handshake(socket, headers, false);
-        } finally {
-            socket.close();
-            thread.stopEndpoint();
-            WebSocketEngine.getEngine().unregister(app);
-        }
-    }
-
+    @SuppressWarnings({"IOResourceOpenedButNotSafelyClosed"})
     private void handshake(Socket socket, final List<String> headers, boolean secure) throws IOException {
         final OutputStream os = socket.getOutputStream();
         write(os, "GET /echo HTTP/1.1");
         write(os, "Host: localhost:" + PORT);
         write(os, "Connection: Upgrade");
         write(os, "Upgrade: WebSocket");
-        final String origin = secure ? "Origin: https://localhost:" : "Origin: http://localhost:";
+        final String origin = WebSocketEngine.SEC_WS_ORIGIN_HEADER + (secure ? ": https://localhost:" : ": http://localhost:");
+        final String host = "Host" + (secure ? ": https://localhost:" : ": http://localhost:");
         write(os, origin + PORT);
+        write(os, host + PORT);
+        write(os, WebSocketEngine.SEC_WS_KEY_HEADER + ": " + new SecKey().getSecKey());
         write(os, "");
         os.flush();
 
-        @SuppressWarnings({"IOResourceOpenedButNotSafelyClosed"})
         final BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        List<String> receivedHeaders = new ArrayList<String>();
+        Map<String, String> receivedHeaders = new TreeMap<String, String>();
         String line;
+        String response = null;
         while (!"".equals(line = reader.readLine())) {
-            receivedHeaders.add(line);
+            if(response == null) {
+                response = line;
+                Assert.assertEquals(line, String.format("HTTP/1.1 %s %s", WebSocketEngine.RESPONSE_CODE_VALUE,
+                        WebSocketEngine.RESPONSE_CODE_MESSAGE));
+            } else {
+                String[] parts = line.split(":");
+                receivedHeaders.put(parts[0].toLowerCase(), parts[1].trim());
+            }
         }
 
-        Assert.assertEquals(receivedHeaders.remove(0), headers.remove(0));
-        while (!receivedHeaders.isEmpty()) {
-            final String next = receivedHeaders.remove(0);
-            Assert.assertTrue(headers.remove(next), String.format("Looking for '%s'", next));
+        for (String header : headers) {
+            Assert.assertTrue(receivedHeaders.containsKey(header.toLowerCase()), String.format("Looking for '%s'", header));
         }
     }
 

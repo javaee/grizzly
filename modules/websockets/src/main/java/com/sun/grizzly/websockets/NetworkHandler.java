@@ -41,14 +41,16 @@
 package com.sun.grizzly.websockets;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 public interface NetworkHandler {
+    void close(int code, String reason) throws IOException;
+
     void send(DataFrame frame) throws IOException;
 
     void setWebSocket(WebSocket webSocket);
 
     byte get() throws IOException;
 
-    boolean peek(byte... b) throws IOException;
+    byte[] get(int count) throws IOException;
+
 }

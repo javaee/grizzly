@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -45,11 +45,11 @@ import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.http.servlet.HttpServletRequestImpl;
 import com.sun.grizzly.http.servlet.HttpServletResponseImpl;
 import com.sun.grizzly.http.servlet.ServletContextImpl;
-import com.sun.grizzly.tcp.InputBuffer;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
+import com.sun.grizzly.tcp.http11.InternalInputBuffer;
 import com.sun.grizzly.tcp.http11.InternalOutputBuffer;
 import com.sun.grizzly.util.SelectedKeyAttachmentLogic;
 import com.sun.grizzly.util.buf.ByteChunk;
@@ -61,16 +61,18 @@ import java.io.IOException;
 public class ServerNetworkHandler implements NetworkHandler {
     private final Request request;
     private final Response response;
-    private final InputBuffer inputBuffer;
+    private final InternalInputBuffer inputBuffer;
     private final InternalOutputBuffer outputBuffer;
     private final ByteChunk chunk = new ByteChunk();
     private WebSocket socket;
     private WebSocketSelectionKeyAttachment attachment;
+    private byte[] mask;
+    private int maskIndex = 0;
 
     public ServerNetworkHandler(Request req, Response resp) {
         request = req;
         response = resp;
-        inputBuffer = req.getInputBuffer();
+        inputBuffer = (InternalInputBuffer) req.getInputBuffer();
         outputBuffer = (InternalOutputBuffer) resp.getOutputBuffer();
     }
 
@@ -90,17 +92,10 @@ public class ServerNetworkHandler implements NetworkHandler {
     protected void handshake(final boolean sslSupport) throws IOException, HandshakeException {
         final boolean secure = "https".equalsIgnoreCase(request.scheme().toString()) || sslSupport;
 
-        fill();
-        final ClientHandShake clientHS = new ClientHandShake(request, secure, chunk);
-
-        final ServerHandShake server = new ServerHandShake(clientHS.isSecure(), clientHS.getOrigin(),
-                clientHS.getServerHostName(), clientHS.getPort(),
-                clientHS.getResourcePath(), clientHS.getSubProtocol(),
-                clientHS.getKey1(), clientHS.getKey2(), clientHS.getKey3());
-
+        final ServerHandShake server = new ServerHandShake(request, secure, chunk);
         server.respond(response);
         socket.onConnect();
-        if(chunk.getLength() > 0) {
+        if (chunk.getLength() > 0) {
             readFrame();
         }
     }
@@ -108,23 +103,27 @@ public class ServerNetworkHandler implements NetworkHandler {
     protected void readFrame() throws IOException {
         fill();
         while (socket.isConnected() && chunk.getLength() != 0) {
-            final DataFrame dataFrame = DataFrame.read(this);
-            if (dataFrame != null) {
-                dataFrame.getType().respond(socket, dataFrame);
-            } else {
+            final DataFrame dataFrame = new DataFrame();
+            try {
+                setMask(getUnmasked(WebSocketEngine.MASK_SIZE));
+                dataFrame.unframe(this);
+                dataFrame.respond(getWebSocket());
+            } catch(FramingException fe) {
                 socket.close();
             }
         }
     }
 
-    private void read() throws IOException {
-        ByteChunk bytes = new ByteChunk(WebSocketEngine.INITIAL_BUFFER_SIZE);
-        int count;
-        while ((count = inputBuffer.doRead(bytes, request)) == WebSocketEngine.INITIAL_BUFFER_SIZE) {
-            chunk.append(bytes);
-        }
+    private void setMask(byte[] mask) {
+        maskIndex = 0;
+        this.mask = mask;
+    }
 
-        if (count > 0) {
+    protected void read() throws IOException {
+        ByteChunk bytes = new ByteChunk(WebSocketEngine.INITIAL_BUFFER_SIZE);
+        int count = WebSocketEngine.INITIAL_BUFFER_SIZE;
+        while (count == WebSocketEngine.INITIAL_BUFFER_SIZE) {
+            count = inputBuffer.doRead(bytes, request);
             chunk.append(bytes);
         }
     }
@@ -132,14 +131,39 @@ public class ServerNetworkHandler implements NetworkHandler {
     public byte get() throws IOException {
         synchronized (chunk) {
             fill();
-            return (byte) chunk.substract();
+            return (byte) (chunk.substract() ^ mask[maskIndex++ % WebSocketEngine.MASK_SIZE]);
         }
     }
 
-    public boolean peek(byte... bytes) throws IOException {
+    public byte[] get(int count) throws IOException {
         synchronized (chunk) {
+            byte[] bytes = new byte[count];
+            int total = 0;
+            while(total < count) {
+                if(chunk.getLength() < count) {
+                    read();
+                }
+                total += chunk.substract(bytes, total, count - total);
+            }
+            for (int i = 0; i < bytes.length; i++) {
+                bytes[i] = (byte) (bytes[i] ^ mask[maskIndex++ % WebSocketEngine.MASK_SIZE]);
+            }
+            return bytes;
+        }
+    }
+    
+    private byte[] getUnmasked(int count) throws IOException {
+        synchronized (chunk) {
+            byte[] bytes = new byte[count];
             fill();
-            return chunk.startsWith(bytes);
+            int total = 0;
+            while(total < count) {
+                if(chunk.getLength() < count) {
+                    read();
+                }
+                total += chunk.substract(bytes, total, count - total);
+            }
+            return bytes;
         }
     }
 
@@ -149,15 +173,21 @@ public class ServerNetworkHandler implements NetworkHandler {
         }
     }
 
-    private synchronized void write(byte[] bytes) throws IOException {
-        ByteChunk buffer = new ByteChunk();
-        buffer.setBytes(bytes, 0, bytes.length);
-        outputBuffer.doWrite(buffer, response);
-        outputBuffer.flush();
+    private void write(byte[] bytes) throws IOException {
+        synchronized (outputBuffer) {
+            ByteChunk buffer = new ByteChunk();
+            buffer.setBytes(bytes, 0, bytes.length);
+            outputBuffer.doWrite(buffer, response);
+            outputBuffer.flush();
+        }
     }
 
     public void send(DataFrame frame) throws IOException {
         write(frame.frame());
+    }
+
+    public void close(int code, String reason) throws IOException {
+        send(new ClosingFrame(code, reason));
     }
 
     public void setWebSocket(WebSocket webSocket) {

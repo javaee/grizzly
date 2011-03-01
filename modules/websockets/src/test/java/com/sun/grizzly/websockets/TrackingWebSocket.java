@@ -82,7 +82,7 @@ public class TrackingWebSocket extends ClientWebSocket {
     }
 
     public boolean waitOnMessages() throws InterruptedException {
-        return received.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS);
+        return received.await(WebSocketEngine.DEFAULT_TIMEOUT*10, TimeUnit.SECONDS);
     }
 
     public String getName() {

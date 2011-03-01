@@ -1,14 +1,14 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
  * may not use this file except in compliance with the License.  You can
  * obtain a copy of the License at
- * https://glassfish.dev.java.net/public/CDDL+GPL_1_1.html
+ * http://glassfish.java.net/public/CDDL+GPL_1_1.html
  * or packager/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
  *
@@ -40,31 +40,16 @@
 
 package com.sun.grizzly.websockets;
 
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
-public class WebSocketConnectTask extends FutureTask<WebSocket> {
-
-    public WebSocketConnectTask(final NioClientWebSocket websocket) {
-        super(new Callable<WebSocket>() {
-            public WebSocket call() throws Exception {
-                while (!websocket.isConnected()) {
-                    Thread.sleep(100);
-                }
-                return websocket;
-            }
-        });
+public class FramingException extends RuntimeException {
+    public FramingException(String s) {
+        super(s);
     }
 
-    @Override
-    public WebSocket get() throws InterruptedException, ExecutionException {
-        try {
-            return get(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS);
-        } catch (TimeoutException e) {
-            throw new InterruptedException(e.getMessage());
-        }
+    public FramingException(String s, Throwable throwable) {
+        super(s, throwable);
+    }
+
+    public FramingException(Throwable throwable) {
+        super(throwable);
     }
 }

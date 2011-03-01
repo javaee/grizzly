@@ -82,7 +82,7 @@ public class EchoServlet extends HttpServlet {
 
     public void echo(WebSocket socket, DataFrame data) {
         try {
-            socket.send(data);
+            socket.send(data.getTextPayload());
         } catch (IOException e) {
             e.printStackTrace();
             throw new RuntimeException(e.getMessage(), e);

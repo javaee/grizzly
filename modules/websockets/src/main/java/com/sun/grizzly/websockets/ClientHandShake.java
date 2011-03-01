@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,101 +40,37 @@
 
 package com.sun.grizzly.websockets;
 
-import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.util.buf.ByteChunk;
-import com.sun.grizzly.util.http.MimeHeaders;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Random;
+import java.util.Map;
 
 public class ClientHandShake extends HandShake {
-    private static final Random random = new Random();
-
-    private SecKey key1;
-    private SecKey key2;
-    private byte[] key3;
+    private final SecKey key;
 
     public ClientHandShake(boolean isSecure, String origin, String serverHostName, String portNumber, String path) {
         super(isSecure, origin, serverHostName, portNumber, path);
-        key1 = SecKey.generateSecKey();
-        key2 = SecKey.generateSecKey();
-        key3 = new byte[8];
-        random.nextBytes(key3);
+        key = new SecKey();
     }
 
-    public ClientHandShake(Request request, boolean secure, ByteChunk chunk) throws IOException, HandshakeException {
-        super(secure, request.requestURI().toString());
+    public SecKey getKey() {
+        return key;
+    }
 
-        final MimeHeaders headers = request.getMimeHeaders();
-        boolean upgrade = "WebSocket".equals(headers.getHeader("Upgrade"));
-        boolean connection = "Upgrade".equals(headers.getHeader("Connection"));
-
-        if (headers.getHeader(WebSocketEngine.SEC_WS_KEY1_HEADER) != null) {
-            parse76Headers(headers, chunk);
-        } else {
-            parse75Headers(headers);
+    public void validateServerResponse(final Map<String, String> headers) throws HandshakeException {
+        if(!WebSocketEngine.RESPONSE_CODE_VALUE.equals(headers.get(WebSocketEngine.RESPONSE_CODE_HEADER))) {
+            throw new HandshakeException(String.format("Response code was not %s: %s",
+                    WebSocketEngine.RESPONSE_CODE_VALUE,
+                    headers.get(WebSocketEngine.RESPONSE_CODE_HEADER)));
         }
-        String header = readHeader(headers, WebSocketEngine.CLIENT_WS_ORIGIN_HEADER);
-        setOrigin(header != null ? header : "http://localhost");
-        determineHostAndPort(headers);
-        setLocation(buildLocation(secure));
-        if (getServerHostName() == null || getOrigin() == null || !upgrade || !connection) {
-            throw new IOException("Missing required headers for WebSocket negotiation");
-        }
+        checkForHeader(headers, WebSocketEngine.UPGRADE, WebSocketEngine.WEBSOCKET);
+        checkForHeader(headers, WebSocketEngine.CONNECTION, WebSocketEngine.UPGRADE);
+        key.validateServerKey(headers.get(WebSocketEngine.SEC_WS_ACCEPT));
     }
 
-    public SecKey getKey1() {
-        return key1;
-    }
-
-    public SecKey getKey2() {
-        return key2;
-    }
-
-    public byte[] getKey3() {
-        return key3;
-    }
-
-    private void parse76Headers(MimeHeaders headers, ByteChunk chunk) throws HandshakeException {
-        setSubProtocol(headers.getHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER));
-        key1 = SecKey.create(headers.getHeader(WebSocketEngine.SEC_WS_KEY1_HEADER));
-        key2 = SecKey.create(headers.getHeader(WebSocketEngine.SEC_WS_KEY2_HEADER));
-        if (key1 != null && key2 != null) {
-            key3 = new byte[8];
-            try {
-                System.arraycopy(chunk.getBytes(), chunk.getStart(), key3, 0, 8);
-                chunk.setOffset(8);
-            } catch (Exception e) {
-                throw new HandshakeException(e.getMessage());
-            }
-        }
-
-    }
-
-    private void determineHostAndPort(MimeHeaders headers) {
-        String header;
-        header = readHeader(headers, "host");
-        final int i = header == null ? -1 : header.indexOf(":");
-        if (i == -1) {
-            setServerHostName(header);
-            setPort("80");
-        } else {
-            setServerHostName(header.substring(0, i));
-            setPort(header.substring(i + 1));
-        }
-    }
-
-    private void parse75Headers(MimeHeaders headers) {
-        setSubProtocol(headers.getHeader("WebSocket-Protocol"));
-    }
-
-    public void validateServerResponse(final byte[] key) throws HandshakeException {
-        final byte[] clientKey = SecKey.generateServerKey(key1, key2, key3);
-        if (!Arrays.equals(clientKey, key)) {
-            throw new HandshakeException(String.format("Security keys do not match: client '%s' vs. server '%s'",
-                    Arrays.toString(clientKey), Arrays.toString(key)));
+    private void checkForHeader(Map<String, String> headers, final String header, final String validValue) {
+        final String value = headers.get(header);
+        if(!validValue.equalsIgnoreCase(value)) {
+            throw new HandshakeException(String.format("Invalid %s header returned: '%s'", header, value));
         }
     }
 
@@ -144,16 +80,20 @@ public class ClientHandShake extends HandShake {
         chunk.write(String.format("Host: %s\r\n", getServerHostName()).getBytes());
         chunk.write(String.format("Connection: Upgrade\r\n").getBytes());
         chunk.write(String.format("Upgrade: WebSocket\r\n").getBytes());
-        chunk.write(String.format("%s: %s\r\n", WebSocketEngine.CLIENT_WS_ORIGIN_HEADER, getOrigin()).getBytes());
+        chunk.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_KEY_HEADER, getKey()).getBytes());
+        chunk.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_ORIGIN_HEADER, getOrigin()).getBytes());
+        chunk.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_VERSION, WebSocketEngine.WS_VERSION).getBytes());
         if (getSubProtocol() != null) {
             chunk.write(
-                    String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_PROTOCOL_HEADER, getSubProtocol()).getBytes());
+                    String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_PROTOCOL_HEADER, join(getSubProtocol())).getBytes());
         }
-        chunk.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_KEY1_HEADER, getKey1().getSecKey()).getBytes());
-        chunk.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_KEY2_HEADER, getKey2().getSecKey()).getBytes());
+        if (getExtensions() != null) {
+            chunk.write(
+                    String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_EXTENSIONS_HEADER, join(getExtensions())).getBytes());
+        }
         chunk.write("\r\n".getBytes());
-        chunk.write(getKey3());
 
         return chunk.toByteArray();
     }
+
 }

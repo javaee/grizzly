@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -53,29 +53,33 @@ import com.sun.grizzly.util.Utils;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class WebSocketEngine {
+    public static final String SEC_WS_ACCEPT = "Sec-WebSocket-Accept";
+    public static final String SEC_WS_KEY_HEADER = "Sec-WebSocket-Key";
+    public static final String SEC_WS_ORIGIN_HEADER = "Sec-WebSocket-Origin";
     public static final String SEC_WS_PROTOCOL_HEADER = "Sec-WebSocket-Protocol";
-    public static final String SEC_WS_KEY1_HEADER = "Sec-WebSocket-Key1";
-    public static final String SEC_WS_KEY2_HEADER = "Sec-WebSocket-Key2";
-    public static final String CLIENT_WS_ORIGIN_HEADER = "Origin";
-    public static final String SERVER_SEC_WS_ORIGIN_HEADER = "Sec-WebSocket-Origin";
-    public static final String SERVER_SEC_WS_LOCATION_HEADER = "Sec-WebSocket-Location";
+    public static final String SEC_WS_EXTENSIONS_HEADER = "Sec-WebSocket-Extensions";
+    public static final String SEC_WS_VERSION = "Sec-WebSocket-Version";
     public static final String WEBSOCKET = "websocket";
+    public static final String RESPONSE_CODE_HEADER = "Response Code";
+    public static final String RESPONSE_CODE_MESSAGE = "Switching Protocols";
+    public static final String RESPONSE_CODE_VALUE = "101";
+    public static final String UPGRADE = "upgrade";
+    public static final String CONNECTION = "connection";
+
+    public static final int WS_VERSION = 6;
     public static final int INITIAL_BUFFER_SIZE = 8192;
     public static final int DEFAULT_TIMEOUT;
-
     private static final WebSocketEngine engine = new WebSocketEngine();
     private static volatile boolean isWebSocketEnabled = true;
     static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
+    public static final String SERVER_KEY_HASH = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+    public static final int MASK_SIZE = 4;
     private final List<WebSocketApplication> applications = new ArrayList<WebSocketApplication>();
-    private final Map<WebSocketApplication, StackTraceElement[]> map = new HashMap<WebSocketApplication, StackTraceElement[]>();
-    public static final boolean constrainApplications = Boolean.getBoolean("grizzly.websockets.constrainApplications");
     private final WebSocketCloseHandler closeHandler = new WebSocketCloseHandler();
 
     static {
@@ -87,7 +91,6 @@ public class WebSocketEngine {
     }
 
     private WebSocketEngine() {
-        SecKey.init();
     }
 
     /**
@@ -108,23 +111,12 @@ public class WebSocketEngine {
     }
 
     public WebSocketApplication getApplication(Request request) {
-        WebSocketApplication app = null;
         for (WebSocketApplication application : applications) {
             if(application.upgrade(request)) {
-                if(app == null) {
-                    app = application;
-                } else if(constrainApplications) {
-                    for (Map.Entry<WebSocketApplication, StackTraceElement[]> entry : map.entrySet()) {
-                        final StackTraceElement[] traceElements = entry.getValue();
-                        for (StackTraceElement element : traceElements) {
-                            System.out.println(element);
-                        }
-                    }
-                    throw new HandshakeException(LogMessages.WARNING_GRIZZLY_WS_MULTIPLE_APPS());
-                }
+                return application;
             }
         }
-        return app;
+        return null;
     }
 
     public boolean upgrade(AsyncExecutor asyncExecutor) {
@@ -178,12 +170,10 @@ public class WebSocketEngine {
         }
 
         applications.add(app);
-        map.put(app, Thread.currentThread().getStackTrace());
     }
 
     public void unregister(WebSocketApplication app) {
         applications.remove(app);
-        map.remove(app);
     }
 
     private static class KeyWebSocketListener extends WebSocketAdapter {

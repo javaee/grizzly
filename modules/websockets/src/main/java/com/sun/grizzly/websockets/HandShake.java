@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,9 +40,6 @@
 
 package com.sun.grizzly.websockets;
 
-import com.sun.grizzly.util.buf.MessageBytes;
-import com.sun.grizzly.util.http.MimeHeaders;
-
 import java.util.logging.Logger;
 
 /**
@@ -57,7 +54,8 @@ public abstract class HandShake {
     private String port = "80";
     private String resourcePath;
     private String location;
-    private String subProtocol;
+    private String[] subProtocol;
+    private String[] extensions;
 
     public HandShake(boolean isSecure, String path) {
         secure = isSecure;
@@ -86,17 +84,6 @@ public abstract class HandShake {
         return builder.toString();
     }
 
-    /**
-     * Reads the header value using UTF-8 encoding
-     *
-     * @param headers
-     * @param name
-     * @return
-     */
-    final String readHeader(MimeHeaders headers, final String name) {
-        final MessageBytes value = headers.getValue(name);
-        return value == null ? null : value.toString();
-    }
 
     public String getLocation() {
         return location;
@@ -106,15 +93,6 @@ public abstract class HandShake {
         this.location = location;
     }
 
-    /**
-     * Origin (bytes 4F 72 69 67 69 6E; always the fourth name-value pair)
-     * <p/>
-     * The value gives the scheme, hostname, and port (if it's not the default
-     * port for the given scheme) of the page that asked the client to open the Web Socket.
-     * It would be interesting if the server's operator had deals with operators of other sites,
-     * since the server could then decide how to respond (or indeed, _whether_ to respond) based
-     * on which site was requesting a connection.  The value must be interpreted as UTF-8.
-     */
     public String getOrigin() {
         return origin;
     }
@@ -155,17 +133,41 @@ public abstract class HandShake {
         this.serverHostName = serverHostName;
     }
 
-    /**
-     * WebSocket-Protocol (bytes 57 65 62 53 6F 63 6B 65 74 2D 50 72 6F 74 6F 63 6F 6C; optional,
-     * if present, will be the fifth name-value pair)
-     * The value gives the name of a subprotocol that the client is intending to select.  It would be interesting if
-     * the server supports multiple protocols or subProtocol versions.  The value must be interpreted as UTF-8.
-     */
-    public String getSubProtocol() {
+    public String[] getSubProtocol() {
         return subProtocol;
     }
 
-    public void setSubProtocol(String subProtocol) {
+    public void setSubProtocol(String[] subProtocol) {
+        sanitize(subProtocol);
         this.subProtocol = subProtocol;
+    }
+
+    private void sanitize(String[] strings) {
+        if(strings != null) {
+            for (int i = 0; i < strings.length; i++) {
+                strings[i] = strings[i] == null ? null : strings[i].trim();
+
+            }
+        }
+    }
+
+    public String[] getExtensions() {
+        return extensions;
+    }
+
+    public void setExtensions(String[] extensions) {
+        sanitize(extensions);
+        this.extensions = extensions;
+    }
+
+    protected String join(String[] values) {
+        StringBuilder builder = new StringBuilder();
+        for (String s : values) {
+            if(builder.length() != 0) {
+                builder.append("; ");
+            }
+            builder.append(s);
+        }
+        return null;
     }
 }
