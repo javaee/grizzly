@@ -51,13 +51,23 @@ import com.sun.grizzly.util.Utils;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSession;
-import javax.servlet.*;
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
-import java.net.*;
+import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.util.HashMap;
 import java.util.logging.Logger;
@@ -70,7 +80,7 @@ import java.util.logging.Logger;
  */
 public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
 
-    public static final int PORT = 18890+10;
+    public static final int PORT = 18900;
     private static final Logger logger = Logger.getLogger("grizzly.test");
 
     public void testAddGrizzlyAdapterAfterStart() throws IOException {

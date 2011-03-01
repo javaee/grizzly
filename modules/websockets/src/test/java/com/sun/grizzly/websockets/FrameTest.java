@@ -158,9 +158,6 @@ public class FrameTest {
             this.data = data;
         }
 
-        public void close(int code, String reason) throws IOException {
-        }
-
         public void send(DataFrame frame) throws IOException {
         }
 

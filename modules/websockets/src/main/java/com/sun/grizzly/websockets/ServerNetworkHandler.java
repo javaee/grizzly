@@ -186,10 +186,6 @@ public class ServerNetworkHandler implements NetworkHandler {
         write(frame.frame());
     }
 
-    public void close(int code, String reason) throws IOException {
-        send(new ClosingFrame(code, reason));
-    }
-
     public void setWebSocket(WebSocket webSocket) {
         socket = webSocket;
     }

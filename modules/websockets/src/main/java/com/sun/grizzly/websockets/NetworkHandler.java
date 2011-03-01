@@ -43,8 +43,6 @@ package com.sun.grizzly.websockets;
 import java.io.IOException;
 
 public interface NetworkHandler {
-    void close(int code, String reason) throws IOException;
-
     void send(DataFrame frame) throws IOException;
 
     void setWebSocket(WebSocket webSocket);

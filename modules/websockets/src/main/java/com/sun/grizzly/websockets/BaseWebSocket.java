@@ -46,6 +46,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @SuppressWarnings({"StringContatenationInLoop"})
@@ -94,11 +95,9 @@ public class BaseWebSocket implements WebSocket {
     public void close(int code, String reason) throws IOException {
         if (connected.compareAndSet(true, false)) {
             try {
-                networkHandler.close(code, reason);
+                networkHandler.send(new ClosingFrame(code, reason));
             } catch (IOException ignored) {
-                ignored.printStackTrace();
-            } finally {
-                onClose();
+                logger.log(Level.SEVERE, ignored.getMessage(), ignored);
             }
         }
     }
@@ -112,9 +111,7 @@ public class BaseWebSocket implements WebSocket {
     }
 
     public void onClose(DataFrame frame) throws IOException {
-        if (connected.compareAndSet(true, false)) {
-            networkHandler.send(new DataFrame(FrameType.CLOSING, frame.getBinaryPayload()));
-        }
+        close(NORMAL_CLOSURE);
         onClose();
     }
 

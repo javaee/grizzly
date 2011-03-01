@@ -48,7 +48,6 @@ import java.util.Date;
 public class WebSocketCloseHandler implements ConnectionCloseHandler {
 
     public void locallyClosed(SelectionKey key) {
-        System.out.println(new Date() + ": WebSocketCloseHandler.locallyClosed");
         final Object o = key.attachment();
         if (o instanceof WebSocketSelectionKeyAttachment) {
             final WebSocketSelectionKeyAttachment attachment = (WebSocketSelectionKeyAttachment) key.attachment();

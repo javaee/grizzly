@@ -154,10 +154,6 @@ public class ClientNetworkHandler implements NetworkHandler {
 
     }
 
-    public void close(int code, String reason) throws IOException {
-        send(new ClosingFrame(code, reason));
-    }
-
     protected void write(byte[] bytes) throws IOException {
         outputStream.write(bytes);
         outputStream.flush();

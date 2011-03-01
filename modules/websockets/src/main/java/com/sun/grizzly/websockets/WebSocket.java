@@ -44,6 +44,8 @@ import java.io.IOException;
 
 public interface WebSocket {
 
+    int NORMAL_CLOSURE = 1000;
+
     /**
      * Write the data to the socket.  This text will be converted to a UTF-8 encoded byte[] prior to sending.
      * @param data
