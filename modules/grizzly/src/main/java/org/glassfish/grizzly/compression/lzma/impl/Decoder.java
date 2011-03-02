@@ -41,7 +41,7 @@
 package org.glassfish.grizzly.compression.lzma.impl;
 
 
-import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.compression.lzma.LZMADecoder;
 import org.glassfish.grizzly.compression.lzma.impl.lz.OutWindow;
 import org.glassfish.grizzly.compression.lzma.impl.rangecoder.BitTreeDecoder;
 import org.glassfish.grizzly.compression.lzma.impl.rangecoder.RangeDecoder;
@@ -54,6 +54,13 @@ import java.io.IOException;
  * @author Igor Pavlov
  */
 public class Decoder {
+
+
+    public enum State {
+        ERR,
+        NEED_MORE_DATA,
+        DONE
+    }
 
     static class LenDecoder {
 
@@ -228,99 +235,96 @@ public class Decoder {
         m_RangeDecoder.init();
     }
 
-    public boolean code(Buffer src, Buffer dst,
-            long outSize) throws IOException {
-        m_RangeDecoder.setBuffer(src);
-        m_OutWindow.setBuffer(dst);
-        init();
+    public State code(LZMADecoder.LZMAInputState state, long outSize) throws IOException {
 
-        int state = Base.StateInit();
-        int rep0 = 0, rep1 = 0, rep2 = 0, rep3 = 0;
-
-        long nowPos64 = 0;
-        byte prevByte = 0;
-        while (outSize < 0 || nowPos64 < outSize) {
-            int posState = (int) nowPos64 & m_PosStateMask;
-            if (m_RangeDecoder.decodeBit(m_IsMatchDecoders, (state << Base.kNumPosStatesBitsMax) + posState) == 0) {
-                LiteralDecoder.Decoder2 decoder2 = m_LiteralDecoder.getDecoder((int) nowPos64, prevByte);
-                if (!Base.stateIsCharState(state)) {
-                    prevByte = decoder2.decodeWithMatchByte(m_RangeDecoder, m_OutWindow.getByte(rep0));
+        if (!state.decInitialized) {
+            state.decInitialized = true;
+            m_RangeDecoder.setBuffer(state.getSrc());
+            m_OutWindow.setBuffer(state.getDst());
+            init();
+        }
+        while (outSize < 0 || state.nowPos64 < outSize) {
+            int posState = (int) state.nowPos64 & m_PosStateMask;
+            if (m_RangeDecoder.decodeBit(m_IsMatchDecoders, (state.state << Base.kNumPosStatesBitsMax) + posState) == 0) {
+                LiteralDecoder.Decoder2 decoder2 = m_LiteralDecoder.getDecoder((int) state.nowPos64, state.prevByte);
+                if (!Base.stateIsCharState(state.state)) {
+                    state.prevByte = decoder2.decodeWithMatchByte(m_RangeDecoder, m_OutWindow.getByte(state.rep0));
                 } else {
-                    prevByte = decoder2.decodeNormal(m_RangeDecoder);
+                    state.prevByte = decoder2.decodeNormal(m_RangeDecoder);
                 }
-                m_OutWindow.putByte(prevByte);
-                state = Base.stateUpdateChar(state);
-                nowPos64++;
+                m_OutWindow.putByte(state.prevByte);
+                state.state = Base.stateUpdateChar(state.state);
+                state.nowPos64++;
             } else {
                 int len;
-                if (m_RangeDecoder.decodeBit(m_IsRepDecoders, state) == 1) {
+                if (m_RangeDecoder.decodeBit(m_IsRepDecoders, state.state) == 1) {
                     len = 0;
-                    if (m_RangeDecoder.decodeBit(m_IsRepG0Decoders, state) == 0) {
-                        if (m_RangeDecoder.decodeBit(m_IsRep0LongDecoders, (state << Base.kNumPosStatesBitsMax) + posState) == 0) {
-                            state = Base.stateUpdateShortRep(state);
+                    if (m_RangeDecoder.decodeBit(m_IsRepG0Decoders, state.state) == 0) {
+                        if (m_RangeDecoder.decodeBit(m_IsRep0LongDecoders, (state.state << Base.kNumPosStatesBitsMax) + posState) == 0) {
+                            state.state = Base.stateUpdateShortRep(state.state);
                             len = 1;
                         }
                     } else {
                         int distance;
-                        if (m_RangeDecoder.decodeBit(m_IsRepG1Decoders, state) == 0) {
-                            distance = rep1;
+                        if (m_RangeDecoder.decodeBit(m_IsRepG1Decoders, state.state) == 0) {
+                            distance = state.rep1;
                         } else {
-                            if (m_RangeDecoder.decodeBit(m_IsRepG2Decoders, state) == 0) {
-                                distance = rep2;
+                            if (m_RangeDecoder.decodeBit(m_IsRepG2Decoders, state.state) == 0) {
+                                distance = state.rep2;
                             } else {
-                                distance = rep3;
-                                rep3 = rep2;
+                                distance = state.rep3;
+                                state.rep3 = state.rep2;
                             }
-                            rep2 = rep1;
+                            state.rep2 = state.rep1;
                         }
-                        rep1 = rep0;
-                        rep0 = distance;
+                        state.rep1 = state.rep0;
+                        state.rep0 = distance;
                     }
                     if (len == 0) {
                         len = m_RepLenDecoder.decode(m_RangeDecoder, posState) + Base.kMatchMinLen;
-                        state = Base.stateUpdateRep(state);
+                        state.state = Base.stateUpdateRep(state.state);
                     }
                 } else {
-                    rep3 = rep2;
-                    rep2 = rep1;
-                    rep1 = rep0;
+                    state.rep3 = state.rep2;
+                    state.rep2 = state.rep1;
+                    state.rep1 = state.rep0;
                     len = Base.kMatchMinLen + m_LenDecoder.decode(m_RangeDecoder, posState);
-                    state = Base.stateUpdateMatch(state);
+                    state.state = Base.stateUpdateMatch(state.state);
                     int posSlot = m_PosSlotDecoder[Base.getLenToPosState(len)].decode(m_RangeDecoder);
                     if (posSlot >= Base.kStartPosModelIndex) {
                         int numDirectBits = (posSlot >> 1) - 1;
-                        rep0 = ((2 | (posSlot & 1)) << numDirectBits);
+                        state.rep0 = ((2 | (posSlot & 1)) << numDirectBits);
                         if (posSlot < Base.kEndPosModelIndex) {
-                            rep0 += BitTreeDecoder.reverseDecode(m_PosDecoders,
-                                    rep0 - posSlot - 1, m_RangeDecoder, numDirectBits);
+                            state.rep0 += BitTreeDecoder.reverseDecode(m_PosDecoders,
+                                    state.rep0 - posSlot - 1, m_RangeDecoder, numDirectBits);
                         } else {
-                            rep0 += (m_RangeDecoder.decodeDirectBits(
+                            state.rep0 += (m_RangeDecoder.decodeDirectBits(
                                     numDirectBits - Base.kNumAlignBits) << Base.kNumAlignBits);
-                            rep0 += m_PosAlignDecoder.reverseDecode(m_RangeDecoder);
-                            if (rep0 < 0) {
-                                if (rep0 == -1) {
+                            state.rep0 += m_PosAlignDecoder.reverseDecode(m_RangeDecoder);
+                            if (state.rep0 < 0) {
+                                if (state.rep0 == -1) {
                                     break;
                                 }
-                                return false;
+                                return State.ERR;
                             }
                         }
                     } else {
-                        rep0 = posSlot;
+                        state.rep0 = posSlot;
                     }
                 }
-                if (rep0 >= nowPos64 || rep0 >= m_DictionarySizeCheck) {
+                if (state.rep0 >= state.nowPos64 || state.rep0 >= m_DictionarySizeCheck) {
                     // m_OutWindow.Flush();
-                    return false;
+                    return State.ERR;
                 }
-                m_OutWindow.copyBlock(rep0, len);
-                nowPos64 += len;
-                prevByte = m_OutWindow.getByte(0);
+                m_OutWindow.copyBlock(state.rep0, len);
+                state.nowPos64 += len;
+                state.prevByte = m_OutWindow.getByte(0);
             }
         }
         m_OutWindow.flush();
         m_OutWindow.releaseBuffer();
         m_RangeDecoder.releaseBuffer();
-        return true;
+        return State.DONE;
     }
 
     public boolean setDecoderProperties(byte[] properties) {

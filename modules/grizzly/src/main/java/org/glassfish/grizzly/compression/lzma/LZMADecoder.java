@@ -39,6 +39,7 @@
  */
 package org.glassfish.grizzly.compression.lzma;
 
+import com.sun.xml.internal.fastinfoset.DecoderStateTables;
 import org.glassfish.grizzly.AbstractTransformer;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Cacheable;
@@ -82,28 +83,23 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
             }
         }
         Buffer decodedBuffer = null;
-        final boolean canDecode = input.hasRemaining() && eosMarkerPresent(input);
-        if (canDecode) {
-            decodedBuffer = decodeBuffer(memoryManager, input, state);
+        Decoder.State decState = null;
+        if (input.hasRemaining()) {
+            decState = decodeBuffer(memoryManager, input, state);
+            decodedBuffer = state.getResult();
         }
 
 
         final boolean hasRemainder = input.hasRemaining();
 
-        if (decodedBuffer == null || !decodedBuffer.hasRemaining()) {
+        if (decState == Decoder.State.NEED_MORE_DATA
+                || decodedBuffer == null
+                || !decodedBuffer.hasRemaining()) {
             return TransformationResult.createIncompletedResult(hasRemainder ? input : null);
         }
 
         return TransformationResult.createCompletedResult(decodedBuffer,
                 hasRemainder ? input : null);
-    }
-
-    private boolean eosMarkerPresent(Buffer input) {
-        // if the end-of-stream marker is present, we can successfully
-        // decode the message
-        final int idx = input.limit() - 1;
-        final byte b = input.get(idx);
-        return (b == 0x00);
     }
 
     @Override
@@ -142,9 +138,9 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
     }
 
 
-    private Buffer decodeBuffer(final MemoryManager memoryManager,
-                                final Buffer buffer,
-                                final LZMAInputState state) {
+    private Decoder.State decodeBuffer(final MemoryManager memoryManager,
+                                       final Buffer buffer,
+                                       final LZMAInputState state) {
 
         state.setSrc(buffer);
 
@@ -154,10 +150,9 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
         final int pos = buffer.position();
         Buffer decodedBuffer = memoryManager.allocate(512);
         state.setDst(decodedBuffer);
+        Decoder.State decState;
         try {
-            state.getDecoder().code(state.getSrc(),
-                    state.getDst(),
-                    -1);
+            decState = state.getDecoder().code(state, -1);
         } catch (IOException e) {
             decodedBuffer.dispose();
             throw new IllegalStateException(e);
@@ -172,8 +167,8 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
             decodedBuffer.dispose();
             buffer.position(pos);
         }
-
-        return resultBuffer;
+        state.setResult(resultBuffer);
+        return decState;
 
     }
 
@@ -181,13 +176,23 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
     // ---------------------------------------------------------- Nested Classes
 
 
-    private static class LZMAInputState extends LastResultAwareState<Buffer,Buffer> implements Cacheable {
+    public static class LZMAInputState extends LastResultAwareState<Buffer,Buffer> implements Cacheable {
 
         private Decoder decoder = new Decoder();
         private boolean initialized;
         private byte[] decoderConfigBits = new byte[5];
         private Buffer src;
         private Buffer dst;
+        private Buffer result;
+
+        public int state;
+        public int rep0;
+        public int rep1;
+        public int rep2;
+        public int rep3;
+        public long nowPos64;
+        public byte prevByte;
+        public boolean decInitialized;
 
 
         // ------------------------------------------------------ Public Methods
@@ -223,15 +228,31 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
             this.dst = dst;
         }
 
+        public Buffer getResult() {
+            return result;
+        }
+
+        public void setResult(Buffer result) {
+            this.result = result;
+        }
+
         // ---------------------------------------------- Methods from Cacheable
 
 
         @Override
         public void recycle() {
+            state = 0;
+            rep0 = 0;
+            rep1 = 0;
+            rep2 = 0;
+            rep3 = 0;
+            nowPos64 = 0;
+            prevByte = 0;
             src = null;
             dst = null;
-            initialized = false;
             lastResult = null;
+            initialized = false;
+            decInitialized = false;
             ThreadCache.putToCache(CACHE_IDX, this);
         }
 
