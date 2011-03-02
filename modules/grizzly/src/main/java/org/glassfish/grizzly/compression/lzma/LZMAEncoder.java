@@ -125,7 +125,7 @@ public class LZMAEncoder extends AbstractTransformer<Buffer,Buffer> {
 
 
     @Override
-    protected LastResultAwareState createStateObject() {
+    protected LastResultAwareState<Buffer,Buffer> createStateObject() {
         return create();
     }
 
