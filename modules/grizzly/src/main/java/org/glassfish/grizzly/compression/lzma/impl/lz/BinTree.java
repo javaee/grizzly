@@ -88,7 +88,7 @@ public class BinTree extends InWindow {
             _hash[i] = kEmptyHashValue;
         }
         _cyclicBufferPos = 0;
-        ReduceOffsets(-1);
+        reduceOffsets(-1);
     }
 
     public void movePos() throws IOException {
@@ -356,7 +356,7 @@ public class BinTree extends InWindow {
         int subValue = _pos - _cyclicBufferSize;
         normalizeLinks(_son, _cyclicBufferSize * 2, subValue);
         normalizeLinks(_hash, _hashSizeSum, subValue);
-        ReduceOffsets(subValue);
+        reduceOffsets(subValue);
     }
 
     public void SsetCutValue(int cutValue) {
