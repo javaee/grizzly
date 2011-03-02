@@ -44,11 +44,12 @@ package org.glassfish.grizzly.compression.lzma.impl;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.compression.lzma.impl.lz.OutWindow;
 import org.glassfish.grizzly.compression.lzma.impl.rangecoder.BitTreeDecoder;
+import org.glassfish.grizzly.compression.lzma.impl.rangecoder.RangeDecoder;
 
 import java.io.IOException;
 
 /**
- * Decoder
+ * RangeDecoder
  *
  * @author Igor Pavlov
  */
@@ -70,7 +71,7 @@ public class Decoder {
         }
 
         public void init() {
-            org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder.initBitModels(m_Choice);
+            RangeDecoder.initBitModels(m_Choice);
             for (int posState = 0; posState < m_NumPosStates; posState++) {
                 m_LowCoder[posState].init();
                 m_MidCoder[posState].init();
@@ -78,7 +79,7 @@ public class Decoder {
             m_HighCoder.init();
         }
 
-        public int decode(org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder rangeDecoder, int posState) throws IOException {
+        public int decode(RangeDecoder rangeDecoder, int posState) throws IOException {
             if (rangeDecoder.decodeBit(m_Choice, 0) == 0) {
                 return m_LowCoder[posState].decode(rangeDecoder);
             }
@@ -99,10 +100,10 @@ public class Decoder {
             short[] m_Decoders = new short[0x300];
 
             public void init() {
-                org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder.initBitModels(m_Decoders);
+                RangeDecoder.initBitModels(m_Decoders);
             }
 
-            public byte decodeNormal(org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder rangeDecoder) throws IOException {
+            public byte decodeNormal(RangeDecoder rangeDecoder) throws IOException {
                 int symbol = 1;
                 do {
                     symbol = (symbol << 1) | rangeDecoder.decodeBit(m_Decoders, symbol);
@@ -110,7 +111,7 @@ public class Decoder {
                 return (byte) symbol;
             }
 
-            public byte decodeWithMatchByte(org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder rangeDecoder, byte matchByte) throws IOException {
+            public byte decodeWithMatchByte(RangeDecoder rangeDecoder, byte matchByte) throws IOException {
                 int symbol = 1;
                 do {
                     int matchBit = (matchByte >> 7) & 1;
@@ -158,7 +159,7 @@ public class Decoder {
         }
     }
     OutWindow m_OutWindow = new OutWindow();
-    org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder m_RangeDecoder = new org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder();
+    RangeDecoder m_RangeDecoder = new RangeDecoder();
     short[] m_IsMatchDecoders = new short[Base.kNumStates << Base.kNumPosStatesBitsMax];
     short[] m_IsRepDecoders = new short[Base.kNumStates];
     short[] m_IsRepG0Decoders = new short[Base.kNumStates];
@@ -208,13 +209,13 @@ public class Decoder {
     void init() throws IOException {
         m_OutWindow.init(false);
 
-        org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder.initBitModels(m_IsMatchDecoders);
-        org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder.initBitModels(m_IsRep0LongDecoders);
-        org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder.initBitModels(m_IsRepDecoders);
-        org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder.initBitModels(m_IsRepG0Decoders);
-        org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder.initBitModels(m_IsRepG1Decoders);
-        org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder.initBitModels(m_IsRepG2Decoders);
-        org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder.initBitModels(m_PosDecoders);
+        RangeDecoder.initBitModels(m_IsMatchDecoders);
+        RangeDecoder.initBitModels(m_IsRep0LongDecoders);
+        RangeDecoder.initBitModels(m_IsRepDecoders);
+        RangeDecoder.initBitModels(m_IsRepG0Decoders);
+        RangeDecoder.initBitModels(m_IsRepG1Decoders);
+        RangeDecoder.initBitModels(m_IsRepG2Decoders);
+        RangeDecoder.initBitModels(m_PosDecoders);
 
         m_LiteralDecoder.init();
         int i;

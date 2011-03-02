@@ -45,11 +45,11 @@ import org.glassfish.grizzly.Buffer;
 import java.io.IOException;
 
 /**
- * Encoder
+ * RangeEncoder
  *
  * @author Igor Pavlov
  */
-public class Encoder {
+public class RangeEncoder {
 
     static final int kTopMask = ~((1 << 24) - 1);
     static final int kNumBitModelTotalBits = 11;
@@ -105,7 +105,7 @@ public class Encoder {
             if (((v >>> i) & 1) == 1) {
                 Low += Range;
             }
-            if ((Range & Encoder.kTopMask) == 0) {
+            if ((Range & RangeEncoder.kTopMask) == 0) {
                 Range <<= 8;
                 shiftLow();
             }

@@ -45,11 +45,11 @@ import org.glassfish.grizzly.Buffer;
 import java.io.IOException;
 
 /**
- * Decoder
+ * RangeDecoder
  *
  * @author Igor Pavlov
  */
-public class Decoder {
+public class RangeDecoder {
 
     static final int kTopMask = ~((1 << 24) - 1);
     static final int kNumBitModelTotalBits = 11;

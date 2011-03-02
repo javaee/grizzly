@@ -56,10 +56,10 @@ public class BitTreeDecoder {
     }
 
     public void init() {
-        Decoder.initBitModels(Models);
+        RangeDecoder.initBitModels(Models);
     }
 
-    public int decode(Decoder rangeDecoder) throws java.io.IOException {
+    public int decode(RangeDecoder rangeDecoder) throws java.io.IOException {
         int m = 1;
         for (int bitIndex = NumBitLevels; bitIndex != 0; bitIndex--) {
             m = (m << 1) + rangeDecoder.decodeBit(Models, m);
@@ -67,7 +67,7 @@ public class BitTreeDecoder {
         return m - (1 << NumBitLevels);
     }
 
-    public int reverseDecode(Decoder rangeDecoder) throws java.io.IOException {
+    public int reverseDecode(RangeDecoder rangeDecoder) throws java.io.IOException {
         int m = 1;
         int symbol = 0;
         for (int bitIndex = 0; bitIndex < NumBitLevels; bitIndex++) {
@@ -80,7 +80,7 @@ public class BitTreeDecoder {
     }
 
     public static int reverseDecode(short[] Models, int startIndex,
-            Decoder rangeDecoder, int NumBitLevels) throws java.io.IOException {
+            RangeDecoder rangeDecoder, int NumBitLevels) throws java.io.IOException {
         int m = 1;
         int symbol = 0;
         for (int bitIndex = 0; bitIndex < NumBitLevels; bitIndex++) {

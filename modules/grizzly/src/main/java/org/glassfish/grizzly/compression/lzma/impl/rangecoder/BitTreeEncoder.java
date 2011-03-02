@@ -58,10 +58,10 @@ public class BitTreeEncoder {
     }
 
     public void init() {
-        Decoder.initBitModels(Models);
+        RangeDecoder.initBitModels(Models);
     }
 
-    public void encode(Encoder rangeEncoder, int symbol) throws IOException {
+    public void encode(RangeEncoder rangeEncoder, int symbol) throws IOException {
         int m = 1;
         for (int bitIndex = NumBitLevels; bitIndex != 0;) {
             bitIndex--;
@@ -71,7 +71,7 @@ public class BitTreeEncoder {
         }
     }
 
-    public void reverseEncode(Encoder rangeEncoder, int symbol) throws IOException {
+    public void reverseEncode(RangeEncoder rangeEncoder, int symbol) throws IOException {
         int m = 1;
         for (int i = 0; i < NumBitLevels; i++) {
             int bit = symbol & 1;
@@ -87,7 +87,7 @@ public class BitTreeEncoder {
         for (int bitIndex = NumBitLevels; bitIndex != 0;) {
             bitIndex--;
             int bit = (symbol >>> bitIndex) & 1;
-            price += Encoder.getPrice(Models[m], bit);
+            price += RangeEncoder.getPrice(Models[m], bit);
             m = (m << 1) + bit;
         }
         return price;
@@ -99,7 +99,7 @@ public class BitTreeEncoder {
         for (int i = NumBitLevels; i != 0; i--) {
             int bit = symbol & 1;
             symbol >>>= 1;
-            price += Encoder.getPrice(Models[m], bit);
+            price += RangeEncoder.getPrice(Models[m], bit);
             m = (m << 1) | bit;
         }
         return price;
@@ -112,14 +112,14 @@ public class BitTreeEncoder {
         for (int i = NumBitLevels; i != 0; i--) {
             int bit = symbol & 1;
             symbol >>>= 1;
-            price += Encoder.getPrice(Models[startIndex + m], bit);
+            price += RangeEncoder.getPrice(Models[startIndex + m], bit);
             m = (m << 1) | bit;
         }
         return price;
     }
 
     public static void reverseEncode(short[] Models, int startIndex,
-            Encoder rangeEncoder, int NumBitLevels, int symbol) throws IOException {
+            RangeEncoder rangeEncoder, int NumBitLevels, int symbol) throws IOException {
         int m = 1;
         for (int i = 0; i < NumBitLevels; i++) {
             int bit = symbol & 1;
