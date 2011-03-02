@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.compression.lzma.impl;
 
 
+import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.compression.lzma.impl.lz.OutWindow;
 import org.glassfish.grizzly.compression.lzma.impl.rangecoder.BitTreeDecoder;
 
@@ -226,10 +227,10 @@ public class Decoder {
         m_RangeDecoder.init();
     }
 
-    public boolean code(java.io.InputStream inStream, java.io.OutputStream outStream,
+    public boolean code(Buffer src, Buffer dst,
             long outSize) throws IOException {
-        m_RangeDecoder.setStream(inStream);
-        m_OutWindow.setStream(outStream);
+        m_RangeDecoder.setBuffer(src);
+        m_OutWindow.setBuffer(dst);
         init();
 
         int state = Base.StateInit();
@@ -246,7 +247,7 @@ public class Decoder {
                 } else {
                     prevByte = decoder2.decodeNormal(m_RangeDecoder);
                 }
-                m_OutWindow.PutByte(prevByte);
+                m_OutWindow.putByte(prevByte);
                 state = Base.stateUpdateChar(state);
                 nowPos64++;
             } else {
@@ -316,8 +317,8 @@ public class Decoder {
             }
         }
         m_OutWindow.flush();
-        m_OutWindow.releaseStream();
-        m_RangeDecoder.releaseStream();
+        m_OutWindow.releaseBuffer();
+        m_RangeDecoder.releaseBuffer();
         return true;
     }
 

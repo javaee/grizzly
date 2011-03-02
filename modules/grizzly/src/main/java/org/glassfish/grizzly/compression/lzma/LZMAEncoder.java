@@ -49,20 +49,12 @@ import org.glassfish.grizzly.TransformationResult;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.compression.lzma.impl.Encoder;
 import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.memory.ByteBufferArray;
 import org.glassfish.grizzly.memory.MemoryManager;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class LZMAEncoder extends AbstractTransformer<Buffer,Buffer> {
-
-    private static final Logger LOGGER = Grizzly.logger(LZMAEncoder.class);
 
     private static final ThreadCache.CachedTypeIndex<LZMAOutputState> CACHE_IDX =
             ThreadCache.obtainIndex(LZMAOutputState.class, 2);
@@ -170,7 +162,7 @@ public class LZMAEncoder extends AbstractTransformer<Buffer,Buffer> {
 
         Buffer resultBuffer = null;
 
-        state.getInputStream().setBuffer(input);
+        state.setSrc(input);
         final Buffer encoded = encode(state, memoryManager);
         if (encoded != null) {
             resultBuffer = Buffers.appendBuffers(memoryManager,
@@ -190,30 +182,27 @@ public class LZMAEncoder extends AbstractTransformer<Buffer,Buffer> {
 
 
         final Encoder encoder = outputState.getEncoder();
-        final BufferInputStream inputStream = outputState.getInputStream();
-        final BufferOutputStream outputStream = outputState.getOutputStream();
-        Buffer buffer = memoryManager.allocate(512);
-
-        outputStream.setBuffer(buffer, memoryManager);
+        Buffer dst = memoryManager.allocate(512);
+        outputState.setDst(dst);
 
         if (!outputState.isHeaderWritten()) {
             // writes a 5-byte header that the decoder will use in order
             // to achieve parity with the encoder's properties.
-            encoder.writeCoderProperties(outputStream);
+            encoder.writeCoderProperties(outputState.getDst());
             outputState.setHeaderWritten(true);
         }
 
-        encoder.Code(inputStream, outputStream, -1, -1);
-        buffer = outputStream.getBuffer();
-        int len = buffer.position();
+        encoder.Code(outputState.getSrc(), outputState.getDst(), -1, -1);
+        dst = outputState.getDst();
+        int len = dst.position();
         if (len <= 0) {
-            buffer.dispose();
+            dst.dispose();
             return null;
         }
 
-        buffer.trim();
+        dst.trim();
 
-        return buffer;
+        return dst;
     }
 
 
@@ -228,25 +217,32 @@ public class LZMAEncoder extends AbstractTransformer<Buffer,Buffer> {
          * Compressor for this stream.
          */
         private Encoder encoder = new Encoder();
-        private BufferOutputStream outputStream = new BufferOutputStream();
-        private BufferInputStream inputStream = new BufferInputStream();
+        private Buffer dst;
+        private Buffer src;
         private boolean headerWritten = false;
 
         public boolean isInitialized() {
             return initialized;
         }
 
-        public BufferOutputStream getOutputStream() {
-            return outputStream;
-        }
-
-        public BufferInputStream getInputStream() {
-            return inputStream;
-        }
-
-
         public void setInitialized(boolean initialized) {
             this.initialized = initialized;
+        }
+
+        public Buffer getSrc() {
+            return src;
+        }
+
+        public void setSrc(Buffer src) {
+            this.src = src;
+        }
+
+        public Buffer getDst() {
+            return dst;
+        }
+
+        public void setDst(Buffer dst) {
+            this.dst = dst;
         }
 
         public Encoder getEncoder() {
@@ -265,8 +261,8 @@ public class LZMAEncoder extends AbstractTransformer<Buffer,Buffer> {
             lastResult = null;
             initialized = false;
             headerWritten = false;
-            outputStream.recycle();
-            inputStream.recycle();
+            dst = null;
+            src = null;
             ThreadCache.putToCache(CACHE_IDX, this);
         }
 

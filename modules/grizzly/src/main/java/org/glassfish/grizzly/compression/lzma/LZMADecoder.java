@@ -146,35 +146,32 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
                                 final Buffer buffer,
                                 final LZMAInputState state) {
 
-        state.getInputStream().setBuffer(buffer);
+        state.setSrc(buffer);
 
         Buffer resultBuffer = null;
 
-        int lastInflated;
-        do {
-            final int pos = buffer.position();
-            Buffer decodedBuffer = memoryManager.allocate(512);
-            state.getOutputStream().setBuffer(decodedBuffer, memoryManager);
-            try {
-                state.getDecoder().code(state.getInputStream(),
-                                        state.getOutputStream(),
-                                        -1);
-            } catch (IOException e) {
-                decodedBuffer.dispose();
-                throw new IllegalStateException(e);
-            }
-            decodedBuffer = state.getOutputStream().getBuffer();
-            lastInflated = decodedBuffer.position();
 
-            if (decodedBuffer.position() > 0) {
-                decodedBuffer.trim();
-                resultBuffer = Buffers.appendBuffers(memoryManager,
-                        resultBuffer, decodedBuffer);
-            } else {
-                decodedBuffer.dispose();
-                buffer.position(pos);
-            }
-        } while (lastInflated > 0);
+        final int pos = buffer.position();
+        Buffer decodedBuffer = memoryManager.allocate(512);
+        state.setDst(decodedBuffer);
+        try {
+            state.getDecoder().code(state.getSrc(),
+                    state.getDst(),
+                    -1);
+        } catch (IOException e) {
+            decodedBuffer.dispose();
+            throw new IllegalStateException(e);
+        }
+        decodedBuffer = state.getDst();
+
+        if (decodedBuffer.position() > 0) {
+            decodedBuffer.trim();
+            resultBuffer = Buffers.appendBuffers(memoryManager,
+                    resultBuffer, decodedBuffer);
+        } else {
+            decodedBuffer.dispose();
+            buffer.position(pos);
+        }
 
         return resultBuffer;
 
@@ -187,10 +184,10 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
     private static class LZMAInputState extends LastResultAwareState<Buffer,Buffer> implements Cacheable {
 
         private Decoder decoder = new Decoder();
-        private BufferInputStream inputStream = new BufferInputStream();
-        private BufferOutputStream outputStream = new BufferOutputStream();
         private boolean initialized;
         private byte[] decoderConfigBits = new byte[5];
+        private Buffer src;
+        private Buffer dst;
 
 
         // ------------------------------------------------------ Public Methods
@@ -210,24 +207,29 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
             return decoder;
         }
 
-
-        public BufferInputStream getInputStream() {
-            return inputStream;
+        public Buffer getSrc() {
+            return src;
         }
 
-
-        public BufferOutputStream getOutputStream() {
-            return outputStream;
+        public void setSrc(Buffer src) {
+            this.src = src;
         }
 
+        public Buffer getDst() {
+            return dst;
+        }
+
+        public void setDst(Buffer dst) {
+            this.dst = dst;
+        }
 
         // ---------------------------------------------- Methods from Cacheable
 
 
         @Override
         public void recycle() {
-            inputStream.recycle();
-            outputStream.recycle();
+            src = null;
+            dst = null;
             initialized = false;
             lastResult = null;
             ThreadCache.putToCache(CACHE_IDX, this);

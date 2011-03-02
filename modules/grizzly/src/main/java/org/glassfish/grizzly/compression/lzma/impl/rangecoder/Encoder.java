@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly.compression.lzma.impl.rangecoder;
 
+import org.glassfish.grizzly.Buffer;
+
 import java.io.IOException;
 
 /**
@@ -53,19 +55,19 @@ public class Encoder {
     static final int kNumBitModelTotalBits = 11;
     static final int kBitModelTotal = (1 << kNumBitModelTotalBits);
     static final int kNumMoveBits = 5;
-    java.io.OutputStream Stream;
+    Buffer dst;
     long Low;
     int Range;
     int _cacheSize;
     int _cache;
     long _position;
 
-    public void setStream(java.io.OutputStream stream) {
-        Stream = stream;
+    public void setBuffer(Buffer dst) {
+        this.dst = dst;
     }
 
-    public void releaseStream() {
-        Stream = null;
+    public void releaseBuffer() {
+        dst = null;
     }
 
     public void init() {
@@ -82,17 +84,13 @@ public class Encoder {
         }
     }
 
-    public void flushStream() throws IOException {
-        Stream.flush();
-    }
-
     public void shiftLow() throws IOException {
         int LowHi = (int) (Low >>> 32);
         if (LowHi != 0 || Low < 0xFF000000L) {
             _position += _cacheSize;
             int temp = _cache;
             do {
-                Stream.write(temp + LowHi);
+                dst.put((byte) (temp + LowHi));
                 temp = 0xFF;
             } while (--_cacheSize != 0);
             _cache = (((int) Low) >>> 24);

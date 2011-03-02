@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly.compression.lzma.impl.lz;
 
+import org.glassfish.grizzly.Buffer;
+
 import java.io.IOException;
 
 /**
@@ -50,7 +52,7 @@ import java.io.IOException;
 public class InWindow {
 
     public byte[] _bufferBase; // pointer to buffer with data
-    java.io.InputStream _stream;
+    Buffer _buffer;
     int _posLimit;  // offset (from _buffer) of first byte when new block reading must be done
     boolean _streamEndWasReached; // if (true) then _streamPos shows real end of stream
     int _pointerToLastSafePosition;
@@ -86,8 +88,11 @@ public class InWindow {
             if (size == 0) {
                 return;
             }
-            int numReadBytes = _stream.read(_bufferBase, _bufferOffset + _streamPos, size);
-            if (numReadBytes == -1) {
+            int pos = _buffer.position();
+            size = Math.min(size, _buffer.remaining());
+            _buffer.get(_bufferBase, _bufferOffset + _streamPos, size);
+            int numReadBytes = _buffer.position() - pos;
+            if (numReadBytes == 0) {
                 _posLimit = _streamPos;
                 int pointerToPostion = _bufferOffset + _posLimit;
                 if (pointerToPostion > _pointerToLastSafePosition) {
@@ -108,7 +113,7 @@ public class InWindow {
         _bufferBase = null;
     }
 
-    public void Create(int keepSizeBefore, int keepSizeAfter, int keepSizeReserv) {
+    public void create(int keepSizeBefore, int keepSizeAfter, int keepSizeReserv) {
         _keepSizeBefore = keepSizeBefore;
         _keepSizeAfter = keepSizeAfter;
         int blockSize = keepSizeBefore + keepSizeAfter + keepSizeReserv;
@@ -120,12 +125,12 @@ public class InWindow {
         _pointerToLastSafePosition = _blockSize - keepSizeAfter;
     }
 
-    public void setStream(java.io.InputStream stream) {
-        _stream = stream;
+    public void setBuffer(Buffer buffer) {
+        _buffer = buffer;
     }
 
-    public void releaseStream() {
-        _stream = null;
+    public void releaseBuffer() {
+        _buffer = null;
     }
 
     public void init() throws IOException {

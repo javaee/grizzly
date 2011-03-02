@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly.compression.lzma.impl.rangecoder;
 
+import org.glassfish.grizzly.Buffer;
+
 import java.io.IOException;
 
 /**
@@ -55,21 +57,21 @@ public class Decoder {
     static final int kNumMoveBits = 5;
     int Range;
     int Code;
-    java.io.InputStream Stream;
+    Buffer src;
 
-    public final void setStream(java.io.InputStream stream) {
-        Stream = stream;
+    public final void setBuffer(Buffer src) {
+        this.src = src;
     }
 
-    public final void releaseStream() {
-        Stream = null;
+    public final void releaseBuffer() {
+        src = null;
     }
 
     public final void init() throws IOException {
         Code = 0;
         Range = -1;
         for (int i = 0; i < 5; i++) {
-            Code = (Code << 8) | Stream.read();
+            Code = (Code << 8) | (src.get() & 0xff);
         }
     }
 
@@ -82,7 +84,7 @@ public class Decoder {
             result = (result << 1) | (1 - t);
 
             if ((Range & kTopMask) == 0) {
-                Code = (Code << 8) | Stream.read();
+                Code = (Code << 8) | (src.get() & 0xff);
                 Range <<= 8;
             }
         }
@@ -96,7 +98,7 @@ public class Decoder {
             Range = newBound;
             probs[index] = (short) (prob + ((kBitModelTotal - prob) >>> kNumMoveBits));
             if ((Range & kTopMask) == 0) {
-                Code = (Code << 8) | Stream.read();
+                Code = (Code << 8) | src.get() & 0xff;
                 Range <<= 8;
             }
             return 0;
@@ -105,7 +107,7 @@ public class Decoder {
             Code -= newBound;
             probs[index] = (short) (prob - ((prob) >>> kNumMoveBits));
             if ((Range & kTopMask) == 0) {
-                Code = (Code << 8) | Stream.read();
+                Code = (Code << 8) | (src.get() & 0xff);
                 Range <<= 8;
             }
             return 1;

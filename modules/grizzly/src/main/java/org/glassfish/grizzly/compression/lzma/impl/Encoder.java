@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.compression.lzma.impl;
 
 
+import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.compression.lzma.impl.lz.BinTree;
 import org.glassfish.grizzly.compression.lzma.impl.rangecoder.BitTreeEncoder;
 
@@ -361,7 +362,7 @@ public class Encoder {
     int _numFastBytesPrev = -1;
     long nowPos64;
     boolean _finished;
-    java.io.InputStream _inStream;
+    Buffer _src;
     int _matchFinderType = EMatchFinderTypeBT4;
     boolean _writeEndMark = false;
     boolean _needReleaseMFStream = false;
@@ -386,7 +387,7 @@ public class Encoder {
         _numFastBytesPrev = _numFastBytes;
     }
 
-    public void encoder() {
+    public Encoder() {
         for (int i = 0; i < kNumOpts; i++) {
             _optimum[i] = new Optimal();
         }
@@ -871,9 +872,9 @@ public class Encoder {
                                 repMatchPrice + getRepPrice(repIndex, lenTest, state, posState) +
                                 org.glassfish.grizzly.compression.lzma.impl.rangecoder.Encoder.getPrice0(_isMatch[(state2 << Base.kNumPosStatesBitsMax) + posStateNext]) +
                                 _literalEncoder.getSubCoder(position + lenTest,
-                                _matchFinder.getIndexByte(lenTest - 1 - 1)).getPrice(true,
-                                _matchFinder.getIndexByte(lenTest - 1 - (reps[repIndex] + 1)),
-                                _matchFinder.getIndexByte(lenTest - 1));
+                                        _matchFinder.getIndexByte(lenTest - 1 - 1)).getPrice(true,
+                                        _matchFinder.getIndexByte(lenTest - 1 - (reps[repIndex] + 1)),
+                                        _matchFinder.getIndexByte(lenTest - 1));
                         state2 = Base.stateUpdateChar(state2);
                         posStateNext = (position + lenTest + 1) & _posStateMask;
                         int nextMatchPrice = curAndLenCharPrice + org.glassfish.grizzly.compression.lzma.impl.rangecoder.Encoder.getPrice1(_isMatch[(state2 << Base.kNumPosStatesBitsMax) + posStateNext]);
@@ -940,10 +941,10 @@ public class Encoder {
                                 int curAndLenCharPrice = curAndLenPrice +
                                         org.glassfish.grizzly.compression.lzma.impl.rangecoder.Encoder.getPrice0(_isMatch[(state2 << Base.kNumPosStatesBitsMax) + posStateNext]) +
                                         _literalEncoder.getSubCoder(position + lenTest,
-                                        _matchFinder.getIndexByte(lenTest - 1 - 1)).
+                                                _matchFinder.getIndexByte(lenTest - 1 - 1)).
                                         getPrice(true,
-                                        _matchFinder.getIndexByte(lenTest - (curBack + 1) - 1),
-                                        _matchFinder.getIndexByte(lenTest - 1));
+                                                _matchFinder.getIndexByte(lenTest - (curBack + 1) - 1),
+                                                _matchFinder.getIndexByte(lenTest - 1));
                                 state2 = Base.stateUpdateChar(state2);
                                 posStateNext = (position + lenTest + 1) & _posStateMask;
                                 int nextMatchPrice = curAndLenCharPrice + org.glassfish.grizzly.compression.lzma.impl.rangecoder.Encoder
@@ -1002,10 +1003,9 @@ public class Encoder {
     }
 
     void flush(int nowPos) throws IOException {
-        releaseMFStream();
+        releaseMFBuffer();
         writeEndMarker(nowPos & _posStateMask);
         _rangeEncoder.flushData();
-        _rangeEncoder.flushStream();
     }
 
     public void codeOneBlock(long[] inSize, long[] outSize, boolean[] finished) throws IOException {
@@ -1013,11 +1013,11 @@ public class Encoder {
         outSize[0] = 0;
         finished[0] = true;
 
-        if (_inStream != null) {
-            _matchFinder.setStream(_inStream);
+        if (_src != null) {
+            _matchFinder.setBuffer(_src);
             _matchFinder.init();
             _needReleaseMFStream = true;
-            _inStream = null;
+            _src = null;
         }
 
         if (_finished) {
@@ -1156,32 +1156,31 @@ public class Encoder {
         }
     }
 
-    void releaseMFStream() {
+    void releaseMFBuffer() {
         if (_matchFinder != null && _needReleaseMFStream) {
-            _matchFinder.releaseStream();
+            _matchFinder.releaseBuffer();
             _needReleaseMFStream = false;
         }
     }
 
-    void setOutStream(java.io.OutputStream outStream) {
-        _rangeEncoder.setStream(outStream);
+    void setDstBuffer(Buffer dst) {
+        _rangeEncoder.setBuffer(dst);
     }
 
-    void releaseOutStream() {
-        _rangeEncoder.releaseStream();
+    void releaseDstBuffer() {
+        _rangeEncoder.releaseBuffer();
     }
 
-    void releaseStreams() {
-        releaseMFStream();
-        releaseOutStream();
+    void releaseBuffers() {
+        releaseMFBuffer();
+        releaseDstBuffer();
     }
 
-    void setStreams(java.io.InputStream inStream, java.io.OutputStream outStream,
-            long inSize, long outSize) {
-        _inStream = inStream;
+    void setStreams(Buffer src, Buffer dst, long inSize, long outSize) {
+        _src = src;
         _finished = false;
         create();
-        setOutStream(outStream);
+        setDstBuffer(dst);
         init();
 
         // if (!_fastMode)
@@ -1201,11 +1200,10 @@ public class Encoder {
     long[] processedOutSize = new long[1];
     boolean[] finished = new boolean[1];
 
-    public void Code(java.io.InputStream inStream, java.io.OutputStream outStream,
-            long inSize, long outSize) throws IOException {
+    public void Code(Buffer src, Buffer dst, long inSize, long outSize) throws IOException {
         _needReleaseMFStream = false;
         try {
-            setStreams(inStream, outStream, inSize, outSize);
+            setStreams(src, dst, inSize, outSize);
             while (true) {
 
 
@@ -1216,21 +1214,21 @@ public class Encoder {
                 }
             }
         } finally {
-            releaseStreams();
+            releaseBuffers();
         }
     }
 
 //	public static final int kPropSize = 5;
 //	byte[] properties = new byte[kPropSize];
-    public void writeCoderProperties(java.io.OutputStream outStream) throws IOException {
+    public void writeCoderProperties(Buffer dst) throws IOException {
 //		properties[0] = (byte)((_posStateBits * 5 + _numLiteralPosStateBits) * 9 + _numLiteralContextBits);
 //		for (int i = 0; i < 4; i++)
 //			properties[1 + i] = (byte)(_dictionarySize >> (8 * i));
 //		outStream.write(properties, 0, kPropSize);
 
-        outStream.write((_posStateBits * 5 + _numLiteralPosStateBits) * 9 + _numLiteralContextBits);
+        dst.put((byte) ((_posStateBits * 5 + _numLiteralPosStateBits) * 9 + _numLiteralContextBits));
         for (int i = 0; i < 4; i++) {
-            outStream.write((byte) (_dictionarySize >> (8 * i)));
+            dst.put((byte) (_dictionarySize >> (8 * i)));
         }
     }
     int[] tempPrices = new int[Base.kNumFullDistances];
