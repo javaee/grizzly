@@ -55,6 +55,9 @@
     <version>1.9.33-SNAPSHOT</version>
     <name>grizzly-samples</name>
     <url>https://grizzly.dev.java.net</url>
+    <properties>
+        <findbugs.skip>true</findbugs.skip>
+    </properties>
     <modules>
         <module>comet/comet-chat</module>
         <module>comet/comet-chat-iframe</module>

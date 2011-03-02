@@ -208,6 +208,18 @@
                     </archive>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+                <version>${findbugs.version}</version>
+                <configuration>
+                    <skip>${findbugs.skip}</skip>
+                    <threshold>${findbugs.threshold}</threshold>
+                    <excludeFilterFile>${findbugs.exclude}</excludeFilterFile>
+                    <findbugsXmlOutput>true</findbugsXmlOutput>
+                    <findbugsXmlWithMessages>true</findbugsXmlWithMessages>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
     <profiles>
@@ -322,10 +334,13 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>findbugs-maven-plugin</artifactId>
-                <version>2.3.1</version>
+                <version>${findbugs.version}</version>
                 <configuration>
+                    <skip>${findbugs.skip}</skip>
                     <xmlOutput>true</xmlOutput>
                     <xmlOutputDirectory>${project.reporting.outputDirectory}</xmlOutputDirectory>
+                    <threshold>${findbugs.threshold}</threshold>
+                    <excludeFilterFile>${findbugs.exclude}</excludeFilterFile>
                 </configuration>
             </plugin>
         </plugins>
@@ -491,5 +506,9 @@
         <maven-plugin.version>1.0.0</maven-plugin.version>
         <servlet-version>2.5</servlet-version>
         <cobertura.version>2.4</cobertura.version>
+        <findbugs.skip>false</findbugs.skip>
+        <findbugs.version>2.3.1</findbugs.version>
+        <findbugs.exclude></findbugs.exclude>
+        <findbugs.threshold>High</findbugs.threshold>
     </properties>
 </project>
