@@ -57,15 +57,15 @@ public class Decoder {
     int Code;
     java.io.InputStream Stream;
 
-    public final void SetStream(java.io.InputStream stream) {
+    public final void setStream(java.io.InputStream stream) {
         Stream = stream;
     }
 
-    public final void ReleaseStream() {
+    public final void releaseStream() {
         Stream = null;
     }
 
-    public final void Init() throws IOException {
+    public final void init() throws IOException {
         Code = 0;
         Range = -1;
         for (int i = 0; i < 5; i++) {
@@ -73,7 +73,7 @@ public class Decoder {
         }
     }
 
-    public final int DecodeDirectBits(int numTotalBits) throws IOException {
+    public final int decodeDirectBits(int numTotalBits) throws IOException {
         int result = 0;
         for (int i = numTotalBits; i != 0; i--) {
             Range >>>= 1;
@@ -89,7 +89,7 @@ public class Decoder {
         return result;
     }
 
-    public int DecodeBit(short[] probs, int index) throws IOException {
+    public int decodeBit(short[] probs, int index) throws IOException {
         int prob = probs[index];
         int newBound = (Range >>> kNumBitModelTotalBits) * prob;
         if ((Code ^ 0x80000000) < (newBound ^ 0x80000000)) {
@@ -112,7 +112,7 @@ public class Decoder {
         }
     }
 
-    public static void InitBitModels(short[] probs) {
+    public static void initBitModels(short[] probs) {
         for (int i = 0; i < probs.length; i++) {
             probs[i] = (kBitModelTotal >>> 1);
         }

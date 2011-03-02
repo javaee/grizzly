@@ -102,6 +102,7 @@ class BufferOutputStream extends OutputStream implements Cacheable {
     public void write(int b)
             throws IOException {
 
+        ensureCapacity(1);
         dst.put((byte) (b & 0xff));
 
     }
@@ -114,8 +115,8 @@ class BufferOutputStream extends OutputStream implements Cacheable {
     public void write(byte[] b, int off, int len)
             throws IOException {
 
+        ensureCapacity(len);
         dst.put(b, off, len);
-
     }
 
 
@@ -132,6 +133,20 @@ class BufferOutputStream extends OutputStream implements Cacheable {
      */
     @Override
     public void close() throws IOException {
+    }
+
+
+    // --------------------------------------------------------- Private Methods
+
+
+    private void ensureCapacity(int len) {
+        final int rem = dst.remaining();
+        if (rem < len) {
+            dst = manager.reallocate(dst,
+                                     Math.max(
+                                         dst.capacity() + len,
+                                         (dst.capacity() * 3) / 2 + 1));
+        }
     }
 
 }

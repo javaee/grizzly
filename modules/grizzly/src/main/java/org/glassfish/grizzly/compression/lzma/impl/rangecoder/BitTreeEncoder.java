@@ -57,11 +57,11 @@ public class BitTreeEncoder {
         Models = new short[1 << numBitLevels];
     }
 
-    public void Init() {
+    public void init() {
         Decoder.InitBitModels(Models);
     }
 
-    public void Encode(Encoder rangeEncoder, int symbol) throws IOException {
+    public void encode(Encoder rangeEncoder, int symbol) throws IOException {
         int m = 1;
         for (int bitIndex = NumBitLevels; bitIndex != 0;) {
             bitIndex--;
@@ -71,7 +71,7 @@ public class BitTreeEncoder {
         }
     }
 
-    public void ReverseEncode(Encoder rangeEncoder, int symbol) throws IOException {
+    public void reverseEncode(Encoder rangeEncoder, int symbol) throws IOException {
         int m = 1;
         for (int i = 0; i < NumBitLevels; i++) {
             int bit = symbol & 1;
@@ -81,7 +81,7 @@ public class BitTreeEncoder {
         }
     }
 
-    public int GetPrice(int symbol) {
+    public int getPrice(int symbol) {
         int price = 0;
         int m = 1;
         for (int bitIndex = NumBitLevels; bitIndex != 0;) {
@@ -93,7 +93,7 @@ public class BitTreeEncoder {
         return price;
     }
 
-    public int ReverseGetPrice(int symbol) {
+    public int reverseGetPrice(int symbol) {
         int price = 0;
         int m = 1;
         for (int i = NumBitLevels; i != 0; i--) {
@@ -105,7 +105,7 @@ public class BitTreeEncoder {
         return price;
     }
 
-    public static int ReverseGetPrice(short[] Models, int startIndex,
+    public static int reverseGetPrice(short[] Models, int startIndex,
             int NumBitLevels, int symbol) {
         int price = 0;
         int m = 1;
@@ -118,7 +118,7 @@ public class BitTreeEncoder {
         return price;
     }
 
-    public static void ReverseEncode(short[] Models, int startIndex,
+    public static void reverseEncode(short[] Models, int startIndex,
             Encoder rangeEncoder, int NumBitLevels, int symbol) throws IOException {
         int m = 1;
         for (int i = 0; i < NumBitLevels; i++) {

@@ -54,7 +54,7 @@ public class Base {
         return 0;
     }
 
-    public static final int StateUpdateChar(int index) {
+    public static final int stateUpdateChar(int index) {
         if (index < 4) {
             return 0;
         }
@@ -64,19 +64,19 @@ public class Base {
         return index - 6;
     }
 
-    public static final int StateUpdateMatch(int index) {
+    public static final int stateUpdateMatch(int index) {
         return (index < 7 ? 7 : 10);
     }
 
-    public static final int StateUpdateRep(int index) {
+    public static final int stateUpdateRep(int index) {
         return (index < 7 ? 8 : 11);
     }
 
-    public static final int StateUpdateShortRep(int index) {
+    public static final int stateUpdateShortRep(int index) {
         return (index < 7 ? 9 : 11);
     }
 
-    public static final boolean StateIsCharState(int index) {
+    public static final boolean stateIsCharState(int index) {
         return index < 7;
     }
     public static final int kNumPosSlotBits = 6;
@@ -87,7 +87,7 @@ public class Base {
     public static final int kNumLenToPosStates = 1 << kNumLenToPosStatesBits;
     public static final int kMatchMinLen = 2;
 
-    public static final int GetLenToPosState(int len) {
+    public static final int getLenToPosState(int len) {
         len -= kMatchMinLen;
         if (len < kNumLenToPosStates) {
             return len;

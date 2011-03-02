@@ -55,7 +55,7 @@ public class OutWindow {
     int _streamPos;
     java.io.OutputStream _stream;
 
-    public void Create(int windowSize) {
+    public void create(int windowSize) {
         if (_buffer == null || _windowSize != windowSize) {
             _buffer = new byte[windowSize];
         }
@@ -64,24 +64,24 @@ public class OutWindow {
         _streamPos = 0;
     }
 
-    public void SetStream(java.io.OutputStream stream) throws IOException {
-        ReleaseStream();
+    public void setStream(java.io.OutputStream stream) throws IOException {
+        releaseStream();
         _stream = stream;
     }
 
-    public void ReleaseStream() throws IOException {
+    public void releaseStream() throws IOException {
         //Flush();
         _stream = null;
     }
 
-    public void Init(boolean solid) {
+    public void init(boolean solid) {
         if (!solid) {
             _streamPos = 0;
             _pos = 0;
         }
     }
 
-    public void Flush() throws IOException {
+    public void flush() throws IOException {
         int size = _pos - _streamPos;
         if (size == 0) {
             return;
@@ -93,7 +93,7 @@ public class OutWindow {
         _streamPos = _pos;
     }
 
-    public void CopyBlock(int distance, int len) throws IOException {
+    public void copyBlock(int distance, int len) throws IOException {
         int pos = _pos - distance - 1;
         if (pos < 0) {
             pos += _windowSize;
@@ -104,7 +104,7 @@ public class OutWindow {
             }
             _buffer[_pos++] = _buffer[pos++];
             if (_pos >= _windowSize) {
-                Flush();
+                flush();
             }
         }
     }
@@ -112,11 +112,11 @@ public class OutWindow {
     public void PutByte(byte b) throws IOException {
         _buffer[_pos++] = b;
         if (_pos >= _windowSize) {
-            Flush();
+            flush();
         }
     }
 
-    public byte GetByte(int distance) {
+    public byte getByte(int distance) {
         int pos = _pos - distance - 1;
         if (pos < 0) {
             pos += _windowSize;

@@ -76,16 +76,14 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
         final MemoryManager memoryManager = obtainMemoryManager(storage);
 
         final LZMAInputState state = (LZMAInputState) obtainStateObject(storage);
-
-         if (!state.isInitialized()) {
+        if (!state.isInitialized()) {
             if (!initializeInput(state, input)) {
                 return TransformationResult.createIncompletedResult(input);
             }
         }
-
         Buffer decodedBuffer = null;
-
-        if (input.hasRemaining() && eosMarkerPresent(input)) {
+        final boolean canDecode = input.hasRemaining() && eosMarkerPresent(input);
+        if (canDecode) {
             decodedBuffer = decodeBuffer(memoryManager, input, state);
         }
 
@@ -139,7 +137,7 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
     private boolean initializeInput(final LZMAInputState state,
                                     final Buffer input) {
 
-        return (input.remaining() >= 5 && state.initialize(input));
+        return (input.remaining() >= 13 && state.initialize(input));
 
     }
 
@@ -158,7 +156,7 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
             Buffer decodedBuffer = memoryManager.allocate(512);
             state.getOutputStream().setBuffer(decodedBuffer, memoryManager);
             try {
-                state.getDecoder().Code(state.getInputStream(),
+                state.getDecoder().code(state.getInputStream(),
                                         state.getOutputStream(),
                                         -1);
             } catch (IOException e) {
@@ -200,7 +198,7 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
 
         public boolean initialize(final Buffer buffer) {
             buffer.get(decoderConfigBits);
-            initialized = decoder.SetDecoderProperties(decoderConfigBits);
+            initialized = decoder.setDecoderProperties(decoderConfigBits);
             return initialized;
         }
 

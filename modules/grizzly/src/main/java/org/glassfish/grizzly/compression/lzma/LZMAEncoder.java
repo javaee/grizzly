@@ -154,12 +154,12 @@ public class LZMAEncoder extends AbstractTransformer<Buffer,Buffer> {
 
     private void initializeOutput(final LZMAOutputState state) {
         final Encoder encoder = state.getEncoder();
-        encoder.SetAlgorithm(lzmaProperties.getAlgorithm());
-        encoder.SetDictionarySize(lzmaProperties.getDictionarySize());
-        encoder.SetNumFastBytes(lzmaProperties.getNumFastBytes());
-        encoder.SetMatchFinder(lzmaProperties.getMatchFinder());
-        encoder.SetLcLpPb(lzmaProperties.getLc(), lzmaProperties.getLp(), lzmaProperties.getPb());
-        encoder.SetEndMarkerMode(true);
+        encoder.setAlgorithm(lzmaProperties.getAlgorithm());
+        encoder.setDictionarySize(lzmaProperties.getDictionarySize());
+        encoder.setNumFastBytes(lzmaProperties.getNumFastBytes());
+        encoder.setMatchFinder(lzmaProperties.getMatchFinder());
+        encoder.setLcLpPb(lzmaProperties.getLc(), lzmaProperties.getLp(), lzmaProperties.getPb());
+        encoder.setEndMarkerMode(true);
         state.setInitialized(true);
     }
 
@@ -192,18 +192,19 @@ public class LZMAEncoder extends AbstractTransformer<Buffer,Buffer> {
         final Encoder encoder = outputState.getEncoder();
         final BufferInputStream inputStream = outputState.getInputStream();
         final BufferOutputStream outputStream = outputState.getOutputStream();
-        final Buffer buffer = memoryManager.allocate(512);
+        Buffer buffer = memoryManager.allocate(512);
 
         outputStream.setBuffer(buffer, memoryManager);
 
         if (!outputState.isHeaderWritten()) {
             // writes a 5-byte header that the decoder will use in order
             // to achieve parity with the encoder's properties.
-            encoder.WriteCoderProperties(outputStream);
+            encoder.writeCoderProperties(outputStream);
             outputState.setHeaderWritten(true);
         }
 
         encoder.Code(inputStream, outputStream, -1, -1);
+        buffer = outputStream.getBuffer();
         int len = buffer.position();
         if (len <= 0) {
             buffer.dispose();

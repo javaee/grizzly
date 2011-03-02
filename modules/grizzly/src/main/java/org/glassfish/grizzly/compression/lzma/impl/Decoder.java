@@ -61,31 +61,31 @@ public class Decoder {
         BitTreeDecoder m_HighCoder = new BitTreeDecoder(Base.kNumHighLenBits);
         int m_NumPosStates = 0;
 
-        public void Create(int numPosStates) {
+        public void create(int numPosStates) {
             for (; m_NumPosStates < numPosStates; m_NumPosStates++) {
                 m_LowCoder[m_NumPosStates] = new BitTreeDecoder(Base.kNumLowLenBits);
                 m_MidCoder[m_NumPosStates] = new BitTreeDecoder(Base.kNumMidLenBits);
             }
         }
 
-        public void Init() {
-            org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder.InitBitModels(m_Choice);
+        public void init() {
+            org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder.initBitModels(m_Choice);
             for (int posState = 0; posState < m_NumPosStates; posState++) {
-                m_LowCoder[posState].Init();
-                m_MidCoder[posState].Init();
+                m_LowCoder[posState].init();
+                m_MidCoder[posState].init();
             }
-            m_HighCoder.Init();
+            m_HighCoder.init();
         }
 
-        public int Decode(org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder rangeDecoder, int posState) throws IOException {
-            if (rangeDecoder.DecodeBit(m_Choice, 0) == 0) {
-                return m_LowCoder[posState].Decode(rangeDecoder);
+        public int decode(org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder rangeDecoder, int posState) throws IOException {
+            if (rangeDecoder.decodeBit(m_Choice, 0) == 0) {
+                return m_LowCoder[posState].decode(rangeDecoder);
             }
             int symbol = Base.kNumLowLenSymbols;
-            if (rangeDecoder.DecodeBit(m_Choice, 1) == 0) {
-                symbol += m_MidCoder[posState].Decode(rangeDecoder);
+            if (rangeDecoder.decodeBit(m_Choice, 1) == 0) {
+                symbol += m_MidCoder[posState].decode(rangeDecoder);
             } else {
-                symbol += Base.kNumMidLenSymbols + m_HighCoder.Decode(rangeDecoder);
+                symbol += Base.kNumMidLenSymbols + m_HighCoder.decode(rangeDecoder);
             }
             return symbol;
         }
@@ -97,28 +97,28 @@ public class Decoder {
 
             short[] m_Decoders = new short[0x300];
 
-            public void Init() {
-                org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder.InitBitModels(m_Decoders);
+            public void init() {
+                org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder.initBitModels(m_Decoders);
             }
 
-            public byte DecodeNormal(org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder rangeDecoder) throws IOException {
+            public byte decodeNormal(org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder rangeDecoder) throws IOException {
                 int symbol = 1;
                 do {
-                    symbol = (symbol << 1) | rangeDecoder.DecodeBit(m_Decoders, symbol);
+                    symbol = (symbol << 1) | rangeDecoder.decodeBit(m_Decoders, symbol);
                 } while (symbol < 0x100);
                 return (byte) symbol;
             }
 
-            public byte DecodeWithMatchByte(org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder rangeDecoder, byte matchByte) throws IOException {
+            public byte decodeWithMatchByte(org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder rangeDecoder, byte matchByte) throws IOException {
                 int symbol = 1;
                 do {
                     int matchBit = (matchByte >> 7) & 1;
                     matchByte <<= 1;
-                    int bit = rangeDecoder.DecodeBit(m_Decoders, ((1 + matchBit) << 8) + symbol);
+                    int bit = rangeDecoder.decodeBit(m_Decoders, ((1 + matchBit) << 8) + symbol);
                     symbol = (symbol << 1) | bit;
                     if (matchBit != bit) {
                         while (symbol < 0x100) {
-                            symbol = (symbol << 1) | rangeDecoder.DecodeBit(m_Decoders, symbol);
+                            symbol = (symbol << 1) | rangeDecoder.decodeBit(m_Decoders, symbol);
                         }
                         break;
                     }
@@ -131,7 +131,7 @@ public class Decoder {
         int m_NumPosBits;
         int m_PosMask;
 
-        public void Create(int numPosBits, int numPrevBits) {
+        public void create(int numPosBits, int numPrevBits) {
             if (m_Coders != null && m_NumPrevBits == numPrevBits && m_NumPosBits == numPosBits) {
                 return;
             }
@@ -145,14 +145,14 @@ public class Decoder {
             }
         }
 
-        public void Init() {
+        public void init() {
             int numStates = 1 << (m_NumPrevBits + m_NumPosBits);
             for (int i = 0; i < numStates; i++) {
-                m_Coders[i].Init();
+                m_Coders[i].init();
             }
         }
 
-        Decoder2 GetDecoder(int pos, byte prevByte) {
+        Decoder2 getDecoder(int pos, byte prevByte) {
             return m_Coders[((pos & m_PosMask) << m_NumPrevBits) + ((prevByte & 0xFF) >>> (8 - m_NumPrevBits))];
         }
     }
@@ -180,57 +180,57 @@ public class Decoder {
         }
     }
 
-    boolean SetDictionarySize(int dictionarySize) {
+    boolean setDictionarySize(int dictionarySize) {
         if (dictionarySize < 0) {
             return false;
         }
         if (m_DictionarySize != dictionarySize) {
             m_DictionarySize = dictionarySize;
             m_DictionarySizeCheck = Math.max(m_DictionarySize, 1);
-            m_OutWindow.Create(Math.max(m_DictionarySizeCheck, (1 << 12)));
+            m_OutWindow.create(Math.max(m_DictionarySizeCheck, (1 << 12)));
         }
         return true;
     }
 
-    boolean SetLcLpPb(int lc, int lp, int pb) {
+    boolean setLcLpPb(int lc, int lp, int pb) {
         if (lc > Base.kNumLitContextBitsMax || lp > 4 || pb > Base.kNumPosStatesBitsMax) {
             return false;
         }
-        m_LiteralDecoder.Create(lp, lc);
+        m_LiteralDecoder.create(lp, lc);
         int numPosStates = 1 << pb;
-        m_LenDecoder.Create(numPosStates);
-        m_RepLenDecoder.Create(numPosStates);
+        m_LenDecoder.create(numPosStates);
+        m_RepLenDecoder.create(numPosStates);
         m_PosStateMask = numPosStates - 1;
         return true;
     }
 
-    void Init() throws IOException {
-        m_OutWindow.Init(false);
+    void init() throws IOException {
+        m_OutWindow.init(false);
 
-        org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder.InitBitModels(m_IsMatchDecoders);
-        org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder.InitBitModels(m_IsRep0LongDecoders);
-        org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder.InitBitModels(m_IsRepDecoders);
-        org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder.InitBitModels(m_IsRepG0Decoders);
-        org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder.InitBitModels(m_IsRepG1Decoders);
-        org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder.InitBitModels(m_IsRepG2Decoders);
-        org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder.InitBitModels(m_PosDecoders);
+        org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder.initBitModels(m_IsMatchDecoders);
+        org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder.initBitModels(m_IsRep0LongDecoders);
+        org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder.initBitModels(m_IsRepDecoders);
+        org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder.initBitModels(m_IsRepG0Decoders);
+        org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder.initBitModels(m_IsRepG1Decoders);
+        org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder.initBitModels(m_IsRepG2Decoders);
+        org.glassfish.grizzly.compression.lzma.impl.rangecoder.Decoder.initBitModels(m_PosDecoders);
 
-        m_LiteralDecoder.Init();
+        m_LiteralDecoder.init();
         int i;
         for (i = 0; i < Base.kNumLenToPosStates; i++) {
-            m_PosSlotDecoder[i].Init();
+            m_PosSlotDecoder[i].init();
         }
-        m_LenDecoder.Init();
-        m_RepLenDecoder.Init();
-        m_PosAlignDecoder.Init();
-        m_RangeDecoder.Init();
+        m_LenDecoder.init();
+        m_RepLenDecoder.init();
+        m_PosAlignDecoder.init();
+        m_RangeDecoder.init();
     }
 
-    public boolean Code(java.io.InputStream inStream, java.io.OutputStream outStream,
+    public boolean code(java.io.InputStream inStream, java.io.OutputStream outStream,
             long outSize) throws IOException {
-        m_RangeDecoder.SetStream(inStream);
-        m_OutWindow.SetStream(outStream);
-        Init();
+        m_RangeDecoder.setStream(inStream);
+        m_OutWindow.setStream(outStream);
+        init();
 
         int state = Base.StateInit();
         int rep0 = 0, rep1 = 0, rep2 = 0, rep3 = 0;
@@ -239,31 +239,31 @@ public class Decoder {
         byte prevByte = 0;
         while (outSize < 0 || nowPos64 < outSize) {
             int posState = (int) nowPos64 & m_PosStateMask;
-            if (m_RangeDecoder.DecodeBit(m_IsMatchDecoders, (state << Base.kNumPosStatesBitsMax) + posState) == 0) {
-                LiteralDecoder.Decoder2 decoder2 = m_LiteralDecoder.GetDecoder((int) nowPos64, prevByte);
-                if (!Base.StateIsCharState(state)) {
-                    prevByte = decoder2.DecodeWithMatchByte(m_RangeDecoder, m_OutWindow.GetByte(rep0));
+            if (m_RangeDecoder.decodeBit(m_IsMatchDecoders, (state << Base.kNumPosStatesBitsMax) + posState) == 0) {
+                LiteralDecoder.Decoder2 decoder2 = m_LiteralDecoder.getDecoder((int) nowPos64, prevByte);
+                if (!Base.stateIsCharState(state)) {
+                    prevByte = decoder2.decodeWithMatchByte(m_RangeDecoder, m_OutWindow.getByte(rep0));
                 } else {
-                    prevByte = decoder2.DecodeNormal(m_RangeDecoder);
+                    prevByte = decoder2.decodeNormal(m_RangeDecoder);
                 }
                 m_OutWindow.PutByte(prevByte);
-                state = Base.StateUpdateChar(state);
+                state = Base.stateUpdateChar(state);
                 nowPos64++;
             } else {
                 int len;
-                if (m_RangeDecoder.DecodeBit(m_IsRepDecoders, state) == 1) {
+                if (m_RangeDecoder.decodeBit(m_IsRepDecoders, state) == 1) {
                     len = 0;
-                    if (m_RangeDecoder.DecodeBit(m_IsRepG0Decoders, state) == 0) {
-                        if (m_RangeDecoder.DecodeBit(m_IsRep0LongDecoders, (state << Base.kNumPosStatesBitsMax) + posState) == 0) {
-                            state = Base.StateUpdateShortRep(state);
+                    if (m_RangeDecoder.decodeBit(m_IsRepG0Decoders, state) == 0) {
+                        if (m_RangeDecoder.decodeBit(m_IsRep0LongDecoders, (state << Base.kNumPosStatesBitsMax) + posState) == 0) {
+                            state = Base.stateUpdateShortRep(state);
                             len = 1;
                         }
                     } else {
                         int distance;
-                        if (m_RangeDecoder.DecodeBit(m_IsRepG1Decoders, state) == 0) {
+                        if (m_RangeDecoder.decodeBit(m_IsRepG1Decoders, state) == 0) {
                             distance = rep1;
                         } else {
-                            if (m_RangeDecoder.DecodeBit(m_IsRepG2Decoders, state) == 0) {
+                            if (m_RangeDecoder.decodeBit(m_IsRepG2Decoders, state) == 0) {
                                 distance = rep2;
                             } else {
                                 distance = rep3;
@@ -275,26 +275,26 @@ public class Decoder {
                         rep0 = distance;
                     }
                     if (len == 0) {
-                        len = m_RepLenDecoder.Decode(m_RangeDecoder, posState) + Base.kMatchMinLen;
-                        state = Base.StateUpdateRep(state);
+                        len = m_RepLenDecoder.decode(m_RangeDecoder, posState) + Base.kMatchMinLen;
+                        state = Base.stateUpdateRep(state);
                     }
                 } else {
                     rep3 = rep2;
                     rep2 = rep1;
                     rep1 = rep0;
-                    len = Base.kMatchMinLen + m_LenDecoder.Decode(m_RangeDecoder, posState);
-                    state = Base.StateUpdateMatch(state);
-                    int posSlot = m_PosSlotDecoder[Base.GetLenToPosState(len)].Decode(m_RangeDecoder);
+                    len = Base.kMatchMinLen + m_LenDecoder.decode(m_RangeDecoder, posState);
+                    state = Base.stateUpdateMatch(state);
+                    int posSlot = m_PosSlotDecoder[Base.getLenToPosState(len)].decode(m_RangeDecoder);
                     if (posSlot >= Base.kStartPosModelIndex) {
                         int numDirectBits = (posSlot >> 1) - 1;
                         rep0 = ((2 | (posSlot & 1)) << numDirectBits);
                         if (posSlot < Base.kEndPosModelIndex) {
-                            rep0 += BitTreeDecoder.ReverseDecode(m_PosDecoders,
+                            rep0 += BitTreeDecoder.reverseDecode(m_PosDecoders,
                                     rep0 - posSlot - 1, m_RangeDecoder, numDirectBits);
                         } else {
-                            rep0 += (m_RangeDecoder.DecodeDirectBits(
+                            rep0 += (m_RangeDecoder.decodeDirectBits(
                                     numDirectBits - Base.kNumAlignBits) << Base.kNumAlignBits);
-                            rep0 += m_PosAlignDecoder.ReverseDecode(m_RangeDecoder);
+                            rep0 += m_PosAlignDecoder.reverseDecode(m_RangeDecoder);
                             if (rep0 < 0) {
                                 if (rep0 == -1) {
                                     break;
@@ -310,18 +310,18 @@ public class Decoder {
                     // m_OutWindow.Flush();
                     return false;
                 }
-                m_OutWindow.CopyBlock(rep0, len);
+                m_OutWindow.copyBlock(rep0, len);
                 nowPos64 += len;
-                prevByte = m_OutWindow.GetByte(0);
+                prevByte = m_OutWindow.getByte(0);
             }
         }
-        m_OutWindow.Flush();
-        m_OutWindow.ReleaseStream();
-        m_RangeDecoder.ReleaseStream();
+        m_OutWindow.flush();
+        m_OutWindow.releaseStream();
+        m_RangeDecoder.releaseStream();
         return true;
     }
 
-    public boolean SetDecoderProperties(byte[] properties) {
+    public boolean setDecoderProperties(byte[] properties) {
         if (properties.length < 5) {
             return false;
         }
@@ -334,9 +334,9 @@ public class Decoder {
         for (int i = 0; i < 4; i++) {
             dictionarySize += ((int) (properties[1 + i]) & 0xFF) << (i * 8);
         }
-        if (!SetLcLpPb(lc, lp, pb)) {
+        if (!setLcLpPb(lc, lp, pb)) {
             return false;
         }
-        return SetDictionarySize(dictionarySize);
+        return setDictionarySize(dictionarySize);
     }
 }
