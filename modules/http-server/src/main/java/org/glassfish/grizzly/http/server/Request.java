@@ -88,16 +88,12 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.attributes.Attribute;
-import org.glassfish.grizzly.attributes.AttributeBuilder;
-import org.glassfish.grizzly.attributes.AttributeHolder;
-import org.glassfish.grizzly.attributes.DefaultAttributeBuilder;
-import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.Cookies;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.Method;
+import org.glassfish.grizzly.http.Note;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.server.io.InputBuffer;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
@@ -142,11 +138,6 @@ public class Request {
 
         return new Request();
     }
-
-
-    private static final AttributeBuilder ATTR_BUILDER =
-            new DefaultAttributeBuilder();
-
 
     // ------------------------------------------------------------- Properties
     /**
@@ -241,6 +232,8 @@ public class Request {
 
     // --------------------------------------------------------------------- //
 
+    // ----------------------------------------------------- Instance Variables
+
     /**
      * HTTP Request Packet
      */
@@ -258,41 +251,6 @@ public class Request {
 
     private MappingData cachedMappingData;
     
-    // ----------------------------------------------------------- Constructors
-
-
-    protected Request() {
-    }
-
-    public void initialize(final Response response,
-                           final HttpRequestPacket request,
-                           final FilterChainContext ctx,
-                           final HttpServerFilter httpServerFilter) {
-        this.response = response;
-        this.request = request;
-        this.ctx = ctx;
-        this.httpServerFilter = httpServerFilter;
-        inputBuffer.initialize(request, ctx);
-        
-        parameters.setHeaders(request.getHeaders());
-        parameters.setQuery(request.getQueryStringDC());
-    }
-
-    final HttpServerFilter getServerFilter() {
-        return httpServerFilter;
-    }
-
-    /**
-     * Get the Coyote request.
-     */
-    public HttpRequestPacket getRequest() {
-        return this.request;
-    }
-
-
-    // ----------------------------------------------------- Instance Variables
-
-
     /**
      * The string manager for this package.
      */
@@ -316,7 +274,7 @@ public class Request {
     /**
      * The attributes associated with this Request, keyed by attribute name.
      */
-    protected final HashMap<String, Object> attributes = new HashMap<String, Object>();
+//    protected final HashMap<String, Object> attributes = new HashMap<String, Object>();
 
 
     /**
@@ -329,16 +287,6 @@ public class Request {
      * The preferred Locales associated with this Request.
      */
     protected final ArrayList<Locale> locales = new ArrayList<Locale>();
-
-
-    /**
-     * Internal notes associated with this request by Catalina components
-     * and event listeners.
-     */
-//    private transient HashMap<String,Object> notes = new HashMap<String,Object>();
-
-    private final transient AttributeHolder notesHolder =
-            new IndexedAttributeHolder(ATTR_BUILDER);
 
 
     /**
@@ -495,14 +443,45 @@ public class Request {
      */
     protected Response response = null;
 
+    // ----------------------------------------------------------- Constructors
+
+
+    protected Request() {
+    }
+
+    // --------------------------------------------------------- Public Methods
+
+    public void initialize(final Response response,
+                           final HttpRequestPacket request,
+                           final FilterChainContext ctx,
+                           final HttpServerFilter httpServerFilter) {
+        this.response = response;
+        this.request = request;
+        this.ctx = ctx;
+        this.httpServerFilter = httpServerFilter;
+        inputBuffer.initialize(request, ctx);
+
+        parameters.setHeaders(request.getHeaders());
+        parameters.setQuery(request.getQueryStringDC());
+    }
+
+    final HttpServerFilter getServerFilter() {
+        return httpServerFilter;
+    }
+
+    /**
+     * Get the Coyote request.
+     */
+    public HttpRequestPacket getRequest() {
+        return this.request;
+    }
+
     /**
      * Return the Response with which this Request is associated.
      */
     public Response getResponse() {
         return response;
     }
-
-    // --------------------------------------------------------- Public Methods
 
     /**
      * Add the listener, which will be notified, once <tt>Request</tt> processing will be finished.
@@ -570,7 +549,6 @@ public class Request {
         ctx = null;
         httpServerFilter = null;
 
-        attributes.clear();
         cookies = null;
         requestedSessionId = null;
         session = null;
@@ -661,7 +639,7 @@ public class Request {
      */
     @SuppressWarnings({"unchecked"})
     public static <E> Note<E> createNote(final String name) {
-        return new Note(ATTR_BUILDER.createAttribute(name));
+        return HttpRequestPacket.createNote(name);
     }
     
     /**
@@ -672,7 +650,7 @@ public class Request {
      * @param note {@link Note} value to be returned
      */
     public <E> E getNote(final Note<E> note) {
-        return note.attribute.get(notesHolder);
+        return request.getNote(note);
     }
 
 
@@ -685,7 +663,7 @@ public class Request {
      * that exist for this request.
      */
     public Set<String> getNoteNames() {
-        return notesHolder.getAttributeNames();
+        return request.getNoteNames();
     }
 
 
@@ -696,7 +674,7 @@ public class Request {
      * @param note {@link Note} value to be removed
      */
     public <E> E removeNote(final Note<E> note) {
-        return note.attribute.remove(notesHolder);
+        return request.removeNote(note);
     }
 
 
@@ -709,7 +687,7 @@ public class Request {
      * @param value the {@link Note} value be bound to the specified {@link Note}.
      */
     public <E> void setNote(final Note<E> note, final E value) {
-        note.attribute.set(notesHolder, value);
+        request.setNote(note, value);
     }
 
 
@@ -758,17 +736,36 @@ public class Request {
      * @param name Name of the request attribute to return
      */
     public Object getAttribute(String name) {
-        return attributes.get(name);
+        Object attribute = request.getAttribute(name);
+
+        if (attribute != null) {
+            return attribute;
+        }
+
+        // XXX Should move to Globals
+        if (Globals.SSL_CERTIFICATE_ATTR.equals(name)) {
+            attribute = populateCertificateAttribute();
+
+            if (attribute != null) {
+                request.setAttribute(name, attribute);
+            }
+        } else if (isSSLAttribute(name)) {
+            populateSSLAttributes();
+            
+            attribute = request.getAttribute(name);
+        }
+        
+        return attribute;
     }
 
 
     /**
      * Test if a given name is one of the special Servlet-spec SSL attributes.
      */
-    static boolean isSSLAttribute(String name) {
-        return Globals.CERTIFICATES_ATTR.equals(name) ||
-            Globals.CIPHER_SUITE_ATTR.equals(name) ||
-            Globals.KEY_SIZE_ATTR.equals(name);
+    static boolean isSSLAttribute(final String name) {
+        return Globals.CERTIFICATES_ATTR.equals(name)
+                || Globals.CIPHER_SUITE_ATTR.equals(name)
+                || Globals.KEY_SIZE_ATTR.equals(name);
     }
 
     /**
@@ -776,7 +773,7 @@ public class Request {
      * empty {@link Set} if there are none.
      */
     public Set<String> getAttributeNames() {
-        return attributes.keySet();
+        return request.getAttributeNames();
     }
 
 
@@ -1097,10 +1094,8 @@ public class Request {
         if (readOnlyAttributes.containsKey(name)) {
             return;
         }
-        boolean found = attributes.containsKey(name);
-        if (found) {
-            attributes.remove(name);
-        }
+        
+        request.removeAttribute(name);
     }
 
 
@@ -1110,7 +1105,7 @@ public class Request {
      * @param name Name of the request attribute to set
      * @param value The associated value
      */
-    public void setAttribute(String name, Object value) {
+    public void setAttribute(final String name, final Object value) {
 
         // Name cannot be null
         if (name == null)
@@ -1138,7 +1133,7 @@ public class Request {
             return;
         }
 
-        attributes.put(name, value);
+        request.setAttribute(name, value);
 
     }
 
@@ -1680,19 +1675,11 @@ public class Request {
     public Principal getUserPrincipal() {
         if (userPrincipal == null) {
             if (getRequest().isSecure()) {
-                X509Certificate[] certs;
-                SSLFilter.CertificateEvent event = new SSLFilter.CertificateEvent(true);
-                try {
-                    ctx.notifyDownstream(event);
-                } catch (IOException ioe) {
-                    if (LOGGER.isLoggable(Level.FINE)) {
-                        LOGGER.log(Level.FINE, ioe.toString(), ioe);
-                    }
-                }
-                certs = (X509Certificate[]) event.getCertificates();
+                X509Certificate certs[] = (X509Certificate[]) getAttribute(
+                        Globals.CERTIFICATES_ATTR);
                 if ((certs == null) || (certs.length < 1)) {
-                    certs = (X509Certificate[])
-                            getAttribute(Globals.SSL_CERTIFICATE_ATTR);
+                    certs = (X509Certificate[]) getAttribute(
+                            Globals.SSL_CERTIFICATE_ATTR);
                 }
                 if ((certs == null) || (certs.length < 1)) {
                     userPrincipal = null;
@@ -1701,14 +1688,17 @@ public class Request {
                 }
             }
         }
-        return (userPrincipal);
+
+        return userPrincipal;
     }
 
     public FilterChainContext getContext() {
         return ctx;
     }
 
-    public void populateCertificateAttribute() {
+    protected Object populateCertificateAttribute() {
+        Object certificates = null;
+        
         if (getRequest().isSecure()) {
             SSLFilter.CertificateEvent event = new SSLFilter.CertificateEvent(true);
             try {
@@ -1718,28 +1708,31 @@ public class Request {
                     LOGGER.log(Level.FINE, ioe.toString(), ioe);
                 }
             }
-            attributes.put(SSLSupport.CERTIFICATE_KEY, event.getCertificates());
+            certificates = event.getCertificates();
+            request.setAttribute(SSLSupport.CERTIFICATE_KEY, certificates);
         }
+
+        return certificates;
     }
 
-    public void populateSSLAttributes() {
+    protected void populateSSLAttributes() {
         try {
             SSLSupport sslSupport = new SSLSupportImpl(ctx.getConnection());
             Object sslO = sslSupport.getCipherSuite();
             if (sslO != null) {
-                attributes.put(SSLSupport.CIPHER_SUITE_KEY, sslO);
+                request.setAttribute(SSLSupport.CIPHER_SUITE_KEY, sslO);
             }
             sslO = sslSupport.getPeerCertificateChain(false);
             if (sslO != null) {
-                attributes.put(SSLSupport.CERTIFICATE_KEY, sslO);
+                request.setAttribute(SSLSupport.CERTIFICATE_KEY, sslO);
             }
             sslO = sslSupport.getKeySize();
             if (sslO != null) {
-                attributes.put(SSLSupport.KEY_SIZE_KEY, sslO);
+                request.setAttribute(SSLSupport.KEY_SIZE_KEY, sslO);
             }
             sslO = sslSupport.getSessionId();
             if (sslO != null) {
-                attributes.put(SSLSupport.SESSION_ID_KEY, sslO);
+                request.setAttribute(SSLSupport.SESSION_ID_KEY, sslO);
             }
         } catch (IOException ioe) {
             if (LOGGER.isLoggable(Level.WARNING)) {
@@ -2354,14 +2347,6 @@ public class Request {
 
         public void recycle() {
             ThreadCache.putToCache(CACHE_IDX, this);
-        }
-    }
-
-    public static final class Note<E> {
-        private final Attribute<E> attribute;
-
-        public Note(Attribute<E> attribute) {
-            this.attribute = attribute;
         }
     }
 }

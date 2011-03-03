@@ -47,6 +47,13 @@ import org.glassfish.grizzly.http.util.RequestURIRef;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import org.glassfish.grizzly.attributes.AttributeBuilder;
+import org.glassfish.grizzly.attributes.AttributeHolder;
+import org.glassfish.grizzly.attributes.DefaultAttributeBuilder;
+import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 
 /**
  * The {@link HttpHeader} object, which represents HTTP request message.
@@ -57,6 +64,8 @@ import java.net.InetSocketAddress;
  * @author Alexey Stashok
  */
 public abstract class HttpRequestPacket extends HttpHeader {
+    private static final AttributeBuilder ATTR_BUILDER =
+            new DefaultAttributeBuilder();
 
     // ----------------------------------------------------- Instance Variables
 
@@ -83,6 +92,18 @@ public abstract class HttpRequestPacket extends HttpHeader {
     private final DataChunk serverNameC = DataChunk.newInstance();
 
     private boolean requiresAcknowledgement;
+
+    /**
+     * Internal notes associated with this request by Catalina components
+     * and event listeners.
+     */
+    private final transient AttributeHolder notesHolder =
+            new IndexedAttributeHolder(ATTR_BUILDER);
+
+    /**
+     * The attributes associated with this Request, keyed by attribute name.
+     */
+    protected final Map<String, Object> attributes = new HashMap<String, Object>();
 
     /**
      * Returns {@link HttpRequestPacket} builder.
@@ -460,6 +481,104 @@ public abstract class HttpRequestPacket extends HttpHeader {
         this.localHost = host;
     }
 
+    /**
+     * Create a named {@link Note} associated with this Request.
+     *
+     * @param <E> the {@link Note} type.
+     * @param name the {@link Note} name.
+     * @return the {@link Note}.
+     */
+    @SuppressWarnings({"unchecked"})
+    public static <E> Note<E> createNote(final String name) {
+        return new Note(ATTR_BUILDER.createAttribute(name));
+    }
+
+    /**
+     * Return the {@link Note} value associated with this <tt>Request</tt>,
+     * or <code>null</code> if no such binding exists.
+     * Use {@link #createNote(java.lang.String)} to create a new {@link Note}.
+     *
+     * @param note {@link Note} value to be returned
+     */
+    public <E> E getNote(final Note<E> note) {
+        return note.attribute.get(notesHolder);
+    }
+
+
+    /**
+     * Return a {@link Set} containing the String names of all note bindings
+     * that exist for this request.
+     * Use {@link #createNote(java.lang.String)} to create a new {@link Note}.
+     *
+     * @return a {@link Set} containing the String names of all note bindings
+     * that exist for this request.
+     */
+    public Set<String> getNoteNames() {
+        return notesHolder.getAttributeNames();
+    }
+
+
+    /**
+     * Remove the {@link Note} value associated with this request.
+     * Use {@link #createNote(java.lang.String)} to create a new {@link Note}.
+     *
+     * @param note {@link Note} value to be removed
+     */
+    public <E> E removeNote(final Note<E> note) {
+        return note.attribute.remove(notesHolder);
+    }
+
+
+    /**
+     * Bind the {@link Note} value to this Request,
+     * replacing any existing binding for this name.
+     * Use {@link #createNote(java.lang.String)} to create a new {@link Note}.
+     *
+     * @param note {@link Note} to which the object should be bound
+     * @param value the {@link Note} value be bound to the specified {@link Note}.
+     */
+    public <E> void setNote(final Note<E> note, final E value) {
+        note.attribute.set(notesHolder, value);
+    }
+
+    /**
+     * Return the specified request attribute if it exists; otherwise, return
+     * <code>null</code>.
+     *
+     * @param name Name of the request attribute to return
+     */
+    public Object getAttribute(final String name) {
+        return attributes.get(name);
+    }
+
+
+    /**
+     * Return the names of all request attributes for this Request, or an
+     * empty {@link Set} if there are none.
+     */
+    public Set<String> getAttributeNames() {
+        return attributes.keySet();
+    }
+
+    /**
+     * Set the specified request attribute to the specified value.
+     *
+     * @param name Name of the request attribute to set
+     * @param value The associated value
+     */
+    public void setAttribute(final String name, final Object value) {
+        attributes.put(name, value);
+    }
+
+    /**
+     * Remove the specified request attribute if it exists.
+     *
+     * @param name Name of the request attribute to remove
+     */
+    public void removeAttribute(final String name) {
+        attributes.remove(name);
+    }
+
     // -------------------- Recycling --------------------
 
     /**
@@ -478,6 +597,8 @@ public abstract class HttpRequestPacket extends HttpHeader {
         localAddressC.recycle();
         localNameC.recycle();
         serverNameC.recycle();
+
+        attributes.clear();
 
         requiresAcknowledgement = false;
 
@@ -530,7 +651,7 @@ public abstract class HttpRequestPacket extends HttpHeader {
         this.response = response;
     }
 
-
+    
     // ---------------------------------------------------------- Nested Classes
 
 
