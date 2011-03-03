@@ -526,7 +526,7 @@ public abstract class HttpRequestPacket extends HttpHeader {
     // ------------------------------------------------- Package Private Methods
 
 
-    void setResponse(HttpResponsePacket response) {
+    protected void setResponse(HttpResponsePacket response) {
         this.response = response;
     }
 

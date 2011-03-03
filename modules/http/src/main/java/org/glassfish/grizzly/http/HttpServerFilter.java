@@ -77,6 +77,8 @@ import org.glassfish.grizzly.filterchain.FilterChainEvent;
  * @author Alexey Stashok
  */
 public class HttpServerFilter extends HttpCodecFilter {
+    public static final String HTTP_SERVER_REQUEST_ATTR_NAME =
+            HttpServerFilter.class.getName() + ".HttpRequest";
 
     public static final FilterChainEvent RESPONSE_COMPLETE_EVENT =
             new FilterChainEvent() {
@@ -152,7 +154,7 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         this.httpRequestInProcessAttr =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.
-                        createAttribute("HttpServerFilter.HttpRequest");
+                        createAttribute(HTTP_SERVER_REQUEST_ATTR_NAME);
         this.keepAliveContextAttr = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.
                 createAttribute("HttpServerFilter.KeepAliveContext");
 
