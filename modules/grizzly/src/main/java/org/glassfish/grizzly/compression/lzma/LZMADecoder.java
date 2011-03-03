@@ -39,7 +39,6 @@
  */
 package org.glassfish.grizzly.compression.lzma;
 
-import com.sun.xml.internal.fastinfoset.DecoderStateTables;
 import org.glassfish.grizzly.AbstractTransformer;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Cacheable;
