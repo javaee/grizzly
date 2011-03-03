@@ -51,6 +51,8 @@ import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 import java.io.IOException;
+import org.glassfish.grizzly.compression.lzma.impl.Base;
+import org.glassfish.grizzly.compression.lzma.impl.Decoder.LiteralDecoder;
 
 public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
 
@@ -192,7 +194,38 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
         public long nowPos64;
         public byte prevByte;
         public boolean decInitialized;
+        
+        public int posState;
+        public int lastMethodResult;
 
+        public int inner1State;
+        public int inner2State;
+
+        public LiteralDecoder.Decoder2 decoder2;
+
+        // BitTreeDecoder static reverseDecode state
+        public int staticReverseDecodeMethodState;
+        public int staticM;
+        public int staticBitIndex;
+        public int staticSymbol;
+
+        // Decoder.processState3 method state
+        public int state3Len;
+        
+        // Decoder.processState31 method state
+        public int state31;
+
+        // Decoder.processState311 method state
+        public int state311;
+        public int state311Distance;
+
+        // Decoder.processState32 method state
+        public int state32;
+        public int state32PosSlot;
+
+        // Decoder.processState321 method state
+        public int state321;
+        public int state321NumDirectBits;
 
         // ------------------------------------------------------ Public Methods
 
@@ -200,6 +233,7 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
         public boolean initialize(final Buffer buffer) {
             buffer.get(decoderConfigBits);
             initialized = decoder.setDecoderProperties(decoderConfigBits);
+            state = Base.stateInit();
             return initialized;
         }
 
@@ -252,6 +286,22 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
             lastResult = null;
             initialized = false;
             decInitialized = false;
+
+            posState = 0;
+            lastMethodResult = 0;
+
+            inner1State = 0;
+            inner2State = 0;
+
+            decoder2 = null;
+
+            staticReverseDecodeMethodState = 0;
+
+            state31 = 0;
+            state311 = 0;
+            state32 = 0;
+            state321 = 0;
+
             ThreadCache.putToCache(CACHE_IDX, this);
         }
 

@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly.compression.lzma.impl.rangecoder;
 
+import org.glassfish.grizzly.compression.lzma.LZMADecoder;
+
 /**
  * BitTreeDecoder
  *
@@ -50,45 +52,163 @@ public class BitTreeDecoder {
     short[] Models;
     int NumBitLevels;
 
+    // decode state
+    int decodeMethodState;
+    int m;
+    int bitIndex;
+
+    // reverseDecode state
+    int reverseDecodeMethodState;
+    int symbol;
+
     public BitTreeDecoder(int numBitLevels) {
         NumBitLevels = numBitLevels;
         Models = new short[1 << numBitLevels];
     }
 
     public void init() {
+        decodeMethodState = 0;
+        reverseDecodeMethodState = 0;
+
         RangeDecoder.initBitModels(Models);
     }
 
-    public int decode(RangeDecoder rangeDecoder) throws java.io.IOException {
-        int m = 1;
-        for (int bitIndex = NumBitLevels; bitIndex != 0; bitIndex--) {
-            m = (m << 1) + rangeDecoder.decodeBit(Models, m);
-        }
-        return m - (1 << NumBitLevels);
+    public boolean decode(LZMADecoder.LZMAInputState decodeState,
+            RangeDecoder rangeDecoder) throws java.io.IOException {
+
+        do {
+            switch(decodeMethodState) {
+                case 0:
+                {
+                    m = 1;
+                    bitIndex = NumBitLevels;
+                    decodeMethodState = 1;
+                }
+                case 1:
+                {
+                    if (bitIndex == 0) {
+                        decodeMethodState = 3;
+                        continue;
+                    }
+
+                    decodeMethodState = 2;
+                }
+                case 2:
+                {
+                    if (!rangeDecoder.decodeBit(decodeState, Models, m)) {
+                        return false;
+                    }
+                    
+                    m = (m << 1) + decodeState.lastMethodResult;
+                    bitIndex--;
+
+                    decodeMethodState = 1;
+                    continue;
+                }
+                case 3:
+                {
+                    decodeState.lastMethodResult = m - (1 << NumBitLevels);
+                    decodeMethodState = 0;
+                    return true;
+                }
+
+            }
+        } while (true);
     }
 
-    public int reverseDecode(RangeDecoder rangeDecoder) throws java.io.IOException {
-        int m = 1;
-        int symbol = 0;
-        for (int bitIndex = 0; bitIndex < NumBitLevels; bitIndex++) {
-            int bit = rangeDecoder.decodeBit(Models, m);
-            m <<= 1;
-            m += bit;
-            symbol |= (bit << bitIndex);
-        }
-        return symbol;
+    public boolean reverseDecode(LZMADecoder.LZMAInputState decodeState,
+            RangeDecoder rangeDecoder) throws java.io.IOException {
+        
+        do {
+            switch(reverseDecodeMethodState) {
+                case 0:
+                {
+                    m = 1;
+                    symbol = 0;
+                    bitIndex = 0;
+                    reverseDecodeMethodState = 1;
+                }
+                case 1:
+                {
+                    if (bitIndex >= NumBitLevels) {
+                        reverseDecodeMethodState = 3;
+                        continue;
+                    }
+
+                    reverseDecodeMethodState = 2;
+                }
+                case 2:
+                {
+                    if (!rangeDecoder.decodeBit(decodeState, Models, m)) {
+                        return false;
+                    }
+
+                    final int bit = decodeState.lastMethodResult;
+                    m <<= 1;
+                    m += bit;
+                    symbol |= (bit << bitIndex);
+
+                    bitIndex++;
+                    reverseDecodeMethodState = 1;
+                    continue;
+                }
+                case 3:
+                {
+                    decodeState.lastMethodResult = symbol;
+                    reverseDecodeMethodState = 0;
+                    return true;
+                }
+
+            }
+        } while (true);
     }
 
-    public static int reverseDecode(short[] Models, int startIndex,
-            RangeDecoder rangeDecoder, int NumBitLevels) throws java.io.IOException {
-        int m = 1;
-        int symbol = 0;
-        for (int bitIndex = 0; bitIndex < NumBitLevels; bitIndex++) {
-            int bit = rangeDecoder.decodeBit(Models, startIndex + m);
-            m <<= 1;
-            m += bit;
-            symbol |= (bit << bitIndex);
-        }
-        return symbol;
+    public static boolean reverseDecode(LZMADecoder.LZMAInputState decodeState,
+            short[] Models, int startIndex, RangeDecoder rangeDecoder,
+            int NumBitLevels) throws java.io.IOException {
+
+        do {
+            switch(decodeState.staticReverseDecodeMethodState) {
+                case 0:
+                {
+                    decodeState.staticM = 1;
+                    decodeState.staticSymbol = 0;
+                    decodeState.staticBitIndex = 0;
+                    decodeState.staticReverseDecodeMethodState = 1;
+                }
+                case 1:
+                {
+                    if (decodeState.staticBitIndex >= NumBitLevels) {
+                        decodeState.staticReverseDecodeMethodState = 3;
+                        continue;
+                    }
+
+                    decodeState.staticReverseDecodeMethodState = 2;
+                }
+                case 2:
+                {
+                    if (!rangeDecoder.decodeBit(decodeState, Models,
+                            startIndex + decodeState.staticM)) {
+                        return false;
+                    }
+
+                    final int bit = decodeState.lastMethodResult;
+                    decodeState.staticM <<= 1;
+                    decodeState.staticM += bit;
+                    decodeState.staticSymbol |= (bit << decodeState.staticBitIndex);
+
+                    decodeState.staticBitIndex++;
+                    decodeState.staticReverseDecodeMethodState = 1;
+                    continue;
+                }
+                case 3:
+                {
+                    decodeState.lastMethodResult = decodeState.staticSymbol;
+                    decodeState.staticReverseDecodeMethodState = 0;
+                    return true;
+                }
+
+            }
+        } while (true);
     }
 }

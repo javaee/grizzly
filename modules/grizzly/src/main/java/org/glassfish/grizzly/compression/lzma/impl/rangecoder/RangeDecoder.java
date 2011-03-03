@@ -43,6 +43,7 @@ package org.glassfish.grizzly.compression.lzma.impl.rangecoder;
 import org.glassfish.grizzly.Buffer;
 
 import java.io.IOException;
+import org.glassfish.grizzly.compression.lzma.LZMADecoder;
 
 /**
  * RangeDecoder
@@ -57,61 +58,135 @@ public class RangeDecoder {
     static final int kNumMoveBits = 5;
     int Range;
     int Code;
-    Buffer src;
+    Buffer inputBuffer;
+
+    int newBound;
+
+    int decodeBitState;
+
+    int decodeDirectBitsState;
+    int decodeDirectBitsResult;
+    int decodeDirectBitsI;
 
     public final void setBuffer(Buffer src) {
-        this.src = src;
+        this.inputBuffer = src;
     }
 
     public final void releaseBuffer() {
-        src = null;
+        inputBuffer = null;
     }
 
     public final void init() throws IOException {
         Code = 0;
         Range = -1;
+        decodeBitState = 0;
+        decodeDirectBitsState = 0;
         for (int i = 0; i < 5; i++) {
-            Code = (Code << 8) | (src.get() & 0xff);
+            Code = (Code << 8) | (inputBuffer.get() & 0xFF);
         }
     }
 
-    public final int decodeDirectBits(int numTotalBits) throws IOException {
-        int result = 0;
-        for (int i = numTotalBits; i != 0; i--) {
-            Range >>>= 1;
-            int t = ((Code - Range) >>> 31);
-            Code -= Range & (t - 1);
-            result = (result << 1) | (1 - t);
+    public final boolean decodeDirectBits(LZMADecoder.LZMAInputState decodeState,
+            int numTotalBits) throws IOException {
+        do {
+            switch (decodeDirectBitsState) {
+                case 0:
+                {
+                    decodeDirectBitsResult = 0;
+                    decodeDirectBitsI = numTotalBits;
+                    decodeDirectBitsState = 1;
+                }
+                case 1:
+                {
+                    if (decodeDirectBitsI == 0) {
+                        decodeDirectBitsState = 4;
+                        continue;
+                    }
 
-            if ((Range & kTopMask) == 0) {
-                Code = (Code << 8) | (src.get() & 0xff);
-                Range <<= 8;
+                    Range >>>= 1;
+                    final int t = ((Code - Range) >>> 31);
+                    Code -= Range & (t - 1);
+                    decodeDirectBitsResult = (decodeDirectBitsResult << 1) | (1 - t);
+                    final boolean condition = (Range & kTopMask) == 0;
+                    decodeDirectBitsState = condition ? 2 : 3;
+                    continue;
+                }
+                case 2: {
+                    if (!inputBuffer.hasRemaining()) {
+                        return false;
+                    }
+                    Code = (Code << 8) | (inputBuffer.get() & 0xFF);
+                    Range <<= 8;
+                }
+                case 3: {
+                    decodeDirectBitsI--;
+                    decodeDirectBitsState = 1;
+                    continue;
+                }
+                case 4: {
+                    decodeState.lastMethodResult = decodeDirectBitsResult;
+                    decodeDirectBitsState = 0;
+                    return true;
+                }
             }
-        }
-        return result;
+        } while (true);
     }
 
-    public int decodeBit(short[] probs, int index) throws IOException {
-        int prob = probs[index];
-        int newBound = (Range >>> kNumBitModelTotalBits) * prob;
-        if ((Code ^ 0x80000000) < (newBound ^ 0x80000000)) {
-            Range = newBound;
-            probs[index] = (short) (prob + ((kBitModelTotal - prob) >>> kNumMoveBits));
-            if ((Range & kTopMask) == 0) {
-                Code = (Code << 8) | src.get() & 0xff;
-                Range <<= 8;
+    public boolean decodeBit(LZMADecoder.LZMAInputState decodeState, short[] probs, int index)
+            throws IOException {
+
+        do {
+            switch (decodeBitState) {
+                case 0: {
+                    int prob = probs[index];
+                    newBound = (Range >>> kNumBitModelTotalBits) * prob;
+                    final boolean condition = (Code ^ 0x80000000) < (newBound ^ 0x80000000);
+                    decodeBitState = condition ? 1 : 4;
+                    continue;
+                }
+                case 1: {
+                    int prob = probs[index];
+                    Range = newBound;
+                    probs[index] = (short) (prob + ((kBitModelTotal - prob) >>> kNumMoveBits));
+                    final boolean condition = (Range & kTopMask) == 0;
+                    decodeBitState = condition ? 2 : 3;
+                    continue;
+                }
+                case 2: {
+                    if (!inputBuffer.hasRemaining()) {
+                        return false;
+                    }
+                    Code = (Code << 8) | (inputBuffer.get() & 0xFF);
+                    Range <<= 8;
+                }
+                case 3: {
+                    decodeState.lastMethodResult = 0;
+                    decodeBitState = 0;
+                    return true;
+                }
+                case 4: {
+                    int prob = probs[index];
+                    Range -= newBound;
+                    Code -= newBound;
+                    probs[index] = (short) (prob - ((prob) >>> kNumMoveBits));
+                    final boolean condition = (Range & kTopMask) == 0;
+                    decodeBitState = condition ? 5 : 6;
+                    continue;
+                }
+                case 5: {
+                    if (!inputBuffer.hasRemaining()) {
+                        return false;
+                    }
+                    Code = (Code << 8) | (inputBuffer.get() & 0xFF);
+                    Range <<= 8;
+                }
+                case 6: {
+                    decodeState.lastMethodResult = 1;
+                    decodeBitState = 0;
+                    return true;
+                }
             }
-            return 0;
-        } else {
-            Range -= newBound;
-            Code -= newBound;
-            probs[index] = (short) (prob - ((prob) >>> kNumMoveBits));
-            if ((Range & kTopMask) == 0) {
-                Code = (Code << 8) | (src.get() & 0xff);
-                Range <<= 8;
-            }
-            return 1;
-        }
+        } while (true);
     }
 
     public static void initBitModels(short[] probs) {

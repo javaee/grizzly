@@ -37,16 +37,16 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.compression.lzma.impl;
 
-
 import org.glassfish.grizzly.compression.lzma.LZMADecoder;
+import org.glassfish.grizzly.compression.lzma.LZMADecoder.LZMAInputState;
 import org.glassfish.grizzly.compression.lzma.impl.lz.OutWindow;
 import org.glassfish.grizzly.compression.lzma.impl.rangecoder.BitTreeDecoder;
 import org.glassfish.grizzly.compression.lzma.impl.rangecoder.RangeDecoder;
 
 import java.io.IOException;
+import org.glassfish.grizzly.Buffer;
 
 /**
  * RangeDecoder
@@ -55,11 +55,11 @@ import java.io.IOException;
  */
 public class Decoder {
 
-
     public enum State {
         ERR,
         NEED_MORE_DATA,
-        DONE
+        DONE,
+        CONTINUE // internal only
     }
 
     static class LenDecoder {
@@ -78,6 +78,8 @@ public class Decoder {
         }
 
         public void init() {
+            decodeMethodState = 0;
+
             RangeDecoder.initBitModels(m_Choice);
             for (int posState = 0; posState < m_NumPosStates; posState++) {
                 m_LowCoder[posState].init();
@@ -85,54 +87,176 @@ public class Decoder {
             }
             m_HighCoder.init();
         }
+        private int decodeMethodState;
 
-        public int decode(RangeDecoder rangeDecoder, int posState) throws IOException {
-            if (rangeDecoder.decodeBit(m_Choice, 0) == 0) {
-                return m_LowCoder[posState].decode(rangeDecoder);
-            }
-            int symbol = Base.kNumLowLenSymbols;
-            if (rangeDecoder.decodeBit(m_Choice, 1) == 0) {
-                symbol += m_MidCoder[posState].decode(rangeDecoder);
-            } else {
-                symbol += Base.kNumMidLenSymbols + m_HighCoder.decode(rangeDecoder);
-            }
-            return symbol;
+        public boolean decode(LZMADecoder.LZMAInputState decoderState,
+                RangeDecoder rangeDecoder, int posState) throws IOException {
+            do {
+                switch (decodeMethodState) {
+                    case 0: {
+                        if (!rangeDecoder.decodeBit(decoderState, m_Choice, 0)) {
+                            return false;
+                        }
+
+                        decodeMethodState = decoderState.lastMethodResult == 0
+                                ? 1 : 2;
+                        continue;
+                    }
+                    case 1: {
+                        if (!m_LowCoder[posState].decode(decoderState, rangeDecoder)) {
+                            return false;
+                        }
+
+                        // using last result from m_LowCoder[posState].decode(...)
+                        decodeMethodState = 5;
+                        continue;
+                    }
+                    case 2: {
+                        if (!rangeDecoder.decodeBit(decoderState, m_Choice, 1)) {
+                            return false;
+                        }
+                        decodeMethodState = decoderState.lastMethodResult == 0
+                                ? 3 : 4;
+                        continue;
+                    }
+                    case 3: {
+                        if (!m_MidCoder[posState].decode(decoderState, rangeDecoder)) {
+                            return false;
+                        }
+
+                        decoderState.lastMethodResult += Base.kNumLowLenSymbols;
+
+                        decodeMethodState = 5;
+                        continue;
+                    }
+                    case 4: {
+                        if (!m_HighCoder.decode(decoderState, rangeDecoder)) {
+                            return false;
+                        }
+
+                        decoderState.lastMethodResult += Base.kNumLowLenSymbols + Base.kNumMidLenSymbols;
+                        decodeMethodState = 5;
+                        continue;
+                    }
+                    case 5: {
+                        decodeMethodState = 0;
+                        return true;
+                    }
+                }
+            } while (true);
         }
     }
 
-    class LiteralDecoder {
+    public class LiteralDecoder {
 
-        class Decoder2 {
+        public class Decoder2 {
 
             short[] m_Decoders = new short[0x300];
-
+            int decodeNormalMethodState;
+            int decodeWithMatchByteMethodState;
+            int symbol;
+            int matchBit;
+            int matchByte;
+            
             public void init() {
+                decodeNormalMethodState = 0;
+                decodeWithMatchByteMethodState = 0;
                 RangeDecoder.initBitModels(m_Decoders);
             }
 
-            public byte decodeNormal(RangeDecoder rangeDecoder) throws IOException {
-                int symbol = 1;
+            public boolean decodeNormal(LZMADecoder.LZMAInputState decoderState,
+                    RangeDecoder rangeDecoder) throws IOException {
+
                 do {
-                    symbol = (symbol << 1) | rangeDecoder.decodeBit(m_Decoders, symbol);
-                } while (symbol < 0x100);
-                return (byte) symbol;
+                    switch (decodeNormalMethodState) {
+                        case 0:
+                        {
+                            symbol = 1;
+                            decodeNormalMethodState = 1;
+                        }
+                        case 1:
+                        {
+                            if (!rangeDecoder.decodeBit(decoderState,
+                                    m_Decoders, symbol)) {
+                                return false;
+                            }
+
+                            symbol = (symbol << 1) | decoderState.lastMethodResult;
+
+                            if (symbol >= 0x100) {
+                                decodeNormalMethodState = 0;
+                                decoderState.lastMethodResult = symbol;
+                                return true;
+                            }
+                            
+                            continue;
+                        }
+                    }
+                } while(true);
             }
 
-            public byte decodeWithMatchByte(RangeDecoder rangeDecoder, byte matchByte) throws IOException {
-                int symbol = 1;
+            public boolean decodeWithMatchByte(LZMADecoder.LZMAInputState decoderState,
+                    RangeDecoder rangeDecoder, byte matchByteParam) throws IOException {
+
                 do {
-                    int matchBit = (matchByte >> 7) & 1;
-                    matchByte <<= 1;
-                    int bit = rangeDecoder.decodeBit(m_Decoders, ((1 + matchBit) << 8) + symbol);
-                    symbol = (symbol << 1) | bit;
-                    if (matchBit != bit) {
-                        while (symbol < 0x100) {
-                            symbol = (symbol << 1) | rangeDecoder.decodeBit(m_Decoders, symbol);
+                    switch (decodeWithMatchByteMethodState) {
+                        case 0:
+                        {
+                            symbol = 1;
+                            this.matchByte = matchByteParam;
+                            decodeWithMatchByteMethodState = 1;
                         }
-                        break;
+                        case 1:
+                        {
+                            matchBit = (matchByte >> 7) & 1;
+                            matchByte <<= 1;
+                            decodeWithMatchByteMethodState = 2;
+                        }
+                        case 2:
+                        {
+                            if (!rangeDecoder.decodeBit(decoderState, m_Decoders,
+                                    ((1 + matchBit) << 8) + symbol)) {
+                                return false;
+                            }
+
+                            final int bit = decoderState.lastMethodResult;
+                            symbol = (symbol << 1) | bit;
+                            if (matchBit == bit) {
+                                if (symbol >= 0x100) { // outter while(symbol < 0x100)
+                                    decodeWithMatchByteMethodState = 4; // break
+                                    continue;
+                                }
+
+                                // loop
+                                decodeWithMatchByteMethodState = 2;
+                                continue;
+                            }
+
+                            decodeWithMatchByteMethodState = 3;
+                        }
+                        case 3:
+                        {
+                            if (symbol >= 0x100) { // inner while(symbol < 0x100)
+                                decodeWithMatchByteMethodState = 4; // break
+                            }
+
+                            if (!rangeDecoder.decodeBit(decoderState, m_Decoders,
+                                    symbol)) {
+                                return false;
+                            }
+
+                            symbol = (symbol << 1) | decoderState.lastMethodResult;
+                            continue;
+                        }
+
+                        case 4:
+                        {
+                            decodeWithMatchByteMethodState = 0;
+                            decoderState.lastMethodResult = symbol;
+                            return true;
+                        }
                     }
-                } while (symbol < 0x100);
-                return (byte) symbol;
+                } while(true);
             }
         }
         Decoder2[] m_Coders;
@@ -189,6 +313,25 @@ public class Decoder {
         }
     }
 
+    public boolean setDecoderProperties(byte[] properties) {
+        if (properties.length < 5) {
+            return false;
+        }
+        int val = properties[0] & 0xFF;
+        int lc = val % 9;
+        int remainder = val / 9;
+        int lp = remainder % 5;
+        int pb = remainder / 5;
+        int dictionarySize = 0;
+        for (int i = 0; i < 4; i++) {
+            dictionarySize += ((int) (properties[1 + i]) & 0xFF) << (i * 8);
+        }
+        if (!setLcLpPb(lc, lp, pb)) {
+            return false;
+        }
+        return setDictionarySize(dictionarySize);
+    }
+
     boolean setDictionarySize(int dictionarySize) {
         if (dictionarySize < 0) {
             return false;
@@ -235,114 +378,398 @@ public class Decoder {
         m_RangeDecoder.init();
     }
 
-    public State code(LZMADecoder.LZMAInputState state, long outSize) throws IOException {
+    public State code(LZMADecoder.LZMAInputState decoderState, long outSize) throws IOException {
+//        Init();
+        final Buffer inputBuffer = decoderState.getSrc();
 
-        if (!state.decInitialized) {
-            state.decInitialized = true;
-            m_RangeDecoder.setBuffer(state.getSrc());
-            m_OutWindow.setBuffer(state.getDst());
+        if (!decoderState.isInitialized()) {
+            if (inputBuffer.remaining() < 5) {
+                return State.NEED_MORE_DATA;
+            }
+
+            decoderState.initialize(inputBuffer);
             init();
         }
-        while (outSize < 0 || state.nowPos64 < outSize) {
-            int posState = (int) state.nowPos64 & m_PosStateMask;
-            if (m_RangeDecoder.decodeBit(m_IsMatchDecoders, (state.state << Base.kNumPosStatesBitsMax) + posState) == 0) {
-                LiteralDecoder.Decoder2 decoder2 = m_LiteralDecoder.getDecoder((int) state.nowPos64, state.prevByte);
-                if (!Base.stateIsCharState(state.state)) {
-                    state.prevByte = decoder2.decodeWithMatchByte(m_RangeDecoder, m_OutWindow.getByte(state.rep0));
-                } else {
-                    state.prevByte = decoder2.decodeNormal(m_RangeDecoder);
+
+//        final RangeDecoder m_RangeDecoder = decoderState.m_RangeDecoder;
+//        final OutWindow m_OutWindow = decoderState.m_OutWindow;
+//
+//        m_RangeDecoder.setStream(inputBuffer);
+//        m_OutWindow.setStream(outStream);
+
+//        int state = Base.StateInit();
+//        int rep0 = 0, rep1 = 0, rep2 = 0, rep3 = 0;
+//
+//        long nowPos64 = 0;
+//        byte prevByte = 0;
+        _outter:
+        while (true) {
+            switch (decoderState.inner1State) {
+                case 0: {
+                    if (outSize >= 0 && decoderState.nowPos64 >= outSize) {
+                        break _outter;
+                    }
+                    decoderState.inner1State = 1;
                 }
-                m_OutWindow.putByte(state.prevByte);
-                state.state = Base.stateUpdateChar(state.state);
-                state.nowPos64++;
-            } else {
-                int len;
-                if (m_RangeDecoder.decodeBit(m_IsRepDecoders, state.state) == 1) {
-                    len = 0;
-                    if (m_RangeDecoder.decodeBit(m_IsRepG0Decoders, state.state) == 0) {
-                        if (m_RangeDecoder.decodeBit(m_IsRep0LongDecoders, (state.state << Base.kNumPosStatesBitsMax) + posState) == 0) {
-                            state.state = Base.stateUpdateShortRep(state.state);
-                            len = 1;
-                        }
-                    } else {
-                        int distance;
-                        if (m_RangeDecoder.decodeBit(m_IsRepG1Decoders, state.state) == 0) {
-                            distance = state.rep1;
-                        } else {
-                            if (m_RangeDecoder.decodeBit(m_IsRepG2Decoders, state.state) == 0) {
-                                distance = state.rep2;
-                            } else {
-                                distance = state.rep3;
-                                state.rep3 = state.rep2;
-                            }
-                            state.rep2 = state.rep1;
-                        }
-                        state.rep1 = state.rep0;
-                        state.rep0 = distance;
+
+                case 1: {
+                    decoderState.posState = (int) decoderState.nowPos64 & m_PosStateMask;
+                    if (!m_RangeDecoder.decodeBit(decoderState, m_IsMatchDecoders,
+                            (decoderState.state << Base.kNumPosStatesBitsMax)
+                            + decoderState.posState)) {
+                        return State.NEED_MORE_DATA;
+
                     }
-                    if (len == 0) {
-                        len = m_RepLenDecoder.decode(m_RangeDecoder, posState) + Base.kMatchMinLen;
-                        state.state = Base.stateUpdateRep(state.state);
+
+                    final int result = decoderState.lastMethodResult;
+                    decoderState.inner1State = result == 0 ? 2 : 3;
+                    break;
+                }
+
+                case 2: {
+                    if (!processState2(decoderState)) {
+                        return State.NEED_MORE_DATA;
                     }
-                } else {
-                    state.rep3 = state.rep2;
-                    state.rep2 = state.rep1;
-                    state.rep1 = state.rep0;
-                    len = Base.kMatchMinLen + m_LenDecoder.decode(m_RangeDecoder, posState);
-                    state.state = Base.stateUpdateMatch(state.state);
-                    int posSlot = m_PosSlotDecoder[Base.getLenToPosState(len)].decode(m_RangeDecoder);
-                    if (posSlot >= Base.kStartPosModelIndex) {
-                        int numDirectBits = (posSlot >> 1) - 1;
-                        state.rep0 = ((2 | (posSlot & 1)) << numDirectBits);
-                        if (posSlot < Base.kEndPosModelIndex) {
-                            state.rep0 += BitTreeDecoder.reverseDecode(m_PosDecoders,
-                                    state.rep0 - posSlot - 1, m_RangeDecoder, numDirectBits);
-                        } else {
-                            state.rep0 += (m_RangeDecoder.decodeDirectBits(
-                                    numDirectBits - Base.kNumAlignBits) << Base.kNumAlignBits);
-                            state.rep0 += m_PosAlignDecoder.reverseDecode(m_RangeDecoder);
-                            if (state.rep0 < 0) {
-                                if (state.rep0 == -1) {
-                                    break;
-                                }
-                                return State.ERR;
-                            }
-                        }
-                    } else {
-                        state.rep0 = posSlot;
+                    decoderState.inner1State = 0;
+                    break;
+                }
+
+                case 3: {
+                    final State internalState = processState3(decoderState);
+                    if (internalState == State.NEED_MORE_DATA ||
+                            internalState == State.ERR) {
+                        return internalState;
+                    }
+
+                    decoderState.inner1State = 0;
+                    
+                    if (internalState == State.DONE) {
+                        break _outter;
                     }
                 }
-                if (state.rep0 >= state.nowPos64 || state.rep0 >= m_DictionarySizeCheck) {
-                    // m_OutWindow.Flush();
-                    return State.ERR;
-                }
-                m_OutWindow.copyBlock(state.rep0, len);
-                state.nowPos64 += len;
-                state.prevByte = m_OutWindow.getByte(0);
             }
         }
+
         m_OutWindow.flush();
         m_OutWindow.releaseBuffer();
         m_RangeDecoder.releaseBuffer();
         return State.DONE;
     }
 
-    public boolean setDecoderProperties(byte[] properties) {
-        if (properties.length < 5) {
-            return false;
+    private boolean processState2(final LZMADecoder.LZMAInputState decoderState) throws IOException {
+        do {
+            switch (decoderState.inner2State) {
+                case 0: {
+                    decoderState.decoder2 = m_LiteralDecoder.getDecoder(
+                            (int) decoderState.nowPos64,
+                            decoderState.prevByte);
+                    decoderState.inner2State = (!Base.stateIsCharState(decoderState.state)) ? 1 : 2;
+                    continue;
+                }
+
+                case 1: {
+                    if (!decoderState.decoder2.decodeWithMatchByte(decoderState,
+                            m_RangeDecoder, m_OutWindow.getByte(decoderState.rep0))) {
+                        return false;
+                    }
+                    decoderState.prevByte = (byte) decoderState.lastMethodResult;
+                    decoderState.inner2State = 3;
+                    continue;
+                }
+                case 2: {
+                    if (!decoderState.decoder2.decodeNormal(decoderState,
+                            m_RangeDecoder)) {
+                        return false;
+                    }
+                    
+                    decoderState.prevByte = (byte) decoderState.lastMethodResult;
+                    decoderState.inner2State = 3;
+                }
+                case 3: {
+                    if (!decoderState.decoder2.decodeNormal(
+                            decoderState, m_RangeDecoder)) {
+                        return false;
+                    }
+                    decoderState.prevByte = (byte) decoderState.lastMethodResult;
+                    m_OutWindow.putByte(decoderState.prevByte);
+                    decoderState.state = Base.stateUpdateChar(decoderState.state);
+                    decoderState.nowPos64++;
+
+                    decoderState.inner2State = 0;
+                    
+                    return true;
+                }
+            }
+        } while (true);
+    }
+
+    private State processState3(final LZMADecoder.LZMAInputState decoderState)
+            throws IOException {
+//        int len;
+
+        do {
+            switch (decoderState.inner2State) {
+                case 0:
+                {
+                    if (!m_RangeDecoder.decodeBit(decoderState, m_IsRepDecoders,
+                            decoderState.state)) {
+                        return State.NEED_MORE_DATA;
+                    }
+
+                    decoderState.inner2State = decoderState.lastMethodResult == 1 ?
+                        1 : 2;
+                    continue;
+                }
+
+                case 1:
+                {
+                    if (!processState31(decoderState)) {
+                        return State.NEED_MORE_DATA;
+                    }
+
+                    decoderState.inner2State = 3;
+                    continue;
+                }
+                case 2:
+                {
+                    final State internalResult = processState32(decoderState);
+                    if (internalResult != State.CONTINUE) {
+                        return internalResult;
+                    }
+
+                    decoderState.inner2State = 3;
+                }
+                case 3:
+                {
+                    if (decoderState.rep0 >= decoderState.nowPos64
+                            || decoderState.rep0 >= m_DictionarySizeCheck) {
+                        // m_OutWindow.Flush();
+                        return State.ERR;
+                    }
+                    m_OutWindow.copyBlock(decoderState.rep0, decoderState.state3Len);
+                    decoderState.nowPos64 += decoderState.state3Len;
+                    decoderState.prevByte = m_OutWindow.getByte(0);
+
+                    decoderState.inner2State = 0;
+                    return State.CONTINUE;
+                }
+
+            }
+        } while (true);
+    }
+
+    private boolean processState31(final LZMAInputState decoderState)
+            throws IOException {
+        do {
+            switch (decoderState.state31) {
+                case 0: {
+                    decoderState.state3Len = 0;
+
+                    if (!m_RangeDecoder.decodeBit(decoderState, m_IsRepG0Decoders,
+                            decoderState.state)) {
+                        return false;
+                    }
+
+                    decoderState.state31 = decoderState.lastMethodResult == 0 ? 1 : 2;
+                }
+
+                case 1: {
+                    if (!m_RangeDecoder.decodeBit(decoderState, m_IsRep0LongDecoders,
+                            (decoderState.state << Base.kNumPosStatesBitsMax)
+                            + decoderState.posState)) {
+                        return false;
+                    }
+
+                    if (decoderState.lastMethodResult == 0) {
+                        decoderState.state = Base.stateUpdateShortRep(decoderState.state);
+                        decoderState.state3Len = 1;
+                    }
+
+                    decoderState.state31 = 3;
+                    continue;
+                }
+
+                case 2: {
+                    if (!processState311(decoderState)) {
+                        return false;
+                    }
+
+                    decoderState.state31 = 3;
+                }
+
+                case 3: {
+                    if (decoderState.state3Len != 0) {
+                        decoderState.state31 = 0;
+                        return true;
+                    }
+                    decoderState.state31 = 4;
+                }
+                case 4: {
+                    if (!m_RepLenDecoder.decode(decoderState, m_RangeDecoder,
+                            decoderState.posState)) {
+                        return false;
+                    }
+
+                    decoderState.state3Len = decoderState.lastMethodResult + Base.kMatchMinLen;
+                    decoderState.state = Base.stateUpdateRep(decoderState.state);
+
+                    decoderState.state31 = 0;
+                    return true;
+                }
+            }
+        } while (true);
+    }
+
+    private boolean processState311(final LZMAInputState decoderState)
+            throws IOException {
+        do {
+            switch(decoderState.state311) {
+                case 0: {
+                    if (!m_RangeDecoder.decodeBit(decoderState, m_IsRepG1Decoders,
+                            decoderState.state)) {
+                        return false;
+                    }
+
+                    decoderState.state311 = decoderState.lastMethodResult == 0 ? 1 : 2;
+                    continue;
+                }
+
+                case 1: {
+                    decoderState.state311Distance = decoderState.rep1;
+                    decoderState.state311 = 3;
+                    continue;
+                }
+
+                case 2: {
+                    if (!m_RangeDecoder.decodeBit(decoderState,
+                            m_IsRepG2Decoders, decoderState.state)) {
+                        return false;
+                    }
+
+                    if (decoderState.lastMethodResult == 0) {
+                        decoderState.state311Distance = decoderState.rep2;
+                    } else {
+                        decoderState.state311Distance = decoderState.rep3;
+                        decoderState.rep3 = decoderState.rep2;
+                    }
+                    
+                    decoderState.rep2 = decoderState.rep1;
+                }
+
+                case 3: {
+                    decoderState.rep1 = decoderState.rep0;
+                    decoderState.rep0 = decoderState.state311Distance;
+                    decoderState.state311 = 0;
+                    return true;
+                }
+            }
+        } while (true);
+    }
+
+    private State processState32(final LZMAInputState decoderState)
+            throws IOException {
+        do {
+            switch (decoderState.state32) {
+                case 0:
+                {
+                    decoderState.rep3 = decoderState.rep2;
+                    decoderState.rep2 = decoderState.rep1;
+                    decoderState.rep1 = decoderState.rep0;
+                    decoderState.state32 = 1;
+                }
+                case 1:
+                {
+                    if (!m_LenDecoder.decode(decoderState, m_RangeDecoder,
+                            decoderState.posState)) {
+                        return State.NEED_MORE_DATA;
+                    }
+
+                    decoderState.state3Len = Base.kMatchMinLen + decoderState.lastMethodResult;
+                    decoderState.state = Base.stateUpdateMatch(decoderState.state);
+
+                    decoderState.state32 = 2;
+                }
+                case 2:
+                {
+                    if (!m_PosSlotDecoder[Base.getLenToPosState(decoderState.state3Len)].decode(
+                            decoderState, m_RangeDecoder)) {
+                        return State.NEED_MORE_DATA;
+                    }
+
+                    decoderState.state32PosSlot = decoderState.lastMethodResult;
+                    decoderState.state32 = (decoderState.state32PosSlot >= Base.kStartPosModelIndex) ? 3 : 4;
+                    continue;
+                }
+                case 3:
+                {
+                    final State localState = processState321(decoderState);
+                    if (localState == State.CONTINUE) {
+                        decoderState.state32 = 0;
+                    }
+                    
+                    return localState;
+                }
+                case 4:
+                {
+                    decoderState.rep0 = decoderState.state32PosSlot;
+                    decoderState.state32 = 0;
+                    return State.CONTINUE;
+                }
+            }
+        } while (true);
+    }
+
+    private State processState321(final LZMAInputState decoderState)
+            throws IOException {
+        switch (decoderState.state321) {
+            case 0:
+            {
+                decoderState.state321NumDirectBits = (decoderState.state32PosSlot >> 1) - 1;
+                decoderState.rep0 = ((2 | (decoderState.state32PosSlot & 1)) << decoderState.state321NumDirectBits);
+                decoderState.state321 = (decoderState.state32PosSlot < Base.kEndPosModelIndex) ? 1 : 2;
+            }
+            case 1:
+            {
+                if (!BitTreeDecoder.reverseDecode(decoderState, m_PosDecoders,
+                        decoderState.rep0 - decoderState.state32PosSlot - 1, m_RangeDecoder, decoderState.state321NumDirectBits)) {
+                    return State.NEED_MORE_DATA;
+                }
+
+                decoderState.rep0 += decoderState.lastMethodResult;
+                decoderState.state321 = 0;
+                return State.CONTINUE;
+            }
+
+            case 2:
+            {
+                if (!m_RangeDecoder.decodeDirectBits(decoderState,
+                            decoderState.state321NumDirectBits - Base.kNumAlignBits)) {
+                    return State.NEED_MORE_DATA;
+                }
+
+                decoderState.rep0 += (decoderState.lastMethodResult << Base.kNumAlignBits);
+                decoderState.state321 = 3;
+            }
+            case 3:
+            {
+                if (!m_PosAlignDecoder.reverseDecode(decoderState, m_RangeDecoder)) {
+                    return State.NEED_MORE_DATA;
+                }
+
+                decoderState.rep0 += decoderState.lastMethodResult;
+
+                decoderState.state321 = 0;
+
+                if (decoderState.rep0 < 0) {
+                    if (decoderState.rep0 == -1) {
+                        return State.DONE;
+                    }
+
+                    return State.ERR;
+                }
+            }
         }
-        int val = properties[0] & 0xFF;
-        int lc = val % 9;
-        int remainder = val / 9;
-        int lp = remainder % 5;
-        int pb = remainder / 5;
-        int dictionarySize = 0;
-        for (int i = 0; i < 4; i++) {
-            dictionarySize += ((int) (properties[1 + i]) & 0xFF) << (i * 8);
-        }
-        if (!setLcLpPb(lc, lp, pb)) {
-            return false;
-        }
-        return setDictionarySize(dictionarySize);
+
+        return State.CONTINUE;
     }
 }

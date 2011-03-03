@@ -92,12 +92,12 @@ public class Encoder {
         }
         return (g_FastPos[pos >> 26] + 52);
     }
-    int _state = Base.StateInit();
+    int _state = Base.stateInit();
     byte _previousByte;
     int[] _repDistances = new int[Base.kNumRepDistances];
 
     void baseInit() {
-        _state = Base.StateInit();
+        _state = Base.stateInit();
         _previousByte = 0;
         for (int i = 0; i < Base.kNumRepDistances; i++) {
             _repDistances[i] = 0;
