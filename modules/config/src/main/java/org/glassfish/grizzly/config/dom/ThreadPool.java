@@ -58,7 +58,7 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
     int MAX_QUEUE_SIZE = 4096;
     int MAX_THREADPOOL_SIZE = 5;
     int MIN_THREADPOOL_SIZE = 2;
-    String CLASSNAME = "com.sun.grizzly.http.StatsThreadPool";
+    String CLASSNAME = "org.glassfish.grizzly.http.StatsThreadPool";
     String PARAMETERIZED_NUMBER_PATTERN = "\\$\\{.+\\}|\\d+";
 
     /**

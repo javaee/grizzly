@@ -66,7 +66,7 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
     int READ_TIMEOUT = 30000;
     int SELECTOR_POLL_TIMEOUT = 1000;
     String BYTE_BUFFER_TYPE = "HEAP";
-    String CLASSNAME = "com.sun.grizzly.TCPSelectorHandler";
+    String CLASSNAME = "org.glassfish.grizzly.TCPSelectorHandler";
 
     /**
      * The number of acceptor threads listening for the transport's events
