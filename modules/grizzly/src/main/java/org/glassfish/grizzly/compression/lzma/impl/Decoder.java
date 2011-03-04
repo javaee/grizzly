@@ -381,7 +381,8 @@ public class Decoder {
     public State code(LZMADecoder.LZMAInputState decoderState, long outSize) throws IOException {
 //        Init();
         final Buffer inputBuffer = decoderState.getSrc();
-
+        m_RangeDecoder.setBuffer(inputBuffer);
+        m_OutWindow.setBuffer(decoderState.getDst());
         if (!decoderState.isInitialized()) {
             if (inputBuffer.remaining() < 5) {
                 return State.NEED_MORE_DATA;
@@ -394,8 +395,7 @@ public class Decoder {
 //        final RangeDecoder m_RangeDecoder = decoderState.m_RangeDecoder;
 //        final OutWindow m_OutWindow = decoderState.m_OutWindow;
 //
-//        m_RangeDecoder.setStream(inputBuffer);
-//        m_OutWindow.setStream(outStream);
+
 
 //        int state = Base.StateInit();
 //        int rep0 = 0, rep1 = 0, rep2 = 0, rep3 = 0;
@@ -486,11 +486,11 @@ public class Decoder {
                     decoderState.inner2State = 3;
                 }
                 case 3: {
-                    if (!decoderState.decoder2.decodeNormal(
-                            decoderState, m_RangeDecoder)) {
-                        return false;
-                    }
-                    decoderState.prevByte = (byte) decoderState.lastMethodResult;
+//                    if (!decoderState.decoder2.decodeNormal(
+//                            decoderState, m_RangeDecoder)) {
+//                        return false;
+//                    }
+//                    decoderState.prevByte = (byte) decoderState.lastMethodResult;
                     m_OutWindow.putByte(decoderState.prevByte);
                     decoderState.state = Base.stateUpdateChar(decoderState.state);
                     decoderState.nowPos64++;
@@ -571,6 +571,7 @@ public class Decoder {
                     }
 
                     decoderState.state31 = decoderState.lastMethodResult == 0 ? 1 : 2;
+                    continue;
                 }
 
                 case 1: {
@@ -721,55 +722,54 @@ public class Decoder {
 
     private State processState321(final LZMAInputState decoderState)
             throws IOException {
-        switch (decoderState.state321) {
-            case 0:
-            {
-                decoderState.state321NumDirectBits = (decoderState.state32PosSlot >> 1) - 1;
-                decoderState.rep0 = ((2 | (decoderState.state32PosSlot & 1)) << decoderState.state321NumDirectBits);
-                decoderState.state321 = (decoderState.state32PosSlot < Base.kEndPosModelIndex) ? 1 : 2;
-            }
-            case 1:
-            {
-                if (!BitTreeDecoder.reverseDecode(decoderState, m_PosDecoders,
-                        decoderState.rep0 - decoderState.state32PosSlot - 1, m_RangeDecoder, decoderState.state321NumDirectBits)) {
-                    return State.NEED_MORE_DATA;
+        do {
+            switch (decoderState.state321) {
+                case 0: {
+                    decoderState.state321NumDirectBits = (decoderState.state32PosSlot >> 1) - 1;
+                    decoderState.rep0 = ((2 | (decoderState.state32PosSlot & 1)) << decoderState.state321NumDirectBits);
+                    decoderState.state321 = (decoderState.state32PosSlot < Base.kEndPosModelIndex) ? 1 : 2;
+                    continue;
                 }
-
-                decoderState.rep0 += decoderState.lastMethodResult;
-                decoderState.state321 = 0;
-                return State.CONTINUE;
-            }
-
-            case 2:
-            {
-                if (!m_RangeDecoder.decodeDirectBits(decoderState,
-                            decoderState.state321NumDirectBits - Base.kNumAlignBits)) {
-                    return State.NEED_MORE_DATA;
-                }
-
-                decoderState.rep0 += (decoderState.lastMethodResult << Base.kNumAlignBits);
-                decoderState.state321 = 3;
-            }
-            case 3:
-            {
-                if (!m_PosAlignDecoder.reverseDecode(decoderState, m_RangeDecoder)) {
-                    return State.NEED_MORE_DATA;
-                }
-
-                decoderState.rep0 += decoderState.lastMethodResult;
-
-                decoderState.state321 = 0;
-
-                if (decoderState.rep0 < 0) {
-                    if (decoderState.rep0 == -1) {
-                        return State.DONE;
+                case 1: {
+                    if (!BitTreeDecoder.reverseDecode(decoderState, m_PosDecoders,
+                            decoderState.rep0 - decoderState.state32PosSlot - 1, m_RangeDecoder, decoderState.state321NumDirectBits)) {
+                        return State.NEED_MORE_DATA;
                     }
 
-                    return State.ERR;
+                    decoderState.rep0 += decoderState.lastMethodResult;
+                    decoderState.state321 = 0;
+                    return State.CONTINUE;
+                }
+
+                case 2: {
+                    if (!m_RangeDecoder.decodeDirectBits(decoderState,
+                            decoderState.state321NumDirectBits - Base.kNumAlignBits)) {
+                        return State.NEED_MORE_DATA;
+                    }
+
+                    decoderState.rep0 += (decoderState.lastMethodResult << Base.kNumAlignBits);
+                    decoderState.state321 = 3;
+                    continue;
+                }
+                case 3: {
+                    if (!m_PosAlignDecoder.reverseDecode(decoderState, m_RangeDecoder)) {
+                        return State.NEED_MORE_DATA;
+                    }
+
+                    decoderState.rep0 += decoderState.lastMethodResult;
+
+                    decoderState.state321 = 0;
+
+                    if (decoderState.rep0 < 0) {
+                        if (decoderState.rep0 == -1) {
+                            return State.DONE;
+                        }
+
+                        return State.ERR;
+                    }
+                    return State.CONTINUE;
                 }
             }
-        }
-
-        return State.CONTINUE;
+        } while (true);
     }
 }
