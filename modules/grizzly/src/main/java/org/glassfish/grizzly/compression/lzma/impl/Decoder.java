@@ -188,8 +188,6 @@ public class Decoder {
                                 decoderState.lastMethodResult = symbol;
                                 return true;
                             }
-                            
-                            continue;
                         }
                     }
                 } while(true);
@@ -238,6 +236,7 @@ public class Decoder {
                         {
                             if (symbol >= 0x100) { // inner while(symbol < 0x100)
                                 decodeWithMatchByteMethodState = 4; // break
+                                continue;
                             }
 
                             if (!rangeDecoder.decodeBit(decoderState, m_Decoders,
@@ -326,10 +325,7 @@ public class Decoder {
         for (int i = 0; i < 4; i++) {
             dictionarySize += ((int) (properties[1 + i]) & 0xFF) << (i * 8);
         }
-        if (!setLcLpPb(lc, lp, pb)) {
-            return false;
-        }
-        return setDictionarySize(dictionarySize);
+        return setLcLpPb(lc, lp, pb) && setDictionarySize(dictionarySize);
     }
 
     boolean setDictionarySize(int dictionarySize) {
@@ -515,7 +511,6 @@ public class Decoder {
                             decoderState.state)) {
                         return State.NEED_MORE_DATA;
                     }
-
                     decoderState.inner2State = decoderState.lastMethodResult == 1 ?
                         1 : 2;
                     continue;
