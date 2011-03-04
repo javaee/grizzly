@@ -78,6 +78,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
 import org.glassfish.grizzly.memory.Buffers;
+import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import static org.junit.Assert.*;
@@ -165,6 +166,7 @@ public class SSLTest {
     }
 
     @Test
+    @Ignore
     public void testPingPongFilterChainSync() throws Exception {
         doTestPingPongFilterChain(true, 5, 0);
     }
@@ -175,6 +177,7 @@ public class SSLTest {
     }
 
     @Test
+    @Ignore
     public void testPingPongFilterChainSyncChunked() throws Exception {
         doTestPingPongFilterChain(true, 5, 1, new ChunkingFilter(1));
     }
