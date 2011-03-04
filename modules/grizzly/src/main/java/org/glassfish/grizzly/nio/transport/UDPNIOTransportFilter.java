@@ -147,13 +147,13 @@ public final class UDPNIOTransportFilter extends BaseFilter {
                 writeCompletionHandler = completionHandler;
             }
 
+            transportContext.setFuture(null);
+            transportContext.setCompletionHandler(null);
+
             transport.getWriter(transportContext.isBlocking()).write(
                     connection, address,
                     (Buffer) message, writeCompletionHandler).markForRecycle(
                     !hasFuture);
-
-            transportContext.setFuture(null);
-            transportContext.setCompletionHandler(null);
         }
 
         return ctx.getInvokeAction();
