@@ -43,7 +43,6 @@ package org.glassfish.grizzly.nio;
 import java.io.EOFException;
 import java.io.IOException;
 import java.net.SocketAddress;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.AbstractReader;
@@ -61,7 +60,6 @@ import org.glassfish.grizzly.asyncqueue.AsyncReadQueueRecord;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
-import java.util.Queue;
 
 /**
  * The {@link AsyncQueueReader} implementation, based on the Java NIO
@@ -75,7 +73,7 @@ public abstract class AbstractNIOAsyncQueueReader
 
     private static final Logger LOGGER = Grizzly.logger(AbstractNIOAsyncQueueReader.class);
 
-    private static final AsyncReadQueueRecord LOCK_RECORD =
+    static final AsyncReadQueueRecord LOCK_RECORD =
             AsyncReadQueueRecord.create(null, null, null, null, null, null);
     public static final int DEFAULT_BUFFER_SIZE = 8192;
     protected int defaultBufferSize = DEFAULT_BUFFER_SIZE;
@@ -119,11 +117,7 @@ public abstract class AbstractNIOAsyncQueueReader
                 connection, buffer, null, currentResult,
                 completionHandler, interceptor);
 
-        final Queue<AsyncReadQueueRecord> queue = connectionQueue.getQueue();
-        final AtomicReference<AsyncReadQueueRecord> currentElement =
-                connectionQueue.getCurrentElementAtomic();
-
-        final boolean isLocked = currentElement.compareAndSet(null, LOCK_RECORD);
+        final boolean isLocked = connectionQueue.reserveCurrentElement();
 
         try {
 
@@ -137,22 +131,13 @@ public abstract class AbstractNIOAsyncQueueReader
                         || (interceptor == null && isFinished(queueRecord))) { // if direct read is completed
 
                     // If message was read directly - set next queue element as current
-                    AsyncReadQueueRecord nextRecord = queue.poll();
-                    currentElement.set(nextRecord);
+                    final AsyncReadQueueRecord nextRecord =
+                            connectionQueue.doneCurrentElement();
                     
                     // Notify callback handler
                     onReadComplete(queueRecord);
 
-                    if (nextRecord == null) { // if nothing in queue
-                        // try one more time
-                        nextRecord = queue.peek();
-                        if (nextRecord != null &&
-                                currentElement.compareAndSet(null, nextRecord)) {
-                            if (queue.remove(nextRecord)) {
-                                onReadyToRead(connection);
-                            }
-                        }
-                    } else { // if there is something in queue
+                    if (nextRecord != null) { // if there is something in queue
                         onReadyToRead(connection);
                     }
 
@@ -171,7 +156,7 @@ public abstract class AbstractNIOAsyncQueueReader
                     final FutureImpl<ReadResult<Buffer, SocketAddress>> future =
                             SafeFutureImpl.create();
                     queueRecord.setFuture(future);
-                    currentElement.set(queueRecord);
+                    connectionQueue.setCurrentElement(queueRecord);
                     
                     onReadIncomplete(queueRecord);
                     onReadyToRead(connection);
@@ -187,17 +172,13 @@ public abstract class AbstractNIOAsyncQueueReader
                         SafeFutureImpl.create();
                 queueRecord.setFuture(future);
 
-                connectionQueue.getQueue().offer(queueRecord);
-
-                if (currentElement.compareAndSet(null, queueRecord)) { // if queue became empty
-                    // set this element as current and remove it from a queue
-                    if (queue.remove(queueRecord)) {
-                        onReadyToRead(connection);
-                    }
+                final boolean isBecameCurrent = connectionQueue.offer(queueRecord);
+                if (isBecameCurrent) {
+                    onReadyToRead(connection);
                 }
 
                 // Check whether connection is still open
-                if (!connection.isOpen() && queue.remove(queueRecord)) {
+                if (!connection.isOpen() && connectionQueue.remove(queueRecord)) {
                     onReadFailure(connection, queueRecord,
                             new EOFException("Connection is closed"));
                 }
@@ -217,10 +198,7 @@ public abstract class AbstractNIOAsyncQueueReader
         final TaskQueue connectionQueue =
                 ((NIOConnection) connection).getAsyncReadQueue();
 
-        return connectionQueue != null
-                && (connectionQueue.getCurrentElement() != null
-                || (connectionQueue.getQueue() != null
-                && !connectionQueue.getQueue().isEmpty()));
+        return connectionQueue != null && !connectionQueue.isEmpty();
     }
 
     /**
@@ -231,13 +209,13 @@ public abstract class AbstractNIOAsyncQueueReader
         final TaskQueue<AsyncReadQueueRecord> connectionQueue =
                 ((NIOConnection) connection).getAsyncReadQueue();
 
-        final Queue<AsyncReadQueueRecord> queue = connectionQueue.getQueue();
-        final AtomicReference<AsyncReadQueueRecord> currentElement =
-                connectionQueue.getCurrentElementAtomic();
+        // Current element shouldn't be null here!
+        // Though result queueRecord can be null, which means it is locked
+        AsyncReadQueueRecord queueRecord =
+                connectionQueue.getCurrentElementAndReserve();
 
-        AsyncReadQueueRecord queueRecord = currentElement.get();
-        if (queueRecord == LOCK_RECORD) return;
-
+        assert queueRecord != null;
+        
         try {
             while (queueRecord != null) {
                 final ReadResult currentResult = queueRecord.getCurrentResult();
@@ -253,8 +231,8 @@ public abstract class AbstractNIOAsyncQueueReader
                 if ((interceptInstructions & Interceptor.COMPLETED) != 0
                         || (interceptor == null && isFinished(queueRecord))) {
 
-                    AsyncReadQueueRecord nextRecord = queue.poll();
-                    currentElement.set(nextRecord);
+                    final AsyncReadQueueRecord nextRecord =
+                            connectionQueue.doneCurrentElement();
 
                     onReadComplete(queueRecord);
 
@@ -262,18 +240,11 @@ public abstract class AbstractNIOAsyncQueueReader
                             queueRecord, null);
                     queueRecord.recycle();
 
-                    queueRecord = nextRecord;
-                    // If last element in queue is null - we have to be careful
-                    if (queueRecord == null) {
-                        queueRecord = queue.peek();
-                        if (queueRecord != null &&
-                                currentElement.compareAndSet(null, queueRecord)) {
-                            if (!queue.remove(queueRecord)) { // if the record was picked up by another thread
-                                break;
-                            }
-                        } else { // If there are no elements - return
-                            break;
-                        }
+                    // check if there is ready element in the queue
+                    if (nextRecord == null ||
+                            // make sure it's still available
+                            (queueRecord = connectionQueue.getCurrentElementAndReserve()) == null) {
+                        break;
                     }
                 } else { // if there is still some data in current message
                     if ((interceptInstructions & Interceptor.RESET) != 0) {
@@ -282,6 +253,7 @@ public abstract class AbstractNIOAsyncQueueReader
                         queueRecord.setMessage(null);
                     }
 
+                    connectionQueue.setCurrentElement(queueRecord);
                     onReadIncomplete(queueRecord);
                     intercept(Reader.INCOMPLETE_EVENT,
                             queueRecord, null);
@@ -312,7 +284,7 @@ public abstract class AbstractNIOAsyncQueueReader
 
         if (readQueue != null) {
             AsyncReadQueueRecord record =
-                    readQueue.getCurrentElementAtomic().getAndSet(LOCK_RECORD);
+                    readQueue.getCurrentElementAndReserve();
 
             EOFException error = cachedEOFException;
             if (error == null) {
@@ -320,16 +292,12 @@ public abstract class AbstractNIOAsyncQueueReader
                 cachedEOFException = error;
             }
 
-            if (record != LOCK_RECORD) {
+            if (record != null) {
                 failReadRecord(record, error);
             }
 
-            final Queue<AsyncReadQueueRecord> recordsQueue =
-                    readQueue.getQueue();
-            if (recordsQueue != null) {
-                while ((record = recordsQueue.poll()) != null) {
-                    failReadRecord(record, error);
-                }
+            while ((record = readQueue.doneCurrentElement()) != null) {
+                failReadRecord(record, error);
             }
         }
     }

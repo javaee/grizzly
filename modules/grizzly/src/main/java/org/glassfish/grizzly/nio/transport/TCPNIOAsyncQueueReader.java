@@ -91,7 +91,7 @@ public final class TCPNIOAsyncQueueReader extends AbstractNIOAsyncQueueReader {
                 connection, buffer, SafeFutureImpl.create(),
                 ReadResult.create(connection),
                 completionHandler, interceptor);
-        ((TCPNIOConnection) connection).getAsyncReadQueue().getQueue().add(record);
+        ((TCPNIOConnection) connection).getAsyncReadQueue().offer(record);
     }
 
     @Override

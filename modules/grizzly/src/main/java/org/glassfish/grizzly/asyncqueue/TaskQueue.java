@@ -41,70 +41,74 @@
 package org.glassfish.grizzly.asyncqueue;
 
 import java.io.IOException;
-import org.glassfish.grizzly.utils.LinkedTransferQueue;
 
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Class represents common implementation of asynchronous processing queue.
  *
  * @author Alexey Stashok
  */
-public abstract class TaskQueue<E> {
-
+public final class TaskQueue<E> {
     private static final AtomicReferenceFieldUpdater<QueueMonitor,Boolean> MONITOR =
             AtomicReferenceFieldUpdater.newUpdater(QueueMonitor.class, Boolean.class, "invalid");
+
+    private final AtomicReference<E> currentElement;
+    final AtomicInteger spaceInBytes = new AtomicInteger();
+
+    // Lock to provide atomic currentElement and Queue updates
+    final ReentrantLock lock = new ReentrantLock();
 
     /**
      * The queue of tasks, which will be processed asynchronously
      */
-    protected final Queue<E> queue;
+    private final Queue<E> queue;
 
 
     protected final Queue<QueueMonitor> monitorQueue;
 
-
+    private final E reserveObj;
     // ------------------------------------------------------------ Constructors
 
 
-    protected TaskQueue(Queue<E> queue) {
-        this.queue = queue;
+    protected TaskQueue(final E reserveObj) {
+        this.reserveObj = reserveObj;
+        this.queue = new LinkedList<E>();
         monitorQueue = new ConcurrentLinkedQueue<QueueMonitor>();
+        currentElement = new AtomicReference<E>();
     }
-
 
     // ---------------------------------------------------------- Public Methods
 
 
-    public static <E> TaskQueue<E> createSafeTaskQueue() {
-        return new SafeTaskQueue<E>();
+    public static <E> TaskQueue<E> createTaskQueue(final E reserveObj) {
+        return new TaskQueue<E>(reserveObj);
     }
-    
-    public static <E> TaskQueue<E> createUnSafeTaskQueue() {
-        return new UnSafeTaskQueue<E>();
-    }
-
 
     /**
      * Reserves memory space in the queue.
      *
      * @return the new memory (in bytes) consumed by the queue.
      */
-    public abstract int reserveSpace(int amount);
+    public int reserveSpace(final int amount) {
+        return spaceInBytes.addAndGet(amount);
+    }
 
     /**
      * Releases memory space in the queue.
      *
      * @return the new memory (in bytes) consumed by the queue.
      */
-    public abstract int releaseSpace(int amount);
+    public int releaseSpace(final int amount) {
+        return spaceInBytes.addAndGet(-amount);
+    }
 
     /**
      * Releases memory space in the queue and notifies registered
@@ -112,34 +116,44 @@ public abstract class TaskQueue<E> {
      *
      * @return the new memory (in bytes) consumed by the queue.
      */
-    public abstract int releaseSpaceAndNotify(int amount) throws IOException;
+    public int releaseSpaceAndNotify(final int amount) throws IOException {
+        final int space = releaseSpace(amount);
+        doNotify();
+        return space;
+    }
 
     /**
      * Returns the number of queued bytes.
      * 
      * @return the number of queued bytes.
      */
-    public abstract int spaceInBytes();
+    public int spaceInBytes() {
+        return spaceInBytes.get();
+    }
 
     /**
      * Get the current processing task
      * @return the current processing task
      */
-    public abstract E getCurrentElement();
+    public E getCurrentElement() {
+        return currentElement.get();
+    }
 
     /**
      * Get the wrapped current processing task, to perform atomic operations.
      * @return the wrapped current processing task, to perform atomic operations.
      */
-    public abstract AtomicReference<E> getCurrentElementAtomic();
+    public AtomicReference<E> getCurrentElementAtomic() {
+        return currentElement;
+    }
     
     /**
      * Get the queue of tasks, which will be processed asynchronously
      * @return the queue of tasks, which will be processed asynchronously
      */
-    public Queue<E> getQueue() {
-        return queue;
-    }
+//    public Queue<E> getQueue() {
+//        return queue;
+//    }
 
 
     public boolean addQueueMonitor(final QueueMonitor monitor) throws IOException {
@@ -180,121 +194,103 @@ public abstract class TaskQueue<E> {
 
     }
 
+    /**
+     * Reserve current task element, if possible
+     * @return <tt>true</tt>, if element was reserved, or <tt>false</tt> otherwise.
+     */
+    public boolean reserveCurrentElement() {
+        return getCurrentElementAtomic().compareAndSet(null, reserveObj);
+    }
+
+    /**
+     * Set current task element.
+     * @param current task element.
+     */
+    public void setCurrentElement(final E task) {
+        getCurrentElementAtomic().set(task);
+    }
+
+    /**
+     * Retrieves current task element and marks the current element as reserved.
+     * @return current element, or <tt>null</tt>, if none present.
+     */
+    public E getCurrentElementAndReserve() {
+        final E current = getCurrentElementAtomic().getAndSet(reserveObj);
+        if (current == reserveObj) {
+            return null;
+        }
+
+        return current;
+    }
+
+    /**
+     * Complete the current element processing and try to take the next element
+     * from queue and make it current.
+     *
+     * @return new current element.
+     */
+    public E doneCurrentElement() {
+        lock.lock();
+        try {
+            final E newCurrent = queue.poll();
+            currentElement.set(newCurrent);
+            return newCurrent;
+        } finally {
+            lock.unlock();
+        }
+
+    }
+
+    /**
+     * Add the new task into the task queue.
+     *
+     * @param task new task.
+     * @return return <tt>true</tt>, if new task became current, or <tt>false</tt>
+     * otherwise.
+     */
+    public boolean offer(final E task) {
+        lock.lock();
+        try {
+            if (currentElement.get() == null) {
+                currentElement.set(task);
+                return true;
+            }
+
+            queue.offer(task);
+            return false;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Remove the task from queue.
+     * @param task the task to remove.
+     * @return <tt>true</tt> if tasked was removed, or <tt>false</tt> otherwise.
+     */
+    public boolean remove(final E task) {
+        lock.lock();
+        try {
+            return queue.remove(task);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public boolean isEmpty() {
+        if (currentElement.get() == null) {
+            lock.lock();
+            try {
+                return queue.isEmpty();
+            } finally {
+                lock.unlock();
+            }
+        }
+
+        return false;
+    }
 
     //----------------------------------------------------------- Nested Classes
-
-
-    /**
-     * Thread safe <tt>AsyncQueue</tt> implementation.
-     * @param <E> queue element type.
-     */
-    public final static class SafeTaskQueue<E> extends TaskQueue<E> {
-        final AtomicReference<E> currentElement;
-        final AtomicInteger spaceInBytes = new AtomicInteger();
-
-        protected SafeTaskQueue() {
-            super(new LinkedTransferQueue<E>());
-            currentElement = new AtomicReference<E>();
-        }
-
-        @Override
-        public E getCurrentElement() {
-            return currentElement.get();
-        }
-
-        @Override
-        public AtomicReference<E> getCurrentElementAtomic() {
-            return currentElement;
-        }
-
-        @Override
-        public int reserveSpace(final int amount) {
-            return spaceInBytes.addAndGet(amount);
-        }
-
-        @Override
-        public int releaseSpace(final int amount) {
-            return spaceInBytes.addAndGet(-amount);
-        }
-
-        @Override
-        public int releaseSpaceAndNotify(final int amount) throws IOException {
-            final int space = releaseSpace(amount);
-            doNotify();
-            return space;
-        }
-
-        @Override
-        public int spaceInBytes() {
-            return spaceInBytes.get();
-        }
-
-    } // END SafeTaskQueue
-
-
-    /**
-     * Non thread safe <tt>AsyncQueue</tt> implementation.
-     * @param <E> queue element type.
-     */
-    public final static class UnSafeTaskQueue<E> extends TaskQueue<E> {
-        private E currentElement;
-
-        private int spaceInBytes;
-
-        /**
-         * Locker object, which could be used by a queue processors
-         */
-        protected final ReentrantLock queuedActionLock;
-
-        protected UnSafeTaskQueue() {
-            super(new LinkedList<E>());
-            queuedActionLock = new ReentrantLock();
-        }
-
-        @Override
-        public E getCurrentElement() {
-            return currentElement;
-        }
-
-        @Override
-        public AtomicReference<E> getCurrentElementAtomic() {
-            throw new UnsupportedOperationException("Is not supported for unsafe queue");
-        }
-
-        /**
-         * Get the locker object, which could be used by a queue processors
-         * @return the locker object, which could be used by a queue processors
-         */
-        public ReentrantLock getQueuedActionLock() {
-            return queuedActionLock;
-        }
-
-        @Override
-        public int reserveSpace(int amount) {
-            spaceInBytes += amount;
-            return spaceInBytes;
-        }
-
-        @Override
-        public int releaseSpace(final int amount) {
-            spaceInBytes -= amount;
-            return spaceInBytes;
-        }
-
-        @Override
-        public int releaseSpaceAndNotify(final int amount) throws IOException {
-            final int space = releaseSpace(amount);
-            doNotify();
-            return space;
-        }
-
-        @Override
-        public int spaceInBytes() {
-            return spaceInBytes;
-        }
-
-    } // END UnsafeTaskQueue
-
 
     /**
      * Notification mechanism which will be invoked when
