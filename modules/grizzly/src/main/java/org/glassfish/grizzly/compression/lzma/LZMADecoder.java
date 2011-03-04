@@ -78,11 +78,11 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
         final MemoryManager memoryManager = obtainMemoryManager(storage);
 
         final LZMAInputState state = (LZMAInputState) obtainStateObject(storage);
-        if (!state.isInitialized()) {
-            if (!initializeInput(state, input)) {
-                return TransformationResult.createIncompletedResult(input);
-            }
-        }
+        //if (!state.isInitialized()) {
+        //    if (!initializeInput(state, input)) {
+        //        return TransformationResult.createIncompletedResult(input);
+        //    }
+        //}
         Buffer decodedBuffer = null;
         Decoder.State decState = null;
         if (input.hasRemaining()) {
@@ -157,6 +157,9 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
         } catch (IOException e) {
             decodedBuffer.dispose();
             throw new IllegalStateException(e);
+        }
+        if (decState == Decoder.State.ERR) {
+            throw new IllegalStateException("Invalid decoder state.");
         }
         decodedBuffer = state.getDst();
 
