@@ -57,7 +57,6 @@ import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import java.io.EOFException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutionException;
@@ -127,7 +126,7 @@ public class KeepAliveTest extends TestCase {
         }
     }
 
-    public void testHttp11KeepAliveHeaderClose() throws Exception {
+    public void testHttp11KeepAliveWithConnectionCloseHeader() throws Exception {
         final String msg = "Hello world #";
 
         HttpServer server = createServer(new HttpHandler() {
@@ -294,7 +293,14 @@ public class KeepAliveTest extends TestCase {
                 public void failed(Throwable throwable) {
                     localFuture.failure(throwable);
                 }
+            });
 
+            connection.addCloseListener(new Connection.CloseListener() {
+
+                @Override
+                public void onClosed(Connection connection) throws IOException {
+                    localFuture.failure(new IOException());
+                }
             });
             return localFuture;
         }
@@ -319,22 +325,7 @@ public class KeepAliveTest extends TestCase {
 
                 return ctx.getStopAction(message);
             }
-
-            @Override
-            public NextAction handleClose(FilterChainContext ctx) throws IOException {
-                final FutureImpl<Buffer> localFuture = asyncFuture;
-                asyncFuture = null;
-                if (localFuture != null) {
-                    localFuture.failure(new EOFException());
-                }
-
-                return ctx.getInvokeAction();
-            }
-
-
         }
-
-
     }
 
     private HttpServer createServer(final HttpHandler httpHandler,
