@@ -156,7 +156,7 @@ public class Decoder {
             int decodeWithMatchByteMethodState;
             int symbol;
             int matchBit;
-            int matchByte;
+            byte matchByte;
             
             public void init() {
                 decodeNormalMethodState = 0;
@@ -226,7 +226,7 @@ public class Decoder {
                                 }
 
                                 // loop
-                                decodeWithMatchByteMethodState = 2;
+                                decodeWithMatchByteMethodState = 1;
                                 continue;
                             }
 
