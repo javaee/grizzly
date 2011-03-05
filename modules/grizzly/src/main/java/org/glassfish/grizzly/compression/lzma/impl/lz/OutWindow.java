@@ -93,7 +93,7 @@ public class OutWindow {
             return;
         }
         if (_dst.remaining() < size) {
-            resizeBuffer(_mm, _dst, size);
+            _dst = resizeBuffer(_mm, _dst, size);
         }
         _dst.put(_buffer, _streamPos, size);
         if (_pos >= _windowSize) {

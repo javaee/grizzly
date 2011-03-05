@@ -95,7 +95,7 @@ public class RangeEncoder {
             int temp = _cache;
             do {
                 if (!dst.hasRemaining()) {
-                    resizeBuffer(mm, dst, 1);
+                    dst = resizeBuffer(mm, dst, 1);
                 }
                 dst.put((byte) (temp + LowHi));
                 temp = 0xFF;

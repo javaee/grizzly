@@ -153,6 +153,7 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
         Buffer decodedBuffer = memoryManager.allocate(512);
         state.setDst(decodedBuffer);
         Decoder.State decState;
+        buffer.position(state.inputPos);
         try {
             decState = state.getDecoder().code(state, -1);
         } catch (IOException e) {
@@ -161,6 +162,8 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
         }
         if (decState == Decoder.State.ERR) {
             throw new IllegalStateException("Invalid decoder state.");
+        } else if (decState == Decoder.State.NEED_MORE_DATA) {
+            state.inputPos = buffer.position();
         }
         decodedBuffer = state.getDst();
 
@@ -190,6 +193,8 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
         private Buffer dst;
         private Buffer result;
         private MemoryManager mm;
+
+        private int inputPos;
 
         public int state;
         public int rep0;
@@ -300,6 +305,8 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
             initialized = false;
             decInitialized = false;
             mm = null;
+
+            inputPos = 0;
 
             posState = 0;
             lastMethodResult = 0;

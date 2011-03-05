@@ -39,7 +39,6 @@
  */
 package org.glassfish.grizzly;
 
-import org.junit.Ignore;
 import org.glassfish.grizzly.compression.lzma.LZMAFilter;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -58,6 +57,7 @@ import org.glassfish.grizzly.utils.StringFilter;
 
 import java.io.EOFException;
 import java.io.IOException;
+import java.util.Random;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -67,13 +67,11 @@ import static org.junit.Assert.*;
 public class LZMATest {
     private static final int PORT = 7786;
 
-    @Ignore
     @Test
     public void testSimpleEcho() throws Exception {
         doTest("Hello world");
     }
 
-    @Ignore
     @Test
     public void test10Echoes() throws Exception {
         String[] array = new String[10];
@@ -84,25 +82,37 @@ public class LZMATest {
         doTest(array);
     }
 
-    @Ignore
     @Test
     public void testLargeEcho() throws Exception {
-        final int len = 2000;
+        final int len = 1024 * 40;
         StringBuilder sb = new StringBuilder(len);
-        for (int i = 0; i < len; i++ ) {
-            sb.append(i);
+        String a = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+        int totalLen = a.length() - 1;
+        Random r = new Random(System.currentTimeMillis());
+        for (int i = 0; i < len; i++) {
+            sb.append(a.charAt(r.nextInt(totalLen)));
         }
-        System.out.println(sb.length());
         doTest(sb.toString());
     }
 
-    @Ignore
+    @Test
+    public void testChunkedLargeEcho() throws Exception {
+        final int len = 1024 * 40;
+        StringBuilder sb = new StringBuilder(len);
+        String a = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+        int totalLen = a.length() - 1;
+        Random r = new Random(System.currentTimeMillis());
+        for (int i = 0; i < len; i++) {
+            sb.append(a.charAt(r.nextInt(totalLen)));
+        }
+        doTest(true, sb.toString());
+    }
+
     @Test
     public void testChunkedEcho() throws Exception {
         doTest(true, "Hello world");
     }
 
-    @Ignore
     @Test
     public void testChunked10Echoes() throws Exception {
         String[] array = new String[10];
@@ -154,10 +164,10 @@ public class LZMATest {
 
             Future<Connection> future = connectorHandler.connect("localhost", PORT);
 
-            connection = future.get(10, TimeUnit.SECONDS);
+            connection = future.get();
             assertTrue(connection != null);
 
-            assertTrue(completeFuture.get(10, TimeUnit.SECONDS));
+            assertTrue(completeFuture.get());
         } finally {
             if (connection != null) {
                 connection.close();
