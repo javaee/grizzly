@@ -135,14 +135,6 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
     // --------------------------------------------------------- Private Methods
 
 
-    private boolean initializeInput(final LZMAInputState state,
-                                    final Buffer input) {
-
-        return (input.remaining() >= 13 && state.initialize(input));
-
-    }
-
-
     private Decoder.State decodeBuffer(final MemoryManager memoryManager,
                                        final Buffer buffer,
                                        final LZMAInputState state) {

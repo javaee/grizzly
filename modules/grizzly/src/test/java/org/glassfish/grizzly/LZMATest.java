@@ -61,11 +61,14 @@ import java.util.Random;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.junit.Ignore;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class LZMATest {
     private static final int PORT = 7786;
+
 
     @Test
     public void testSimpleEcho() throws Exception {
@@ -82,6 +85,7 @@ public class LZMATest {
         doTest(array);
     }
 
+    @Ignore
     @Test
     public void testLargeEcho() throws Exception {
         final int len = 1024 * 40;
@@ -95,6 +99,7 @@ public class LZMATest {
         doTest(sb.toString());
     }
 
+    @Ignore
     @Test
     public void testChunkedLargeEcho() throws Exception {
         final int len = 1024 * 40;
