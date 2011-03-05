@@ -70,47 +70,22 @@ public final class DefaultStreamReader extends AbstractStreamReader {
     public static final class Input extends BufferedInput {
 
         private DefaultStreamReader parentStreamReader;
-        private boolean isDone;
+        private InputInterceptor interceptor;
 
         @Override
         protected void onOpenInputSource() throws IOException {
-            isDone = false;
             final Connection connection = parentStreamReader.getConnection();
             final Transport transport = connection.getTransport();
             final Reader reader = transport.getReader(connection);
 
-            reader.read(connection, null, null,
-                    new Interceptor<ReadResult<Buffer, ?>> () {
-
-                        @Override
-                        public int intercept(int event, Object context,
-                                ReadResult<Buffer, ?> result) {
-                            if (event == Reader.READ_EVENT) {
-                                final Buffer buffer = result.getMessage();
-                                result.setMessage(null);
-
-                                if (buffer == null) {
-                                    return Interceptor.INCOMPLETED;
-                                }
-
-                                buffer.trim();
-                                append(buffer);
-                                if (isDone) {
-                                    return Interceptor.COMPLETED;
-                                }
-
-                                return Interceptor.INCOMPLETED
-                                        | Interceptor.RESET;
-                            }
-
-                            return Interceptor.DEFAULT;
-                        }
-                    });
+            interceptor = new InputInterceptor();
+            reader.read(connection, null, null, interceptor);
         }
 
         @Override
         protected void onCloseInputSource() throws IOException {
-            isDone = true;
+            interceptor.isDone = true;
+            interceptor = null;
         }
 
         @Override
@@ -125,6 +100,36 @@ public final class DefaultStreamReader extends AbstractStreamReader {
                 final Throwable failure) {
             if (completionHandler != null) {
                 completionHandler.failed(failure);
+            }
+        }
+
+        private class InputInterceptor implements
+                Interceptor<ReadResult<Buffer, ?>> {
+
+            boolean isDone = false;
+
+            @Override
+            public int intercept(int event, Object context,
+                    ReadResult<Buffer, ?> result) {
+                if (event == Reader.READ_EVENT) {
+                    final Buffer buffer = result.getMessage();
+                    result.setMessage(null);
+
+                    if (buffer == null) {
+                        return Interceptor.INCOMPLETED;
+                    }
+
+                    buffer.trim();
+                    append(buffer);
+                    if (isDone) {
+                        return Interceptor.COMPLETED;
+                    }
+
+                    return Interceptor.INCOMPLETED
+                            | Interceptor.RESET;
+                }
+
+                return Interceptor.DEFAULT;
             }
         }
     }
