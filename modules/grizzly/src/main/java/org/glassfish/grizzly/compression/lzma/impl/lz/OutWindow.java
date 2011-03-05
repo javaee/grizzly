@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.compression.lzma.impl.lz;
 
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.memory.MemoryManager;
 
 import java.io.IOException;
 
@@ -56,6 +57,7 @@ public class OutWindow {
     int _windowSize = 0;
     int _streamPos;
     Buffer _dst;
+    MemoryManager _mm;
 
     public void create(int windowSize) {
         if (_buffer == null || _windowSize != windowSize) {
@@ -66,14 +68,16 @@ public class OutWindow {
         _streamPos = 0;
     }
 
-    public void setBuffer(Buffer dst) throws IOException {
+    public void setBuffer(Buffer dst, MemoryManager mm) throws IOException {
         releaseBuffer();
         _dst = dst;
+        _mm = mm;
     }
 
     public void releaseBuffer() throws IOException {
         //Flush();
         _dst = null;
+        _mm = null;
     }
 
     public void init(boolean solid) {
@@ -87,6 +91,9 @@ public class OutWindow {
         int size = _pos - _streamPos;
         if (size == 0) {
             return;
+        }
+        if (_dst.remaining() < size) {
+            resizeBuffer(_mm, _dst, size);
         }
         _dst.put(_buffer, _streamPos, size);
         if (_pos >= _windowSize) {
@@ -125,4 +132,13 @@ public class OutWindow {
         }
         return _buffer[pos];
     }
+
+    private static Buffer resizeBuffer(final MemoryManager memoryManager,
+                                         final Buffer headerBuffer, final int grow) {
+
+        return memoryManager.reallocate(headerBuffer, Math.max(
+                headerBuffer.capacity() + grow,
+                (headerBuffer.capacity() * 3) / 2 + 1));
+    }
+
 }

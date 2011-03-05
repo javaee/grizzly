@@ -45,6 +45,7 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.compression.lzma.impl.lz.BinTree;
 import org.glassfish.grizzly.compression.lzma.impl.rangecoder.BitTreeEncoder;
 import org.glassfish.grizzly.compression.lzma.impl.rangecoder.RangeEncoder;
+import org.glassfish.grizzly.memory.MemoryManager;
 
 import java.io.IOException;
 
@@ -1164,8 +1165,8 @@ public class Encoder {
         }
     }
 
-    void setDstBuffer(Buffer dst) {
-        _rangeEncoder.setBuffer(dst);
+    void setDstBuffer(Buffer dst, MemoryManager mm) {
+        _rangeEncoder.setBuffer(dst, mm);
     }
 
     void releaseDstBuffer() {
@@ -1177,11 +1178,11 @@ public class Encoder {
         releaseDstBuffer();
     }
 
-    void setStreams(Buffer src, Buffer dst, long inSize, long outSize) {
+    void setStreams(Buffer src, Buffer dst, MemoryManager mm, long inSize, long outSize) {
         _src = src;
         _finished = false;
         create();
-        setDstBuffer(dst);
+        setDstBuffer(dst, mm);
         init();
 
         // if (!_fastMode)
@@ -1201,10 +1202,10 @@ public class Encoder {
     long[] processedOutSize = new long[1];
     boolean[] finished = new boolean[1];
 
-    public void Code(Buffer src, Buffer dst, long inSize, long outSize) throws IOException {
+    public void Code(Buffer src, Buffer dst, MemoryManager mm, long inSize, long outSize) throws IOException {
         _needReleaseMFStream = false;
         try {
-            setStreams(src, dst, inSize, outSize);
+            setStreams(src, dst, mm, inSize, outSize);
             while (true) {
 
 

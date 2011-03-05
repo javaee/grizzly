@@ -192,7 +192,7 @@ public class LZMAEncoder extends AbstractTransformer<Buffer,Buffer> {
             outputState.setHeaderWritten(true);
         }
 
-        encoder.Code(outputState.getSrc(), outputState.getDst(), -1, -1);
+        encoder.Code(outputState.getSrc(), outputState.getDst(), memoryManager, -1, -1);
         dst = outputState.getDst();
         int len = dst.position();
         if (len <= 0) {

@@ -378,9 +378,9 @@ public class Decoder {
 //        Init();
         final Buffer inputBuffer = decoderState.getSrc();
         m_RangeDecoder.setBuffer(inputBuffer);
-        m_OutWindow.setBuffer(decoderState.getDst());
+        m_OutWindow.setBuffer(decoderState.getDst(), decoderState.getMemoryManager());
         if (!decoderState.isInitialized()) {
-            if (inputBuffer.remaining() < 5) {
+            if (inputBuffer.remaining() < 13) {
                 return State.NEED_MORE_DATA;
             }
 

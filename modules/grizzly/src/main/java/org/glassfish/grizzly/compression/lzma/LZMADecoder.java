@@ -78,6 +78,7 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
         final MemoryManager memoryManager = obtainMemoryManager(storage);
 
         final LZMAInputState state = (LZMAInputState) obtainStateObject(storage);
+        state.setMemoryManager(memoryManager);
         //if (!state.isInitialized()) {
         //    if (!initializeInput(state, input)) {
         //        return TransformationResult.createIncompletedResult(input);
@@ -188,6 +189,7 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
         private Buffer src;
         private Buffer dst;
         private Buffer result;
+        private MemoryManager mm;
 
         public int state;
         public int rep0;
@@ -272,6 +274,14 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
             this.result = result;
         }
 
+        public MemoryManager getMemoryManager() {
+            return mm;
+        }
+
+        public void setMemoryManager(MemoryManager mm) {
+            this.mm = mm;
+        }
+
         // ---------------------------------------------- Methods from Cacheable
 
 
@@ -289,6 +299,7 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
             lastResult = null;
             initialized = false;
             decInitialized = false;
+            mm = null;
 
             posState = 0;
             lastMethodResult = 0;

@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.compression.lzma.impl.rangecoder;
 
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.memory.MemoryManager;
 
 import java.io.IOException;
 
@@ -56,18 +57,21 @@ public class RangeEncoder {
     static final int kBitModelTotal = (1 << kNumBitModelTotalBits);
     static final int kNumMoveBits = 5;
     Buffer dst;
+    MemoryManager mm;
     long Low;
     int Range;
     int _cacheSize;
     int _cache;
     long _position;
 
-    public void setBuffer(Buffer dst) {
+    public void setBuffer(Buffer dst, MemoryManager mm) {
         this.dst = dst;
+        this.mm = mm;
     }
 
     public void releaseBuffer() {
         dst = null;
+        mm = null;
     }
 
     public void init() {
@@ -90,6 +94,9 @@ public class RangeEncoder {
             _position += _cacheSize;
             int temp = _cache;
             do {
+                if (!dst.hasRemaining()) {
+                    resizeBuffer(mm, dst, 1);
+                }
                 dst.put((byte) (temp + LowHi));
                 temp = 0xFF;
             } while (--_cacheSize != 0);
@@ -164,5 +171,13 @@ public class RangeEncoder {
 
     static public int getPrice1(int Prob) {
         return ProbPrices[(kBitModelTotal - Prob) >>> kNumMoveReducingBits];
+    }
+
+    private static Buffer resizeBuffer(final MemoryManager memoryManager,
+                                         final Buffer headerBuffer, final int grow) {
+
+        return memoryManager.reallocate(headerBuffer, Math.max(
+                headerBuffer.capacity() + grow,
+                (headerBuffer.capacity() * 3) / 2 + 1));
     }
 }
