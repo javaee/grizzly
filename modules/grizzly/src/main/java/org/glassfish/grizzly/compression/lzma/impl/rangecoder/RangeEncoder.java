@@ -69,9 +69,13 @@ public class RangeEncoder {
         this.mm = mm;
     }
 
-    public void releaseBuffer() {
-        dst = null;
+    public Buffer releaseBuffer() {
         mm = null;
+        try {
+            return dst;
+        } finally {
+            dst = null;
+        }
     }
 
     public void init() {

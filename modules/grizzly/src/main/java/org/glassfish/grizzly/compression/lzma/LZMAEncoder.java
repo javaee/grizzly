@@ -101,7 +101,8 @@ public class LZMAEncoder extends AbstractTransformer<Buffer,Buffer> {
         Buffer encodedBuffer = null;
         if (input != null && input.hasRemaining()) {
             try {
-                encodedBuffer = encodeBuffer(input, state, memoryManager);
+                state.setMemoryManager(memoryManager);
+                encodedBuffer = encodeBuffer(input, state);
             } catch (IOException ioe) {
                 throw new TransformationException(ioe);
             }
@@ -157,15 +158,14 @@ public class LZMAEncoder extends AbstractTransformer<Buffer,Buffer> {
 
 
     private Buffer encodeBuffer(Buffer input,
-                                LZMAOutputState state,
-                                MemoryManager memoryManager) throws IOException {
+                                LZMAOutputState state) throws IOException {
 
         Buffer resultBuffer = null;
 
         state.setSrc(input);
-        final Buffer encoded = encode(state, memoryManager);
+        final Buffer encoded = encode(state);
         if (encoded != null) {
-            resultBuffer = Buffers.appendBuffers(memoryManager,
+            resultBuffer = Buffers.appendBuffers(state.getMemoryManager(),
                     resultBuffer,
                     encoded);
         }
@@ -176,13 +176,12 @@ public class LZMAEncoder extends AbstractTransformer<Buffer,Buffer> {
     }
 
 
-    private Buffer encode(LZMAOutputState outputState,
-                          final MemoryManager memoryManager)
+    private Buffer encode(LZMAOutputState outputState)
     throws IOException {
 
 
         final Encoder encoder = outputState.getEncoder();
-        Buffer dst = memoryManager.allocate(512);
+        Buffer dst = outputState.getMemoryManager().allocate(512);
         outputState.setDst(dst);
 
         if (!outputState.isHeaderWritten()) {
@@ -192,7 +191,7 @@ public class LZMAEncoder extends AbstractTransformer<Buffer,Buffer> {
             outputState.setHeaderWritten(true);
         }
 
-        encoder.Code(outputState.getSrc(), outputState.getDst(), memoryManager, -1, -1);
+        encoder.Code(outputState, -1, -1);
         dst = outputState.getDst();
         int len = dst.position();
         if (len <= 0) {
@@ -209,7 +208,7 @@ public class LZMAEncoder extends AbstractTransformer<Buffer,Buffer> {
     // ---------------------------------------------------------- Nested Classes
 
 
-    private static class LZMAOutputState extends LastResultAwareState<Buffer,Buffer> implements Cacheable {
+    public static class LZMAOutputState extends LastResultAwareState<Buffer,Buffer> implements Cacheable {
 
         private boolean initialized;
 
@@ -220,6 +219,7 @@ public class LZMAEncoder extends AbstractTransformer<Buffer,Buffer> {
         private Buffer dst;
         private Buffer src;
         private boolean headerWritten = false;
+        private MemoryManager mm;
 
         public boolean isInitialized() {
             return initialized;
@@ -257,10 +257,19 @@ public class LZMAEncoder extends AbstractTransformer<Buffer,Buffer> {
             this.headerWritten = headerWritten;
         }
 
+        public MemoryManager getMemoryManager() {
+            return mm;
+        }
+
+        public void setMemoryManager(MemoryManager mm) {
+            this.mm = mm;
+        }
+
         public void recycle() {
             lastResult = null;
             initialized = false;
             headerWritten = false;
+            mm = null;
             dst = null;
             src = null;
             ThreadCache.putToCache(CACHE_IDX, this);

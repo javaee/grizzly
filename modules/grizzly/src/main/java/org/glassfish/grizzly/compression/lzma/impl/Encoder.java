@@ -42,6 +42,7 @@ package org.glassfish.grizzly.compression.lzma.impl;
 
 
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.compression.lzma.LZMAEncoder;
 import org.glassfish.grizzly.compression.lzma.impl.lz.BinTree;
 import org.glassfish.grizzly.compression.lzma.impl.rangecoder.BitTreeEncoder;
 import org.glassfish.grizzly.compression.lzma.impl.rangecoder.RangeEncoder;
@@ -1169,13 +1170,13 @@ public class Encoder {
         _rangeEncoder.setBuffer(dst, mm);
     }
 
-    void releaseDstBuffer() {
-        _rangeEncoder.releaseBuffer();
+    Buffer releaseDstBuffer() {
+        return _rangeEncoder.releaseBuffer();
     }
 
-    void releaseBuffers() {
+    void releaseBuffers(LZMAEncoder.LZMAOutputState state) {
         releaseMFBuffer();
-        releaseDstBuffer();
+        state.setDst(releaseDstBuffer());
     }
 
     void setStreams(Buffer src, Buffer dst, MemoryManager mm, long inSize, long outSize) {
@@ -1202,10 +1203,10 @@ public class Encoder {
     long[] processedOutSize = new long[1];
     boolean[] finished = new boolean[1];
 
-    public void Code(Buffer src, Buffer dst, MemoryManager mm, long inSize, long outSize) throws IOException {
+    public void Code(LZMAEncoder.LZMAOutputState state, long inSize, long outSize) throws IOException {
         _needReleaseMFStream = false;
         try {
-            setStreams(src, dst, mm, inSize, outSize);
+            setStreams(state.getSrc(), state.getDst(), state.getMemoryManager(), inSize, outSize);
             while (true) {
 
 
@@ -1216,7 +1217,7 @@ public class Encoder {
                 }
             }
         } finally {
-            releaseBuffers();
+            releaseBuffers(state);
         }
     }
 

@@ -102,7 +102,12 @@ public class LZMAFilter extends BaseFilter {
         final Buffer input = (Buffer) ctx.getMessage();
         final TransformationResult<Buffer, Buffer> result =
                 encoder.transform(connection, input);
-        input.dispose();
+
+        if (!input.hasRemaining()) {
+            input.dispose();
+        } else {
+            input.trim();
+        }
 
         try {
             switch (result.getStatus()) {

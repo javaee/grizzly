@@ -85,10 +85,9 @@ public class LZMATest {
         doTest(array);
     }
 
-    @Ignore
     @Test
     public void testLargeEcho() throws Exception {
-        final int len = 1024 * 40;
+        final int len = 1024 * 60;
         StringBuilder sb = new StringBuilder(len);
         String a = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
         int totalLen = a.length() - 1;
@@ -97,20 +96,6 @@ public class LZMATest {
             sb.append(a.charAt(r.nextInt(totalLen)));
         }
         doTest(sb.toString());
-    }
-
-    @Ignore
-    @Test
-    public void testChunkedLargeEcho() throws Exception {
-        final int len = 1024 * 40;
-        StringBuilder sb = new StringBuilder(len);
-        String a = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
-        int totalLen = a.length() - 1;
-        Random r = new Random(System.currentTimeMillis());
-        for (int i = 0; i < len; i++) {
-            sb.append(a.charAt(r.nextInt(totalLen)));
-        }
-        doTest(true, sb.toString());
     }
 
     @Test
@@ -169,10 +154,10 @@ public class LZMATest {
 
             Future<Connection> future = connectorHandler.connect("localhost", PORT);
 
-            connection = future.get();
+            connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
-            assertTrue(completeFuture.get());
+            assertTrue(completeFuture.get(10, TimeUnit.SECONDS));
         } finally {
             if (connection != null) {
                 connection.close();
