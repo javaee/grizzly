@@ -742,7 +742,6 @@ public class Request {
             return attribute;
         }
 
-        // XXX Should move to Globals
         if (Globals.SSL_CERTIFICATE_ATTR.equals(name)) {
             attribute = populateCertificateAttribute();
 
