@@ -72,6 +72,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.ChunkingFilter;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -95,6 +96,7 @@ public class LZMAEncodingTest {
     private final FutureImpl<Throwable> exception = SafeFutureImpl.create();
 
     @Test
+    @Ignore
     public void testLZMAResponse() throws Throwable {
         LZMAContentEncoding LZMAServerContentEncoding =
                 new LZMAContentEncoding(new EncodingFilter() {
@@ -153,6 +155,7 @@ public class LZMAEncodingTest {
     }
 
     @Test
+    @Ignore
     public void testLZMARequest() throws Throwable {
         LZMAContentEncoding LZMAServerContentEncoding =
                 new LZMAContentEncoding(new EncodingFilter() {
@@ -216,6 +219,7 @@ public class LZMAEncodingTest {
     }
 
     @Test
+    @Ignore
     public void testLZMARequestResponse() throws Throwable {
         LZMAContentEncoding LZMAServerContentEncoding =
                 new LZMAContentEncoding(new EncodingFilter() {
@@ -287,6 +291,7 @@ public class LZMAEncodingTest {
 
 
     @Test
+    @Ignore
     public void testLZMARequestResponseChunkedXferEncoding() throws Throwable {
         LZMAContentEncoding LZMAServerContentEncoding =
                 new LZMAContentEncoding(new EncodingFilter() {
