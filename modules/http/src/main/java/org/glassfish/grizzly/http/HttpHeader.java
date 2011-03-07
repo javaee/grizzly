@@ -54,9 +54,8 @@ import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.http.util.ContentType;
 import org.glassfish.grizzly.http.util.DataChunk;
-import org.glassfish.grizzly.http.util.HttpUtils;
+import org.glassfish.grizzly.http.util.HttpCodecUtils;
 import org.glassfish.grizzly.http.util.MimeHeaders;
-import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
  * {@link HttpPacket}, which represents HTTP message header. There are 2 subtypes
@@ -268,25 +267,20 @@ public abstract class HttpHeader extends HttpPacket
         }
     }
 
-    protected static Buffer getLengthAsBuffer(Connection c, long length) {
-        final MemoryManager mm = c.getTransport().getMemoryManager();
-        final Buffer b = mm.allocate(20);
-        b.allowBufferDispose(true);
-        HttpUtils.longToBuffer(length, b);
-        return b;
-    }
-
     /**
      * Makes sure content-length header is present.
      * 
      * @param defaultLength default content-length value.
      */
-    protected void makeContentLengthHeader(Connection c, long defaultLength) {
+    protected void makeContentLengthHeader(final Connection c,
+            final long defaultLength) {
         if (contentLength != -1) {
-            final Buffer b = getLengthAsBuffer(c, contentLength);
+            final Buffer b = HttpCodecUtils.getLonghAsBuffer(
+                    c.getTransport().getMemoryManager(), contentLength);
             headers.setValue(Constants.CONTENT_LENGTH_HEADER).setBuffer(b, b.position(), b.limit());
         } else if (defaultLength != -1) {
-            Buffer b = getLengthAsBuffer(c, defaultLength);
+            Buffer b = HttpCodecUtils.getLonghAsBuffer(
+                    c.getTransport().getMemoryManager(), defaultLength);
             final int idx = headers.indexOf(Constants.CONTENT_LENGTH_HEADER, 0);
             if (idx == -1) {
                 headers.addValue(Constants.CONTENT_LENGTH_HEADER).setBuffer(b, b.position(), b.limit());

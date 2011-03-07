@@ -50,6 +50,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
 import java.io.IOException;
 import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.Constants;
+import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 
 /**
  * Client side {@link HttpCodecFilter} implementation, which is responsible for

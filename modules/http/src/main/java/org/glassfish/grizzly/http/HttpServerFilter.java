@@ -63,6 +63,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.filterchain.FilterChainEvent;
+import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 
 /**
  * Server side {@link HttpCodecFilter} implementation, which is responsible for
@@ -578,8 +579,8 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
 
     }
-    
 
+    
     private static void prepareRequest(final HttpRequestPacketImpl request,
             final boolean hasReadyContent) {
 

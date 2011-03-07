@@ -758,19 +758,21 @@ public class InputBuffer {
      */
     private int fill(final int requestedLen) throws IOException {
 
-        if (request.isExpectContent()) {
-            int read = 0;
-            while (read < requestedLen && request.isExpectContent()) {
-                final ReadResult rr = ctx.read();
-                final HttpContent c = (HttpContent) rr.getMessage();
-                final Buffer b = c.getContent();
-                read += b.remaining();
-                toCompositeInputContentBuffer().append(b);
-                rr.recycle();
-                c.recycle();
-            }
+        int read = 0;
+        while (read < requestedLen && request.isExpectContent()) {
+            final ReadResult rr = ctx.read();
+            final HttpContent c = (HttpContent) rr.getMessage();
+            final Buffer b = c.getContent();
+            read += b.remaining();
+            toCompositeInputContentBuffer().append(b);
+            rr.recycle();
+            c.recycle();
+        }
+
+        if (read > 0 || requestedLen == 0) {
             return read;
         }
+
         return -1;
 
     }

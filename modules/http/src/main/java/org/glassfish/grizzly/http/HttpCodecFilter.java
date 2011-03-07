@@ -59,9 +59,9 @@ import org.glassfish.grizzly.utils.ArraySet;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import org.glassfish.grizzly.http.util.BufferChunk;
 import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.ssl.SSLUtils;
+import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 
 /**
  * The {@link org.glassfish.grizzly.filterchain.Filter}, responsible for transforming {@link Buffer} into
@@ -623,7 +623,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         return encodedBuffer;
     }
 
-    protected Buffer encodeKnownHeaders(final MemoryManager memoryManager,
+    protected static Buffer encodeKnownHeaders(final MemoryManager memoryManager,
             Buffer buffer, final HttpHeader httpHeader) {
         
         final CacheableDataChunk name = CacheableDataChunk.create();
@@ -656,7 +656,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         return buffer;
     }
 
-    private Buffer encodeContentEncodingHeader(final MemoryManager memoryManager,
+    private static Buffer encodeContentEncodingHeader(final MemoryManager memoryManager,
             Buffer buffer, final HttpHeader httpHeader,
             final CacheableDataChunk name, final CacheableDataChunk value) {
 
@@ -1079,76 +1079,6 @@ public abstract class HttpCodecFilter extends BaseFilter
 
         return -1;
     }
-
-    protected static Buffer put(final MemoryManager memoryManager,
-            Buffer dstBuffer, final DataChunk chunk) {
-
-        if (chunk.isNull()) return dstBuffer;
-        
-        if (chunk.getType() == DataChunk.Type.Buffer) {
-            final BufferChunk bc = chunk.getBufferChunk();
-            final int length = bc.getLength();
-            if (dstBuffer.remaining() < length) {
-                dstBuffer = resizeBuffer(memoryManager, dstBuffer, length);
-            }
-
-            dstBuffer.put(bc.getBuffer(), bc.getStart(),
-                    length);
-
-            return dstBuffer;
-        } else {
-            return put(memoryManager, dstBuffer, chunk.toString());
-        }
-    }
-
-    protected static Buffer put(final MemoryManager memoryManager,
-            Buffer dstBuffer, final String s) {
-        final int size = s.length();
-        if (dstBuffer.remaining() < size) {
-            dstBuffer = resizeBuffer(memoryManager, dstBuffer, size);
-        }
-
-        for (int i = 0; i < size; i++) {
-            dstBuffer.put((byte) s.charAt(i));
-        }
-
-        return dstBuffer;
-    }
-    
-    protected static Buffer put(final MemoryManager memoryManager,
-            Buffer headerBuffer, final byte[] array) {
-
-        if (headerBuffer.remaining() < array.length) {
-            headerBuffer =
-                    resizeBuffer(memoryManager, headerBuffer, array.length);
-        }
-
-        headerBuffer.put(array);
-
-        return headerBuffer;
-    }
-
-    protected static Buffer put(final MemoryManager memoryManager,
-            Buffer headerBuffer, final byte value) {
-
-        if (!headerBuffer.hasRemaining()) {
-            headerBuffer = resizeBuffer(memoryManager, headerBuffer, 1);
-        }
-
-        headerBuffer.put(value);
-
-        return headerBuffer;
-    }
-
-    @SuppressWarnings({"unchecked"})
-    protected static Buffer resizeBuffer(final MemoryManager memoryManager,
-            final Buffer headerBuffer, final int grow) {
-
-        return memoryManager.reallocate(headerBuffer, Math.max(
-                headerBuffer.capacity() + grow,
-                (headerBuffer.capacity() * 3) / 2 + 1));
-    }
-
 
     final void setTransferEncodingOnParsing(HttpHeader httpHeader) {
         final TransferEncoding[] encodings = transferEncodings.getArray();

@@ -51,6 +51,7 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
+import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 
 /**
  * Chunked transfer encoding implementation.
@@ -301,7 +302,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
         final int chunkSize = content.remaining();
 
         Ascii.intToHexString(httpChunkBuffer, chunkSize);
-        httpChunkBuffer = HttpCodecFilter.put(memoryManager, httpChunkBuffer,
+        httpChunkBuffer = put(memoryManager, httpChunkBuffer,
                 Constants.CRLF_BYTES);
         httpChunkBuffer.trim();
         httpChunkBuffer.allowBufferDispose(true);
@@ -331,9 +332,9 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
             }
 
             if (hasContent) {
-                httpChunkTrailer = HttpCodecFilter.put(memoryManager, httpChunkTrailer,
+                httpChunkTrailer = put(memoryManager, httpChunkTrailer,
                         Constants.CRLF_BYTES);
-                httpChunkTrailer = HttpCodecFilter.put(memoryManager, httpChunkTrailer,
+                httpChunkTrailer = put(memoryManager, httpChunkTrailer,
                         Constants.LAST_CHUNK_CRLF_BYTES);
             }
 
@@ -346,7 +347,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
 
         }
         
-        httpChunkTrailer = HttpCodecFilter.put(memoryManager, httpChunkTrailer,
+        httpChunkTrailer = put(memoryManager, httpChunkTrailer,
                 Constants.CRLF_BYTES);
 
         httpChunkTrailer.trim();
