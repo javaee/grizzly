@@ -109,14 +109,16 @@ public class LZMAContentEncoding implements ContentEncoding {
 
     @Override
     public ParsingResult decode(Connection connection, HttpContent httpContent) {
+        final HttpHeader httpHeader = httpContent.getHttpHeader();
         final Buffer input = httpContent.getContent();
         final TransformationResult<Buffer, Buffer> result =
-                decoder.transform(connection, input);
+                decoder.transform(httpHeader, input);
 
-        final Buffer remainder = result.getExternalRemainder();
+        Buffer remainder = result.getExternalRemainder();
 
-        if (remainder == null) {
+        if (remainder == null || !remainder.hasRemaining()) {
             input.tryDispose();
+            remainder = null;
         } else {
             input.shrink();
         }
@@ -125,7 +127,7 @@ public class LZMAContentEncoding implements ContentEncoding {
             switch (result.getStatus()) {
                 case COMPLETE: {
                     httpContent.setContent(result.getMessage());
-                    decoder.finish(connection);
+                    decoder.finish(httpHeader);
                     return ParsingResult.create(httpContent, remainder);
                 }
 
@@ -151,19 +153,26 @@ public class LZMAContentEncoding implements ContentEncoding {
     @Override
     public HttpContent encode(Connection connection, HttpContent httpContent) {
 
+        final HttpHeader httpHeader = httpContent.getHttpHeader();
         final Buffer input = httpContent.getContent();
+
+        if (httpContent.isLast() && !input.hasRemaining()) {
+            return httpContent;
+        }
+
         final TransformationResult<Buffer, Buffer> result =
-                encoder.transform(connection, input);
-        input.dispose();
+                encoder.transform(httpContent.getHttpHeader(), input);
+
+        input.tryDispose();
 
         try {
             switch (result.getStatus()) {
                 case COMPLETE:
-                    encoder.finish(connection);
+                    encoder.finish(httpHeader);
                 case INCOMPLETE: {
-                    final Buffer readyBuffer = result.getMessage();
-                    if (readyBuffer != null) {
-                        httpContent.setContent(readyBuffer);
+                    Buffer encodedBuffer = result.getMessage();
+                    if (encodedBuffer != null) {
+                        httpContent.setContent(encodedBuffer);
                         return httpContent;
                     } else {
                         return null;

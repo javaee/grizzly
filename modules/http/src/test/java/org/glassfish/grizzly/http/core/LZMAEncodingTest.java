@@ -72,7 +72,6 @@ import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.ChunkingFilter;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -267,8 +266,7 @@ public class LZMAEncodingTest {
 
 
     @Test
-    @Ignore("Fails with NPE in ByteBufferWrapper - needs investigation")
-    public void testLZMARequestResponseChunking() throws Throwable {
+    public void testLZMARequestResponseChunkedXferEncoding() throws Throwable {
         LZMAContentEncoding LZMAServerContentEncoding =
                 new LZMAContentEncoding(new EncodingFilter() {
             @Override
@@ -344,10 +342,11 @@ public class LZMAEncodingTest {
             ContentEncoding serverContentEncoding, ContentEncoding clientContentEncoding)
     throws Throwable {
 
+        final int chunkSize = 2;
         final FutureImpl<Boolean> testResult = SafeFutureImpl.create();
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
-        filterChainBuilder.add(new ChunkingFilter(2));
+        filterChainBuilder.add(new ChunkingFilter(chunkSize));
 
         final HttpServerFilter httpServerFilter = new HttpServerFilter();
         if (serverContentEncoding != null) {
@@ -368,7 +367,7 @@ public class LZMAEncodingTest {
 
             FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter());
-            clientFilterChainBuilder.add(new ChunkingFilter(2));
+            clientFilterChainBuilder.add(new ChunkingFilter(chunkSize));
 
             final HttpClientFilter httpClientFilter = new HttpClientFilter();
             if (clientContentEncoding != null) {

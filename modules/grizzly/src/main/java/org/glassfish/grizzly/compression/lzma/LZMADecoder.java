@@ -93,9 +93,6 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
         if (decState == Decoder.State.NEED_MORE_DATA
                 || decodedBuffer == null
                 || !decodedBuffer.hasRemaining()) {
-            if (hasRemainder && input.position() > 0) {
-                input.trim();
-            }
             return TransformationResult.createIncompletedResult(hasRemainder ? input : null);
         }
 
