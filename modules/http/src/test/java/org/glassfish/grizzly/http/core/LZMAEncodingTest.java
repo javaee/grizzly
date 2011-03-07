@@ -127,22 +127,29 @@ public class LZMAEncodingTest {
             }
         });
 
-        HttpRequestPacket request = HttpRequestPacket.builder()
-            .method("GET")
-            .header("Host", "localhost:" + PORT)
-            .uri("/path")
-            .header("accept-encoding", "lzma")
-            .protocol(Protocol.HTTP_1_1)
-            .build();
+        for (int i = 1; i <= 10; i++) {
+            HttpRequestPacket request = HttpRequestPacket.builder()
+                    .method("GET")
+                    .header("Host", "localhost:" + PORT)
+                    .uri("/path")
+                    .header("accept-encoding", "lzma")
+                    .protocol(Protocol.HTTP_1_1)
+                    .build();
 
-        ExpectedResult result = new ExpectedResult();
-        result.setProtocol("HTTP/1.1");
-        result.setStatusCode(200);
-        result.addHeader("content-encoding", "lzma");
+            ExpectedResult result = new ExpectedResult();
+            result.setProtocol("HTTP/1.1");
+            result.setStatusCode(200);
+            result.addHeader("content-encoding", "lzma");
 
-        final MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
-        result.setContent(Buffers.wrap(mm, "Echo: <nothing>"));
-        doTest(request, result, LZMAServerContentEncoding, LZMAClientContentEncoding);
+            final MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
+            result.setContent(Buffers.wrap(mm, "Echo: <nothing>"));
+            try {
+               doTest(request, result, LZMAServerContentEncoding, LZMAClientContentEncoding, i);
+            } catch (Throwable t) {
+                System.out.println("Failed on loop count: " + i);
+                throw t;
+            }
+        }
     }
 
     @Test
@@ -178,27 +185,34 @@ public class LZMAEncodingTest {
         String reqString = "LZMAped hello. Works?";
         byte[] LZMApedContent = lzmaCompress(reqString, mm);
 
-        HttpRequestPacket request = HttpRequestPacket.builder()
-            .method("POST")
-            .header("Host", "localhost:" + PORT)
-            .uri("/path")
-            .protocol(Protocol.HTTP_1_1)
-            .header("content-encoding", "lzma")
-            .contentLength(LZMApedContent.length)
-            .build();
-        
-        HttpContent reqHttpContent = HttpContent.builder(request)
-                .last(true)
-                .content(Buffers.wrap(mm, LZMApedContent))
-                .build();
+        for (int i = 1; i <= 10; i++) {
+            HttpRequestPacket request = HttpRequestPacket.builder()
+                    .method("POST")
+                    .header("Host", "localhost:" + PORT)
+                    .uri("/path")
+                    .protocol(Protocol.HTTP_1_1)
+                    .header("content-encoding", "lzma")
+                    .contentLength(LZMApedContent.length)
+                    .build();
 
-        ExpectedResult result = new ExpectedResult();
-        result.setProtocol("HTTP/1.1");
-        result.setStatusCode(200);
-        result.addHeader("!content-encoding", "lzma");
-        result.setContent(Buffers.wrap(mm, "Echo: " + reqString));
+            HttpContent reqHttpContent = HttpContent.builder(request)
+                    .last(true)
+                    .content(Buffers.wrap(mm, LZMApedContent))
+                    .build();
 
-        doTest(reqHttpContent, result, LZMAServerContentEncoding, LZMAClientContentEncoding);
+            ExpectedResult result = new ExpectedResult();
+            result.setProtocol("HTTP/1.1");
+            result.setStatusCode(200);
+            result.addHeader("!content-encoding", "lzma");
+            result.setContent(Buffers.wrap(mm, "Echo: " + reqString));
+
+            try {
+               doTest(reqHttpContent, result, LZMAServerContentEncoding, LZMAClientContentEncoding, i);
+            } catch (Throwable t) {
+                System.out.println("Failed on loop count: " + i);
+                throw t;
+            }
+        }
     }
 
     @Test
@@ -240,28 +254,35 @@ public class LZMAEncodingTest {
 
         byte[] LZMApedContent = lzmaCompress(reqString, mm);
 
-        HttpRequestPacket request = HttpRequestPacket.builder()
-            .method("POST")
-            .header("Host", "localhost:" + PORT)
-            .uri("/path")
-            .protocol(Protocol.HTTP_1_1)
-            .header("accept-encoding", "lzma")
-            .header("content-encoding", "lzma")
-            .contentLength(LZMApedContent.length)
-            .build();
+        for (int i = 1; i <= 10; i++) {
+            HttpRequestPacket request = HttpRequestPacket.builder()
+                    .method("POST")
+                    .header("Host", "localhost:" + PORT)
+                    .uri("/path")
+                    .protocol(Protocol.HTTP_1_1)
+                    .header("accept-encoding", "lzma")
+                    .header("content-encoding", "lzma")
+                    .contentLength(LZMApedContent.length)
+                    .build();
 
-        HttpContent reqHttpContent = HttpContent.builder(request)
-                .last(true)
-                .content(Buffers.wrap(mm, LZMApedContent))
-                .build();
+            HttpContent reqHttpContent = HttpContent.builder(request)
+                    .last(true)
+                    .content(Buffers.wrap(mm, LZMApedContent))
+                    .build();
 
-        ExpectedResult result = new ExpectedResult();
-        result.setProtocol("HTTP/1.1");
-        result.setStatusCode(200);
-        result.addHeader("content-encoding", "lzma");
-        result.setContent(Buffers.wrap(mm, "Echo: " + reqString));
+            ExpectedResult result = new ExpectedResult();
+            result.setProtocol("HTTP/1.1");
+            result.setStatusCode(200);
+            result.addHeader("content-encoding", "lzma");
+            result.setContent(Buffers.wrap(mm, "Echo: " + reqString));
 
-        doTest(reqHttpContent, result, LZMAServerContentEncoding, LZMAClientContentEncoding);
+            try {
+               doTest(reqHttpContent, result, LZMAServerContentEncoding, LZMAClientContentEncoding, i);
+            } catch (Throwable t) {
+                System.out.println("Failed on loop count: " + i);
+                throw t;
+            }
+        }
     }
 
 
@@ -304,28 +325,35 @@ public class LZMAEncodingTest {
 
         byte[] LZMApedContent = lzmaCompress(reqString, mm);
 
-        HttpRequestPacket request = HttpRequestPacket.builder()
-                .method("POST")
-                .header("Host", "localhost:" + PORT)
-                .uri("/path")
-                .protocol(Protocol.HTTP_1_1)
-                .header("accept-encoding", "lzma")
-                .header("content-encoding", "lzma")
-                .chunked(true)
-                .build();
+        for (int i = 1; i <= 10; i++) {
+            HttpRequestPacket request = HttpRequestPacket.builder()
+                    .method("POST")
+                    .header("Host", "localhost:" + PORT)
+                    .uri("/path")
+                    .protocol(Protocol.HTTP_1_1)
+                    .header("accept-encoding", "lzma")
+                    .header("content-encoding", "lzma")
+                    .chunked(true)
+                    .build();
 
-        HttpContent reqHttpContent = HttpContent.builder(request)
-                .last(true)
-                .content(Buffers.wrap(mm, LZMApedContent))
-                .build();
+            HttpContent reqHttpContent = HttpContent.builder(request)
+                    .last(true)
+                    .content(Buffers.wrap(mm, LZMApedContent))
+                    .build();
 
-        ExpectedResult result = new ExpectedResult();
-        result.setProtocol("HTTP/1.1");
-        result.setStatusCode(200);
-        result.addHeader("content-encoding", "lzma");
-        result.setContent(Buffers.wrap(mm, "Echo: " + reqString));
+            ExpectedResult result = new ExpectedResult();
+            result.setProtocol("HTTP/1.1");
+            result.setStatusCode(200);
+            result.addHeader("content-encoding", "lzma");
+            result.setContent(Buffers.wrap(mm, "Echo: " + reqString));
 
-        doTest(reqHttpContent, result, LZMAServerContentEncoding, LZMAClientContentEncoding);
+            try {
+               doTest(reqHttpContent, result, LZMAServerContentEncoding, LZMAClientContentEncoding, i);
+            } catch (Throwable t) {
+                System.out.println("Failed on loop count: " + i);
+                throw t;
+            }
+        }
     }
     
     // --------------------------------------------------------- Private Methods
@@ -338,15 +366,17 @@ public class LZMAEncodingTest {
         }
     }
 
-    private void doTest(HttpPacket request, ExpectedResult expectedResults,
-            ContentEncoding serverContentEncoding, ContentEncoding clientContentEncoding)
+    private void doTest(HttpPacket request,
+                        ExpectedResult expectedResults,
+                        ContentEncoding serverContentEncoding,
+                        ContentEncoding clientContentEncoding,
+                        int networkChunkSize)
     throws Throwable {
 
-        final int chunkSize = 2;
         final FutureImpl<Boolean> testResult = SafeFutureImpl.create();
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
-        filterChainBuilder.add(new ChunkingFilter(chunkSize));
+        filterChainBuilder.add(new ChunkingFilter(networkChunkSize));
 
         final HttpServerFilter httpServerFilter = new HttpServerFilter();
         if (serverContentEncoding != null) {
@@ -367,7 +397,7 @@ public class LZMAEncodingTest {
 
             FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter());
-            clientFilterChainBuilder.add(new ChunkingFilter(chunkSize));
+            clientFilterChainBuilder.add(new ChunkingFilter(networkChunkSize));
 
             final HttpClientFilter httpClientFilter = new HttpClientFilter();
             if (clientContentEncoding != null) {
