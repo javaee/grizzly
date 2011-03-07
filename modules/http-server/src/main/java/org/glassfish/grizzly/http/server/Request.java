@@ -1734,7 +1734,7 @@ public class Request {
                 if (sslO != null) {
                     request.setAttribute(SSLSupport.SESSION_ID_KEY, sslO);
                 }
-            } catch (IOException ioe) {
+            } catch (Exception ioe) {
                 if (LOGGER.isLoggable(Level.WARNING)) {
                     LOGGER.log(Level.WARNING,
                             "Unable to populate SSL attributes",
