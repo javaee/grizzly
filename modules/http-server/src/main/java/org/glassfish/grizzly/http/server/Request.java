@@ -1715,29 +1715,36 @@ public class Request {
     }
 
     protected void populateSSLAttributes() {
-        try {
-            SSLSupport sslSupport = new SSLSupportImpl(ctx.getConnection());
-            Object sslO = sslSupport.getCipherSuite();
-            if (sslO != null) {
-                request.setAttribute(SSLSupport.CIPHER_SUITE_KEY, sslO);
+        if (isSecure()) {
+            try {
+                SSLSupport sslSupport = new SSLSupportImpl(ctx.getConnection());
+                Object sslO = sslSupport.getCipherSuite();
+                if (sslO != null) {
+                    request.setAttribute(SSLSupport.CIPHER_SUITE_KEY, sslO);
+                }
+                sslO = sslSupport.getPeerCertificateChain(false);
+                if (sslO != null) {
+                    request.setAttribute(SSLSupport.CERTIFICATE_KEY, sslO);
+                }
+                sslO = sslSupport.getKeySize();
+                if (sslO != null) {
+                    request.setAttribute(SSLSupport.KEY_SIZE_KEY, sslO);
+                }
+                sslO = sslSupport.getSessionId();
+                if (sslO != null) {
+                    request.setAttribute(SSLSupport.SESSION_ID_KEY, sslO);
+                }
+            } catch (IOException ioe) {
+                if (LOGGER.isLoggable(Level.WARNING)) {
+                    LOGGER.log(Level.WARNING,
+                            "Unable to populate SSL attributes",
+                            ioe);
+                }
             }
-            sslO = sslSupport.getPeerCertificateChain(false);
-            if (sslO != null) {
-                request.setAttribute(SSLSupport.CERTIFICATE_KEY, sslO);
-            }
-            sslO = sslSupport.getKeySize();
-            if (sslO != null) {
-                request.setAttribute(SSLSupport.KEY_SIZE_KEY, sslO);
-            }
-            sslO = sslSupport.getSessionId();
-            if (sslO != null) {
-                request.setAttribute(SSLSupport.SESSION_ID_KEY, sslO);
-            }
-        } catch (IOException ioe) {
+        } else {
             if (LOGGER.isLoggable(Level.WARNING)) {
                 LOGGER.log(Level.WARNING,
-                        "Unable to populate SSL attributes",
-                        ioe);
+                        "Unable to populate SSL attributes on plain HTTP request");
             }
         }
     }
