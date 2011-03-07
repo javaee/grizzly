@@ -274,7 +274,7 @@ public class GZipEncodingTest extends TestCase {
         doTest(reqHttpContent, result, gzipServerContentEncoding, gzipClientContentEncoding);
     }
 
-    public void testGZipRequestResponseChunking() throws Throwable {
+    public void testGZipRequestResponseChunkedXferEncoding() throws Throwable {
         GZipContentEncoding gzipServerContentEncoding =
                 new GZipContentEncoding(512, 512, new EncodingFilter() {
             @Override
