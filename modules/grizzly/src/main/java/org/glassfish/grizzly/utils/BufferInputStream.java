@@ -137,6 +137,8 @@ public class BufferInputStream extends InputStream {
             }
         }
 
+        position += length;
+
         return length;
     }
 
