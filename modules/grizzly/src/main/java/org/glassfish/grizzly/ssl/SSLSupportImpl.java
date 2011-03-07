@@ -83,6 +83,9 @@ public class SSLSupportImpl implements SSLSupport {
     public SSLSupportImpl(Connection connection) {
         
         engine = SSLUtils.getSSLEngine(connection);
+        if (engine == null) {
+            throw new IllegalStateException("SSLEngine is null");
+        }
         session = engine.getSession();
     }
 
