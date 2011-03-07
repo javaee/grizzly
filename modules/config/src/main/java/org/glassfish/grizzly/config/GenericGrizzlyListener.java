@@ -46,6 +46,7 @@ import java.net.InetSocketAddress;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -80,6 +81,7 @@ import org.glassfish.grizzly.http.GZipContentEncoding;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.KeepAlive;
+import org.glassfish.grizzly.http.LZMAContentEncoding;
 import org.glassfish.grizzly.http.server.FileCacheFilter;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServerFilter;
@@ -583,7 +585,14 @@ public class GenericGrizzlyListener implements GrizzlyListener {
                 compressableMimeTypes,
                 noCompressionUserAgents,
                 GZipContentEncoding.ALIASES));
-        return Collections.singleton(gzipContentEncoding);
+        final ContentEncoding lzmaEncoding = new LZMAContentEncoding(new CompressionEncodingFilter(compressionLevel, compressionMinSize,
+                compressableMimeTypes,
+                noCompressionUserAgents,
+                LZMAContentEncoding.ALIASES));
+        final Set<ContentEncoding> set = new HashSet<ContentEncoding>(2);
+        set.add(gzipContentEncoding);
+        set.add(lzmaEncoding);
+        return set;
     }
 
     private String[] split(String s, String delim) {
