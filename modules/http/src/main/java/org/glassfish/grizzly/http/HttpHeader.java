@@ -275,11 +275,11 @@ public abstract class HttpHeader extends HttpPacket
     protected void makeContentLengthHeader(final Connection c,
             final long defaultLength) {
         if (contentLength != -1) {
-            final Buffer b = HttpCodecUtils.getLonghAsBuffer(
+            final Buffer b = HttpCodecUtils.getLongAsBuffer(
                     c.getTransport().getMemoryManager(), contentLength);
             headers.setValue(Constants.CONTENT_LENGTH_HEADER).setBuffer(b, b.position(), b.limit());
         } else if (defaultLength != -1) {
-            Buffer b = HttpCodecUtils.getLonghAsBuffer(
+            Buffer b = HttpCodecUtils.getLongAsBuffer(
                     c.getTransport().getMemoryManager(), defaultLength);
             final int idx = headers.indexOf(Constants.CONTENT_LENGTH_HEADER, 0);
             if (idx == -1) {

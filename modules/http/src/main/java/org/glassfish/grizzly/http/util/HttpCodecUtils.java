@@ -50,7 +50,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
  * @author Alexey Stashok
  */
 public class HttpCodecUtils {
-    public static Buffer getLonghAsBuffer(final MemoryManager memoryManager,
+    public static Buffer getLongAsBuffer(final MemoryManager memoryManager,
             final long length) {
         final Buffer b = memoryManager.allocate(20);
         b.allowBufferDispose(true);
