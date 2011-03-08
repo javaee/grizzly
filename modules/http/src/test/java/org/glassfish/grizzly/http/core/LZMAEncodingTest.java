@@ -95,8 +95,8 @@ public class LZMAEncodingTest {
 
     private final FutureImpl<Throwable> exception = SafeFutureImpl.create();
 
-    @Test
     @Ignore
+    @Test
     public void testLZMAResponse() throws Throwable {
         LZMAContentEncoding LZMAServerContentEncoding =
                 new LZMAContentEncoding(new EncodingFilter() {
@@ -154,8 +154,8 @@ public class LZMAEncodingTest {
         }
     }
 
-    @Test
     @Ignore
+    @Test
     public void testLZMARequest() throws Throwable {
         LZMAContentEncoding LZMAServerContentEncoding =
                 new LZMAContentEncoding(new EncodingFilter() {
@@ -186,7 +186,7 @@ public class LZMAEncodingTest {
         final MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
 
         String reqString = "LZMAped hello. Works?";
-        byte[] LZMApedContent = lzmaCompress(reqString, mm);
+        Buffer LZMApedContent = lzmaCompress(reqString, mm);
 
         for (int i = 1; i <= 10; i++) {
             HttpRequestPacket request = HttpRequestPacket.builder()
@@ -195,12 +195,12 @@ public class LZMAEncodingTest {
                     .uri("/path")
                     .protocol(Protocol.HTTP_1_1)
                     .header("content-encoding", "lzma")
-                    .contentLength(LZMApedContent.length)
+                    .contentLength(LZMApedContent.remaining())
                     .build();
 
             HttpContent reqHttpContent = HttpContent.builder(request)
                     .last(true)
-                    .content(Buffers.wrap(mm, LZMApedContent))
+                    .content(LZMApedContent)
                     .build();
 
             ExpectedResult result = new ExpectedResult();
@@ -218,8 +218,8 @@ public class LZMAEncodingTest {
         }
     }
 
-    @Test
     @Ignore
+    @Test
     public void testLZMARequestResponse() throws Throwable {
         LZMAContentEncoding LZMAServerContentEncoding =
                 new LZMAContentEncoding(new EncodingFilter() {
@@ -256,7 +256,7 @@ public class LZMAEncodingTest {
 
         String reqString = generateBigString(16384);
 
-        byte[] LZMApedContent = lzmaCompress(reqString, mm);
+        Buffer LZMApedContent = lzmaCompress(reqString, mm);
 
         for (int i = 1; i <= 10; i++) {
             HttpRequestPacket request = HttpRequestPacket.builder()
@@ -266,12 +266,12 @@ public class LZMAEncodingTest {
                     .protocol(Protocol.HTTP_1_1)
                     .header("accept-encoding", "lzma")
                     .header("content-encoding", "lzma")
-                    .contentLength(LZMApedContent.length)
+                    .contentLength(LZMApedContent.remaining())
                     .build();
 
             HttpContent reqHttpContent = HttpContent.builder(request)
                     .last(true)
-                    .content(Buffers.wrap(mm, LZMApedContent))
+                    .content(LZMApedContent)
                     .build();
 
             ExpectedResult result = new ExpectedResult();
@@ -289,9 +289,8 @@ public class LZMAEncodingTest {
         }
     }
 
-
-    @Test
     @Ignore
+    @Test
     public void testLZMARequestResponseChunkedXferEncoding() throws Throwable {
         LZMAContentEncoding LZMAServerContentEncoding =
                 new LZMAContentEncoding(new EncodingFilter() {
@@ -328,7 +327,7 @@ public class LZMAEncodingTest {
 
         String reqString = generateBigString(16384);
 
-        byte[] LZMApedContent = lzmaCompress(reqString, mm);
+        Buffer LZMApedContent = lzmaCompress(reqString, mm);
 
         for (int i = 1; i <= 10; i++) {
             HttpRequestPacket request = HttpRequestPacket.builder()
@@ -343,7 +342,7 @@ public class LZMAEncodingTest {
 
             HttpContent reqHttpContent = HttpContent.builder(request)
                     .last(true)
-                    .content(Buffers.wrap(mm, LZMApedContent))
+                    .content(LZMApedContent)
                     .build();
 
             ExpectedResult result = new ExpectedResult();
@@ -580,7 +579,7 @@ public class LZMAEncodingTest {
         return sb.toString();
     }
 
-    private byte[] lzmaCompress(String message, MemoryManager mm) throws IOException {
+    private Buffer lzmaCompress(String message, MemoryManager mm) throws IOException {
         Buffer in = Buffers.wrap(mm, message.getBytes());
         Buffer out = mm.allocate(512);
         LZMAEncoder.LZMAProperties props = new LZMAEncoder.LZMAProperties();
@@ -600,7 +599,7 @@ public class LZMAEncodingTest {
         out = state.getDst();
         state.recycle();
         out.trim();
-        return out.toStringContent().getBytes();
+        return out;
     }
 
     private static final class ExpectedResult {
