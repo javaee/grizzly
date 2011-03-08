@@ -208,7 +208,9 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         final PortRange portRange = new PortRange(PORT, PORT + portsTest - 1);
 
         Connection connection = null;
-        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance()
+                .setReuseAddress(false)
+                .build();
 
         try {
             for (int i = 0; i < portsTest; i++) {
