@@ -177,6 +177,7 @@ public class RangeEncoder {
         return ProbPrices[(kBitModelTotal - Prob) >>> kNumMoveReducingBits];
     }
 
+    @SuppressWarnings({"unchecked"})
     private static Buffer resizeBuffer(final MemoryManager memoryManager,
                                          final Buffer headerBuffer, final int grow) {
 

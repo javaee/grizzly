@@ -133,6 +133,7 @@ public class OutWindow {
         return _buffer[pos];
     }
 
+    @SuppressWarnings({"unchecked"})
     private static Buffer resizeBuffer(final MemoryManager memoryManager,
                                          final Buffer headerBuffer, final int grow) {
 

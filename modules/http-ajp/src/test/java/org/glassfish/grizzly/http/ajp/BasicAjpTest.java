@@ -53,7 +53,6 @@ import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.http.HttpContent;
 import java.util.concurrent.Future;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.server.HttpHandler;
@@ -121,7 +120,7 @@ public class BasicAjpTest {
     
     @Test
     public void testShutdownHandler() throws Exception {
-        final FutureImpl<Boolean> shutdownFuture = SafeFutureImpl.<Boolean>create();
+        final FutureImpl<Boolean> shutdownFuture = SafeFutureImpl.create();
         final ShutdownHandler shutDownHandler = new ShutdownHandler() {
 
             @Override
@@ -167,8 +166,9 @@ public class BasicAjpTest {
         assertTrue(b);
     }
 
+    @SuppressWarnings({"unchecked"})
     private Future<Buffer> send(String host, int port, Buffer request) throws Exception {
-        final FutureImpl<Buffer> future = SafeFutureImpl.<Buffer>create();
+        final FutureImpl<Buffer> future = SafeFutureImpl.create();
 
         final FilterChainBuilder builder = FilterChainBuilder.stateless();
         builder.add(new TransportFilter());
