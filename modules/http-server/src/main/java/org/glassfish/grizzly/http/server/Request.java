@@ -101,6 +101,7 @@ import org.glassfish.grizzly.http.server.io.NIOReader;
 import org.glassfish.grizzly.http.server.util.Globals;
 import org.glassfish.grizzly.http.server.util.MappingData;
 import org.glassfish.grizzly.http.server.util.ParameterMap;
+import org.glassfish.grizzly.http.server.util.RequestUtils;
 import org.glassfish.grizzly.http.server.util.StringParser;
 import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.http.util.Chunk;
@@ -743,13 +744,13 @@ public class Request {
         }
 
         if (Globals.SSL_CERTIFICATE_ATTR.equals(name)) {
-            attribute = populateCertificateAttribute();
+            attribute = RequestUtils.populateCertificateAttribute(this);
 
             if (attribute != null) {
                 request.setAttribute(name, attribute);
             }
         } else if (isSSLAttribute(name)) {
-            populateSSLAttributes();
+            RequestUtils.populateSSLAttributes(this);
             
             attribute = request.getAttribute(name);
         }
@@ -1693,60 +1694,6 @@ public class Request {
 
     public FilterChainContext getContext() {
         return ctx;
-    }
-
-    protected Object populateCertificateAttribute() {
-        Object certificates = null;
-        
-        if (getRequest().isSecure()) {
-            SSLFilter.CertificateEvent event = new SSLFilter.CertificateEvent(true);
-            try {
-                ctx.notifyDownstream(event);
-            } catch (IOException ioe) {
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, ioe.toString(), ioe);
-                }
-            }
-            certificates = event.getCertificates();
-            request.setAttribute(SSLSupport.CERTIFICATE_KEY, certificates);
-        }
-
-        return certificates;
-    }
-
-    protected void populateSSLAttributes() {
-        if (isSecure()) {
-            try {
-                SSLSupport sslSupport = new SSLSupportImpl(ctx.getConnection());
-                Object sslO = sslSupport.getCipherSuite();
-                if (sslO != null) {
-                    request.setAttribute(SSLSupport.CIPHER_SUITE_KEY, sslO);
-                }
-                sslO = sslSupport.getPeerCertificateChain(false);
-                if (sslO != null) {
-                    request.setAttribute(SSLSupport.CERTIFICATE_KEY, sslO);
-                }
-                sslO = sslSupport.getKeySize();
-                if (sslO != null) {
-                    request.setAttribute(SSLSupport.KEY_SIZE_KEY, sslO);
-                }
-                sslO = sslSupport.getSessionId();
-                if (sslO != null) {
-                    request.setAttribute(SSLSupport.SESSION_ID_KEY, sslO);
-                }
-            } catch (Exception ioe) {
-                if (LOGGER.isLoggable(Level.WARNING)) {
-                    LOGGER.log(Level.WARNING,
-                            "Unable to populate SSL attributes",
-                            ioe);
-                }
-            }
-        } else {
-            if (LOGGER.isLoggable(Level.WARNING)) {
-                LOGGER.log(Level.WARNING,
-                        "Unable to populate SSL attributes on plain HTTP request");
-            }
-        }
     }
 
     protected String unescape(String s) {
