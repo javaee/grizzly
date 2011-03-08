@@ -130,6 +130,7 @@
         <module>comet</module>
         <module>websockets</module>
         <module>portunif</module>
+        <module>http-ajp</module>
         <module>config</module>
     </modules>
 </project>
