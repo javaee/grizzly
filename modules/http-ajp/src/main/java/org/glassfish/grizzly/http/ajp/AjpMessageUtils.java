@@ -76,7 +76,7 @@ final class AjpMessageUtils {
 
         offset = getBytesToDataChunk(requestContent, offset, req.getProtocolDC());
         final int requestURILen = readShort(requestContent, offset);
-        req.getRequestURIRef().init(requestContent, offset + 2, offset + requestURILen);
+        req.getRequestURIRef().init(requestContent, offset + 2, offset + 2 + requestURILen);
         // Don't forget to skip the terminating \0 (that's why "+ 1")
         offset += 2 + requestURILen + 1;
 
