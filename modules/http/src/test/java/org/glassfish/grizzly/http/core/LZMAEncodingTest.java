@@ -63,6 +63,7 @@ import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.http.LZMAContentEncoding;
 import org.glassfish.grizzly.http.Protocol;
+import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.impl.FutureImpl;
@@ -513,7 +514,9 @@ public class LZMAEncodingTest {
                     }
 
                     if (expectedResult.getContent() != null) {
-                        assertEquals("Unexpected content", expectedResult.getContent(), httpContent.getContent());
+                        assertEquals("Unexpected content",
+                                     expectedResult.getContent().toStringContent(Charsets.UTF8_CHARSET),
+                                     httpContent.getContent().toStringContent(Charsets.UTF8_CHARSET));
                     }
                     
                     testResult.result(Boolean.TRUE);

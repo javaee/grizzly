@@ -61,6 +61,7 @@ import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.http.Protocol;
+import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.impl.FutureImpl;
@@ -71,6 +72,7 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -491,7 +493,9 @@ public class GZipEncodingTest extends TestCase {
                     }
 
                     if (expectedResult.getContent() != null) {
-                        assertEquals("Unexpected content", expectedResult.getContent(), httpContent.getContent());
+                        assertEquals("Unexpected content",
+                                     expectedResult.getContent().toStringContent(Charsets.UTF8_CHARSET),
+                                     httpContent.getContent().toStringContent(Charsets.UTF8_CHARSET));
                     }
                     
                     testResult.result(Boolean.TRUE);
