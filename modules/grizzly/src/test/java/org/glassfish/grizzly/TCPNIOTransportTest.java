@@ -205,7 +205,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
     public void testPortRangeBind() throws Exception {
         final int portsTest = 10;
-        final int startPort = PORT + 1;
+        final int startPort = PORT + 1234;
         final PortRange portRange = new PortRange(startPort, startPort + portsTest - 1);
 
         Connection connection = null;
