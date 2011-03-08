@@ -83,9 +83,8 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
     @Override
     public boolean executeIoEvent(final Connection connection,
                                   final IOEvent ioEvent) throws IOException {
-        final boolean isReadWrite = (ioEvent == IOEvent.READ || ioEvent == IOEvent.WRITE);
         PostProcessor pp = null;
-        if (isReadWrite) {
+        if (isReadWrite(ioEvent)) {
             connection.disableIOEvent(ioEvent);
             pp = enableInterestPostProcessor;
         }

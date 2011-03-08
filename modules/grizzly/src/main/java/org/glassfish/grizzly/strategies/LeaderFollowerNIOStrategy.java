@@ -84,12 +84,10 @@ public final class LeaderFollowerNIOStrategy extends AbstractIOStrategy {
     @Override
     public boolean executeIoEvent(final Connection connection,
                                   final IOEvent ioEvent) throws IOException {
-        final boolean isReadWrite = isReadWrite(ioEvent);
 
-        
         final NIOConnection nioConnection = (NIOConnection) connection;
         PostProcessor pp = null;
-        if (isReadWrite) {
+        if (isReadWrite(ioEvent)) {
             nioConnection.disableIOEvent(ioEvent);
             pp = enableInterestPostProcessor;
         }

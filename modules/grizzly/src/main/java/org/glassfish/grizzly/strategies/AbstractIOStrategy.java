@@ -65,8 +65,16 @@ import org.glassfish.grizzly.Transport;
  * @author oleksiys
  */
 public abstract class AbstractIOStrategy implements IOStrategy {
-    // COMPLETE, COMPLETE_LEAVE, RE-REGISTER, RERUN, ERROR, TERMINATE, NOT_RUN
-    private final static boolean[] isRegisterMap = {true, false, true, false, false, false, false};
+
+    private final static boolean[] isRegisterMap = {
+            true,   // COMPLETE
+            false,  // COMPLETE_LEAVE
+            true,   // RE-REGISTER
+            false,  // RERUN
+            false,  // ERROR
+            false,  // TERMINATE
+            false   // NOT_RUN
+    };
 
     protected final static PostProcessor enableInterestPostProcessor =
             new EnableInterestPostProcessor();
@@ -96,9 +104,7 @@ public abstract class AbstractIOStrategy implements IOStrategy {
     }
 
     protected static boolean isExecuteInWorkerThread(final IOEvent ioEvent) {
-        return (ioEvent == IOEvent.READ
-                   || ioEvent == IOEvent.WRITE
-                   || ioEvent == IOEvent.CLOSED);
+        return (isReadWrite(ioEvent) || ioEvent == IOEvent.CLOSED);
     }
 
     protected static Executor getWorkerThreadPool(final Connection c) {
@@ -137,7 +143,8 @@ public abstract class AbstractIOStrategy implements IOStrategy {
 
     private static class EnableInterestPostProcessor implements PostProcessor {
         @Override
-        public void process(Context context, Status status) throws IOException {
+        public void process(final Context context, final Status status)
+        throws IOException {
             if (isRegisterMap[status.ordinal()]) {
                 final IOEvent ioEvent = context.getIoEvent();
                 final Connection connection = context.getConnection();
