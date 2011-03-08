@@ -583,7 +583,7 @@ public class LZMAEncodingTest {
     }
 
     private Buffer lzmaCompress(String message, MemoryManager mm) throws IOException {
-        Buffer in = Buffers.wrap(mm, message.getBytes());
+        Buffer in = Buffers.wrap(mm, message.getBytes(Charsets.UTF8_CHARSET));
         Buffer out = mm.allocate(512);
         LZMAEncoder.LZMAProperties props = new LZMAEncoder.LZMAProperties();
         LZMAEncoder.LZMAOutputState state = LZMAEncoder.create();
