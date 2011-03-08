@@ -12,10 +12,27 @@ Ok, let's prepare our environment. Feel free to skip some steps if you have Apac
 1) Install Apache
 http://httpd.apache.org/docs/2.0/install.html
 
-2) Configure Apache-to-Grizzly communication (Apache workers)
+assume $APACHE_HOME is the directory, where we installed Apache
+on my machine it's
+/home/myhome/apps/httpd-2.2.17/
+
+Note: don't forget to replace $APACHE_HOME occurrences with the real path.
+
+
+2) Download and install mod_jk
+http://tomcat.apache.org/download-connectors.cgi
+
+install mod_jk module
+For example, mod_jk-1.2.31-httpd-2.2.x.so
+
+to Apache modules directory
+$APACHE_HOME/modules/
+
+
+3) Configure Apache-to-Grizzly communication (Apache workers)
 (Took from Amy's blog http://weblogs.java.net/blog/amyroh/archive/2009/06/running_glassfi.html)
 
-For example, httpd-2.2.17/conf/workers.properties
+For example, $APACHE_HOME/conf/workers.properties
 
 # Define 1 real worker using ajp13
 worker.list=worker1
@@ -24,12 +41,12 @@ worker.worker1.type=ajp13
 worker.worker1.host=localhost
 worker.worker1.port=8009
 
-httpd-2.2.17/conf/httpd.conf
+$APACHE_HOME/conf/httpd.conf
 
-LoadModule jk_module /home/myhome/apps/httpd-2.2.17/modules/mod_jk-1.2.31-httpd-2.2.x.so
-JkWorkersFile /home/myhome/apps/httpd-2.2.17/conf/worker.properties
+LoadModule jk_module $APACHE_HOME/modules/mod_jk-1.2.31-httpd-2.2.x.so
+JkWorkersFile $APACHE_HOME/conf/workers.properties
 # Where to put jk logs
-JkLogFile /home/myhome/apps/httpd-2.2.17/logs/mod_jk.log
+JkLogFile $APACHE_HOME/logs/mod_jk.log
 # Set the jk log level [debug/error/info]
 JkLogLevel debug
 # Select the log format
@@ -39,12 +56,14 @@ JkOptions +ForwardKeySize +ForwardURICompat -ForwardDirectories
 # JkRequestLogFormat set the request format
 JkRequestLogFormat "%w %V %T"
 # Send everything for context /examples to worker named worker1 (ajp13)
-JkMount /grizzly/* worker1
+JkMount /grizzly* worker1
 
-3) Start Apache HTTP Server
-/home/myhome/apps/httpd-2.2.17/bin/apachectl start (you might need sudo)
 
-4) Open our favorite browser and do
+4) Start Apache HTTP Server
+$APACHE_HOME/bin/apachectl start (you might need sudo)
+
+
+5) Open our favorite browser and do
 
 http://localhost:8080/grizzly
 we see "Hello World", which means direct HTTP request to Grizzly HttpServer passed.
