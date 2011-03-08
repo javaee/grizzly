@@ -96,7 +96,6 @@ public class LZMAEncodingTest {
 
     private final FutureImpl<Throwable> exception = SafeFutureImpl.create();
 
-    @Ignore
     @Test
     public void testLZMAResponse() throws Throwable {
         LZMAContentEncoding LZMAServerContentEncoding =
@@ -155,7 +154,6 @@ public class LZMAEncodingTest {
         }
     }
 
-    @Ignore
     @Test
     public void testLZMARequest() throws Throwable {
         LZMAContentEncoding LZMAServerContentEncoding =
@@ -219,7 +217,6 @@ public class LZMAEncodingTest {
         }
     }
 
-    @Ignore
     @Test
     public void testLZMARequestResponse() throws Throwable {
         LZMAContentEncoding LZMAServerContentEncoding =
@@ -290,7 +287,6 @@ public class LZMAEncodingTest {
         }
     }
 
-    @Ignore
     @Test
     public void testLZMARequestResponseChunkedXferEncoding() throws Throwable {
         LZMAContentEncoding LZMAServerContentEncoding =
