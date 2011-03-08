@@ -50,10 +50,10 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.glassfish.grizzly</groupId>
-    <artifactId>grizzly-ajp</artifactId>
+    <artifactId>grizzly-http-ajp</artifactId>
     <packaging>bundle</packaging>
     <version>2.0.1-SNAPSHOT</version>
-    <name>grizzly-ajp</name>
+    <name>grizzly-http-ajp</name>
     <url>http://grizzly.java.net</url>
     <build>
         <defaultGoal>install</defaultGoal>
