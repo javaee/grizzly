@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -94,7 +94,8 @@ public class GzipOutputFilter implements OutputFilter {
 
     // ----------------------------------------------------- Instance Variables
 
-
+    private final ByteChunk alias;
+    
     /**
      * Next buffer in the pipeline.
      */
@@ -112,6 +113,17 @@ public class GzipOutputFilter implements OutputFilter {
      */
     protected OutputStream fakeOutputStream = new FakeOutputStream();
 
+    // --------------------------------------------------- Constructors
+
+    public GzipOutputFilter() {
+        alias = ENCODING;
+    }
+
+    public GzipOutputFilter(String alias) {
+        ByteChunk bc = new ByteChunk();
+        bc.setBytes(alias.getBytes(), 0, alias.length());
+        this.alias = bc;
+    }
 
     // --------------------------------------------------- OutputBuffer Methods
 
@@ -186,7 +198,7 @@ public class GzipOutputFilter implements OutputFilter {
      * "identity".
      */
     public ByteChunk getEncodingName() {
-        return ENCODING;
+        return alias;
     }
 
 

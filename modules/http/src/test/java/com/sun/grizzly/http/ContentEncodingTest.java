@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -115,6 +115,37 @@ public class ContentEncodingTest extends TestCase {
         }
     }
 
+    public void testGzipDeflate() throws IOException {
+        InputStream is = null;
+
+        URL url = new URL("http://localhost:".concat(String.valueOf(PORT)).concat("/hello"));
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        try {
+            connection.setRequestProperty("Accept-Encoding", "unknown, gzip, deflate");
+            assertEquals(200, connection.getResponseCode());
+            assertEquals("gzip", connection.getContentEncoding());
+
+            is = new GZIPInputStream(connection.getInputStream());
+            byte[] buffer = new byte[4096];
+            int length = 0;
+            int c;
+            while((c = is.read()) != -1) {
+                buffer[length++] = (byte) c;
+            }
+
+            assertEquals(MESSAGE, new String(buffer, 0, length));
+        } finally {
+            if (is != null) {
+                try {
+                    is.close();
+                } catch (IOException e) {
+                }
+            }
+
+            connection.disconnect();
+        }
+    }
+    
     // Enable, after implementing LZMA
     public void testLzma() throws IOException {
         DataInputStream is = null;

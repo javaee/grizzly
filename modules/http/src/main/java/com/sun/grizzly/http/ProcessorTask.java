@@ -2386,15 +2386,69 @@ public class ProcessorTask extends TaskBase implements Processor,
 
     protected OutputFilter lookupCompressionFilter(MessageBytes encoding) {
         final OutputFilter[] filters = outputBuffer.getFilters();
+        final String encodingStr = encoding.toString();
+        final int length = encodingStr.length();
+
+        
         for (int i = filters.length - 1; i >= 0; i--) {
             final OutputFilter filter = filters[i];
-            if (filter.getEncodingName().equalsIgnoreCase(encoding.toString())) {
-                return filter;
+            int pos = 0;
+
+            while (pos < length) {
+                // skip encoding str spaces
+                while (encodingStr.charAt(pos) <= ' ') {
+                    pos++;
+                }
+
+                if (pos == length) {
+                    break;
+                }
+
+                final int diffIdx = findDiffIgnoreCase(filter.getEncodingName(),
+                        encodingStr, pos);
+
+                if (diffIdx < 0) {
+                    return filter;
+                } else if (diffIdx >= length) {
+                    break;
+                }
+
+                final int commaIdx = encodingStr.indexOf(',', diffIdx);
+                if (commaIdx < 0) {
+                    break;
+                }
+
+                pos = commaIdx + 1;
             }
         }
 
         return null;
     }
+
+    private int findDiffIgnoreCase(final ByteChunk bc,
+            final String s, int pos) {
+        
+        final byte[] buffer = bc.getBuffer();
+        final int start = bc.getStart();
+        final int end = bc.getEnd();
+
+        final int strLen = s.length();
+
+        for (int i = start; i < end; i++) {
+            if (pos >= strLen) {
+                return pos;
+            }
+
+            if (Ascii.toLower(buffer[i]) != Ascii.toLower(s.charAt(pos))) {
+                return pos;
+            }
+
+            pos++;
+        }
+
+        return -1;
+    }
+
     
     public int getCompressionMinSize() {
         return compressionMinSize;

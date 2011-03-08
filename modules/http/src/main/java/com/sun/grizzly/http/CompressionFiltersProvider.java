@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -105,9 +105,22 @@ public class CompressionFiltersProvider {
             }
         };
 
+        final FilterFactory deflateFilterFactory = new FilterFactory() {
+            public String getEncodingName() {
+                return "deflate";
+            }
 
-        filterFactories.put(new Key(counter.getAndIncrement(), "deflate"), gzipFilterFactory);        
+            public OutputFilter createOutputFilter() {
+                return new GzipOutputFilter("deflate");
+            }
+
+            public InputFilter createInputFilter() {
+                return null;
+            }
+        };
+
         filterFactories.put(new Key(counter.getAndIncrement(), "gzip"), gzipFilterFactory);
+        filterFactories.put(new Key(counter.getAndIncrement(), "deflate"), deflateFilterFactory);
     }
 
     /**
