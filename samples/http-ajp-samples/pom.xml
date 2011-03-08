@@ -56,11 +56,6 @@
     <name>grizzly-http-ajp-samples</name>
     <build>
         <defaultGoal>install</defaultGoal>
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-            </resource>
-        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.felix</groupId>
