@@ -91,20 +91,6 @@ public class CompressionFiltersProvider {
         registerOutputFilter(lzmaFilterFactory);
 
 
-        final FilterFactory gzipFilterFactory = new FilterFactory() {
-            public String getEncodingName() {
-                return "gzip";
-            }
-
-            public OutputFilter createOutputFilter() {
-                return new GzipOutputFilter();
-            }
-
-            public InputFilter createInputFilter() {
-                return null;
-            }
-        };
-
         final FilterFactory deflateFilterFactory = new FilterFactory() {
             public String getEncodingName() {
                 return "deflate";
@@ -119,8 +105,22 @@ public class CompressionFiltersProvider {
             }
         };
 
-        filterFactories.put(new Key(counter.getAndIncrement(), "gzip"), gzipFilterFactory);
+        final FilterFactory gzipFilterFactory = new FilterFactory() {
+            public String getEncodingName() {
+                return "gzip";
+            }
+
+            public OutputFilter createOutputFilter() {
+                return new GzipOutputFilter();
+            }
+
+            public InputFilter createInputFilter() {
+                return null;
+            }
+        };
+
         filterFactories.put(new Key(counter.getAndIncrement(), "deflate"), deflateFilterFactory);
+        filterFactories.put(new Key(counter.getAndIncrement(), "gzip"), gzipFilterFactory);
     }
 
     /**
