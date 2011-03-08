@@ -205,7 +205,8 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
     public void testPortRangeBind() throws Exception {
         final int portsTest = 10;
-        final PortRange portRange = new PortRange(PORT, PORT + portsTest - 1);
+        final int startPort = PORT + 1;
+        final PortRange portRange = new PortRange(startPort, startPort + portsTest - 1);
 
         Connection connection = null;
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance()
@@ -217,7 +218,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
                 final TCPNIOServerConnection serverConnection =
                         transport.bind("localhost", portRange, 4096);
 
-                assertEquals(PORT + i,
+                assertEquals(startPort + i,
                         ((InetSocketAddress) serverConnection.getLocalAddress()).getPort());
             }
 
@@ -231,7 +232,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             transport.start();
 
             for (int i = 0; i < portsTest; i++) {
-                Future<Connection> future = transport.connect("localhost", PORT + i);
+                Future<Connection> future = transport.connect("localhost", startPort + i);
                 connection = future.get(10, TimeUnit.SECONDS);
                 assertTrue(connection != null);
                 connection.close();
