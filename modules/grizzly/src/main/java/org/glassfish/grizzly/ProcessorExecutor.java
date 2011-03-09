@@ -48,7 +48,7 @@ import java.util.logging.Logger;
  *
  * @author oleksiys
  */
-public final class ProcessorExecutor {
+public final class  ProcessorExecutor {
 
     private static final Logger LOGGER = Grizzly.logger(ProcessorExecutor.class);
 

@@ -37,91 +37,77 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.nio;
 
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.ConnectionProbe;
-import org.glassfish.grizzly.Processor;
-import org.glassfish.grizzly.ProcessorSelector;
-import org.glassfish.grizzly.Transport;
-import org.glassfish.grizzly.attributes.AttributeHolder;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
+import java.util.Queue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.ConnectionProbe;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.Processor;
+import org.glassfish.grizzly.ProcessorSelector;
 import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.StandaloneProcessor;
 import org.glassfish.grizzly.StandaloneProcessorSelector;
+import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.WriteResult;
-import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.asyncqueue.AsyncReadQueueRecord;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
+import org.glassfish.grizzly.asyncqueue.TaskQueue;
+import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringConfigImpl;
 import org.glassfish.grizzly.utils.LinkedTransferQueue;
-import java.util.Queue;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Common {@link Connection} implementation for Java NIO <tt>Connection</tt>s.
- * 
+ *
  * @author Alexey Stashok
  */
 public abstract class NIOConnection implements Connection<SocketAddress> {
     private static final boolean WIN32 = "\\".equals(System.getProperty("file.separator"));
     private static final Logger logger = Grizzly.logger(NIOConnection.class);
     private static final short MAX_ZERO_READ_COUNT = 100;
-
     protected final NIOTransport transport;
-
     protected volatile int readBufferSize;
     protected volatile int writeBufferSize;
-
     protected volatile long readTimeoutMillis = 30000;
     protected volatile long writeTimeoutMillis = 30000;
-
     protected volatile SelectorRunner selectorRunner;
     protected volatile SelectableChannel channel;
     protected volatile SelectionKey selectionKey;
-    
     protected volatile Processor processor;
     protected volatile ProcessorSelector processorSelector;
-    
     protected final AttributeHolder attributes;
-
     protected final TaskQueue<AsyncReadQueueRecord> asyncReadQueue;
     protected final TaskQueue<AsyncWriteQueueRecord> asyncWriteQueue;
-    
     protected final AtomicBoolean isClosed = new AtomicBoolean(false);
-
     protected volatile boolean isBlocking;
-
     protected volatile boolean isStandalone;
-
     protected short zeroByteReadCount;
-
     private final Queue<CloseListener> closeListeners =
-            new LinkedTransferQueue<CloseListener>();
-
+        new LinkedTransferQueue<CloseListener>();
     /**
      * Connection probes
      */
     protected final MonitoringConfigImpl<ConnectionProbe> monitoringConfig =
-            new MonitoringConfigImpl<ConnectionProbe>(ConnectionProbe.class);
-
+        new MonitoringConfigImpl<ConnectionProbe>(ConnectionProbe.class);
 
     public NIOConnection(NIOTransport transport) {
         this.transport = transport;
@@ -129,7 +115,6 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                 AbstractNIOAsyncQueueReader.LOCK_RECORD);
         asyncWriteQueue = TaskQueue.<AsyncWriteQueueRecord>createTaskQueue(
                 AbstractNIOAsyncQueueWriter.LOCK_RECORD);
-        
         attributes = new IndexedAttributeHolder(transport.getAttributeBuilder());
     }
 
@@ -216,18 +201,14 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
 
     public void attachToSelectorRunner(final SelectorRunner selectorRunner)
-            throws IOException {
-        
+        throws IOException {
         detachSelectorRunner();
-        
         final SelectorHandler selectorHandler = transport.getSelectorHandler();
-
         final GrizzlyFuture<RegisterChannelResult> future = selectorHandler.registerChannelAsync(
-                selectorRunner, channel, 0, this, null);
-
+            selectorRunner, channel, 0, this, null);
         try {
             final RegisterChannelResult result =
-                    future.get(readTimeoutMillis, TimeUnit.MILLISECONDS);
+                future.get(readTimeoutMillis, TimeUnit.MILLISECONDS);
             this.selectorRunner = selectorRunner;
             this.selectionKey = result.getSelectionKey();
         } catch (InterruptedException e) {
@@ -243,16 +224,13 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
     public void detachSelectorRunner() throws IOException {
         final SelectorRunner selectorRunnerLocal = this.selectorRunner;
-
         this.selectionKey = null;
         this.selectorRunner = null;
-
         if (selectorRunnerLocal != null) {
             transport.getSelectorHandler().deregisterChannel(selectorRunnerLocal,
-                    channel);
+                channel);
         }
     }
-
 
     public SelectableChannel getChannel() {
         return channel;
@@ -276,17 +254,15 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         if (processor == null && processorSelector == null) {
             return transport.obtainProcessor(ioEvent, this);
         }
-
         if (processor != null && processor.isInterested(ioEvent)) {
             return processor;
         } else if (processorSelector != null) {
             final Processor selectedProcessor =
-                    processorSelector.select(ioEvent, this);
+                processorSelector.select(ioEvent, this);
             if (selectedProcessor != null) {
                 return selectedProcessor;
             }
         }
-
         return null;
     }
 
@@ -297,7 +273,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
     @Override
     public void setProcessor(
-            Processor preferableProcessor) {
+        Processor preferableProcessor) {
         this.processor = preferableProcessor;
     }
 
@@ -308,9 +284,9 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
     @Override
     public void setProcessorSelector(
-            ProcessorSelector preferableProcessorSelector) {
+        ProcessorSelector preferableProcessorSelector) {
         this.processorSelector =
-                preferableProcessorSelector;
+            preferableProcessorSelector;
     }
 
     public TaskQueue<AsyncReadQueueRecord> getAsyncReadQueue() {
@@ -328,40 +304,35 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
     @Override
     public <M> GrizzlyFuture<ReadResult<M, SocketAddress>> read()
-            throws IOException {
+        throws IOException {
         return read(null);
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public <M> GrizzlyFuture<ReadResult<M, SocketAddress>> read(
-            CompletionHandler<ReadResult<M, SocketAddress>> completionHandler)
-            throws IOException {
-
+        CompletionHandler<ReadResult<M, SocketAddress>> completionHandler)
+        throws IOException {
         final Processor obtainedProcessor = obtainProcessor(IOEvent.READ);
         return obtainedProcessor.read(this, completionHandler);
     }
 
     @Override
     public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(M message)
-            throws IOException {
+        throws IOException {
         return write(null, message, null);
     }
 
     @Override
     public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(M message,
-            CompletionHandler<WriteResult<M, SocketAddress>> completionHandler)
-            throws IOException {
+        CompletionHandler<WriteResult<M, SocketAddress>> completionHandler) throws IOException {
         return write(null, message, completionHandler);
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(
-            SocketAddress dstAddress, M message,
-            CompletionHandler<WriteResult<M, SocketAddress>> completionHandler)
-            throws IOException {
-
+    public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(SocketAddress dstAddress, M message,
+        CompletionHandler<WriteResult<M, SocketAddress>> completionHandler) throws IOException {
         final Processor obtainedProcessor = obtainProcessor(IOEvent.WRITE);
         return obtainedProcessor.write(this, dstAddress, message, completionHandler);
     }
@@ -378,19 +349,17 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
             notifyCloseListeners();
             notifyProbesClose(this);
             return transport.getSelectorHandler().executeInSelectorThread(
-                    selectorRunner, new Runnable() {
-
-                @Override
-                public void run() {
-                    try {
-                        transport.closeConnection(NIOConnection.this);
-                    } catch (IOException e) {
-                        logger.log(Level.FINE, "Error during connection close", e);
+                selectorRunner, new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            transport.closeConnection(NIOConnection.this);
+                        } catch (IOException e) {
+                            logger.log(Level.FINE, "Error during connection close", e);
+                        }
                     }
-                }
-            }, null);
+                }, null);
         }
-
         return ReadyFutureImpl.create(this);
     }
 
@@ -464,7 +433,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      */
     protected static void notifyProbesAccept(NIOConnection connection) {
         final ConnectionProbe[] probes =
-                connection.monitoringConfig.getProbesUnsafe();
+            connection.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (ConnectionProbe probe : probes) {
                 probe.onAcceptEvent(connection);
@@ -479,7 +448,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      */
     protected static void notifyProbesConnect(NIOConnection connection) {
         final ConnectionProbe[] probes =
-                connection.monitoringConfig.getProbesUnsafe();
+            connection.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (ConnectionProbe probe : probes) {
                 probe.onConnectEvent(connection);
@@ -491,10 +460,9 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * Notify registered {@link ConnectionProbe}s about the read event.
      */
     protected static void notifyProbesRead(NIOConnection connection,
-            Buffer data, int size) {
-        
+        Buffer data, int size) {
         final ConnectionProbe[] probes =
-                connection.monitoringConfig.getProbesUnsafe();
+            connection.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (ConnectionProbe probe : probes) {
                 probe.onReadEvent(connection, data, size);
@@ -506,10 +474,9 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * Notify registered {@link ConnectionProbe}s about the write event.
      */
     protected static void notifyProbesWrite(NIOConnection connection,
-            Buffer data, int size) {
-        
+        Buffer data, int size) {
         final ConnectionProbe[] probes =
-                connection.monitoringConfig.getProbesUnsafe();
+            connection.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (ConnectionProbe probe : probes) {
                 probe.onWriteEvent(connection, data, size);
@@ -524,9 +491,9 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * @param ioEvent the {@link IOEvent}.
      */
     protected static void notifyIOEventReady(NIOConnection connection,
-            IOEvent ioEvent) {
+        IOEvent ioEvent) {
         final ConnectionProbe[] probes =
-                connection.monitoringConfig.getProbesUnsafe();
+            connection.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (ConnectionProbe probe : probes) {
                 probe.onIOEventReadyEvent(connection, ioEvent);
@@ -541,9 +508,9 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * @param ioEvent the {@link IOEvent}.
      */
     protected static void notifyIOEventEnabled(NIOConnection connection,
-            IOEvent ioEvent) {
+        IOEvent ioEvent) {
         final ConnectionProbe[] probes =
-                connection.monitoringConfig.getProbesUnsafe();
+            connection.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (ConnectionProbe probe : probes) {
                 probe.onIOEventEnableEvent(connection, ioEvent);
@@ -558,16 +525,16 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * @param ioEvent the {@link IOEvent}.
      */
     protected static void notifyIOEventDisabled(NIOConnection connection,
-            IOEvent ioEvent) {
+        IOEvent ioEvent) {
         final ConnectionProbe[] probes =
-                connection.monitoringConfig.getProbesUnsafe();
+            connection.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (ConnectionProbe probe : probes) {
                 probe.onIOEventDisableEvent(connection, ioEvent);
             }
         }
     }
-    
+
     /**
      * Notify registered {@link ConnectionProbe}s about the close event.
      *
@@ -575,23 +542,23 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      */
     protected static void notifyProbesClose(NIOConnection connection) {
         final ConnectionProbe[] probes =
-                connection.monitoringConfig.getProbesUnsafe();
+            connection.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (ConnectionProbe probe : probes) {
                 probe.onCloseEvent(connection);
             }
         }
     }
-    
+
     /**
      * Notify registered {@link ConnectionProbe}s about the error.
      *
      * @param connection the <tt>Connection</tt> event occurred on.
      */
     protected static void notifyProbesError(NIOConnection connection,
-            Throwable error) {
+        Throwable error) {
         final ConnectionProbe[] probes =
-                connection.monitoringConfig.getProbesUnsafe();
+            connection.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (ConnectionProbe probe : probes) {
                 probe.onErrorEvent(connection, error);
@@ -604,7 +571,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      */
     private void notifyCloseListeners() {
         CloseListener closeListener;
-        while((closeListener = closeListeners.poll()) != null) {
+        while ((closeListener = closeListeners.poll()) != null) {
             try {
                 closeListener.onClosed(this);
             } catch (IOException ignored) {
@@ -617,33 +584,29 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     @Override
     public final void enableIOEvent(final IOEvent ioEvent) throws IOException {
         final SelectionKeyHandler selectionKeyHandler =
-                transport.getSelectionKeyHandler();
+            transport.getSelectionKeyHandler();
         final int interest =
-                selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent);
-
-        if (interest == 0) return;
-
+            selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent);
+        if (interest == 0) {
+            return;
+        }
         notifyIOEventEnabled(this, ioEvent);
-
         final SelectorHandler selectorHandler = transport.getSelectorHandler();
-
         selectorHandler.registerKeyInterest(selectorRunner, selectionKey,
-                selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent));
+            selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent));
     }
 
     @Override
     public final void disableIOEvent(final IOEvent ioEvent) throws IOException {
         final SelectionKeyHandler selectionKeyHandler =
-                transport.getSelectionKeyHandler();
+            transport.getSelectionKeyHandler();
         final int interest =
-                selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent);
-
-        if (interest == 0) return;
-
+            selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent);
+        if (interest == 0) {
+            return;
+        }
         notifyIOEventDisabled(this, ioEvent);
-        
         final SelectorHandler selectorHandler = transport.getSelectorHandler();
-
         selectorHandler.deregisterKeyInterest(selectorRunner, selectionKey, interest);
     }
 
