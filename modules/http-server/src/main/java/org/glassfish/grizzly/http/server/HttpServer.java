@@ -48,7 +48,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -110,8 +109,6 @@ public class HttpServer {
      */
     private final Map<String, NetworkListener> listeners =
             new HashMap<String, NetworkListener>(2);
-
-    private volatile ScheduledExecutorService scheduledExecutorService;
 
     private volatile ExecutorService auxExecutorService;
 
@@ -231,11 +228,6 @@ public class HttpServer {
         return delayedExecutor;
     }
 
-    ScheduledExecutorService getScheduledExecutorService() {
-        return scheduledExecutorService;
-    }
-
-
     /**
      * <p>
      * Starts the <code>HttpServer</code>.
@@ -251,7 +243,6 @@ public class HttpServer {
         }
         started = true;
 
-        configureScheduledThreadPool();
         configureAuxThreadPool();
 
         delayedExecutor = new DelayedExecutor(auxExecutorService);
@@ -378,8 +369,6 @@ public class HttpServer {
                 removeListener(name);
             }
 
-            stopScheduledThreadPool();
-            
             delayedExecutor.stop();
             delayedExecutor = null;
             
@@ -584,36 +573,6 @@ public class HttpServer {
         threadPoolMonitoringCfg.addProbes(serverConfig.getMonitoringConfig()
                 .getThreadPoolConfig().getProbes());
 
-    }
-
-
-    private void configureScheduledThreadPool() {
-        final AtomicInteger threadCounter = new AtomicInteger();
-
-        scheduledExecutorService = Executors.newScheduledThreadPool(1,
-                new ThreadFactory() {
-
-            @Override
-            public Thread newThread(Runnable r) {
-                final Thread newThread = new DefaultWorkerThread(
-                        NIOTransportBuilder.DEFAULT_ATTRIBUTE_BUILDER,
-                        "HttpServer-" + threadCounter.getAndIncrement(),
-                        null,
-                        r);
-                newThread.setDaemon(true);
-                return newThread;
-            }
-        });
-    }
-
-
-    private void stopScheduledThreadPool() {
-        final ScheduledExecutorService localThreadPool = scheduledExecutorService;
-        scheduledExecutorService = null;
-
-        if (localThreadPool != null) {
-            localThreadPool.shutdownNow();
-        }
     }
 
     private void configureAuxThreadPool() {
