@@ -46,6 +46,8 @@ import org.glassfish.grizzly.http.CookiesBuilder;
 import org.glassfish.grizzly.http.util.CookieUtils;
 import org.glassfish.grizzly.utils.Pair;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import junit.framework.TestCase;
 
@@ -104,12 +106,18 @@ public class CookiesTest extends TestCase {
         })
     };
 
+    private static final String OLD_COOKIE_PATTERN = "EEE, dd-MMM-yyyy HH:mm:ss z";
+    private static final long IN_HOUR = System.currentTimeMillis() + 1000 * 60 * 60;
+    //ex. Wednesday, 09-Nov-99 23:12:40 GMT
+    private static final String expiresStr =
+            new SimpleDateFormat(OLD_COOKIE_PATTERN).format(new Date(IN_HOUR));
+
     private static Pair[] TEST_CASE_SERVER_COOKIE =
             new Pair[] {
-        new Pair<String,Checker[]>("CUSTOMER=WILE_E_COYOTE; path=/; expires=Wednesday, 09-Nov-99 23:12:40 GMT", new Checker[]{
+        new Pair<String,Checker[]>("CUSTOMER=WILE_E_COYOTE; path=/; expires=" + expiresStr, new Checker[]{
             new Checker(0, "CUSTOMER", CheckValue.NAME),
             new Checker(0, "WILE_E_COYOTE", CheckValue.VALUE),
-            new Checker(0, expire2MaxAge("Wednesday, 09-Nov-99 23:12:40 GMT"), CheckValue.MAX_AGE),
+            new Checker(0, expire2MaxAge(expiresStr), CheckValue.MAX_AGE),
             new Checker(0, 0, CheckValue.VERSION)
         }),
 
