@@ -111,10 +111,8 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
     public NIOConnection(NIOTransport transport) {
         this.transport = transport;
-        asyncReadQueue = TaskQueue.<AsyncReadQueueRecord>createTaskQueue(
-                AbstractNIOAsyncQueueReader.LOCK_RECORD);
-        asyncWriteQueue = TaskQueue.<AsyncWriteQueueRecord>createTaskQueue(
-                AbstractNIOAsyncQueueWriter.LOCK_RECORD);
+        asyncReadQueue = TaskQueue.<AsyncReadQueueRecord>createTaskQueue();
+        asyncWriteQueue = TaskQueue.<AsyncWriteQueueRecord>createTaskQueue();
         attributes = new IndexedAttributeHolder(transport.getAttributeBuilder());
     }
 

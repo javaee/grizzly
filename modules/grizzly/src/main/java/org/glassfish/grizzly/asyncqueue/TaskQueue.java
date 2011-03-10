@@ -41,15 +41,13 @@
 package org.glassfish.grizzly.asyncqueue;
 
 import java.io.IOException;
-
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.atomic.AtomicReference;
+import org.glassfish.grizzly.utils.LinkedTransferQueue;
 
 /**
  * Class represents common implementation of asynchronous processing queue.
@@ -59,37 +57,30 @@ import java.util.concurrent.locks.ReentrantLock;
 public final class TaskQueue<E> {
     private static final AtomicReferenceFieldUpdater<QueueMonitor,Boolean> MONITOR =
             AtomicReferenceFieldUpdater.newUpdater(QueueMonitor.class, Boolean.class, "invalid");
-
-    private final AtomicReference<E> currentElement;
-    final AtomicInteger spaceInBytes = new AtomicInteger();
-
-    // Lock to provide atomic currentElement and Queue updates
-    final ReentrantLock lock = new ReentrantLock();
-
     /**
      * The queue of tasks, which will be processed asynchronously
      */
     private final Queue<E> queue;
-
+    
+    private final AtomicReference<E> currentElement;
+    private final AtomicInteger spaceInBytes = new AtomicInteger();
 
     protected final Queue<QueueMonitor> monitorQueue;
 
-    private final E reserveObj;
     // ------------------------------------------------------------ Constructors
 
 
-    protected TaskQueue(final E reserveObj) {
-        this.reserveObj = reserveObj;
-        this.queue = new LinkedList<E>();
-        monitorQueue = new ConcurrentLinkedQueue<QueueMonitor>();
+    protected TaskQueue() {        
         currentElement = new AtomicReference<E>();
+        queue = new LinkedTransferQueue<E>();
+        monitorQueue = new ConcurrentLinkedQueue<QueueMonitor>();
     }
 
     // ---------------------------------------------------------- Public Methods
 
 
-    public static <E> TaskQueue<E> createTaskQueue(final E reserveObj) {
-        return new TaskQueue<E>(reserveObj);
+    public static <E> TaskQueue<E> createTaskQueue() {
+        return new TaskQueue<E>();
     }
 
     /**
@@ -132,19 +123,24 @@ public final class TaskQueue<E> {
     }
 
     /**
-     * Get the current processing task
+     * Get the current processing task, if the current in not set, take the
+     * task from the queue.
+     * 
      * @return the current processing task
      */
-    public E getCurrentElement() {
-        return currentElement.get();
+    public E obtainCurrentElement() {
+        final E current = currentElement.get();
+        return current != null ? current : queue.poll();
     }
 
     /**
-     * Get the wrapped current processing task, to perform atomic operations.
-     * @return the wrapped current processing task, to perform atomic operations.
+     * Gets the current processing task and reserves its place.
+     * 
+     * @return the current processing task
      */
-    public AtomicReference<E> getCurrentElementAtomic() {
-        return currentElement;
+    public E obtainCurrentElementAndReserve() {
+        E current = currentElement.getAndSet(null);
+        return current != null ? current : queue.poll();
     }
     
     /**
@@ -176,7 +172,6 @@ public final class TaskQueue<E> {
 
 
     protected void doNotify() throws IOException {
-
         if (!monitorQueue.isEmpty()) {
             for (final Iterator<QueueMonitor> i = monitorQueue.iterator(); i.hasNext(); ) {
                 final QueueMonitor m = i.next();
@@ -193,74 +188,13 @@ public final class TaskQueue<E> {
         }
 
     }
-
-    /**
-     * Reserve current task element, if possible
-     * @return <tt>true</tt>, if element was reserved, or <tt>false</tt> otherwise.
-     */
-    public boolean reserveCurrentElement() {
-        return getCurrentElementAtomic().compareAndSet(null, reserveObj);
-    }
-
+    
     /**
      * Set current task element.
      * @param current task element.
      */
     public void setCurrentElement(final E task) {
-        getCurrentElementAtomic().set(task);
-    }
-
-    /**
-     * Retrieves current task element and marks the current element as reserved.
-     * @return current element, or <tt>null</tt>, if none present.
-     */
-    public E getCurrentElementAndReserve() {
-        final E current = getCurrentElementAtomic().getAndSet(reserveObj);
-        if (current == reserveObj) {
-            return null;
-        }
-
-        return current;
-    }
-
-    /**
-     * Complete the current element processing and try to take the next element
-     * from queue and make it current.
-     *
-     * @return new current element.
-     */
-    public E doneCurrentElement() {
-        lock.lock();
-        try {
-            final E newCurrent = queue.poll();
-            currentElement.set(newCurrent);
-            return newCurrent;
-        } finally {
-            lock.unlock();
-        }
-
-    }
-
-    /**
-     * Add the new task into the task queue.
-     *
-     * @param task new task.
-     * @return return <tt>true</tt>, if new task became current, or <tt>false</tt>
-     * otherwise.
-     */
-    public boolean offer(final E task) {
-        lock.lock();
-        try {
-            if (currentElement.get() == null) {
-                currentElement.set(task);
-                return true;
-            }
-
-            queue.offer(task);
-            return false;
-        } finally {
-            lock.unlock();
-        }
+        currentElement.set(task);
     }
 
     /**
@@ -269,25 +203,20 @@ public final class TaskQueue<E> {
      * @return <tt>true</tt> if tasked was removed, or <tt>false</tt> otherwise.
      */
     public boolean remove(final E task) {
-        lock.lock();
-        try {
-            return queue.remove(task);
-        } finally {
-            lock.unlock();
-        }
+        return queue.remove(task);
     }
-
-    public boolean isEmpty() {
-        if (currentElement.get() == null) {
-            lock.lock();
-            try {
-                return queue.isEmpty();
-            } finally {
-                lock.unlock();
-            }
-        }
-
-        return false;
+    
+    /**
+     * Add the new task into the task queue.
+     *
+     * @param task new task.
+     */
+    public void offer(final E task) {
+        queue.offer(task);
+    }
+    
+    public boolean isEmpty() {        
+        return spaceInBytes.get() == 0;
     }
 
     //----------------------------------------------------------- Nested Classes

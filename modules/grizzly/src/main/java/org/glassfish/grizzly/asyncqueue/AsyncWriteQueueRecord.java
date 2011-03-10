@@ -68,7 +68,8 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
             final Interceptor interceptor,
             final Object dstAddress,
             final Buffer outputBuffer,
-            final boolean isCloned) {
+            final boolean isCloned,
+            final boolean isEmptyRecord) {
 
         final AsyncWriteQueueRecord asyncWriteQueueRecord =
                 ThreadCache.takeFromCache(CACHE_IDX);
@@ -77,16 +78,17 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
             asyncWriteQueueRecord.isRecycled = false;
             asyncWriteQueueRecord.set(connection, message, future, currentResult,
                     completionHandler, interceptor, dstAddress,
-                    outputBuffer, isCloned);
+                    outputBuffer, isCloned, isEmptyRecord);
             
             return asyncWriteQueueRecord;
         }
 
         return new AsyncWriteQueueRecord(connection, message, future,
                 currentResult, completionHandler, interceptor, dstAddress,
-                outputBuffer, isCloned);
+                outputBuffer, isCloned, isEmptyRecord);
     }
     
+    private boolean isEmptyRecord;
     private Object dstAddress;
     private boolean isCloned;
     private Buffer outputBuffer;
@@ -96,26 +98,30 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
             final WriteResult currentResult,
             final CompletionHandler completionHandler,
             final Interceptor interceptor, final Object dstAddress,
-            final Buffer outputBuffer, final boolean isCloned) {
+            final Buffer outputBuffer, final boolean isCloned,
+            final boolean isEmptyRecord) {
 
         super(connection, message, future, currentResult, completionHandler,
                 interceptor);
         this.dstAddress = dstAddress;
         this.outputBuffer = outputBuffer;
         this.isCloned = isCloned;
+        this.isEmptyRecord = isEmptyRecord;
     }
 
     protected void set(final Connection connection, final Object message,
             final Future future, final WriteResult currentResult,
             final CompletionHandler completionHandler,
             final Interceptor interceptor, final Object dstAddress,
-            final Buffer outputBuffer, final boolean isCloned) {
+            final Buffer outputBuffer, final boolean isCloned,
+            final boolean isEmptyRecord) {
         super.set(connection, message, future, currentResult,
                 completionHandler, interceptor);
 
         this.dstAddress = dstAddress;
         this.outputBuffer = outputBuffer;
         this.isCloned = isCloned;
+        this.isEmptyRecord = isEmptyRecord;
     }
 
     public final boolean isCloned() {
@@ -143,8 +149,16 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
         this.outputBuffer = outputBuffer;
     }
 
+    public boolean isEmptyRecord() {
+        return isEmptyRecord;
+    }
+
+    public void setEmptyRecord(boolean isEmptyRecord) {
+        this.isEmptyRecord = isEmptyRecord;
+    }
+
     protected final void reset() {
-        set(null, null, null, null, null, null, null, null, false);
+        set(null, null, null, null, null, null, null, null, false, false);
     }
 
     @Override

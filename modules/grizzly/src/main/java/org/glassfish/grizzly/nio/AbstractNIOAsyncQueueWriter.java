@@ -63,11 +63,13 @@ import org.glassfish.grizzly.impl.SafeFutureImpl;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
 
+
 /**
  * The {@link AsyncQueueWriter} implementation, based on the Java NIO
  * 
  * @author Alexey Stashok
  * @author Ryan Lubke
+ * @author Gustav Trede
  */
 @SuppressWarnings("unchecked")
 public abstract class AbstractNIOAsyncQueueWriter
@@ -76,10 +78,8 @@ public abstract class AbstractNIOAsyncQueueWriter
 
     private final static Logger logger = Grizzly.logger(AbstractNIOAsyncQueueWriter.class);
 
-    static final AsyncWriteQueueRecord LOCK_RECORD =
-            AsyncWriteQueueRecord.create(null, null, null, null, null, null,
-            null, null, false);
-    
+    private final static int EMPTY_RECORD_SPACE_VALUE = 1;
+
     protected final NIOTransport transport;
 
     protected volatile int maxPendingBytes = -1;
@@ -97,7 +97,7 @@ public abstract class AbstractNIOAsyncQueueWriter
      * {@inheritDoc}
      */
     @Override
-    public boolean canWrite(Connection connection, int size) {
+    public boolean canWrite(final Connection connection, final int size) {
         if (maxPendingBytes < 0) {
             return true;
         }
@@ -106,17 +106,12 @@ public abstract class AbstractNIOAsyncQueueWriter
         return connectionQueue.spaceInBytes() + size < maxPendingBytes;
     }
 
-
     /**
      * {@inheritDoc}
      */
     @Override
     public void setMaxPendingBytesPerConnection(final int maxPendingBytes) {
-        if (maxPendingBytes <= 0) {
-            this.maxPendingBytes = -1;
-        } else {
-            this.maxPendingBytes = maxPendingBytes;
-        }
+        this.maxPendingBytes = maxPendingBytes <= 0 ? -1 : maxPendingBytes;
     }
 
     /**
@@ -145,15 +140,16 @@ public abstract class AbstractNIOAsyncQueueWriter
             Connection connection, SocketAddress dstAddress, Buffer buffer,
             CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler,
             Interceptor<WriteResult<Buffer, SocketAddress>> interceptor,
-            MessageCloner<Buffer> cloner) throws IOException {
-        
-        final boolean isLogFine = logger.isLoggable(Level.FINEST);
+            MessageCloner<Buffer> cloner) throws IOException {                
         
         if (connection == null) {
             throw new IOException("Connection is null");
-        } else if (!connection.isOpen()) {
+        }
+
+        if (!connection.isOpen()) {
             throw new IOException("Connection is closed");
         }
+        
         final NIOConnection nioConnection = (NIOConnection) connection;
 
         // Get connection async write queue
@@ -162,122 +158,80 @@ public abstract class AbstractNIOAsyncQueueWriter
 
 
         final WriteResult<Buffer, SocketAddress> currentResult =
-                WriteResult.create(connection,
-                        buffer, dstAddress, 0);
+                WriteResult.create(connection, buffer, dstAddress, 0);
+        
+        final boolean isEmptyRecord = !buffer.hasRemaining();
         
         // create and initialize the write queue record
         final AsyncWriteQueueRecord queueRecord = createRecord(
                 connection, buffer, null, currentResult, completionHandler,
-                interceptor, dstAddress, buffer, false);
+                interceptor, dstAddress, buffer, false, isEmptyRecord);
 
+        // For empty buffer reserve 1 byte space
         final int bufferSize = buffer.remaining();
+        final int bytesToReserve = queueRecord.isEmptyRecord() ?
+            EMPTY_RECORD_SPACE_VALUE : bufferSize;
 
-        int pendingBytes;
-        if (maxPendingBytes > 0) {
-            pendingBytes = connectionQueue.reserveSpace(bufferSize);
-        } else {
-            pendingBytes = bufferSize;
-        }
-        
-        final boolean isLocked = connectionQueue.reserveCurrentElement();
+        final int pendingBytes = connectionQueue.reserveSpace(bytesToReserve);
+        final boolean isCurrent = (pendingBytes == bytesToReserve);
+        final boolean isLogFine = logger.isLoggable(Level.FINEST);
         if (isLogFine) {
-            logger.log(Level.FINEST, "AsyncQueueWriter.write connection={0} record={1} directWrite={2}",
-                    new Object[]{connection, queueRecord, isLocked});
+            doFineLog("AsyncQueueWriter.write connection={0} record={1} directWrite={2}",
+                    connection, queueRecord, isCurrent);
         }
 
         try {
-            if (isLocked) {
+            if (isCurrent) {
                 final int bytesWritten = write0(nioConnection, queueRecord);
-                if (maxPendingBytes > 0) {
-                    connectionQueue.releaseSpaceAndNotify(bytesWritten);
+                final int bytesToRelease = isEmptyRecord ?
+                    EMPTY_RECORD_SPACE_VALUE : bytesWritten;
+                final boolean isQueueEmpty =
+                        (connectionQueue.releaseSpaceAndNotify(bytesToRelease) == 0);
+
+                if (isFinished(queueRecord)) {
+                    onWriteComplete(queueRecord);
+                    if (!isQueueEmpty) {
+                        onReadyToWrite(connection);
+                    }
+                    return ReadyFutureImpl.create(currentResult);
                 }
-            } else if (maxPendingBytes > 0 && pendingBytes > maxPendingBytes && bufferSize > 0) {
-                connectionQueue.releaseSpace(bufferSize);
+            } else if (maxPendingBytes > 0 && pendingBytes > maxPendingBytes
+                    && bufferSize > 0) {
+
+                connectionQueue.releaseSpace(bytesToReserve);
                 throw new PendingWriteQueueLimitExceededException(
                         "Max queued data limit exceeded: " +
                         pendingBytes + '>' + maxPendingBytes);
             }
+            
+            final SafeFutureImpl<WriteResult<Buffer,SocketAddress>> future = 
+                    SafeFutureImpl.<WriteResult<Buffer,SocketAddress>>create();
 
-            if (isLocked && isFinished(queueRecord)) { // if direct write was completed
-                // If buffer was written directly - set next queue element as current
-                // Notify callback handler
-
-                final AsyncWriteQueueRecord nextRecord =
-                        connectionQueue.doneCurrentElement();
-
-                if (isLogFine) {
-                    logger.log(Level.FINEST, "AsyncQueueWriter.write completed connection={0} record={1} nextRecord={2}",
-                            new Object[]{connection, queueRecord, nextRecord});
-                }
-                
-                onWriteComplete(queueRecord);
-
-                if (nextRecord != null) {
-                    if (isLogFine) {
-                        logger.log(Level.FINEST, "AsyncQueueWriter.write onReadyToWrite. connection={0}",
-                                connection);
-                    }
-
-                    onReadyToWrite(connection);
-                }
-
-                return ReadyFutureImpl.create(currentResult);
-            } else { // If either write is not completed or queue is not empty
-                
-                // Create future
-                final FutureImpl<WriteResult<Buffer, SocketAddress>> future =
-                        SafeFutureImpl.create();
-                queueRecord.setFuture(future);
-
+            queueRecord.setFuture(future);                
+            if (isCurrent){ //current but not finished.
                 if (cloner != null) {
                     if (isLogFine) {
-                        logger.log(Level.FINEST, "AsyncQueueWriter.write clone. connection={0}",
+                        logger.log(Level.FINEST, 
+                                "AsyncQueueWriter.write clone. connection={0}",
                                 connection);
                     }
-                    // clone message
                     buffer = cloner.clone(connection, buffer);
                     queueRecord.setMessage(buffer);
                     queueRecord.setOutputBuffer(buffer);
                     queueRecord.setCloned(true);
                 }
-
-                if (isLocked) { // If write wasn't completed
-                    if (isLogFine) {
-                        logger.log(Level.FINEST, "AsyncQueueWriter.write onReadyToWrite. connection={0}",
-                                connection);
-                    }
-
-                    connectionQueue.setCurrentElement(queueRecord);
-                    onReadyToWrite(connection);
-                } else {  // if queue wasn't empty
-                    if (isLogFine) {
-                        logger.log(Level.FINEST, "AsyncQueueWriter.write queue record. connection={0} record={1}",
-                                new Object[]{connection, queueRecord});
-                    }
-
-                    final boolean isBecameCurrent = connectionQueue.offer(queueRecord);
-                    if (isBecameCurrent) {
-                        if (isLogFine) {
-                            logger.log(Level.FINEST, "AsyncQueueWriter.write onReadyToWrite. connection={0}",
-                                    connection);
-                        }
-
-                        onReadyToWrite(connection);
-                    }
-
-                    // Check whether connection is still open
-                    if (!connection.isOpen() && connectionQueue.remove(queueRecord)) {
-                        if (isLogFine) {
-                            logger.log(Level.FINEST, "AsyncQueueWriter.write connection is closed. connection={0} record={1}",
-                                    new Object[]{connection, queueRecord});
-                        }
-                        onWriteFailure(connection, queueRecord,
-                                new IOException("Connection is closed"));
-                    }
-                }
-
+                
+                connectionQueue.setCurrentElement(queueRecord);
+                onReadyToWrite(connection);
                 return future;
             }
+
+            connectionQueue.offer(queueRecord);
+            if (!connection.isOpen() && connectionQueue.remove(queueRecord)) {
+                onWriteFailure(connection, queueRecord, new IOException("Connection is closed"));
+            }                
+            return future;
+            
         } catch (IOException e) {
             if (isLogFine) {
                 logger.log(Level.FINEST, "AsyncQueueWriter.write exception. connection=" + connection + " record=" + queueRecord, e);
@@ -295,10 +249,11 @@ public abstract class AbstractNIOAsyncQueueWriter
             final Interceptor<WriteResult<Buffer, SocketAddress>> interceptor,
             final SocketAddress dstAddress,
             final Buffer outputBuffer,
-            final boolean isCloned) {
+            final boolean isCloned,
+            final boolean isEmptyRecord) {
         return AsyncWriteQueueRecord.create(connection, message, future,
                 currentResult, completionHandler, interceptor, dstAddress,
-                outputBuffer, isCloned);
+                outputBuffer, isCloned, isEmptyRecord);
     }
     
     /**
@@ -322,97 +277,94 @@ public abstract class AbstractNIOAsyncQueueWriter
         
         final TaskQueue<AsyncWriteQueueRecord> connectionQueue =
                 nioConnection.getAsyncWriteQueue();
-
-        // Current element shouldn't be null here!
-        // Though result queueRecord can be null, which means it is locked
-        AsyncWriteQueueRecord queueRecord =
-                connectionQueue.getCurrentElementAndReserve();
-
-        if (isLogFine) {
-            logger.log(Level.FINEST, "AsyncQueueWriter.processAsync connection={0} record={1} isLockRecord={2}",
-                    new Object[]{connection, queueRecord, queueRecord == LOCK_RECORD});
-        }
-
-        assert queueRecord != null;
-        
-        try {
-            while (queueRecord != null) {
-                if (isLogFine) {
-                    logger.log(Level.FINEST, "AsyncQueueWriter.processAsync doWrite connection={0} record={1}",
-                            new Object[]{connection, queueRecord});
-                }
                 
+        boolean done = false;
+        AsyncWriteQueueRecord queueRecord = null;
+
+        try {
+            while ((queueRecord = connectionQueue.obtainCurrentElementAndReserve()) != null) {
+                
+                if (isLogFine) {
+                    doFineLog("AsyncQueueWriter.processAsync doWrite"
+                            + "connection={0} record={1}",
+                            connection, queueRecord);
+                }
+
                 final int bytesWritten = write0(nioConnection, queueRecord);
-                connectionQueue.releaseSpaceAndNotify(bytesWritten);
+                final int bytesToRelease = queueRecord.isEmptyRecord() ?
+                    EMPTY_RECORD_SPACE_VALUE : bytesWritten;
 
-                // check if buffer was completely written
+                done = (connectionQueue.releaseSpaceAndNotify(bytesToRelease) == 0);
                 if (isFinished(queueRecord)) {
-
                     if (isLogFine) {
-                        logger.log(Level.FINEST, "AsyncQueueWriter.processAsync finished connection={0} record={1}",
-                                new Object[]{connection, queueRecord});
+                        doFineLog("AsyncQueueWriter.processAsync finished "
+                                + "connection={0} record={1}",
+                                connection, queueRecord);
                     }
-                    
-                    final AsyncWriteQueueRecord nextRecord =
-                            connectionQueue.doneCurrentElement();
-
                     // Do compareAndSet, because connection might have been close
                     // from another thread, and failReadRecord has been invoked already
                     onWriteComplete(queueRecord);
-
                     if (isLogFine) {
-                        logger.log(Level.FINEST, "AsyncQueueWriter.processAsync nextRecord connection={0} nextRecord={1}",
-                                new Object[]{connection, queueRecord});
+                        doFineLog("AsyncQueueWriter.processAsync nextRecord "
+                                + "connection={0} nextRecord={1}",
+                                connection, queueRecord);
                     }
-                    // check if there is ready element in the queue
-                    if (nextRecord == null ||
-                            // make sure it's still available
-                            (queueRecord = connectionQueue.getCurrentElementAndReserve()) == null) {
+                    if (done) {
                         break;
                     }
-
                 } else { // if there is still some data in current message
                     connectionQueue.setCurrentElement(queueRecord);
                     if (isLogFine) {
-                        logger.log(Level.FINEST, "AsyncQueueWriter.processAsync onReadyToWrite connection={0} peekRecord={1}",
-                                new Object[]{connection, queueRecord});
+                        doFineLog("AsyncQueueWriter.processAsync onReadyToWrite "
+                                + "connection={0} peekRecord={1}",
+                                connection, queueRecord);
                     }
+
+                    // If connection is closed - this will fail,
+                    // and onWriteFaulure called properly
                     onReadyToWrite(connection);
                     break;
                 }
             }
+
+            if (!done) {
+                // Counter shows there should be some elements in queue,
+                // but seems write() method still didn't add them to a queue
+                // so we can release the thread for now
+                onReadyToWrite(connection);
+            }
         } catch (IOException e) {
             if (isLogFine) {
-                logger.log(Level.FINEST, "AsyncQueueWriter.processAsync exception connection=" + connection + " peekRecord=" + queueRecord, e);
+                logger.log(Level.FINEST, "AsyncQueueWriter.processAsync "
+                        + "exception connection=" + connection + " peekRecord=" +
+                        queueRecord, e);
             }
             onWriteFailure(connection, queueRecord, e);
         }
+    }
+       
+    private static void doFineLog(String msg, Object... params) {
+        logger.log(Level.FINEST, msg, params);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void onClose(Connection connection) {
+    public void onClose(final Connection connection) {
         final NIOConnection nioConnection =
                 (NIOConnection) connection;
         final TaskQueue<AsyncWriteQueueRecord> writeQueue =
                 nioConnection.getAsyncWriteQueue();
         if (writeQueue != null) {
-            AsyncWriteQueueRecord record =
-                    writeQueue.getCurrentElementAndReserve();
-
             IOException error = cachedIOException;
             if (error == null) {
                 error = new IOException("Connection closed");
                 cachedIOException = error;
             }
             
-            if (record != null) {
-                failWriteRecord(record, error);
-            }
-
-            while ((record = writeQueue.doneCurrentElement()) != null) {
+            AsyncWriteQueueRecord record;
+            while ((record = writeQueue.obtainCurrentElementAndReserve()) != null) {
                 failWriteRecord(record, error);
             }
         }
