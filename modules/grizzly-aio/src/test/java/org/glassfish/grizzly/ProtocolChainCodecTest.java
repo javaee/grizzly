@@ -49,7 +49,6 @@ import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import org.glassfish.grizzly.utils.DelayFilter;
-import org.glassfish.grizzly.utils.LinkedTransferQueue;
 import org.glassfish.grizzly.utils.StringFilter;
 import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
@@ -59,6 +58,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.aio.transport.TCPAIOTransport;
 import org.glassfish.grizzly.aio.transport.TCPAIOTransportBuilder;
+import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  *
@@ -67,7 +67,7 @@ import org.glassfish.grizzly.aio.transport.TCPAIOTransportBuilder;
 public class ProtocolChainCodecTest extends GrizzlyTestCase {
     private static final Logger logger = Grizzly.logger(ProtocolChainCodecTest.class);
     public static final int PORT = 7784;
-    
+
     public void testSyncSingleStringEcho() throws Exception {
         doTestStringEcho(true, 1);
     }
@@ -159,7 +159,7 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
             }
         });
 
-        
+
         TCPAIOTransport transport = TCPAIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
 
@@ -167,8 +167,8 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
             transport.bind(PORT);
             transport.start();
 
-            final BlockingQueue<String> resultQueue = new LinkedTransferQueue<String>();
-            
+            final BlockingQueue<String> resultQueue = DataStructures.getLTQinstance(String.class);
+
             Future<Connection> future = transport.connect("localhost", PORT);
             connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);

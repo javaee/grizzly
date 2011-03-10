@@ -40,8 +40,8 @@
 
 package org.glassfish.grizzly.utils;
 
-import java.util.Collection;
 import java.util.Iterator;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -57,8 +57,8 @@ public class DelayedExecutor {
 
     private final DelayedRunnable runnable = new DelayedRunnable();
     
-    private final Collection<DelayQueue<?>> queues =
-            new LinkedTransferQueue<DelayQueue<?>>();
+    private final BlockingQueue<DelayQueue> queues =
+             DataStructures.getLTQInstance(DelayQueue.class);
 
     private final Object sync = new Object();
 

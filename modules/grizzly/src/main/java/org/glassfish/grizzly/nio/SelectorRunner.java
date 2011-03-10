@@ -60,11 +60,11 @@ import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.utils.LinkedTransferQueue;
 import java.util.Queue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Class is responsible for processing certain (single) {@link SelectorHandler}
@@ -101,7 +101,7 @@ public final class SelectorRunner implements Runnable {
         this.selector = selector;
         stateHolder = new StateHolder<State>(State.STOP);
 
-        pendingTasks = new LinkedTransferQueue<SelectorHandlerTask>();
+        pendingTasks = DataStructures.getLTQInstance(SelectorHandlerTask.class);
         postponedTasks = new ArrayDeque<SelectorHandlerTask>();
     }
 

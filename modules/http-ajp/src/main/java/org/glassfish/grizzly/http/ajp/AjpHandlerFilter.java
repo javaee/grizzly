@@ -62,7 +62,7 @@ import org.glassfish.grizzly.http.Note;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.utils.LinkedTransferQueue;
+import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Filter is working as Codec between Ajp and Http packets.
@@ -88,7 +88,7 @@ public class AjpHandlerFilter extends BaseFilter {
     public static final Note<String> SECRET_NOTE = HttpRequestPacket.createNote("secret");
 
     private Queue<ShutdownHandler> shutdownHandlers =
-            new LinkedTransferQueue<ShutdownHandler>();
+            DataStructures.getLTQInstance(ShutdownHandler.class);
 
     /**
      * Add the {@link ShutdownHandler}, which will be called, when shutdown

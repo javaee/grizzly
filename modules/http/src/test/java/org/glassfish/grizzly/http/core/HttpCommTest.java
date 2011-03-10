@@ -60,7 +60,6 @@ import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.ChunkingFilter;
-import org.glassfish.grizzly.utils.LinkedTransferQueue;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -72,6 +71,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import junit.framework.TestCase;
+import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Test HTTP communication
@@ -105,8 +105,7 @@ public class HttpCommTest extends TestCase {
             int clientPort = ((InetSocketAddress) connection.getLocalAddress()).getPort();
             assertNotNull(connection);
 
-            final BlockingQueue<HttpPacket> resultQueue =
-                    new LinkedTransferQueue<HttpPacket>();
+            final BlockingQueue<HttpPacket> resultQueue = DataStructures.getLTQInstance(HttpPacket.class);
 
             FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter());

@@ -51,7 +51,6 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import org.glassfish.grizzly.utils.DelayFilter;
-import org.glassfish.grizzly.utils.LinkedTransferQueue;
 import org.glassfish.grizzly.utils.StringFilter;
 import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
@@ -59,6 +58,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  *
@@ -168,7 +168,7 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
             transport.bind(PORT);
             transport.start();
 
-            final BlockingQueue<String> resultQueue = new LinkedTransferQueue<String>();
+            final BlockingQueue<String> resultQueue = DataStructures.getLTQInstance(String.class);
             
             Future<Connection> future = transport.connect("localhost", PORT);
             connection = future.get(10, TimeUnit.SECONDS);

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,39 +37,57 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.utils;
 
 import java.util.concurrent.BlockingQueue;
+import java.util.logging.Level;
+import org.glassfish.grizzly.Grizzly;
 
-/**
- * <code>ObjectPool</code> implementation based on <code>LinkedTransferQueue</code>
+/*
+ * Utility class, which tries to pickup the best collection implementation depending
+ * on running environment.
  * 
- * @author Alexey Stashok
+ * @author gustav trede
  */
-public abstract class ConcurrentQueuePool<E extends PoolableObject> implements ObjectPool<E> {
-    private final BlockingQueue<E> pool = DataStructures.getLTQInstance();
+public class DataStructures {
 
-    public abstract E newInstance();
+    private final static Class<?> LTQclass;
 
-    @Override
-    public E poll() {        
-        E object = pool.poll();
-        if (object == null) {
-            object = newInstance();
+    static {
+        Class<?> c = null;
+        try {
+            int jver = Integer.valueOf(System.getProperty("java.version").
+                    substring(0, 3).replace(".", ""));
+            c = getAndVerify(jver > 16
+                    ? "java.util.concurrent.LinkedTransferQueue"
+                    : "org.glassfish.grizzly.utils.LinkedTransferQueue");
+            Grizzly.logger(DataStructures.class).log(Level.FINE, "USING LTQ class:{0}", c);
+        } catch (Throwable t) {
+            Grizzly.logger(DataStructures.class).log(Level.FINE,
+                    "failed loading datastructure class:" + c, t);
         }
-        object.prepare();
-        return object;
+        LTQclass = c;
     }
 
-    @Override
-    public void offer(E object) {
-        object.release();
-        pool.offer(object);
+    private static Class<?> getAndVerify(String cname) throws Throwable {
+        return DataStructures.class.getClassLoader().loadClass(cname).newInstance().getClass();
     }
 
-    @Override
-    public void clear() {        
-        pool.clear();
+    @SuppressWarnings("unchecked")
+    public static <T> BlockingQueue<T> getLTQInstance() {
+        try {
+            return (BlockingQueue<T>) LTQclass.newInstance();
+        } catch (Exception ea) {
+            throw new RuntimeException(ea);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> BlockingQueue<T> getLTQInstance(Class<T> t) {
+        try {
+            return (BlockingQueue<T>) LTQclass.newInstance();
+        } catch (Exception ea) {
+            throw new RuntimeException(ea);
+        }
     }
 }

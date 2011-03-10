@@ -40,13 +40,13 @@
 
 package org.glassfish.grizzly.utils;
 
+import java.util.Collection;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.utils.conditions.Condition;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -66,7 +66,7 @@ public final class StateHolder<E> {
     
     private final ReentrantReadWriteLock readWriteLock;
     
-    private final Collection<ConditionElement> conditionListeners;
+    private final Collection<ConditionElement<E>> conditionListeners;
     
     /**
      * Constructs <code>StateHolder</code>.
@@ -81,7 +81,7 @@ public final class StateHolder<E> {
     public StateHolder(E initialState) {
         state = initialState;
         readWriteLock = new ReentrantReadWriteLock();
-        conditionListeners = new LinkedTransferQueue<ConditionElement>();
+        conditionListeners = DataStructures.getLTQInstance();
     }
 
     /**
@@ -100,16 +100,18 @@ public final class StateHolder<E> {
      */
     public void setState(E state) {
         readWriteLock.writeLock().lock();
-        
-        this.state = state;
-        
-        // downgrading lock to read
-        readWriteLock.readLock().lock();
-        readWriteLock.writeLock().unlock();
-        
-        notifyConditionListeners();
 
-        readWriteLock.readLock().unlock();
+        try {
+            this.state = state;
+
+            // downgrading lock to read
+            readWriteLock.readLock().lock();
+            readWriteLock.writeLock().unlock();
+
+            notifyConditionListeners();
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
     }
 
     /**
@@ -185,31 +187,30 @@ public final class StateHolder<E> {
         Future<E> resultFuture;
 
         readWriteLock.readLock().lock();
-
-        if (condition.check()) {
-            if (completionHandler != null) {
-                completionHandler.completed(state);
+        try {
+            if (condition.check()) {
+                if (completionHandler != null) {
+                    completionHandler.completed(state);
+                }
+                resultFuture = ReadyFutureImpl.create(state);
+            } else {
+                final FutureImpl<E> future = SafeFutureImpl.create();
+                final ConditionElement<E> elem =
+                        new ConditionElement<E>(condition, future, completionHandler);
+                conditionListeners.add(elem);
+                resultFuture = future;
             }
-
-            resultFuture = ReadyFutureImpl.create(state);
-        } else {
-            final FutureImpl<E> future = SafeFutureImpl.create();
-            final ConditionElement elem = new ConditionElement(
-                    condition, future, completionHandler);
-
-            conditionListeners.add(elem);
-            resultFuture = future;
+        } finally {
+            readWriteLock.readLock().unlock();
         }
-
-        readWriteLock.readLock().unlock();
 
         return resultFuture;
     }
     
     protected void notifyConditionListeners() {
-        Iterator<ConditionElement> it = conditionListeners.iterator();
+        Iterator<ConditionElement<E>> it = conditionListeners.iterator();
         while(it.hasNext()) {
-            ConditionElement element = it.next();
+            ConditionElement<E> element = it.next();
             try {
                 if (element.condition.check()) {
                     it.remove();
@@ -225,7 +226,7 @@ public final class StateHolder<E> {
         }
     }
 
-    protected final class ConditionElement {
+    protected static final class ConditionElement<E> {
         private final Condition condition;
         private final FutureImpl<E> future;
         private final CompletionHandler<E> completionHandler;

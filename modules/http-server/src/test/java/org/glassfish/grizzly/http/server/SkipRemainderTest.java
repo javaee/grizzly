@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly.http.server;
 
+import java.util.concurrent.BlockingQueue;
+import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.Buffer;
@@ -58,7 +60,6 @@ import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
-import org.glassfish.grizzly.utils.LinkedTransferQueue;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -101,7 +102,7 @@ public class SkipRemainderTest {
 //    @Ignore
     @Test
     public void testKeepAliveConnection() throws Exception {
-        final LinkedTransferQueue<Integer> transferQueue = new LinkedTransferQueue<Integer>();
+        final BlockingQueue<Integer> transferQueue = DataStructures.getLTQInstance(Integer.class);
         
         final AtomicInteger counter = new AtomicInteger();
         final int contentSizeHalf = 32;
@@ -153,7 +154,7 @@ public class SkipRemainderTest {
     }
 
     private void sendContentByHalfs(Connection connection, byte[] content,
-            final LinkedTransferQueue<Integer> transferQueue)
+            final BlockingQueue<Integer> transferQueue)
             throws Exception, InterruptedException {
 
         final MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
@@ -190,7 +191,7 @@ public class SkipRemainderTest {
     }
 
     private Future<Connection> connect(String host, int port,
-            LinkedTransferQueue<Integer> transferQueue) throws Exception {
+            BlockingQueue<Integer> transferQueue) throws Exception {
 
         final FilterChainBuilder builder = FilterChainBuilder.stateless();
         builder.add(new TransportFilter());
@@ -220,9 +221,9 @@ public class SkipRemainderTest {
     }
 
     private static class HttpMessageFilter extends BaseFilter {
-        private final LinkedTransferQueue<Integer> transferQueue;
+        private final BlockingQueue<Integer> transferQueue;
 
-        public HttpMessageFilter(LinkedTransferQueue<Integer> transferQueue) {
+        public HttpMessageFilter(BlockingQueue<Integer> transferQueue) {
             this.transferQueue = transferQueue;
         }
 

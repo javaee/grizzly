@@ -61,9 +61,9 @@ import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
 import org.glassfish.grizzly.streams.AbstractStreamReader;
 import org.glassfish.grizzly.streams.BufferedInput;
-import org.glassfish.grizzly.utils.LinkedTransferQueue;
 import org.glassfish.grizzly.utils.conditions.Condition;
 import java.util.concurrent.BlockingQueue;
+import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Basic idea:
@@ -86,7 +86,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
     private Connection clientconnection = null;
     private TCPNIOTransport servertransport = null;
     private StreamWriter clientWriter = null;
-    private final BlockingQueue<Checker> checkerQueue = new LinkedTransferQueue<Checker>();
+    private final BlockingQueue<Checker> checkerQueue = DataStructures.getLTQInstance(Checker.class);
     private TCPNIOTransport clienttransport;
 
     interface Checker {

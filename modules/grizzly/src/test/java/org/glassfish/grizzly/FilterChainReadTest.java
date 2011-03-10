@@ -62,6 +62,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import junit.framework.TestCase;
 import org.glassfish.grizzly.memory.CompositeBuffer;
+import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Test {@link FilterChain} blocking read.
@@ -80,7 +81,7 @@ public class FilterChainReadTest extends TestCase {
         Connection connection = null;
         int messageNum = 3;
 
-        final BlockingQueue<String> intermResultQueue = new LinkedTransferQueue<String>();
+        final BlockingQueue<String> intermResultQueue = DataStructures.getLTQInstance(String.class);
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new StringFilter());
@@ -122,7 +123,7 @@ public class FilterChainReadTest extends TestCase {
             transport.bind(PORT);
             transport.start();
 
-            final BlockingQueue<String> resultQueue = new LinkedTransferQueue<String>();
+            final BlockingQueue<String> resultQueue = DataStructures.getLTQInstance(String.class);
 
             Future<Connection> future = transport.connect("localhost", PORT);
             connection = future.get(10, TimeUnit.SECONDS);
@@ -183,7 +184,7 @@ public class FilterChainReadTest extends TestCase {
         Connection connection = null;
         int messageNum = 3;
 
-        final BlockingQueue<String> intermResultQueue = new LinkedTransferQueue<String>();
+        final BlockingQueue<String> intermResultQueue = DataStructures.getLTQInstance(String.class);
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new StringFilter());
@@ -225,7 +226,7 @@ public class FilterChainReadTest extends TestCase {
             transport.bind(PORT);
             transport.start();
 
-            final BlockingQueue<String> resultQueue = new LinkedTransferQueue<String>();
+            final BlockingQueue<String> resultQueue = DataStructures.getLTQInstance(String.class);
 
             Future<Connection> future = transport.connect("localhost", PORT);
             connection = future.get(10, TimeUnit.SECONDS);
@@ -295,7 +296,7 @@ public class FilterChainReadTest extends TestCase {
     public void testBlockingReadError() throws Exception {
         Connection connection = null;
 
-        final BlockingQueue<Object> intermResultQueue = new LinkedTransferQueue<Object>();
+        final BlockingQueue<Object> intermResultQueue = DataStructures.getLTQInstance(Object.class);
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new StringFilter());

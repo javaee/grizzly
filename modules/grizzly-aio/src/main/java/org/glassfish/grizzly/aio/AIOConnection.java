@@ -67,9 +67,9 @@ import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringConfigImpl;
-import org.glassfish.grizzly.utils.LinkedTransferQueue;
 import java.util.Queue;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Common {@link Connection} implementation for Java NIO <tt>Connection</tt>s.
@@ -104,7 +104,7 @@ public abstract class AIOConnection implements Connection<SocketAddress> {
     protected volatile boolean isStandalone;
 
     private final Queue<CloseListener> closeListeners =
-            new LinkedTransferQueue<>();
+            DataStructures.getLTQinstance(CloseListener.class);
 
     /**
      * Connection probes
