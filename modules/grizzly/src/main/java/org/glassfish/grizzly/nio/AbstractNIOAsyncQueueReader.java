@@ -233,8 +233,7 @@ public abstract class AbstractNIOAsyncQueueReader
 
                     onReadComplete(queueRecord);
 
-                    intercept(Reader.COMPLETE_EVENT,
-                            queueRecord, null);
+                    intercept(Reader.COMPLETE_EVENT, queueRecord, null);
                     queueRecord.recycle();
 
                     // check if there is ready element in the queue
@@ -250,8 +249,7 @@ public abstract class AbstractNIOAsyncQueueReader
 
                     connectionQueue.setCurrentElement(queueRecord);
                     onReadIncomplete(queueRecord);
-                    intercept(Reader.INCOMPLETE_EVENT,
-                            queueRecord, null);
+                    intercept(Reader.INCOMPLETE_EVENT, queueRecord, null);
 
                     onReadyToRead(connection);
                     return;
