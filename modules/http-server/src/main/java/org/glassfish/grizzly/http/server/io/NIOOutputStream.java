@@ -117,8 +117,8 @@ public class NIOOutputStream extends OutputStream implements BinaryNIOOutputSink
      * {@inheritDoc}
      */
     @Override
-    public boolean notifyCanWrite(final WriteHandler handler, final int length) {
-        return outputBuffer.notifyCanWrite(handler, length);
+    public void notifyCanWrite(final WriteHandler handler, final int length) {
+        outputBuffer.notifyCanWrite(handler, length);
     }
 
 

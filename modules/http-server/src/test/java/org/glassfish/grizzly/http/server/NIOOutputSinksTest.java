@@ -307,17 +307,14 @@ public class NIOOutputSinksTest extends TestCase {
 
             @Override
             public void service(final Request request, final Response response) throws Exception {
-                
                 clientTransport.pause();
-                response.suspend();
 
                 response.setContentType("text/plain");
                 final NIOWriter out = response.getWriter();
                 Connection c = request.getContext().getConnection();
                 final TaskQueue tqueue = ((NIOConnection) c).getAsyncWriteQueue();
 
-
-                while (!notifyCanWrite(out, tqueue, response)) {
+                while (out.canWrite(LENGTH)) {
                     char[] data = new char[LENGTH];
                     fill(data);
                     writeCounter.addAndGet(data.length);
@@ -325,13 +322,16 @@ public class NIOOutputSinksTest extends TestCase {
                     out.flush();
                 }                
 
+                response.suspend();
+                notifyCanWrite(out, tqueue, response);
+                
                 clientTransport.resume();
             }
 
-            private boolean notifyCanWrite(final NIOWriter out,
+            private void notifyCanWrite(final NIOWriter out,
                     final TaskQueue tqueue, final Response response) {
 
-                return out.notifyCanWrite(new WriteHandler() {
+                out.notifyCanWrite(new WriteHandler() {
 
                     @Override
                     public void onWritePossible() {

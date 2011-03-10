@@ -667,7 +667,15 @@ public class InputBuffer {
         if (isFinished()) {
             throw new IllegalStateException("All request data has already been read");
         }
-        if (closed) {
+        
+        // If we don't expect more data - call onAllDataRead() directly
+        if (closed || isFinished()) {
+            try {
+                handler.onAllDataRead();
+            } catch (IOException ioe) {
+                handler.onError(ioe);
+            }
+
             return;
         }
 

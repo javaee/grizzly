@@ -139,8 +139,8 @@ public class NIOWriter extends Writer implements NIOOutputSink {
      * @param length the number of characters that require writing.
      */
     @Override
-    public boolean notifyCanWrite(final WriteHandler handler, final int length) {
-        return outputBuffer.notifyCanWrite(handler, length);
+    public void notifyCanWrite(final WriteHandler handler, final int length) {
+        outputBuffer.notifyCanWrite(handler, length);
     }
     
 }
