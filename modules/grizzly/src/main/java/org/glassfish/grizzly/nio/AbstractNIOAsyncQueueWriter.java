@@ -310,7 +310,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                                 connection, queueRecord);
                     }
                     if (done) {
-                        break;
+                        return;
                     }
                 } else { // if there is still some data in current message
                     connectionQueue.setCurrentElement(queueRecord);
@@ -323,7 +323,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                     // If connection is closed - this will fail,
                     // and onWriteFaulure called properly
                     onReadyToWrite(connection);
-                    break;
+                    return;
                 }
             }
 
