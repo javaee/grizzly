@@ -89,7 +89,6 @@ valid() {
 }
 
 run() {
-	echo $JAVA -jar copyright.jar  $* 
 	$JAVA -jar copyright.jar  $* | while read LINE
 	do
 		valid $LINE
