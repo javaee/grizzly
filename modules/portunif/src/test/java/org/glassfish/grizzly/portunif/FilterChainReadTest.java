@@ -87,7 +87,7 @@ public class FilterChainReadTest extends TestCase {
         Connection connection = null;
         int messageNum = 3;
 
-        final BlockingQueue<String> intermResultQueue = DataStructures.getLTQinstance(String.class);
+        final BlockingQueue<String> intermResultQueue = DataStructures.getLTQInstance(String.class);
 
         final PUFilter puFilter = new PUFilter();
         FilterChain subProtocolChain = puFilter.getPUFilterChainBuilder()
@@ -109,7 +109,7 @@ public class FilterChainReadTest extends TestCase {
             transport.bind(PORT);
             transport.start();
 
-            final BlockingQueue<String> resultQueue = DataStructures.getLTQinstance(String.class);
+            final BlockingQueue<String> resultQueue = DataStructures.getLTQInstance(String.class);
 
             Future<Connection> future = transport.connect("localhost", PORT);
             connection = future.get(10, TimeUnit.SECONDS);
@@ -170,7 +170,7 @@ public class FilterChainReadTest extends TestCase {
         Connection connection = null;
         int messageNum = 3;
 
-        final BlockingQueue<String> intermResultQueue = DataStructures.getLTQinstance(String.class);
+        final BlockingQueue<String> intermResultQueue = DataStructures.getLTQInstance(String.class);
 
         final PUFilter puFilter = new PUFilter();
         FilterChain subProtocolChain = puFilter.getPUFilterChainBuilder()
@@ -193,7 +193,7 @@ public class FilterChainReadTest extends TestCase {
             transport.bind(PORT);
             transport.start();
 
-            final BlockingQueue<String> resultQueue = DataStructures.getLTQinstance(String.class);
+            final BlockingQueue<String> resultQueue = DataStructures.getLTQInstance(String.class);
 
             Future<Connection> future = transport.connect("localhost", PORT);
             connection = future.get(10, TimeUnit.SECONDS);
@@ -265,7 +265,7 @@ public class FilterChainReadTest extends TestCase {
 
         Connection connection = null;
 
-        final BlockingQueue intermResultQueue = DataStructures.getLTQinstance();
+        final BlockingQueue intermResultQueue = DataStructures.getLTQInstance();
 
         final PUFilter puFilter = new PUFilter();
         FilterChain subProtocolChain = puFilter.getPUFilterChainBuilder()
