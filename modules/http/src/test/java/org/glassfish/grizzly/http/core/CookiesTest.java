@@ -46,7 +46,6 @@ import org.glassfish.grizzly.http.CookiesBuilder;
 import org.glassfish.grizzly.http.util.CookieUtils;
 import org.glassfish.grizzly.utils.Pair;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import junit.framework.TestCase;
@@ -58,91 +57,84 @@ import junit.framework.TestCase;
  */
 public class CookiesTest extends TestCase {
 
-    private static Pair[] TEST_CASE_CLIENT_COOKIE =
-            new Pair[] {
-        new Pair<String,Checker[]>("CUSTOMER=WILE_E_COYOTE", new Checker[]{
-            new Checker(0, "CUSTOMER", CheckValue.NAME),
-            new Checker(0, "WILE_E_COYOTE", CheckValue.VALUE),
-            new Checker(0, 0, CheckValue.VERSION)
-        }),
+    private static Pair[] createClientTestCaseCookie() {
+        return new Pair[]{
+                    new Pair<String, Checker[]>("CUSTOMER=WILE_E_COYOTE", new Checker[]{
+                        new Checker(0, "CUSTOMER", CheckValue.NAME),
+                        new Checker(0, "WILE_E_COYOTE", CheckValue.VALUE),
+                        new Checker(0, 0, CheckValue.VERSION)
+                    }),
+                    new Pair<String, Checker[]>("CUSTOMER=WILE_E_COYOTE; PART_NUMBER=ROCKET_LAUNCHER_0001", new Checker[]{
+                        new Checker(0, "CUSTOMER", CheckValue.NAME),
+                        new Checker(0, "WILE_E_COYOTE", CheckValue.VALUE),
+                        new Checker(0, 0, CheckValue.VERSION),
+                        new Checker(1, "PART_NUMBER", CheckValue.NAME),
+                        new Checker(1, "ROCKET_LAUNCHER_0001", CheckValue.VALUE),
+                        new Checker(1, 0, CheckValue.VERSION)
+                    }),
+                    new Pair<String, Checker[]>("$Version=\"1\"; Customer=\"WILE_E_COYOTE\"; $Path=\"/acme\"", new Checker[]{
+                        new Checker(0, "Customer", CheckValue.NAME),
+                        new Checker(0, "WILE_E_COYOTE", CheckValue.VALUE),
+                        new Checker(0, "/acme", CheckValue.PATH),
+                        new Checker(0, 1, CheckValue.VERSION)
+                    }),
+                    new Pair<String, Checker[]>("$Version=\"1\"; Customer=\"WILE_E_COYOTE\"; $Path=\"/acme\"; $Domain=\"mydomain.com\"; Part_Number=\"Rocket_Launcher_0001\"; $Path=\"/acme\"", new Checker[]{
+                        new Checker(0, "Customer", CheckValue.NAME),
+                        new Checker(0, "WILE_E_COYOTE", CheckValue.VALUE),
+                        new Checker(0, "/acme", CheckValue.PATH),
+                        new Checker(0, "mydomain.com", CheckValue.DOMAIN),
+                        new Checker(0, 1, CheckValue.VERSION),
+                        new Checker(1, "Part_Number", CheckValue.NAME),
+                        new Checker(1, "Rocket_Launcher_0001", CheckValue.VALUE),
+                        new Checker(1, "/acme", CheckValue.PATH),
+                        new Checker(1, 1, CheckValue.VERSION)
+                    }),
+                    new Pair<String, Checker[]>("$Version=\"1\"; Part_Number=\"Riding_Rocket_0023\"; $Path=\"/acme/ammo\"; Part_Number=\"Rocket_Launcher_0001\"; $Path=\"/acme\"", new Checker[]{
+                        new Checker(0, "Part_Number", CheckValue.NAME),
+                        new Checker(0, "Riding_Rocket_0023", CheckValue.VALUE),
+                        new Checker(0, "/acme/ammo", CheckValue.PATH),
+                        new Checker(0, 1, CheckValue.VERSION),
+                        new Checker(1, "Part_Number", CheckValue.NAME),
+                        new Checker(1, "Rocket_Launcher_0001", CheckValue.VALUE),
+                        new Checker(1, "/acme", CheckValue.PATH),
+                        new Checker(1, 1, CheckValue.VERSION)
+                    })
+                };
+    }
 
-        new Pair<String,Checker[]>("CUSTOMER=WILE_E_COYOTE; PART_NUMBER=ROCKET_LAUNCHER_0001", new Checker[]{
-            new Checker(0, "CUSTOMER", CheckValue.NAME),
-            new Checker(0, "WILE_E_COYOTE", CheckValue.VALUE),
-            new Checker(0, 0, CheckValue.VERSION),
-            new Checker(1, "PART_NUMBER", CheckValue.NAME),
-            new Checker(1, "ROCKET_LAUNCHER_0001", CheckValue.VALUE),
-            new Checker(1, 0, CheckValue.VERSION)
-        }),
-
-        new Pair<String,Checker[]>("$Version=\"1\"; Customer=\"WILE_E_COYOTE\"; $Path=\"/acme\"", new Checker[]{
-            new Checker(0, "Customer", CheckValue.NAME),
-            new Checker(0, "WILE_E_COYOTE", CheckValue.VALUE),
-            new Checker(0, "/acme", CheckValue.PATH),
-            new Checker(0, 1, CheckValue.VERSION)
-        }),
-
-        new Pair<String,Checker[]>("$Version=\"1\"; Customer=\"WILE_E_COYOTE\"; $Path=\"/acme\"; $Domain=\"mydomain.com\"; Part_Number=\"Rocket_Launcher_0001\"; $Path=\"/acme\"", new Checker[]{
-            new Checker(0, "Customer", CheckValue.NAME),
-            new Checker(0, "WILE_E_COYOTE", CheckValue.VALUE),
-            new Checker(0, "/acme", CheckValue.PATH),
-            new Checker(0, "mydomain.com", CheckValue.DOMAIN),
-            new Checker(0, 1, CheckValue.VERSION),
-            new Checker(1, "Part_Number", CheckValue.NAME),
-            new Checker(1, "Rocket_Launcher_0001", CheckValue.VALUE),
-            new Checker(1, "/acme", CheckValue.PATH),
-            new Checker(1, 1, CheckValue.VERSION)
-        }),
-
-        new Pair<String,Checker[]>("$Version=\"1\"; Part_Number=\"Riding_Rocket_0023\"; $Path=\"/acme/ammo\"; Part_Number=\"Rocket_Launcher_0001\"; $Path=\"/acme\"", new Checker[]{
-            new Checker(0, "Part_Number", CheckValue.NAME),
-            new Checker(0, "Riding_Rocket_0023", CheckValue.VALUE),
-            new Checker(0, "/acme/ammo", CheckValue.PATH),
-            new Checker(0, 1, CheckValue.VERSION),
-            new Checker(1, "Part_Number", CheckValue.NAME),
-            new Checker(1, "Rocket_Launcher_0001", CheckValue.VALUE),
-            new Checker(1, "/acme", CheckValue.PATH),
-            new Checker(1, 1, CheckValue.VERSION)
-        })
-    };
-
-    private static final String OLD_COOKIE_PATTERN = "EEE, dd-MMM-yyyy HH:mm:ss z";
     private static final long IN_HOUR = System.currentTimeMillis() + 1000 * 60 * 60;
     //ex. Wednesday, 09-Nov-99 23:12:40 GMT
-    private static final String expiresStr =
-            new SimpleDateFormat(OLD_COOKIE_PATTERN).format(new Date(IN_HOUR));
+    private static final String expiresStr = CookieUtils.OLD_COOKIE_FORMAT.get().format(new Date(IN_HOUR));
 
-    private static Pair[] TEST_CASE_SERVER_COOKIE =
-            new Pair[] {
-        new Pair<String,Checker[]>("CUSTOMER=WILE_E_COYOTE; path=/; expires=" + expiresStr, new Checker[]{
-            new Checker(0, "CUSTOMER", CheckValue.NAME),
-            new Checker(0, "WILE_E_COYOTE", CheckValue.VALUE),
-            new Checker(0, expire2MaxAge(expiresStr), CheckValue.MAX_AGE),
-            new Checker(0, 0, CheckValue.VERSION)
-        }),
-
-        new Pair<String,Checker[]>("Part_Number=\"Rocket_Launcher_0001\"; Version=\"1\"; Path=\"/acme\"", new Checker[]{
-            new Checker(0, "Part_Number", CheckValue.NAME),
-            new Checker(0, "Rocket_Launcher_0001", CheckValue.VALUE),
-            new Checker(0, "/acme", CheckValue.PATH),
-            new Checker(0, 1, CheckValue.VERSION)
-        }),
-
-        new Pair<String,Checker[]>("Part_Number=\"Rocket_Launcher_0001\"; Version=\"1\"; Path=\"/acme\", Customer=\"WILE_E_COYOTE\"; Version=\"1\"; Path=\"/acme/path\"", new Checker[]{
-            new Checker(0, "Part_Number", CheckValue.NAME),
-            new Checker(0, "Rocket_Launcher_0001", CheckValue.VALUE),
-            new Checker(0, "/acme", CheckValue.PATH),
-            new Checker(0, 1, CheckValue.VERSION),
-            new Checker(1, "Customer", CheckValue.NAME),
-            new Checker(1, "WILE_E_COYOTE", CheckValue.VALUE),
-            new Checker(1, "/acme/path", CheckValue.PATH),
-            new Checker(1, 1, CheckValue.VERSION)
-        }),
-    };
+    private static Pair[] createServerTestCaseCookie() {
+        return new Pair[]{
+                    new Pair<String, Checker[]>("CUSTOMER=WILE_E_COYOTE; path=/; expires=" + expiresStr, new Checker[]{
+                        new Checker(0, "CUSTOMER", CheckValue.NAME),
+                        new Checker(0, "WILE_E_COYOTE", CheckValue.VALUE),
+                        new Checker(0, expire2MaxAge(expiresStr), CheckValue.MAX_AGE),
+                        new Checker(0, 0, CheckValue.VERSION)
+                    }),
+                    new Pair<String, Checker[]>("Part_Number=\"Rocket_Launcher_0001\"; Version=\"1\"; Path=\"/acme\"", new Checker[]{
+                        new Checker(0, "Part_Number", CheckValue.NAME),
+                        new Checker(0, "Rocket_Launcher_0001", CheckValue.VALUE),
+                        new Checker(0, "/acme", CheckValue.PATH),
+                        new Checker(0, 1, CheckValue.VERSION)
+                    }),
+                    new Pair<String, Checker[]>("Part_Number=\"Rocket_Launcher_0001\"; Version=\"1\"; Path=\"/acme\", Customer=\"WILE_E_COYOTE\"; Version=\"1\"; Path=\"/acme/path\"", new Checker[]{
+                        new Checker(0, "Part_Number", CheckValue.NAME),
+                        new Checker(0, "Rocket_Launcher_0001", CheckValue.VALUE),
+                        new Checker(0, "/acme", CheckValue.PATH),
+                        new Checker(0, 1, CheckValue.VERSION),
+                        new Checker(1, "Customer", CheckValue.NAME),
+                        new Checker(1, "WILE_E_COYOTE", CheckValue.VALUE),
+                        new Checker(1, "/acme/path", CheckValue.PATH),
+                        new Checker(1, 1, CheckValue.VERSION)
+                    }),};
+    }
 
     @SuppressWarnings({"unchecked"})
     public void testClientCookie() {
-        for (Pair<String, Checker[]> testCase : TEST_CASE_CLIENT_COOKIE) {
+        for (Pair<String, Checker[]> testCase : createClientTestCaseCookie()) {
             String cookieString = testCase.getFirst();
             
             final List<Cookie> cookies =
@@ -180,7 +172,7 @@ public class CookiesTest extends TestCase {
 
     @SuppressWarnings({"unchecked"})
     public void testServerCookie() {
-        for (Pair<String, Checker[]> testCase : TEST_CASE_SERVER_COOKIE) {
+        for (Pair<String, Checker[]> testCase : createServerTestCaseCookie()) {
             String cookieString = testCase.getFirst();
 
             final List<Cookie> cookies =
@@ -313,8 +305,8 @@ public class CookiesTest extends TestCase {
             }
             @Override
             public boolean check(Object pattern, Cookie cookie) {
-                    // In the tests we allow max-age to have 15sec precision.
-                return Math.abs((Integer) pattern - cookie.getMaxAge()) < 15000;
+                // In the tests we allow max-age to have 15sec precision.
+                return Math.abs((Integer) pattern - cookie.getMaxAge()) < 15;
             }
         };
 
@@ -327,7 +319,7 @@ public class CookiesTest extends TestCase {
 
     private static int expire2MaxAge(String expire) {
         try {
-            return (int) (CookieUtils.OLD_COOKIE_FORMAT.get().parse(expire).getTime() - System.currentTimeMillis());
+            return (int) (CookieUtils.OLD_COOKIE_FORMAT.get().parse(expire).getTime() - System.currentTimeMillis() / 1000);
         } catch (ParseException ex) {
             throw new IllegalArgumentException("Illegal expire value: " + expire);
         }
