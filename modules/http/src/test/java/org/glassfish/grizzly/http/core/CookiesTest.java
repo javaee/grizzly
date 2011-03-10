@@ -319,7 +319,7 @@ public class CookiesTest extends TestCase {
 
     private static int expire2MaxAge(String expire) {
         try {
-            return (int) (CookieUtils.OLD_COOKIE_FORMAT.get().parse(expire).getTime() - System.currentTimeMillis() / 1000);
+            return (int) (CookieUtils.OLD_COOKIE_FORMAT.get().parse(expire).getTime() - System.currentTimeMillis()) / 1000;
         } catch (ParseException ex) {
             throw new IllegalArgumentException("Illegal expire value: " + expire);
         }
