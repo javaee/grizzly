@@ -61,6 +61,9 @@ valid() {
 		grep -vi ChangesFrom1_9.txt | \
 		grep -vi catalog.cat | \
 		grep -vi copyright.sh | \
+		grep -vi modules/benchmark/runner/benchmark | \
+		grep -vi modules/benchmark/runner/fhb-runner | \
+		grep -vi modules/benchmark/runner/readme.txt | \
 		grep -vi copyrightcheck.out | \
 		grep -vi last-occupied-test-port.info | \
 		grep -vi license.txt | \
