@@ -147,16 +147,16 @@ public class NIOInputStream extends InputStream implements BinaryNIOInputSource 
      * {@inheritDoc}
      */
     @Override
-    public boolean notifyAvailable(ReadHandler handler) {
-        return inputBuffer.notifyAvailable(handler);
+    public void notifyAvailable(ReadHandler handler) {
+        inputBuffer.notifyAvailable(handler);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public boolean notifyAvailable(ReadHandler handler, int size) {
-        return inputBuffer.notifyAvailable(handler, size);
+    public void notifyAvailable(ReadHandler handler, int size) {
+        inputBuffer.notifyAvailable(handler, size);
     }
 
     /**

@@ -68,15 +68,16 @@ public interface NIOInputSource {
      *
      * @param handler the {@link ReadHandler} to notify.
      *
-     * @return <code>true<code> if the specified <code>handler</code> has
-     *  been accepted and will be notified as data becomes available to write,
-     *  otherwise returns <code>false</code> which means data is available to
-     *  be read without blocking.
+     * @throws IllegalArgumentException if <code>handler</code> is <code>null</code>,
+     *  or if <code>size</code> is less than zero.
+     @throws IllegalStateException if an attempt is made to register a handler
+     *  before an existing registered handler has been invoked or if all request
+     *  data has already been read.
      *
      * @see ReadHandler#onDataAvailable()
      * @see ReadHandler#onAllDataRead()
      */
-    boolean notifyAvailable(final ReadHandler handler);
+    void notifyAvailable(final ReadHandler handler);
 
 
     /**
@@ -92,15 +93,16 @@ public interface NIOInputSource {
      *  handler will be notified as soon as data is available no matter the
      *  size.
      *
-     * @return <code>true<code> if the specified <code>handler</code> has
-     *  been accepted and will be notified as data becomes available to write,
-     *  otherwise returns <code>false</code> which means data is available to
-     *  be read without blocking.
+     * @throws IllegalArgumentException if <code>handler</code> is <code>null</code>,
+     *  or if <code>size</code> is less than zero.
+     @throws IllegalStateException if an attempt is made to register a handler
+     *  before an existing registered handler has been invoked or if all request
+     *  data has already been read.
      *
      * @see ReadHandler#onDataAvailable()
      * @see ReadHandler#onAllDataRead()
      */
-    boolean notifyAvailable(final ReadHandler handler, final int size);
+    void notifyAvailable(final ReadHandler handler, final int size);
 
 
     /**

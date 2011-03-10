@@ -627,9 +627,15 @@ public class InputBuffer {
      *  been accepted and will be notified as data becomes available to write,
      *  otherwise returns <code>false</code> which means data is available to
      *  be read without blocking.
+     *
+     * @throws IllegalArgumentException if <code>handler</code> is <code>null</code>,
+     *  or if <code>size</code> is less than zero.
+     * @throws IllegalStateException if an attempt is made to register a handler
+     *  before an existing registered handler has been invoked or if all request
+     *  data has already been read.
      */
-    public boolean notifyAvailable(final ReadHandler handler) {
-        return notifyAvailable(handler, 0);
+    public void notifyAvailable(final ReadHandler handler) {
+        notifyAvailable(handler, 0);
     }
 
 
@@ -641,13 +647,13 @@ public class InputBuffer {
      * @param size the minimum number of bytes that must be available before
      *  the {@link ReadHandler} is notified.
      *
-     * @return <code>true<code> if the specified <code>handler</code> has
-     *  been accepted and will be notified as data becomes available to write,
-     *  otherwise returns <code>false</code> which means data is available to
-     *  be read without blocking.
+     * @throws IllegalArgumentException if <code>handler</code> is <code>null</code>,
+     *  or if <code>size</code> is less than zero.
+     * @throws IllegalStateException if an attempt is made to register a handler
+     *  before an existing registered handler has been invoked or if all request
+     *  data has already been read.
      */
-    public boolean notifyAvailable(final ReadHandler handler,
-                                   final int size) {
+    public void notifyAvailable(final ReadHandler handler, final int size) {
 
         if (handler == null) {
             throw new IllegalArgumentException("handler cannot be null.");
@@ -655,22 +661,28 @@ public class InputBuffer {
         if (size < 0) {
             throw new IllegalArgumentException("size cannot be negative");
         }
+        if (this.handler != null) {
+            throw new IllegalStateException("Illegal attempt to register a new handler before the existing handler has been notified");
+        }
+        if (isFinished()) {
+            throw new IllegalStateException("All request data has already been read");
+        }
         if (closed) {
-            return false;
+            return;
         }
 
         final int available = ((processingChars) ? availableChar() : available());
-        if (size == 0 && available == 0 && !isFinished()) {
-            requestedSize = size;
-            this.handler = handler;
-            return true;
+        if (shouldNotifyNow(size, available)) {
+            try {
+                handler.onDataAvailable();
+            } catch (IOException ioe) {
+                handler.onError(ioe);
+            }
+            return;
         }
-        if (available >= size) {
-            return false;
-        }
+
         requestedSize = size;
         this.handler = handler;
-        return true;
 
     }
 
@@ -877,6 +889,22 @@ public class InputBuffer {
             return read;
         }
         return -1;
+
+    }
+
+
+    /**
+     * @param size the amount of data that must be available for a {@link ReadHandler}
+     *  to be notified.
+     * @param available the amount of data currently available.
+     *
+     * @return <code>true</code> if the handler should be notified during a call
+     *  to {@link #notifyAvailable(ReadHandler)} or {@link #notifyAvailable(ReadHandler, int)},
+     *  otherwise <code>false</code>
+     */
+    private static boolean shouldNotifyNow(int size, int available) {
+
+        return size != 0 && available != 0 && available >= size;
 
     }
 

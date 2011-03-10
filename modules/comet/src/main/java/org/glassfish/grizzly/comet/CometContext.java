@@ -232,8 +232,8 @@ public class CometContext<E> {
             response.suspend(getExpirationDelay(), TimeUnit.MILLISECONDS, ccHandler, new CometTimeoutHandler(handler));
             // Register asynchronous read-event listener
             final NIOInputStream nioInputStream = response.getRequest().getInputStream(false);
-            if (!nioInputStream.notifyAvailable(new CometInputHandler(nioInputStream, handler)) &&
-                !nioInputStream.isFinished()) {
+            if (!nioInputStream.isFinished()) {
+                nioInputStream.notifyAvailable(new CometInputHandler(nioInputStream, handler));
                 notifyOnAsyncRead(handler);
             }
         } catch (IOException e) {

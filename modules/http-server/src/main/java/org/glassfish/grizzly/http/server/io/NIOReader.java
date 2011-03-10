@@ -155,33 +155,16 @@ public class NIOReader extends Reader implements NIOInputSource {
      * {@inheritDoc}
      */
     @Override
-    public boolean notifyAvailable(ReadHandler handler) {
-        return inputBuffer.notifyAvailable(handler);
+    public void notifyAvailable(ReadHandler handler) {
+        inputBuffer.notifyAvailable(handler);
     }
 
     /**
-     * <p>
-     * Notify the specified {@link ReadHandler} when the number of characters
-     * that can be read without blocking is greater or equal to the specified
-     * <code>size</code>.
-     * </p>
-     *
-     * <p>
-     * Note that unless this method is called with a different {@link ReadHandler}
-     * implementation, the same {@link ReadHandler} will be invoked each
-     * time data becomes available to read.
-     * </p>
-     *
-     * @param handler the {@link ReadHandler} to notify.
-     * @param size the least number of characters that must be available before
-     *  the {@link ReadHandler} is invoked.  If size is <code>0</code>, the
-     *  handler will be notified as soon as data is available no matter the
-     *  size.
-     *
+     * {@inheritDoc}
      */
     @Override
-    public boolean notifyAvailable(ReadHandler handler, int size) {
-        return inputBuffer.notifyAvailable(handler, size);
+    public void notifyAvailable(ReadHandler handler, int size) {
+        inputBuffer.notifyAvailable(handler, size);
     }
 
     /**
