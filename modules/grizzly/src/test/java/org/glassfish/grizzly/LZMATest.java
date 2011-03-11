@@ -87,7 +87,7 @@ public class LZMATest {
 
     @Test
     public void testLargeEcho() throws Exception {
-        final int len = 1024 * 60;
+        final int len = 1024 * 256;
         StringBuilder sb = new StringBuilder(len);
         String a = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
         int totalLen = a.length() - 1;

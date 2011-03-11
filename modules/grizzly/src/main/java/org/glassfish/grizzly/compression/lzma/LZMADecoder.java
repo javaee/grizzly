@@ -47,7 +47,6 @@ import org.glassfish.grizzly.TransformationException;
 import org.glassfish.grizzly.TransformationResult;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.compression.lzma.impl.Decoder;
-import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 import java.io.IOException;
@@ -84,19 +83,17 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
         Decoder.State decState = null;
         if (input.hasRemaining()) {
             decState = decodeBuffer(memoryManager, input, state);
-            decodedBuffer = state.getResult();
+            decodedBuffer = state.getDst();
         }
-
 
         final boolean hasRemainder = input.hasRemaining();
 
         if (decState == Decoder.State.NEED_MORE_DATA
-                || decodedBuffer == null
-                || !decodedBuffer.hasRemaining()) {
+                || decodedBuffer == null) {
             return TransformationResult.createIncompletedResult(hasRemainder ? input : null);
         }
 
-        return TransformationResult.createCompletedResult(decodedBuffer,
+        return TransformationResult.createCompletedResult(decodedBuffer.flip(),
                 hasRemainder ? input : null);
     }
 
@@ -134,33 +131,28 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
 
         state.setSrc(buffer);
 
-        Buffer resultBuffer = null;
-
-
-        Buffer decodedBuffer = memoryManager.allocate(512);
-        state.setDst(decodedBuffer);
         Decoder.State decState;
         try {
             decState = state.getDecoder().code(state, -1);
         } catch (IOException e) {
-            decodedBuffer.dispose();
+            disposeDstBuffer(state);
             throw new IllegalStateException(e);
         }
         if (decState == Decoder.State.ERR) {
+            disposeDstBuffer(state);
             throw new IllegalStateException("Invalid decoder state.");
         }
-        decodedBuffer = state.getDst();
 
-        if (decodedBuffer.position() > 0) {
-            decodedBuffer.trim();
-            resultBuffer = Buffers.appendBuffers(memoryManager,
-                    resultBuffer, decodedBuffer);
-        } else {
-            decodedBuffer.dispose();
-        }
-        state.setResult(resultBuffer);
         return decState;
 
+    }
+
+    private static void disposeDstBuffer(LZMAInputState state) {
+        final Buffer dstBuffer = state.getDst();
+        if (dstBuffer != null) {
+            dstBuffer.dispose();
+            state.setDst(null);
+        }
     }
 
 
@@ -174,7 +166,6 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
         private byte[] decoderConfigBits = new byte[5];
         private Buffer src;
         private Buffer dst;
-        private Buffer result;
         private MemoryManager mm;
 
         public int state;
@@ -250,14 +241,6 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
 
         public void setDst(Buffer dst) {
             this.dst = dst;
-        }
-
-        public Buffer getResult() {
-            return result;
-        }
-
-        public void setResult(Buffer result) {
-            this.result = result;
         }
 
         public MemoryManager getMemoryManager() {
