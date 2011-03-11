@@ -49,9 +49,9 @@ import org.glassfish.grizzly.http.util.DataChunk;
  * @author Alexey Stashok
  */
 public enum Protocol {
-    HTTP_0_9 ("HTTP/0.9"),
-    HTTP_1_0 ("HTTP/1.0"),
-    HTTP_1_1 ("HTTP/1.1");
+    HTTP_0_9 (0, 9),
+    HTTP_1_0 (1, 0),
+    HTTP_1_1 (1, 1);
 
     public static Protocol parseDataChunk(final DataChunk protocolC) {
         if (protocolC.isNull() || protocolC.getLength() == 0
@@ -67,15 +67,27 @@ public enum Protocol {
     }
 
     private final String protocolString;
+    private final int majorVersion;
+    private final int minorVersion;
     private byte[] protocolBytes;
 
-    Protocol(String protocolString) {
-        this.protocolString = protocolString;
+    Protocol(final int majorVersion, final int minorVersion) {
+        this.majorVersion = majorVersion;
+        this.minorVersion = minorVersion;
+        this.protocolString = "HTTP/" + majorVersion + '.' + minorVersion;
         try {
             protocolBytes = protocolString.getBytes("US-ASCII");
         } catch (UnsupportedEncodingException ignored) {
             protocolBytes = protocolString.getBytes();
         }
+    }
+
+    public int getMajorVersion() {
+        return majorVersion;
+    }
+
+    public int getMinorVersion() {
+        return minorVersion;
     }
 
     public String getProtocolString() {
@@ -85,4 +97,5 @@ public enum Protocol {
     public byte[] getProtocolBytes() {
         return protocolBytes;
     }
+
 }
