@@ -44,6 +44,7 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 import java.io.IOException;
+import org.glassfish.grizzly.compression.lzma.LZMADecoder;
 
 /**
  * OutWindow
@@ -52,6 +53,7 @@ import java.io.IOException;
  */
 public class OutWindow {
 
+    LZMADecoder.LZMAInputState _decoderState;
     byte[] _buffer;
     int _pos;
     int _windowSize = 0;
@@ -68,14 +70,16 @@ public class OutWindow {
         _streamPos = 0;
     }
 
-    public void setBuffer(Buffer dst, MemoryManager mm) throws IOException {
+    public void initFromState(LZMADecoder.LZMAInputState decoderState) throws IOException {
         releaseBuffer();
-        _dst = dst;
-        _mm = mm;
+        _decoderState = decoderState;
+        _dst = decoderState.getDst();
+        _mm = decoderState.getMemoryManager();
     }
 
     public void releaseBuffer() throws IOException {
         //Flush();
+        _decoderState = null;
         _dst = null;
         _mm = null;
     }
@@ -99,6 +103,7 @@ public class OutWindow {
         if (_pos >= _windowSize) {
             _pos = 0;
         }
+        _decoderState.setDst(_dst);
         _streamPos = _pos;
     }
 

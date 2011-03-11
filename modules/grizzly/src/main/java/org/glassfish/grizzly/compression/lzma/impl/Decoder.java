@@ -377,8 +377,8 @@ public class Decoder {
     public State code(LZMADecoder.LZMAInputState decoderState, long outSize) throws IOException {
 //        Init();
         final Buffer inputBuffer = decoderState.getSrc();
-        m_RangeDecoder.setBuffer(inputBuffer);
-        m_OutWindow.setBuffer(decoderState.getDst(), decoderState.getMemoryManager());
+        m_RangeDecoder.initFromState(decoderState);
+        m_OutWindow.initFromState(decoderState);
         if (!decoderState.isInitialized()) {
             if (inputBuffer.remaining() < 13) {
                 return State.NEED_MORE_DATA;
