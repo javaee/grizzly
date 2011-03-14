@@ -56,6 +56,7 @@ valid() {
 		 grep -vi .manifest | \
 		 grep -vi .mm | \
 		 grep -vi .ods | \
+		 grep -vi .svg | \
 		 grep -vi .png | \
 		 grep -vi .project | \
 		 grep -vi behaviour.js | \
