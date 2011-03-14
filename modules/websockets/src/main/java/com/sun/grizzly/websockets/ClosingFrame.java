@@ -68,7 +68,9 @@ public class ClosingFrame extends DataFrame {
 
     public void unwrap(byte[] bytes) {
         if (bytes.length > 0) {
-            code = (int) convert(Arrays.copyOfRange(bytes, 0, 2));
+            final byte[] temp = new byte[2];
+            System.arraycopy(bytes, 0, temp, 0, 2);
+            code = (int) convert(temp);
             if (bytes.length > 2) {
                 try {
                     reason = new String(bytes, 2, bytes.length - 2, "UTF-8");

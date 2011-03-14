@@ -183,7 +183,7 @@ public class ClientNetworkHandler implements NetworkHandler {
             while (!isHeaderParsed) {
                 line = new String(readLine(), "ASCII").trim();
 
-                if (line.isEmpty()) {
+                if (line.length() == 0) {
                     isHeaderParsed = true;
                 } else {
                     String[] parts = line.split(":");
