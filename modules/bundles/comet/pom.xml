@@ -65,7 +65,11 @@
                 <configuration>
                     <instructions>
                         <Import-Package>*</Import-Package>
-                        <Export-Package>com.sun.enterprise.web.connector.grizzly.*,com.sun.grizzly.*;-split-package:=merge-first,javax.servlet.*;-split-package:=merge-first</Export-Package>
+                        <Export-Package>
+                            com.sun.enterprise.web.connector.grizzly.*;version=${project.version},
+                            com.sun.grizzly.*;version=${project.version};-split-package:=merge-first,
+                            javax.servlet.*;version=${servlet-version};-split-package:=merge-first
+                        </Export-Package>
                         <Embed-Dependency>com.sun.grizzly.comet;scope=runtime</Embed-Dependency>
                         <Main-Class>com.sun.grizzly.standalone.comet.Comet</Main-Class>
                     </instructions>

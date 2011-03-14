@@ -65,7 +65,7 @@
                 <configuration>
                     <instructions>
                         <Import-Package>*</Import-Package>
-                        <Export-Package>com.sun.grizzly.*;-split-package:=merge-first</Export-Package>
+                        <Export-Package>com.sun.grizzly.*;version=${project.version};-split-package:=merge-first</Export-Package>
                         <Embed-Dependency>com.sun.grizzly;scope=runtime</Embed-Dependency>
                         <Main-Class>com.sun.grizzly.standalone.Main</Main-Class>
                     </instructions>
