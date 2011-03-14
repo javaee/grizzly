@@ -136,7 +136,14 @@ public class FrameTest {
     private void compare(final long length) {
         DataFrame frame = new DataFrame();
         byte[] bytes = frame.convert(length);
-        long value = bytes.length == 1 ? bytes[0] : frame.convert(Arrays.copyOfRange(bytes, 1, bytes.length));
+        long value;
+        if (bytes.length == 1) {
+            value = bytes[0];
+        } else {
+            final byte[] temp = new byte[bytes.length - 1];
+            System.arraycopy(bytes, 1, temp, 0, temp.length);
+            value = frame.convert(temp);
+        }
         Assert.assertEquals(value, length);
     }
 
