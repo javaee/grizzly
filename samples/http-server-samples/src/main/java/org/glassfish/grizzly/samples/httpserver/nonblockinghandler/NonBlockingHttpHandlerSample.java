@@ -326,9 +326,7 @@ public class NonBlockingHttpHandlerSample {
                 @Override
                 public void onDataAvailable() throws IOException {
                     System.out.println("[onDataAvailable] length: " + in.readyData());
-                    if (echoAvailableData(in, out, buf)) {
-                        in.notifyAvailable(this);
-                    }
+                    in.notifyAvailable(this);
                 }
 
                 @Override
@@ -359,15 +357,13 @@ public class NonBlockingHttpHandlerSample {
 
         }
 
-        private boolean echoAvailableData(NIOReader in, NIOWriter out, char[] buf)
+        private void echoAvailableData(NIOReader in, NIOWriter out, char[] buf)
                 throws IOException {
             
             while(in.isReady()) {
                 int len = in.read(buf);
                 out.write(buf, 0, len);
             }
-
-            return !in.isFinished();
         }
 
     } // END NonBlockingEchoHandler
