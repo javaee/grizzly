@@ -40,30 +40,53 @@
 
 package org.glassfish.grizzly.websockets;
 
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
-import org.glassfish.grizzly.http.HttpCodecFilter;
-import org.glassfish.grizzly.http.server.AddOn;
+import java.io.IOException;
+import java.util.logging.Logger;
+
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
 
-/**
- * WebSockets {@link AddOn} for the {@link HttpServer}.
- * 
- * @author Alexey Stashok
- */
-public class WebSocketAddOn implements AddOn {
+public class WebSocketServer {
+    private static final Logger logger = Grizzly.logger(WebSocketServer.class);
+    private static final Object SYNC = new Object();
+    private HttpServer httpServer;
+
+    public WebSocketServer(int port) {
+        WebSocketEngine.setWebSocketEnabled(true);
+        httpServer = HttpServer.createSimpleServer(".", port);
+        httpServer.getServerConfiguration().setHttpServerName("WebSocket Server");
+        httpServer.getServerConfiguration().setName("WebSocket Server");
+        for (NetworkListener networkListener : httpServer.getListeners()) {
+            networkListener.registerAddOn(new WebSocketAddOn());
+        }
+    }
 
     /**
-     * {@inheritDoc}
+     * @param port the network port to which this listener will bind.
+     *
+     * @return a <code>WebSocketServer</code> configured to listen to requests on {@link
+     *         NetworkListener#DEFAULT_NETWORK_HOST}:<code>port</code>, using the specified <code>path</code> as the
+     *         server's document root.
      */
-    @Override
-    public void setup(NetworkListener networkListener, FilterChainBuilder builder) {
-        // Get the index of HttpCodecFilter in the HttpServer filter chain
-        final int httpCodecFilterIdx = builder.indexOfType(HttpCodecFilter.class);
+    public static WebSocketServer createSimpleServer(int port) {
+        return new WebSocketServer(port);
+    }
 
-        if (httpCodecFilterIdx >= 0) {
-            // Insert the WebSocketFilter right after HttpCodecFilter
-            builder.add(httpCodecFilterIdx + 1, new WebSocketFilter());
+    public void start() throws IOException {
+        synchronized (SYNC) {
+            httpServer.start();
         }
+    }
+
+    public void stop() {
+        synchronized (SYNC) {
+            WebSocketEngine.getEngine().unregisterAll();
+            httpServer.stop();
+        }
+    }
+
+    public void register(String name, WebSocketApplication application) {
+        WebSocketEngine.getEngine().register(name, application);
     }
 }

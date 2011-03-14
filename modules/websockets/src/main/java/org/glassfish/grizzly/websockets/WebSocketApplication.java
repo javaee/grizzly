@@ -40,42 +40,20 @@
 
 package org.glassfish.grizzly.websockets;
 
-import java.io.IOException;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.http.HttpRequestPacket;
 
 /**
  * Abstract server-side {@link WebSocket} application, which will handle
  * application {@link WebSocket}s events.
  *
- * @see WebSocketHandler
- * @see WebSocketClientHandler
- *
  * @author Alexey Stashok
  */
-public abstract class WebSocketApplication<W extends WebSocket> implements WebSocketHandler<W> {
-    private final Map<W, Boolean> websockets = new ConcurrentHashMap<W, Boolean>();
-
-    /**
-     * Method is called, when new {@link WebSocket} gets accepted.
-     * Default implementation just register the passed {@link WebSocket} to a
-     * set of application associated {@link WebSocket}s.
-     * 
-     * @param websocket {@link WebSocket}
-     *
-     * @throws IOException
-     */
-    public void onAccept(W websocket) throws IOException {
-        add(websocket);
-    }
-
-    @Override
-    public void onClose(W websocket) throws IOException {
-        remove(websocket);
-    }
+public abstract class WebSocketApplication extends WebSocketAdapter {
+    private final ConcurrentHashMap<WebSocket, Boolean> sockets = new ConcurrentHashMap<WebSocket, Boolean>();
 
     /**
      * Returns a set of {@link WebSocket}s, registered with the application.
@@ -83,57 +61,58 @@ public abstract class WebSocketApplication<W extends WebSocket> implements WebSo
      *
      * @return a set of {@link WebSocket}s, registered with the application.
      */
-    protected Set<W> getWebSockets() {
-        return websockets.keySet();
+    protected Set<WebSocket> getWebSockets() {
+        return sockets.keySet();
     }
-    
-    /**
-     * Add the {@link WebSocket} to the <tt>WebSocketApplication</tt> websockets list.
-     *
-     * @param websocket {@link WebSocket} to add.
-     *
-     * @return <tt>true</tt>, if the {@link WebSocket} was successfully added, or
-     * <tt>false</tt> otherwise.
-     */
-    public boolean add(W websocket) {
-        websockets.put(websocket, Boolean.TRUE);
-        return true;
+
+    protected boolean add(WebSocket socket) {
+        return sockets.put(socket, Boolean.TRUE) == null;
     }
-    
-    /**
-     * Remove the {@link WebSocket} from the <tt>WebSocketApplication</tt> websockets list.
-     *
-     * @param socket {@link WebSocket} to remove.
-     *
-     * @return <tt>true</tt>, if the {@link WebSocket} was succeessfully removed, or
-     * <tt>false</tt> otherwise.
-     */
-    public boolean remove(W socket) {
-        return websockets.remove(socket) != null;
+
+    public boolean remove(WebSocket socket) {
+        return sockets.remove(socket) != null;
     }
-    
-    /**
-     * Method is called, when inital {@link WebSocket} handshake process was completed,
-     * but <tt>WebSocketApplication</tt> may perform additional validation.
-     *
-     * @param websocketMeta {@link ClientWebSocketMeta}.
-     * @throws HandshakeException error, occurred during the handshake.
-     */
-    protected void handshake(ClientWebSocketMeta websocketMeta) throws HandshakeException {
+
+    public WebSocket createSocket(Connection connection, WebSocketListener... listeners) {
+        return new BaseWebSocket(connection, listeners);
     }
 
     /**
-     * Method is called before the {@link WebSocketEngine} will create a server-side
-     * {@link WebSocket} object, so application may return any customized
-     * subtype of {@link WebSocket}.
-     * 
-     * @param connection underlying Grizzly {@link Connection}.
-     * @param meta server-side {@link ServerWebSocketMeta}.
+     * Method is called, when initial {@link WebSocket} handshake process was completed,
+     * but <tt>WebSocketApplication</tt> may perform additional validation such as subprotocol or extension negotiation.
      *
-     * @return customized {@link WebSocket}, or <tt>null</tt>, if application wants
-     * to delegate {@link WebSocket} creation to {@link WebSocketEngine}.
+     * @throws HandshakeException error occurred during the handshake.
      */
-    protected W createWebSocket(Connection connection, ServerWebSocketMeta meta) {
-        return null;
+    protected void handshake(ServerHandshake handshake) throws HandshakeException {
     }
+
+    @Override
+    public void onClose(WebSocket socket) {
+        remove(socket);
+        socket.close();
+    }
+
+    @Override
+    public void onConnect(WebSocket socket) {
+        add(socket);
+    }
+
+    /**
+     * Checks protocol specific information and queries #isApplicationRequest(Request) to see if the Request should
+     * be upgraded.
+     *
+     * @return true if the request should be upgraded to a WebSocket connection
+     */
+    public final boolean upgrade(HttpRequestPacket request) {
+        return "WebSocket".equalsIgnoreCase(request.getHeader("Upgrade")) && isApplicationRequest(request);
+    }
+
+    /**
+     * Checks application specific criteria to determine if this application can process the Request as a WebSocket
+     * connection.
+     *
+     * @param request
+     * @return true if this application can service this Request
+     */
+    public abstract boolean isApplicationRequest(HttpRequestPacket request);
 }

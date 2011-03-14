@@ -40,32 +40,30 @@
 
 package org.glassfish.grizzly.samples.websockets;
 
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.websockets.WebSocketBase;
-import org.glassfish.grizzly.websockets.WebSocketHandler;
-import org.glassfish.grizzly.websockets.WebSocketMeta;
-import org.glassfish.grizzly.websockets.frame.Frame;
-import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.websockets.BaseWebSocket;
+import org.glassfish.grizzly.websockets.WebSocket;
+import org.glassfish.grizzly.websockets.WebSocketException;
+import org.glassfish.grizzly.websockets.WebSocketListener;
+
 /**
- * Customize {@link org.glassfish.grizzly.websockets.WebSocket} implementation, which contains chat application
+ * Customize {@link WebSocket} implementation, which contains chat application
  * specific properties and logic.
- * 
+ *
  * @author Alexey Stashok
  * @author Justin Lee
  */
-public class ChatWebSocket extends WebSocketBase {
+public class ChatWebSocket extends BaseWebSocket {
     private static final Logger logger = Grizzly.logger(ChatWebSocket.class);
     
     // chat user name
     private volatile String user;
 
-    public ChatWebSocket(Connection connection, WebSocketMeta meta,
-            WebSocketHandler<ChatWebSocket> handler) {
-        super(connection, meta, handler);
+    public ChatWebSocket(WebSocketListener... listeners) {
+        super(listeners);
     }
 
     /**
@@ -93,13 +91,10 @@ public class ChatWebSocket extends WebSocketBase {
     public void sendJson(String user, String text) {
         try {
             final String msg = toJsonp(user, text);
-            send(Frame.createTextFrame(msg));
-        } catch (IOException e) {
+            send(msg);
+        } catch (WebSocketException e) {
             logger.log(Level.SEVERE, "Removing chat client: " + e.getMessage(), e);
-            try {
-                close();
-            } catch (IOException ee) {
-            }
+            close(PROTOCOL_ERROR, e.getMessage());
         }
     }
 

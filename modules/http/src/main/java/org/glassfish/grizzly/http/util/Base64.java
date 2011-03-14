@@ -58,9 +58,10 @@
 
 package org.glassfish.grizzly.http.util;
 
-import org.glassfish.grizzly.Grizzly;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import org.glassfish.grizzly.Grizzly;
 
 
 /**
@@ -177,10 +178,8 @@ public final class Base64 {
 
             encodedIndex = i*4;
             encodedData[encodedIndex]   = lookUpBase64Alphabet[ b1 >>2 ];
-            encodedData[encodedIndex+1] = lookUpBase64Alphabet[(b2 >>4 ) |
-( k<<4 )];
-            encodedData[encodedIndex+2] = lookUpBase64Alphabet[ (l <<2 ) |
-( b3>>6)];
+            encodedData[encodedIndex+1] = lookUpBase64Alphabet[(b2 >>4 ) | ( k<<4 )];
+            encodedData[encodedIndex+2] = lookUpBase64Alphabet[ (l <<2 ) | ( b3>>6)];
             encodedData[encodedIndex+3] = lookUpBase64Alphabet[ b3 & 0x3f ];
         }
 
@@ -201,8 +200,7 @@ public final class Base64 {
             l = ( byte ) ( b2 &0x0f );
             k = ( byte ) ( b1 &0x03 );
             encodedData[encodedIndex]     = lookUpBase64Alphabet[ b1 >>2 ];
-            encodedData[encodedIndex + 1] = lookUpBase64Alphabet[ (b2 >>4 )
-| ( k<<4 )];
+            encodedData[encodedIndex + 1] = lookUpBase64Alphabet[ (b2 >>4 ) | ( k<<4 )];
             encodedData[encodedIndex + 2] = lookUpBase64Alphabet[ l<<2 ];
             encodedData[encodedIndex + 3] = PAD;
         }
@@ -241,8 +239,7 @@ public final class Base64 {
                 b4 = base64Alphabet[ marker1 ];
 
                 decodedData[encodedIndex]   = (byte)(  b1 <<2 | b2>>4 ) ;
-                decodedData[encodedIndex+1] = (byte)(((b2 & 0xf)<<4 ) |(
-(b3>>2) & 0xf) );
+                decodedData[encodedIndex+1] = (byte)(((b2 & 0xf)<<4 ) |( (b3>>2) & 0xf) );
                 decodedData[encodedIndex+2] = (byte)( b3<<6 | b4 );
             } else if ( marker0 == PAD ) {               //Two PAD e.g. 3c[Pad][Pad]
                 decodedData[encodedIndex]   = (byte)(  b1 <<2 | b2>>4 ) ;
@@ -252,8 +249,7 @@ public final class Base64 {
                 b3 = base64Alphabet[ marker0 ];
 
                 decodedData[encodedIndex]   = (byte)(  b1 <<2 | b2>>4 );
-                decodedData[encodedIndex+1] = (byte)(((b2 & 0xf)<<4 ) |(
-(b3>>2) & 0xf) );
+                decodedData[encodedIndex+1] = (byte)(((b2 & 0xf)<<4 ) |( (b3>>2) & 0xf) );
                 decodedData[encodedIndex+2] = (byte)( b3<<6);
             }
             encodedIndex += 3;

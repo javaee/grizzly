@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,32 +40,61 @@
 
 package org.glassfish.grizzly.websockets;
 
-import org.glassfish.grizzly.websockets.frame.Frame;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
-/**
- * Base {@link WebSocket} events handler.
- *
- * @see WebSocketClientHandler
- * @see WebSocketApplication
- * 
- * @author Alexey Stashok
- */
-public interface WebSocketHandler<W extends WebSocket> {
-    /**
-     * Method is called, when {@link WebSocket} gets closed.
-     *
-     * @param websocket {@link WebSocket}
-     * @throws IOException
-     */
-    public void onClose(W websocket) throws IOException;
+import org.glassfish.grizzly.GrizzlyFuture;
 
-    /**
-     * Method is called, when {@link WebSocket} receives a {@link Frame}.
-     * @param websocket {@link WebSocket}
-     * @param frame {@link Frame}
-     * 
-     * @throws IOException
-     */
-    public void onMessage(W websocket, Frame frame) throws IOException;
+public class TrackingWebSocket extends ClientWebSocket {
+    private final Map<String, Object> sent = new ConcurrentHashMap<String, Object>();
+    private final CountDownLatch received;
+    private String name;
+
+    public TrackingWebSocket(String address, int count, WebSocketListener... listeners)
+        throws IOException, URISyntaxException {
+        super(address, listeners);
+        received = new CountDownLatch(count);
+    }
+
+    public TrackingWebSocket(String address, String name, int count, WebSocketListener... listeners)
+        throws IOException, URISyntaxException {
+        super(address, listeners);
+        this.name = name;
+        received = new CountDownLatch(count);
+    }
+
+    @Override
+    public GrizzlyFuture<DataFrame> send(String data) {
+        sent.put(data, Boolean.FALSE);
+        return super.send(data);
+    }
+
+    @Override
+    public void onMessage(String message) {
+        super.onMessage(message);
+        if(sent.remove(message) != null) {
+            received.countDown();
+        }
+    }
+
+    @Override
+    public void onConnect() {
+        super.onConnect();
+    }
+
+    public boolean waitOnMessages() throws InterruptedException {
+        return received.await(WebSocketEngine.DEFAULT_TIMEOUT*10, TimeUnit.SECONDS);
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public CountDownLatch getReceived() {
+        return received;
+    }
 }

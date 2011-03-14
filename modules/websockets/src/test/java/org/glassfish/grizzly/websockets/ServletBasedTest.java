@@ -37,42 +37,50 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.websockets;
 
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.impl.FutureImpl;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
-/**
- * {@link WebSocket} connect {@link CompletionHandler}.
- * Gets notified about client-side {@link WebSocket} connect and handshake completion events.
- * 
- * @author Alexey Stashok
- */
-class WebSocketConnectHandler implements CompletionHandler<Connection> {
+import org.glassfish.grizzly.http.server.HttpServer;
+import org.glassfish.grizzly.http.server.NetworkListener;
+import org.junit.Assert;
+import org.junit.Test;
 
-    private final FutureImpl<WebSocket> future;
-
-    public WebSocketConnectHandler(FutureImpl<WebSocket> future) {
-        this.future = future;
-    }
-
-    @Override
-    public void completed(Connection result) {
-    }
-
-    @Override
-    public void cancelled() {
-        future.cancel(false);
-    }
-
-    @Override
-    public void failed(Throwable throwable) {
-        future.failure(throwable);
-    }
-
-    @Override
-    public void updated(Connection result) {
+public class ServletBasedTest {
+    /**
+     * This tests the up front registration of applications from places such as Servlet.init().  This is likely the
+     * common case
+     */
+    @Test
+    public void declarative() throws IOException, InstantiationException, InterruptedException, URISyntaxException {
+        final CountDownLatch latch = new CountDownLatch(1);
+        final EchoWebSocketApplication app = new EchoWebSocketApplication();
+        WebSocketEngine.getEngine().register(app);
+        WebSocketEngine.setWebSocketEnabled(true);
+        HttpServer httpServer = HttpServer.createSimpleServer(".", WebSocketsTest.PORT);
+        httpServer.getServerConfiguration().setHttpServerName("WebSocket Server");
+        httpServer.getServerConfiguration().setName("WebSocket Server");
+        for (NetworkListener networkListener : httpServer.getListeners()) {
+            networkListener.registerAddOn(new WebSocketAddOn());
+        }
+        httpServer.start();
+        
+        try {
+            ClientWebSocket socket = new ClientWebSocket(String.format("ws://localhost:%s/echo", WebSocketsTest.PORT),
+                new WebSocketAdapter() {
+                    public void onMessage(WebSocket socket, String frame) {
+                        latch.countDown();
+                    }
+                });
+            socket.connect();
+            socket.send("echo me back");
+            Assert.assertTrue(latch.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS));
+        } finally {
+            WebSocketEngine.getEngine().unregister(app);
+            httpServer.stop();
+        }
     }
 }

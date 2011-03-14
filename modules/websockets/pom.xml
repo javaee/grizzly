@@ -110,5 +110,10 @@
             <version>2.5</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>org.glassfish.grizzly</groupId>
+            <artifactId>grizzly-http-servlet</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 </project>

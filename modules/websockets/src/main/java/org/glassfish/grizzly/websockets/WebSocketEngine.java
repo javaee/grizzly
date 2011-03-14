@@ -37,308 +37,207 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.websockets;
 
+import java.io.IOException;
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Connection.CloseListener;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
-import java.net.URI;
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Logger;
-import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.localization.LogMessages;
+import org.glassfish.grizzly.utils.Utils;
 
 /**
- * WebSockets engine implementation (singlton), which handles {@link WebSocketApplication}s
- * registration, responsible for client and server handshake validation.
- * 
- * @see WebSocket
- * @see WebSocketApplication
+ * WebSockets engine implementation (singleton), which handles {@link WebSocketApplication}s registration, responsible
+ * for client and server handshake validation.
  *
  * @author Alexey Stashok.
+ * @see WebSocket
+ * @see WebSocketApplication
  */
 public class WebSocketEngine {
-
-    // Grizzly Connection "websocket" attribute.
-    private final Attribute<WebSocketHolder> webSocketAttr =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("web-socket");
-    
-    private static final Logger logger = Grizzly.logger(WebSocketEngine.class);
-    
-    // WebSocketEngine singleton instance
+    public static final String SEC_WS_ACCEPT = "Sec-WebSocket-Accept";
+    public static final String SEC_WS_KEY_HEADER = "Sec-WebSocket-Key";
+    public static final String SEC_WS_ORIGIN_HEADER = "Sec-WebSocket-Origin";
+    public static final String SEC_WS_PROTOCOL_HEADER = "Sec-WebSocket-Protocol";
+    public static final String SEC_WS_EXTENSIONS_HEADER = "Sec-WebSocket-Extensions";
+    public static final String SEC_WS_VERSION = "Sec-WebSocket-Version";
+    public static final String WEBSOCKET = "websocket";
+    public static final String RESPONSE_CODE_MESSAGE = "Switching Protocols";
+    public static final int RESPONSE_CODE_VALUE = 101;
+    public static final String UPGRADE = "upgrade";
+    public static final String CONNECTION = "connection";
+    public static final int WS_VERSION = 6;
+    public static final int INITIAL_BUFFER_SIZE = 8192;
+    public static final int DEFAULT_TIMEOUT;
     private static final WebSocketEngine engine = new WebSocketEngine();
+    private static volatile boolean isWebSocketEnabled = true;
+    static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
+    public static final String SERVER_KEY_HASH = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+    public static final int MASK_SIZE = 4;
+    static final SecureRandom random = new SecureRandom();
+    private final List<WebSocketApplication> applications = new ArrayList<WebSocketApplication>();
+    private final Attribute<WebSocketHolder> webSocketAttribute =
+        Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("web-socket");
 
-    // WebSocketApplications map <app-name, WebSocketApplication>
-    private final Map<String, WebSocketApplication> applications =
-            new ConcurrentHashMap<String, WebSocketApplication>();
+    static {
+        if (Utils.isDebugVM()) {
+            DEFAULT_TIMEOUT = 900;
+        } else {
+            DEFAULT_TIMEOUT = 30;
+        }
+    }
+
+    private WebSocketEngine() {
+    }
 
     /**
-     * Get <tt>WebSocketEngine</tt> instance (singleton).
-     *
-     * @return <tt>WebSocketEngine</tt> instance (singleton).
+     * @return true is WebSockets are enabled.
      */
+    public static boolean isWebSocketEnabled() {
+        return isWebSocketEnabled;
+    }
+
+    public static void setWebSocketEnabled(boolean webSocketEnabled) {
+        isWebSocketEnabled = webSocketEnabled;
+    }
+
     public static WebSocketEngine getEngine() {
         return engine;
     }
 
-    /**
-     * Get the {@link WebSocketApplication}, associated with the passed name.
-     * Name is usually taken as URL's path.
-     *
-     * @param name the {@link WebSocketApplication} name, usually represented by URL's path.
-     * @return {@link WebSocketApplication}.
-     */
-    public WebSocketApplication lookupApplication(String name) {
-        return applications.get(name);
+    public static byte[] generateMask() {
+        byte[] maskBytes = new byte[MASK_SIZE];
+        synchronized (random) {
+            random.nextBytes(maskBytes);
+        }
+        return maskBytes;
     }
 
-    /**
-     * Register the {@link WebSocketApplication} and associate it with the given name.
-     * Name is usually taken as URL's path.
-     *
-     * @param name {@link WebSocketApplication} name (usually taken as URL's path).
-     * @param app {@link WebSocketApplication}
-     */
-    public void registerApplication(String name, WebSocketApplication app) {
-        applications.put(name, app);
+    public WebSocketApplication getApplication(HttpRequestPacket request) {
+        for (WebSocketApplication application : applications) {
+            if (application.upgrade(request)) {
+                return application;
+            }
+        }
+        return null;
     }
 
+    public boolean upgrade(FilterChainContext ctx, HttpRequestPacket request) {
+        try {
+            final WebSocketApplication app = WebSocketEngine.getEngine().getApplication(request);
+            WebSocket socket = null;
+            try {
+                if (app != null) {
+                    final Connection connection = ctx.getConnection();
+                    socket = app.createSocket(connection, app);
+                    final WebSocketHolder holder = new WebSocketHolder(true, socket);
+                    webSocketAttribute.set(connection, holder);
+                    ctx.write(new ServerHandshake(request).respond(request));
+
+                    request.getConnection().addCloseListener(new CloseListener() {
+                        @Override
+                        public void onClosed(Connection connection) {
+                            final WebSocket webSocket = getWebSocket(connection);
+                            webSocket.close();
+                            webSocket.onClose(new ClosingFrame(WebSocket.END_POINT_GOING_DOWN,
+                                "Close detected on connection"));
+                        }
+                    });
+                    socket.onConnect();
+                    return true;
+                }
+            } catch (HandshakeException e) {
+                logger.log(Level.SEVERE, e.getMessage(), e);
+                if(socket != null) {
+                    socket.close();
+                }
+            }
+        } catch (IOException e) {
+            return false;
+        }
+        return false;
+    }
+
+    public void register(String name, WebSocketApplication app) {
+        register(app);
+    }
+
+    public void register(WebSocketApplication app) {
+        if (!isWebSocketEnabled()) {
+            throw new IllegalStateException(LogMessages.SEVERE_GRIZZLY_WS_NOT_ENABLED());
+        }
+        applications.add(app);
+    }
+
+    public void unregister(WebSocketApplication app) {
+        applications.remove(app);
+    }
+
+    public void unregisterAll() {
+        applications.clear();
+    }
     /**
-     * Returns <tt>true</tt> if passed Grizzly {@link Connection} is associated with a {@link WebSocket},
-     * or <tt>false</tt> otherwise.
-     * 
+     * Returns <tt>true</tt> if passed Grizzly {@link Connection} is associated with a {@link WebSocket}, or
+     * <tt>false</tt> otherwise.
+     *
      * @param connection Grizzly {@link Connection}.
-     * @return <tt>true</tt> if passed Grizzly {@link Connection} is associated with a {@link WebSocket},
-     * or <tt>false</tt> otherwise.
+     *
+     * @return <tt>true</tt> if passed Grizzly {@link Connection} is associated with a {@link WebSocket}, or
+     *         <tt>false</tt> otherwise.
      */
     boolean isWebSocket(Connection connection) {
-        return webSocketAttr.get(connection) != null;
+        return webSocketAttribute.get(connection) != null;
     }
 
     /**
-     * Get the {@link WebSocket} associated with the Grizzly {@link Connection},
-     * or <tt>null</tt>, if there none is associated.
-     * 
-     * @param connection Grizzly {@link Connection}.
-     * @return the {@link WebSocket} associated with the Grizzly {@link Connection},
-     * or <tt>null</tt>, if there none is associated.
-     */
-    WebSocket getWebSocket(final Connection connection) {
-        final WebSocketHolder holder = webSocketAttr.get(connection);
-        return holder != null ? holder.websocket : null;
-    }
-
-    /**
-     * Get the {@link WebSocketHolder} associated with the Grizzly {@link Connection},
-     * or <tt>null</tt>, if there none is associated.
+     * Get the {@link WebSocket} associated with the Grizzly {@link Connection}, or <tt>null</tt>, if there none is
+     * associated.
      *
      * @param connection Grizzly {@link Connection}.
-     * @return the {@link WebSocketHolder} associated with the Grizzly {@link Connection},
-     * or <tt>null</tt>, if there none is associated.
+     *
+     * @return the {@link WebSocket} associated with the Grizzly {@link Connection}, or <tt>null</tt>, if there none is
+     *         associated.
      */
-    WebSocketHolder getWebSocketHolder(final Connection connection) {
-        return webSocketAttr.get(connection);
-    }
-
-    /**
-     * Get the {@link WebSocketMeta} associated with the Grizzly {@link Connection},
-     * or <tt>null</tt>, if there none is associated.
-     *
-     * @param connection Grizzly {@link Connection}.
-     * @return the {@link WebSocketMeta} associated with the Grizzly {@link Connection},
-     * or <tt>null</tt>, if there none is associated.
-     */
-    WebSocketMeta getWebSocketMeta(Connection connection) {
-        final WebSocketHolder holder = webSocketAttr.get(connection);
-        final WebSocket ws = holder.websocket;
-        final Object context = holder.context;
-
-        if (ws != null) {
-            return ws.getMeta();
-        } else if (context != null) {
-            return (WebSocketMeta) ((Object[]) context)[0];
-        }
-
-        return null;
-    }
-
-    /**
-     * Remove client-side {@link WebSocketConnectHandler}, associated with the
-     * passed Grizzly {@link Connection}.
-     *
-     * @param connection Grizzly {@link Connection}.
-     * @return removed associated {@link WebSocketConnectHandler}.
-     */
-    WebSocketConnectHandler removeWebSocketConnectHandler(Connection connection) {
-        final WebSocketHolder holder = webSocketAttr.get(connection);
-        final Object context = holder.context;
-
-        if (context != null) {
-            final Object value = ((Object[]) context)[2];
-            ((Object[]) context)[2] = null;
-            return (WebSocketConnectHandler) value;
-        }
-
-        return null;
-    }
-
-    /**
-     * Associate client-side {@link WebSocket} connect context with the Grizzly
-     * {@link Connection}.
-     *
-     * @param connection Grizzly {@link Connection} to associate the context with.
-     * @param meta {@link ClientWebSocketMeta}.
-     * @param handler {@link WebSocketClientHandler}.
-     * @param future {@link FutureImpl}.
-     */
-    void setClientConnectContext(Connection connection,
-            ClientWebSocketMeta meta, WebSocketClientHandler handler,
-            FutureImpl<WebSocket> future) {
-
-        webSocketAttr.set(connection, new WebSocketHolder(null,
-                new Object[] {meta, handler, future}));
-    }
-
-    /**
-     * Process and validate server-side handshake.
-     * 
-     * @param connection Grizzly {@link Connection}.
-     * @param clientMeta client-side meta data {@link ClientWebSocketMeta}.
-     *
-     * @return {@link WebSocket}, if validation passed fine, or exception
-     * will be thrown otherwise.
-     * 
-     * @throws HandshakeException
-     */
-    @SuppressWarnings("unchecked")
-    WebSocket handleServerHandshake(
-            final Connection connection, final ClientWebSocketMeta clientMeta)
-            throws HandshakeException {
-        
-        final WebSocketApplication app =
-                lookupApplication(clientMeta.getURI().getPath());
-        if (app == null) {
-            throw new HandshakeException(404, "Application was not found");
-        }
-
-        final byte[] serverKey = generateServerKey(clientMeta);
-        app.handshake(clientMeta);
-        final ServerWebSocketMeta serverMeta = new ServerWebSocketMeta(
-                clientMeta.getURI(), clientMeta.getOrigin(),
-                composeServerMetaLocation(clientMeta),
-                clientMeta.getProtocol(), serverKey,  clientMeta.isSecure());
-
-
-        WebSocket websocket = app.createWebSocket(connection, serverMeta);
-        if (websocket == null) {
-            websocket = new WebSocketBase(connection, serverMeta, app);
-        }
-
-        webSocketAttr.set(connection, new WebSocketHolder(websocket, null));
-
-        return websocket;
-    }
-
-    /**
-     * Process and validate client-side handshake.
-     *
-     * @param connection Grizzly {@link Connection}.
-     * @param serverMeta server-side meta data {@link ServerWebSocketMeta}.
-     *
-     * @return {@link WebSocket}, if validation passed fine, or exception
-     * will be thrown otherwise.
-     *
-     * @throws HandshakeException
-     */
-    @SuppressWarnings("unchecked")
-    WebSocket handleClientHandshake(Connection connection,
-            ServerWebSocketMeta serverMeta) throws HandshakeException {
-
+    WebSocket getWebSocket(Connection connection) {
         final WebSocketHolder holder = getWebSocketHolder(connection);
-        final Object[] context = (Object[]) holder.context;
-        final ClientWebSocketMeta meta = (ClientWebSocketMeta) context[0];
-        final WebSocketClientHandler handler = (WebSocketClientHandler) context[1];
-        final FutureImpl<WebSocket> future = (FutureImpl<WebSocket>) context[2];
+        return holder == null ? null : holder.webSocket;
+    }
+
+    WebSocketHolder getWebSocketHolder(final Connection connection) {
+        return webSocketAttribute.get(connection);
+    }
+
+    WebSocketHolder setWebSocketHolder(final Connection connection, WebSocket socket) {
+        final WebSocketHolder holder = new WebSocketHolder(false, socket);
+        holder.webSocket = socket;
+        webSocketAttribute.set(connection, holder);
         
-        try {
-            final byte[] patternServerKey =
-                    generateServerKey(meta);
-            final byte[] serverKey = serverMeta.getKey();
-
-            if (!Arrays.equals(patternServerKey, serverKey)) {
-                throw new HandshakeException("Keys do not match");
-            }
-
-            WebSocket websocket = handler.createWebSocket(connection, meta);
-            if (websocket == null) {
-                websocket = new WebSocketBase(connection, meta, handler);
-            }
-            
-            handler.handshake(websocket, serverMeta);
-
-            holder.websocket = websocket;
-            holder.context = null;
-
-            future.result(websocket);
-            
-            return websocket;
-        } catch (HandshakeException e) {
-            future.failure(e);
-            throw e;
-        } catch (Exception e) {
-            future.failure(e);
-            throw new HandshakeException(e.getClass().getName() + ": " + e.getMessage());
-        }
-    }
-
-    /**
-     * Generate server-side security key, which gets passed to the client during
-     * the handshake phase as part of message payload.
-     *
-     * @param clientMeta client's meta data.
-     * @return server key.
-     *
-     * @throws HandshakeException
-     */
-    private static byte[] generateServerKey(ClientWebSocketMeta clientMeta)
-            throws HandshakeException {
-        try {
-            return SecKey.generateServerKey(clientMeta.getKey1(),
-                    clientMeta.getKey2(), clientMeta.getKey3());
-            
-        } catch (NoSuchAlgorithmException e) {
-            throw new HandshakeException(500, "Can not digest using MD5");
-        }
-    }
-
-    private static String composeServerMetaLocation(ClientWebSocketMeta clientMeta) {
-        final StringBuilder sb = new StringBuilder(128);
-        final URI uri = clientMeta.getURI();
-        if (uri.getScheme() != null) {
-            sb.append(uri.getScheme()).append("://");
-        } else {
-            sb.append(clientMeta.isSecure() ? "wss://" : "ws://");
-        }
-
-        sb.append(clientMeta.getHost());
-        sb.append(uri.getPath());
-
-        return sb.toString();
+        return holder;
     }
 
     /**
      * WebSocketHolder object, which gets associated with the Grizzly {@link Connection}.
      */
-    private static class WebSocketHolder {
-        public volatile WebSocket websocket;
-        public volatile Object context;
+    public static class WebSocketHolder {
+        public volatile WebSocket webSocket;
+        public volatile ClientHandshake handshake;
+        public volatile DataFrame frame;
+        public volatile boolean unmaskOnRead;
+        public volatile Buffer buffer;
 
-        public WebSocketHolder(WebSocket webSocket, Object context) {
-            this.websocket = webSocket;
-            this.context = context;
+        public WebSocketHolder(final boolean unmaskOnRead, final WebSocket socket) {
+            this.unmaskOnRead = unmaskOnRead;
+            webSocket = socket;
         }
     }
 }

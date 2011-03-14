@@ -40,30 +40,62 @@
 
 package org.glassfish.grizzly.websockets;
 
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
-import org.glassfish.grizzly.http.HttpCodecFilter;
-import org.glassfish.grizzly.http.server.AddOn;
-import org.glassfish.grizzly.http.server.HttpServer;
-import org.glassfish.grizzly.http.server.NetworkListener;
+import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
 
-/**
- * WebSockets {@link AddOn} for the {@link HttpServer}.
- * 
- * @author Alexey Stashok
- */
-public class WebSocketAddOn implements AddOn {
+public class ClosingFrame extends DataFrame {
+    public static final byte[] EMPTY_BYTES = new byte[0];
+    private int code;
+    private String reason;
 
-    /**
-     * {@inheritDoc}
-     */
+    public ClosingFrame() {
+        code = WebSocket.NORMAL_CLOSURE;
+        setType(FrameType.CLOSING);
+    }
+
+    public ClosingFrame(int code, String reason) {
+        this.code = code;
+        this.reason = reason;
+        setType(FrameType.CLOSING);
+    }
+
+    public int getCode() {
+        return code;
+    }
+
+    public String getReason() {
+        return reason;
+    }
+
+    public void unwrap(byte[] bytes) {
+        if (bytes.length > 0) {
+            code = (int) convert(Arrays.copyOfRange(bytes, 0, 2));
+            if (bytes.length > 2) {
+                try {
+                    reason = new String(bytes, 2, bytes.length - 2, "UTF-8");
+                } catch (UnsupportedEncodingException e) {
+                    throw new FramingException(e.getMessage(), e);
+                }
+            }
+        }
+    }
+
     @Override
-    public void setup(NetworkListener networkListener, FilterChainBuilder builder) {
-        // Get the index of HttpCodecFilter in the HttpServer filter chain
-        final int httpCodecFilterIdx = builder.indexOfType(HttpCodecFilter.class);
+    public byte[] getBinaryPayload() {
+        try {
+            if (code == -1) {
+                return EMPTY_BYTES;
+            }
 
-        if (httpCodecFilterIdx >= 0) {
-            // Insert the WebSocketFilter right after HttpCodecFilter
-            builder.add(httpCodecFilterIdx + 1, new WebSocketFilter());
+            final byte[] bytes = toArray(code);
+            final byte[] reasonBytes = reason == null ? EMPTY_BYTES : reason.getBytes("UTF-8");
+            final byte[] frameBytes = new byte[2 + reasonBytes.length];
+            System.arraycopy(bytes, bytes.length - 2, frameBytes, 0, 2);
+            System.arraycopy(reasonBytes, 0, frameBytes, 2, reasonBytes.length);
+
+            return frameBytes;
+        } catch (UnsupportedEncodingException e) {
+            throw new FramingException(e.getMessage(), e);
         }
     }
 }

@@ -39,73 +39,67 @@
  */
 package org.glassfish.grizzly.websockets;
 
-import org.glassfish.grizzly.GrizzlyFuture;
+import java.io.UnsupportedEncodingException;
 
-/**
- * General WebSocket unit interface.
- *
- * @author Alexey Stashok
- */
-public interface WebSocket {
-    /**
-     * Indicates a normal closure, meaning whatever purpose the connection was established for has been fulfilled.
-     */
-    int NORMAL_CLOSURE = 1000;
-    /**
-     * Indicates that an endpoint is "going away", such as a server going down, or a browser having navigated away from
-     * a page.
-     */
-    int END_POINT_GOING_DOWN = 1001;
-    /**
-     * Indicates that an endpoint is terminating the connection due to a protocol error.
-     */
-    int PROTOCOL_ERROR = 1002;
-    /**
-     * Indicates that an endpoint is terminating the connection because it has received a type of data it cannot accept
-     * (e.g. an endpoint that understands only text data may send this if it receives a binary message.)
-     */
-    int INVALID_DATA = 1003;
-    /**
-     * indicates that an endpoint is terminating the connection because it has received a message that is too large.
-     */
-    int MESSAGE_TOO_LARGE = 1004;
+public enum FrameType {
+    CONTINUATION,
+    CLOSING {
+        @Override
+        public void respond(WebSocket socket, DataFrame frame) {
+            socket.onClose(frame);
+        }
+    },
+    PING {
+        @Override
+        public void respond(WebSocket socket, DataFrame frame) {
+            socket.onPing(frame);
+        }
+    },
+    PONG,
+    TEXT {
+        @Override
+        public void unframe(DataFrame frame, byte[] data) {
+            try {
+                frame.setPayload(new String(data, "UTF-8"));
+            } catch (UnsupportedEncodingException e) {
+                throw new FramingException(e.getMessage(), e);
+            }
+        }
 
-    /**
-     * Send a text frame
-     *
-     * @return {@link GrizzlyFuture}, which could be used to control the sending completion state.
-     */
-    GrizzlyFuture<DataFrame> send(String data);
+        @Override
+        public byte[] frame(DataFrame dataFrame) {
+            try {
+                return dataFrame.getTextPayload().getBytes("UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                throw new FramingException(e.getMessage(), e);
+            }
+        }
 
-    /**
-     * Send a text frame
-     *
-     * @return {@link GrizzlyFuture}, which could be used to control the sending completion state.
-     */
-    GrizzlyFuture<DataFrame> send(byte[] data);
+        @Override
+        public void respond(WebSocket socket, DataFrame frame) {
+            socket.onMessage(frame.getTextPayload());
+        }
+    },
+    BINARY;
 
-    /**
-     * Close the <tt>WebSocket</tt>.
-     */
-    void close();
+    public void unframe(DataFrame frame, byte[] data) {
+        frame.setPayload(data);
+        frame.setType(this);
+    }
 
-    void close(int code);
+    public byte[] frame(DataFrame dataFrame) {
+        return dataFrame.getBinaryPayload();
+    }
 
-    void close(int code, String reason);
+    public void respond(WebSocket socket, DataFrame frame) {
+        socket.onMessage(frame.getBinaryPayload());
+    }
 
-    boolean isConnected();
+    public final byte setOpcode(byte b) {
+        return (byte) (b | ordinal());
+    }
 
-    void onConnect();
-
-    void onMessage(String text);
-
-    void onMessage(byte[] bytes);
-
-    void onClose(DataFrame frame);
-
-    void onPing(DataFrame frame);
-
-    boolean add(WebSocketListener listener);
-
-    boolean remove(WebSocketListener listener);
+    public static FrameType valueOf(byte opcodes) {
+        return values()[(opcodes & 0xF)];
+    }
 }

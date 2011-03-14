@@ -574,6 +574,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
             try {
                 closeListener.onClosed(this);
             } catch (IOException ignored) {
+                ignored.printStackTrace();
             }
         }
     }

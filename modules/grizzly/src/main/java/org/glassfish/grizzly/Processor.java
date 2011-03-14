@@ -56,7 +56,7 @@ public interface Processor<E extends Context> {
      * @return {@link Context}, or <tt>null</tt>, if default {@link Context}
      *         could be used.
      */
-    public E obtainContext(Connection connection);
+    E obtainContext(Connection connection);
 
     /**
      * Method will be called by framework to process some event, which
@@ -64,16 +64,16 @@ public interface Processor<E extends Context> {
      * 
      * @param context processing context
      * @return the result of I/O event processing
-     * @throws java.io.IOException
+     * @throws IOException
      */
-    public ProcessorResult process(E context) throws IOException;
+    ProcessorResult process(E context) throws IOException;
 
-    public GrizzlyFuture<ReadResult> read(Connection connection,
-            CompletionHandler<ReadResult> completionHandler) throws IOException;
+    GrizzlyFuture<ReadResult> read(Connection connection,
+        CompletionHandler<ReadResult> completionHandler) throws IOException;
 
-    public  GrizzlyFuture<WriteResult> write(Connection connection,
-            Object dstAddress, Object message,
-            CompletionHandler<WriteResult> completionHandler) throws IOException;
+    GrizzlyFuture<WriteResult> write(Connection connection,
+        Object dstAddress, Object message,
+        CompletionHandler<WriteResult> completionHandler) throws IOException;
     
     /**
      * Is this {@link Processor} interested in processing the i/o event
@@ -82,7 +82,7 @@ public interface Processor<E extends Context> {
      * @return true, if this {@link Processor} is interested and execution
      * process will start, false otherwise.
      */
-    public boolean isInterested(IOEvent ioEvent);
+    boolean isInterested(IOEvent ioEvent);
 
     /**
      * Set the the i/o event, this {@link Processor} is interested in
@@ -91,5 +91,5 @@ public interface Processor<E extends Context> {
      * @param isInterested true, if {@link Processor} is interested in
      *                     processing of the I/O event, or false otherwise.
      */
-    public void setInterested(IOEvent ioEvent, boolean isInterested);
+    void setInterested(IOEvent ioEvent, boolean isInterested);
 }

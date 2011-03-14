@@ -37,41 +37,80 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.samples.websockets;
 
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.websockets.WebSocket;
-import org.glassfish.grizzly.websockets.WebSocketConnectorHandler;
-import org.glassfish.grizzly.websockets.frame.Frame;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.glassfish.grizzly.websockets.ClientWebSocket;
+import org.glassfish.grizzly.websockets.DataFrame;
+import org.glassfish.grizzly.websockets.WebSocket;
 
 /**
- * Standalone Java web-socket chat client implementation.
- * 
+ * Chat websocket client handler. This {@link ChatClient} customizes default {@link WebSocket} with {@link
+ * ChatWebSocket}, which includes some chat specific properties and logic.
+ *
  * @author Alexey Stashok
  */
-public class ChatWebSocketClient {
+public class ChatClient extends ClientWebSocket {
+    // regexp pattern to extract user name and message
+    private static final Pattern PATTERN = Pattern.compile(
+        "window.parent.app.update\\(\\{ name: \"(.*)\", message: \"(.*)\" \\}\\);");
+    // chat user name
+    private final String login;
+
+    /**
+     * Construct a client {@link ChatClient}
+     *
+     * @param login user name
+     */
+    public ChatClient(URI uri, String login) throws IOException {
+        super(uri);
+        this.login = login;
+    }
+
+    /**
+     * The method is called, when client-side {@link ChatWebSocket} gets connected. At this stage we need to send login
+     * frame to the server.
+     */
+    @Override
+    public void onConnect() {
+        super.onConnect();
+        send("login:" + login);
+    }
+
+    /**
+     * Method is called, when {@link ChatWebSocket} receives a message.
+     */
+    @Override
+    public void onMessage(String fullMessage) {
+        // try to extract user name and message text
+        final Matcher matcher = PATTERN.matcher(fullMessage);
+        if (matcher.find()) { // if extracted
+            // print the message in the "user: message" format
+            System.out.println(matcher.group(1) + ": " + matcher.group(2));
+        } else { // if not
+            // print the full message as it came
+            System.out.println(fullMessage);
+        }
+    }
+
+    @Override
+    public void onClose(DataFrame frame) {
+        System.out.println("WebSocket is closed");
+    }
+
     public static void main(String[] args) throws Exception {
         // initialize transport
-        final TCPNIOTransport transport =
-                TCPNIOTransportBuilder.newInstance().build();
-
-        ChatWebSocket websocket = null;
-        
+        ChatClient websocket = null;
         try {
-            // start transport
-            transport.start();
             // initialize console reader
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-
             System.out.println("Type 'q' and <enter> any time to exit");
-
             String login = null;
             // Ask for the user name
             do {
@@ -80,43 +119,25 @@ public class ChatWebSocketClient {
                 if (login == null || "q".equals(login)) {
                     return;
                 }
-
                 login = login.trim();
-            } while(login.isEmpty());
-
+            } while (login.isEmpty());
             // Initialize websocket connect and login to chat
-
-            // 1. Create WebSocketConnectorHandler to execute connect on
-            WebSocketConnectorHandler connectorHandler =
-                    new WebSocketConnectorHandler(transport);
-
-            // 2. Create WebSocketClientHandler, which will handle websocket lifecycle
-            final ChatClientHandler clientHandler = new ChatClientHandler(login);
-
-            // 3. Connect websocket
-            Future<WebSocket> connectFuture = connectorHandler.connect(
-                    new URI("ws://localhost:" +
-                    ChatWebSocketServer.PORT +
-                    "/grizzly-websockets-chat/chat"),
-                    clientHandler);
-
-            websocket = (ChatWebSocket) connectFuture.get(10, TimeUnit.SECONDS);
-
+            final URI uri = new URI("ws://localhost:" + ChatWebSocketServer.PORT + "/grizzly-websockets-chat/chat");
+            final ChatClient client = new ChatClient(uri, login);
+            websocket = (ChatClient) client.connect();
             // websocket client working cycle... Type the message and send it to the server
             String message = null;
             do {
-//                System.out.print("Message ('q' to quit) >");
+                System.out.print("Message ('q' to quit) >");
                 message = reader.readLine();
                 if (!websocket.isConnected() ||
-                        message == null || "q".equals(message)) {
+                    message == null || "q".equals(message)) {
                     return;
                 }
-
                 message = message.trim();
-
                 // if message is not empty - send it to the server
                 if (message.length() > 0) {
-                    websocket.send(Frame.createTextFrame(message));
+                    websocket.send(message);
                 }
             } while (true);
 
@@ -125,9 +146,6 @@ public class ChatWebSocketClient {
             if (websocket != null) {
                 websocket.close();
             }
-
-            // stop the transport
-            transport.stop();
         }
     }
 }

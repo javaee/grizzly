@@ -37,75 +37,58 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.websockets;
+
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.glassfish.grizzly.GrizzlyFuture;
 
-/**
- * General WebSocket unit interface.
- *
- * @author Alexey Stashok
- */
-public interface WebSocket {
-    /**
-     * Indicates a normal closure, meaning whatever purpose the connection was established for has been fulfilled.
-     */
-    int NORMAL_CLOSURE = 1000;
-    /**
-     * Indicates that an endpoint is "going away", such as a server going down, or a browser having navigated away from
-     * a page.
-     */
-    int END_POINT_GOING_DOWN = 1001;
-    /**
-     * Indicates that an endpoint is terminating the connection due to a protocol error.
-     */
-    int PROTOCOL_ERROR = 1002;
-    /**
-     * Indicates that an endpoint is terminating the connection because it has received a type of data it cannot accept
-     * (e.g. an endpoint that understands only text data may send this if it receives a binary message.)
-     */
-    int INVALID_DATA = 1003;
-    /**
-     * indicates that an endpoint is terminating the connection because it has received a message that is too large.
-     */
-    int MESSAGE_TOO_LARGE = 1004;
+public class CountDownWebSocket extends ClientWebSocket {
+    private final AtomicInteger countDown = new AtomicInteger(0);
 
-    /**
-     * Send a text frame
-     *
-     * @return {@link GrizzlyFuture}, which could be used to control the sending completion state.
-     */
-    GrizzlyFuture<DataFrame> send(String data);
+    public CountDownWebSocket(String url, WebSocketListener... listeners) throws IOException, URISyntaxException {
+        super(url, listeners);
+    }
 
-    /**
-     * Send a text frame
-     *
-     * @return {@link GrizzlyFuture}, which could be used to control the sending completion state.
-     */
-    GrizzlyFuture<DataFrame> send(byte[] data);
+    @Override
+    public GrizzlyFuture<DataFrame> send(String data) {
+        countDown.incrementAndGet();
+        return super.send(data);
+    }
 
-    /**
-     * Close the <tt>WebSocket</tt>.
-     */
-    void close();
+    @Override
+    public void onMessage(String data) {
+        countDown.decrementAndGet();
+    }
 
-    void close(int code);
+    public boolean countDown() {
+        final FutureTask<Boolean> command = new FutureTask<Boolean>(new Callable<Boolean>() {
+            public Boolean call() throws Exception {
+                while (countDown.get() > 0) {
+//                    Thread.sleep(1);
+                }
 
-    void close(int code, String reason);
+                return countDown.get() == 0;
+            }
+        });
 
-    boolean isConnected();
-
-    void onConnect();
-
-    void onMessage(String text);
-
-    void onMessage(byte[] bytes);
-
-    void onClose(DataFrame frame);
-
-    void onPing(DataFrame frame);
-
-    boolean add(WebSocketListener listener);
-
-    boolean remove(WebSocketListener listener);
+        execute(command);
+        try {
+            return command.get(30, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            return false;
+        } catch (ExecutionException e) {
+            return false;
+        } catch (TimeoutException e) {
+            return false;
+        }
+    }
 }

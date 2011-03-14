@@ -37,75 +37,21 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.websockets;
 
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.GrizzlyFuture;
 
-/**
- * General WebSocket unit interface.
- *
- * @author Alexey Stashok
- */
-public interface WebSocket {
-    /**
-     * Indicates a normal closure, meaning whatever purpose the connection was established for has been fulfilled.
-     */
-    int NORMAL_CLOSURE = 1000;
-    /**
-     * Indicates that an endpoint is "going away", such as a server going down, or a browser having navigated away from
-     * a page.
-     */
-    int END_POINT_GOING_DOWN = 1001;
-    /**
-     * Indicates that an endpoint is terminating the connection due to a protocol error.
-     */
-    int PROTOCOL_ERROR = 1002;
-    /**
-     * Indicates that an endpoint is terminating the connection because it has received a type of data it cannot accept
-     * (e.g. an endpoint that understands only text data may send this if it receives a binary message.)
-     */
-    int INVALID_DATA = 1003;
-    /**
-     * indicates that an endpoint is terminating the connection because it has received a message that is too large.
-     */
-    int MESSAGE_TOO_LARGE = 1004;
+public interface NetworkHandler {
+    GrizzlyFuture<DataFrame> send(DataFrame frame, CompletionHandler<DataFrame> completionHandler);
 
-    /**
-     * Send a text frame
-     *
-     * @return {@link GrizzlyFuture}, which could be used to control the sending completion state.
-     */
-    GrizzlyFuture<DataFrame> send(String data);
+    void setWebSocket(WebSocket webSocket);
 
-    /**
-     * Send a text frame
-     *
-     * @return {@link GrizzlyFuture}, which could be used to control the sending completion state.
-     */
-    GrizzlyFuture<DataFrame> send(byte[] data);
+    byte get();
 
-    /**
-     * Close the <tt>WebSocket</tt>.
-     */
-    void close();
+    byte[] get(int count);
 
-    void close(int code);
-
-    void close(int code, String reason);
-
-    boolean isConnected();
-
-    void onConnect();
-
-    void onMessage(String text);
-
-    void onMessage(byte[] bytes);
-
-    void onClose(DataFrame frame);
-
-    void onPing(DataFrame frame);
-
-    boolean add(WebSocketListener listener);
-
-    boolean remove(WebSocketListener listener);
+    void readFrame(final Buffer content);
 }

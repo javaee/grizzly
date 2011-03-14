@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,60 +40,63 @@
 
 package org.glassfish.grizzly.samples.websockets;
 
-import java.util.logging.Level;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.websockets.ServerWebSocketMeta;
-import org.glassfish.grizzly.websockets.WebSocketApplication;
-import org.glassfish.grizzly.websockets.frame.Frame;
+import java.awt.Frame;
 import java.io.IOException;
-
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.websockets.WebSocket;
+import org.glassfish.grizzly.websockets.WebSocketApplication;
+import org.glassfish.grizzly.websockets.WebSocketListener;
+
 /**
- * Chat web-sockets based application.
- * This {@link WebSocketApplication} customizes default {@link org.glassfish.grizzly.websockets.WebSocket}
+ * Chat websockets based application.
+ * This {@link WebSocketApplication} customizes default {@link WebSocket}
  * with {@link ChatWebSocket}, which includes some chat specific properties and
  * logic.
  *
  * @author Alexey Stashok
  * @author Justin Lee
  */
-public class ChatApplication extends WebSocketApplication<ChatWebSocket> {
+public class ChatApplication extends WebSocketApplication {
     private static final Logger logger = Grizzly.logger(ChatApplication.class);
 
     /**
-     * Creates a customized {@link org.glassfish.grizzly.websockets.WebSocket} implementation.
+     * Creates a customized {@link WebSocket} implementation.
      * 
-     * @param connection underlying Grizzly {@link Connection}.
-     * @param meta server-side {@link ServerWebSocketMeta}.
-     * @return customized {@link org.glassfish.grizzly.websockets.WebSocket} implementation - {@link ChatWebSocket}
+     * @return customized {@link WebSocket} implementation - {@link ChatWebSocket}
      */
     @Override
-    protected ChatWebSocket createWebSocket(Connection connection,
-            ServerWebSocketMeta meta) {
-        return new ChatWebSocket(connection, meta, this);
+    public WebSocket createSocket(final Connection connection, WebSocketListener... listeners) {
+        return new ChatWebSocket(listeners);
     }
-    
+
+    @Override
+    public boolean isApplicationRequest(HttpRequestPacket request) {
+        return "/chat".equals(request.getRequestURI());
+    }
+
     /**
      * Method is called, when {@link ChatWebSocket} receives a {@link Frame}.
      * @param websocket {@link ChatWebSocket}
-     * @param frame {@link Frame}
+     * @param data {@link Frame}
      *
      * @throws IOException
      */
     @Override
-    public void onMessage(ChatWebSocket websocket, Frame frame) {
+    public void onMessage(WebSocket websocket, String data) {
         // Get the frame payload as text
-        final String data = frame.getAsText();
 
         // check if it's login notification
         if (data.startsWith("login:")) {
             // process login
-            login(websocket, frame);
+            login((ChatWebSocket) websocket, data);
         } else {
             // broadcast the message
-            broadcast(websocket.getUser(), data);
+            broadcast(((ChatWebSocket)websocket).getUser(), data);
         }
     }
 
@@ -101,8 +104,8 @@ public class ChatApplication extends WebSocketApplication<ChatWebSocket> {
      * {@inheritDoc}
      */
     @Override
-    public void onClose(ChatWebSocket websocket) throws IOException {
-        broadcast("system", websocket.getUser() + " left the chat");
+    public void onClose(WebSocket websocket) {
+        broadcast("system", ((ChatWebSocket)websocket).getUser() + " left the chat");
     }
 
     /**
@@ -113,9 +116,10 @@ public class ChatApplication extends WebSocketApplication<ChatWebSocket> {
      */
     private void broadcast(String user, String text) {
         logger.log(Level.INFO, "Broadcasting: {0} from: {1}", new Object[]{text, user});
-        for (ChatWebSocket websocket : getWebSockets()) {
-            if (websocket.getUser() != null) {  // it may happen some websocket is on the list, but not logged in to the chat
-                websocket.sendJson(user, text);
+        for (WebSocket websocket : getWebSockets()) {
+            final ChatWebSocket chat = (ChatWebSocket) websocket;
+            if (chat.getUser() != null) {  // it may happen some websocket is on the list, but not logged in to the chat
+                chat.sendJson(user, text);
             }
         }
 
@@ -127,11 +131,11 @@ public class ChatApplication extends WebSocketApplication<ChatWebSocket> {
      * @param websocket {@link ChatWebSocket}
      * @param frame login {@link Frame}
      */
-    private void login(ChatWebSocket websocket, Frame frame) {
+    private void login(ChatWebSocket websocket, String frame) {
         if (websocket.getUser() == null) { // check if it's not registered user
             logger.info("ChatApplication.login");
             // set the user name
-            websocket.setUser(frame.getAsText().split(":")[1].trim());
+            websocket.setUser(frame.split(":")[1].trim());
             // broadcast the login notification
             broadcast("system", websocket.getUser() + " has joined the chat.");
         }

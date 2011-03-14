@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,56 +40,15 @@
 
 package org.glassfish.grizzly.websockets;
 
-import org.glassfish.grizzly.Connection;
-import java.io.IOException;
+import org.glassfish.grizzly.http.HttpRequestPacket;
 
-/**
- * Abstract client-side {@link WebSocketHandler}, which will handle
- * client {@link WebSocket}s events.
- *
- * @see WebSocketHandler
- * @see WebSocketApplication
- *
- * @author Alexey Stashok
- */
-public abstract class WebSocketClientHandler<W extends WebSocket>
-        implements WebSocketHandler<W> {
-
-    /**
-     * The method is called, when client-side {@link WebSocket} gets connected.
-     * Usually this method is called right after client-server handshake validatation is completed.
-     *
-     * @param websocket connected {@link WebSocket}.
-     * @throws IOException
-     */
-    public abstract void onConnect(W websocket) throws IOException;
-
-    /**
-     * Method is called, when inital {@link WebSocket} handshake process was completed,
-     * but <tt>WebSocketClientHandler</tt> may perform additional validation.
-     *
-     * @param socket {@link WebSocket}
-     * @param serverMeta {@link ServerWebSocketMeta}.
-     * 
-     * @throws HandshakeException error, occurred during the handshake.
-     */
-    protected void handshake(W socket, ServerWebSocketMeta serverMeta)
-            throws HandshakeException {
+public class EchoApplication extends WebSocketApplication {
+    @Override
+    public boolean isApplicationRequest(HttpRequestPacket request) {
+        return "/echo".equals(request.getRequestURI());
     }
 
-    /**
-     * Method is called before the {@link WebSocketEngine} will create a client-side
-     * {@link WebSocket} object, so the handler may return any customized
-     * subtype of {@link WebSocket}.
-     *
-     * @param connection underlying Grizzly {@link Connection}.
-     * @param meta client-side {@link WebSocketMeta}.
-     *
-     * @return customized {@link WebSocket}, or <tt>null</tt>, if handler wants
-     * to delegate {@link WebSocket} creation to {@link WebSocketEngine}.
-     */
-    protected W createWebSocket(Connection connection,
-            ClientWebSocketMeta meta) {
-        return null;
+    public void onMessage(WebSocket socket, String data) {
+        socket.send(data);
     }
 }

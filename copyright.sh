@@ -101,6 +101,7 @@ then
 	JAVA=java
 fi
 
+echo grizzly 2.0
 $JAVA -jar copyright.jar -V
 rm -f copyrightcheck.out
 run $* | tee copyrightcheck.out

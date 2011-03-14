@@ -40,19 +40,13 @@
 
 package org.glassfish.grizzly.samples.websockets;
 
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
-import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.http.server.HttpServer;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.websockets.WebSocketAddOn;
 import org.glassfish.grizzly.websockets.WebSocketApplication;
 import org.glassfish.grizzly.websockets.WebSocketEngine;
-import org.glassfish.grizzly.websockets.WebSocketFilter;
 
 /**
- * Standalone Java web-socket chat server implementation.
+ * Standalone Java websocket chat server implementation.
  * Server expects to get the path to webapp as command line parameter
  *
  * @author Alexey Stashok
@@ -81,7 +75,7 @@ public class ChatWebSocketServer {
         final WebSocketApplication chatApplication = new ChatApplication();
 
         // register the application
-        WebSocketEngine.getEngine().registerApplication("/grizzly-websockets-chat/chat", chatApplication);
+        WebSocketEngine.getEngine().register("/grizzly-websockets-chat/chat", chatApplication);
 
         try {
             server.start();

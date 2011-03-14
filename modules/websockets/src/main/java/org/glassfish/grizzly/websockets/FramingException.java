@@ -40,30 +40,27 @@
 
 package org.glassfish.grizzly.websockets;
 
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
-import org.glassfish.grizzly.http.HttpCodecFilter;
-import org.glassfish.grizzly.http.server.AddOn;
-import org.glassfish.grizzly.http.server.HttpServer;
-import org.glassfish.grizzly.http.server.NetworkListener;
+public class FramingException extends WebSocketException {
+    private int code = -1;
 
-/**
- * WebSockets {@link AddOn} for the {@link HttpServer}.
- * 
- * @author Alexey Stashok
- */
-public class WebSocketAddOn implements AddOn {
+    public FramingException(String s) {
+        super(s);
+    }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setup(NetworkListener networkListener, FilterChainBuilder builder) {
-        // Get the index of HttpCodecFilter in the HttpServer filter chain
-        final int httpCodecFilterIdx = builder.indexOfType(HttpCodecFilter.class);
+    public FramingException(String s, Throwable throwable) {
+        super(s, throwable);
+    }
 
-        if (httpCodecFilterIdx >= 0) {
-            // Insert the WebSocketFilter right after HttpCodecFilter
-            builder.add(httpCodecFilterIdx + 1, new WebSocketFilter());
-        }
+    public FramingException(Throwable throwable) {
+        super(throwable);
+    }
+
+    public int getCode() {
+        return code;
+    }
+
+    public FramingException(final int code, final String message) {
+        this(message);
+        this.code = code;
     }
 }

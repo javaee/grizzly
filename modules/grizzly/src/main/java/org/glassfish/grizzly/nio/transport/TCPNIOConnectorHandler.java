@@ -39,34 +39,35 @@
  */
 package org.glassfish.grizzly.nio.transport;
 
-import org.glassfish.grizzly.IOEvent;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.AbstractSocketConnectorHandler;
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.impl.ReadyFutureImpl;
-import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.nio.RegisterChannelResult;
-import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import org.glassfish.grizzly.AbstractSocketConnectorHandler;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.GrizzlyFuture;
+import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.PostProcessor;
 import org.glassfish.grizzly.ProcessorResult.Status;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.impl.ReadyFutureImpl;
+import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.NIOConnection;
+import org.glassfish.grizzly.nio.RegisterChannelResult;
 import org.glassfish.grizzly.nio.SelectionKeyHandler;
 
 /**
@@ -101,12 +102,10 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         }
     }
 
-    protected GrizzlyFuture<Connection> connectSync(SocketAddress remoteAddress,
-            SocketAddress localAddress,
+    protected GrizzlyFuture<Connection> connectSync(SocketAddress remoteAddress, SocketAddress localAddress,
             CompletionHandler<Connection> completionHandler) throws IOException {
 
-        GrizzlyFuture<Connection> future = connectAsync(remoteAddress,
-                localAddress, completionHandler);
+        GrizzlyFuture<Connection> future = connectAsync(remoteAddress, localAddress, completionHandler);
         waitNIOFuture(future);
 
         return future;
