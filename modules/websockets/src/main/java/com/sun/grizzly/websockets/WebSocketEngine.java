@@ -49,7 +49,6 @@ import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.util.Utils;
 
-import javax.xml.ws.WebServiceException;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
@@ -144,7 +143,7 @@ public class WebSocketEngine {
                 logger.log(Level.SEVERE, e.getMessage(), e);
                 socket.close();
             }
-        } catch (WebServiceException e) {
+        } catch (WebSocketException e) {
             return false;
         }
         return false;
