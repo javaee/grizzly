@@ -471,17 +471,20 @@ public class OutputBuffer {
     }
 
 
-    public boolean notifyCanWrite(final WriteHandler handler, final int length) {
-
-        if (asyncWriter == null) {
-            return false;
-        }
+    public void notifyCanWrite(final WriteHandler handler, final int length) {
         if (this.handler != null) {
             throw new IllegalStateException("Illegal attempt to set a new handler before the existing handler has been notified.");
         }
-        if (canWrite(length)) {
-            return false;
+
+        if (asyncWriter == null || canWrite(length)) {
+            try {
+                handler.onWritePossible();
+            } catch (IOException ioe) {
+                handler.onError(ioe);
+            }
+            return;
         }
+        
         this.handler = handler;
         final Connection c = ctx.getConnection();
         final TaskQueue taskQueue = ((NIOConnection) c).getAsyncWriteQueue();
@@ -518,9 +521,6 @@ public class OutputBuffer {
             taskQueue.addQueueMonitor(monitor);
         } catch (Exception ignored) {
         }
-
-        return true;
-        
     }
 
 

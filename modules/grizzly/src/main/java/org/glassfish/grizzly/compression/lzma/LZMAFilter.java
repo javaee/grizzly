@@ -104,9 +104,9 @@ public class LZMAFilter extends BaseFilter {
                 encoder.transform(connection, input);
 
         if (!input.hasRemaining()) {
-            input.dispose();
+            input.tryDispose();
         } else {
-            input.trim();
+            input.shrink();
         }
 
         try {

@@ -68,8 +68,8 @@ public class RangeDecoder {
     int decodeDirectBitsResult;
     int decodeDirectBitsI;
 
-    public final void setBuffer(Buffer src) {
-        this.inputBuffer = src;
+    public final void initFromState(final LZMADecoder.LZMAInputState decoderState) {
+        this.inputBuffer = decoderState.getSrc();
     }
 
     public final void releaseBuffer() {

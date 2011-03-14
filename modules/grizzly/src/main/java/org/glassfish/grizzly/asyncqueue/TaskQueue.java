@@ -47,7 +47,6 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import org.glassfish.grizzly.utils.LinkedTransferQueue;
 
 /**
  * Class represents common implementation of asynchronous processing queue.
@@ -72,7 +71,7 @@ public final class TaskQueue<E> {
 
     protected TaskQueue() {        
         currentElement = new AtomicReference<E>();
-        queue = new LinkedTransferQueue<E>();
+        queue = new ConcurrentLinkedQueue<E>();
         monitorQueue = new ConcurrentLinkedQueue<QueueMonitor>();
     }
 

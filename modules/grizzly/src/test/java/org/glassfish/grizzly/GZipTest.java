@@ -57,6 +57,7 @@ import org.glassfish.grizzly.utils.StringFilter;
 import org.glassfish.grizzly.compression.zip.GZipFilter;
 import java.io.EOFException;
 import java.io.IOException;
+import java.util.Random;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -83,6 +84,18 @@ public class GZipTest extends TestCase {
         doTest(array);
     }
 
+    public void testLargeEcho() throws Exception {
+        final int len = 1024 * 256;
+        StringBuilder sb = new StringBuilder(len);
+        String a = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+        int totalLen = a.length() - 1;
+        Random r = new Random(System.currentTimeMillis());
+        for (int i = 0; i < len; i++) {
+            sb.append(a.charAt(r.nextInt(totalLen)));
+        }
+        doTest(sb.toString());
+    }
+    
     public void testChunkedEcho() throws Exception {
         doTest(true, "Hello world");
     }

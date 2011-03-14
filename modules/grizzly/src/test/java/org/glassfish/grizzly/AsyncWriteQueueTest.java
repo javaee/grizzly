@@ -50,7 +50,9 @@ import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Queue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -69,6 +71,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
 
 /**
@@ -378,7 +383,98 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
         }
     }
 
+    public void testAsyncWriteQueueReenterants() throws Exception {
+        Connection connection = null;
 
+        final AtomicInteger serverRcvdBytes = new AtomicInteger();
+
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new BaseFilter() {
+
+            @Override
+            public NextAction handleRead(FilterChainContext ctx)
+                    throws IOException {
+                serverRcvdBytes.addAndGet(((Buffer) ctx.getMessage()).remaining());
+                return ctx.getStopAction();
+            }
+        });
+
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+        transport.setProcessor(filterChainBuilder.build());
+
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            Future<Connection> future = transport.connect("localhost", PORT);
+            connection = future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
+
+            connection.configureStandalone(true);
+
+            final AsyncQueueWriter<SocketAddress> asyncQueueWriter = transport.getAsyncQueueIO().getWriter();
+            
+            final MemoryManager mm = transport.getMemoryManager();
+            final Connection con = connection;
+
+            final int maxReenterants = 10;
+            asyncQueueWriter.setMaxWriteReenterants(10);
+
+            final AtomicInteger packetCounter = new AtomicInteger();
+
+            final FutureImpl<Boolean> resultFuture = SafeFutureImpl.<Boolean>create();
+            final Queue<Thread> threadsHistory = new ConcurrentLinkedQueue<Thread>();
+
+            final Thread currentThread = Thread.currentThread();
+            threadsHistory.add(currentThread);
+            
+            Buffer buffer = Buffers.wrap(mm, "" + ((char) ('A' + packetCounter.getAndIncrement())));
+
+            asyncQueueWriter.write(con, buffer,
+                    new EmptyCompletionHandler<WriteResult<Buffer, SocketAddress>>() {
+
+                        @Override
+                        public void completed(
+                                WriteResult<Buffer, SocketAddress> result) {
+
+                            final int packetNum = packetCounter.incrementAndGet();
+                            if (packetNum <= maxReenterants + 1) {
+                                threadsHistory.add(Thread.currentThread());
+                                Buffer bufferInner = Buffers.wrap(mm, "" +
+                                        ((char) ('A' + packetNum)));
+                                try {
+                                    asyncQueueWriter.write(con, bufferInner, this);
+                                } catch (IOException e) {
+                                    resultFuture.failure(e);
+                                }
+                            } else {
+                                resultFuture.result(Boolean.TRUE);
+                            }
+                        }
+                    });
+
+            assertTrue(resultFuture.get(10, TimeUnit.SECONDS));
+
+            while (!threadsHistory.isEmpty()) {
+                final Thread t = threadsHistory.poll();
+                if (!threadsHistory.isEmpty()) {
+                    // not last thread in history (should be main/current)
+                    assertSame(currentThread, t);
+                } else {
+                    // the last thread in history (should *not* be main/current)
+                    assertNotSame(currentThread, t);
+                }
+            }
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+
+            transport.stop();
+        }
+    }
+    
     // ---------------------------------------------------------- Nested Classes
 
 

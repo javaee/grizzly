@@ -112,5 +112,28 @@ public interface AsyncQueueWriter<L>
      */
     int getMaxPendingBytesPerConnection();
     
+    /**
+     * Returns the maximum number of write() method reenterants a thread
+     * is allowed to made.
+     * This is related to possible write()->onComplete()->write()->...
+     * chain, which may grow infinitely and cause StackOverflow.
+     * Using maxWriteReeenterants value it's possible to limit such a chain.
+     *
+     * @return the maximum number of write() method reenterants a thread
+     * is allowed to made.
+     */
+    int getMaxWriteReenterants();
+
+    /**
+     * Sets the maximum number of write() method reenterants a thread
+     * is allowed to made.
+     * This is related to possible write()->onComplete()->write()->...
+     * chain, which may grow infinitely and cause StackOverflow.
+     * Using maxWriteReeenterants value it's possible to limit such a chain.
+     *
+     * @param maxWriteReenterants  the maximum number of write() method
+     * reenterants a thread is allowed to made.
+     */
+    void setMaxWriteReenterants(int maxWriteReenterants);
     
 }

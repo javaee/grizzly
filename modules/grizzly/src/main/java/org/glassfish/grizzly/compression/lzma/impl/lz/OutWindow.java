@@ -44,6 +44,7 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 import java.io.IOException;
+import org.glassfish.grizzly.compression.lzma.LZMADecoder;
 
 /**
  * OutWindow
@@ -52,12 +53,11 @@ import java.io.IOException;
  */
 public class OutWindow {
 
+    LZMADecoder.LZMAInputState _decoderState;
     byte[] _buffer;
     int _pos;
     int _windowSize = 0;
     int _streamPos;
-    Buffer _dst;
-    MemoryManager _mm;
 
     public void create(int windowSize) {
         if (_buffer == null || _windowSize != windowSize) {
@@ -68,16 +68,13 @@ public class OutWindow {
         _streamPos = 0;
     }
 
-    public void setBuffer(Buffer dst, MemoryManager mm) throws IOException {
-        releaseBuffer();
-        _dst = dst;
-        _mm = mm;
+    public void initFromState(LZMADecoder.LZMAInputState decoderState) throws IOException {
+        _decoderState = decoderState;
     }
 
     public void releaseBuffer() throws IOException {
         //Flush();
-        _dst = null;
-        _mm = null;
+        _decoderState = null;
     }
 
     public void init(boolean solid) {
@@ -92,10 +89,17 @@ public class OutWindow {
         if (size == 0) {
             return;
         }
-        if (_dst.remaining() < size) {
-            _dst = resizeBuffer(_mm, _dst, size);
+
+        Buffer dst = _decoderState.getDst();
+
+        if (dst == null || dst.remaining() < size) {
+            dst = resizeBuffer(_decoderState.getMemoryManager(), dst, size);
+            _decoderState.setDst(dst);
         }
-        _dst.put(_buffer, _streamPos, size);
+        dst.put(_buffer, _streamPos, size);
+        dst.trim();
+        dst.position(dst.limit());
+        
         if (_pos >= _windowSize) {
             _pos = 0;
         }
@@ -135,11 +139,14 @@ public class OutWindow {
 
     @SuppressWarnings({"unchecked"})
     private static Buffer resizeBuffer(final MemoryManager memoryManager,
-                                         final Buffer headerBuffer, final int grow) {
+                                         final Buffer buffer, final int grow) {
+        if (buffer == null) {
+            return memoryManager.allocate(Math.max(grow, 4096));
+        }
 
-        return memoryManager.reallocate(headerBuffer, Math.max(
-                headerBuffer.capacity() + grow,
-                (headerBuffer.capacity() * 3) / 2 + 1));
+        return memoryManager.reallocate(buffer, Math.max(
+                buffer.capacity() + grow,
+                (buffer.capacity() * 3) / 2 + 1));
     }
 
 }

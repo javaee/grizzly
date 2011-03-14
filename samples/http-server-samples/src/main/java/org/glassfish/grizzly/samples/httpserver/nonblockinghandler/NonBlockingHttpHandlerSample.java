@@ -61,7 +61,6 @@ import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 
 import java.io.IOException;
-import java.io.Writer;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -319,32 +318,15 @@ public class NonBlockingHttpHandlerSample {
             final NIOReader in = request.getReader(false); // false argument puts the stream in non-blocking mode
             final NIOWriter out = response.getWriter();
 
-            // continue reading ready data until no more can be read without
-            // blocking
-            while (in.isReady()) {
-                final int ready = in.readyData();
-                int read = in.read(buf, 0, ready);
-                if (read == -1) {
-                    break;
-                }
-                System.out.println("INITIAL READ: " + new String(buf, 0, ready));
-                out.write(buf, 0, ready);
-            }
-
-            if (in.isFinished()) {
-                in.close();
-                out.close();
-                return;
-            }
-
             response.suspend();
 
+            // If we don't have more data to read - onAllDataRead() will be called
             in.notifyAvailable(new ReadHandler() {
 
                 @Override
                 public void onDataAvailable() throws IOException {
                     System.out.println("[onDataAvailable] length: " + in.readyData());
-                    doWrite(this, in, buf, out);
+                    in.notifyAvailable(this);
                 }
 
                 @Override
@@ -356,7 +338,7 @@ public class NonBlockingHttpHandlerSample {
                 public void onAllDataRead() throws IOException {
                     System.out.println("[onAllDataRead] length: " + in.readyData());
                     try {
-                        doWrite(this, in, buf, out);
+                        echoAvailableData(in, out, buf);
                     } finally {
                         try {
                             in.close();
@@ -375,17 +357,12 @@ public class NonBlockingHttpHandlerSample {
 
         }
 
-        private void doWrite(ReadHandler handler,
-                             NIOReader in,
-                             char[] buf,
-                             Writer out) throws IOException {
+        private void echoAvailableData(NIOReader in, NIOWriter out, char[] buf)
+                throws IOException {
+            
             while(in.isReady()) {
                 int len = in.read(buf);
                 out.write(buf, 0, len);
-            }
-
-            if (!in.isFinished()) {
-                in.notifyAvailable(handler);
             }
         }
 
