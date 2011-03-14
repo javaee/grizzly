@@ -40,9 +40,7 @@
 
 package com.sun.grizzly.websockets;
 
-import java.io.IOException;
 import java.util.Arrays;
-import java.util.logging.Logger;
 
 /**
  * In memory representation of a websocket frame.
@@ -50,7 +48,6 @@ import java.util.logging.Logger;
  * @see <a href="http://tools.ietf.org/html/draft-ietf-hybi-thewebsocketprotocol-05#section-4.3">Frame Definition</a>
  */
 public class DataFrame {
-    private static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     private String payload;
     private byte[] bytes;
     private FrameType type;
@@ -84,9 +81,6 @@ public class DataFrame {
     }
 
     public String getTextPayload() {
-        if (type != FrameType.TEXT) {
-            throw new FramingException("Frame data is not text: " + type);
-        }
         return payload;
     }
 
@@ -100,9 +94,6 @@ public class DataFrame {
     }
 
     public byte[] getBinaryPayload() {
-        if (type == FrameType.TEXT) {
-            throw new FramingException("Frame data is not binary: " + type);
-        }
         return bytes;
     }
 
@@ -118,26 +109,6 @@ public class DataFrame {
         return packet;
     }
 
-    public void unframe(NetworkHandler handler) throws IOException {
-        byte opcodes = handler.get();
-        boolean fin = (opcodes & 0x80) == 0x80;
-        byte lengthCode = handler.get();
-        long length;
-        if (lengthCode <= 125) {
-            length = lengthCode;
-        } else {
-            length = convert(handler.get(lengthCode == 126 ? 2 : 8));
-        }
-        type = FrameType.valueOf(opcodes);
-        final byte[] data = handler.get((int) length);
-        if (data.length != length) {
-            final FramingException e = new FramingException(String.format("Data read (%s) is not the expected" +
-                    " size (%s)", data.length, length));
-            e.printStackTrace();
-            throw e;
-        }
-        type.unframe(this, data);
-    }
 
     /**
      * Converts the length given to the appropriate framing data:
@@ -181,20 +152,23 @@ public class DataFrame {
         return b;
     }
 
-    /**
-     * Convert a byte[] to a long.  Used for rebuilding payload length.
-     */
-    public long convert(byte[] bytes) {
+    public static long convert(byte[] bytes, int start, int end) {
         long value = 0;
-        for (byte aByte : bytes) {
+        for (int i = start; i < end; i++) {
             value <<= 8;
-            value ^= (long) aByte & 0xFF;
+            value ^= (long) bytes[i] & 0xFF;
         }
-
         return value;
     }
 
-    public void respond(WebSocket socket) throws IOException {
+    /**
+     * Convert a byte[] to a long.  Used for rebuilding payload length.
+     */
+    public static long convert(byte[] bytes) {
+        return convert(bytes, 0, bytes.length);
+    }
+
+    public void respond(WebSocket socket) {
         getType().respond(socket, this);
     }
 

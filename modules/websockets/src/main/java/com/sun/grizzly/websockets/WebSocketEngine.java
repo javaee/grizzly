@@ -44,12 +44,12 @@ import com.sun.grizzly.BaseSelectionKeyHandler;
 import com.sun.grizzly.arp.AsyncExecutor;
 import com.sun.grizzly.arp.AsyncProcessorTask;
 import com.sun.grizzly.http.ProcessorTask;
-import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.util.Utils;
 
+import javax.xml.ws.WebServiceException;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
@@ -83,7 +83,7 @@ public class WebSocketEngine {
     private final WebSocketCloseHandler closeHandler = new WebSocketCloseHandler();
 
     static {
-        if(Utils.isDebugVM()) {
+        if (Utils.isDebugVM()) {
             DEFAULT_TIMEOUT = 900;
         } else {
             DEFAULT_TIMEOUT = 30;
@@ -94,9 +94,7 @@ public class WebSocketEngine {
     }
 
     /**
-     * Return true is Comet is enabled, e.g. {@link SelectorThread#setEnableAsyncExecution(boolean)}
-     * has been set to <tt>true</tt>
-     * @return
+     * @return true is WebSockets are enabled.
      */
     public static boolean isWebSocketEnabled() {
         return isWebSocketEnabled;
@@ -112,7 +110,7 @@ public class WebSocketEngine {
 
     public WebSocketApplication getApplication(Request request) {
         for (WebSocketApplication application : applications) {
-            if(application.upgrade(request)) {
+            if (application.upgrade(request)) {
                 return application;
             }
         }
@@ -140,19 +138,17 @@ public class WebSocketEngine {
 
                     key.attach(handler.getAttachment());
                     enableRead(task, key);
+                    return true;
                 }
-            } catch (IOException e) {
-                logger.log(Level.SEVERE, e.getMessage(), e);
-                socket = null;
             } catch (HandshakeException e) {
                 logger.log(Level.SEVERE, e.getMessage(), e);
                 socket.close();
-                socket = null;
             }
-            return socket != null;
-        } catch (IOException e) {
+        } catch (WebServiceException e) {
             return false;
         }
+        return false;
+
     }
 
     final void enableRead(ProcessorTask task, SelectionKey key) {
@@ -165,7 +161,7 @@ public class WebSocketEngine {
     }
 
     public void register(WebSocketApplication app) {
-        if (!isWebSocketEnabled()){
+        if (!isWebSocketEnabled()) {
             throw new IllegalStateException(LogMessages.SEVERE_GRIZZLY_WS_NOT_ENABLED());
         }
 
@@ -184,9 +180,13 @@ public class WebSocketEngine {
         }
 
         @Override
-        public void onClose(WebSocket socket) throws IOException {
+        public void onClose(WebSocket socket) {
             key.cancel();
-            key.channel().close();
+            try {
+                key.channel().close();
+            } catch (IOException e) {
+                throw new WebSocketException(e.getMessage(), e);
+            }
         }
     }
 }

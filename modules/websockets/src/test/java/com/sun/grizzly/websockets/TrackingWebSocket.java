@@ -63,13 +63,13 @@ public class TrackingWebSocket extends ClientWebSocket {
     }
 
     @Override
-    public void send(String data) throws IOException {
+    public void send(String data) {
         sent.put(data, Boolean.FALSE);
         super.send(data);
     }
 
     @Override
-    public void onMessage(DataFrame frame) throws IOException {
+    public void onMessage(DataFrame frame) {
         super.onMessage(frame);
         if(sent.remove(frame.getTextPayload()) != null) {
             received.countDown();
@@ -77,7 +77,7 @@ public class TrackingWebSocket extends ClientWebSocket {
     }
 
     @Override
-    public void onConnect() throws IOException {
+    public void onConnect() {
         super.onConnect();
     }
 

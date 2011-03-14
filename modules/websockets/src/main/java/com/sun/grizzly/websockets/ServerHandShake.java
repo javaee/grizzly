@@ -54,7 +54,7 @@ public class ServerHandShake extends HandShake {
     private String enabledExtensions;
     private String enabledProtocols;
 
-    public ServerHandShake(Request request, boolean secure, ByteChunk chunk) throws IOException, HandshakeException {
+    public ServerHandShake(Request request, boolean secure, ByteChunk chunk) {
         super(secure, request.requestURI().toString());
 
         final MimeHeaders headers = request.getMimeHeaders();
@@ -70,7 +70,7 @@ public class ServerHandShake extends HandShake {
         setOrigin(readHeader(headers, WebSocketEngine.SEC_WS_ORIGIN_HEADER));
         setLocation(buildLocation(secure));
         if (getServerHostName() == null || getOrigin() == null) {
-            throw new IOException("Missing required headers for WebSocket negotiation");
+            throw new HandshakeException("Missing required headers for WebSocket negotiation");
         }
     }
 
@@ -97,7 +97,7 @@ public class ServerHandShake extends HandShake {
         return value == null ? null : value.toString();
     }
 
-    public void respond(Response response) throws IOException {
+    public void respond(Response response) {
         response.setStatus(101);
         response.setMessage(WebSocketEngine.RESPONSE_CODE_MESSAGE);
         response.setHeader("Upgrade", "WebSocket");
@@ -110,8 +110,12 @@ public class ServerHandShake extends HandShake {
             response.setHeader(WebSocketEngine.SEC_WS_EXTENSIONS_HEADER, join(getSubProtocol()));
         }
 
-        response.sendHeaders();
-        response.flush();
+        try {
+            response.sendHeaders();
+            response.flush();
+        } catch (IOException e) {
+            throw new HandshakeException(e.getMessage(), e);
+        }
     }
 
     private void determineHostAndPort(MimeHeaders headers) {

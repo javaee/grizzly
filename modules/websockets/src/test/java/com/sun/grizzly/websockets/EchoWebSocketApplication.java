@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,20 +42,14 @@ package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.tcp.Request;
 
-import java.io.IOException;
-
 class EchoWebSocketApplication extends WebSocketApplication {
     @Override
     public boolean isApplicationRequest(Request request) {
         return request.requestURI().equals("/echo");
     }
 
-    public void onMessage(WebSocket socket, DataFrame data) throws IOException {
+    public void onMessage(WebSocket socket, DataFrame data) {
         super.onMessage(socket, data);
-        try {
-            socket.send(data.getTextPayload());
-        } catch (IOException e) {
-            throw new RuntimeException(e.getMessage(), e);
-        }
+        socket.send(data.getTextPayload());
     }
 }

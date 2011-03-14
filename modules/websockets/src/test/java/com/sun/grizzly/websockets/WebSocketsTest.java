@@ -70,7 +70,6 @@ import java.net.Socket;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -279,7 +278,7 @@ public class WebSocketsTest {
         }
     }
 
-    private void send(WebSocket client, Map<String, Object> messages, final String message) throws IOException {
+    private void send(WebSocket client, Map<String, Object> messages, final String message) {
         messages.put(message, SLUG);
         client.send(message);
     }
@@ -321,10 +320,6 @@ public class WebSocketsTest {
 
     private void write(OutputStream os, String text) throws IOException {
         os.write((text + "\r\n").getBytes("UTF-8"));
-    }
-
-    private String createString(ByteBuffer buf) {
-        return new String(buf.array(), buf.position(), buf.limit());
     }
 
     public void testGetOnWebSocketApplication() throws IOException, InstantiationException, InterruptedException {

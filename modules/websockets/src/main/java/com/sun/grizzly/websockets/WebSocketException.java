@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,62 +42,8 @@ package com.sun.grizzly.websockets;
 
 import java.io.IOException;
 
-public interface WebSocket {
-
-    /**
-     * Indicates a normal closure, meaning whatever purpose the connection was established for has been fulfilled.
-     */
-    int NORMAL_CLOSURE = 1000;
-    
-    /**
-     * Indicates that an endpoint is "going away", such as a server going down, or a browser having navigated away
-     * from a page.
-     */
-    int END_POINT_GOING_DOWN = 1001;
-
-    /**
-     * Indicates that an endpoint is terminating the connection due to a protocol error.
-     */
-    int PROTOCOL_ERROR = 1002;
-
-    /**
-     * Indicates that an endpoint is terminating the connection because it has received a type of data it cannot accept
-     * (e.g. an endpoint that understands only text data may send this if it receives a binary message.)
-     */
-    int INVALID_DATA = 1003;
-
-    /**
-     * indicates that an endpoint is terminating the connection because it has received a message that is too large.
-     */
-    int MESSAGE_TOO_LARGE = 1004;
-
-    /**
-     * Write the data to the socket.  This text will be converted to a UTF-8 encoded byte[] prior to sending.
-     *
-     * @param data
-     * @throws IOException
-     */
-    void send(String data);
-
-    void send(byte[] data);
-
-    void close();
-
-    void close(int code);
-
-    void close(int code, String reason);
-
-    boolean isConnected();
-
-    void onConnect();
-
-    void onMessage(DataFrame frame);
-
-    void onClose(DataFrame frame);
-
-    void onPing(DataFrame frame);
-
-    boolean add(WebSocketListener listener);
-
-    boolean remove(WebSocketListener listener);
+public class WebSocketException extends RuntimeException {
+    public WebSocketException(String message, IOException e) {
+        super(message, e);
+    }
 }

@@ -62,7 +62,7 @@ public class EchoServlet extends HttpServlet {
             }
 
             public void onMessage(WebSocket socket, DataFrame data) {
-                echo(socket, data);
+                socket.send(data.getTextPayload());
             }
 
             public void onConnect(WebSocket socket) {
@@ -78,15 +78,6 @@ public class EchoServlet extends HttpServlet {
     public void destroy() {
         WebSocketEngine.getEngine().unregister(app);
         super.destroy();
-    }
-
-    public void echo(WebSocket socket, DataFrame data) {
-        try {
-            socket.send(data.getTextPayload());
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw new RuntimeException(e.getMessage(), e);
-        }
     }
 
     @Override

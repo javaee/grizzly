@@ -56,13 +56,13 @@ public class CountDownWebSocket extends ClientWebSocket {
     }
 
     @Override
-    public void send(String data) throws IOException {
+    public void send(String data) {
         countDown.incrementAndGet();
         super.send(data);
     }
 
     @Override
-    public void onMessage(DataFrame frame) throws IOException {
+    public void onMessage(DataFrame frame) {
         countDown.decrementAndGet();
     }
 

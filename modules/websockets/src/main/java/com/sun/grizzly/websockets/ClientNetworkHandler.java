@@ -58,11 +58,12 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.TreeMap;
 
-public class ClientNetworkHandler implements NetworkHandler {
+public class ClientNetworkHandler extends BaseNetworkHandler {
     private Socket socket;
     private URL url;
     private ClientWebSocket webSocket;
     private final ByteChunk chunk = new ByteChunk();
+    private final SecureRandom random = new SecureRandom();
 
     private boolean isHeaderParsed = false;
     private OutputStream outputStream;
@@ -79,7 +80,7 @@ public class ClientNetworkHandler implements NetworkHandler {
             throw new RuntimeException(e.getMessage(), e);
         }
         webSocket.add(new WebSocketAdapter() {
-            public void onClose(WebSocket socket) throws IOException {
+            public void onClose(WebSocket socket) {
                 socket.close();
             }
         });
@@ -90,7 +91,15 @@ public class ClientNetworkHandler implements NetworkHandler {
         webSocket.execute(new Runnable() {
             public void run() {
                 try {
-                    unframe();
+                    int lastRead;
+                    if ((lastRead = read()) > 0) {
+                        readFrame();
+                    } else if (lastRead == -1) {
+                        throw new EOFException();
+                    }
+                    if (webSocket.isConnected()) {
+                        queueRead();
+                    }
                 } catch (IOException e) {
                     throw new RuntimeException(e.getMessage(), e);
                 }
@@ -110,16 +119,25 @@ public class ClientNetworkHandler implements NetworkHandler {
         outputStream = socket.getOutputStream();
     }
 
-    public void send(DataFrame frame) throws IOException {
+    public void send(DataFrame frame) {
         final byte[] bytes = frame.frame();
-        byte[] masked = new byte[bytes.length+4];
-        final byte[] mask = getWebSocket().generateMask();
+        byte[] masked = new byte[bytes.length + 4];
+        final byte[] mask = generateMask();
         System.arraycopy(mask, 0, masked, 0, WebSocketEngine.MASK_SIZE);
         for (int i = 0; i < bytes.length; i++) {
-            masked[i+WebSocketEngine.MASK_SIZE] = (byte) (bytes[i] ^ mask[i % WebSocketEngine.MASK_SIZE]);
+            masked[i + WebSocketEngine.MASK_SIZE] = (byte) (bytes[i] ^ mask[i % WebSocketEngine.MASK_SIZE]);
         }
         write(masked);
     }
+
+    public byte[] generateMask() {
+        byte[] bytes = new byte[WebSocketEngine.MASK_SIZE];
+        synchronized (random) {
+            random.nextBytes(bytes);
+        }
+        return bytes;
+    }
+
 
     protected void handshake() throws IOException {
         final boolean isSecure = "wss".equals(url.getProtocol());
@@ -154,20 +172,12 @@ public class ClientNetworkHandler implements NetworkHandler {
 
     }
 
-    protected void write(byte[] bytes) throws IOException {
-        outputStream.write(bytes);
-        outputStream.flush();
-    }
-
-    private void unframe() throws IOException {
-        int lastRead;
-        if ((lastRead = read()) > 0) {
-            readFrame();
-        } else if (lastRead == -1) {
-            throw new EOFException();
-        }
-        if (webSocket.isConnected()) {
-            queueRead();
+    protected void write(byte[] bytes) {
+        try {
+            outputStream.write(bytes);
+            outputStream.flush();
+        } catch (IOException e) {
+            throw new WebSocketException(e.getMessage(), e);
         }
     }
 
@@ -238,9 +248,7 @@ public class ClientNetworkHandler implements NetworkHandler {
     protected void readFrame() throws IOException {
         try {
             while (read() > 0) {
-                final DataFrame dataFrame = new DataFrame();
-                dataFrame.unframe(this);
-                dataFrame.respond(webSocket);
+                unframe().respond(webSocket);
             }
         } catch (FramingException e) {
             webSocket.close();
@@ -253,50 +261,62 @@ public class ClientNetworkHandler implements NetworkHandler {
      * @return any number > -1 means bytes were read
      * @throws IOException
      */
-    private int read() throws IOException {
-        int count = chunk.getLength();
-        if (count < 1) {
-            byte[] bytes = new byte[WebSocketEngine.INITIAL_BUFFER_SIZE];
-            while ((count = inputStream.read(bytes)) == WebSocketEngine.INITIAL_BUFFER_SIZE) {
-                chunk.append(bytes, 0, count);
+    private int read() {
+        try {
+            int count = chunk.getLength();
+            if (count < 1) {
+                byte[] bytes = new byte[WebSocketEngine.INITIAL_BUFFER_SIZE];
+                while ((count = inputStream.read(bytes)) == WebSocketEngine.INITIAL_BUFFER_SIZE) {
+                    chunk.append(bytes, 0, count);
+                }
+
+                if (count > 0) {
+                    chunk.append(bytes, 0, count);
+                }
             }
 
-            if (count > 0) {
-                chunk.append(bytes, 0, count);
+            final int length = chunk.getLength();
+
+            if (length <= 0) {
+                return count;
             }
+
+            return length;
+        } catch (IOException e) {
+            throw new WebSocketException(e.getMessage(), e);
         }
-
-        final int length = chunk.getLength();
-
-        if (length <= 0) {
-            return count;
-        }
-
-        return length;
     }
 
-    public byte get() throws IOException {
+    public byte get() {
         synchronized (chunk) {
             fill();
-            return (byte) chunk.substract();
-        }
-    }
-
-    public byte[] get(int count) throws IOException {
-        synchronized (chunk) {
-            byte[] bytes = new byte[count];
-            int total = 0;
-            while (total < count) {
-                if (chunk.getLength() < count) {
-                    read();
-                }
-                total += chunk.substract(bytes, total, count - total);
+            try {
+                return (byte) chunk.substract();
+            } catch (IOException e) {
+                throw new WebSocketException(e.getMessage(), e);
             }
-            return bytes;
         }
     }
 
-    private void fill() throws IOException {
+    public byte[] get(int count) {
+        synchronized (chunk) {
+            try {
+                byte[] bytes = new byte[count];
+                int total = 0;
+                while (total < count) {
+                    if (chunk.getLength() < count) {
+                        read();
+                    }
+                    total += chunk.substract(bytes, total, count - total);
+                }
+                return bytes;
+            } catch (IOException e) {
+                throw new WebSocketException(e.getMessage(), e);
+            }
+        }
+    }
+
+    private void fill() {
         if (chunk.getLength() == 0) {
             read();
         }

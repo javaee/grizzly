@@ -40,44 +40,36 @@
 
 package com.sun.grizzly.websockets;
 
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
 public enum FrameType {
     CONTINUATION,
     CLOSING {
         @Override
-        public byte[] frame(DataFrame dataFrame) {
-            if(!(dataFrame instanceof ClosingFrame)) {
-                throw new FramingException("Invalid frame data for closing frame");
-            }
-            ((ClosingFrame)dataFrame).getBinaryPayload();
-            return super.frame(dataFrame);
-        }
-        @Override
-        public void unframe(DataFrame dataFrame, byte[] bytes) {
-            if(!(dataFrame instanceof ClosingFrame)) {
-                throw new FramingException("Invalid frame data for closing frame");
-            }
-            ((ClosingFrame)dataFrame).unwrap(bytes);
+        public DataFrame create() {
+            return new ClosingFrame();
         }
 
         @Override
-        public void respond(WebSocket socket, DataFrame frame) throws IOException {
+        public void respond(WebSocket socket, DataFrame frame) {
             socket.onClose(frame);
         }
     },
     PING {
         @Override
-        public void respond(WebSocket socket, DataFrame frame) throws IOException {
+        public void respond(WebSocket socket, DataFrame frame) {
             socket.onPing(frame);
         }
     },
     PONG,
     TEXT {
         @Override
-        public void unframe(DataFrame frame, byte[] data) throws IOException {
-            frame.setPayload(new String(data, "UTF-8"));
+        public void unframe(DataFrame frame, byte[] data) {
+            try {
+                frame.setPayload(new String(data, "UTF-8"));
+            } catch (UnsupportedEncodingException e) {
+                throw new FramingException(e.getMessage(), e);
+            }
         }
 
         @Override
@@ -91,7 +83,7 @@ public enum FrameType {
     },
     BINARY;
 
-    public void unframe(DataFrame frame, byte[] data) throws IOException {
+    public void unframe(DataFrame frame, byte[] data) {
         frame.setPayload(data);
         frame.setType(this);
     }
@@ -100,7 +92,7 @@ public enum FrameType {
         return dataFrame.getBinaryPayload();
     }
 
-    public void respond(WebSocket socket, DataFrame frame) throws IOException {
+    public void respond(WebSocket socket, DataFrame frame) {
         socket.onMessage(frame);
     }
 
@@ -110,5 +102,11 @@ public enum FrameType {
 
     public static FrameType valueOf(byte opcodes) {
         return values()[(opcodes & 0xF)];
+    }
+
+    public DataFrame create() {
+        final DataFrame frame = new DataFrame();
+        frame.setType(this);
+        return frame;
     }
 }

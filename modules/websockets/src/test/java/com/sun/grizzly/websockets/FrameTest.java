@@ -44,7 +44,6 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Random;
 
 @Test
@@ -56,7 +55,8 @@ public class FrameTest {
         byte[] sample = {(byte) 0x84, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f};
         Assert.assertEquals(data, sample);
 
-        frame.unframe(new ArrayNetworkHandler(data));
+        final ArrayNetworkHandler handler = new ArrayNetworkHandler(data);
+        frame = handler.unframe();
         Assert.assertEquals(frame.getTextPayload(), "Hello");
     }
 
@@ -73,7 +73,8 @@ public class FrameTest {
         final byte[] data = frame.frame();
         Assert.assertEquals(data, sample);
 
-        frame.unframe(new ArrayNetworkHandler(data));
+        final ArrayNetworkHandler handler = new ArrayNetworkHandler(data);
+        frame = handler.unframe();
         Assert.assertEquals(frame.getBinaryPayload(), bytes);
     }
 
@@ -91,7 +92,8 @@ public class FrameTest {
         final byte[] data = frame.frame();
         Assert.assertEquals(data, sample);
 
-        frame.unframe(new ArrayNetworkHandler(data));
+        final ArrayNetworkHandler handler = new ArrayNetworkHandler(data);
+        frame = handler.unframe();
         Assert.assertEquals(frame.getBinaryPayload(), bytes);
     }
 
@@ -102,7 +104,8 @@ public class FrameTest {
         byte[] sample = {(byte) 0x84, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f};
         Assert.assertEquals(data, sample);
 
-        frame.unframe(new ArrayNetworkHandler(data));
+        final ArrayNetworkHandler handler = new ArrayNetworkHandler(data);
+        frame = handler.unframe();
         Assert.assertEquals(frame.getTextPayload(), "Hello");
     }
 
@@ -118,7 +121,7 @@ public class FrameTest {
     public void masking() {
         final String message = "This is a masked payload.";
         DataFrame masked = new DataFrame(message);
-        final byte[] frame = masked.frame();
+        masked.frame();
     }
 
     public void mapTypes() {
@@ -136,14 +139,7 @@ public class FrameTest {
     private void compare(final long length) {
         DataFrame frame = new DataFrame();
         byte[] bytes = frame.convert(length);
-        long value;
-        if (bytes.length == 1) {
-            value = bytes[0];
-        } else {
-            final byte[] temp = new byte[bytes.length - 1];
-            System.arraycopy(bytes, 1, temp, 0, temp.length);
-            value = frame.convert(temp);
-        }
+        long value = bytes.length == 1 ? bytes[0] : DataFrame.convert(bytes, 1, bytes.length);
         Assert.assertEquals(value, length);
     }
 
@@ -151,13 +147,14 @@ public class FrameTest {
         ClosingFrame frame = new ClosingFrame(1001, "test message");
         final byte[] bytes = frame.frame();
 
-        ClosingFrame after = new ClosingFrame();
-        after.unframe(new ArrayNetworkHandler(bytes));
+        final ArrayNetworkHandler handler = new ArrayNetworkHandler(bytes);
+        ClosingFrame after = (ClosingFrame) handler.unframe();
+
         Assert.assertEquals(after.getReason(), "test message");
         Assert.assertEquals(after.getCode(), 1001);
     }
 
-    private static class ArrayNetworkHandler implements NetworkHandler {
+    private static class ArrayNetworkHandler extends BaseNetworkHandler {
         private final byte[] data;
         int index = 0;
 
@@ -165,13 +162,13 @@ public class FrameTest {
             this.data = data;
         }
 
-        public void send(DataFrame frame) throws IOException {
+        public void send(DataFrame frame) {
         }
 
         public void setWebSocket(WebSocket webSocket) {
         }
 
-        public byte get() throws IOException {
+        public byte get() {
             return (byte) (index < data.length ? data[index++] & 0xFF : -1);
         }
 

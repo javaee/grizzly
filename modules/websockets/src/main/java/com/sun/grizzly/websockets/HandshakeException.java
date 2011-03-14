@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,6 +40,8 @@
 
 package com.sun.grizzly.websockets;
 
+import java.io.IOException;
+
 /**
  * {@link Exception}, which describes the error, occurred during the {@link WebSocket}
  * handshake phase.
@@ -67,6 +69,11 @@ public class HandshakeException extends RuntimeException {
     public HandshakeException(int code, String message) {
         super(message);
         this.code = code;
+    }
+
+    public HandshakeException(String message, IOException e) {
+        super(message, e);
+        code = 404;
     }
 
     /**

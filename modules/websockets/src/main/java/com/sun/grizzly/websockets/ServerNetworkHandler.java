@@ -58,7 +58,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-public class ServerNetworkHandler implements NetworkHandler {
+public class ServerNetworkHandler extends BaseNetworkHandler {
     private final Request request;
     private final Response response;
     private final InternalInputBuffer inputBuffer;
@@ -89,7 +89,7 @@ public class ServerNetworkHandler implements NetworkHandler {
         socket = webSocket;
     }
 
-    protected void handshake(final boolean sslSupport) throws IOException, HandshakeException {
+    protected void handshake(final boolean sslSupport) throws HandshakeException {
         final boolean secure = "https".equalsIgnoreCase(request.scheme().toString()) || sslSupport;
 
         final ServerHandShake server = new ServerHandShake(request, secure, chunk);
@@ -100,15 +100,14 @@ public class ServerNetworkHandler implements NetworkHandler {
         }
     }
 
-    protected void readFrame() throws IOException {
+    protected void readFrame() {
         fill();
         while (socket.isConnected() && chunk.getLength() != 0) {
-            final DataFrame dataFrame = new DataFrame();
             try {
                 setMask(getUnmasked(WebSocketEngine.MASK_SIZE));
-                dataFrame.unframe(this);
-                dataFrame.respond(getWebSocket());
+                unframe().respond(getWebSocket());
             } catch(FramingException fe) {
+                fe.printStackTrace();
                 socket.close();
             }
         }
@@ -119,70 +118,94 @@ public class ServerNetworkHandler implements NetworkHandler {
         this.mask = mask;
     }
 
-    protected void read() throws IOException {
-        ByteChunk bytes = new ByteChunk(WebSocketEngine.INITIAL_BUFFER_SIZE);
-        int count = WebSocketEngine.INITIAL_BUFFER_SIZE;
-        while (count == WebSocketEngine.INITIAL_BUFFER_SIZE) {
-            count = inputBuffer.doRead(bytes, request);
-            chunk.append(bytes);
+    protected void read() {
+        try {
+            ByteChunk bytes = new ByteChunk(WebSocketEngine.INITIAL_BUFFER_SIZE);
+            int count = WebSocketEngine.INITIAL_BUFFER_SIZE;
+            while (count == WebSocketEngine.INITIAL_BUFFER_SIZE) {
+                count = inputBuffer.doRead(bytes, request);
+                chunk.append(bytes);
+            }
+        } catch (IOException e) {
+            throw new WebSocketException(e.getMessage(), e);
         }
     }
 
-    public byte get() throws IOException {
+    @Override
+    public byte get() {
         synchronized (chunk) {
             fill();
-            return (byte) (chunk.substract() ^ mask[maskIndex++ % WebSocketEngine.MASK_SIZE]);
+            try {
+                return (byte) (chunk.substract() ^ mask[maskIndex++ % WebSocketEngine.MASK_SIZE]);
+            } catch (IOException e) {
+                throw new WebSocketException(e.getMessage(), e);
+            }
         }
     }
 
-    public byte[] get(int count) throws IOException {
+    @Override
+    public byte[] get(int count)  {
         synchronized (chunk) {
-            byte[] bytes = new byte[count];
-            int total = 0;
-            while(total < count) {
-                if(chunk.getLength() < count) {
-                    read();
+            try {
+                byte[] bytes = new byte[count];
+                int total = 0;
+                while(total < count) {
+                    if(chunk.getLength() < count) {
+                        read();
+                    }
+                    total += chunk.substract(bytes, total, count - total);
                 }
-                total += chunk.substract(bytes, total, count - total);
+                for (int i = 0; i < bytes.length; i++) {
+                    bytes[i] = (byte) (bytes[i] ^ mask[maskIndex++ % WebSocketEngine.MASK_SIZE]);
+                }
+                return bytes;
+            } catch (IOException e) {
+                throw new WebSocketException(e.getMessage(), e);
             }
-            for (int i = 0; i < bytes.length; i++) {
-                bytes[i] = (byte) (bytes[i] ^ mask[maskIndex++ % WebSocketEngine.MASK_SIZE]);
-            }
-            return bytes;
         }
     }
     
-    private byte[] getUnmasked(int count) throws IOException {
+    private byte[] getUnmasked(int count) {
         synchronized (chunk) {
-            byte[] bytes = new byte[count];
-            fill();
-            int total = 0;
-            while(total < count) {
-                if(chunk.getLength() < count) {
-                    read();
+            try {
+                byte[] bytes = new byte[count];
+                fill();
+                int total = 0;
+                while(total < count) {
+                    if(chunk.getLength() < count) {
+                        read();
+                    }
+                    total += chunk.substract(bytes, total, count - total);
                 }
-                total += chunk.substract(bytes, total, count - total);
+                return bytes;
+            } catch (IOException e) {
+                throw new WebSocketException(e.getMessage(), e);
             }
-            return bytes;
         }
     }
 
-    private void fill() throws IOException {
+    private void fill() {
         if (chunk.getLength() == 0) {
             read();
         }
     }
 
-    private void write(byte[] bytes) throws IOException {
+    private void write(byte[] bytes) {
         synchronized (outputBuffer) {
-            ByteChunk buffer = new ByteChunk();
-            buffer.setBytes(bytes, 0, bytes.length);
-            outputBuffer.doWrite(buffer, response);
-            outputBuffer.flush();
+            try {
+                ByteChunk buffer = new ByteChunk();
+                buffer.setBytes(bytes, 0, bytes.length);
+                outputBuffer.doWrite(buffer, response);
+                outputBuffer.flush();
+            } catch (IOException e) {
+                if(getWebSocket().isConnected()) {
+                    throw new WebSocketException(e.getMessage(), e);
+                }
+            }
         }
     }
 
-    public void send(DataFrame frame) throws IOException {
+    public void send(DataFrame frame) {
         write(frame.frame());
     }
 

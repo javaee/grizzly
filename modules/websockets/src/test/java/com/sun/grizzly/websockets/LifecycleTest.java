@@ -74,7 +74,7 @@ public class LifecycleTest {
             Assert.assertEquals(serverApp.getWebSockets().size(), 1, "There should be 1 client connected");
 
             client.close();
-            client.waitForClosed();
+            Assert.assertTrue(client.waitForClosed());
             closeLatch.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS);
 
             Assert.assertEquals(serverApp.getWebSockets().size(), 0, "There should be 0 clients connected");
@@ -129,7 +129,7 @@ public class LifecycleTest {
             }
 
             @Override
-            public void onClose(WebSocket socket) throws IOException {
+            public void onClose(WebSocket socket) {
                 super.onClose(socket);
                 closeLatch.countDown();
             }
@@ -142,7 +142,7 @@ public class LifecycleTest {
         final CountDownLatch close = new CountDownLatch(1);
         final EchoWebSocketApplication app = new EchoWebSocketApplication() {
             @Override
-            public void onClose(WebSocket socket) throws IOException {
+            public void onClose(WebSocket socket) {
                 super.onClose(socket);
                 close.countDown();
             }
@@ -154,7 +154,7 @@ public class LifecycleTest {
 
         try {
             cleanDisconnect(app);
-//            dirtyDisconnect(app);
+            dirtyDisconnect(app);
         } finally {
             thread.stopEndpoint();
             WebSocketEngine.getEngine().unregister(app);
@@ -205,7 +205,7 @@ public class LifecycleTest {
         return client;
     }
 
-    private void checkSend(BadWebSocketClient client) throws IOException, InterruptedException {
+    private void checkSend(BadWebSocketClient client) throws InterruptedException {
         client.send("message");
         Assert.assertTrue(client.waitForMessage(), "Message should come back");
     }
@@ -223,19 +223,19 @@ public class LifecycleTest {
         }
 
         @Override
-        public void send(String data) throws IOException {
+        public void send(String data) {
             messages = new CountDownLatch(1);
             super.send(data);
         }
 
         @Override
-        public void onClose(DataFrame frame) throws IOException {
+        public void onClose(DataFrame frame) {
             super.onClose(frame);
             closed.countDown();
         }
 
         @Override
-        public void onMessage(DataFrame frame) throws IOException {
+        public void onMessage(DataFrame frame) {
             super.onMessage(frame);
             messages.countDown();
         }

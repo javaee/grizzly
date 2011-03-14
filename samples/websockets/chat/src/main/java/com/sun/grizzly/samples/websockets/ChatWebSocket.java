@@ -41,10 +41,7 @@
 package com.sun.grizzly.samples.websockets;
 
 import com.sun.grizzly.websockets.BaseServerWebSocket;
-import com.sun.grizzly.websockets.NetworkHandler;
 import com.sun.grizzly.websockets.WebSocketListener;
-
-import java.io.IOException;
 
 public class ChatWebSocket extends BaseServerWebSocket {
     private String user;
@@ -62,7 +59,7 @@ public class ChatWebSocket extends BaseServerWebSocket {
     }
 
     @Override
-    public void send(String data) throws IOException {
+    public void send(String data) {
         super.send( toJsonp(getUser(), data) );
     }
 

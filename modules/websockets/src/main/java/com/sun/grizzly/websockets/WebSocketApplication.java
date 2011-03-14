@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,7 +42,6 @@ package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.tcp.Request;
 
-import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -67,12 +66,12 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
         return sockets.remove(socket) != null;
     }
 
-    public WebSocket createSocket(WebSocketListener... listeners) throws IOException {
+    public WebSocket createSocket(WebSocketListener... listeners) {
         return new BaseServerWebSocket(listeners);
     }
 
     @Override
-    public void onClose(WebSocket socket) throws IOException {
+    public void onClose(WebSocket socket) {
         remove(socket);
         socket.close();
     }

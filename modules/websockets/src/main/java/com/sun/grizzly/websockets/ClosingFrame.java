@@ -41,9 +41,9 @@
 package com.sun.grizzly.websockets;
 
 import java.io.UnsupportedEncodingException;
-import java.util.Arrays;
 
 public class ClosingFrame extends DataFrame {
+    public static final byte[] EMPTY_BYTES = new byte[0];
     private int code;
     private String reason;
 
@@ -66,11 +66,10 @@ public class ClosingFrame extends DataFrame {
         return reason;
     }
 
-    public void unwrap(byte[] bytes) {
+    @Override
+    public void setPayload(byte[] bytes) {
         if (bytes.length > 0) {
-            final byte[] temp = new byte[2];
-            System.arraycopy(bytes, 0, temp, 0, 2);
-            code = (int) convert(temp);
+            code = (int) convert(bytes, 0, 2);
             if (bytes.length > 2) {
                 try {
                     reason = new String(bytes, 2, bytes.length - 2, "UTF-8");
@@ -85,11 +84,11 @@ public class ClosingFrame extends DataFrame {
     public byte[] getBinaryPayload() {
         try {
             if (code == -1) {
-                return new byte[0];
+                return EMPTY_BYTES;
             }
 
             final byte[] bytes = toArray(code);
-            final byte[] reasonBytes = reason.getBytes("UTF-8");
+            final byte[] reasonBytes = reason == null ? EMPTY_BYTES : reason.getBytes("UTF-8");
             final byte[] frameBytes = new byte[2 + reasonBytes.length];
             System.arraycopy(bytes, bytes.length - 2, frameBytes, 0, 2);
             System.arraycopy(reasonBytes, 0, frameBytes, 2, reasonBytes.length);

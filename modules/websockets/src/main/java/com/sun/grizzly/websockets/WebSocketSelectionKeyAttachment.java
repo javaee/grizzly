@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,7 +44,6 @@ import com.sun.grizzly.arp.AsyncProcessorTask;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.util.SelectedKeyAttachmentLogic;
 
-import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.util.logging.Level;
 
@@ -57,7 +56,6 @@ public class WebSocketSelectionKeyAttachment extends SelectedKeyAttachmentLogic 
         handler = snh;
         processorTask = task;
         asyncProcessorTask = asyncTask;
-        final SelectionKey selectionKey = asyncProcessorTask.getAsyncExecutor().getProcessorTask().getSelectionKey();
     }
 
     @Override
@@ -79,7 +77,7 @@ public class WebSocketSelectionKeyAttachment extends SelectedKeyAttachmentLogic 
         try {
             handler.readFrame();
             enableRead();
-        } catch (IOException e) {
+        } catch (WebSocketException e) {
             processorTask.setAptCancelKey(true);
             processorTask.terminateProcess();
             WebSocketEngine.logger.log(Level.INFO, e.getMessage(), e);

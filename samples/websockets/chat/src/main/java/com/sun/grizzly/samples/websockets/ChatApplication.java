@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,12 +42,10 @@ package com.sun.grizzly.samples.websockets;
 
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.websockets.DataFrame;
-import com.sun.grizzly.websockets.NetworkHandler;
 import com.sun.grizzly.websockets.WebSocket;
 import com.sun.grizzly.websockets.WebSocketApplication;
+import com.sun.grizzly.websockets.WebSocketException;
 import com.sun.grizzly.websockets.WebSocketListener;
-
-import java.io.IOException;
 
 public class ChatApplication extends WebSocketApplication {
     @Override
@@ -57,11 +55,11 @@ public class ChatApplication extends WebSocketApplication {
     }
 
     @Override
-    public WebSocket createSocket(WebSocketListener[] listeners) throws IOException {
+    public WebSocket createSocket(WebSocketListener[] listeners) {
         return new ChatWebSocket(listeners);
     }
 
-    public void onMessage(WebSocket socket, DataFrame frame) throws IOException {
+    public void onMessage(WebSocket socket, DataFrame frame) {
         final String data = frame.getTextPayload();
         if (data.startsWith("login:")) {
             login((ChatWebSocket) socket, frame);
@@ -70,12 +68,12 @@ public class ChatApplication extends WebSocketApplication {
         }
     }
 
-    private void broadcast(String text) throws IOException {
+    private void broadcast(String text) {
         WebSocketsServlet.logger.info("Broadcasting : " + text);
         for (WebSocket webSocket : getWebSockets()) {
             try {
                 webSocket.send(text);
-            } catch (IOException e) {
+            } catch (WebSocketException e) {
                 e.printStackTrace();
                 WebSocketsServlet.logger.info("Removing chat client: " + e.getMessage());
                 webSocket.close();
@@ -84,7 +82,7 @@ public class ChatApplication extends WebSocketApplication {
 
     }
 
-    private void login(ChatWebSocket socket, DataFrame frame) throws IOException {
+    private void login(ChatWebSocket socket, DataFrame frame) {
         if (socket.getUser() == null) {
             WebSocketsServlet.logger.info("ChatApplication.login");
             socket.setUser(frame.getTextPayload().split(":")[1].trim());

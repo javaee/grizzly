@@ -40,13 +40,10 @@
 
 package com.sun.grizzly.websockets;
 
-import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @SuppressWarnings({"StringContatenationInLoop"})
@@ -55,7 +52,6 @@ public class BaseWebSocket implements WebSocket {
     protected static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     private final List<WebSocketListener> listeners = new ArrayList<WebSocketListener>();
     private final AtomicBoolean connected = new AtomicBoolean(false);
-    private final SecureRandom random = new SecureRandom();
 
     public BaseWebSocket(WebSocketListener... listeners) {
         for (WebSocketListener listener : listeners) {
@@ -84,42 +80,26 @@ public class BaseWebSocket implements WebSocket {
         return listeners.add(listener);
     }
 
-    public void close() throws IOException {
+    public void close() {
         close(-1, null);
     }
 
-    public void close(int code) throws IOException {
+    public void close(int code) {
         close(code, null);
     }
 
-    public void close(int code, String reason) throws IOException {
+    public void close(int code, String reason) {
         if (connected.compareAndSet(true, false)) {
-            try {
-                networkHandler.send(new ClosingFrame(code, reason));
-            } catch (IOException ignored) {
-                logger.log(Level.SEVERE, ignored.getMessage(), ignored);
-            }
+            networkHandler.send(new ClosingFrame(code, reason));
         }
     }
 
-    public byte[] generateMask() {
-        byte[] bytes = new byte[WebSocketEngine.MASK_SIZE];
-        synchronized (random) {
-            random.nextBytes(bytes);
-        }
-        return bytes;
-    }
-
-    public void onClose(DataFrame frame) throws IOException {
+    public void onClose(DataFrame frame) {
         close(NORMAL_CLOSURE);
         onClose();
     }
 
-    public void onPing(DataFrame frame) throws IOException {
-        networkHandler.send(new DataFrame(FrameType.PONG, frame.getBinaryPayload()));
-    }
-
-    private void onClose() throws IOException {
+    private void onClose() {
         final Iterator<WebSocketListener> it = listeners.iterator();
         while (it.hasNext()) {
             final WebSocketListener listener = it.next();
@@ -128,11 +108,19 @@ public class BaseWebSocket implements WebSocket {
         }
     }
 
+    public void onPing(DataFrame frame) {
+        if (connected.get()) {
+            networkHandler.send(new DataFrame(FrameType.PONG, frame.getBinaryPayload()));
+        } else {
+            throw new RuntimeException("Socket is already closed.");
+        }
+    }
+
     public final boolean remove(WebSocketListener listener) {
         return listeners.remove(listener);
     }
 
-    public void send(String data) throws IOException {
+    public void send(String data) {
         if (connected.get()) {
             networkHandler.send(new DataFrame(data));
         } else {
@@ -140,18 +128,22 @@ public class BaseWebSocket implements WebSocket {
         }
     }
 
-    public void send(final byte[] data) throws IOException {
-        networkHandler.send(new DataFrame(data));
+    public void send(final byte[] data) {
+        if (connected.get()) {
+            networkHandler.send(new DataFrame(data));
+        } else {
+            throw new RuntimeException("Socket is already closed.");
+        }
     }
 
-    public void onConnect() throws IOException {
+    public void onConnect() {
         for (WebSocketListener listener : listeners) {
             listener.onConnect(this);
         }
         connected.compareAndSet(false, true);
     }
 
-    public void onMessage(DataFrame frame) throws IOException {
+    public void onMessage(DataFrame frame) {
         for (WebSocketListener listener : listeners) {
             listener.onMessage(this, frame);
         }

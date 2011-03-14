@@ -40,15 +40,13 @@
 
 package com.sun.grizzly.websockets;
 
-import java.io.IOException;
-
-public abstract class WebSocketAdapter implements WebSocketListener {
-    public void onClose(WebSocket socket) throws IOException {
+public class WebSocketAdapter implements WebSocketListener {
+    public void onClose(WebSocket socket) {
     }
 
-    public void onConnect(WebSocket socket) throws IOException {
+    public void onConnect(WebSocket socket) {
     }
 
-    public void onMessage(WebSocket socket, DataFrame frame) throws IOException {
+    public void onMessage(WebSocket socket, DataFrame frame) {
     }
 }
