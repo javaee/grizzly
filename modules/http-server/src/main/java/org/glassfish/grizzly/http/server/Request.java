@@ -110,9 +110,6 @@ import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.FastHttpDateFormat;
 import org.glassfish.grizzly.http.util.Parameters;
 import org.glassfish.grizzly.http.util.StringManager;
-import org.glassfish.grizzly.ssl.SSLFilter;
-import org.glassfish.grizzly.ssl.SSLSupport;
-import org.glassfish.grizzly.ssl.SSLSupportImpl;
 
 /**
  * Wrapper object for the Coyote request.
