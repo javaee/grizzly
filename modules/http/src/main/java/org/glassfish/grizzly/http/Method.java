@@ -103,4 +103,9 @@ public final class Method {
     public byte[] getMethodBytes() {
         return methodBytes;
     }
+
+    @Override
+    public String toString() {
+        return methodString;
+    }
 }

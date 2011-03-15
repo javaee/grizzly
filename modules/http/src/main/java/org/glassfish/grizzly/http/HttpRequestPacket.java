@@ -630,7 +630,7 @@ public abstract class HttpRequestPacket extends HttpHeader {
         sb.append("HttpRequestPacket (\n   method=").append(getMethod())
                 .append("\n   url=").append(getRequestURI())
                 .append("\n   query=").append(getQueryString())
-                .append("\n   protocol=").append(getProtocol())
+                .append("\n   protocol=").append(getProtocol().getProtocolString())
                 .append("\n   content-length=").append(getContentLength())
                 .append("\n   headers=[");
         final MimeHeaders headersLocal = getHeaders();
