@@ -220,8 +220,14 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
                 httpPacket.getContentParsingState();
 
         final HttpCodecFilter filter = headerParsingState.codecFilter;
-        return filter.parseHeaders(httpHeader, contentParsingState.trailerHeaders,
-                headerParsingState, input);
+        final boolean result = filter.parseHeaders(httpHeader,
+                                                   contentParsingState.trailerHeaders,
+                                                   headerParsingState,
+                                                   input);
+        if (contentParsingState.trailerHeaders.size() > 0) {
+            filter.onHttpHeadersParsed(httpHeader);
+        }
+        return result;
     }
 
     private static boolean parseHttpChunkLength(HttpPacketParsing httpPacket,

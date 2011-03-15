@@ -524,7 +524,6 @@ public abstract class HttpCodecFilter extends BaseFilter
             final Buffer input) {
 
         final HeaderParsingState parsingState = httpPacket.getHeaderParsingState();
-
         switch (parsingState.state) {
             case 0: { // parsing initial line
                 if (!decodeInitialLine(httpPacket, parsingState, input)) {
@@ -546,6 +545,9 @@ public abstract class HttpCodecFilter extends BaseFilter
             }
 
             case 2: { // Headers are ready
+                if (httpPacket.getHeaders().size() > 0) {
+                    onHttpHeadersParsed((HttpHeader) httpPacket);
+                }
                 input.position(parsingState.offset);
                 return true;
             }
@@ -742,14 +744,10 @@ public abstract class HttpCodecFilter extends BaseFilter
                                    final MimeHeaders mimeHeaders,
                                    final HeaderParsingState parsingState,
                                    final Buffer input) {
-        final int headerCount = mimeHeaders.size();
         do {
             if (parsingState.subState == 0) {
                 final int eol = checkEOL(parsingState, input);
                 if (eol == 0) { // EOL
-                    if (mimeHeaders.size() > headerCount) {
-                        onHttpHeadersParsed(httpHeader);
-                    }
                     return true;
                 } else if (eol == -2) { // not enough data
                     return false;
