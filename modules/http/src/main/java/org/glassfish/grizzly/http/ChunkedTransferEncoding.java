@@ -142,7 +142,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
             }
 
             // Check if trailer is present
-            if (!parseLastChunkTrailer(httpPacketParsing, input)) {
+            if (!parseLastChunkTrailer(httpPacket, httpPacketParsing, input)) {
                 // if yes - and there is not enough input data - stop the
                 // filterchain processing
                 return ParsingResult.create(null, input);
@@ -211,14 +211,16 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
         headerParsingState.packetLimit = start + maxHeadersSize;
     }
 
-    private static boolean parseLastChunkTrailer(HttpPacketParsing httpPacket,
-            Buffer input) {
+    private boolean parseLastChunkTrailer(HttpHeader httpHeader,
+                                          HttpPacketParsing httpPacket,
+                                          Buffer input) {
         final HeaderParsingState headerParsingState =
                 httpPacket.getHeaderParsingState();
         final ContentParsingState contentParsingState =
                 httpPacket.getContentParsingState();
 
-        return HttpCodecFilter.parseHeaders(null, contentParsingState.trailerHeaders,
+        final HttpCodecFilter filter = headerParsingState.codecFilter;
+        return filter.parseHeaders(httpHeader, contentParsingState.trailerHeaders,
                 headerParsingState, input);
     }
 

@@ -71,8 +71,10 @@ class HttpResponsePacketImpl extends HttpResponsePacket implements HttpPacketPar
         this.contentParsingState = new HttpCodecFilter.ContentParsingState();
     }
 
-    public void initialize(int initialOffset, int maxHeaderSize) {
-        headerParsingState.initialize(initialOffset, maxHeaderSize);
+    public void initialize(final HttpCodecFilter filter,
+                           final int initialOffset,
+                           final int maxHeaderSize) {
+        headerParsingState.initialize(filter, initialOffset, maxHeaderSize);
     }
     
     @Override
