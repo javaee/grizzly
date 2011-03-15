@@ -75,9 +75,11 @@ class HttpRequestPacketImpl extends HttpRequestPacket implements HttpPacketParsi
         isExpectContent = true;
     }
 
-    public void initialize(Connection connection, int initialOffset,
-            int maxHeaderSize) {
-        headerParsingState.initialize(initialOffset, maxHeaderSize);
+    public void initialize(final Connection connection,
+                           final HttpCodecFilter filter,
+                           final int initialOffset,
+                           final int maxHeaderSize) {
+        headerParsingState.initialize(filter, initialOffset, maxHeaderSize);
         setConnection(connection);
     }
 

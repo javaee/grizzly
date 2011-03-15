@@ -120,7 +120,8 @@ public abstract class HttpCodecFilter extends BaseFilter
      * or <tt>false</tt> otherwise.
      */
     abstract boolean decodeInitialLine(HttpPacketParsing httpPacket,
-            HeaderParsingState parsingState, Buffer input);
+                                       HeaderParsingState parsingState,
+                                       Buffer input);
 
     /**
      * Method is responsible for serializing initial line of HTTP message (different
@@ -144,7 +145,7 @@ public abstract class HttpCodecFilter extends BaseFilter
      *  the header portion of the HTTP request, otherwise returns
      *  <code>false</code>.s
      */
-    abstract boolean onHttpPacketParsed(HttpHeader httpHeader, FilterChainContext ctx);
+    protected abstract boolean onHttpPacketParsed(HttpHeader httpHeader, FilterChainContext ctx);
 
 
     /**
@@ -158,10 +159,33 @@ public abstract class HttpCodecFilter extends BaseFilter
      *  the header portion of the HTTP request, otherwise returns
      *  <code>false</code>.
      */
-    abstract boolean onHttpHeaderParsed(HttpHeader httpHeader, Buffer buffer,
-            FilterChainContext ctx);
+    protected abstract boolean onHttpHeaderParsed(HttpHeader httpHeader,
+                                                  Buffer buffer,
+                                                  FilterChainContext ctx);
 
-    
+
+    /**
+     * <p>
+     * Invoked when either the request line or status line has been parsed.
+     *
+     * </p>
+     * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
+     */
+    protected abstract void onInitialLineParsed(final HttpHeader httpHeader);
+
+
+    /**
+     * <p>
+     * Invoked when all headers of the packet have been parsed.  Depending on the
+     * transfer encoding being used by the current request, this method may be
+     * invoked multiple times.
+     * </p>
+     *
+     * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
+     */
+    protected abstract void onHttpHeadersParsed(final HttpHeader httpHeader);
+
+
     /**
      * <p>
      * Callback which is invoked when parsing an HTTP message fails.
@@ -172,8 +196,8 @@ public abstract class HttpCodecFilter extends BaseFilter
      * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
      * @param ctx the {@link FilterChainContext} processing this request
      */
-    abstract protected void onHttpError(HttpHeader httpHeader,
-            FilterChainContext ctx) throws IOException;
+    protected abstract void onHttpError(HttpHeader httpHeader,
+                                        FilterChainContext ctx) throws IOException;
 
     /**
      * Constructor, which creates <tt>HttpCodecFilter</tt> instance, with the specific
@@ -714,14 +738,18 @@ public abstract class HttpCodecFilter extends BaseFilter
         return buffer;
     }
     
-    protected static boolean parseHeaders(final HttpHeader httpHeader,
-            final MimeHeaders mimeHeaders, final HeaderParsingState parsingState,
-            final Buffer input) {
-        
+    protected boolean parseHeaders(final HttpHeader httpHeader,
+                                   final MimeHeaders mimeHeaders,
+                                   final HeaderParsingState parsingState,
+                                   final Buffer input) {
+        final int headerCount = mimeHeaders.size();
         do {
             if (parsingState.subState == 0) {
                 final int eol = checkEOL(parsingState, input);
                 if (eol == 0) { // EOL
+                    if (mimeHeaders.size() > headerCount) {
+                        onHttpHeadersParsed(httpHeader);
+                    }
                     return true;
                 } else if (eol == -2) { // not enough data
                     return false;
@@ -1329,6 +1357,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         public int checkpoint2 = -1; // extra parsing state field
 
         public DataChunk headerValueStorage;
+        public HttpCodecFilter codecFilter;
 
         public long parsingNumericValue;
 
@@ -1338,7 +1367,10 @@ public abstract class HttpCodecFilter extends BaseFilter
         public boolean isUpgradeHeader;
         public boolean isExpect100Header;
 
-        public void initialize(final int initialOffset, final int maxHeaderSize) {
+        public void initialize(final HttpCodecFilter codecFilter,
+                               final int initialOffset,
+                               final int maxHeaderSize) {
+            this.codecFilter = codecFilter;
             offset = initialOffset;
             packetLimit = offset + maxHeaderSize;
         }

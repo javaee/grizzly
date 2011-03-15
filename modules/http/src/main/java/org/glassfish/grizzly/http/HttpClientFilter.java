@@ -115,7 +115,7 @@ public class HttpClientFilter extends HttpCodecFilter {
         HttpResponsePacketImpl httpResponse = httpResponseInProcessAttr.get(connection);
         if (httpResponse == null) {
             httpResponse = HttpResponsePacketImpl.create();
-            httpResponse.initialize(input.position(), maxHeadersSize);
+            httpResponse.initialize(this, input.position(), maxHeadersSize);
             httpResponse.setSecure(isSecure(connection));
             httpResponseInProcessAttr.set(connection, httpResponse);
         }
@@ -124,13 +124,13 @@ public class HttpClientFilter extends HttpCodecFilter {
     }
     
     @Override
-    final boolean onHttpPacketParsed(HttpHeader httpHeader, FilterChainContext ctx) {
+    protected boolean onHttpPacketParsed(HttpHeader httpHeader, FilterChainContext ctx) {
         httpResponseInProcessAttr.remove(ctx.getConnection());
         return false;
     }
 
     @Override
-    boolean onHttpHeaderParsed(final HttpHeader httpHeader, final Buffer buffer,
+    protected boolean onHttpHeaderParsed(final HttpHeader httpHeader, final Buffer buffer,
             final FilterChainContext ctx) {
         final HttpResponsePacketImpl response = (HttpResponsePacketImpl) httpHeader;
         final int statusCode = response.getStatus();
@@ -151,8 +151,19 @@ public class HttpClientFilter extends HttpCodecFilter {
     }
 
     @Override
-    final boolean decodeInitialLine(HttpPacketParsing httpPacket,
-            HeaderParsingState parsingState, Buffer input) {
+    protected void onInitialLineParsed(HttpHeader httpHeader) {
+        // no-op
+    }
+
+    @Override
+    protected void onHttpHeadersParsed(HttpHeader httpHeader) {
+        // no-op
+    }
+
+    @Override
+    final boolean decodeInitialLine(final HttpPacketParsing httpPacket,
+                                    final HeaderParsingState parsingState,
+                                    final Buffer input) {
 
         final HttpResponsePacket httpResponse = (HttpResponsePacket) httpPacket;
         
@@ -236,7 +247,7 @@ public class HttpClientFilter extends HttpCodecFilter {
                     parsingState.subState = 0;
                     parsingState.start = -1;
                     parsingState.checkpoint = -1;
-
+                    onInitialLineParsed(httpResponse);
                     return true;
                 }
 

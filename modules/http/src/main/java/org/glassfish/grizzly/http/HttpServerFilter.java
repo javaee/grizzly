@@ -197,7 +197,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         if (httpRequest == null) {
             final boolean isSecureLocal = isSecure(connection);
             httpRequest = HttpRequestPacketImpl.create();
-            httpRequest.initialize(connection, input.position(), maxHeadersSize);
+            httpRequest.initialize(connection, this, input.position(), maxHeadersSize);
             httpRequest.setSecure(isSecureLocal);
             final HttpResponsePacketImpl response = HttpResponsePacketImpl.create();
             response.setUpgrade(httpRequest.getUpgrade());
@@ -275,8 +275,9 @@ public class HttpServerFilter extends HttpCodecFilter {
 
 
     @Override
-    boolean onHttpHeaderParsed(final HttpHeader httpHeader, final Buffer buffer,
-            final FilterChainContext ctx) {
+    protected boolean onHttpHeaderParsed(final HttpHeader httpHeader,
+                                         final Buffer buffer,
+                                         final FilterChainContext ctx) {
 
         final HttpRequestPacketImpl request = (HttpRequestPacketImpl) httpHeader;
 
@@ -289,7 +290,7 @@ public class HttpServerFilter extends HttpCodecFilter {
     }
 
     @Override
-    final boolean onHttpPacketParsed(final HttpHeader httpHeader,
+    protected final boolean onHttpPacketParsed(final HttpHeader httpHeader,
             final FilterChainContext ctx) {
         final HttpRequestPacketImpl request = (HttpRequestPacketImpl) httpHeader;
 
@@ -298,6 +299,16 @@ public class HttpServerFilter extends HttpCodecFilter {
             httpRequestInProcessAttr.remove(ctx.getConnection());
         }
         return error;
+    }
+
+    @Override
+    protected void onInitialLineParsed(HttpHeader httpHeader) {
+        // no-op
+    }
+
+    @Override
+    protected void onHttpHeadersParsed(HttpHeader httpHeader) {
+        // no-op
     }
 
     @Override
@@ -342,8 +353,9 @@ public class HttpServerFilter extends HttpCodecFilter {
     }
 
     @Override
-    final boolean decodeInitialLine(HttpPacketParsing httpPacket,
-            HeaderParsingState parsingState, Buffer input) {
+    final boolean decodeInitialLine(final HttpPacketParsing httpPacket,
+                                    final HeaderParsingState parsingState,
+                                    final Buffer input) {
 
         final HttpRequestPacketImpl httpRequest = (HttpRequestPacketImpl) httpPacket;
 
@@ -420,7 +432,7 @@ public class HttpServerFilter extends HttpCodecFilter {
                     parsingState.subState = 0;
                     parsingState.start = -1;
                     parsingState.checkpoint = -1;
-
+                    onInitialLineParsed(httpRequest);
                     return true;
                 }
 
