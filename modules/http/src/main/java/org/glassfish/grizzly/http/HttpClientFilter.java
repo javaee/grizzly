@@ -151,17 +151,20 @@ public class HttpClientFilter extends HttpCodecFilter {
     }
 
     @Override
-    protected void onInitialLineParsed(HttpHeader httpHeader) {
+    protected void onInitialLineParsed(final HttpHeader httpHeader,
+                                       final FilterChainContext ctx) {
         // no-op
     }
 
     @Override
-    protected void onHttpHeadersParsed(HttpHeader httpHeader) {
+    protected void onHttpHeadersParsed(final HttpHeader httpHeader,
+                                       final FilterChainContext ctx) {
         // no-op
     }
 
     @Override
-    final boolean decodeInitialLine(final HttpPacketParsing httpPacket,
+    final boolean decodeInitialLine(final FilterChainContext ctx,
+                                    final HttpPacketParsing httpPacket,
                                     final HeaderParsingState parsingState,
                                     final Buffer input) {
 
@@ -247,7 +250,7 @@ public class HttpClientFilter extends HttpCodecFilter {
                     parsingState.subState = 0;
                     parsingState.start = -1;
                     parsingState.checkpoint = -1;
-                    onInitialLineParsed(httpResponse);
+                    onInitialLineParsed(httpResponse, ctx);
                     return true;
                 }
 

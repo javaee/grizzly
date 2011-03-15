@@ -302,12 +302,14 @@ public class HttpServerFilter extends HttpCodecFilter {
     }
 
     @Override
-    protected void onInitialLineParsed(HttpHeader httpHeader) {
+    protected void onInitialLineParsed(final HttpHeader httpHeader,
+                                       final FilterChainContext ctx) {
         // no-op
     }
 
     @Override
-    protected void onHttpHeadersParsed(HttpHeader httpHeader) {
+    protected void onHttpHeadersParsed(final HttpHeader httpHeader,
+                                       final FilterChainContext ctx) {
         // no-op
     }
 
@@ -326,13 +328,13 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         // commit the response
         final HttpContent errorHttpResponse = customizeErrorResponse(response);
-        final Buffer resBuf = encodeHttpPacket(ctx.getConnection(), errorHttpResponse);
+        final Buffer resBuf = encodeHttpPacket(ctx, errorHttpResponse);
         ctx.write(resBuf);
         ctx.flush(FLUSH_AND_CLOSE_HANDLER);
     }
 
     @Override
-    protected Buffer encodeHttpPacket(final Connection connection,
+    protected Buffer encodeHttpPacket(final FilterChainContext ctx,
             final HttpPacket input) {
         final HttpHeader header;
         if (input.isHeader()) {
@@ -345,7 +347,7 @@ public class HttpServerFilter extends HttpCodecFilter {
             prepareResponse(response.getRequest(), response);
         }
 
-        final Buffer encoded = super.encodeHttpPacket(connection, input);
+        final Buffer encoded = super.encodeHttpPacket(ctx, input);
         if (HttpContent.isContent(input)) {
             input.recycle();
         }
@@ -353,7 +355,8 @@ public class HttpServerFilter extends HttpCodecFilter {
     }
 
     @Override
-    final boolean decodeInitialLine(final HttpPacketParsing httpPacket,
+    final boolean decodeInitialLine(final FilterChainContext ctx,
+                                    final HttpPacketParsing httpPacket,
                                     final HeaderParsingState parsingState,
                                     final Buffer input) {
 
@@ -432,7 +435,7 @@ public class HttpServerFilter extends HttpCodecFilter {
                     parsingState.subState = 0;
                     parsingState.start = -1;
                     parsingState.checkpoint = -1;
-                    onInitialLineParsed(httpRequest);
+                    onInitialLineParsed(httpRequest, ctx);
                     return true;
                 }
 

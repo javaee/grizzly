@@ -41,7 +41,7 @@
 package org.glassfish.grizzly.http;
 
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpCodecFilter.ContentParsingState;
 
 /**
@@ -76,13 +76,14 @@ public final class FixedLengthTransferEncoding implements TransferEncoding {
     }
 
     @Override
-    public void prepareSerialize(Connection c,
+    public void prepareSerialize(FilterChainContext ctx,
                                  HttpHeader httpHeader,
                                  HttpContent httpContent) {
         final int defaultContentLength = httpContent != null ?
             httpContent.getContent().remaining() : -1;
         
-        httpHeader.makeContentLengthHeader(c, defaultContentLength);
+        httpHeader.makeContentLengthHeader(ctx.getConnection(),
+                                           defaultContentLength);
     }
 
 
@@ -91,8 +92,9 @@ public final class FixedLengthTransferEncoding implements TransferEncoding {
      */
     @Override
     @SuppressWarnings({"UnusedDeclaration"})
-    public ParsingResult parsePacket(Connection connection,
-            HttpHeader httpPacket, Buffer input) {
+    public ParsingResult parsePacket(FilterChainContext ctx,
+                                     HttpHeader httpPacket,
+                                     Buffer input) {
 
         final HttpPacketParsing httpPacketParsing = (HttpPacketParsing) httpPacket;
         // Get HTTP content parsing state
@@ -131,7 +133,7 @@ public final class FixedLengthTransferEncoding implements TransferEncoding {
      * {@inheritDoc}
      */
     @Override
-    public Buffer serializePacket(Connection connection, HttpContent httpContent) {
+    public Buffer serializePacket(FilterChainContext ctx, HttpContent httpContent) {
         return httpContent.getContent();
     }
 }

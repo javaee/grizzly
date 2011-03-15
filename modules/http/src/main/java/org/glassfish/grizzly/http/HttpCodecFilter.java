@@ -119,7 +119,8 @@ public abstract class HttpCodecFilter extends BaseFilter
      * @return <tt>true</tt>, if initial line has been parsed,
      * or <tt>false</tt> otherwise.
      */
-    abstract boolean decodeInitialLine(HttpPacketParsing httpPacket,
+    abstract boolean decodeInitialLine(FilterChainContext ctx,
+                                       HttpPacketParsing httpPacket,
                                        HeaderParsingState parsingState,
                                        Buffer input);
 
@@ -171,7 +172,8 @@ public abstract class HttpCodecFilter extends BaseFilter
      * </p>
      * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
      */
-    protected abstract void onInitialLineParsed(final HttpHeader httpHeader);
+    protected abstract void onInitialLineParsed(final HttpHeader httpHeader,
+                                                final FilterChainContext ctx);
 
 
     /**
@@ -183,7 +185,8 @@ public abstract class HttpCodecFilter extends BaseFilter
      *
      * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
      */
-    protected abstract void onHttpHeadersParsed(final HttpHeader httpHeader);
+    protected abstract void onHttpHeadersParsed(final HttpHeader httpHeader,
+                                                final FilterChainContext ctx);
 
 
     /**
@@ -323,7 +326,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         try {
             if (!wasHeaderParsed) {
                 // if header wasn't parsed - parse
-                if (!decodeHttpPacket(httpPacket, input)) {
+                if (!decodeHttpPacket(ctx, httpPacket, input)) {
                     // if there is not enough data to parse the HTTP header - stop
                     // filterchain processing
                     return ctx.getStopAction(input);
@@ -421,7 +424,7 @@ public abstract class HttpCodecFilter extends BaseFilter
 
         final Connection connection = ctx.getConnection();
         final ParsingResult result = parseWithTransferEncoding(
-                ctx.getConnection(), httpHeader, input);
+                ctx, httpHeader, input);
 
         final HttpContent httpContent = result.getHttpContent();
         final Buffer remainderBuffer = result.getRemainderBuffer();
@@ -500,7 +503,7 @@ public abstract class HttpCodecFilter extends BaseFilter
 
             try {
                 // transform HttpPacket into Buffer
-                final Buffer output = encodeHttpPacket(connection, input);
+                final Buffer output = encodeHttpPacket(ctx, input);
 
                 if (output != null) {
                     HttpProbeNotifier.notifyDataSent(this, connection, output);
@@ -520,13 +523,14 @@ public abstract class HttpCodecFilter extends BaseFilter
         return ctx.getInvokeAction();
     }
     
-    protected boolean decodeHttpPacket(final HttpPacketParsing httpPacket,
-            final Buffer input) {
+    protected boolean decodeHttpPacket(final FilterChainContext ctx,
+                                       final HttpPacketParsing httpPacket,
+                                       final Buffer input) {
 
         final HeaderParsingState parsingState = httpPacket.getHeaderParsingState();
         switch (parsingState.state) {
             case 0: { // parsing initial line
-                if (!decodeInitialLine(httpPacket, parsingState, input)) {
+                if (!decodeInitialLine(ctx, httpPacket, parsingState, input)) {
                     parsingState.checkOverflow();
                     return false;
                 }
@@ -546,7 +550,7 @@ public abstract class HttpCodecFilter extends BaseFilter
 
             case 2: { // Headers are ready
                 if (httpPacket.getHeaders().size() > 0) {
-                    onHttpHeadersParsed((HttpHeader) httpPacket);
+                    onHttpHeadersParsed((HttpHeader) httpPacket, ctx);
                 }
                 input.position(parsingState.offset);
                 return true;
@@ -556,7 +560,8 @@ public abstract class HttpCodecFilter extends BaseFilter
         }
     }
 
-    protected Buffer encodeHttpPacket(final Connection connection, final HttpPacket input) {
+    protected Buffer encodeHttpPacket(final FilterChainContext ctx, final HttpPacket input) {
+        final Connection connection = ctx.getConnection();
         final MemoryManager memoryManager = connection.getTransport().getMemoryManager();
         final boolean isHeader = input.isHeader();
         final HttpContent httpContent;
@@ -588,7 +593,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                     encodedBuffer.trim();
                     encodedBuffer.allowBufferDispose(true);
 
-                    HttpProbeNotifier.notifyHeaderSerialize(this, connection,
+                    HttpProbeNotifier.notifyHeaderSerialize(this, ctx.getConnection(),
                             httpHeader, encodedBuffer);
 
                     response.acknowledged();
@@ -596,7 +601,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                 }
             }
             setContentEncodingsOnSerializing(httpHeader);
-            setTransferEncodingOnSerializing(connection,
+            setTransferEncodingOnSerializing(ctx,
                                              httpHeader,
                                              httpContent);
 
@@ -633,7 +638,7 @@ public abstract class HttpCodecFilter extends BaseFilter
             
             final TransferEncoding contentEncoder = httpHeader.getTransferEncoding();
 
-            final Buffer content = serializeWithTransferEncoding(connection,
+            final Buffer content = serializeWithTransferEncoding(ctx,
                                                    encodedHttpContent,
                                                    contentEncoder);
             encodedBuffer = Buffers.appendBuffers(memoryManager,
@@ -1118,7 +1123,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         }
     }
 
-    final void setTransferEncodingOnSerializing(final Connection c,
+    final void setTransferEncodingOnSerializing(final FilterChainContext ctx,
                                                 final HttpHeader httpHeader,
                                                 final HttpContent httpContent) {
 
@@ -1127,7 +1132,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         
         for (TransferEncoding encoding : encodings) {
             if (encoding.wantEncode(httpHeader)) {
-                encoding.prepareSerialize(c, httpHeader, httpContent);
+                encoding.prepareSerialize(ctx, httpHeader, httpContent);
                 httpHeader.setTransferEncoding(encoding);
                 return;
             }
@@ -1287,25 +1292,25 @@ public abstract class HttpCodecFilter extends BaseFilter
         return null;
     }
     
-    private ParsingResult parseWithTransferEncoding(final Connection connection,
+    private ParsingResult parseWithTransferEncoding(final FilterChainContext ctx,
             final HttpHeader httpHeader, final Buffer input) {
         final TransferEncoding encoding = httpHeader.getTransferEncoding();
 
-        HttpProbeNotifier.notifyTransferEncodingParse(this, connection,
+        HttpProbeNotifier.notifyTransferEncodingParse(this, ctx.getConnection(),
                 httpHeader, input, encoding);
         
-        return encoding.parsePacket(connection, httpHeader, input);
+        return encoding.parsePacket(ctx, httpHeader, input);
     }
 
-    private Buffer serializeWithTransferEncoding(final Connection connection,
+    private Buffer serializeWithTransferEncoding(final FilterChainContext ctx,
                                    final HttpContent httpContent,
                                    final TransferEncoding encoding) {
         if (encoding != null) {
-            HttpProbeNotifier.notifyTransferEncodingParse(this, connection,
+            HttpProbeNotifier.notifyTransferEncodingParse(this, ctx.getConnection(),
                     httpContent.getHttpHeader(), httpContent.getContent(),
                     encoding);
             
-            return encoding.serializePacket(connection, httpContent);
+            return encoding.serializePacket(ctx, httpContent);
         } else {
             // if no explicit TransferEncoding is available, then
             // assume "Identity"

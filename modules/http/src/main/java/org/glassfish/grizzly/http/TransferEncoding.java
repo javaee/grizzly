@@ -41,7 +41,7 @@
 package org.glassfish.grizzly.http;
 
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
 
 /**
  * Abstraction, which represents HTTP transfer-encoding.
@@ -79,11 +79,11 @@ public interface TransferEncoding {
      * At this time <tt>TransferEncoding</tt> is able to change, update HTTP
      * packet headers.
      *
-     * @param c connection associated with this packet.
+     * @param ctx {@link FilterChainContext}
      * @param httpHeader HTTP packet headers.
      * @param content ready HTTP content (might be null).
      */
-    public void prepareSerialize(Connection c,
+    public void prepareSerialize(FilterChainContext ctx,
                                  HttpHeader httpHeader,
                                  HttpContent content);
 
@@ -91,23 +91,23 @@ public interface TransferEncoding {
      * Parse HTTP packet payload, represented by {@link Buffer} using specific
      * transfer encoding.
      *
-     * @param connection {@link Connection}
+     * @param ctx {@link FilterChainContext}
      * @param httpPacket {@link HttpHeader} with parsed headers.
      * @param buffer {@link Buffer} HTTP message payload.
      * @return {@link ParsingResult}
      */
-    public ParsingResult parsePacket(Connection connection,
+    public ParsingResult parsePacket(FilterChainContext ctx,
             HttpHeader httpPacket, Buffer buffer);
 
     /**
      * Serialize HTTP packet payload, represented by {@link HttpContent}
      * using specific transfer encoding.
      *
-     * @param connection {@link Connection}
+     * @param ctx {@link FilterChainContext}
      * @param httpContent {@link HttpContent} with parsed {@link HttpContent#getHttpHeader()}.
      *
      * @return serialized {@link Buffer}
      */
-    public Buffer serializePacket(Connection connection,
+    public Buffer serializePacket(FilterChainContext ctx,
             HttpContent httpContent);
 }

@@ -41,7 +41,7 @@
 package org.glassfish.grizzly.http;
 
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpCodecFilter.ContentParsingState;
 import org.glassfish.grizzly.http.HttpCodecFilter.HeaderParsingState;
 import org.glassfish.grizzly.http.util.Ascii;
@@ -89,7 +89,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
      * {@inheritDoc}
      */
     @Override
-    public void prepareSerialize(Connection c,
+    public void prepareSerialize(FilterChainContext ctx,
                                  HttpHeader httpHeader,
                                  HttpContent content) {
         httpHeader.makeTransferEncodingHeader(Constants.CHUNKED_ENCODING);
@@ -100,7 +100,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
      */
     @Override
     @SuppressWarnings({"UnusedDeclaration"})
-    public ParsingResult parsePacket(Connection connection,
+    public ParsingResult parsePacket(FilterChainContext ctx,
             HttpHeader httpPacket, Buffer input) {
         final HttpPacketParsing httpPacketParsing = (HttpPacketParsing) httpPacket;
 
@@ -142,7 +142,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
             }
 
             // Check if trailer is present
-            if (!parseLastChunkTrailer(httpPacket, httpPacketParsing, input)) {
+            if (!parseLastChunkTrailer(ctx, httpPacket, httpPacketParsing, input)) {
                 // if yes - and there is not enough input data - stop the
                 // filterchain processing
                 return ParsingResult.create(null, input);
@@ -192,8 +192,8 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
      * {@inheritDoc}
      */
     @Override
-    public Buffer serializePacket(Connection connection, HttpContent httpContent) {
-        final MemoryManager memoryManager = connection.getTransport().getMemoryManager();
+    public Buffer serializePacket(FilterChainContext ctx, HttpContent httpContent) {
+        final MemoryManager memoryManager = ctx.getConnection().getTransport().getMemoryManager();
         return encodeHttpChunk(memoryManager,
                 httpContent, httpContent.isLast());
     }
@@ -211,7 +211,8 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
         headerParsingState.packetLimit = start + maxHeadersSize;
     }
 
-    private boolean parseLastChunkTrailer(HttpHeader httpHeader,
+    private boolean parseLastChunkTrailer(FilterChainContext ctx,
+                                          HttpHeader httpHeader,
                                           HttpPacketParsing httpPacket,
                                           Buffer input) {
         final HeaderParsingState headerParsingState =
@@ -225,7 +226,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
                                                    headerParsingState,
                                                    input);
         if (contentParsingState.trailerHeaders.size() > 0) {
-            filter.onHttpHeadersParsed(httpHeader);
+            filter.onHttpHeadersParsed(httpHeader, ctx);
         }
         return result;
     }
