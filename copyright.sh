@@ -58,6 +58,7 @@ valid() {
 		grep -vi .ods | \
 		grep -vi .png | \
 		grep -vi .project | \
+		grep -vi .gitignore | \
 		grep -vi ChangesFrom1_9.txt | \
 		grep -vi catalog.cat | \
 		grep -vi copyright.sh | \
