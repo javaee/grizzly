@@ -51,8 +51,8 @@ valid() {
 		grep -vi .iws | \
 		grep -vi .jar | \
 		grep -vi .jks | \
-		grep -vi .jpg | \
 		grep -vi .svg | \
+		grep -vi .jpg | \
 		grep -vi .js | \
 		grep -vi .mm | \
 		grep -vi .ods | \
