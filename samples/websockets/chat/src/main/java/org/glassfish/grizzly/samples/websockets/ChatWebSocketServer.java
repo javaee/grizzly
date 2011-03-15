@@ -61,14 +61,10 @@ public class ChatWebSocketServer {
             System.out.println("Please provide a path to webapp in the command line");
             System.exit(0);
         }
+        // create a Grizzly HttpServer to server static resources from 'webapp', on PORT.
+        final HttpServer server = HttpServer.createSimpleServer(args[0], PORT);
 
-        final String webappDir = args[0];
-
-        // create a Grizzly HttpServer to server static resources from 'webapp',
-        // on PORT.
-        final HttpServer server = HttpServer.createSimpleServer(webappDir, PORT);
-
-        // Register the WebSockets addon with the HttpServer
+        // Register the WebSockets add on with the HttpServer
         server.getListener("grizzly").registerAddOn(new WebSocketAddOn());
 
         // initialize websocket chat application

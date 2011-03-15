@@ -47,7 +47,6 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.websockets.frame.ParseResult;
 
 /**
  * In memory representation of a websocket frame.

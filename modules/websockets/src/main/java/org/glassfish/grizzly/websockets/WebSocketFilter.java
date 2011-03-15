@@ -60,7 +60,7 @@ import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.websockets.WebSocketEngine.WebSocketHolder;
-import org.glassfish.grizzly.websockets.frame.ParseResult;
+import org.glassfish.grizzly.websockets.ParseResult;
 
 /**
  * WebSocket {@link Filter} implementation, which supposed to be placed into a {@link FilterChain} right after HTTP
