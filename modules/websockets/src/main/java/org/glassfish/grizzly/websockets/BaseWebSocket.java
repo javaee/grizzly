@@ -41,10 +41,10 @@
 package org.glassfish.grizzly.websockets;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Iterator;
-import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -65,7 +65,8 @@ public class BaseWebSocket implements WebSocket {
 
     private static final Logger logger = Grizzly.logger(BaseWebSocket.class);
     Connection connection;
-    private final List<WebSocketListener> listeners = new ArrayList<WebSocketListener>();
+    private final Collection<WebSocketListener> listeners =
+            new ConcurrentLinkedQueue<WebSocketListener>();
     private final AtomicReference<State> state = new AtomicReference<State>(State.NEW);
 
     public BaseWebSocket(WebSocketListener... listeners) {
@@ -79,7 +80,7 @@ public class BaseWebSocket implements WebSocket {
         this.connection = connection;
     }
 
-    public List<WebSocketListener> getListeners() {
+    public Collection<WebSocketListener> getListeners() {
         return listeners;
     }
 
