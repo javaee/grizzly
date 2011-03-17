@@ -62,5 +62,8 @@
             <listitem>
                 <para><link linkend="pu-samples">Port unification</link></para>
             </listitem>
-        </itemizedlist></para>
+      <listitem>
+          <para><link linkend="ajp-samples">AJP</link></para>
+      </listitem>
+  </itemizedlist></para>
 </chapter>

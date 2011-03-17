@@ -76,8 +76,8 @@ public class AjpHandlerFilter extends BaseFilter {
     private final Attribute<AjpHttpRequest> httpRequestInProcessAttr =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
             HttpServerFilter.HTTP_SERVER_REQUEST_ATTR_NAME);
-    
-    private String requiredSecret;
+
+    private String secret;
     private boolean isTomcatAuthentication = true;
 
     private final Buffer NEED_MORE_DATA_MESSAGE = Buffers.cloneBuffer(
@@ -89,15 +89,15 @@ public class AjpHandlerFilter extends BaseFilter {
     /**
      * Configure Ajp Filter using properties.
      * We support following properties: request.useSecret, request.secret, tomcatAuthentication.
-     * 
+     *
      * @param properties
      */
     public void configure(final Properties properties) {
         if (Boolean.parseBoolean(properties.getProperty("request.useSecret"))) {
-            requiredSecret = Double.toString(Math.random());
+            secret = Double.toString(Math.random());
         }
 
-        requiredSecret = properties.getProperty("request.secret", requiredSecret);
+        secret = properties.getProperty("request.secret", secret);
         isTomcatAuthentication =
                 Boolean.parseBoolean(properties.getProperty(
                 "tomcatAuthentication", "true"));
@@ -108,7 +108,7 @@ public class AjpHandlerFilter extends BaseFilter {
      * Otherwise, the authenticated principal will be propagated from the
      * native webserver and used for authorization in Grizzly.
      * The default value is true.
-     * 
+     *
      * @return true, if the authentication will be done in Grizzly.
      * Otherwise, the authenticated principal will be propagated from the
      * native webserver and used for authorization in Grizzly.
@@ -133,31 +133,31 @@ public class AjpHandlerFilter extends BaseFilter {
     }
 
     /**
-     * If true, only requests from workers with this secret keyword will
+     * If not null, only requests from workers with this secret keyword will
      * be accepted.
      *
-     * @return true, if only requests from workers with this secret keyword will
-     * be accepted, or false otherwise.
+     * @return not null, if only requests from workers with this secret keyword will
+     * be accepted, or null otherwise.
      */
-    public String getRequiredSecret() {
-        return requiredSecret;
+    public String getSecret() {
+        return secret;
     }
 
     /**
-     * If true, only requests from workers with this secret keyword will
+     * If not null, only requests from workers with this secret keyword will
      * be accepted.
      *
-     * @param requiredSecret if true, only requests from workers with this
-     * secret keyword will be accepted, or false otherwise.
+     * @param requiredSecret if not null, only requests from workers with this
+     * secret keyword will be accepted.
      */
-    public void setRequiredSecret(String requiredSecret) {
-        this.requiredSecret = requiredSecret;
+    public void setSecret(String requiredSecret) {
+        this.secret = requiredSecret;
     }
 
     /**
      * Add the {@link ShutdownHandler}, which will be called, when shutdown
      * request received.
-     * 
+     *
      * @param handler {@link ShutdownHandler}
      */
     public void addShutdownHandler(final ShutdownHandler handler) {
@@ -175,7 +175,7 @@ public class AjpHandlerFilter extends BaseFilter {
 
     /**
      * Handle the Ajp message.
-     * 
+     *
      * @param ctx
      * @return
      * @throws IOException
@@ -192,7 +192,7 @@ public class AjpHandlerFilter extends BaseFilter {
         }
 
         final int type = extractType(ctx.getConnection(), message);
-        
+
         switch (type) {
             case AjpConstants.JK_AJP13_FORWARD_REQUEST:
             {
@@ -202,28 +202,28 @@ public class AjpHandlerFilter extends BaseFilter {
             {
                 return processData(ctx, message);
             }
-            
+
             case AjpConstants.JK_AJP13_SHUTDOWN:
             {
                 return processShutdown(ctx, message);
             }
-            
+
             case AjpConstants.JK_AJP13_CPING_REQUEST:
             {
                 return processCPing(ctx, message);
             }
-                
+
             default:
             {
                 throw new IllegalStateException("Unknown message " + type);
             }
-            
+
         }
     }
 
     /**
      * Encoding HttpResponsePacket or HttpContent to Ajp message.
-     * 
+     *
      * @param ctx
      * @return
      * @throws IOException
@@ -232,7 +232,7 @@ public class AjpHandlerFilter extends BaseFilter {
     public NextAction handleWrite(final FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
         final HttpPacket httpPacket = ctx.getMessage();
-        
+
         final Buffer encodedPacket = encodeHttpPacket(connection, httpPacket);
         ctx.setMessage(encodedPacket);
 
@@ -252,7 +252,7 @@ public class AjpHandlerFilter extends BaseFilter {
             encodedBuffer = AjpMessageUtils.encodeHeaders(memoryManager, httpResponsePacket);
             if (httpResponsePacket.isAcknowledgement()) {
                 encodedBuffer.trim();
-                
+
                 httpResponsePacket.acknowledged();
                 return encodedBuffer; // DO NOT MARK COMMITTED
             }
@@ -268,7 +268,7 @@ public class AjpHandlerFilter extends BaseFilter {
                         encodedBuffer, contentBuffer);
             }
         }
-        
+
         encodedBuffer.trim();
         return encodedBuffer;
     }
@@ -276,7 +276,7 @@ public class AjpHandlerFilter extends BaseFilter {
     /**
      * Handling Http request completion event sent by Http server filter and
      * send the Ajp end response message.
-     * 
+     *
      * @param ctx
      * @param event
      * @return
@@ -303,7 +303,7 @@ public class AjpHandlerFilter extends BaseFilter {
 
     private NextAction processData(final FilterChainContext ctx,
             final Buffer messageContent) {
-        
+
         final Connection connection = ctx.getConnection();
         final AjpHttpRequest httpRequestPacket = httpRequestInProcessAttr.get(connection);
 
@@ -311,7 +311,7 @@ public class AjpHandlerFilter extends BaseFilter {
             // Skip the content length field - we know the size from the packet header
             messageContent.position(messageContent.position() + 2);
         }
-        
+
         // Figure out if the content is last
         if (httpRequestPacket.isExpectContent()) {
             int contentBytesRemaining = httpRequestPacket.getContentBytesRemaining();
@@ -333,7 +333,7 @@ public class AjpHandlerFilter extends BaseFilter {
                 .content(messageContent)
                 .last(!httpRequestPacket.isExpectContent())
                 .build();
-        
+
         ctx.setMessage(content);
 
         // If we may expect more data - do the following trick:
@@ -364,13 +364,13 @@ public class AjpHandlerFilter extends BaseFilter {
         AjpMessageUtils.decodeRequest(content, httpRequestPacket,
                 isTomcatAuthentication);
 
-        if (requiredSecret != null) {
+        if (secret != null) {
             final String epSecret = httpRequestPacket.getSecret();
-            if (epSecret == null || !requiredSecret.equals(epSecret)) {
+            if (epSecret == null || !secret.equals(epSecret)) {
                 throw new IllegalStateException("Secret doesn't match");
             }
         }
-        
+
         httpRequestInProcessAttr.set(connection, httpRequestPacket);
         ctx.setMessage(HttpContent.builder(httpRequestPacket).build());
 
@@ -396,7 +396,7 @@ public class AjpHandlerFilter extends BaseFilter {
     /**
      * Process CPing request message.
      * We send CPong response back as plain Grizzly {@link Buffer}.
-     * 
+     *
      * @param ctx
      * @param message
      * @return
@@ -415,7 +415,7 @@ public class AjpHandlerFilter extends BaseFilter {
 
         // Write the buffer
         ctx.write(message);
-        
+
         // Notify about response complete event
         ctx.notifyDownstream(HttpServerFilter.RESPONSE_COMPLETE_EVENT);
 
@@ -425,7 +425,7 @@ public class AjpHandlerFilter extends BaseFilter {
     /**
      * Process Shutdown request message.
      * For now just ignore it.
-     * 
+     *
      * @param ctx
      * @param message
      * @return
@@ -445,9 +445,9 @@ public class AjpHandlerFilter extends BaseFilter {
             shutdownSecret = message.toStringContent(
                     null, offset, offset + secretLen);
         }
-        
-        if (requiredSecret != null &&
-                requiredSecret.equals(shutdownSecret)) {
+
+        if (secret != null &&
+                secret.equals(shutdownSecret)) {
             throw new IllegalStateException("Secret doesn't match, no shutdown");
         }
 
@@ -467,9 +467,9 @@ public class AjpHandlerFilter extends BaseFilter {
 
     private void sendMoreDataRequestIfNeeded(final FilterChainContext ctx)
             throws IOException {
-        
+
         final Connection connection = ctx.getConnection();
-        
+
         // Check if message is still in process
         if (httpRequestInProcessAttr.isSet(connection)) {
             final MemoryManager mm = connection.getTransport().getMemoryManager();
@@ -507,7 +507,7 @@ public class AjpHandlerFilter extends BaseFilter {
     }
 
     private void onRequestProcessed(final AjpHttpRequest httpRequest) {
-        }
+    }
 
     private int extractType(final Connection connection, final Buffer buffer) {
         final int type;

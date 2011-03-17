@@ -82,6 +82,9 @@
             <listitem>
                 <para>WebSockets;</para>
             </listitem>
+            <listitem>
+                <para>AJP</para>
+            </listitem>
         </itemizedlist></para>
     
     <section xml:id="core-dep">
@@ -209,4 +212,19 @@
                 </listitem>
             </itemizedlist></para>
     </section>
+    <section xml:id="ajp-dep">
+        <title>AJP</title>
+        <para>Maven developers require a dependency on the ajp module. The following
+            dependency needs to be added to the
+            pom:<programlisting language="xml">&lt;dependency>
+     &lt;groupId>org.glassfish.grizzly&lt;/groupId>
+     &lt;artifactId>grizzly-http-ajp&lt;/artifactId>
+     &lt;version>2.0.1&lt;/version>
+&lt;/dependency></programlisting></para>
+        <para>Non-maven developers, additionally to jars, required by <link linkend="http-server-dep">HTTP Server framework</link>, require:<itemizedlist>
+            <listitem>
+                <para><link xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-http-ajp/2.0.1/grizzly-http-ajp-2.0.1.jar">grizzly-http-ajp.jar</link></para>
+            </listitem>
+        </itemizedlist></para>
+    </section>    
 </chapter>
