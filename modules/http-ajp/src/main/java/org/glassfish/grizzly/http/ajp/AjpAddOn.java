@@ -53,7 +53,7 @@ import org.glassfish.grizzly.http.server.NetworkListener;
  * The addon searches for {@link HttpCodecFilter} occurrence in the passed
  * {@link FilterChainBuilder}, removes it and adds 2 filters:
  * {@link AjpMessageFilter} and {@link AjpHandlerFilter} on its place.
- * 
+ *
  * @author Alexey Stashok
  */
 public class AjpAddOn implements AddOn {
@@ -67,13 +67,13 @@ public class AjpAddOn implements AddOn {
 
     /**
      * Construct AjpAddOn
-     * 
+     *
      * @param isTomcatAuthentication if true, the authentication will be done in Grizzly.
      * Otherwise, the authenticated principal will be propagated from the
      * native webserver and used for authorization in Grizzly.
-     * 
-     * @param secret if true, only requests from workers with this
-     * secret keyword will be accepted, or false otherwise.
+     *
+     * @param secret if not null, only requests from workers with this
+     * secret keyword will be accepted, or null otherwise.
      */
     public void configure(final boolean isTomcatAuthentication,
             final String secret) {
@@ -84,7 +84,7 @@ public class AjpAddOn implements AddOn {
     /**
      * Configure Ajp Filter using properties.
      * We support following properties: request.useSecret, request.secret, tomcatAuthentication.
-     * 
+     *
      * @param properties
      */
     public void configure(final Properties properties) {
@@ -97,7 +97,7 @@ public class AjpAddOn implements AddOn {
                 Boolean.parseBoolean(properties.getProperty(
                 "tomcatAuthentication", "true"));
     }
-    
+
     /**
      * If set to true, the authentication will be done in Grizzly.
      * Otherwise, the authenticated principal will be propagated from the
@@ -113,11 +113,11 @@ public class AjpAddOn implements AddOn {
     }
 
     /**
-     * If true, only requests from workers with this secret keyword will
+     * If not null, only requests from workers with this secret keyword will
      * be accepted.
      *
-     * @return true, if only requests from workers with this secret keyword will
-     * be accepted, or false otherwise.
+     * @return not null, if only requests from workers with this secret keyword will
+     * be accepted, or null otherwise.
      */
     public String getSecret() {
         return secret;
@@ -131,7 +131,7 @@ public class AjpAddOn implements AddOn {
         final int httpServerFilterIdx = builder.indexOfType(HttpServerFilter.class);
 
         int idx;
-        
+
         if (httpCodecFilterIdx >= 0) {
             builder.remove(httpCodecFilterIdx);
             idx = httpCodecFilterIdx;
@@ -141,9 +141,9 @@ public class AjpAddOn implements AddOn {
 
         if (idx >= 0) {
             builder.add(httpCodecFilterIdx, createAjpMessageFilter());
-            
+
             final AjpHandlerFilter ajpHandlerFilter = createAjpHandlerFilter();
-            ajpHandlerFilter.setRequiredSecret(secret);
+            ajpHandlerFilter.setSecret(secret);
             ajpHandlerFilter.setTomcatAuthentication(isTomcatAuthentication);
 
             builder.add(httpCodecFilterIdx + 1, ajpHandlerFilter);
