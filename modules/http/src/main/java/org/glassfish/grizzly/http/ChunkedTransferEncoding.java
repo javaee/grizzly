@@ -187,7 +187,9 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
                         if (!parseLastChunkTrailer(ctx, httpPacket, httpPacketParsing, remainder)) {
                             // if yes - and there is not enough input data - stop the
                             // filterchain processing
-                            return ParsingResult.create(null, remainder);
+                            return ParsingResult.create(
+                                    httpPacket.httpContentBuilder().content(input).build(),
+                                    remainder);
                         }
 
                         remainder.position(httpPacketParsing.getHeaderParsingState().offset);
