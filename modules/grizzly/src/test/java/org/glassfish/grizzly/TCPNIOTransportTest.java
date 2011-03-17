@@ -531,6 +531,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
                 assertTrue(Arrays.equals(pattern, message));
             }
 
+            sendLatch.await(10, TimeUnit.SECONDS);
             assertEquals(0, sendLatch.getCount());
         } finally {
             if (connection != null) {
