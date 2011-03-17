@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.http.core;
 
 import org.glassfish.grizzly.NIOTransportBuilder;
+import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpResponsePacket;
@@ -161,6 +162,16 @@ public class HttpResponseParseTest extends TestCase {
             assertTrue("Overflow exception had to be thrown", false);
         } catch (IllegalStateException e) {
             assertTrue(true);
+        }
+    }
+
+    public void testSingleChunkMessage() {
+        final HttpPacket packet =
+                doTestDecoder("HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n7\r\ncontent\r\n0\r\n\r\n", 50);
+        if (packet.isHeader()) {
+            assertTrue("Not Parsed as last packet", !((HttpHeader) packet).isExpectContent());
+        } else {
+            assertTrue("Not Parsed as last packet", ((HttpContent) packet).isLast());
         }
     }
 
