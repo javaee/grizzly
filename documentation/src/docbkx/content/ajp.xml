@@ -41,44 +41,65 @@
 
 -->
 <chapter id="ajp" version="5.0" xmlns="http://docbook.org/ns/docbook"
-  xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xi="http://www.w3.org/2001/XInclude"
-  xmlns:svg="http://www.w3.org/2000/svg" xmlns:ns="http://docbook.org/ns/docbook"
-  xmlns:m="http://www.w3.org/1998/Math/MathML" xmlns:html="http://www.w3.org/1999/xhtml">
+         xmlns:xlink="http://www.w3.org/1999/xlink"
+         xmlns:xi="http://www.w3.org/2001/XInclude"
+         xmlns:svg="http://www.w3.org/2000/svg"
+         xmlns:ns="http://docbook.org/ns/docbook"
+         xmlns:m="http://www.w3.org/1998/Math/MathML"
+         xmlns:html="http://www.w3.org/1999/xhtml">
   <title>AJP</title>
+
   <section xml:id="ajp-overview">
     <title>Overview</title>
-    <para>Starting from version 2.0.1, Grizzly supports <link
-        xlink:href="http://en.wikipedia.org/wiki/Apache_JServ_Protocol">AJP</link> 1.3 (Apache JServ
-      Protocol) natively. "Natively" means AJP is implemented using core Grizzly 2.0.1 API and
-      naturally fits into entire Grizzly infrastructure: memory management, threading etc...</para>
+
+    <para>Starting with version 2.0.1, Grizzly supports <link
+    xlink:href="http://en.wikipedia.org/wiki/Apache_JServ_Protocol">AJP</link>
+    1.3 (Apache JServ Protocol) natively. "Natively" means AJP is implemented
+    using core Grizzly 2.0.1 APIs and naturally fits into entire Grizzly
+    infrastructure: memory management, threading etc...</para>
   </section>
+
   <section xml:id="ajp-workings">
     <title>How it works</title>
-    <para>The AJP protocol implementation is mainly represented by two Filters: AjpMessageFilter,
-      AjpHandlerFilter. The AjpMessageFilter is responsible for constructing AJP protocol messages
-      and AjpHandlerFilter contains the actual processing logic, which works as a codec between AJP
-      and HTTP messages. All the Filters upstream to AjpHandlerFilter receives HTTP message for
-      processing, so they are not even aware of AJP protocol.</para>
-    <para>Here is a FilterChain, which is being normally constructed, when Grizzly HttpServer being
-      used:</para>
-    <para><inlinemediaobject>
+
+    <para>The AJP protocol implementation is mainly represented by two
+    Filters: AjpMessageFilter, AjpHandlerFilter. The AjpMessageFilter is
+    responsible for constructing AJP protocol messages and AjpHandlerFilter
+    contains the actual processing logic, which works as a codec between AJP
+    and HTTP messages. All the Filters upstream to AjpHandlerFilter receive
+    HTTP messages for processing, so they are not even aware of AJP
+    protocol.</para>
+
+    <para>Here is a FilterChain, which is being normally constructed, when
+    Grizzly HttpServer being used:</para>
+
+    <para>
+      <inlinemediaobject>
         <imageobject>
-          <imagedata fileref="../images/ajp/httpserver-filterchain.svg"/>
+          <imagedata fileref="../images/ajp/httpserver-filterchain.png" />
         </imageobject>
-      </inlinemediaobject></para>
-    <para>Now, what happens, if we want to use AJP? It's easy, we replace HTTP Filter, which works
-      as a codec for Buffer &lt;-> HTTP transformation, with two Filters mentioned above:
-      AjpMessageFilter and AjpHandlerFilter:</para>
-    <ns:para><inlinemediaobject>
+      </inlinemediaobject>
+    </para>
+
+    <para>Now, what happens, if we want to use AJP? It's easy, we replace HTTP
+    Filter, which works as a codec for Buffer &lt;-&gt; HTTP transformation,
+    with the two Filters mentioned above: AjpMessageFilter and
+    AjpHandlerFilter:</para>
+
+    <para>
+      <inlinemediaobject>
         <imageobject>
-          <imagedata fileref="../images/ajp/httpserver-ajp-filterchain.svg"/>
+          <imagedata fileref="../images/ajp/httpserver-ajp-filterchain.png" />
         </imageobject>
-      </inlinemediaobject></ns:para>
-    <para>So Grizzly HttpServer Filter won't even notice it operates over AJP rather than plain
-      HTTP.</para>
-    <para>In order to simplify HttpServer AJP configuration, there is a AjpAddOn available, which
-      might be registered on the required HttpServer's NetworkListener
-      like:<programlisting language="java">HttpServer httpServer = new HttpServer();
+      </inlinemediaobject>
+    </para>
+
+    <para>So the Grizzly HttpServer Filter won't even notice it operates over
+    AJP rather than plain HTTP.</para>
+
+    <para>In order to simplify HttpServer AJP configuration, there is an
+    AjpAddOn available, which may be registered on the required HttpServer's
+    NetworkListener like:<programlisting language="java">HttpServer httpServer = new HttpServer();
 NetworkListener listener =
          new NetworkListener("grizzly",
          NetworkListener.DEFAULT_NETWORK_HOST, PORT);
@@ -87,46 +108,52 @@ AjpAddOn ajpAddon = new AjpAddOn();
 listener.registerAddOn(ajpAddon);
         
         httpServer.addListener(listener);</programlisting></para>
-    </section>
+  </section>
+
   <section xml:id="ajp-config">
     <title>AJP Configuration</title>
+
     <table>
       <title>AjpHandlerFilter and AjpAddOn Properties</title>
-      
+
       <tgroup cols="2">
         <tbody>
           <row>
             <entry>isTomcatAuthentication</entry>
-            
-            <entry>If set to true, the authentication will be done in Grizzly. Otherwise, the
-              authenticated principal will be propagated from the native webserver and used for
-              authorization in Grizzly. The default value is true.</entry>
+
+            <entry>If set to true, the authentication will be done in Grizzly.
+            Otherwise, the authenticated principal will be propagated from the
+            native webserver and used for authorization in Grizzly. The
+            default value is true.</entry>
           </row>
-          
+
           <row>
             <entry>secret</entry>
-            
-            <entry>if not null, only requests from workers with this secret keyword will be
-              accepted, null means no secret check will be done.</entry>
+
+            <entry>If not null, only requests from workers with this secret
+            keyword will be accepted, null means no secret check will be
+            done.</entry>
           </row>
-          
+
           <row>
             <entry>shutdownHandlers</entry>
-            
-            <entry>The set of ShutdownHandlers, which will be invoked, when AJP shutdown request
-              received. The implementation itself doesn't perform any action related to shutdown
-              request.</entry>
+
+            <entry>The set of ShutdownHandlers, which will be invoked, when
+            AJP shutdown request received. The implementation itself doesn't
+            perform any action related to shutdown request.</entry>
           </row>
         </tbody>
       </tgroup>
     </table>
   </section>
+
   <section xml:id="ajp-samples">
     <title>Sample</title>
-    <ns:para>There is a simple AJP "Hello World" sample available, which contains a single class,
-      single HttpHandler, which is accessable via AJP and HTTP at the same time. Here is the most
-      interesting part of it responsible for HttpServer
-      initialization.<programlisting language="java">        final HttpServer server = new HttpServer();
+
+    <para>There is a simple AJP "Hello World" sample available, which contains
+    a single class, single HttpHandler, which is accessable via AJP and HTTP
+    at the same time. Here is the most interesting part of it responsible for
+    HttpServer initialization.<programlisting language="java">        final HttpServer server = new HttpServer();
 
         // Create plain HTTP listener, which will handle port 8080
         final NetworkListener httpNetworkListener =
@@ -144,10 +171,12 @@ listener.registerAddOn(ajpAddon);
         final ServerConfiguration config = server.getServerConfiguration();
 
         // Map the path, /grizzly, to the HelloWorldHandler
-        config.addHttpHandler(new HelloWorldHandler(), "/grizzly");</programlisting></ns:para>
-    <ns:para>The readme.txt (@TODO update after 2.0.1 branch created) contains setup and run
-      instructions. </ns:para>
-    <ns:para>Complete sources and instructions could be found here. (@TODO update after 2.0.1 branch
-      created)</ns:para>
+        config.addHttpHandler(new HelloWorldHandler(), "/grizzly");</programlisting></para>
+
+    <para>The readme.txt (@TODO update after 2.0.1 branch created) contains
+    setup and run instructions.</para>
+
+    <para>Complete sources and instructions could be found here. (@TODO update
+    after 2.0.1 branch created)</para>
   </section>
 </chapter>
