@@ -40,10 +40,10 @@
     holder.
 
 -->
-<chapter version="5.0" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:svg="http://www.w3.org/2000/svg" xmlns:m="http://www.w3.org/1998/Math/MathML" xmlns:html="http://www.w3.org/1999/xhtml" xmlns:db="http://docbook.org/ns/docbook">
+<chapter version="5.0" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:svg="http://www.w3.org/2000/svg" xmlns:m="http://www.w3.org/1998/Math/MathML" xmlns:html="http://www.w3.org/1999/xhtml" xmlns:db="http://docbook.org/ns/docbook" id="overview">
   <title>Overview of the Grizzly Framework</title>
 
-  <section>
+  <section xml:id="overview-goals">
     <title>Goals of the Grizzly Framework</title>
 
     <para>Writing scalable server applications in the Java™ programming
@@ -69,7 +69,7 @@
     </itemizedlist>
   </section>
 
-  <section>
+  <section xml:id="overview-sysreq">
     <title>System Requirements</title>
 
     <para>The system requirements for Grizzly 2.0 are quite simple. Basically,
@@ -83,7 +83,7 @@
       command:<programlisting>svn co https://svn.java.net/svn/grizzly~svn/branches/2dot0/code 2dot0</programlisting></para>
   </section>
 
-  <section>
+  <section xml:id="overview-help">
     <title>Where to Get Help</title>
 
     <para>There are several ways to obtain help with Grizzly. The first
@@ -94,7 +94,7 @@
     how to improve Grizzly, this is the place to do it.</para>
   </section>
 
-  <section>
+  <section xml:id="overview-reading">
     <title>Additional Reading</title>
 
     <para>There are several blog resources related to grizzly:</para>

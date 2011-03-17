@@ -40,7 +40,7 @@
     holder.
 
 -->
-<chapter version="5.0" xmlns="http://docbook.org/ns/docbook"
+<chapter id="portunif" version="5.0" xmlns="http://docbook.org/ns/docbook"
          xmlns:xlink="http://www.w3.org/1999/xlink"
          xmlns:xi="http://www.w3.org/2001/XInclude"
          xmlns:svg="http://www.w3.org/2000/svg"
@@ -49,7 +49,7 @@
          xmlns:html="http://www.w3.org/1999/xhtml">
   <title>Port Unification</title>
 
-  <section>
+  <section xml:id="pu-overview">
     <title>Overview</title>
 
     <para>When implementing a network application which provides several
@@ -70,7 +70,7 @@
     Unification.</para>
   </section>
 
-  <section>
+  <section xml:id="pu-workings">
     <title>How it works</title>
 
     <para>Port Unification, in Grizzly, is represented by PUFilter which is a

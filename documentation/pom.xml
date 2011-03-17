@@ -105,6 +105,7 @@
                             <imgSrcPath>images/</imgSrcPath>
                             <chunkedOutput>true</chunkedOutput>
                             <htmlStylesheet>css/style.css</htmlStylesheet>
+                            <useIdAsFilename>1</useIdAsFilename>
                             <htmlCustomization>src/docbkx/hightlight.xsl</htmlCustomization>
                             <!-- Any parameters specific to HTML version go here -->
                         </configuration>

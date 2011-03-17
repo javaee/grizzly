@@ -73,9 +73,9 @@
   server is to read data from network channel and echo the same data back to
   the channel.</para>
   
-  <section>
+  <section xml:id="qs-server">
     <title>Server</title>
-    <section>
+    <section xml:id="qs-server-echo">
       <title>Create echo filter</title>
       <para>First of all let's implement echo filter, which will echo the received message (despite
         its type) back to the Grizzly
@@ -113,7 +113,7 @@
 32      }
 33  }</programlisting></para>
     </section>
-    <section>
+    <section xml:id="qs-server-init">
       <title>Server initialization code</title>
       <para>All the server FilterChain bricks are ready - let's initialize and start the
         server.<programlisting language="java"> 1  import java.io.IOException;
@@ -172,7 +172,7 @@
 54      }
 55  }</programlisting></para>
     </section>
-    <section>
+    <section xml:id="qs-server-run">
       <title>Running echo server</title>
       <para>As we see in the code above, EchoServer class declares main method, so it could be
         easily run from command line
@@ -181,10 +181,10 @@
     </section>
     
   </section>
-  <section>
+  <section xml:id="qs-client">
     <title>Client</title>
 
-    <section>
+    <section xml:id="qs-client-filter">
       <title>Create client filter</title>
 
       <para>Client filter is responsible for redirecting server response to the standard output.
@@ -217,7 +217,7 @@
 25      }
 26  }</programlisting></para>
     </section>
-    <section>
+    <section xml:id="qs-client-init">
       <title>Client initialization code</title>
       <para>Now we're ready to initialize the client, which includes FilterChain and Transport
         initialization<programlisting language="java"> 1          Connection connection = null;
@@ -240,7 +240,7 @@
 18                  TCPNIOTransportBuilder.newInstance().build();
 19          transport.setProcessor(filterChainBuilder.build());</programlisting></para>
     </section>
-    <section>
+    <section xml:id="qs-client-interaction">
       <title>Adding user interaction and client shutdown code</title>
       <para>Let's complete the code above by adding the logic, which reads user data from the
         standard input, sends it to the server and client shutdown being executed on end of
@@ -322,7 +322,7 @@
 76      }
 77  }</programlisting></para>
     </section>
-    <section>
+    <section xml:id="qs-client-run">
       <title>Running echo client</title>
       <para>EchoClient could be run easily using command line
         like<programlisting language="java">java -classpath grizzly-framework.jar EchoClient</programlisting></para>

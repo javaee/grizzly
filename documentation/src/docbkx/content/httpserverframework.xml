@@ -40,7 +40,7 @@
     holder.
 
 -->
-<chapter version="5.0" xmlns="http://docbook.org/ns/docbook"
+<chapter id="http-server-framework" version="5.0" xmlns="http://docbook.org/ns/docbook"
          xmlns:xlink="http://www.w3.org/1999/xlink"
          xmlns:xi="http://www.w3.org/2001/XInclude"
          xmlns:svg="http://www.w3.org/2000/svg"
@@ -49,7 +49,7 @@
          xmlns:db="http://docbook.org/ns/docbook">
   <title>The HTTP Server Framework</title>
 
-  <section>
+  <section xml:id="hsf-overview">
     <title>Overview</title>
 
     <para>The Grizzly 2.0 HTTP server framework builds off the HTTP codec
@@ -84,10 +84,10 @@
     </itemizedlist>
   </section>
 
-  <section>
+  <section xml:id="hsf-building-simple">
     <title>Building a Simple Web Server</title>
 
-    <section>
+    <section xml:id="hsf-building-simple-components">
       <title>Components of the Framework</title>
 
       <para>This section will cover the major components of this
@@ -182,7 +182,7 @@
       </table>
     </section>
 
-    <section>
+    <section xml:id="hsf-quickstart">
       <title>Quick Start</title>
 
       <para>To get started with the HTTP server framework you'll need to
@@ -242,7 +242,7 @@ try {
     </section>
   </section>
 
-  <section>
+  <section xml:id="hsf-configuration">
     <title>HTTP Server Configuration</title>
 
     <table>
@@ -397,7 +397,7 @@ try {
     </table>
   </section>
 
-  <section>
+  <section xml:id="hsf-suspend-resume">
     <title>Long-lasting HTTP requests (suspend/response)</title>
 
     <para>Some HTTP interactions may need to trigger a long running
@@ -564,7 +564,7 @@ try {
     be added to the queue, and the task may run indefiniately.</para>
   </section>
 
-  <section>
+  <section xml:id="hsf-nio-streams">
     <title>NIO Streams</title>
 
     <para>In Grizzly 1.9, it was possible to write data to the client using
@@ -576,7 +576,7 @@ try {
     the OutputStream vended by the Response instance that will be covered that
     expose advanced non-blocking operations.</para>
 
-    <section>
+    <section xml:id="hsf-nio-streams-non-blocking">
       <title>Non-Blocking Writing</title>
 
       <para>The methods getOutputStream() and getWriter() on Response return
@@ -676,7 +676,7 @@ public interface BinaryNIOOutputSink extends NIOOutputSink {
 }</programlisting>
     </section>
 
-    <section>
+    <section xml:id="hsf-nio-streams-non-blocking-reading">
       <title>Non-Blocking Reading</title>
 
       <para>On the input, side, Grizzly provides a similar interface for
@@ -813,7 +813,7 @@ public interface BinaryNIOInputSource extends NIOInputSource {
     </section>
   </section>
 
-  <section>
+  <section xml:id="hsf-filecache">
     <title>File Cache</title>
 
     <para>The FileCache allows for efficient caching of static content. There
@@ -886,7 +886,7 @@ public interface BinaryNIOInputSource extends NIOInputSource {
     FileCache instance by calling NetworkListener.getFileCache().</para>
   </section>
 
-  <section>
+  <section xml:id="hsf-addons">
     <title>AddOn</title>
 
     <para>The AddOn abstraction provides a simple and generic way how to

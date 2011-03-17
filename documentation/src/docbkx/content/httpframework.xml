@@ -40,7 +40,7 @@
     holder.
 
 -->
-<chapter version="5.0" xmlns="http://docbook.org/ns/docbook"
+<chapter id="http" version="5.0" xmlns="http://docbook.org/ns/docbook"
          xmlns:xlink="http://www.w3.org/1999/xlink"
          xmlns:xi="http://www.w3.org/2001/XInclude"
          xmlns:svg="http://www.w3.org/2000/svg"
@@ -49,7 +49,7 @@
          xmlns:db="http://docbook.org/ns/docbook">
   <title>The HTTP Framework</title>
 
-  <section>
+  <section xml:id="http-overview">
     <title>Overview</title>
 
     <para>The Grizzly 2.0 HTTP framework provides codecs for
@@ -59,13 +59,13 @@
     simpler.</para>
   </section>
 
-  <section>
+  <section xml:id="http-components">
     <title>Components of the Framework</title>
 
     <para>There are many components that provide the HTTP protocol handling
     within Grizzly. This section will cover the major components.</para>
 
-    <section>
+    <section xml:id="http-codec-filter">
       <title>HttpCodecFilter (Server/Client)</title>
 
       <para>The HttpCodecFilter is the base Filter that provides the ability
@@ -76,7 +76,7 @@
       of the connection being dealt with.</para>
     </section>
 
-    <section>
+    <section xml:id="http-messages">
       <title>HTTP Messages</title>
 
       <para>In order to make working with HTTP easier for the developer,
@@ -181,7 +181,7 @@ ctx.write(response);
 ctx.write(trailer);</programlisting>
     </section>
 
-    <section>
+    <section xml:id="http-transfer-encodings">
       <title>Transfer Encodings</title>
 
       <para>Transfer encodings allow special transformation formats for
@@ -296,7 +296,7 @@ public interface TransferEncoding {
       calling HttpCodecFilter.addTransferEncoding().</para>
     </section>
 
-    <section>
+    <section xml:id="http-content-encodings">
       <title>Content Encodings</title>
 
       <para>Content encodings describe when encodings have been applied to the
@@ -367,7 +367,7 @@ public interface ContentEncoding {
       calling HttpCodecFilter.addContentEncoding().</para>
     </section>
 
-    <section>
+    <section xml:id="http-potpourri">
       <title>HTTP Potpourri</title>
 
       <table>
