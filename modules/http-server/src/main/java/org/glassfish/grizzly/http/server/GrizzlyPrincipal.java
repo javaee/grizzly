@@ -97,7 +97,7 @@ public class GrizzlyPrincipal implements Principal, Serializable {
     @Override
     public String toString() {
 
-        StringBuilder sb = new StringBuilder("CoyotePrincipal[");
+        StringBuilder sb = new StringBuilder("GrizzlyPrincipal[");
         sb.append(this.name);
         sb.append("]");
         return (sb.toString());
