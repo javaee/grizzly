@@ -40,7 +40,8 @@
     holder.
 
 -->
-<chapter id="http-server-framework" version="5.0" xmlns="http://docbook.org/ns/docbook"
+<chapter id="http-server-framework" version="5.0"
+         xmlns="http://docbook.org/ns/docbook"
          xmlns:xlink="http://www.w3.org/1999/xlink"
          xmlns:xi="http://www.w3.org/2001/XInclude"
          xmlns:svg="http://www.w3.org/2000/svg"
@@ -549,7 +550,7 @@ try {
 
       <mediaobject>
         <imageobject>
-          <imagedata fileref="../images/httpserverframework/susres.png"></imagedata>
+          <imagedata fileref="../images/httpserverframework/susres.png" />
         </imageobject>
       </mediaobject>
     </figure>
@@ -609,16 +610,11 @@ public interface NIOOutputSink {
      *  when it's possible to write &lt;code&gt;length&lt;/code&gt; bytes.
      * @param length the number of bytes that require writing.
      *
-     * @return &lt;code&gt;true&lt;code&gt; if the specified &lt;code&gt;handler&lt;/code&gt; has
-     *  been accepted and will be notified as it becomes possible to write,
-     *  otherwise returns &lt;code&gt;false&lt;/code&gt; which means data is currently
-     *  available to write without blocking.
-     *
      * @throws IllegalStateException if this method is invoked and a handler
      *  from a previous invocation is still present (due to not having yet been
      *  notified).  
      */
-    boolean notifyCanWrite(final WriteHandler handler, final int length);
+    void notifyCanWrite(final WriteHandler handler, final int length);
 
 
     /**
@@ -706,15 +702,16 @@ public interface NIOInputSource {
      *
      * @param handler the {@link ReadHandler} to notify.
      *
-     * @return &lt;code&gt;true&lt;code&gt; if the specified &lt;code&gt;handler&lt;/code&gt; has
-     *  been accepted and will be notified as data becomes available to write,
-     *  otherwise returns &lt;code&gt;false&lt;/code&gt; which means data is available to
-     *  be read without blocking.
+     * @throws IllegalArgumentException if &lt;code&gt;handler&lt;/code&gt; is &lt;code&gt;null&lt;/code&gt;,
+     *  or if &lt;code&gt;size&lt;/code&gt; is less than zero.
+     * @throws IllegalStateException if an attempt is made to register a handler
+     *  before an existing registered handler has been invoked or if all request
+     *  data has already been read.
      *
      * @see ReadHandler#onDataAvailable()
      * @see ReadHandler#onAllDataRead()
      */
-    boolean notifyAvailable(final ReadHandler handler);
+    void notifyAvailable(final ReadHandler handler);
 
 
     /**
@@ -730,15 +727,16 @@ public interface NIOInputSource {
      *  handler will be notified as soon as data is available no matter the
      *  size.
      *
-     * @return &lt;code&gt;true&lt;code&gt; if the specified &lt;code&gt;handler&lt;/code&gt; has
-     *  been accepted and will be notified as data becomes available to write,
-     *  otherwise returns &lt;code&gt;false&lt;/code&gt; which means data is available to
-     *  be read without blocking.
+     * @throws IllegalArgumentException if &lt;code&gt;handler&lt;/code&gt; is &lt;code&gt;null&lt;/code&gt;,
+     *  or if &lt;code&gt;size&lt;/code&gt; is less than zero.
+     * @throws IllegalStateException if an attempt is made to register a handler
+     *  before an existing registered handler has been invoked or if all request
+     *  data has already been read.
      *
      * @see ReadHandler#onDataAvailable()
      * @see ReadHandler#onAllDataRead()
      */
-    boolean notifyAvailable(final ReadHandler handler, final int size);
+    void notifyAvailable(final ReadHandler handler, final int size);
 
 
     /**
@@ -946,79 +944,72 @@ public class WebSocketAddOn implements AddOn {
 
     <programlisting language="java" linenumbering="numbered"
                     startinglinenumber="304">/**
-     * This handler using non-blocking streams to read POST data and echo it
-     * back to the client.
-     */
-    private static class NonBlockingEchoHandler extends HttpHandler {
+ * This handler using non-blocking streams to read POST data and echo it
+ * back to the client.
+ */
+private static class NonBlockingEchoHandler extends HttpHandler {
 
 
-        // -------------------------------------------- Methods from HttpHandler
+    // -------------------------------------------- Methods from HttpHandler
 
 
-        @Override
-        public void service(final Request request,
-                            final Response response) throws Exception {
+    @Override
+    public void service(final Request request,
+                        final Response response) throws Exception {
 
-            final char[] buf = new char[128];
-            final NIOReader in = request.getReader(false); // false argument puts the stream in non-blocking mode
-            final NIOWriter out = response.getWriter();
+        final char[] buf = new char[128];
+        final NIOReader in = request.getReader(false); // false argument puts the stream in non-blocking mode
+        final NIOWriter out = response.getWriter();
 
-            // continue reading ready data until no more can be read without
-            // blocking
-            while (in.isReady()) {
-                final int ready = in.readyData();
-                int read = in.read(buf, 0, ready);
-                if (read == -1) {
-                    break;
-                }
-                System.out.println("INITIAL READ: " + new String(buf, 0, ready));
-                out.write(buf, 0, ready);
+        response.suspend();
+
+        // If we don't have more data to read - onAllDataRead() will be called
+         in.notifyAvailable(new ReadHandler() {
+
+            @Override
+            public void onDataAvailable() throws IOException {
+                System.out.println("[onDataAvailable] length: " + in.readyData());
+                in.notifyAvailable(this);
             }
 
-            if (in.isFinished()) {
-                return;
+            @Override
+            public void onError(Throwable t) {
+                System.out.println("[onError]" + t);
             }
 
-            response.suspend();
+            @Override
+            public void onAllDataRead() throws IOException {
+                System.out.println("[onAllDataRead] length: " + in.readyData());
+                try {
+                    echoAvailableData(in, out, buf);
+                } finally {
+                    try {
+                        in.close();
+                    } catch (IOException ignored) {
+                    }
 
-            in.notifyAvailable(new ReadHandler() {
+                    try {
+                        out.close();
+                    } catch (IOException ignored) {
+                    }
 
-                @Override
-                public void onDataAvailable() throws IOException {
-                    System.out.println("[onDataAvailable] length: " + in.readyData());
-                    doWrite(this, in, buf, out);
-                }
-
-                @Override
-                public void onError(Throwable t) {
-                    System.out.println("[onError]" + t);
-                }
-
-                @Override
-                public void onAllDataRead() throws IOException {
-                    System.out.println("[onAllDataRead] length: " + in.readyData());
-                    doWrite(this, in, buf, out);
                     response.resume();
                 }
-            });
-
-        }
-
-        private void doWrite(ReadHandler handler,
-                             NIOReader in,
-                             char[] buf,
-                             Writer out) throws IOException {
-            while(in.isReady()) {
-                int len = in.read(buf);
-                out.write(buf, 0, len);
             }
+        });
 
-            if (!in.isFinished()) {
-                in.notifyAvailable(handler);
-            }
+    }
+
+    private void echoAvailableData(NIOReader in, NIOWriter out, char[] buf)
+    throws IOException {
+            
+        while(in.isReady()) {
+            int len = in.read(buf);
+            out.write(buf, 0, len);
         }
+    }
 
-    } // END NonBlockingEchoHandler</programlisting>
+} // END NonBlockingEchoHandler</programlisting>
 
     <para>As can be gleened from the name of the class, this HttpHandler
     implementation simply echoes POST data back to the client.</para>
@@ -1027,30 +1018,25 @@ public class WebSocketAddOn implements AddOn {
 
     <itemizedlist>
       <listitem>
-        <para>lines 324-332 - If possible read any data that is available
-        early into servicing the request.</para>
+        <para>line 318 - Configures the stream for non-blocking use
+        cases.</para>
       </listitem>
 
       <listitem>
-        <para>lines 340-359 - When no more data is available to be read
-        without blocking, install a ReadHandler() to echo data back to the
-        client as it becomes available.</para>
+        <para>lines 321 - Response is suspended. service() method will exit.
+        ReadHandler implementation will be notified as data becomes
+        available.</para>
       </listitem>
 
       <listitem>
-        <para>line 343 - onDataAvailable() call back will be invoked when data
-        becomes available that can be read without blocking.</para>
+        <para>line 327-330 - onDataAvailable callback invoked as data is
+        received by the server</para>
       </listitem>
 
       <listitem>
-        <para>lines 367-374 - Continue writing data until we can't read any
-        more content without blocking.</para>
-      </listitem>
-
-      <listitem>
-        <para>lines 354-355 - onAllDataRead() callback is invoked. Read
-        whatever content remains and resume the response. This will write the
-        last data read and commit the response.</para>
+        <para>lines 338-356 - onAllDataRead callback invoked when client has
+        finished message. All content is read and echoed back to the
+        client.</para>
       </listitem>
     </itemizedlist>
 
@@ -1291,9 +1277,9 @@ public class WebSocketAddOn implements AddOn {
     what's going on here. When running the complete example the output will
     look something like:</para>
 
-    <screen>Feb 7, 2011 5:09:50 PM org.glassfish.grizzly.http.server.NetworkListener start
+    <screen>Mar 17, 2011 4:00:57 PM org.glassfish.grizzly.http.server.NetworkListener start
 INFO: Started listener bound to [0.0.0.0:8080]
-Feb 7, 2011 5:09:50 PM org.glassfish.grizzly.http.server.HttpServer start
+Mar 17, 2011 4:00:57 PM org.glassfish.grizzly.http.server.HttpServer start
 INFO: [HttpServer] Started.
 
 Client connected!
@@ -1304,40 +1290,34 @@ HttpRequestPacket (
    method=POST
    url=/echo
    query=null
-   protocol=HTTP_1_1
+   protocol=HTTP/1.1
    content-length=-1
    headers=[
       Host=localhost:8080]
 )
 WRITE: contentA-
 [onDataAvailable] length: 9
-READ: contentA-
 
 (delay 2 seconds)
 
 WRITE: contentB-
-[onDataAvailable] length: 9
-READ: contentB-
+[onDataAvailable] length: 18
 
 (delay 2 seconds)
 
 WRITE: contentC-
-[onDataAvailable] length: 9
-READ: contentC-
+[onDataAvailable] length: 27
 
 (delay 2 seconds)
 
 WRITE: contentD
-[onDataAvailable] length: 8
-READ: contentD
+[onDataAvailable] length: 35
 
-(delay 2 seconds)
-
-[onAllDataRead] length: 0
+[onAllDataRead] length: 35
 
 Echoed POST Data: contentA-contentB-contentC-contentD
 
-Feb 7, 2011 5:09:58 PM org.glassfish.grizzly.http.server.NetworkListener stop
+Mar 17, 2011 4:01:05 PM org.glassfish.grizzly.http.server.NetworkListener stop
 INFO: Stopped listener bound to [0.0.0.0:8080]</screen>
 
     <para>A quick note about the output above, the (delay 2 seconds) isn't

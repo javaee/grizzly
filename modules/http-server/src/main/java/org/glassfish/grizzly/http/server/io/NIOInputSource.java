@@ -70,7 +70,7 @@ public interface NIOInputSource {
      *
      * @throws IllegalArgumentException if <code>handler</code> is <code>null</code>,
      *  or if <code>size</code> is less than zero.
-     @throws IllegalStateException if an attempt is made to register a handler
+     * @throws IllegalStateException if an attempt is made to register a handler
      *  before an existing registered handler has been invoked or if all request
      *  data has already been read.
      *
@@ -95,7 +95,7 @@ public interface NIOInputSource {
      *
      * @throws IllegalArgumentException if <code>handler</code> is <code>null</code>,
      *  or if <code>size</code> is less than zero.
-     @throws IllegalStateException if an attempt is made to register a handler
+     * @throws IllegalStateException if an attempt is made to register a handler
      *  before an existing registered handler has been invoked or if all request
      *  data has already been read.
      *
