@@ -66,6 +66,7 @@ import org.glassfish.grizzly.ProcessorResult.Status;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
+import org.glassfish.grizzly.nio.NIOChannelDistributor;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
 import org.glassfish.grizzly.nio.SelectionKeyHandler;
@@ -152,14 +153,22 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
             final GrizzlyFuture<RegisterChannelResult> registerChannelFuture;
 
+            final NIOChannelDistributor nioChannelDistributor =
+                    nioTransport.getNIOChannelDistributor();
+
+            if (nioChannelDistributor == null) {
+                throw new IllegalStateException(
+                        "NIOChannelDistributor is null. Is Transport running?");
+            }
+
             if (isConnected) {
                 registerChannelFuture =
-                        nioTransport.getNIOChannelDistributor().registerChannelAsync(
+                        nioChannelDistributor.registerChannelAsync(
                         socketChannel, 0, newConnection,
                         instantConnectHandler);
             } else {
                 registerChannelFuture =
-                        nioTransport.getNIOChannelDistributor().registerChannelAsync(
+                        nioChannelDistributor.registerChannelAsync(
                         socketChannel, SelectionKey.OP_CONNECT, newConnection,
                         nioTransport.selectorRegistrationHandler);
             }

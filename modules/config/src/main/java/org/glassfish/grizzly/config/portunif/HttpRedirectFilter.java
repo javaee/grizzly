@@ -48,6 +48,7 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.config.ConfigAwareElement;
 import org.glassfish.grizzly.config.dom.HttpRedirect;
+import org.glassfish.grizzly.config.dom.NetworkListener;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
@@ -77,7 +78,9 @@ public class HttpRedirectFilter extends BaseFilter implements
      * @param configuration filter configuration
      */
     @Override
-    public void configure(Habitat habitat, ConfigBeanProxy configuration) {
+    public void configure(Habitat habitat, NetworkListener networkListener,
+            ConfigBeanProxy configuration) {
+        
         if (configuration instanceof HttpRedirect) {
             final HttpRedirect httpRedirectConfig = (HttpRedirect) configuration;
             int port = Integer.parseInt(httpRedirectConfig.getPort());

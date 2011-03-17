@@ -38,32 +38,27 @@
  * holder.
  */
 
-package org.glassfish.grizzly.websockets;
+package org.glassfish.grizzly.http.ajp;
 
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
-import org.glassfish.grizzly.http.server.AddOn;
-import org.glassfish.grizzly.http.server.HttpServer;
-import org.glassfish.grizzly.http.server.HttpServerFilter;
-import org.glassfish.grizzly.http.server.NetworkListener;
+import org.glassfish.grizzly.http.HttpResponsePacket;
+import org.glassfish.grizzly.http.ProcessingState;
 
 /**
- * WebSockets {@link AddOn} for the {@link HttpServer}.
- * 
+ * {@link HttpResponsePacket} implementation, which also contains AJP
+ * related meta data.
+ *
  * @author Alexey Stashok
  */
-public class WebSocketAddOn implements AddOn {
+public final class AjpHttpResponse extends HttpResponsePacket {
+    final ProcessingState processingState = new ProcessingState();
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void setup(NetworkListener networkListener, FilterChainBuilder builder) {
-        // Get the index of HttpCodecFilter in the HttpServer filter chain
-        final int httpServerFilterIdx = builder.indexOfType(HttpServerFilter.class);
-
-        if (httpServerFilterIdx >= 0) {
-            // Insert the WebSocketFilter right after HttpCodecFilter
-            builder.add(httpServerFilterIdx, new WebSocketFilter());
-        }
+    public ProcessingState getProcessingState() {
+        return processingState;
     }
+
+    @Override
+    protected void setSecure(final boolean secure) {
+        super.setSecure(secure);
+    }    
 }

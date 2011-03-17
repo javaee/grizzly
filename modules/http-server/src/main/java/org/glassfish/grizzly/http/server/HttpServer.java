@@ -531,14 +531,14 @@ public class HttpServer {
             webServerFilter.getMonitoringConfig().addProbes(
                     serverConfig.getMonitoringConfig().getWebServerConfig().getProbes());
 
+            builder.add(webServerFilter);
+
             final AddOn[] addons = listener.getAddOnSet().getArray();
             if (addons != null) {
                 for (AddOn addon : addons) {
                     addon.setup(listener, builder);
                 }
             }
-
-            builder.add(webServerFilter);
 
             chain = builder.build();
             listener.setFilterChain(chain);

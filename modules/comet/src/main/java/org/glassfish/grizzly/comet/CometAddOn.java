@@ -41,9 +41,9 @@
 package org.glassfish.grizzly.comet;
 
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
-import org.glassfish.grizzly.http.HttpCodecFilter;
 import org.glassfish.grizzly.http.server.AddOn;
 import org.glassfish.grizzly.http.server.HttpServer;
+import org.glassfish.grizzly.http.server.HttpServerFilter;
 import org.glassfish.grizzly.http.server.NetworkListener;
 
 /**
@@ -57,9 +57,9 @@ public class CometAddOn implements AddOn {
     public void setup(final NetworkListener networkListener,
             final FilterChainBuilder builder) {
         
-        final int httpCodecFilterIdx = builder.indexOfType(HttpCodecFilter.class);
-        if (httpCodecFilterIdx >= 0) {
-            builder.add(httpCodecFilterIdx + 1, new CometFilter());
+        final int httpServerFilterIdx = builder.indexOfType(HttpServerFilter.class);
+        if (httpServerFilterIdx >= 0) {
+            builder.add(httpServerFilterIdx, new CometFilter());
         }
     }
 

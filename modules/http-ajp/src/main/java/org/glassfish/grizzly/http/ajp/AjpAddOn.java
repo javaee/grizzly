@@ -40,9 +40,11 @@
 
 package org.glassfish.grizzly.http.ajp;
 
+import java.util.Properties;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.http.HttpCodecFilter;
 import org.glassfish.grizzly.http.server.AddOn;
+import org.glassfish.grizzly.http.server.HttpServerFilter;
 import org.glassfish.grizzly.http.server.NetworkListener;
 
 /**
@@ -56,15 +58,95 @@ import org.glassfish.grizzly.http.server.NetworkListener;
  */
 public class AjpAddOn implements AddOn {
 
+    private boolean isTomcatAuthentication;
+    private String secret;
+
+    public AjpAddOn() {
+        isTomcatAuthentication = true;
+    }
+
+    /**
+     * Construct AjpAddOn
+     * 
+     * @param isTomcatAuthentication if true, the authentication will be done in Grizzly.
+     * Otherwise, the authenticated principal will be propagated from the
+     * native webserver and used for authorization in Grizzly.
+     * 
+     * @param secret if true, only requests from workers with this
+     * secret keyword will be accepted, or false otherwise.
+     */
+    public void configure(final boolean isTomcatAuthentication,
+            final String secret) {
+        this.isTomcatAuthentication = isTomcatAuthentication;
+        this.secret = secret;
+    }
+
+    /**
+     * Configure Ajp Filter using properties.
+     * We support following properties: request.useSecret, request.secret, tomcatAuthentication.
+     * 
+     * @param properties
+     */
+    public void configure(final Properties properties) {
+        if (Boolean.parseBoolean(properties.getProperty("request.useSecret"))) {
+            secret = Double.toString(Math.random());
+        }
+
+        secret = properties.getProperty("request.secret", secret);
+        isTomcatAuthentication =
+                Boolean.parseBoolean(properties.getProperty(
+                "tomcatAuthentication", "true"));
+    }
+    
+    /**
+     * If set to true, the authentication will be done in Grizzly.
+     * Otherwise, the authenticated principal will be propagated from the
+     * native webserver and used for authorization in Grizzly.
+     * The default value is true.
+     *
+     * @return true, if the authentication will be done in Grizzly.
+     * Otherwise, the authenticated principal will be propagated from the
+     * native webserver and used for authorization in Grizzly.
+     */
+    public boolean isTomcatAuthentication() {
+        return isTomcatAuthentication;
+    }
+
+    /**
+     * If true, only requests from workers with this secret keyword will
+     * be accepted.
+     *
+     * @return true, if only requests from workers with this secret keyword will
+     * be accepted, or false otherwise.
+     */
+    public String getSecret() {
+        return secret;
+    }
+
     @Override
     public void setup(final NetworkListener networkListener,
             final FilterChainBuilder builder) {
 
         final int httpCodecFilterIdx = builder.indexOfType(HttpCodecFilter.class);
+        final int httpServerFilterIdx = builder.indexOfType(HttpServerFilter.class);
+
+        int idx;
+        
         if (httpCodecFilterIdx >= 0) {
             builder.remove(httpCodecFilterIdx);
+            idx = httpCodecFilterIdx;
+        } else {
+            idx = httpServerFilterIdx;
+        }
+
+        if (idx >= 0) {
             builder.add(httpCodecFilterIdx, createAjpMessageFilter());
-            builder.add(httpCodecFilterIdx + 1, createAjpHandlerFilter());
+            
+            final AjpHandlerFilter ajpHandlerFilter = createAjpHandlerFilter();
+            ajpHandlerFilter.setRequiredSecret(secret);
+            ajpHandlerFilter.setTomcatAuthentication(isTomcatAuthentication);
+
+            builder.add(httpCodecFilterIdx + 1, ajpHandlerFilter);
         }
     }
 

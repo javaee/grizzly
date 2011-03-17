@@ -91,6 +91,12 @@ public abstract class HttpRequestPacket extends HttpHeader {
     private final DataChunk localAddressC = DataChunk.newInstance();
     private final DataChunk serverNameC = DataChunk.newInstance();
 
+    /**
+     * Authentication type.
+     */
+    private final DataChunk authTypeC = DataChunk.newInstance();
+    private final DataChunk remoteUserC = DataChunk.newInstance();
+
     private boolean requiresAcknowledgement;
 
     /**
@@ -482,6 +488,21 @@ public abstract class HttpRequestPacket extends HttpHeader {
     }
 
     /**
+     * Return the authentication type used for this Request.
+     */
+     public DataChunk authType() {
+         return authTypeC;
+     }
+
+    /**
+     * Return the name of the remote user that has been authenticated
+     * for this Request.
+     */
+     public DataChunk remoteUser() {
+         return remoteUserC;
+     }
+
+     /**
      * Create a named {@link Note} associated with this Request.
      *
      * @param <E> the {@link Note} type.
@@ -598,6 +619,9 @@ public abstract class HttpRequestPacket extends HttpHeader {
         localNameC.recycle();
         serverNameC.recycle();
 
+        authTypeC.recycle();
+        remoteUserC.recycle();
+        
         attributes.clear();
 
         requiresAcknowledgement = false;

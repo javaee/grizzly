@@ -291,6 +291,19 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setWebsocketsSupportEnabled(String enabled);
 
+    @Attribute(defaultValue = NetworkListener.DEFAULT_CONFIGURATION_FILE)
+    String getJkConfigurationFile();
+
+    void setJkConfigurationFile(String file);
+
+    /**
+     * If true, a jk listener is enabled
+     */
+    @Attribute(dataType = Boolean.class)
+    String getJkEnabled();
+
+    void setJkEnabled(String enabled);
+
     /**
      * The Servlet 2.4 spec defines a special X-Powered-By: Servlet/2.4 header, which containers may add to
      * servlet-generated responses. This is complemented by the JSP 2.0 spec, which defines a X-Powered-By: JSP/2.0

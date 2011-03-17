@@ -61,7 +61,7 @@ import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 final class AjpMessageUtils {
 
     static void decodeRequest(final Buffer requestContent,
-            final HttpRequestPacketImpl req, final boolean tomcatAuthentication)
+            final AjpHttpRequest req, final boolean tomcatAuthentication)
             throws IOException {
         // FORWARD_REQUEST handler
 
@@ -92,7 +92,7 @@ final class AjpMessageUtils {
 
         final boolean isSSL = requestContent.get(offset++) != 0;
         req.setSecure(isSSL);
-        ((HttpResponsePacketImpl) req.getResponse()).setSecure(isSSL);
+        ((AjpHttpResponse) req.getResponse()).setSecure(isSSL);
 
         offset = decodeHeaders(requestContent, offset, req);
 
@@ -104,7 +104,7 @@ final class AjpMessageUtils {
     }
 
     private static int decodeAttributes(final Buffer requestContent, int offset,
-            final HttpRequestPacketImpl req, final boolean tomcatAuthentication) {
+            final AjpHttpRequest req, final boolean tomcatAuthentication) {
 
         boolean moreAttr = true;
 
@@ -146,8 +146,8 @@ final class AjpMessageUtils {
                         // ignore server
                         offset = skipBytes(requestContent, offset);
                     } else {
-                        // no remoteUser in Grizzly 2.0
-                        offset = skipBytes(requestContent, offset);
+                        offset = getBytesToDataChunk(requestContent, offset,
+                                req.remoteUser());
                     }
                     break;
 
@@ -156,8 +156,8 @@ final class AjpMessageUtils {
                         // ignore server
                         offset = skipBytes(requestContent, offset);
                     } else {
-                        // no authType in Grizzly 2.0
-                        offset = skipBytes(requestContent, offset);
+                        offset = getBytesToDataChunk(requestContent, offset,
+                                req.authType());
                     }
                     break;
 
@@ -167,21 +167,14 @@ final class AjpMessageUtils {
                     break;
 
                 case AjpConstants.SC_A_JVM_ROUTE:
-                    // no instanceId in Grizzly 2.0
-                    offset = skipBytes(requestContent, offset);
+                    offset = getBytesToDataChunk(requestContent, offset,
+                            req.instanceId());
                     break;
 
                 case AjpConstants.SC_A_SSL_CERT:
                     req.setSecure(true);
-                    DataChunk noteDataChunk = req.getNote(
-                            AjpHandlerFilter.SSL_CERT_NOTE);
-                    if (noteDataChunk == null) {
-                        noteDataChunk = DataChunk.newInstance();
-                        req.setNote(AjpHandlerFilter.SSL_CERT_NOTE,
-                                noteDataChunk);
-                    }
                     // SSL certificate extraction is costy, initialize on demand
-                    offset = getBytesToDataChunk(requestContent, offset, noteDataChunk);
+                    offset = getBytesToDataChunk(requestContent, offset, req.sslCert());
                     break;
 
                 case AjpConstants.SC_A_SSL_CIPHER:
@@ -200,8 +193,7 @@ final class AjpMessageUtils {
                     final int secretLen = readShort(requestContent, offset);
                     offset += 2;
 
-                    req.setNote(AjpHandlerFilter.SECRET_NOTE,
-                            requestContent.toStringContent(
+                    req.setSecret(requestContent.toStringContent(
                             null, offset, offset + secretLen));
                     offset += secretLen;
 
@@ -220,7 +212,7 @@ final class AjpMessageUtils {
     }
 
     private static int decodeHeaders(final Buffer requestContent, int offset,
-            final HttpRequestPacketImpl req) {
+            final AjpHttpRequest req) {
         // Decode headers
         final MimeHeaders headers = req.getHeaders();
 
@@ -285,7 +277,7 @@ final class AjpMessageUtils {
      * Parse host.
      */
     private static void parseHost(final DataChunk hostDC,
-            final HttpRequestPacketImpl request)
+            final AjpHttpRequest request)
             throws CharConversionException {
 
         if (hostDC == null) {
@@ -346,7 +338,7 @@ final class AjpMessageUtils {
 
     }
 
-    private static int readShort(final Buffer buffer, final int offset) {
+    static int readShort(final Buffer buffer, final int offset) {
         return buffer.getShort(offset) & 0xFFFF;
     }
 
@@ -394,7 +386,7 @@ final class AjpMessageUtils {
         return bytesStart + length + 1;
     }
 
-    private static int setStringAttribute(final HttpRequestPacketImpl req,
+    private static int setStringAttribute(final AjpHttpRequest req,
             final Buffer buffer, int offset) {
         final int keyLen = readShort(buffer, offset);
         final String key = buffer.toStringContent(null,
@@ -412,7 +404,7 @@ final class AjpMessageUtils {
         return offset + 2 + valueLen + 1;
     }
 
-    private static int setStringAttributeValue(final HttpRequestPacketImpl req,
+    private static int setStringAttributeValue(final AjpHttpRequest req,
             final String key, final Buffer buffer, final int offset) {
         final int valueLen = readShort(buffer, offset);
         final String value = buffer.toStringContent(null,

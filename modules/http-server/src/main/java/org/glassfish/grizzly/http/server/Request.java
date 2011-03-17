@@ -288,12 +288,6 @@ public class Request {
 
 
     /**
-     * Authentication type.
-     */
-    protected String authType = null;
-
-
-    /**
      * The current dispatcher type.
      */
     protected Object dispatcherType = null;
@@ -461,6 +455,11 @@ public class Request {
 
         parameters.setHeaders(request.getHeaders());
         parameters.setQuery(request.getQueryStringDC());
+        
+        final DataChunk remoteUser = request.remoteUser();
+        if (!remoteUser.isNull()) {
+            setUserPrincipal(new GrizzlyPrincipal(remoteUser.toString()));
+    }
     }
 
     final HttpServerFilter getServerFilter() {
@@ -517,7 +516,6 @@ public class Request {
         dispatcherType = null;
         requestDispatcherPath = null;
 
-        authType = null;
         inputBuffer.recycle();
         usingInputStream = false;
         usingReader = false;
@@ -1294,60 +1292,6 @@ public class Request {
 
 
     /**
-     * Set the authentication type used for this request, if any; otherwise
-     * set the type to <code>null</code>.  Typical values are "BASIC",
-     * "DIGEST", or "SSL".
-     *
-     * @param type The authentication type used
-     */
-    public void setAuthType(String type) {
-        this.authType = type;
-    }
-
-
-    /**
-     * Set the HTTP request method used for this Request.
-     *
-     * @param method The request method
-     */
-//    public void setMethod(String method) {
-        // Not used
-//    }
-
-
-    /**
-     * Set the query string for this Request.  This will normally be called
-     * by the HTTP Connector, when it parses the request headers.
-     *
-     * @param query The query string
-     */
-//    public void setQueryString(String query) {
-        // Not used
-//    }
-
-
-    /**
-     * Set the unparsed request URI for this Request.  This will normally be
-     * called by the HTTP Connector, when it parses the request headers.
-     *
-     * @param uri The request URI
-     */
-//    public void setRequestURI(String uri) {
-        // Not used
-//    }
-
-
-    /**
-     * Set the decoded request URI.
-     *
-     * @param uri The decoded request URI
-     */
-//    public void setDecodedRequestURI(String uri) {
-        // Not used
-//    }
-
-
-    /**
      * Get the decoded request URI.
      *
      * @return the URL decoded request URI
@@ -1355,17 +1299,6 @@ public class Request {
     public String getDecodedRequestURI() throws CharConversionException {
         return request.getRequestURIRef().getDecodedURI();
     }
-
-
-    /**
-     * Get the decoded request URI.
-     *
-     * @return the URL decoded request URI
-     */
-//    public MessageBytes getDecodedRequestURIBC() {
-//        return (request.decodedURI());
-//    }
-
 
     /**
      * Set the Principal who has been authenticated for this Request.  This
@@ -1386,7 +1319,7 @@ public class Request {
      * Return the authentication type used for this Request.
      */
     public String getAuthType() {
-        return authType;
+        return request.authType().toString();
     }
 
 

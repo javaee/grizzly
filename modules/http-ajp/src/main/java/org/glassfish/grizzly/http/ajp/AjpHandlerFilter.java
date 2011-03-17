@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.http.ajp;
 
 import java.io.IOException;
+import java.util.Properties;
 import java.util.Queue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -55,11 +56,8 @@ import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
-import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.HttpServerFilter;
-import org.glassfish.grizzly.http.Note;
-import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.utils.DataStructures;
@@ -75,20 +73,86 @@ public class AjpHandlerFilter extends BaseFilter {
     private static final Logger LOGGER =
             Grizzly.logger(AjpHandlerFilter.class);
 
-    private final Attribute<HttpRequestPacketImpl> httpRequestInProcessAttr =
+    private final Attribute<AjpHttpRequest> httpRequestInProcessAttr =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
             HttpServerFilter.HTTP_SERVER_REQUEST_ATTR_NAME);
     
     private String requiredSecret;
+    private boolean isTomcatAuthentication = true;
 
     private final Buffer NEED_MORE_DATA_MESSAGE = Buffers.cloneBuffer(
             Buffers.EMPTY_BUFFER);
 
-    public static final Note<DataChunk> SSL_CERT_NOTE = HttpRequestPacket.createNote("SSL_CERT_NOTE");
-    public static final Note<String> SECRET_NOTE = HttpRequestPacket.createNote("secret");
-
-    private Queue<ShutdownHandler> shutdownHandlers =
+    private final Queue<ShutdownHandler> shutdownHandlers =
             DataStructures.getLTQInstance(ShutdownHandler.class);
+
+    /**
+     * Configure Ajp Filter using properties.
+     * We support following properties: request.useSecret, request.secret, tomcatAuthentication.
+     * 
+     * @param properties
+     */
+    public void configure(final Properties properties) {
+        if (Boolean.parseBoolean(properties.getProperty("request.useSecret"))) {
+            requiredSecret = Double.toString(Math.random());
+        }
+
+        requiredSecret = properties.getProperty("request.secret", requiredSecret);
+        isTomcatAuthentication =
+                Boolean.parseBoolean(properties.getProperty(
+                "tomcatAuthentication", "true"));
+    }
+
+    /**
+     * If set to true, the authentication will be done in Grizzly.
+     * Otherwise, the authenticated principal will be propagated from the
+     * native webserver and used for authorization in Grizzly.
+     * The default value is true.
+     * 
+     * @return true, if the authentication will be done in Grizzly.
+     * Otherwise, the authenticated principal will be propagated from the
+     * native webserver and used for authorization in Grizzly.
+     */
+    public boolean isTomcatAuthentication() {
+        return isTomcatAuthentication;
+    }
+
+    /**
+    /**
+     * If set to true, the authentication will be done in Grizzly.
+     * Otherwise, the authenticated principal will be propagated from the
+     * native webserver and used for authorization in Grizzly.
+     * The default value is true.
+     *
+     * @param isTomcatAuthentication if true, the authentication will be done in Grizzly.
+     * Otherwise, the authenticated principal will be propagated from the
+     * native webserver and used for authorization in Grizzly.
+     */
+    public void setTomcatAuthentication(boolean isTomcatAuthentication) {
+        this.isTomcatAuthentication = isTomcatAuthentication;
+    }
+
+    /**
+     * If true, only requests from workers with this secret keyword will
+     * be accepted.
+     *
+     * @return true, if only requests from workers with this secret keyword will
+     * be accepted, or false otherwise.
+     */
+    public String getRequiredSecret() {
+        return requiredSecret;
+    }
+
+    /**
+     * If true, only requests from workers with this secret keyword will
+     * be accepted.
+     *
+     * @param requiredSecret if true, only requests from workers with this
+     * secret keyword will be accepted, or false otherwise.
+     */
+    public void setRequiredSecret(String requiredSecret) {
+        this.requiredSecret = requiredSecret;
+    }
 
     /**
      * Add the {@link ShutdownHandler}, which will be called, when shutdown
@@ -226,7 +290,7 @@ public class AjpHandlerFilter extends BaseFilter {
 
         if (event.type() == HttpServerFilter.RESPONSE_COMPLETE_EVENT.type()
                 && c.isOpen()) {
-            final HttpRequestPacketImpl httpRequest;
+            final AjpHttpRequest httpRequest;
             if ((httpRequest = httpRequestInProcessAttr.remove(c)) != null) {
                 onRequestProcessed(httpRequest);
                 sendEndResponse(ctx);
@@ -241,7 +305,7 @@ public class AjpHandlerFilter extends BaseFilter {
             final Buffer messageContent) {
         
         final Connection connection = ctx.getConnection();
-        final HttpRequestPacketImpl httpRequestPacket = httpRequestInProcessAttr.get(connection);
+        final AjpHttpRequest httpRequestPacket = httpRequestInProcessAttr.get(connection);
 
         if (messageContent.hasRemaining()) {
             // Skip the content length field - we know the size from the packet header
@@ -293,12 +357,20 @@ public class AjpHandlerFilter extends BaseFilter {
             final Buffer content) throws IOException {
         final Connection connection = ctx.getConnection();
 
-        final HttpRequestPacketImpl httpRequestPacket =
-                HttpRequestPacketImpl.create();
+        final AjpHttpRequest httpRequestPacket =
+                AjpHttpRequest.create();
         httpRequestPacket.setConnection(connection);
 
-        AjpMessageUtils.decodeRequest(content, httpRequestPacket, false);
+        AjpMessageUtils.decodeRequest(content, httpRequestPacket,
+                isTomcatAuthentication);
 
+        if (requiredSecret != null) {
+            final String epSecret = httpRequestPacket.getSecret();
+            if (epSecret == null || !requiredSecret.equals(epSecret)) {
+                throw new IllegalStateException("Secret doesn't match");
+            }
+        }
+        
         httpRequestInProcessAttr.set(connection, httpRequestPacket);
         ctx.setMessage(HttpContent.builder(httpRequestPacket).build());
 
@@ -362,6 +434,23 @@ public class AjpHandlerFilter extends BaseFilter {
     private NextAction processShutdown(final FilterChainContext ctx,
             final Buffer message) {
 
+        String shutdownSecret = null;
+
+        if (message.remaining() > 2) {
+            // Secret is available
+            int offset = message.position();
+            final int secretLen = AjpMessageUtils.readShort(message, offset);
+            offset += 2;
+
+            shutdownSecret = message.toStringContent(
+                    null, offset, offset + secretLen);
+        }
+        
+        if (requiredSecret != null &&
+                requiredSecret.equals(shutdownSecret)) {
+            throw new IllegalStateException("Secret doesn't match, no shutdown");
+        }
+
         final Connection connection = ctx.getConnection();
 
         for (ShutdownHandler handler : shutdownHandlers) {
@@ -417,14 +506,8 @@ public class AjpHandlerFilter extends BaseFilter {
         ctx.write(buffer);
     }
 
-    private void onRequestProcessed(final HttpRequestPacketImpl httpRequest) {
-        final DataChunk dc = httpRequest.getNote(SSL_CERT_NOTE);
-        if (dc != null) {
-            dc.recycle();
+    private void onRequestProcessed(final AjpHttpRequest httpRequest) {
         }
-
-        httpRequest.removeNote(SECRET_NOTE);
-    }
 
     private int extractType(final Connection connection, final Buffer buffer) {
         final int type;
