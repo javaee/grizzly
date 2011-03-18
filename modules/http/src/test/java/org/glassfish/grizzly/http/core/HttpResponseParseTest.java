@@ -165,16 +165,6 @@ public class HttpResponseParseTest extends TestCase {
         }
     }
 
-    public void testSingleChunkMessage() {
-        final HttpPacket packet =
-                doTestDecoder("HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n7\r\ncontent\r\n0\r\n\r\n", 50);
-        if (packet.isHeader()) {
-            assertTrue("Not Parsed as last packet", !((HttpHeader) packet).isExpectContent());
-        } else {
-            assertTrue("Not Parsed as last packet", ((HttpContent) packet).isLast());
-        }
-    }
-
     @SuppressWarnings({"unchecked"})
     private HttpPacket doTestDecoder(String response, int limit) {
 

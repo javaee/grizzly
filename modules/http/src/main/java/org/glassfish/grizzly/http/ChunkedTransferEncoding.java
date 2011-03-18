@@ -164,46 +164,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
             remainder = input.split(
                     (int) (chunkContentStart + thisPacketRemaining));
             input.position(chunkContentStart);
-            // It's possible that the remainder includes the trailer.  If so,
-            // the minimum number of bytes would be 7, i.e. /r/n0/r/n/r/n
-            // If the remainder has at least 7 bytes, check to see if byte
-            // 2 is a 0 and not a CR (CR would imply another chunk).
-            if (!isLastChunk && remainder.remaining() >= 7) {
-                final byte possibleLen = remainder.get(2);
-                final byte confirmByte = remainder.get(3);
-                if (possibleLen != Constants.CR
-                        && possibleLen == 0x30
-                        && confirmByte == Constants.CR) {
-                    // we've got the last chunk
-                    remainder = parseTrailerCRLF(httpPacketParsing, remainder);
-                    parseHttpChunkLength(httpPacketParsing, remainder);
-                    if (contentParsingState.chunkLength == 0) {
-                        // set it's the last chunk
-                        contentParsingState.isLastChunk = true;
-                        // start trailer parsing
-                        initTrailerParsing(httpPacketParsing);
-
-                        // Check if trailer is present
-                        if (!parseLastChunkTrailer(ctx, httpPacket, httpPacketParsing, remainder)) {
-                            // if yes - and there is not enough input data - stop the
-                            // filterchain processing
-                            return ParsingResult.create(
-                                    httpPacket.httpContentBuilder().content(input).build(),
-                                    remainder);
-                        }
-
-                        remainder.position(httpPacketParsing.getHeaderParsingState().offset);
-                        if (!remainder.hasRemaining()) {
-                            remainder.tryDispose();
-                            remainder = null;
-                        } else {
-                            remainder.shrink();
-                        }
-                        return ParsingResult.create(httpPacket.httpTrailerBuilder().content(input).
-                                headers(contentParsingState.trailerHeaders).build(), remainder);
-                    }
-                }
-            }
+//            input.limit((int) (chunkContentStart + thisPacketRemaining));
         } else if (chunkContentStart > 0) {
             input.position(chunkContentStart);
         }
