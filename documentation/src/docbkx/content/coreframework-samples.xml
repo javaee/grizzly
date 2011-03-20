@@ -185,9 +185,6 @@
         // Instruct FilterChain to store the remainder (if any) and continue execution
         <emphasis role="bold">return ctx.getInvokeAction(remainder);</emphasis>
     }</programlisting></para>
-
-    <para>The complete GIOP sample code could be found <link
-    xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/filterchain">here</link></para>
   </section>
 
   <section xml:id="async-filterchain-execution">
@@ -238,102 +235,27 @@
     // Resume the FilterChain IOEvent processing
     ctx.resume();
 }</programlisting></para>
-
-    <para><emphasis role="bold">Please note, once we resume the FilterChain
-    processing - the FilterChain will resume the execution starting from the
-    Filter, which returned SuspendAction!</emphasis> So the "suspender", has
-    to distunguish two types of processing - the regular and resumed to avoid
-    neverending loop. So coming back to our Filter sample, we should introduce
-    some flag to distinguish the processing type.<programlisting
-    language="java">    public NextAction handleRead(final FilterChainContext ctx) throws IOException {
-<emphasis role="bold">        // Check if it's resuming phase?
-        final Boolean isResumed = isResumedAttribute.remove(ctx);
-        if (!isResumed) {
-</emphasis>    
-            // Get the SuspendAction in advance, cause once we execute LongLastTask in the
-            // custom thread - we lose control over the context
-            final NextAction suspendActipn = ctx.getSuspendAction();
-            
-            // suspend the current execution
-            ctx.suspend();
-            
-            // schedule async work
-            myExecutorService.execute(new Runnable() {
-
-                @Override
-                public void run() {
-                    doLongLastingTask();
-
-<emphasis role="bold">                    // Set the flag to let know the Filter, that we're resuming the processing
-                    isResumedAttribute.set(ctx, Boolean.TRUE);
-</emphasis>
-                    // Resume the FilterChain IOEvent processing
-                    ctx.resume();
-                }
-            });
-
-            // return suspend status
-            return suspendActipn;
-<emphasis role="bold">        }
-
-        // If we reach this point - the processing was resumed - so let's continue FilterChain execution
-        return ctx.getInvokeAction();</emphasis>
-    }</programlisting></para>
-
-    <para>The asynchronous EchoFilter example could be found <link
-    xlink:href="http://java.net/projects/grizzly/sources/svn/content/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/echo/EchoFilterAsync.java">here</link>.</para>
   </section>
 
   <section xml:id="other-samples">
     <title>Other samples</title>
 
-    <section xml:id="echo-samples">
-      <title>Echo sample</title>
+    <para>The core framwork samples can be reviewed in one of two ways:</para>
 
-      <para>Our favorite Echo sample, including AsyncEchoFilter ;) <link
-      xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/echo/">link</link></para>
-    </section>
+    <itemizedlist>
+      <listitem>
+        <para>Directly from the git repository:</para>
 
-    <section xml:id="connection-lifecycle-samples">
-      <title>Connection lifecycle</title>
+        <screen>git clone git://java.net/grizzly~git
+cd grizzly~git
+git checkout 2_0_1
+cd samples/framworksamples</screen>
+      </listitem>
 
-      <para>The Connection lifecycle demo. <link
-      xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/lifecycle/">link</link></para>
-    </section>
-
-    <section xml:id="simple-auth-sample">
-      <title>Simple auth sample</title>
-
-      <para>Simple custom authentication. <link
-      xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/simpleauth/">link</link></para>
-    </section>
-
-    <section xml:id="ssl-echo-sample">
-      <title>SSL Echo sample</title>
-
-      <para>SSL Echo filter. <link
-      xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/ssl/">link</link></para>
-    </section>
-
-    <section xml:id="set-strategy-sample">
-      <title>Set strategy sample</title>
-
-      <para>How to set strategy? <link
-      xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/strategy/">link</link></para>
-    </section>
-
-    <section xml:id="tunneling-sample">
-      <title>Tunneling sample</title>
-
-      <para>Network tunneling sample. <link
-      xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/tunnel/">link</link></para>
-    </section>
-
-    <section xml:id="udp-echo-sample">
-      <title>UDP echo sample</title>
-
-      <para>Echo sample based on UDP protocol. <link
-      xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/udpecho/">link</link></para>
-    </section>
+      <listitem>
+        <para>Download the sample source bundle from: <link
+        xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/samples/grizzly-framework-samples/2.0.1/grizzly-framework-samples-2.0.1-sources.jar">http://download.java.net/maven/glassfish/org/glassfish/grizzly/samples/grizzly-framework-samples/2.0.1/grizzly-framework-samples-2.0.1-sources.jar</link></para>
+      </listitem>
+    </itemizedlist>
   </section>
 </section>

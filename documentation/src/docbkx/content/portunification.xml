@@ -40,7 +40,7 @@
     holder.
 
 -->
-<chapter xml:id="portunif" version="5.0" xmlns="http://docbook.org/ns/docbook"
+<chapter version="5.0" xml:id="portunif" xmlns="http://docbook.org/ns/docbook"
          xmlns:xlink="http://www.w3.org/1999/xlink"
          xmlns:xi="http://www.w3.org/2001/XInclude"
          xmlns:svg="http://www.w3.org/2000/svg"
@@ -255,6 +255,6 @@ public class AddProtocolFinder implements ProtocolFinder {
         transport.start();</programlisting></para>
 
     <para>Complete sample code could be found <link
-    xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/portunif/src/main/java/org/glassfish/grizzly/samples/portunif">here</link>.</para>
+    xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/samples/grizzly-portunif-samples/2.0.1">here</link>.</para>
   </section>
 </chapter>

@@ -40,7 +40,7 @@
     holder.
 
 -->
-<chapter xml:id="http" version="5.0" xmlns="http://docbook.org/ns/docbook"
+<chapter version="5.0" xml:id="http" xmlns="http://docbook.org/ns/docbook"
          xmlns:xlink="http://www.w3.org/1999/xlink"
          xmlns:xi="http://www.w3.org/2001/XInclude"
          xmlns:svg="http://www.w3.org/2000/svg"
@@ -125,8 +125,7 @@
             <row>
               <entry>HttpRequestPacket</entry>
 
-              <entry>A form of HttpHeader representing a HTTP request.
-              </entry>
+              <entry>A form of HttpHeader representing a HTTP request.</entry>
             </row>
 
             <row>
@@ -213,8 +212,7 @@ ctx.write(trailer);</programlisting>
               transfer-encoding will be used when specified on a request or
               response. For more details on the chunked transfer-encoding,
               see: <link
-              xlink:href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.6.1">http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.6.1</link>.
-              </entry>
+              xlink:href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.6.1">http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.6.1</link>.</entry>
             </row>
           </tbody>
         </tgroup>
@@ -303,7 +301,7 @@ public interface TransferEncoding {
       message body prior to their being transfered to the recipient. At the
       time that this was written, Grizzly 2.0 only supports gzip content
       encoding (implemented by
-      org.glassfish.grizzly.http.GzipContentEnconding). </para>
+      org.glassfish.grizzly.http.GzipContentEnconding).</para>
 
       <para>Custom content-encodings can be provided by implementing the
       ContentEncoding interface:</para>
@@ -1118,8 +1116,7 @@ Jan 28, 2011 1:54:49 PM org.glassfish.grizzly.samples.http.download.Client main
 INFO: Stopped transport...
 </screen>
 
-    <para>This example is available in the Grizzly 2.0 branch in the project's
-    repository: <link
-    xlink:href="https://svn.java.net/svn/grizzly~svn/branches/2dot0/code/samples/http-samples">https://svn.java.net/svn/grizzly~svn/branches/2dot0/code/samples/http-samples</link>.</para>
+    <para>This example within the java.net maven repository: <link
+    xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/samples/grizzly-http-samples/2.0.1">http://download.java.net/maven/glassfish/org/glassfish/grizzly/samples/grizzly-http-samples/2.0.1</link>.</para>
   </section>
 </chapter>

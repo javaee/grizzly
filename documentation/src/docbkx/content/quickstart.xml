@@ -45,20 +45,21 @@
          xmlns:xlink="http://www.w3.org/1999/xlink"
          xmlns:xi="http://www.w3.org/2001/XInclude"
          xmlns:svg="http://www.w3.org/2000/svg"
+         xmlns:ns="http://docbook.org/ns/docbook"
          xmlns:m="http://www.w3.org/1998/Math/MathML"
          xmlns:html="http://www.w3.org/1999/xhtml">
   <title>Quick Start</title>
 
-  <para>This chapter will present how to get started with Grizzly 2.0, both
+  <para>This chapter will present how to get started with Grizzly 2.0.1, both
   client and server side.</para>
 
-  <para>First, it is necessary to depend on the correct Grizzly 2.0 <link
+  <para>First, it is necessary to depend on the correct Grizzly 2.0.1 <link
   xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-framework/">core</link>
   artifact. Maven developers will need to add following dependency to the
   pom:<programlisting language="xml">&lt;dependency&gt;
     &lt;groupId&gt;org.glassfish.grizzly&lt;/groupId&gt;
     &lt;artifactId&gt;grizzly-framework&lt;/artifactId&gt;
-    &lt;version&gt;2.0&lt;/version&gt;
+    &lt;version&gt;2.0.1&lt;/version&gt;
 &lt;/dependency&gt;</programlisting></para>
 
   <para>Maven repository to be used is<programlisting language="xml">&lt;repository&gt;
@@ -72,14 +73,16 @@
   server's response to the standard output. The responsibility of the Echo
   server is to read data from network channel and echo the same data back to
   the channel.</para>
-  
+
   <section xml:id="qs-server">
     <title>Server</title>
+
     <section xml:id="qs-server-echo">
       <title>Create echo filter</title>
-      <para>First of all let's implement echo filter, which will echo the received message (despite
-        its type) back to the Grizzly
-        Connection.<programlisting language="java"> 1  import java.io.IOException;
+
+      <para>First of all let's implement echo filter, which will echo the
+      received message (despite its type) back to the Grizzly
+      Connection.<programlisting language="java"> 1  import java.io.IOException;
  2  import org.glassfish.grizzly.filterchain.BaseFilter;
  3  import org.glassfish.grizzly.filterchain.FilterChain;
  4  import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -113,10 +116,12 @@
 32      }
 33  }</programlisting></para>
     </section>
+
     <section xml:id="qs-server-init">
       <title>Server initialization code</title>
-      <para>All the server FilterChain bricks are ready - let's initialize and start the
-        server.<programlisting language="java"> 1  import java.io.IOException;
+
+      <para>All the server FilterChain bricks are ready - let's initialize and
+      start the server.<programlisting language="java"> 1  import java.io.IOException;
  2  import java.nio.charset.Charset;
  3  import java.util.logging.Logger;
  4  import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -142,7 +147,7 @@
 24          // for reading and writing data to the connection
 25          filterChainBuilder.add(new TransportFilter());
 26
-27          // StringFilter is responsible for Buffer &lt;-> String conversion
+27          // StringFilter is responsible for Buffer &lt;-&gt; String conversion
 28          filterChainBuilder.add(new StringFilter(Charset.forName("UTF-8")));
 29
 30          // EchoFilter is responsible for echoing received messages
@@ -172,25 +177,29 @@
 54      }
 55  }</programlisting></para>
     </section>
+
     <section xml:id="qs-server-run">
       <title>Running echo server</title>
-      <para>As we see in the code above, EchoServer class declares main method, so it could be
-        easily run from command line
-        like:<programlisting language="java">java -classpath grizzly-framework.jar EchoServer</programlisting></para>
+
+      <para>As we see in the code above, EchoServer class declares main
+      method, so it could be easily run from command line like:<programlisting
+      language="java">java -classpath grizzly-framework.jar EchoServer</programlisting></para>
+
       <para>or using your favorite IDE.</para>
     </section>
-    
   </section>
+
   <section xml:id="qs-client">
     <title>Client</title>
 
     <section xml:id="qs-client-filter">
       <title>Create client filter</title>
 
-      <para>Client filter is responsible for redirecting server response to the standard output.
-        Please note, the ClientFilter requires FilterChainContext messages to be java.lang.String
-        (line 21), so it relies StringFilter is preceding it in the
-        FilterChain.<programlisting language="java"> 1  import java.io.IOException;
+      <para>Client filter is responsible for redirecting server response to
+      the standard output. Please note, the ClientFilter requires
+      FilterChainContext messages to be java.lang.String (line 21), so it
+      relies StringFilter is preceding it in the FilterChain.<programlisting
+      language="java"> 1  import java.io.IOException;
  2  import org.glassfish.grizzly.filterchain.BaseFilter;
  3  import org.glassfish.grizzly.filterchain.FilterChainContext;
  4  import org.glassfish.grizzly.filterchain.NextAction;
@@ -217,10 +226,12 @@
 25      }
 26  }</programlisting></para>
     </section>
+
     <section xml:id="qs-client-init">
       <title>Client initialization code</title>
-      <para>Now we're ready to initialize the client, which includes FilterChain and Transport
-        initialization<programlisting language="java"> 1          Connection connection = null;
+
+      <para>Now we're ready to initialize the client, which includes
+      FilterChain and Transport initialization<programlisting language="java"> 1          Connection connection = null;
  2
  3          // Create a FilterChain using FilterChainBuilder
  4          FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
@@ -229,7 +240,7 @@
  7          // for reading and writing data to the connection
  8          filterChainBuilder.add(new TransportFilter());
  9
-10          // StringFilter is responsible for Buffer &lt;-> String conversion
+10          // StringFilter is responsible for Buffer &lt;-&gt; String conversion
 11          filterChainBuilder.add(new StringFilter(Charset.forName("UTF-8")));
 12
 13          // ClientFilter is responsible for redirecting server responses to the standard output
@@ -240,11 +251,13 @@
 18                  TCPNIOTransportBuilder.newInstance().build();
 19          transport.setProcessor(filterChainBuilder.build());</programlisting></para>
     </section>
+
     <section xml:id="qs-client-interaction">
       <title>Adding user interaction and client shutdown code</title>
-      <para>Let's complete the code above by adding the logic, which reads user data from the
-        standard input, sends it to the server and client shutdown being executed on end of
-        input.<programlisting language="java"> 1  import java.io.BufferedReader;
+
+      <para>Let's complete the code above by adding the logic, which reads
+      user data from the standard input, sends it to the server and client
+      shutdown being executed on end of input.<programlisting language="java"> 1  import java.io.BufferedReader;
  2  import java.io.IOException;
  3  import java.io.InputStreamReader;
  4  import java.nio.charset.Charset;
@@ -278,7 +291,7 @@
 32          // Add TransportFilter, which is responsible
 33          // for reading and writing data to the connection
 34          filterChainBuilder.add(new TransportFilter());
-35          // StringFilter is responsible for Buffer &lt;-> String conversion
+35          // StringFilter is responsible for Buffer &lt;-&gt; String conversion
 36          filterChainBuilder.add(new StringFilter(Charset.forName("UTF-8")));
 37          // ClientFilter is responsible for redirecting server responses to the standard output
 38          filterChainBuilder.add(new ClientFilter());
@@ -293,7 +306,7 @@
 47              transport.start();
 48
 49              // perform async. connect to the server
-50              Future&lt;Connection> future = transport.connect(EchoServer.HOST,
+50              Future&lt;Connection&gt; future = transport.connect(EchoServer.HOST,
 51                      EchoServer.PORT);
 52              // wait for connect operation to complete
 53              connection = future.get(10, TimeUnit.SECONDS);
@@ -322,19 +335,23 @@
 76      }
 77  }</programlisting></para>
     </section>
+
     <section xml:id="qs-client-run">
       <title>Running echo client</title>
+
       <para>EchoClient could be run easily using command line
-        like<programlisting language="java">java -classpath grizzly-framework.jar EchoClient</programlisting></para>
+      like<programlisting language="java">java -classpath grizzly-framework.jar EchoClient</programlisting></para>
+
       <para>or your favorite IDE.</para>
-      <para>By default, if standard input and outtput were not changed - you'll see the following on
-        the console:<programlisting language="java">Ready... ("q" to exit)</programlisting></para>
-      <para>Now the client is ready for your input. Each time you typed a line and pressed
-        &lt;ENTER> - the line will be sent to the server and response
-        got:<programlisting language="java">Ready... ("q" to exit)
+
+      <para>By default, if standard input and outtput were not changed -
+      you'll see the following on the console:<programlisting language="java">Ready... ("q" to exit)</programlisting></para>
+
+      <para>Now the client is ready for your input. Each time you typed a line
+      and pressed &lt;ENTER&gt; - the line will be sent to the server and
+      response got:<programlisting language="java">Ready... ("q" to exit)
 Hey there!
 Server echo: Hey there!</programlisting></para>
     </section>
   </section>
-
 </section>

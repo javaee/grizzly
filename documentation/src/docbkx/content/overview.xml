@@ -40,7 +40,13 @@
     holder.
 
 -->
-<chapter version="5.0" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:svg="http://www.w3.org/2000/svg" xmlns:m="http://www.w3.org/1998/Math/MathML" xmlns:html="http://www.w3.org/1999/xhtml" xmlns:db="http://docbook.org/ns/docbook" xml:id="overview">
+<chapter version="5.0" xml:id="overview" xmlns="http://docbook.org/ns/docbook"
+         xmlns:xlink="http://www.w3.org/1999/xlink"
+         xmlns:xi="http://www.w3.org/2001/XInclude"
+         xmlns:svg="http://www.w3.org/2000/svg"
+         xmlns:m="http://www.w3.org/1998/Math/MathML"
+         xmlns:html="http://www.w3.org/1999/xhtml"
+         xmlns:db="http://docbook.org/ns/docbook">
   <title>Overview of the Grizzly Framework</title>
 
   <section xml:id="overview-goals">
@@ -73,23 +79,32 @@
     <title>System Requirements</title>
 
     <para>The system requirements for Grizzly 2.0 are quite simple. Basically,
-    Grizzly is able to run on any platform that <link xlink:href="http://www.oracle.com/technetwork/java/index.html">JDK
+    Grizzly is able to run on any platform that <link
+    xlink:href="http://www.oracle.com/technetwork/java/index.html">JDK
     1.6</link> is available on.</para>
   </section>
+
   <section xml:id="sourcecode">
     <title>Source code</title>
-    <para>Grizzly source are located in the Java.Net Subversion <link xlink:href="http://java.net/projects/grizzly/sources/svn/show/">repository</link>.</para>
+
+    <para>Grizzly source are located in the Java.Net git <link
+    xlink:href="http://java.net/projects/grizzly/sources/git/show">repository</link>.</para>
+
     <para>Grizzly 2.0 could be checked out using following
-      command:<programlisting>svn co https://svn.java.net/svn/grizzly~svn/branches/2dot0/code 2dot0</programlisting></para>
+    command:<programlisting>git clone git://java.net/grizzly~git
+cd grizzly~git
+git checkout 2_0_1</programlisting></para>
   </section>
 
   <section xml:id="overview-help">
     <title>Where to Get Help</title>
 
     <para>There are several ways to obtain help with Grizzly. The first
-    resource is the <link xlink:href="https://grizzly.dev.java.net/servlets/ProjectMailingListList">project
+    resource is the <link
+    xlink:href="https://grizzly.dev.java.net/servlets/ProjectMailingListList">project
     mailing lists</link>. The Grizzly team is very responsive to any mails
-    sent to these lists. The second resource is the <link xlink:href="https://grizzly.dev.java.net/issues/">project issue
+    sent to these lists. The second resource is the <link
+    xlink:href="https://grizzly.dev.java.net/issues/">project issue
     tracker</link>. If you find a bug with Grizzly, or have recommendations on
     how to improve Grizzly, this is the place to do it.</para>
   </section>
@@ -101,19 +116,23 @@
 
     <itemizedlist>
       <listitem>
-        <para><link xlink:href="http://blogs.sun.com/oleksiys">http://blogs.sun.com/oleksiys</link></para>
+        <para><link
+        xlink:href="http://blogs.sun.com/oleksiys">http://blogs.sun.com/oleksiys</link></para>
       </listitem>
 
       <listitem>
-        <para><link xlink:href="http://antwerkz.com">http://antwerkz.com</link></para>
+        <para><link
+        xlink:href="http://antwerkz.com">http://antwerkz.com</link></para>
       </listitem>
 
       <listitem>
-        <para><link xlink:href="http://blogs.sun/com/rlubke">http://blogs.sun.com/rlubke</link></para>
+        <para><link
+        xlink:href="http://blogs.sun/com/rlubke">http://blogs.sun.com/rlubke</link></para>
       </listitem>
 
       <listitem>
-        <para><link xlink:href="http://jfarcand.wordpress.com">http://jfarcand.wordpress.com</link></para>
+        <para><link
+        xlink:href="http://jfarcand.wordpress.com">http://jfarcand.wordpress.com</link></para>
       </listitem>
     </itemizedlist>
   </section>
