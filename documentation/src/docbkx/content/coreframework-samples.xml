@@ -50,7 +50,7 @@
          xmlns:html="http://www.w3.org/1999/xhtml">
   <title>Samples</title>
 
-  <section id="parsing-incoming">
+  <section xml:id="parsing-incoming">
     <title>Parsing an incoming message</title>
 
     <para>When writing network application, very often we need to parse
@@ -190,7 +190,7 @@
     xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/filterchain">here</link></para>
   </section>
 
-  <section id="async-filterchain-execution">
+  <section xml:id="async-filterchain-execution">
     <title>Asynchronous FilterChain execution</title>
 
     <para>During the FilterChain execution, we might want to continue IOEvent
@@ -284,52 +284,52 @@
     xlink:href="http://java.net/projects/grizzly/sources/svn/content/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/echo/EchoFilterAsync.java">here</link>.</para>
   </section>
 
-  <section id="other-samples">
+  <section xml:id="other-samples">
     <title>Other samples</title>
 
-    <section id="echo-samples">
+    <section xml:id="echo-samples">
       <title>Echo sample</title>
 
       <para>Our favorite Echo sample, including AsyncEchoFilter ;) <link
       xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/echo/">link</link></para>
     </section>
 
-    <section id="connection-lifecycle-samples">
+    <section xml:id="connection-lifecycle-samples">
       <title>Connection lifecycle</title>
 
       <para>The Connection lifecycle demo. <link
       xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/lifecycle/">link</link></para>
     </section>
 
-    <section id="simple-auth-sample">
+    <section xml:id="simple-auth-sample">
       <title>Simple auth sample</title>
 
       <para>Simple custom authentication. <link
       xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/simpleauth/">link</link></para>
     </section>
 
-    <section id="ssl-echo-sample">
+    <section xml:id="ssl-echo-sample">
       <title>SSL Echo sample</title>
 
       <para>SSL Echo filter. <link
       xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/ssl/">link</link></para>
     </section>
 
-    <section id="set-strategy-sample">
+    <section xml:id="set-strategy-sample">
       <title>Set strategy sample</title>
 
       <para>How to set strategy? <link
       xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/strategy/">link</link></para>
     </section>
 
-    <section id="tunneling-sample">
+    <section xml:id="tunneling-sample">
       <title>Tunneling sample</title>
 
       <para>Network tunneling sample. <link
       xlink:href="http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/samples/framework-samples/src/main/java/org/glassfish/grizzly/samples/tunnel/">link</link></para>
     </section>
 
-    <section id="udp-echo-sample">
+    <section xml:id="udp-echo-sample">
       <title>UDP echo sample</title>
 
       <para>Echo sample based on UDP protocol. <link

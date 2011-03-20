@@ -54,7 +54,7 @@
   the Transport instances and their associated thread pools. The ability to
   configure both entities is possible via the NIOTransportBuilder.</para>
 
-  <section id="transport-config">
+  <section xml:id="transport-config">
     <title>Transport Configuration</title>
 
     <para>Just as there are concrete NIOTransport implementations for TCP and
