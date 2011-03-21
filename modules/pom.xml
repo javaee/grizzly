@@ -55,65 +55,63 @@
     <packaging>pom</packaging>
     <version>2.0.1-SNAPSHOT</version>
     <name>grizzly-modules</name>
-    <dependencies>
-        <dependency>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>cobertura-maven-plugin</artifactId>
-            <optional>true</optional>
-        </dependency>
-    </dependencies>
-    <build>
-        <plugins>
-            <plugin>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <dependencies>
-                    <dependency>
+    <profiles>
+        <profile>
+            <id>coverage</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.codehaus.mojo</groupId>
+                                <artifactId>cobertura-maven-plugin</artifactId>
+                                <version>${cobertura.version}</version>
+                            </dependency>
+                        </dependencies>
+                        <executions>
+                            <execution>
+                                <id>merge-cobertura-datafiles</id>
+                                <phase>process-test-classes</phase>
+                                <configuration>
+                                    <tasks>
+                                        <taskdef classpathref="maven.runtime.classpath" resource="tasks.properties"/>
+                                        <mkdir dir="target/cobertura"/>
+                                        <cobertura-merge datafile="target/cobertura/cobertura.ser">
+                                            <fileset dir=".">
+                                                <include name="**/cobertura.ser"/>
+                                            </fileset>
+                                        </cobertura-merge>
+                                    </tasks>
+                                </configuration>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>cobertura-maven-plugin</artifactId>
-                        <version>${cobertura.version}</version>
-                    </dependency>
-                </dependencies>
-                <executions>
-                    <execution>
-                        <id>merge-cobertura-datafiles</id>
-                        <phase>process-test-classes</phase>
-<!--                        <configuration>
-                            <tasks>
-                                <taskdef classpathref="maven.runtime.classpath" resource="tasks.properties"/>
-                                <mkdir dir="target/cobertura"/>
-                                <cobertura-merge datafile="target/cobertura/cobertura.ser">
-                                    <fileset dir=".">
-                                        <include name="**/cobertura.ser"/>
-                                    </fileset>
-                                </cobertura-merge>
-                            </tasks>
-                        </configuration>-->
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>cobertura-maven-plugin</artifactId>
-                <version>2.4</version>
-                <configuration>
-                    <formats>
-                        <format>xml</format>
-                        <format>html</format>
-                    </formats>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>clean</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
+                        <version>2.4</version>
+                        <configuration>
+                            <formats>
+                                <format>xml</format>
+                                <format>html</format>
+                            </formats>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>clean</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
     <modules>
         <module>grizzly</module>
         <module>rcm</module>
