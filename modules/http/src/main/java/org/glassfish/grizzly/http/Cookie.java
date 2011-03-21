@@ -179,7 +179,7 @@ public class Cookie implements Cloneable {
 		|| name.startsWith("$")
 	    ) {
 
-	    throw new IllegalArgumentException("Cookie name is reserved word");
+	    throw new IllegalArgumentException("Cookie name, " + name + ", is a reserved word");
 	}
     }
     
