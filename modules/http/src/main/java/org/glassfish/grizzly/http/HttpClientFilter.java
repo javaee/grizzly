@@ -66,6 +66,7 @@ import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
  */
 public class HttpClientFilter extends HttpCodecFilter {
 
+    private final Attribute<HttpRequestPacketImpl> httpRequestInProcessAttr;
     private final Attribute<HttpResponsePacketImpl> httpResponseInProcessAttr;
 
     /**
@@ -87,9 +88,35 @@ public class HttpClientFilter extends HttpCodecFilter {
         this.httpResponseInProcessAttr =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
                 "HttpClientFilter.httpResponse");
+        this.httpRequestInProcessAttr =
+                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+                "HttpClientFilter.httpRequest");
 
         contentEncodings.add(new GZipContentEncoding());
         contentEncodings.add(new LZMAContentEncoding());
+    }
+
+    @Override
+    public NextAction handleWrite(FilterChainContext ctx) throws IOException {
+
+        final Connection c = ctx.getConnection();
+        HttpRequestPacketImpl httpRequest = httpRequestInProcessAttr.get(c);
+        if (httpRequest == null) {
+            final Object message = ctx.getMessage();
+            if (HttpHeader.isHttp(message)) {
+                HttpHeader header;
+                if (message instanceof HttpHeader) {
+                    header = (HttpHeader) message;
+                } else {
+                    header = ((HttpContent) message).getHttpHeader();
+                }
+                if (header.isRequest()) {
+                    httpRequestInProcessAttr.set(c, (HttpRequestPacketImpl) header);
+                }
+            }
+        }
+        return super.handleWrite(ctx);
+
     }
 
     /**
@@ -115,6 +142,7 @@ public class HttpClientFilter extends HttpCodecFilter {
         HttpResponsePacketImpl httpResponse = httpResponseInProcessAttr.get(connection);
         if (httpResponse == null) {
             httpResponse = HttpResponsePacketImpl.create();
+            httpResponse.setRequest(httpRequestInProcessAttr.get(connection));
             httpResponse.initialize(this, input.position(), maxHeadersSize);
             httpResponse.setSecure(isSecure(connection));
             httpResponseInProcessAttr.set(connection, httpResponse);
@@ -126,6 +154,7 @@ public class HttpClientFilter extends HttpCodecFilter {
     @Override
     protected boolean onHttpPacketParsed(HttpHeader httpHeader, FilterChainContext ctx) {
         httpResponseInProcessAttr.remove(ctx.getConnection());
+        httpRequestInProcessAttr.remove(ctx.getConnection());
         return false;
     }
 

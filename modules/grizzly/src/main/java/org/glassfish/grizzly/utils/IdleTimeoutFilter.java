@@ -86,7 +86,21 @@ public class IdleTimeoutFilter extends BaseFilter {
     private final FilterChainContext.CompletionListener contextCompletionListener =
             new ContextCompletionListener();
 
-    public IdleTimeoutFilter(long timeout, TimeUnit timeunit) {
+
+    // ------------------------------------------------------------ Constructors
+
+
+    public IdleTimeoutFilter(final long timeout, final TimeUnit timeunit) {
+
+        this(timeout, timeunit, null);
+
+    }
+
+
+    public IdleTimeoutFilter(final long timeout,
+                             final TimeUnit timeunit,
+                             final TimeoutHandler handler) {
+
         this(new DelayedExecutor(Executors.newSingleThreadExecutor(new ThreadFactory() {
 
             @Override
@@ -95,15 +109,36 @@ public class IdleTimeoutFilter extends BaseFilter {
                 newThread.setDaemon(true);
                 return newThread;
             }
-        })), true, timeout, timeunit);
+        })), new DefaultWorker(handler), true, timeout, timeunit);
+
     }
 
-    public IdleTimeoutFilter(DelayedExecutor executor, long timeout, TimeUnit timeunit) {
-        this(executor, false, timeout, timeunit);
+
+    public IdleTimeoutFilter(final DelayedExecutor executor,
+                             final long timeout,
+                             final TimeUnit timeunit) {
+
+        this(executor, timeout, timeunit, null);
+
     }
 
-    protected IdleTimeoutFilter(DelayedExecutor executor, boolean needStartExecutor,
-            long timeout, TimeUnit timeunit) {
+
+    public IdleTimeoutFilter(final DelayedExecutor executor,
+                             final long timeout,
+                             final TimeUnit timeunit,
+                             final TimeoutHandler handler) {
+
+        this(executor, new DefaultWorker(handler), false, timeout,  timeunit);
+
+    }
+
+
+    protected IdleTimeoutFilter(final DelayedExecutor executor,
+                                final DelayedExecutor.Worker<Connection> worker,
+                                final boolean needStartExecutor,
+                                final long timeout,
+                                final TimeUnit timeunit) {
+
         this.timeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
 
         wasExecutorStarted = needStartExecutor;
@@ -112,27 +147,14 @@ public class IdleTimeoutFilter extends BaseFilter {
         }
 
         this.executor = executor;
-        queue = executor.createDelayQueue(
-                new DelayedExecutor.Worker<Connection>() {
+        queue = executor.createDelayQueue(worker, new Resolver());
 
-            @Override
-            public boolean doWork(final Connection connection) {
-                try {
-                    connection.close().markForRecycle(true);
-                } catch (IOException e) {
-                    LOGGER.log(Level.FINE, "SilentConnectionFilter:" +
-                            "unexpected exception, when trying " +
-                            "to close connection", e);
-                }
-
-                return true;
-            }
-        }, new Resolver());
     }
 
-    public long getTimeout(TimeUnit timeunit) {
-        return timeunit.convert(timeoutMillis, TimeUnit.MILLISECONDS);
-    }
+
+    // ----------------------------------------------------- Methods from Filter
+
+
 
     @Override
     public NextAction handleAccept(final FilterChainContext ctx) throws IOException {
@@ -168,6 +190,18 @@ public class IdleTimeoutFilter extends BaseFilter {
         return ctx.getInvokeAction();
     }
 
+
+    // ---------------------------------------------------------- Public Methods
+
+
+    public long getTimeout(TimeUnit timeunit) {
+        return timeunit.convert(timeoutMillis, TimeUnit.MILLISECONDS);
+    }
+
+
+    // ------------------------------------------------------- Protected Methods
+
+
     protected void queueAction(final FilterChainContext ctx) {
         final Connection connection = ctx.getConnection();
         final IdleRecord idleRecord = IDLE_ATTR.get(connection);
@@ -185,6 +219,37 @@ public class IdleTimeoutFilter extends BaseFilter {
         }
         super.finalize();
     }
+
+
+    // ----------------------------------------------------------- Inner Classes
+
+
+    public interface TimeoutHandler {
+
+        void onTimeout(final Connection c);
+
+    }
+
+
+    private final class ContextCompletionListener
+            implements FilterChainContext.CompletionListener {
+
+        @Override
+        public void onComplete(final FilterChainContext ctx) {
+            final Connection connection = ctx.getConnection();
+            final IdleRecord idleRecord = IDLE_ATTR.get(connection);
+            // Small trick to not synchronize this block and queueAction();
+            idleRecord.timeoutMillis.set(FOREVER_SPECIAL);
+            if (idleRecord.counter.decrementAndGet() == 0) {
+                idleRecord.timeoutMillis.compareAndSet(FOREVER_SPECIAL,
+                        System.currentTimeMillis() + timeoutMillis);
+            }
+        }
+
+    } // END ContextCompletionListener
+
+
+    // ---------------------------------------------------------- Nested Classes
 
 
     private static final class Resolver implements DelayedExecutor.Resolver<Connection> {
@@ -205,9 +270,11 @@ public class IdleTimeoutFilter extends BaseFilter {
                 final long timeoutMillis) {
             IDLE_ATTR.get(connection).timeoutMillis.set(timeoutMillis);
         }
-    }
+
+    } // END Resolver
 
     private static final class IdleRecord {
+
         private final AtomicLong timeoutMillis;
         private final AtomicInteger counter;
 
@@ -215,22 +282,43 @@ public class IdleTimeoutFilter extends BaseFilter {
             counter = new AtomicInteger();
             timeoutMillis = new AtomicLong();
         }
-    }
 
-    private final class ContextCompletionListener
-            implements FilterChainContext.CompletionListener {
+    } // END IdleRecord
 
-        @Override
-        public void onComplete(final FilterChainContext ctx) {
-            final Connection connection = ctx.getConnection();
-            final IdleRecord idleRecord = IDLE_ATTR.get(connection);
-            // Small trick to not synchronize this block and queueAction();
-            idleRecord.timeoutMillis.set(FOREVER_SPECIAL);
-            if (idleRecord.counter.decrementAndGet() == 0) {
-                idleRecord.timeoutMillis.compareAndSet(FOREVER_SPECIAL,
-                        System.currentTimeMillis() + timeoutMillis);
-            }
+    private static final class DefaultWorker implements DelayedExecutor.Worker<Connection> {
+
+        private final TimeoutHandler handler;
+
+
+        // -------------------------------------------------------- Constructors
+
+
+        DefaultWorker(final TimeoutHandler handler) {
+
+            this.handler = handler;
+
         }
 
-    }
+
+        // --------------------------------- Methods from DelayedExecutor.Worker
+
+        @Override
+        public boolean doWork(final Connection connection) {
+            try {
+                if (handler != null) {
+                    handler.onTimeout(connection);
+                }
+                connection.close().markForRecycle(true);
+            } catch (IOException e) {
+                LOGGER.log(Level.FINE, "SilentConnectionFilter:" +
+                        "unexpected exception, when trying " +
+                        "to close connection", e);
+            }
+
+            return true;
+        }
+
+    } // END DefaultWorker
+
+
 }

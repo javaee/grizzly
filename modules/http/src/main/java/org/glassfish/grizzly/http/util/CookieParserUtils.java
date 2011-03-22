@@ -1008,6 +1008,10 @@ public class CookieParserUtils {
                     //                        valueEnd-valueStart );
                     continue;
                 }
+
+                if (CookieUtils.equals("Discard", cookiesStr,  nameStart,  nameEnd)) {
+                    continue;
+                }
             }
 
             // Normal Cookie
