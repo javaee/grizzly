@@ -92,6 +92,15 @@ public class IdleTimeoutFilter extends BaseFilter {
 
     public IdleTimeoutFilter(final long timeout, final TimeUnit timeunit) {
 
+        this(timeout, timeunit, null);
+
+    }
+
+
+    public IdleTimeoutFilter(final long timeout,
+                             final TimeUnit timeunit,
+                             final TimeoutHandler handler) {
+
         this(new DelayedExecutor(Executors.newSingleThreadExecutor(new ThreadFactory() {
 
             @Override
@@ -100,7 +109,7 @@ public class IdleTimeoutFilter extends BaseFilter {
                 newThread.setDaemon(true);
                 return newThread;
             }
-        })), new DefaultWorker(), true, timeout, timeunit);
+        })), new DefaultWorker(handler), true, timeout, timeunit);
 
     }
 
@@ -109,16 +118,26 @@ public class IdleTimeoutFilter extends BaseFilter {
                              final long timeout,
                              final TimeUnit timeunit) {
 
-        this(executor, new DefaultWorker(), false, timeout,  timeunit);
+        this(executor, timeout, timeunit, null);
 
     }
 
 
     public IdleTimeoutFilter(final DelayedExecutor executor,
-                             final DelayedExecutor.Worker<Connection> worker,
-                             final boolean needStartExecutor,
                              final long timeout,
-                             final TimeUnit timeunit) {
+                             final TimeUnit timeunit,
+                             final TimeoutHandler handler) {
+
+        this(executor, new DefaultWorker(handler), false, timeout,  timeunit);
+
+    }
+
+
+    protected IdleTimeoutFilter(final DelayedExecutor executor,
+                                final DelayedExecutor.Worker<Connection> worker,
+                                final boolean needStartExecutor,
+                                final long timeout,
+                                final TimeUnit timeunit) {
 
         this.timeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
 
@@ -205,6 +224,13 @@ public class IdleTimeoutFilter extends BaseFilter {
     // ----------------------------------------------------------- Inner Classes
 
 
+    public interface TimeoutHandler {
+
+        void onTimeout(final Connection c);
+
+    }
+
+
     private final class ContextCompletionListener
             implements FilterChainContext.CompletionListener {
 
@@ -261,9 +287,27 @@ public class IdleTimeoutFilter extends BaseFilter {
 
     private static final class DefaultWorker implements DelayedExecutor.Worker<Connection> {
 
+        private final TimeoutHandler handler;
+
+
+        // -------------------------------------------------------- Constructors
+
+
+        DefaultWorker(final TimeoutHandler handler) {
+
+            this.handler = handler;
+
+        }
+
+
+        // --------------------------------- Methods from DelayedExecutor.Worker
+
         @Override
         public boolean doWork(final Connection connection) {
             try {
+                if (handler != null) {
+                    handler.onTimeout(connection);
+                }
                 connection.close().markForRecycle(true);
             } catch (IOException e) {
                 LOGGER.log(Level.FINE, "SilentConnectionFilter:" +
