@@ -530,7 +530,7 @@ public class SSLTest {
             final Connection connection = ctx.getConnection();
             
             try {
-                sslFilter.handshake(ctx, new EmptyCompletionHandler<SSLEngine>() {
+                sslFilter.handshake(connection, new EmptyCompletionHandler<SSLEngine>() {
 
                     @Override
                     public void completed(SSLEngine result) {
