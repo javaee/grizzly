@@ -538,7 +538,7 @@ public class CometContext<E> {
      * @param attachment An object shared amongst {@link CometHandler}. 
      * @param eventType The type of notification.
      */   
-    public void notify(Object attachment,int eventType)throws IOException {
+    public void notify(Object attachment,int eventType) throws IOException {
         CometEvent event = new CometEvent(eventType,this,attachment);
         Iterator<CometHandler> iterator = handlers.keySet().iterator();
         notificationHandler.setBlockingNotification(blockingNotification);

@@ -61,7 +61,7 @@ import java.util.concurrent.TimeUnit;
 public class ServerSideTest {
     private static final int PORT = 1726;
 
-    public static final int ITERATIONS = 5000;
+    public static final int ITERATIONS = 10000;
 
     public void steadyFlow() throws IOException, InstantiationException, ExecutionException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
