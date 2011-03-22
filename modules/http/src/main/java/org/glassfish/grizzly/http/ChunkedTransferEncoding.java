@@ -119,7 +119,17 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
             }
 
             if (!parseHttpChunkLength(httpPacketParsing, input)) {
-                // if we don't have enough data to parse chunk length - stop execution
+
+                // It could be the header we're processing is in response
+                // to a HEAD request that is using this transfer encoding,
+                // but no body is sent.
+                if (isHeadRequest(httpPacket)) {
+                    return ParsingResult.create(httpPacket.httpTrailerBuilder().
+                    headers(contentParsingState.trailerHeaders).build(), null);
+                }
+
+                // if not a HEAD request and we don't have enough data to
+                // parse chunk length - stop execution
                 return ParsingResult.create(null, input);
             }
         } else {
@@ -280,6 +290,19 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
                 }
             }
         }
+    }
+
+
+    private static boolean isHeadRequest(final HttpHeader header) {
+
+        HttpRequestPacket request;
+        if (header.isRequest()) {
+            request = (HttpRequestPacket) header;
+        } else {
+            request = ((HttpResponsePacket) header).getRequest();
+        }
+        return (Method.HEAD.equals(request.getMethod()));
+
     }
 
     private static Buffer parseTrailerCRLF(HttpPacketParsing httpPacket, Buffer input) {

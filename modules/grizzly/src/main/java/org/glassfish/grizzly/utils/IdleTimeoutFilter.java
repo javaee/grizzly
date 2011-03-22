@@ -96,10 +96,30 @@ public class IdleTimeoutFilter extends BaseFilter {
 
     }
 
+    public IdleTimeoutFilter(final long timeout,
+                             final TimeUnit timeunit,
+                             final long checkInterval,
+                             final TimeUnit checkIntervalUnit) {
+
+        this(timeout, timeunit, checkInterval, checkIntervalUnit, null);
+
+    }
 
     public IdleTimeoutFilter(final long timeout,
                              final TimeUnit timeunit,
                              final TimeoutHandler handler) {
+
+        this(timeout, timeunit, -1L, TimeUnit.MILLISECONDS, handler);
+
+    }
+
+
+    public IdleTimeoutFilter(final long timeout,
+                             final TimeUnit timeoutUnit,
+                             final long checkInterval,
+                             final TimeUnit checkIntervalUnit,
+                             final TimeoutHandler handler) {
+
 
         this(new DelayedExecutor(Executors.newSingleThreadExecutor(new ThreadFactory() {
 
@@ -109,26 +129,26 @@ public class IdleTimeoutFilter extends BaseFilter {
                 newThread.setDaemon(true);
                 return newThread;
             }
-        })), new DefaultWorker(handler), true, timeout, timeunit);
+        }), ((checkInterval > 0) ? checkInterval : 1000), checkIntervalUnit), new DefaultWorker(handler), true, timeout, timeoutUnit);
 
     }
 
 
     public IdleTimeoutFilter(final DelayedExecutor executor,
                              final long timeout,
-                             final TimeUnit timeunit) {
+                             final TimeUnit timeoutUnit) {
 
-        this(executor, timeout, timeunit, null);
+        this(executor, timeout, timeoutUnit, null);
 
     }
 
 
     public IdleTimeoutFilter(final DelayedExecutor executor,
                              final long timeout,
-                             final TimeUnit timeunit,
+                             final TimeUnit timeoutUnit,
                              final TimeoutHandler handler) {
 
-        this(executor, new DefaultWorker(handler), false, timeout,  timeunit);
+        this(executor, new DefaultWorker(handler), false, timeout,  timeoutUnit);
 
     }
 
@@ -137,9 +157,9 @@ public class IdleTimeoutFilter extends BaseFilter {
                                 final DelayedExecutor.Worker<Connection> worker,
                                 final boolean needStartExecutor,
                                 final long timeout,
-                                final TimeUnit timeunit) {
+                                final TimeUnit timoutUnit) {
 
-        this.timeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
+        this.timeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timoutUnit);
 
         wasExecutorStarted = needStartExecutor;
         if (needStartExecutor) {
