@@ -189,9 +189,9 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
             synchronized(connection) {
                 sslEngine = getSSLEngine(connection);
                 if (sslEngine == null) {
-                    handshake(connection,
-                            new PendingWriteCompletionHandler(connection),
-                            null, clientSSLEngineConfigurator);
+                    handshake(ctx,
+                              new PendingWriteCompletionHandler(connection),
+                              null, clientSSLEngineConfigurator);
                 }
 
                 return accurateWrite(ctx, false);
@@ -227,27 +227,26 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         this.maxPendingBytes = maxPendingBytes;
     }
 
-    public void handshake(final Connection connection,
+    public void handshake(final FilterChainContext ctx,
                           final CompletionHandler<SSLEngine> completionHandler)
     throws IOException {
-        handshake(connection, completionHandler, null,
-                clientSSLEngineConfigurator);
+        handshake(ctx, completionHandler, null, clientSSLEngineConfigurator);
     }
 
-    public void handshake(final Connection connection,
+    public void handshake(final FilterChainContext ctx,
                           final CompletionHandler<SSLEngine> completionHandler,
                           final Object dstAddress)
     throws IOException {
-        handshake(connection, completionHandler, dstAddress,
-                clientSSLEngineConfigurator);
+        handshake(ctx, completionHandler, dstAddress, clientSSLEngineConfigurator);
     }
 
-    public void handshake(final Connection connection,
+    public void handshake(FilterChainContext ctx,
                           final CompletionHandler<SSLEngine> completionHandler,
                           final Object dstAddress,
                           final SSLEngineConfigurator sslEngineConfigurator)
     throws IOException {
 
+        final Connection connection = ctx.getConnection();
         SSLEngine sslEngine = getSSLEngine(connection);
 
         if (sslEngine == null) {
@@ -264,9 +263,13 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
             connection.addCloseListener(closeListener);
         }
 
-        final FilterChainContext ctx = createContext(connection, Operation.WRITE);
+        final FilterChainContext newCtx = createContext(connection, Operation.WRITE);
+        final FilterChainContext.TransportContext origTransportCtx = ctx.getTransportContext();
+        final FilterChainContext.TransportContext newTransportCtx = newCtx.getTransportContext();
+        newTransportCtx.setCompletionHandler(origTransportCtx.getCompletionHandler());
+        newTransportCtx.setFuture(origTransportCtx.getFuture());
 
-        doHandshakeStep(sslEngine, ctx);
+        doHandshakeStep(sslEngine, newCtx);
     }
 
 
