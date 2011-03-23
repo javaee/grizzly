@@ -51,6 +51,7 @@ import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.utils.DelayedExecutor;
 import org.glassfish.grizzly.utils.IdleTimeoutFilter;
 
 /**
@@ -65,9 +66,11 @@ public class IdleConnectionFilterTest extends GrizzlyTestCase {
         Connection connection = null;
 
         final CountDownLatch latch = new CountDownLatch(1);
-        IdleTimeoutFilter idleTimeoutFilter = new IdleTimeoutFilter(2,
-                TimeUnit.SECONDS);
-        
+        final DelayedExecutor timeoutExecutor = IdleTimeoutFilter.createDefaultIdleDelayedExecutor();
+        timeoutExecutor.start();
+        IdleTimeoutFilter idleTimeoutFilter =
+                new IdleTimeoutFilter(timeoutExecutor, 2, TimeUnit.SECONDS);
+
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(idleTimeoutFilter);
@@ -108,7 +111,7 @@ public class IdleConnectionFilterTest extends GrizzlyTestCase {
             if (connection != null) {
                 connection.close();
             }
-
+            timeoutExecutor.stop();
             transport.stop();
         }
     }
@@ -117,8 +120,10 @@ public class IdleConnectionFilterTest extends GrizzlyTestCase {
         Connection connection = null;
         final CountDownLatch latch = new CountDownLatch(1);
 
-        IdleTimeoutFilter idleTimeoutFilter = new IdleTimeoutFilter(2,
-                TimeUnit.SECONDS);
+        final DelayedExecutor timeoutExecutor = IdleTimeoutFilter.createDefaultIdleDelayedExecutor();
+        timeoutExecutor.start();
+        IdleTimeoutFilter idleTimeoutFilter =
+                new IdleTimeoutFilter(timeoutExecutor, 2, TimeUnit.SECONDS);
 
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
@@ -161,7 +166,7 @@ public class IdleConnectionFilterTest extends GrizzlyTestCase {
             if (connection != null) {
                 connection.close();
             }
-
+            timeoutExecutor.stop();
             transport.stop();
         }
     }

@@ -49,6 +49,7 @@ import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.utils.DelayedExecutor;
 import org.glassfish.grizzly.utils.IdleTimeoutFilter;
 import java.io.IOException;
 import java.net.URI;
@@ -80,7 +81,11 @@ public class Client {
         final URI uri = new URI(url);
         final String host = uri.getHost();
         final int port = uri.getPort() > 0 ? uri.getPort() : 80;
-        
+
+        // lifecycle of the executor used by the IdleTimeoutFilter must be explicitly
+        // managed
+        final DelayedExecutor timeoutExecutor = IdleTimeoutFilter.createDefaultIdleDelayedExecutor();
+
         final FutureImpl<String> completeFuture = SafeFutureImpl.create();
 
         // Build HTTP client filter chain
@@ -89,7 +94,7 @@ public class Client {
         clientFilterChainBuilder.add(new TransportFilter());
         // Add IdleTimeoutFilter, which will close connections, which stay
         // idle longer than 10 seconds.
-        clientFilterChainBuilder.add(new IdleTimeoutFilter(10, TimeUnit.SECONDS));
+        clientFilterChainBuilder.add(new IdleTimeoutFilter(timeoutExecutor, 10, TimeUnit.SECONDS));
         // Add HttpClientFilter, which transforms Buffer <-> HttpContent
         clientFilterChainBuilder.add(new HttpClientFilter());
         // Add HTTP client download filter, which is responsible for downloading
@@ -134,7 +139,7 @@ public class Client {
             logger.info("Stopping transport...");
             // stop the transport
             transport.stop();
-
+            timeoutExecutor.stop();
             logger.info("Stopped transport...");
         }
     }

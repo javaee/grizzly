@@ -46,6 +46,7 @@ import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.utils.DelayedExecutor;
 import org.glassfish.grizzly.utils.IdleTimeoutFilter;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -66,13 +67,18 @@ public class Server {
     public static final int PORT = 7777;
 
     public static void main(String[] args) throws IOException {
+
+        // lifecycle of the executor used by the IdleTimeoutFilter must be explicitly
+        // managed
+        final DelayedExecutor timeoutExecutor = IdleTimeoutFilter.createDefaultIdleDelayedExecutor();
+
         // Construct filter chain
         FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.stateless();
         // Add transport filter
         serverFilterChainBuilder.add(new TransportFilter());
         // Add IdleTimeoutFilter, which will close connetions, which stay
         // idle longer than 10 seconds.
-        serverFilterChainBuilder.add(new IdleTimeoutFilter(10, TimeUnit.SECONDS));
+        serverFilterChainBuilder.add(new IdleTimeoutFilter(timeoutExecutor, 10, TimeUnit.SECONDS));
         // Add HttpServerFilter, which transforms Buffer <-> HttpContent
         serverFilterChainBuilder.add(new HttpServerFilter());
         // Simple server implementation, which locates a resource in a local file system
@@ -98,7 +104,7 @@ public class Server {
             logger.info("Stopping transport...");
             // stop the transport
             transport.stop();
-
+            timeoutExecutor.stop();
             logger.info("Stopped transport...");
         }
     }

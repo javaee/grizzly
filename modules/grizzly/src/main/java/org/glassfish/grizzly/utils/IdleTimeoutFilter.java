@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.utils;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import org.glassfish.grizzly.Connection;
@@ -78,60 +79,13 @@ public class IdleTimeoutFilter extends BaseFilter {
     });
     
     private final long timeoutMillis;
-    private final DelayedExecutor executor;
     private final DelayedExecutor.DelayQueue<Connection> queue;
-
-    private final boolean wasExecutorStarted;
 
     private final FilterChainContext.CompletionListener contextCompletionListener =
             new ContextCompletionListener();
 
 
     // ------------------------------------------------------------ Constructors
-
-
-    public IdleTimeoutFilter(final long timeout, final TimeUnit timeunit) {
-
-        this(timeout, timeunit, null);
-
-    }
-
-    public IdleTimeoutFilter(final long timeout,
-                             final TimeUnit timeunit,
-                             final long checkInterval,
-                             final TimeUnit checkIntervalUnit) {
-
-        this(timeout, timeunit, checkInterval, checkIntervalUnit, null);
-
-    }
-
-    public IdleTimeoutFilter(final long timeout,
-                             final TimeUnit timeunit,
-                             final TimeoutHandler handler) {
-
-        this(timeout, timeunit, -1L, TimeUnit.MILLISECONDS, handler);
-
-    }
-
-
-    public IdleTimeoutFilter(final long timeout,
-                             final TimeUnit timeoutUnit,
-                             final long checkInterval,
-                             final TimeUnit checkIntervalUnit,
-                             final TimeoutHandler handler) {
-
-
-        this(new DelayedExecutor(Executors.newSingleThreadExecutor(new ThreadFactory() {
-
-            @Override
-            public Thread newThread(Runnable r) {
-                final Thread newThread = new Thread(r);
-                newThread.setDaemon(true);
-                return newThread;
-            }
-        }), ((checkInterval > 0) ? checkInterval : 1000), checkIntervalUnit), new DefaultWorker(handler), true, timeout, timeoutUnit);
-
-    }
 
 
     public IdleTimeoutFilter(final DelayedExecutor executor,
@@ -148,25 +102,18 @@ public class IdleTimeoutFilter extends BaseFilter {
                              final TimeUnit timeoutUnit,
                              final TimeoutHandler handler) {
 
-        this(executor, new DefaultWorker(handler), false, timeout,  timeoutUnit);
+        this(executor, new DefaultWorker(handler), timeout,  timeoutUnit);
 
     }
 
 
     protected IdleTimeoutFilter(final DelayedExecutor executor,
                                 final DelayedExecutor.Worker<Connection> worker,
-                                final boolean needStartExecutor,
                                 final long timeout,
-                                final TimeUnit timoutUnit) {
+                                final TimeUnit timeoutUnit) {
 
-        this.timeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timoutUnit);
+        this.timeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeoutUnit);
 
-        wasExecutorStarted = needStartExecutor;
-        if (needStartExecutor) {
-            executor.start();
-        }
-
-        this.executor = executor;
         queue = executor.createDelayQueue(worker, new Resolver());
 
     }
@@ -213,7 +160,38 @@ public class IdleTimeoutFilter extends BaseFilter {
 
     // ---------------------------------------------------------- Public Methods
 
+    @SuppressWarnings({"UnusedDeclaration"})
+    public static DelayedExecutor createDefaultIdleDelayedExecutor() {
 
+        return createDefaultIdleDelayedExecutor(1000, TimeUnit.MILLISECONDS);
+
+    }
+
+    @SuppressWarnings({"UnusedDeclaration"})
+    public static DelayedExecutor createDefaultIdleDelayedExecutor(final long checkInterval,
+                                                                   final TimeUnit checkIntervalUnit) {
+
+        final ExecutorService executor = Executors.newSingleThreadExecutor(new ThreadFactory() {
+
+            @Override
+            public Thread newThread(Runnable r) {
+                final Thread newThread = new Thread(r);
+                newThread.setName("Grizzly-IdleTimeoutFilter-IdleCheck");
+                newThread.setDaemon(true);
+                return newThread;
+            }
+        });
+        return new DelayedExecutor(executor,
+                                   ((checkInterval > 0)
+                                       ? checkInterval
+                                       : 1000L),
+                                   ((checkIntervalUnit != null)
+                                       ? checkIntervalUnit
+                                       : TimeUnit.MILLISECONDS));
+
+    }
+
+    @SuppressWarnings({"UnusedDeclaration"})
     public long getTimeout(TimeUnit timeunit) {
         return timeunit.convert(timeoutMillis, TimeUnit.MILLISECONDS);
     }
@@ -230,14 +208,6 @@ public class IdleTimeoutFilter extends BaseFilter {
         }
 
         ctx.addCompletionListener(contextCompletionListener);
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        if (wasExecutorStarted) {
-            executor.stop();
-        }
-        super.finalize();
     }
 
 
