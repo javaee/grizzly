@@ -85,6 +85,7 @@ public class Client {
         // lifecycle of the executor used by the IdleTimeoutFilter must be explicitly
         // managed
         final DelayedExecutor timeoutExecutor = IdleTimeoutFilter.createDefaultIdleDelayedExecutor();
+        timeoutExecutor.start();
 
         final FutureImpl<String> completeFuture = SafeFutureImpl.create();
 

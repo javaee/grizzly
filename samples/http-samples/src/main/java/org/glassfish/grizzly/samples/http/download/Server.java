@@ -71,6 +71,7 @@ public class Server {
         // lifecycle of the executor used by the IdleTimeoutFilter must be explicitly
         // managed
         final DelayedExecutor timeoutExecutor = IdleTimeoutFilter.createDefaultIdleDelayedExecutor();
+        timeoutExecutor.start();
 
         // Construct filter chain
         FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.stateless();
