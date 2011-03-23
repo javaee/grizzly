@@ -40,11 +40,17 @@
 
 package org.glassfish.grizzly;
 
+import java.io.InputStream;
 import java.net.InetSocketAddress;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.junit.Test;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.junit.Before;
+
+import java.security.KeyStore;
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Collection;
 import org.junit.runners.Parameterized.Parameters;
@@ -56,6 +62,7 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.net.URL;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.filterchain.TransportFilter;
@@ -74,14 +81,23 @@ import org.glassfish.grizzly.utils.ChunkingFilter;
 import org.glassfish.grizzly.utils.EchoFilter;
 import org.glassfish.grizzly.utils.StringFilter;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+
 import org.glassfish.grizzly.memory.Buffers;
 import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Set of SSL tests
@@ -91,11 +107,33 @@ import static org.junit.Assert.*;
 @RunWith(Parameterized.class)
 @SuppressWarnings("unchecked")
 public class SSLTest {
+
+    private final AtomicBoolean trustCert = new AtomicBoolean(true);
+
     private final static Logger logger = Grizzly.logger(SSLTest.class);
     
     public static final int PORT = 7779;
 
     private final boolean isLazySslInit;
+
+    private final TrustManager trustManager = new X509TrustManager() {
+
+        public X509Certificate[] getAcceptedIssuers() {
+            return new X509Certificate[0];
+        }
+
+        public void checkClientTrusted(X509Certificate[] chain, String authType)
+        throws CertificateException {
+        }
+
+        public void checkServerTrusted(X509Certificate[] chain,
+                                       String authType)
+        throws CertificateException {
+            if (!trustCert.get()) {
+                throw new CertificateException("not trusted");
+            }
+        }
+    };
 
     public SSLTest(boolean isLazySslInit) {
         this.isLazySslInit = isLazySslInit;
@@ -202,6 +240,148 @@ public class SSLTest {
         doTestPendingSSLClientWrites(5, 200);
     }
 
+    /**
+     * Added for GRIZZLY-983.
+     */
+    @Test
+    public void testCompletionHandlerNotification() throws Exception {
+
+        Connection connection = null;
+        SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
+        SSLEngineConfigurator clientSSLEngineConfigurator = null;
+        SSLEngineConfigurator serverSSLEngineConfigurator = null;
+
+        if (sslContextConfigurator.validateConfiguration(true)) {
+            clientSSLEngineConfigurator =
+                    new SSLEngineConfigurator(createSSLContext(),
+                                              true,
+                                              false,
+                                              false);
+            serverSSLEngineConfigurator =
+                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
+                                              false,
+                                              false,
+                                              false);
+        } else {
+            fail("Failed to validate SSLContextConfiguration.");
+        }
+
+
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new SSLFilter(serverSSLEngineConfigurator, null));
+        filterChainBuilder.add(new EchoFilter());
+
+        TCPNIOTransport transport =
+                TCPNIOTransportBuilder.newInstance().build();
+        transport.setProcessor(filterChainBuilder.build());
+
+        TCPNIOTransport cTransport =
+                TCPNIOTransportBuilder.newInstance().build();
+        FilterChainBuilder clientChain = FilterChainBuilder.stateless();
+        clientChain.add(new TransportFilter());
+        clientChain.add(new SSLFilter(null, clientSSLEngineConfigurator));
+        clientChain.add(new StringFilter());
+        cTransport.setProcessor(clientChain.build());
+
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            cTransport.start();
+
+            Future<Connection> future = cTransport.connect("localhost", PORT);
+            connection = future.get(10, TimeUnit.SECONDS);
+
+            assertNotNull(connection);
+
+            final CountDownLatch latch = new CountDownLatch(1);
+            trustCert.set(false);
+            connection.write("message", new CompletionHandler() {
+                @Override
+                public void cancelled() {
+                    fail("CompletionHandler.cancelled() should not have been called.");
+                }
+
+                @Override
+                public void failed(Throwable throwable) {
+                    try {
+                        assertTrue(throwable instanceof SSLHandshakeException);
+                    } finally {
+                        latch.countDown();
+                    }
+                }
+
+                @Override
+                public void completed(Object result) {
+                    fail("CompletionHandler.onComplete() should not have been called.");
+                }
+
+                @Override
+                public void updated(Object result) {
+                    fail("CompletionHandler.updated() should not have been called.");
+                }
+            });
+
+            if (!latch.await(10, TimeUnit.SECONDS)) {
+                fail("Timed out waiting for CompletionHandler.failed() to be invoked");
+            }
+
+            connection.close();
+            connection = null;
+
+            future = cTransport.connect("localhost", PORT);
+            connection = future.get(10, TimeUnit.SECONDS);
+
+            final CountDownLatch latch2 = new CountDownLatch(1);
+
+            trustCert.set(true);
+            connection.write("message", new CompletionHandler() {
+                @Override
+                public void cancelled() {
+                    fail("CompletionHandler.cancelled() should not have been called.");
+                }
+
+                @Override
+                public void failed(Throwable throwable) {
+                    fail("CompletionHandler.failed() should not have been called.");
+                }
+
+                @Override
+                public void completed(Object result) {
+                    try {
+                        assertTrue(result instanceof WriteResult);
+                    } finally {
+                        latch2.countDown();
+                    }
+                }
+
+                @Override
+                public void updated(Object result) {
+                    fail("CompletionHandler.updated() should not have been called.");
+                }
+            });
+
+            if (!latch2.await(10, TimeUnit.SECONDS)) {
+                fail("Timed out waiting for CompletionHandler.completed() to be invoked");
+            }
+
+            connection.close();
+            connection = null;
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+            cTransport.stop();
+            transport.stop();
+        }
+
+    }
+
+
+    // ------------------------------------------------------- Protected Methods
+
+
     protected void doTestPingPongFilterChain(boolean isBlocking,
             int turnAroundsNum, int filterIndex, Filter... filters)
             throws Exception {
@@ -273,7 +453,7 @@ public class SSLTest {
 
     }
     
-    public void doTestSSL(boolean isBlocking, int connectionsNum,
+    protected void doTestSSL(boolean isBlocking, int connectionsNum,
             int packetsNumber, int filterIndex, Filter... filters) throws Exception {
         Connection connection = null;
         SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
@@ -401,7 +581,7 @@ public class SSLTest {
         }
     }
 
-    public void doTestPendingSSLClientWrites(int connectionsNum,
+    protected void doTestPendingSSLClientWrites(int connectionsNum,
             int packetsNumber) throws Exception {
         Connection connection = null;
         SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
@@ -484,6 +664,10 @@ public class SSLTest {
             transport.stop();
         }
     }
+
+
+    // --------------------------------------------------------- Private Methods
+
     
     private SSLContextConfigurator createSSLContextConfigurator() {
         SSLContextConfigurator sslContextConfigurator =
@@ -506,7 +690,36 @@ public class SSLTest {
         return sslContextConfigurator;
     }
 
-    private class SSLPingPongFilter extends BaseFilter {
+     private SSLContext createSSLContext() {
+        try {
+            InputStream keyStoreStream = SSLTest.class.getResourceAsStream("ssltest-cacerts.jks");
+            char[] keyStorePassword = "password".toCharArray();
+            KeyStore ks = KeyStore.getInstance("JKS");
+            ks.load(keyStoreStream, keyStorePassword);
+
+            char[] certificatePassword = "password".toCharArray();
+            KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
+            kmf.init(ks, certificatePassword);
+
+            KeyManager[] keyManagers = kmf.getKeyManagers();
+            TrustManager[] trustManagers = new TrustManager[]{ trustManager };
+            SecureRandom secureRandom = new SecureRandom();
+
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(keyManagers, trustManagers, secureRandom);
+
+            return sslContext;
+        }
+        catch (Exception e) {
+            throw new Error("Failed to initialize the client SSLContext", e);
+        }
+    }
+
+
+    // ---------------------------------------------------------- Nested Classes
+
+
+    private static class SSLPingPongFilter extends BaseFilter {
         private final Attribute<Integer> turnAroundAttr =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("TurnAroundAttr");
 
@@ -598,7 +811,9 @@ public class SSLTest {
         public Future<Integer> getServerCompletedFeature() {
             return serverCompletedFeature;
         }
-    }
+
+    } // END SSLPingPongFilter
+
 
     private static class ClientTestFilter extends BaseFilter {
 
@@ -653,5 +868,7 @@ public class SSLTest {
         public String getPatternString() {
             return patternString;
         }
-    }
+
+    } // END Client Test Filter
+
 }

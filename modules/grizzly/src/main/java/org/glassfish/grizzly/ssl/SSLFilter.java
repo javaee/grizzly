@@ -72,6 +72,8 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 
 import org.glassfish.grizzly.PendingWriteQueueLimitExceededException;
+import org.glassfish.grizzly.impl.FutureImpl;
+
 import static org.glassfish.grizzly.ssl.SSLUtils.*;
 
 /**
@@ -83,6 +85,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     private static final Logger LOGGER = Grizzly.logger(SSLFilter.class);
 
     private final Attribute<CompletionHandler<SSLEngine>> handshakeCompletionHandlerAttr;
+    private final Attribute<FilterChainContext> initiatingContextAttr;
     private final SSLEngineConfigurator serverSSLEngineConfigurator;
     private final SSLEngineConfigurator clientSSLEngineConfigurator;
 
@@ -128,6 +131,10 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         handshakeCompletionHandlerAttr =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
                 "SSLFilter-HandshakeCompletionHandlerAttr");
+        initiatingContextAttr =
+                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+                     "SSLFilter-HandshakingInitiatingContextAttr"
+                );
     }
 
 
@@ -189,6 +196,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
             synchronized(connection) {
                 sslEngine = getSSLEngine(connection);
                 if (sslEngine == null) {
+                    initiatingContextAttr.set(ctx.getConnection(), ctx);
                     handshake(connection,
                             new PendingWriteCompletionHandler(connection),
                             null, clientSSLEngineConfigurator);
@@ -282,89 +290,101 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         final Buffer inputBuffer = context.getMessage();
 
         final boolean isLoggingFinest = LOGGER.isLoggable(Level.FINEST);
+        try {
+            synchronized (connection) {
 
-        synchronized (connection) {
+                HandshakeStatus handshakeStatus = sslEngine.getHandshakeStatus();
 
-            HandshakeStatus handshakeStatus = sslEngine.getHandshakeStatus();
+                while (true) {
 
-            while (true) {
-
-                if (isLoggingFinest) {
-                    LOGGER.log(Level.FINEST, "Loop Engine: {0} handshakeStatus={1}",
-                            new Object[]{sslEngine, sslEngine.getHandshakeStatus()});
-                }
-
-                switch (handshakeStatus) {
-                    case NEED_UNWRAP: {
-
-                        if (isLoggingFinest) {
-                            LOGGER.log(Level.FINEST, "NEED_UNWRAP Engine: {0}", sslEngine);
-                        }
-
-                        if (inputBuffer == null || !inputBuffer.hasRemaining()) {
-                            return inputBuffer;
-                        }
-
-                        final SSLEngineResult sslEngineResult =
-                                handshakeUnwrap(connection, sslEngine, inputBuffer);
-
-                        if (sslEngineResult == null) {
-                            return inputBuffer;
-                        }
-
-                        final Status status = sslEngineResult.getStatus();
-
-                        if (status == Status.BUFFER_UNDERFLOW) {
-                            return inputBuffer;
-                        } else if (status == Status.BUFFER_OVERFLOW) {
-                            throw new SSLException("Buffer overflow");
-                        }
-
-                        handshakeStatus = sslEngine.getHandshakeStatus();
-                        break;
+                    if (isLoggingFinest) {
+                        LOGGER.log(Level.FINEST, "Loop Engine: {0} handshakeStatus={1}",
+                                new Object[]{sslEngine, sslEngine.getHandshakeStatus()});
                     }
 
-                    case NEED_WRAP: {
-                        if (isLoggingFinest) {
-                            LOGGER.log(Level.FINEST, "NEED_WRAP Engine: {0}", sslEngine);
-                        }
+                    switch (handshakeStatus) {
+                        case NEED_UNWRAP: {
 
-                        final Buffer buffer = handshakeWrap(connection, sslEngine);
+                            if (isLoggingFinest) {
+                                LOGGER.log(Level.FINEST, "NEED_UNWRAP Engine: {0}", sslEngine);
+                            }
 
-                        try {
-                            context.write(dstAddress, buffer, null);
+                            if (inputBuffer == null || !inputBuffer.hasRemaining()) {
+                                return inputBuffer;
+                            }
+
+                            final SSLEngineResult sslEngineResult =
+                                    handshakeUnwrap(connection, sslEngine, inputBuffer);
+
+                            if (sslEngineResult == null) {
+                                return inputBuffer;
+                            }
+
+                            final Status status = sslEngineResult.getStatus();
+
+                            if (status == Status.BUFFER_UNDERFLOW) {
+                                return inputBuffer;
+                            } else if (status == Status.BUFFER_OVERFLOW) {
+                                throw new SSLException("Buffer overflow");
+                            }
 
                             handshakeStatus = sslEngine.getHandshakeStatus();
-                        } catch (IOException e) {
-                            buffer.dispose();
-                            throw e;
-                        } catch (Exception e) {
-                            buffer.dispose();
-                            throw new IOException("Unexpected exception", e);
+                            break;
                         }
 
-                        break;
-                    }
+                        case NEED_WRAP: {
+                            if (isLoggingFinest) {
+                                LOGGER.log(Level.FINEST, "NEED_WRAP Engine: {0}", sslEngine);
+                            }
 
-                    case NEED_TASK: {
-                        if (isLoggingFinest) {
-                            LOGGER.log(Level.FINEST, "NEED_TASK Engine: {0}", sslEngine);
+                            final Buffer buffer = handshakeWrap(connection, sslEngine);
+
+                            try {
+                                context.write(dstAddress, buffer, null);
+
+                                handshakeStatus = sslEngine.getHandshakeStatus();
+                            } catch (IOException e) {
+                                buffer.dispose();
+                                throw e;
+                            } catch (Exception e) {
+                                buffer.dispose();
+                                throw new IOException("Unexpected exception", e);
+                            }
+
+                            break;
                         }
-                        executeDelegatedTask(sslEngine);
-                        handshakeStatus = sslEngine.getHandshakeStatus();
-                        break;
+
+                        case NEED_TASK: {
+                            if (isLoggingFinest) {
+                                LOGGER.log(Level.FINEST, "NEED_TASK Engine: {0}", sslEngine);
+                            }
+                            executeDelegatedTask(sslEngine);
+                            handshakeStatus = sslEngine.getHandshakeStatus();
+                            break;
+                        }
+
+                        case FINISHED:
+                        case NOT_HANDSHAKING: {
+                            return inputBuffer;
+                        }
                     }
 
-                    case FINISHED:
-                    case NOT_HANDSHAKING: {
+                    if (handshakeStatus == HandshakeStatus.FINISHED) {
+                        initiatingContextAttr.remove(connection);
                         return inputBuffer;
                     }
                 }
-
-                if (handshakeStatus == HandshakeStatus.FINISHED) {
-                    return inputBuffer;
-                }
             }
+        } catch (IOException ioe) {
+            final FilterChainContext ictx = initiatingContextAttr.get(connection);
+            try {
+                if (ictx != null) {
+                    ictx.getFilterChain().fail(ictx, ioe);
+                }
+            } finally {
+                initiatingContextAttr.remove(connection);
+            }
+            throw ioe;
         }
     }
 
