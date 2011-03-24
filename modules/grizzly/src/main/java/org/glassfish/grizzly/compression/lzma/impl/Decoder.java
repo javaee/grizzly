@@ -202,7 +202,7 @@ public class Decoder {
                         {
                             symbol = 1;
                             this.matchByte = matchByteParam;
-                            decodeWithMatchByteMethodState = 1;
+//                            decodeWithMatchByteMethodState = 1;
                         }
                         case 1:
                         {

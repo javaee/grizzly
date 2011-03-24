@@ -71,10 +71,7 @@ import org.glassfish.grizzly.http.util.CharChunk;
 public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
 
     private static final Logger LOGGER = Grizzly.logger(HttpHandlerChain.class);
-//    protected final static int MAPPING_DATA = 12;
-//    protected final static int MAPPED_SERVICE = 13;
-//    private static final Note<MappingData> MAPPING_DATA_NOTE =
-//            Request.<MappingData>createNote("MAPPING_DATA");
+
     /**
      * The list of {@link HttpHandler} instance.
      */
@@ -262,13 +259,15 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
     private void registerJmxForHandler(final HttpHandler httpHandler) {
         final Monitorable monitorable = (Monitorable) httpHandler;
         final JmxObject jmx = monitorable.createManagementObject();
-        monitors.putIfAbsent(httpHandler, jmx);
-        httpServer.jmxManager.register(httpServer.managementObject, jmx, jmx.getJmxName());
+        if (monitors.putIfAbsent(httpHandler, jmx) == null) {
+            httpServer.jmxManager.register(httpServer.managementObject, jmx,
+                    jmx.getJmxName());
+    }
     }
 
     private void deregisterJmxForHandler(final HttpHandler httpHandler) {
 
-        JmxObject jmx = monitors.get(httpHandler);
+        final JmxObject jmx = monitors.remove(httpHandler);
         if (jmx != null) {
             httpServer.jmxManager.deregister(jmx);
         }
