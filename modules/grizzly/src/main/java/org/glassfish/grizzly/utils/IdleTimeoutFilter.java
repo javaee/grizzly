@@ -112,6 +112,10 @@ public class IdleTimeoutFilter extends BaseFilter {
                                 final long timeout,
                                 final TimeUnit timeoutUnit) {
 
+        if (executor == null) {
+            throw new IllegalArgumentException("executor cannot be null");
+        }
+
         this.timeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeoutUnit);
 
         queue = executor.createDelayQueue(worker, new Resolver());
