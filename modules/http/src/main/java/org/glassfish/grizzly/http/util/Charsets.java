@@ -69,7 +69,7 @@ public final class Charsets {
         Charset charset = charsetAliasMap.get(charsetName);
         if (charset == null) {
             charset = Charset.forName(charsetName);
-            charsetAliasMap.putIfAbsent(charsetName, charset);
+            charsetAliasMap.put(charsetName, charset);
         }
 
         return charset;
