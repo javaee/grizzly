@@ -54,16 +54,16 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.ArrayDeque;
-import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.Queue;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import org.glassfish.grizzly.utils.DataStructures;
 
 /**
@@ -75,7 +75,7 @@ public final class SelectorRunner implements Runnable {
     private final static Logger logger = Grizzly.logger(SelectorRunner.class);
     
     private final NIOTransport transport;
-    private final StateHolder<State> stateHolder;
+    private final AtomicReference<State> stateHolder;
     
     private final Queue<SelectorHandlerTask> pendingTasks;
     private final Queue<SelectorHandlerTask> postponedTasks;
@@ -92,6 +92,9 @@ public final class SelectorRunner implements Runnable {
     private SelectionKey key = null;
     private int keyReadyOps;
 
+    private final CountDownLatch shutdownLatch = new CountDownLatch(1);
+    private final AtomicBoolean selectorWakeupFlag = new AtomicBoolean();
+
     public SelectorRunner(final NIOTransport transport) {
         this(transport, null);
     }
@@ -99,7 +102,7 @@ public final class SelectorRunner implements Runnable {
     public SelectorRunner(final NIOTransport transport, final Selector selector) {
         this.transport = transport;
         this.selector = selector;
-        stateHolder = new StateHolder<State>(State.STOP);
+        stateHolder = new AtomicReference<State>(State.STOP);
 
         pendingTasks = DataStructures.getLTQInstance(SelectorHandlerTask.class);
         postponedTasks = new ArrayDeque<SelectorHandlerTask>();
@@ -140,12 +143,8 @@ public final class SelectorRunner implements Runnable {
         return null;
     }
 
-    public StateHolder<State> getStateHolder() {
-        return stateHolder;
-    }
-
     public State getState() {
-        return stateHolder.getState();
+        return stateHolder.get();
     }
     
     public void postpone() {
@@ -160,75 +159,54 @@ public final class SelectorRunner implements Runnable {
     }
 
     public synchronized void start() {
-        if (stateHolder.getState() != State.STOP) {
+        if (!stateHolder.compareAndSet(State.STOP, State.STARTING)) {
             logger.log(Level.WARNING,
                     "SelectorRunner is not in the stopped state!");
+            return;
         }
         
-        stateHolder.setState(State.STARTING);
         transport.getKernelThreadPool().execute(this);
     }
     
-    public void startBlocking(int timeout) throws TimeoutException {
-        start();
-        final Future<State> future = stateHolder.notifyWhenStateIsEqual(
-                State.START, null);
-        try {
-            future.get(5000, TimeUnit.MILLISECONDS);
-        } catch (ExecutionException ignored) {
-        } catch (InterruptedException ignored) {
-        }
-    }
-
     public synchronized void stop() {
-        stateHolder.setState(State.STOPPING);
-        
+        stateHolder.set(State.STOPPING);
         wakeupSelector();
 
-        pendingTasks.clear();
-        postponedTasks.clear();
-        
+        try {
+            shutdownLatch.await(5, TimeUnit.SECONDS);
+        } catch (InterruptedException ignored) {
+        }
+//        shutdownSelector();
+    }
+
+    private void shutdownSelector() {
         final Selector localSelector = getSelector();
         if (localSelector != null) {
             try {
-                SelectionKey[] keys = new SelectionKey[0];
-                while(true) {
-                    try {
-                        keys = localSelector.keys().toArray(keys);
-                        break;
-                    } catch (ConcurrentModificationException ignore) {
-                    }
-                }
-                
+                final Set<SelectionKey> keys = localSelector.keys();
+
                 for (final SelectionKey selectionKey : keys) {
                     final Connection connection =
                             transport.getSelectionKeyHandler().
                             getConnectionForKey(selectionKey);
                     try {
-                        transport.closeConnection(connection);
-                    } catch (IOException ignored) {
+                        connection.close();
+                    } catch (Exception ignored) {
                     }
                 }
             } catch (ClosedSelectorException e) {
                 // If Selector is already closed - OK
             }
         }
+
+        abortTasksInQueue(pendingTasks);
+        abortTasksInQueue(postponedTasks);
     }
-        
-    public void stopBlocking(int timeout) throws TimeoutException {
-        stop();
-        final Future<State> future = stateHolder.notifyWhenStateIsEqual(
-                State.STOP, null);
-        try {
-            future.get(5000, TimeUnit.MILLISECONDS);
-        } catch (ExecutionException ignored) {
-        } catch (InterruptedException ignored) {
-        }
-    }
-    
+
     public void wakeupSelector() {
         final Selector localSelector = getSelector();
-        if (localSelector != null) {
+        if (localSelector != null &&
+                selectorWakeupFlag.compareAndSet(false, true)) {
             try {
                 localSelector.wakeup();
             } catch (Exception e) {
@@ -240,18 +218,20 @@ public final class SelectorRunner implements Runnable {
     @Override
     public void run() {
         final Thread currentThread = Thread.currentThread();
+        if (!isResume) {
+            if (!stateHolder.compareAndSet(State.STARTING, State.START)) {
+                return;
+            }
+
+            currentThread.setName(currentThread.getName() + " SelectorRunner");
+        }
+
         setRunnerThread(currentThread);
         final boolean isWorkerThread = currentThread instanceof WorkerThread;
         if (isWorkerThread) {
             ((WorkerThread) currentThread).setSelectorThread(true);
         }
         
-        if (!isResume) {
-            currentThread.setName(currentThread.getName() +
-                    " SelectorRunner");
-
-            stateHolder.setState(State.START);
-        }
         StateHolder<State> transportStateHolder = transport.getState();
 
         boolean isSkipping = false;
@@ -272,8 +252,10 @@ public final class SelectorRunner implements Runnable {
             }
         } finally {
             if (!isSkipping) {
-                stateHolder.setState(State.STOP);
+                shutdownSelector();
+                stateHolder.set(State.STOP);
                 setRunnerThread(null);
+                shutdownLatch.countDown();
             }
 
             if (isWorkerThread) {
@@ -306,12 +288,13 @@ public final class SelectorRunner implements Runnable {
             }
 
             lastSelectedKeysCount = 0;
-            
+
             selectorHandler.preSelect(this);
 
+            selectorWakeupFlag.set(false);
             final Set<SelectionKey> readyKeys = selectorHandler.select(this);
 
-            if (stateHolder.getState() == State.STOPPING) return false;
+            if (stateHolder.get() == State.STOPPING) return true;
             
             lastSelectedKeysCount = readyKeys.size();
             
@@ -400,21 +383,14 @@ public final class SelectorRunner implements Runnable {
         return postponedTasks;
     }
 
-    private boolean isStop() {
-        State state = stateHolder.getState();
+    boolean isStop() {
+        final State state = stateHolder.get();
 
-        if (state == State.STOP
-                    || state == State.STOPPING) return true;
-        
-        state = transport.getState().getState();
-        
-        return state == State.STOP
-                    || state == State.STOPPING; 
+        return state == State.STOP || state == State.STOPPING;
     }
     
     private boolean isRunning() {
-        return stateHolder.getState() == State.START &&
-                transport.getState().getState() == State.START;
+        return stateHolder.get() == State.START;
     }
 
     /**
@@ -487,6 +463,16 @@ public final class SelectorRunner implements Runnable {
         try {
             oldSelector.close();
         } catch (Exception ignored) {
+        }
+    }
+
+    private void abortTasksInQueue(final Queue<SelectorHandlerTask> taskQueue) {
+        SelectorHandlerTask task;
+        while ((task = taskQueue.poll()) != null) {
+            try {
+                task.cancel();
+            } catch (Exception ignored) {
+            }
         }
     }
 }

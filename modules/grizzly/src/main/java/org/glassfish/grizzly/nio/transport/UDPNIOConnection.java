@@ -111,8 +111,8 @@ public class UDPNIOConnection extends NIOConnection {
         try {
             transport.fireIOEvent(IOEvent.CLOSED, this, null);
         } catch (IOException e) {
-            LOGGER.log(Level.FINE, "Unexpected IOExcption occurred, "
-                    + "when firing CLOSE event");
+            LOGGER.log(Level.FINE, "Unexpected IOExcption occurred, " +
+                    "when firing CLOSE event");
         }
     }
 

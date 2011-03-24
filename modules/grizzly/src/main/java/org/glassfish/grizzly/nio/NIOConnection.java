@@ -70,9 +70,12 @@ import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
+import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
+import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringConfigImpl;
+import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
 import org.glassfish.grizzly.utils.DataStructures;
 
 /**
@@ -342,13 +345,25 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
 
     @Override
-    public GrizzlyFuture close() throws IOException {
+    public GrizzlyFuture<Connection> close() throws IOException {
+        return close(null);
+    }
+
+    @Override
+    public GrizzlyFuture<Connection> close(
+            final CompletionHandler<Connection> completionHandler)
+            throws IOException {
         if (!isClosed.getAndSet(true)) {
             preClose();
             notifyCloseListeners();
             notifyProbesClose(this);
-            return transport.getSelectorHandler().executeInSelectorThread(
-                selectorRunner, new Runnable() {
+
+            try {
+                final FutureImpl<Connection> resultFuture =
+                        SafeFutureImpl.<Connection>create();
+                
+                transport.getSelectorHandler().executeInSelectorThread(
+                        selectorRunner, new Runnable() {
                     @Override
                     public void run() {
                         try {
@@ -357,9 +372,31 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                             logger.log(Level.FINE, "Error during connection close", e);
                         }
                     }
-                }, null);
+                }, new CompletionHandlerAdapter<Connection, Runnable>(
+                        resultFuture, completionHandler) {
+
+                    @Override
+                    protected Connection adapt(final Runnable result) {
+                        return NIOConnection.this;
+                    }
+
+                    @Override
+                    public void failed(final Throwable throwable) {
+                        try {
+                            transport.closeConnection(NIOConnection.this);
+                        } catch (Exception ignored) {
+                        }
+
+                        completed(null);
+                    }
+                });
+
+                return resultFuture;
+            } catch (Exception e) {
+                transport.closeConnection(NIOConnection.this);
+            }
         }
-        return ReadyFutureImpl.create(this);
+        return ReadyFutureImpl.<Connection>create(this);
     }
 
     /**
@@ -574,7 +611,6 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
             try {
                 closeListener.onClosed(this);
             } catch (IOException ignored) {
-                ignored.printStackTrace();
             }
         }
     }

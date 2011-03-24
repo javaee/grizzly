@@ -144,7 +144,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
     @Override
     public void registerKeyInterest(final SelectorRunner selectorRunner,
             final SelectionKey key, final int interest) throws IOException {
-        if (Thread.currentThread() == selectorRunner.getRunnerThread()) {
+        if (isSelectorRunnerThread(selectorRunner)) {
             registerKey0(key, interest);
         } else {
             final SelectorHandlerTask task = new RegisterKeyTask(key, interest);
@@ -155,7 +155,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
     @Override
     public void deregisterKeyInterest(final SelectorRunner selectorRunner,
                                       final SelectionKey key, final int interest) throws IOException {
-        if (Thread.currentThread() == selectorRunner.getRunnerThread()) {
+        if (isSelectorRunnerThread(selectorRunner)) {
             deregisterKey0(key, interest);
         } else {
             final SelectorHandlerTask task = new DeRegisterKeyTask(key, interest);
@@ -188,7 +188,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
         final FutureImpl<RegisterChannelResult> future =
                 SafeFutureImpl.create();
 
-        if (Thread.currentThread() == selectorRunner.getRunnerThread()) {
+        if (isSelectorRunnerThread(selectorRunner)) {
             registerChannel0(selectorRunner, channel, interest, attachment,
                     completionHandler, future);
         } else {
@@ -224,7 +224,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
         final FutureImpl<RegisterChannelResult> future =
                 SafeFutureImpl.create();
 
-        if (Thread.currentThread() == selectorRunner.getRunnerThread()) {
+        if (isSelectorRunnerThread(selectorRunner)) {
             deregisterChannel0(selectorRunner, channel,
                     completionHandler, future);
         } else {
@@ -241,7 +241,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
     public GrizzlyFuture<Runnable> executeInSelectorThread(
             final SelectorRunner selectorRunner, final Runnable runnableTask,
             final CompletionHandler<Runnable> completionHandler) {
-        if (Thread.currentThread() == selectorRunner.getRunnerThread()) {
+        if (isSelectorRunnerThread(selectorRunner)) {
             try {
                 runnableTask.run();
             } catch (Exception e) {
@@ -268,11 +268,22 @@ public class DefaultSelectorHandler implements SelectorHandler {
 
     private void addPendingTask(final SelectorRunner selectorRunner,
             final SelectorHandlerTask task) {
+
+        if (selectorRunner == null) {
+            task.cancel();
+            return;
+        }
+        
         final Queue<SelectorHandlerTask> pendingTasks =
                 selectorRunner.getPendingTasks();
         pendingTasks.offer(task);
 
         selectorRunner.wakeupSelector();
+
+        if (selectorRunner.isStop() &&
+                selectorRunner.getPendingTasks().remove(task)) {
+            task.cancel();
+        }
     }
 
     private void processPendingTasks(final SelectorRunner selectorRunner)
@@ -473,6 +484,11 @@ public class DefaultSelectorHandler implements SelectorHandler {
         }
     }
 
+    private boolean isSelectorRunnerThread(final SelectorRunner selectorRunner) {
+        return selectorRunner != null &&
+                Thread.currentThread() == selectorRunner.getRunnerThread();
+    }
+
     protected final class RegisterKeyTask implements SelectorHandlerTask {
         private final SelectionKey selectionKey;
         private final int interest;
@@ -490,6 +506,10 @@ public class DefaultSelectorHandler implements SelectorHandler {
             }
 
             registerKey0(localSelectionKey, interest);
+        }
+
+        @Override
+        public void cancel() {
         }
     }
 
@@ -510,6 +530,10 @@ public class DefaultSelectorHandler implements SelectorHandler {
             }
 
             deregisterKey0(localSelectionKey, interest);
+        }
+
+        @Override
+        public void cancel() {
         }
     }
 
@@ -536,6 +560,17 @@ public class DefaultSelectorHandler implements SelectorHandler {
             registerChannel0(selectorRunner, channel, interest,
                     attachment, completionHandler, future);
         }
+
+        @Override
+        public void cancel() {
+            if (completionHandler != null) {
+                completionHandler.failed(new IOException("Selector is closed"));
+            }
+
+            if (future != null) {
+                future.failure(new IOException("Selector is closed"));
+            }
+        }
     }
 
     protected final class DeregisterChannelOperation implements SelectorHandlerTask {
@@ -554,6 +589,17 @@ public class DefaultSelectorHandler implements SelectorHandler {
         @Override
         public void run(final SelectorRunner selectorRunner) throws IOException {
             deregisterChannel0(selectorRunner, channel, completionHandler, future);
+        }
+
+        @Override
+        public void cancel() {
+            if (completionHandler != null) {
+                completionHandler.failed(new IOException("Selector is closed"));
+            }
+
+            if (future != null) {
+                future.failure(new IOException("Selector is closed"));
+            }
         }
     }
     
@@ -582,10 +628,21 @@ public class DefaultSelectorHandler implements SelectorHandler {
                 logger.log(Level.FINEST, "doExecutePendiongIO failed.", t);
                 
                 if (completionHandler != null) {
-                    completionHandler.completed(task);
+                    completionHandler.failed(t);
                 }
 
                 future.failure(t);
+            }
+        }
+
+        @Override
+        public void cancel() {
+            if (completionHandler != null) {
+                completionHandler.failed(new IOException("Selector is closed"));
+            }
+
+            if (future != null) {
+                future.failure(new IOException("Selector is closed"));
             }
         }
     }

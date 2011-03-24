@@ -154,7 +154,7 @@ public class LZMATest {
 
             Future<Connection> future = connectorHandler.connect("localhost", PORT);
 
-            connection = future.get(10, TimeUnit.SECONDS);
+            connection = future.get(120, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
             assertTrue(completeFuture.get(240, TimeUnit.SECONDS));

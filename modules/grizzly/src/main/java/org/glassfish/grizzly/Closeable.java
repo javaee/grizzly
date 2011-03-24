@@ -47,6 +47,8 @@ import java.io.IOException;
  * 
  * @author Alexey Stashok
  */
-public interface Closeable {
-    public GrizzlyFuture close() throws IOException;
+public interface Closeable<E extends Closeable> {
+    public GrizzlyFuture<E> close() throws IOException;
+    public GrizzlyFuture<E> close(CompletionHandler<E> completionHandler)
+            throws IOException;
 }

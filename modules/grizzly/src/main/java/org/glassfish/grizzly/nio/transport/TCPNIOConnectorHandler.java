@@ -44,7 +44,6 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -80,6 +79,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
     
     private static final Logger LOGGER = Grizzly.logger(TCPNIOConnectorHandler.class);
     protected static final int DEFAULT_CONNECTION_TIMEOUT = 30000;
+
     private final InstantConnectHandler instantConnectHandler;
     protected boolean isReuseAddress;
     protected volatile long connectionTimeoutMillis = DEFAULT_CONNECTION_TIMEOUT;
@@ -117,37 +117,47 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             final SocketAddress localAddress,
             final CompletionHandler<Connection> completionHandler)
             throws IOException {
-        final SocketChannel socketChannel = SocketChannel.open();
-        final Socket socket = socketChannel.socket();
-        socket.setReuseAddress(isReuseAddress);
-
-        if (localAddress != null) {
-            socket.bind(localAddress);
-        }
-
-        socketChannel.configureBlocking(false);
-
+        
         final TCPNIOTransport nioTransport = (TCPNIOTransport) transport;
-        final TCPNIOConnection newConnection = nioTransport.obtainNIOConnection(socketChannel);
-
-        preConfigure(newConnection);
-
-        newConnection.setProcessor(getProcessor());
-        newConnection.setProcessorSelector(getProcessorSelector());
-
+        TCPNIOConnection newConnection = null;
         try {
+            final SocketChannel socketChannel = SocketChannel.open();
+
+            newConnection = nioTransport.obtainNIOConnection(socketChannel);
+
+            final TCPNIOConnection finalConnection = newConnection;
+
+            final Socket socket = socketChannel.socket();
+            socket.setReuseAddress(isReuseAddress);
+
+            if (localAddress != null) {
+                socket.bind(localAddress);
+            }
+
+            socketChannel.configureBlocking(false);
+
+            preConfigure(newConnection);
+
+            newConnection.setProcessor(getProcessor());
+            newConnection.setProcessorSelector(getProcessorSelector());
+
             final FutureImpl<Connection> connectFuture = SafeFutureImpl.create();
 
             final boolean isConnected = socketChannel.connect(remoteAddress);
 
-            newConnection.setConnectHandler(
-                    new Callable<Connection>() {
+            newConnection.setConnectCompletionHandler(
+                    new EmptyCompletionHandler<Connection>() {
 
                         @Override
-                        public Connection call() throws Exception {
-                            onConnectedAsync(newConnection, connectFuture,
+                        public void completed(Connection result) {
+                            onConnectedAsync(finalConnection, connectFuture,
                                     completionHandler);
-                            return null;
+                        }
+
+                        @Override
+                        public void failed(Throwable throwable) {
+                            abortConnection(finalConnection, connectFuture,
+                                    completionHandler, throwable);
                         }
                     });
 
@@ -170,13 +180,17 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
                 registerChannelFuture =
                         nioChannelDistributor.registerChannelAsync(
                         socketChannel, SelectionKey.OP_CONNECT, newConnection,
-                        nioTransport.selectorRegistrationHandler);
+                        new RegisterChannelCompletionHandler(newConnection));
             }
 
             registerChannelFuture.markForRecycle(false);
 
             return connectFuture;
         } catch (Exception e) {
+            if (newConnection != null) {
+                newConnection.close();
+            }
+
             if (completionHandler != null) {
                 completionHandler.failed(e);
             }
@@ -185,9 +199,9 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         }
     }
 
-    protected static void onConnectedAsync(TCPNIOConnection connection,
-            FutureImpl<Connection> connectFuture,
-            CompletionHandler<Connection> completionHandler) throws IOException {
+    protected static void onConnectedAsync(final TCPNIOConnection connection,
+            final FutureImpl<Connection> connectFuture,
+            final CompletionHandler<Connection> completionHandler) {
 
         try {
             final TCPNIOTransport tcpTransport =
@@ -209,13 +223,8 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
                     new EnableReadPostProcessor(connectFuture, completionHandler));
 
         } catch (Exception e) {
-            if (completionHandler != null) {
-                completionHandler.failed(e);
-            }
-
-            connectFuture.failure(e);
-
-            throw new IOException("Connect exception", e);
+            abortConnection(connection, connectFuture, completionHandler, e);
+            throw new IllegalStateException(e);
         }
     }
 
@@ -256,8 +265,24 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         }
     }
 
-    private class InstantConnectHandler extends EmptyCompletionHandler<RegisterChannelResult> {
+    private static void abortConnection(final TCPNIOConnection connection,
+            final FutureImpl<Connection> connectFuture,
+            final CompletionHandler<Connection> completionHandler,
+            final Throwable failure) {
 
+        try {
+            connection.close();
+        } catch (IOException ignored) {
+        }
+
+        if (completionHandler != null) {
+            completionHandler.failed(failure);
+        }
+        
+        connectFuture.failure(failure);
+    }
+
+    private class InstantConnectHandler extends EmptyCompletionHandler<RegisterChannelResult> {
         @Override
         public void completed(RegisterChannelResult result) {
             final TCPNIOTransport transport =
@@ -273,13 +298,34 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
             try {
                 connection.onConnect();
-
             } catch (Exception e) {
                 LOGGER.log(Level.FINE, "Exception happened, when "
                         + "trying to connect the channel", e);
             }
         }
     }
+
+    private static class RegisterChannelCompletionHandler
+            extends EmptyCompletionHandler<RegisterChannelResult> {
+
+        private final TCPNIOConnection connection;
+
+        public RegisterChannelCompletionHandler(TCPNIOConnection connection) {
+            this.connection = connection;
+        }
+
+        @Override
+        public void completed(final RegisterChannelResult result) {
+            final TCPNIOTransport transport = (TCPNIOTransport) connection.getTransport();
+            transport.selectorRegistrationHandler.completed(result);
+        }
+
+        @Override
+        public void failed(final Throwable throwable) {
+            connection.onConnectFailed(throwable);
+        }
+    }
+    
     // COMPLETE, COMPLETE_LEAVE, REREGISTER, RERUN, ERROR, TERMINATE, NOT_RUN
     private final static boolean[] isRegisterMap = {true, false, true, false, false, false, true};
 

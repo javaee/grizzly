@@ -50,7 +50,7 @@ import java.util.concurrent.Future;
  *
  * @author Alexey Stashok
  */
-public interface Writable<L> extends Closeable {
+public interface Writable<L> {
     /**
      * Method writes the <tt>buffer</tt>.
      *

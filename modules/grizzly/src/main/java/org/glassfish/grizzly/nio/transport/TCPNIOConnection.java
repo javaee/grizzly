@@ -52,11 +52,12 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
-import java.util.concurrent.Callable;
+import org.glassfish.grizzly.CompletionHandler;
 
 /**
  * {@link org.glassfish.grizzly.Connection} implementation
@@ -70,7 +71,8 @@ public class TCPNIOConnection extends NIOConnection {
     private SocketAddress localSocketAddress;
     private SocketAddress peerSocketAddress;
 
-    private volatile Callable<Connection> connectHandler;
+    private final AtomicReference<CompletionHandler<Connection>> connectHandlerRef =
+            new AtomicReference<CompletionHandler<Connection>>();
 
     public TCPNIOConnection(TCPNIOTransport transport,
             SelectableChannel channel) {
@@ -94,6 +96,7 @@ public class TCPNIOConnection extends NIOConnection {
     @Override
     protected void preClose() {
         try {
+            onConnectFailed(null);
             transport.fireIOEvent(IOEvent.CLOSED, this, null);
         } catch (IOException e) {
             LOGGER.log(Level.FINE, "Unexpected IOExcption occurred, " +
@@ -179,9 +182,9 @@ public class TCPNIOConnection extends NIOConnection {
         }
     }
     
-    protected final void setConnectHandler(
-            Callable<Connection> connectHandler) {
-        this.connectHandler = connectHandler;
+    protected final void setConnectCompletionHandler(
+            final CompletionHandler<Connection> connectHandler) {
+        this.connectHandlerRef.set(connectHandler);
     }
 
     /**
@@ -189,21 +192,35 @@ public class TCPNIOConnection extends NIOConnection {
      * @throws IOException
      */
     protected final void onConnect() throws IOException {
-        final Callable<Connection> localConnectHandler = connectHandler;
+        final CompletionHandler<Connection> localConnectHandler =
+                connectHandlerRef.getAndSet(null);
         
         if (localConnectHandler != null) {
-            connectHandler = null;
-            
             try {
-                localConnectHandler.call();
-            } catch (IOException e) {
-                throw e;
+                localConnectHandler.completed(this);
             } catch (Exception e) {
                 throw new IOException("Connect exception", e);
             }
         }
 
         notifyProbesConnect(this);
+    }
+
+    /**
+     * Method will be called, when the connect fails .
+     * @throws IOException
+     */
+    protected final void onConnectFailed(Throwable failure) {
+        final CompletionHandler<Connection> localConnectHandler =
+                connectHandlerRef.getAndSet(null);
+
+        if (localConnectHandler != null) {
+            if (failure == null) {
+                failure = new IOException("closed");
+            }
+            
+            localConnectHandler.failed(failure);
+        }
     }
 
     /**

@@ -42,7 +42,6 @@ package org.glassfish.grizzly.compression.lzma;
 import org.glassfish.grizzly.AbstractTransformer;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Cacheable;
-import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.TransformationException;
 import org.glassfish.grizzly.TransformationResult;
@@ -52,7 +51,6 @@ import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 import java.io.IOException;
-import java.util.logging.Logger;
 
 public class LZMAEncoder extends AbstractTransformer<Buffer,Buffer> {
 
@@ -265,6 +263,7 @@ public class LZMAEncoder extends AbstractTransformer<Buffer,Buffer> {
             this.mm = mm;
         }
 
+        @Override
         public void recycle() {
             lastResult = null;
             initialized = false;

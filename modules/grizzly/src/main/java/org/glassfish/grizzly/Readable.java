@@ -51,7 +51,7 @@ import java.util.concurrent.Future;
  * 
  * @author Alexey Stashok
  */
-public interface Readable<L> extends Closeable {
+public interface Readable<L> {
 
     /**
      * Method reads data.

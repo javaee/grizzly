@@ -1326,21 +1326,16 @@ public final class TCPNIOTransport extends NIOTransport implements
 
         @Override
         public void completed(final RegisterChannelResult result) {
-            try {
-                final SelectionKey selectionKey = result.getSelectionKey();
+            final SelectionKey selectionKey = result.getSelectionKey();
 
-                final TCPNIOConnection connection =
-                        (TCPNIOConnection) getSelectionKeyHandler().
-                        getConnectionForKey(selectionKey);
+            final TCPNIOConnection connection =
+                    (TCPNIOConnection) getSelectionKeyHandler().
+                    getConnectionForKey(selectionKey);
 
-                if (connection != null) {
-                    final SelectorRunner selectorRunner = result.getSelectorRunner();
-                    connection.setSelectionKey(selectionKey);
-                    connection.setSelectorRunner(selectorRunner);
-                }
-            } catch (Exception e) {
-                LOGGER.log(Level.FINE, "Exception happened, when " +
-                        "trying to register the channel", e);
+            if (connection != null) {
+                final SelectorRunner selectorRunner = result.getSelectorRunner();
+                connection.setSelectionKey(selectionKey);
+                connection.setSelectorRunner(selectorRunner);
             }
         }
     }

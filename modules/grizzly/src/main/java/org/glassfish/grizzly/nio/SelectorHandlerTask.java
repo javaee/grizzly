@@ -50,4 +50,5 @@ import java.io.IOException;
  */
 public interface SelectorHandlerTask {
     public void run(SelectorRunner selectorRunner) throws IOException;
+    public void cancel();
 }

@@ -111,7 +111,7 @@ public class CompletionHandlerAdapter<A, B>
 
     @Override
     public void updated(B result) {
-        final A adaptedResult = adapter.adapt(result);
+        final A adaptedResult = adapt(result);
 
         if (completionHandler != null) {
             completionHandler.updated(adaptedResult);

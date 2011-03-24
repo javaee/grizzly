@@ -1208,9 +1208,6 @@ public class Encoder {
         try {
             setStreams(state.getSrc(), state.getDst(), state.getMemoryManager(), inSize, outSize);
             while (true) {
-
-
-
                 codeOneBlock(processedInSize, processedOutSize, finished);
                 if (finished[0]) {
                     return;

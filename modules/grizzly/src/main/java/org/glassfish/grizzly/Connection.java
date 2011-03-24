@@ -53,8 +53,9 @@ import org.glassfish.grizzly.monitoring.MonitoringConfig;
  * 
  * @author Alexey Stashok
  */
-public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
-        AttributeStorage, MonitoringAware<ConnectionProbe> {
+public interface Connection<L> extends Readable<L>, Writable<L>,
+        Closeable<Connection>, AttributeStorage,
+        MonitoringAware<ConnectionProbe> {
     /**
      * Get the {@link Transport}, to which this {@link Connection} belongs to.
      * @return the {@link Transport}, to which this {@link Connection} belongs to.
@@ -181,7 +182,21 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
      * during {@link Connection} closing.
      */
     @Override
-    GrizzlyFuture close() throws IOException;
+    GrizzlyFuture<Connection> close() throws IOException;
+
+    /**
+     * Close the {@link Connection}
+     *
+     * @param {@link CompletionHandler} to be called, when the connection is
+     *         closed.
+     * @return {@link Future}, which could be checked in case, if close operation
+     *         will be run asynchronously
+     * @throws IOException if I/O error was detected
+     * during {@link Connection} closing.
+     */
+    @Override
+    GrizzlyFuture<Connection> close(
+            CompletionHandler<Connection> completionHandler) throws IOException;
 
     /**
      * Get the default size of {@link Buffer}s, which will be allocated for
