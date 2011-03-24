@@ -154,7 +154,7 @@ public abstract class HttpCodecFilter extends BaseFilter
      *
      * @param httpHeader {@link HttpHeader}, which represents parsed HTTP packet header
      * @param buffer {@link Buffer} the header was parsed from
-     * @param ctx
+     * @param ctx processing context.
      *
      * @return <code>true</code> if an error has occurred while processing
      *  the header portion of the HTTP request, otherwise returns
@@ -171,6 +171,7 @@ public abstract class HttpCodecFilter extends BaseFilter
      *
      * </p>
      * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
+     * @param ctx processing context.
      */
     protected abstract void onInitialLineParsed(final HttpHeader httpHeader,
                                                 final FilterChainContext ctx);
@@ -184,8 +185,22 @@ public abstract class HttpCodecFilter extends BaseFilter
      * </p>
      *
      * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
+     * @param ctx processing context.
      */
     protected abstract void onHttpHeadersParsed(final HttpHeader httpHeader,
+                                                final FilterChainContext ctx);
+
+
+    /**
+     * <p>
+     * Invoked as request/response body content has been processed by this
+     * {@link org.glassfish.grizzly.filterchain.Filter}.
+     * </p>
+     *
+     * @param content request/response body content
+     * @param ctx processing context.
+     */
+    protected abstract void onHttpContentParsed(final HttpContent content,
                                                 final FilterChainContext ctx);
 
 
@@ -366,7 +381,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                     final HttpContent.Builder builder = httpHeader.httpContentBuilder();
                     final HttpContent message = builder.content(input).build();
 
-                    final HttpContent decodedContent = decodeContent(connection, message);
+                    final HttpContent decodedContent = decodeContent(ctx, message);
                     if (decodedContent != null) {
                         if (httpHeader.isSkipRemainder()) {  // Do we skip the remainder?
                             return ctx.getStopAction();
@@ -439,11 +454,13 @@ public abstract class HttpCodecFilter extends BaseFilter
         if (httpContent != null) {
             if (httpContent.isLast()) {
                 isLast = true;
-                onHttpPacketParsed(httpHeader, ctx);
                 // we don't expect any content anymore
                 httpHeader.setExpectContent(false);
             }
             if (httpHeader.isSkipRemainder()) {
+                if (isLast) {
+                    onHttpPacketParsed(httpHeader, ctx);
+                }
                 if (remainderBuffer != null) {
                     // if there is a remainder - rerun this filter
                     ctx.setMessage(remainderBuffer);
@@ -453,7 +470,10 @@ public abstract class HttpCodecFilter extends BaseFilter
                     return ctx.getStopAction();
                 }
             }
-            final HttpContent decodedContent = decodeContent(connection, httpContent);
+            final HttpContent decodedContent = decodeContent(ctx, httpContent);
+            if (isLast) {
+                onHttpPacketParsed(httpHeader, ctx);
+            }
             if (decodedContent != null) {
                 HttpProbeNotifier.notifyContentChunkParse(this, connection, decodedContent);
                 ctx.setMessage(decodedContent);
@@ -1139,13 +1159,15 @@ public abstract class HttpCodecFilter extends BaseFilter
         }
     }
 
-    final HttpContent decodeContent(final Connection connection,
-            HttpContent httpContent) {
+    final HttpContent decodeContent(final FilterChainContext ctx,
+                                    HttpContent httpContent) {
 
         if (!httpContent.getContent().hasRemaining()) {
             httpContent.recycle();
             return null;
         }
+
+        final Connection connection = ctx.getConnection();
         
         final MemoryManager memoryManager = connection.getTransport().getMemoryManager();
         final HttpHeader httpHeader = httpContent.getHttpHeader();
@@ -1190,7 +1212,7 @@ public abstract class HttpCodecFilter extends BaseFilter
 
             httpContent = decodedContent;
         }
-
+        onHttpContentParsed(httpContent, ctx);
         return httpContent;
     }
 

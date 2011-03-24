@@ -192,6 +192,13 @@ public class HttpClientFilter extends HttpCodecFilter {
     }
 
     @Override
+    protected void onHttpContentParsed(HttpContent content, FilterChainContext ctx) {
+
+        // no-op
+
+    }
+
+    @Override
     final boolean decodeInitialLine(final FilterChainContext ctx,
                                     final HttpPacketParsing httpPacket,
                                     final HeaderParsingState parsingState,

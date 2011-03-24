@@ -305,12 +305,21 @@ public class HttpServerFilter extends HttpCodecFilter {
     protected void onInitialLineParsed(final HttpHeader httpHeader,
                                        final FilterChainContext ctx) {
         // no-op
+
     }
 
     @Override
     protected void onHttpHeadersParsed(final HttpHeader httpHeader,
                                        final FilterChainContext ctx) {
         // no-op
+
+    }
+
+    @Override
+    protected void onHttpContentParsed(HttpContent content, FilterChainContext ctx) {
+
+        // no-op
+
     }
 
     @Override
