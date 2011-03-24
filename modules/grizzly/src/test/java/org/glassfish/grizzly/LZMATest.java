@@ -157,7 +157,7 @@ public class LZMATest {
             connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
-            assertTrue(completeFuture.get(120, TimeUnit.SECONDS));
+            assertTrue(completeFuture.get(240, TimeUnit.SECONDS));
         } finally {
             if (connection != null) {
                 connection.close();
