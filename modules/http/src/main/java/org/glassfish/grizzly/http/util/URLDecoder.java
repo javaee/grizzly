@@ -72,7 +72,13 @@ public class URLDecoder {
             {
                 final BufferChunk srcBufferChunk = srcDataChunk.getBufferChunk();
                 final BufferChunk dstBufferChunk = dstDataChunk.getBufferChunk();
-                dstBufferChunk.ensureCapacity(srcBufferChunk.getLength());
+
+                // If it's the same buffer - we don't want to call allocate,
+                // because it resets the BufferChunk length
+                if (dstBufferChunk != srcBufferChunk) {
+                    dstBufferChunk.allocate(srcBufferChunk.getLength());
+                }
+                
                 decode(srcBufferChunk, dstBufferChunk, allowEncodedSlash);
                 return;
             }

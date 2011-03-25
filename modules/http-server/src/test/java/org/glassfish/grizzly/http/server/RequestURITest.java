@@ -83,7 +83,7 @@ public class RequestURITest extends TestCase {
     public void testSimpleURI () throws Exception {
         final HttpHandler httpHandler = new RequestURIHttpHandler();
         final HttpPacket request = createRequest("/index.html;jsessionid=123456", null);
-        final HttpContent response = doTest(httpHandler, request, 10);
+        final HttpContent response = doTest(request, 10, httpHandler);
 
         final String responseContent = response.getContent().toStringContent();
         Map<String, String> props = new HashMap<String, String>();
@@ -108,7 +108,7 @@ public class RequestURITest extends TestCase {
         final HttpHandler httpHandler = new RequestURIHttpHandler();
 
         final HttpPacket request = createRequest(rusEncodedURI, null);
-        final HttpContent response = doTest(httpHandler, request, 10);
+        final HttpContent response = doTest(request, 10, httpHandler);
 
         final String responseContent = response.getContent().toStringContent();
         Map<String, String> props = new HashMap<String, String>();
@@ -130,7 +130,7 @@ public class RequestURITest extends TestCase {
         final HttpHandler httpHandler = new RequestURIHttpHandler();
         final HttpPacket request = createRequest("http://localhost:" + PORT +
                 "/index.html;jsessionid=123456", null);
-        final HttpContent response = doTest(httpHandler, request, 10);
+        final HttpContent response = doTest(request, 10, httpHandler);
 
         final String responseContent = response.getContent().toStringContent();
         Map<String, String> props = new HashMap<String, String>();
@@ -148,6 +148,30 @@ public class RequestURITest extends TestCase {
         assertEquals("/index.html", uri);
     }
 
+    public void testDecodedParamsPlusMapping () throws Exception {
+        // In order to test mapping, register 2 HttpHandlers
+        final String param = ";myparam=123456";
+        final HttpPacket request = createRequest("/1" + param, null);
+        final HttpContent response = doTest(request, 10,
+                new DecodedURLIndexOfHttpHandler(param),
+                new DecodedURLIndexOfHttpHandler(param));
+
+        final String responseContent = response.getContent().toStringContent();
+        Map<String, String> props = new HashMap<String, String>();
+
+        BufferedReader reader = new BufferedReader(new StringReader(responseContent));
+        String line;
+        while((line = reader.readLine()) != null) {
+            String[] nameValue = line.split("=");
+            assertEquals(2, nameValue.length);
+            props.put(nameValue[0], nameValue[1]);
+        }
+
+        String isFound = props.get("result");
+        assertNotNull(isFound);
+        assertTrue(Boolean.parseBoolean(isFound));
+    }
+
     private HttpPacket createRequest(String uri, Map<String, String> headers) {
 
         HttpRequestPacket.Builder b = HttpRequestPacket.builder();
@@ -161,14 +185,15 @@ public class RequestURITest extends TestCase {
         return b.build();
     }
 
-    private HttpContent doTest(final HttpHandler httpHandler,
+    private HttpContent doTest(
             final HttpPacket request,
-            final int timeout)
+            final int timeout,
+            final HttpHandler... httpHandlers)
             throws Exception {
 
         final TCPNIOTransport clientTransport =
                 TCPNIOTransportBuilder.newInstance().build();
-        final HttpServer server = createWebServer(httpHandler);
+        final HttpServer server = createWebServer(httpHandlers);
         try {
             final FutureImpl<HttpContent> testResultFuture = SafeFutureImpl.create();
 
@@ -200,7 +225,7 @@ public class RequestURITest extends TestCase {
         }
     }
 
-    private HttpServer createWebServer(final HttpHandler httpHandler) {
+    private HttpServer createWebServer(final HttpHandler... httpHandlers) {
 
         final HttpServer server = new HttpServer();
         final NetworkListener listener =
@@ -209,8 +234,12 @@ public class RequestURITest extends TestCase {
                         PORT);
         listener.getKeepAlive().setIdleTimeoutInSeconds(-1);
         server.addListener(listener);
-        server.getServerConfiguration().addHttpHandler(httpHandler, "/");
+        server.getServerConfiguration().addHttpHandler(httpHandlers[0], "/");
 
+        for (int i = 1; i < httpHandlers.length; i++) {
+            // associate handlers with random context-roots
+            server.getServerConfiguration().addHttpHandler(httpHandlers[i], "/" + i + "/*");
+        }
         return server;
 
     }
@@ -281,9 +310,25 @@ public class RequestURITest extends TestCase {
         @Override
         public void service(Request request, Response response) throws Exception {
             final String uri = request.getRequestURI();
-
             response.getWriter().write("uri=" + uri + "\n");
         }
 
     }
+
+    public class DecodedURLIndexOfHttpHandler extends HttpHandler {
+        private final String match;
+
+        public DecodedURLIndexOfHttpHandler(String match) {
+            this.match = match;
+        }
+
+        @Override
+        public void service(Request request, Response response) throws Exception {
+            response.getWriter().write("result=" +
+                    request.getRequest().getRequestURIRef().getDecodedURI().contains(match) +
+                    "\n");
+        }
+
+    }
+
 }

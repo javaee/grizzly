@@ -65,14 +65,23 @@ public class BufferChunk implements Chunk {
     private int start;
     private int end;
 
+    // the last byte available for this BufferChunk
+    private int limit;
+    
     String cachedString;
     Charset cachedStringCharset;
 
     public void setBufferChunk(final Buffer buffer, final int start,
             final int end) {
+        setBufferChunk(buffer, start, end, end);
+    }
+
+    public void setBufferChunk(final Buffer buffer, final int start,
+            final int end, final int limit) {
         this.buffer = buffer;
         this.start = start;
         this.end = end;
+        this.limit = limit;
         resetStringCache();
     }
 
@@ -116,10 +125,12 @@ public class BufferChunk implements Chunk {
         return buffer == null;
     }
 
-    public void ensureCapacity(final int size) {
-        if (isNull() || getLength() < size) {
-            setBufferChunk(Buffers.wrap(null, new byte[size]), 0, size);
+    public void allocate(final int size) {
+        if (isNull() || (limit - start) < size) {
+            setBufferChunk(Buffers.wrap(null, new byte[size]), 0, 0, size);
         }
+
+        end = start;
     }
 
     @Override
@@ -146,6 +157,17 @@ public class BufferChunk implements Chunk {
         resetStringCache();
     }
     
+    public void append(final BufferChunk bc) {
+        final int oldPos = buffer.position();
+        final int oldLim = buffer.limit();
+        final int srcLen = bc.getLength()
+                ;
+        Buffers.setPositionLimit(buffer, end, end + srcLen);
+        buffer.put(bc.getBuffer(), bc.getStart(), srcLen);
+        Buffers.setPositionLimit(buffer, oldPos, oldLim);
+        end += srcLen;
+    }
+
     @Override
     public final int indexOf(final char c, final int fromIndex) {
         final int idx = indexOf(buffer, start + fromIndex, end, c);
@@ -288,6 +310,7 @@ public class BufferChunk implements Chunk {
         buffer = null;
         start = -1;
         end = -1;
+        limit = -1;
         resetStringCache();
     }
     

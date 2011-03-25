@@ -795,6 +795,47 @@ public class Mapper {
 
 
     /**
+     * Maps the decodedURI to the corresponding HttpHandler, considering that URI
+     * may have a semicolon with extra data followed, which shouldn't be a part
+     * of mapping process.
+     *
+     * @param serverName the server name as described by the Host header.
+     * @param decodedURI decoded URI
+     * @param mappingData {@link MappingData} based on the URI.
+     * @param semicolonPos semicolon position. Might be <tt>0</tt> if position
+     *  wasn't resolved yet (so it will be resolved in the method),
+     *  or <tt>-1</tt> if there is no semicolon in the URI.
+     *
+     * @throws Exception if an error occurs mapping the request
+     */
+    public void mapUriWithSemicolon(final DataChunk serverName,
+            final DataChunk decodedURI,
+            final MappingData mappingData,
+            int semicolonPos)
+            throws Exception {
+
+        final CharChunk charChunk = decodedURI.getCharChunk();
+        final int oldEnd = charChunk.getEnd();
+
+        if (semicolonPos == 0) {
+            semicolonPos = decodedURI.indexOf(';', 0);
+        }
+
+        DataChunk localDecodedURI = decodedURI;
+        if (semicolonPos >= 0) {
+            charChunk.setEnd(semicolonPos);
+            // duplicate the URI path, because Mapper may corrupt the attributes,
+            // which follow the path
+            localDecodedURI = mappingData.tmpMapperDC;
+            localDecodedURI.duplicate(decodedURI);
+        }
+
+
+        map(serverName, localDecodedURI, mappingData);
+        charChunk.setEnd(oldEnd);
+    }
+
+    /**
      * Map the specified host name and URI, mutating the given mapping data.
      *
      * @param host Virtual host name

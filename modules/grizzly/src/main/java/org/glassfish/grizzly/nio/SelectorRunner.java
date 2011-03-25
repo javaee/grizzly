@@ -291,8 +291,8 @@ public final class SelectorRunner implements Runnable {
 
             selectorHandler.preSelect(this);
 
-            selectorWakeupFlag.set(false);
             final Set<SelectionKey> readyKeys = selectorHandler.select(this);
+            selectorWakeupFlag.set(false);
 
             if (stateHolder.get() == State.STOPPING) return true;
             

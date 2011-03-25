@@ -41,8 +41,10 @@
 package org.glassfish.grizzly.http.util;
 
 import java.io.CharConversionException;
+import java.io.IOException;
 import java.nio.charset.Charset;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * {@link Buffer} chunk representation.
@@ -146,6 +148,36 @@ public class DataChunk {
 
     public void setString(String string) {
         setStringInternal(string);
+    }
+
+    /**
+     *  Copy the src into this DataChunk, allocating more space if needed
+     */
+    public void duplicate(final DataChunk src) {
+        switch (src.getType()) {
+            case Buffer:
+                final BufferChunk bc = src.getBufferChunk();
+                bufferChunk.allocate(2 * bc.getLength());
+                bufferChunk.append(bc);
+                switchToBufferChunk();
+                break;
+            case Chars:
+                final CharChunk cc = src.getCharChunk();
+                charChunk.allocate(2 * cc.getLength(), -1);
+                try {
+                    charChunk.append(cc);
+                } catch (IOException ignored) {
+                    // should never occur
+                }
+
+                switchToCharChunk();
+                break;
+            case String:
+                setString(src.toString());
+                break;
+            default:
+                recycle();
+        }
     }
 
     public void toChars(final Charset charset) throws CharConversionException {
@@ -427,29 +459,38 @@ public class DataChunk {
 
     private void setBufferInternal(final Buffer buffer, final int position,
             final int limit) {
-        type = Type.Buffer;
-
         bufferChunk.setBufferChunk(buffer, position, limit);
-
-        resetString();
-        resetCharChunk();
-        onContentChanged();
+        switchToBufferChunk();
     }
 
     private void setCharsInternal(final char[] chars,
                                   final int position,
                                   final int limit) {
-        type = Type.Chars;
         charChunk.setChars(chars, position, limit - position);
+        switchToCharChunk();
+    }
 
+    private void setStringInternal(String string) {
+        stringValue = string;
+        switchToString();
+    }
+
+    private void switchToBufferChunk() {
+        type = Type.Buffer;
+        resetString();
+        resetCharChunk();
+        onContentChanged();
+    }
+
+    private void switchToCharChunk() {
+        type = Type.Chars;
         resetString();
         resetBuffer();
         onContentChanged();
     }
 
-    private void setStringInternal(String string) {
+    private void switchToString() {
         type = Type.String;
-        stringValue = string;
         resetBuffer();
         resetCharChunk();
         onContentChanged();

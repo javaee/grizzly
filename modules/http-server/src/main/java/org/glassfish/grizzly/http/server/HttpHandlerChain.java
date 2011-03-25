@@ -53,7 +53,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.http.util.CharChunk;
 
 /**
  * The HttpHandlerChain class allows the invocation of multiple {@link HttpHandler}s
@@ -162,10 +161,10 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
 //                mappingData.recycle();
 //            }
 
-            mapUriWithSemicolon(request.getRequest().serverName(),
+            mapper.mapUriWithSemicolon(request.getRequest().serverName(),
                     decodedURI,
-                    0,
-                    mappingData);
+                    mappingData,
+                    0);
 
 
             HttpHandler httpHandler;
@@ -177,7 +176,7 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
                 }
 
                 updateContextPath(request, mappingData.contextPath.toString());
-                
+
                 // We already decoded the URL.
                 httpHandler.setDecodeUrl(false);
                 httpHandler.doHandle(request, response);
@@ -344,46 +343,6 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
         }
 
         return (mappings != null);
-    }
-
-    /**
-     * Maps the decodedURI to the corresponding HttpHandler, considering that URI
-     * may have a semicolon with extra data followed, which shouldn't be a part
-     * of mapping process.
-     *
-     * @param serverName the server name as described by the Host header.
-     * @param decodedURI decoded URI
-     * @param semicolonPos semicolon position. Might be <tt>0</tt> if position
-     *  wasn't resolved yet (so it will be resolved in the method),
-     *  or <tt>-1</tt> if there is no semicolon in the URI.
-     * @param mappingData {@link MappingData} based on the URI.
-     *
-     * @throws Exception if an error occurs mapping the request
-     */
-    private void mapUriWithSemicolon(final DataChunk serverName,
-            final DataChunk decodedURI,
-            int semicolonPos,
-            final MappingData mappingData)
-            throws Exception {
-
-        final CharChunk charChunk = decodedURI.getCharChunk();
-        final int oldEnd = charChunk.getEnd();
-
-        if (semicolonPos == 0) {
-            semicolonPos = decodedURI.indexOf(';', 0);
-        }
-
-        if (semicolonPos == -1) {
-            semicolonPos = oldEnd;
-        }
-
-        charChunk.setEnd(semicolonPos);
-
-        try {
-            mapper.map(serverName, decodedURI, mappingData);
-        } finally {
-            charChunk.setEnd(oldEnd);
-        }
     }
 
     public void removeAllHttpHandlers() {
