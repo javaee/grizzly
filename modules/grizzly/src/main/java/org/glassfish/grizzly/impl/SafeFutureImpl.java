@@ -75,10 +75,17 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
         return new SafeFutureImpl<R>();
     }
 
+    private final static int LIFE_COUNTER_INC = 5;
+    private final static int MARK_DONT_RECYCLE_RESULT = 1;
+    private final static int MARK_RECYCLE_RESULT = 2;
+    private final static int MARK_RECYCLED = 3;
+
     private final AtomicInteger recycleMark = new AtomicInteger();
 
     /** Synchronization control for FutureTask */
     private final Sync sync;
+
+    private volatile int lifeCounter;
 
     /**
      * Creates <tt>SafeFutureImpl</tt> 
@@ -141,7 +148,7 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
     }
 
     /**
-     * Notify about the failure, occured during asynchronous operation execution.
+     * Notify about the failure, occurred during asynchronous operation execution.
      *
      * @param failure
      */
@@ -152,11 +159,13 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
 
     @Override
     public void markForRecycle(boolean recycleResult) {
-        final int mark = recycleResult ? 2 : 1;
-        
-        if (recycleMark.compareAndSet(0, mark)) {
+        final int localLifeCounter = lifeCounter;
+        final int mark = recycleResult ? MARK_RECYCLE_RESULT : MARK_DONT_RECYCLE_RESULT;
+        final int absMark = localLifeCounter + mark;
+
+        if (recycleMark.compareAndSet(0, absMark)) {
             if (sync.innerIsDone()) {
-                if (recycleMark.compareAndSet(mark, 3)) {
+                if (recycleMark.compareAndSet(absMark, localLifeCounter + MARK_RECYCLED)) {
                     recycle(recycleResult);
                 }
             }
@@ -170,6 +179,8 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
 
     @Override
     public void recycle(boolean recycleResult) {
+        lifeCounter += LIFE_COUNTER_INC;
+        
         final R result;
         if (recycleResult && (result = sync.innerWeakGet()) != null && result instanceof Cacheable) {
             ((Cacheable) result).recycle();
@@ -188,12 +199,14 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
      * Protected method invoked when this task transitions to state
      * <tt>isDone</tt> (whether normally or via cancellation).
      */
-    protected void done() {
-        final int recycleValue = recycleMark.get();
-        if ((recycleValue == 1 || recycleValue == 2) &&
-                recycleMark.compareAndSet(recycleValue, 3)) {
+    protected void done(final int lifeCounter) {
+        final int absRecycleValue = recycleMark.get();
+        final int recycleValue = absRecycleValue - lifeCounter;
+        if ((recycleValue == MARK_DONT_RECYCLE_RESULT ||
+                recycleValue == MARK_RECYCLE_RESULT) &&
+                recycleMark.compareAndSet(absRecycleValue, MARK_RECYCLED + lifeCounter)) {
 
-            recycle(recycleValue == 2);
+            recycle(recycleValue == MARK_RECYCLE_RESULT);
         }
     }
 
@@ -308,6 +321,7 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
         }
 
         void innerSet(R result) {
+            final int localLifeCounter = lifeCounter;
 	    for (;;) {
 		int s = getState();
 		if (s == RAN)
@@ -322,13 +336,14 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
 		if (compareAndSetState(s, RAN)) {
                     this.result = result;
                     releaseShared(0);
-                    done();
+                    done(localLifeCounter);
 		    return;
                 }
             }
         }
 
         void innerSetException(Throwable t) {
+            final int localLifeCounter = lifeCounter;
 	    for (;;) {
 		int s = getState();
 		if (s == RAN)
@@ -344,13 +359,14 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
                     exception = t;
                     result = null;
                     releaseShared(0);
-                    done();
+                    done(localLifeCounter);
 		    return;
                 }
 	    }
         }
 
         boolean innerCancel(boolean mayInterruptIfRunning) {
+            final int localLifeCounter = lifeCounter;
 	    for (;;) {
 		int s = getState();
 		if (ranOrCancelled(s))
@@ -364,7 +380,7 @@ public class SafeFutureImpl<R> implements FutureImpl<R> {
 //                    r.interrupt();
 //            }
             releaseShared(0);
-            done();
+            done(localLifeCounter);
             return true;
         }
 

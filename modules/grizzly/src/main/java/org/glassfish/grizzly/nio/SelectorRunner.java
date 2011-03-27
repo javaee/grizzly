@@ -54,15 +54,16 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.ArrayDeque;
+import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.Queue;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.glassfish.grizzly.utils.DataStructures;
 
@@ -92,14 +93,17 @@ public final class SelectorRunner implements Runnable {
     private SelectionKey key = null;
     private int keyReadyOps;
 
-    private final CountDownLatch shutdownLatch = new CountDownLatch(1);
+//    private final CountDownLatch shutdownLatch = new CountDownLatch(1);
     private final AtomicBoolean selectorWakeupFlag = new AtomicBoolean();
+    private final AtomicInteger runnerThreadActivityCounter = new AtomicInteger();
 
-    public SelectorRunner(final NIOTransport transport) {
-        this(transport, null);
+    public static SelectorRunner create(final NIOTransport transport)
+            throws IOException {
+        return new SelectorRunner(transport, SelectorFactory.instance().create());
     }
 
-    public SelectorRunner(final NIOTransport transport, final Selector selector) {
+    private SelectorRunner(final NIOTransport transport,
+            final Selector selector) {
         this.transport = transport;
         this.selector = selector;
         stateHolder = new AtomicReference<State>(State.STOP);
@@ -125,7 +129,7 @@ public final class SelectorRunner implements Runnable {
      * The method should be called from the runner thread.
      * @param selector
      */
-    public void setSelector(final Selector selector) {
+    void setSelector(final Selector selector) {
         this.selector = selector;
         dumbVolatile++;
     }
@@ -172,18 +176,31 @@ public final class SelectorRunner implements Runnable {
         stateHolder.set(State.STOPPING);
         wakeupSelector();
 
-        try {
-            shutdownLatch.await(5, TimeUnit.SECONDS);
-        } catch (InterruptedException ignored) {
+//        try {
+//            shutdownLatch.await(5, TimeUnit.SECONDS);
+//        } catch (InterruptedException ignored) {
+//        }
+
+        // we prefer Selector thread shutdown selector
+        // but if it's not running - do that ourselves.
+        if (runnerThreadActivityCounter.compareAndSet(0, -1)) {
+            // The thread is not running
+            shutdownSelector();
         }
-//        shutdownSelector();
     }
 
     private void shutdownSelector() {
         final Selector localSelector = getSelector();
         if (localSelector != null) {
             try {
-                final Set<SelectionKey> keys = localSelector.keys();
+                SelectionKey[] keys = new SelectionKey[0];
+                while(true) {
+                    try {
+                        keys = localSelector.keys().toArray(keys);
+                        break;
+                    } catch (ConcurrentModificationException ignored) {
+                    }
+                }
 
                 for (final SelectionKey selectionKey : keys) {
                     final Connection connection =
@@ -196,6 +213,11 @@ public final class SelectorRunner implements Runnable {
                 }
             } catch (ClosedSelectorException e) {
                 // If Selector is already closed - OK
+            } finally {
+                try {
+                    localSelector.close();
+                } catch (Exception ignored) {
+                }
             }
         }
 
@@ -217,6 +239,10 @@ public final class SelectorRunner implements Runnable {
 
     @Override
     public void run() {
+        if (!runnerThreadActivityCounter.compareAndSet(0, 1)) {
+            return;
+        }
+
         final Thread currentThread = Thread.currentThread();
         if (!isResume) {
             if (!stateHolder.compareAndSet(State.STARTING, State.START)) {
@@ -251,11 +277,14 @@ public final class SelectorRunner implements Runnable {
                 }
             }
         } finally {
-            if (!isSkipping) {
-                shutdownSelector();
+            runnerThreadActivityCounter.compareAndSet(1, 0);
+
+            if (isStop()) {
                 stateHolder.set(State.STOP);
                 setRunnerThread(null);
-                shutdownLatch.countDown();
+                if (runnerThreadActivityCounter.compareAndSet(0, -1)) {
+                    shutdownSelector();
+                }
             }
 
             if (isWorkerThread) {

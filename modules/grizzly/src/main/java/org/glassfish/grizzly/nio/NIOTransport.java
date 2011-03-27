@@ -100,8 +100,7 @@ public abstract class NIOTransport extends AbstractTransport {
         selectorRunners = new SelectorRunner[selectorRunnersCount];
         
         for (int i = 0; i < selectorRunnersCount; i++) {
-            SelectorRunner runner =
-                    new SelectorRunner(this, SelectorFactory.instance().create());
+            final SelectorRunner runner = SelectorRunner.create(this);
             runner.start();
             selectorRunners[i] = runner;
         }
@@ -117,14 +116,6 @@ public abstract class NIOTransport extends AbstractTransport {
             if (runner != null) {
                 runner.stop();
                 selectorRunners[i] = null;
-
-                Selector selector = runner.getSelector();
-                if (selector != null) {
-                    try {
-                        selector.close();
-                    } catch (IOException ignored) {
-                    }
-                }
             }
         }
 

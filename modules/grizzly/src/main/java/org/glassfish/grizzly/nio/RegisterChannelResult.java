@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -47,13 +47,10 @@ import java.nio.channels.SelectionKey;
  *
  * @author Alexey Stashok
  */
-public class RegisterChannelResult {
-    private SelectorRunner selectorRunner;
-    private SelectionKey selectionKey;
-    private SelectableChannel channel;
-
-    public RegisterChannelResult() {
-    }
+public final class RegisterChannelResult {
+    private final SelectorRunner selectorRunner;
+    private final SelectionKey selectionKey;
+    private final SelectableChannel channel;
 
     public RegisterChannelResult(SelectorRunner selectorRunner,
             SelectionKey selectionKey, SelectableChannel channel) {
@@ -66,23 +63,11 @@ public class RegisterChannelResult {
         return selectorRunner;
     }
 
-    public void setSelectorRunner(SelectorRunner selectorRunner) {
-        this.selectorRunner = selectorRunner;
-    }
-    
     public SelectionKey getSelectionKey() {
         return selectionKey;
     }
 
-    public void setSelectionKey(SelectionKey selectionKey) {
-        this.selectionKey = selectionKey;
-    }
-
     public SelectableChannel getChannel() {
         return channel;
-    }
-
-    public void setChannel(SelectableChannel channel) {
-        this.channel = channel;
     }
 }

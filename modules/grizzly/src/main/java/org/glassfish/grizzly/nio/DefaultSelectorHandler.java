@@ -354,35 +354,39 @@ public class DefaultSelectorHandler implements SelectorHandler {
                         if (future != null) {
                             future.result(result);
                         }
-                        return;
-                    }
+                    } else {
+                        // Channel has been registered already,
+                        // but the key is not valid
+                        final Queue<SelectorHandlerTask> postponedTasks =
+                                selectorRunner.getPostponedTasks();
+                        final RegisterChannelOperation operation =
+                                new RegisterChannelOperation(channel, interest,
+                                attachment, future, completionHandler);
 
-                    // Channel has been registered already,
-                    // but the key is not valid
-                    selectorRunner.getPostponedTasks().add(
-                            new RegisterChannelOperation(channel, interest,
-                            attachment, future, completionHandler));
+                        postponedTasks.add(operation);
+                    }
                 } else {
-                    Throwable error = new ClosedChannelException();
-                    if (completionHandler != null) {
-                        completionHandler.failed(error);
-                    }
-                    
-                    if (future != null) {
-                        future.failure(error);
-                    }
+                    failChannelRegistration(completionHandler, future,
+                            new ClosedChannelException());
                 }
             } catch (IOException e) {
-                if (completionHandler != null) {
-                    completionHandler.failed(e);
-                }
-                
-                if (future != null) {
-                    future.failure(e);
-                }
+                failChannelRegistration(completionHandler, future, e);
                 throw e;
             }
         }
+    }
+
+    private void failChannelRegistration(
+            final CompletionHandler<RegisterChannelResult> completionHandler,
+            final FutureImpl<RegisterChannelResult> future,
+            final Throwable error) {
+            if (completionHandler != null) {
+                completionHandler.failed(error);
+            }
+
+            if (future != null) {
+                future.failure(error);
+            }
     }
 
     private void deregisterChannel0(final SelectorRunner selectorRunner,
