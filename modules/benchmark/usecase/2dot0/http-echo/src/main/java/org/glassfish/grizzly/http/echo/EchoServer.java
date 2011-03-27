@@ -230,21 +230,6 @@ final class EchoServer {
                 final NIOInputStream in = request.getInputStream(false);
                 final OutputStream out = response.getOutputStream();
                 final byte[] buf = new byte[1024];
-                // continue reading ready data until no more can be read without
-                // blocking
-                while (in.isReady()) {
-                    int read = in.read(buf);
-                    if (read == -1) {
-                        break;
-                    }
-                    out.write(buf, 0, read);
-                }
-
-                if (in.isFinished()) {
-                    in.close();
-                    out.close();
-                    return;
-                }
 
                 response.suspend();
 
@@ -252,7 +237,8 @@ final class EchoServer {
 
                     @Override
                     public void onDataAvailable() throws IOException {
-                        doWrite(this, in, buf, out);
+                        doWrite(in, buf, out);
+                        in.notifyAvailable(this);
                     }
 
                     @Override
@@ -262,7 +248,7 @@ final class EchoServer {
                     @Override
                     public void onAllDataRead() throws IOException {
                         try {
-                            doWrite(this, in, buf, out);
+                            doWrite(in, buf, out);
                         } finally {
                             try {
                                 in.close();
@@ -282,28 +268,15 @@ final class EchoServer {
                 final NIOReader in = request.getReader(false);
                 final NIOWriter out = response.getWriter();
                 final char[] buf = new char[1024];
-                // continue reading ready data until no more can be read without
-                // blocking
-                while (in.isReady()) {
-                    int read = in.read(buf);
-                    if (read == -1) {
-                        break;
-                    }
-                    out.write(buf, 0, read);
-                }
-
-                if (in.isFinished()) {
-                    in.close();
-                    out.close();
-                    return;
-                }
 
                 response.suspend();
                 in.notifyAvailable(new ReadHandler() {
 
                     @Override
                     public void onDataAvailable() throws IOException {
-                        doWrite(this, in, buf, out);
+                        doWrite(in, buf, out);
+
+                        in.notifyAvailable(this);
                     }
 
                     @Override
@@ -313,7 +286,7 @@ final class EchoServer {
                     @Override
                     public void onAllDataRead() throws IOException {
                         try {
-                            doWrite(this, in, buf, out);
+                            doWrite(in, buf, out);
                         } finally {
                             try {
                                 in.close();
@@ -334,31 +307,21 @@ final class EchoServer {
 
         // ----------------------------------------------------- Private Methods
 
-        private void doWrite(ReadHandler handler,
-                             NIOInputStream in,
+        private void doWrite(NIOInputStream in,
                              byte[] buf,
                              OutputStream out) throws IOException {
             while(in.isReady()) {
                 int len = in.read(buf);
                 out.write(buf, 0, len);
             }
-
-            if (!in.isFinished()) {
-                in.notifyAvailable(handler);
-            }
         }
 
-        private void doWrite(ReadHandler handler,
-                             NIOReader in,
+        private void doWrite(NIOReader in,
                              char[] buf,
                              Writer out) throws IOException {
             while(in.isReady()) {
                 int len = in.read(buf);
                 out.write(buf, 0, len);
-            }
-
-            if (!in.isFinished()) {
-                in.notifyAvailable(handler);
             }
         }
 
