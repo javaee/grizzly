@@ -45,6 +45,7 @@ import org.glassfish.grizzly.http.util.DataChunk;
 
 import java.util.Locale;
 import org.glassfish.grizzly.http.util.HttpStatus;
+import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.Buffers;
 
 
@@ -304,13 +305,18 @@ public abstract class HttpResponsePacket extends HttpHeader {
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder(256);
-        sb.append("HttpResponsePacket (status=").append(getStatus())
-                .append(" reason=").append(getReasonPhrase())
-                .append(" protocol=").append(getProtocol())
-                .append(" content-length=").append(getContentLength())
-                .append(" headers=").append(getHeaders())
-                .append(" committed=").append(isCommitted())
-                .append(')');
+        sb.append("HttpResponsePacket (\n  status=").append(getStatus())
+                .append("\n  reason=").append(getReasonPhrase())
+                .append("\n  protocol=").append(getProtocol().getProtocolString())
+                .append("\n  content-length=").append(getContentLength())
+                .append("\n  committed=").append(isCommitted())
+                .append("\n  headers=[");
+        final MimeHeaders headersLocal = getHeaders();
+        for (final String name : headersLocal.names()) {
+            sb.append("\n      ").append(name).append('=')
+                    .append(headersLocal.getHeader(name));
+        }
+        sb.append("]\n)");
         
         return sb.toString();
     }

@@ -153,8 +153,9 @@ public class HttpClientFilter extends HttpCodecFilter {
     
     @Override
     protected boolean onHttpPacketParsed(HttpHeader httpHeader, FilterChainContext ctx) {
-        httpResponseInProcessAttr.remove(ctx.getConnection());
-        httpRequestInProcessAttr.remove(ctx.getConnection());
+        final Connection connection = ctx.getConnection();
+        clearRequest(connection);
+        clearResponse(connection);
         return false;
     }
 
@@ -195,6 +196,18 @@ public class HttpClientFilter extends HttpCodecFilter {
     protected void onHttpContentParsed(HttpContent content, FilterChainContext ctx) {
 
         // no-op
+
+    }
+
+    protected final void clearResponse(final Connection connection) {
+
+        httpResponseInProcessAttr.remove(connection);
+
+    }
+
+    protected final void clearRequest(final Connection connection) {
+
+        httpRequestInProcessAttr.remove(connection);
 
     }
 
