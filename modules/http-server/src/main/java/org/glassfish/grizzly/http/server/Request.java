@@ -124,7 +124,7 @@ public class Request {
     private static final Logger LOGGER = Grizzly.logger(Request.class);
 
     private static final ThreadCache.CachedTypeIndex<Request> CACHE_IDX =
-            ThreadCache.obtainIndex(Request.class, 2);
+            ThreadCache.obtainIndex(Request.class, 8);
     private static final ThreadLocal<Connection> connection = new ThreadLocal<Connection>();
 
     public static Request create() {
