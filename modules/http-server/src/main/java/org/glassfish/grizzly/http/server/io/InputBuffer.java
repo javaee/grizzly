@@ -717,7 +717,7 @@ public class InputBuffer {
         } else {
             final int addSize = buffer.remaining();
             if (addSize > 0) {
-                toCompositeInputContentBuffer().append(buffer);
+                updateInputContentBuffer(buffer);
                 if (handler != null) {
                     final int available = ((processingChars)
                             ? availableChar()
@@ -784,7 +784,7 @@ public class InputBuffer {
             final HttpContent c = (HttpContent) rr.getMessage();
             final Buffer b = c.getContent();
             read += b.remaining();
-            toCompositeInputContentBuffer().append(b);
+            updateInputContentBuffer(b);
             rr.recycle();
             c.recycle();
         }
@@ -854,7 +854,7 @@ public class InputBuffer {
                 if (isNeedMoreInput || !inputContentBuffer.hasRemaining()) {
                     final ReadResult rr = ctx.read();
                     final HttpContent c = (HttpContent) rr.getMessage();
-                    toCompositeInputContentBuffer().append(c.getContent());
+                    updateInputContentBuffer(c.getContent());
                     last = c.isLast();
 
                     rr.recycle();
@@ -897,6 +897,18 @@ public class InputBuffer {
             return read;
         }
         return -1;
+
+    }
+
+
+    private void updateInputContentBuffer(final Buffer buffer)  {
+
+        if (inputContentBuffer.hasRemaining()) {
+            toCompositeInputContentBuffer().append(buffer);
+        } else {
+            inputContentBuffer.tryDispose();
+            inputContentBuffer = buffer;
+        }
 
     }
 
