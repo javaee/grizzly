@@ -924,7 +924,7 @@ public class InputBuffer {
      */
     private static boolean shouldNotifyNow(int size, int available) {
 
-        return size != 0 && available != 0 && available >= size;
+        return (available != 0 && available >= size);
 
     }
 
