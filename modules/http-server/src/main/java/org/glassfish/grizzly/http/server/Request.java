@@ -60,14 +60,15 @@ package org.glassfish.grizzly.http.server;
 
 import java.io.CharConversionException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.security.Principal;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -241,7 +242,8 @@ public class Request {
 
     protected HttpServerFilter httpServerFilter;
 
-    protected final List<AfterServiceListener> afterServicesList = new ArrayList<AfterServiceListener>();
+    protected final Deque<AfterServiceListener> afterServicesList =
+            new ArrayDeque<AfterServiceListener>();
 
     private Session session;
 
@@ -484,7 +486,7 @@ public class Request {
      * Add the listener, which will be notified, once <tt>Request</tt> processing will be finished.
      * @param listener the listener, which will be notified, once <tt>Request</tt> processing will be finished.
      */
-    public void addAfterServiceListener(AfterServiceListener listener) {
+    public void addAfterServiceListener(final AfterServiceListener listener) {
         afterServicesList.add(listener);
     }
 
@@ -492,11 +494,15 @@ public class Request {
      * Remove the "after-service" listener, which was previously added by {@link #addAfterServiceListener(org.glassfish.grizzly.http.server.AfterServiceListener)}.
      * @param listener the "after-service" listener, which was previously added by {@link #addAfterServiceListener(org.glassfish.grizzly.http.server.AfterServiceListener)}.
      */
-    public void removeAfterServiceListener(AfterServiceListener listener) {
+    public void removeAfterServiceListener(final AfterServiceListener listener) {
         afterServicesList.remove(listener);
     }
 
     protected void onAfterService() {
+        if (asyncInput() && !inputBuffer.isFinished()) {
+            inputBuffer.terminate();
+        }
+
         for (AfterServiceListener anAfterServicesList : afterServicesList) {
             try {
                 anAfterServicesList.onAfterService(this);
@@ -587,17 +593,6 @@ public class Request {
         return request.getHeader(Constants.AUTHORIZATION_HEADER);
     }
 
-    /**
-     * Return the input stream associated with this Request.
-     */
-    private InputStream getStream() {
-        if (inputStream == null) {
-            inputStream = new NIOInputStream(inputBuffer);
-        }
-        return inputStream;
-    }
-
-
     // ------------------------------------------------- Request Public Methods
 
 
@@ -609,7 +604,7 @@ public class Request {
      */
     public NIOInputStream createInputStream() {
         if (inputStream == null) {
-            inputStream = new NIOInputStream(inputBuffer);
+            inputStream = new NIOInputStreamImpl(inputBuffer);
         }
         return inputStream;
     }
@@ -816,7 +811,7 @@ public class Request {
         usingInputStream = true;
         if (inputStream == null) {
             inputBuffer.setAsyncEnabled(!blocking);
-            inputStream = new NIOInputStream(inputBuffer);
+            inputStream = new NIOInputStreamImpl(inputBuffer);
         }
         return inputStream;
 

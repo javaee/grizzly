@@ -73,6 +73,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -108,6 +109,10 @@ import org.glassfish.grizzly.utils.DelayedExecutor.DelayQueue;
  */
 
 public class Response {
+
+    private enum SuspendState {
+        ENABLED, RESUMING, DISABLED;
+    }
 
     private static final Logger LOGGER = Grizzly.logger(Response.class);
 
@@ -258,9 +263,12 @@ public class Response {
 
 
     protected DelayedExecutor.DelayQueue<Response> delayQueue;
-    protected boolean isSuspended;
+
+    final AtomicReference<SuspendState> suspendState =
+            new AtomicReference<SuspendState>(SuspendState.DISABLED);
+
     private final SuspendedContextImpl suspendedContext = new SuspendedContextImpl();
-    private final Object suspendSync = new Object();
+//    private final Object suspendSync = new Object();
 
     private SuspendStatus suspendStatus;
     
@@ -316,7 +324,7 @@ public class Response {
 
         response = null;
         ctx = null;
-        isSuspended = false;
+        suspendState.set(SuspendState.DISABLED);
         cookies.clear();
 
         cacheEnabled = false;
@@ -491,7 +499,7 @@ public class Response {
     public NIOOutputStream createOutputStream() {
         // Probably useless
         if (outputStream == null) {
-            outputStream = new NIOOutputStream(outputBuffer);
+            outputStream = new NIOOutputStreamImpl(outputBuffer);
         }
         return outputStream;
     }
@@ -597,7 +605,7 @@ public class Response {
 
         usingOutputStream = true;
         if (outputStream == null) {
-            outputStream = new NIOOutputStream(outputBuffer);
+            outputStream = new NIOOutputStreamImpl(outputBuffer);
         }
         return outputStream;
 
@@ -1451,10 +1459,11 @@ public class Response {
      */
     public boolean isSuspended() {
         checkResponse();
-        
-        synchronized(suspendSync) {
-            return isSuspended;
-        }
+
+        return suspendState.get() != SuspendState.DISABLED;
+//        synchronized(suspendSync) {
+//            return isSuspended;
+//        }
     }
 
     /**
@@ -1538,34 +1547,34 @@ public class Response {
 
         checkResponse();
 
-        synchronized(suspendSync) {
-            if (isSuspended) {
+//        synchronized(suspendSync) {
+            if (!suspendState.compareAndSet(SuspendState.DISABLED, SuspendState.ENABLED)) {
                 throw new IllegalStateException("Already Suspended");
             }
 
             suspendedContext.completionHandler = completionHandler;
             suspendedContext.timeoutHandler = timeoutHandler;
 
-            if (timeout > 0) {
-                final long timeoutMillis =
-                        TimeUnit.MILLISECONDS.convert(timeout, timeunit);
-                suspendedContext.delayMillis = timeoutMillis;
-                        
-                
-                delayQueue.add(this, timeoutMillis, TimeUnit.MILLISECONDS);
-            }
-
             final Connection connection = ctx.getConnection();
 
             HttpServerProbeNotifier.notifyRequestSuspend(
                     request.httpServerFilter, connection, request);
             
-            connection.addCloseListener(suspendedContext);
-            
             suspendStatus.set();
             
-            isSuspended = true;
-        }
+            connection.addCloseListener(suspendedContext);
+
+            if (timeout > 0) {
+                final long timeoutMillis =
+                        TimeUnit.MILLISECONDS.convert(timeout, timeunit);
+                suspendedContext.delayMillis = timeoutMillis;
+
+
+                delayQueue.add(this, timeoutMillis, TimeUnit.MILLISECONDS);
+            }
+            
+//            isSuspended = true;
+//        }
     }
 
     /**
@@ -1600,8 +1609,8 @@ public class Response {
     /**
      * Make sure the {@link Response} object has been set.
      */
-    final void checkResponse(){
-        if (response == null){
+    final void checkResponse() {
+        if (response == null) {
             throw new IllegalStateException("Internal " +
                     "org.glassfish.grizzly.http.server.Response has not been set");
         }
@@ -1618,8 +1627,8 @@ public class Response {
     public final class SuspendedContextImpl implements SuspendContext,
             Connection.CloseListener {
 
-        CompletionHandler<Response> completionHandler;
-        TimeoutHandler timeoutHandler;
+        volatile CompletionHandler<Response> completionHandler;
+        volatile TimeoutHandler timeoutHandler;
         long delayMillis;
         boolean isResuming;
         volatile long timeoutTimeMillis;
@@ -1629,8 +1638,8 @@ public class Response {
          * {@link FilterChainContext} invocation.
          */
         public void markResumed() {
-            synchronized(suspendSync) {
-                if (!isSuspended || suspendedContext.isResuming) {
+//            synchronized(suspendSync) {
+                if (!suspendState.compareAndSet(SuspendState.ENABLED, SuspendState.RESUMING)) {
                     throw new IllegalStateException("Not Suspended");
                 }
 
@@ -1646,11 +1655,12 @@ public class Response {
 
                 reset();
 
-                isSuspended = false;
+                suspendState.set(SuspendState.DISABLED);
+//                isSuspended = false;
 
                 HttpServerProbeNotifier.notifyRequestResume(request.httpServerFilter,
                         connection, request);
-            }
+//            }
         }
 
         /**
@@ -1658,8 +1668,8 @@ public class Response {
          * {@link FilterChainContext} invocation.
          */
         public void markCancelled() {
-            synchronized (suspendSync) {
-                if (!isSuspended || suspendedContext.isResuming) {
+//            synchronized (suspendSync) {
+                if (!suspendState.compareAndSet(SuspendState.ENABLED, SuspendState.RESUMING)) {
                     throw new IllegalStateException("Not Suspended");
                 }
 
@@ -1673,29 +1683,33 @@ public class Response {
                     completionHandler.cancelled();
                 }
 
-                isSuspended = false;
-
+                suspendState.set(SuspendState.DISABLED);
                 reset();
 
                 HttpServerProbeNotifier.notifyRequestCancel(
                         request.httpServerFilter, connection, request);
-            }
+//            }
         }
 
         boolean onTimeout() {
-            synchronized (suspendSync) {
+//            synchronized (suspendSync) {
                 timeoutTimeMillis = DelayedExecutor.UNSET_TIMEOUT;
-                if (timeoutHandler == null || timeoutHandler.onTimeout(Response.this)) {
+                final TimeoutHandler localTimeoutHandler = timeoutHandler;
+                if (localTimeoutHandler == null ||
+                        localTimeoutHandler.onTimeout(Response.this)) {
                     HttpServerProbeNotifier.notifyRequestTimeout(
                             request.httpServerFilter, ctx.getConnection(), request);
 
-                    cancel();
+                    try {
+                        cancel();
+                    } catch (Exception ignored) {
+                    }
 
                     return true;
                 } else {
                     return false;
                 }
-            }
+//            }
         }
 
         private void reset() {
@@ -1731,8 +1745,8 @@ public class Response {
 
         @Override
         public void setTimeout(final long timeout, final TimeUnit timeunit) {
-            synchronized (suspendSync) {
-                if (!isSuspended || suspendedContext.isResuming) {
+//            synchronized (suspendSync) {
+                if (suspendState.get() != SuspendState.ENABLED) {
                     return;
                 }
                 
@@ -1743,12 +1757,12 @@ public class Response {
                 }
 
                 delayQueue.add(Response.this, delayMillis, TimeUnit.MILLISECONDS);
-            }
+//            }
         }
 
         @Override
         public boolean isSuspended() {
-            return isSuspended;
+            return Response.this.isSuspended();
         }
 
         public SuspendStatus getSuspendStatus() {

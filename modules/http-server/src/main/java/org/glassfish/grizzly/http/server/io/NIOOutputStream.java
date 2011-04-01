@@ -40,9 +40,7 @@
 
 package org.glassfish.grizzly.http.server.io;
 
-import org.glassfish.grizzly.Buffer;
 
-import java.io.IOException;
 import java.io.OutputStream;
 
 /**
@@ -50,87 +48,7 @@ import java.io.OutputStream;
  *
  * @since 2.0
  */
-public class NIOOutputStream extends OutputStream implements BinaryNIOOutputSink {
+public abstract class NIOOutputStream extends OutputStream
+        implements BinaryNIOOutputSink {
 
-
-    private final OutputBuffer outputBuffer;
-
-
-    // ------------------------------------------------------------ Constructors
-
-
-    public NIOOutputStream(final OutputBuffer outputBuffer) {
-        this.outputBuffer = outputBuffer;
-    }
-
-
-    // ----------------------------------------------- Methods from OutputStream
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override public void write(final int b) throws IOException {
-        outputBuffer.writeByte(b);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override public void write(final byte[] b) throws IOException {
-        outputBuffer.write(b);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override public void write(final byte[] b, final int off, final int len)
-    throws IOException {
-        outputBuffer.write(b, off, len);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override public void flush() throws IOException {
-        outputBuffer.flush();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override public void close() throws IOException {
-        outputBuffer.close();
-    }
-
-
-    // ---------------------------------------------- Methods from NIOOutputSink
-
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override public boolean canWrite(final int length) {
-        return outputBuffer.canWrite(length);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void notifyCanWrite(final WriteHandler handler, final int length) {
-        outputBuffer.notifyCanWrite(handler, length);
-    }
-
-
-    // ---------------------------------------- Methods from BinaryNIOOutputSink
-
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void write(final Buffer buffer) throws IOException {
-        outputBuffer.writeBuffer(buffer);
-    }
-    
 }
