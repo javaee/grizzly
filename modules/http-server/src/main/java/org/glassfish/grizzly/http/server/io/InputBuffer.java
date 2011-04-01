@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.http.server.io;
 
+import java.io.EOFException;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.ReadResult;
@@ -55,6 +56,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
+import java.util.concurrent.CancellationException;
 import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.utils.Exceptions;
@@ -959,5 +961,17 @@ public class InputBuffer {
         }
 
         return (CompositeBuffer) inputContentBuffer;
+    }
+
+    public void terminate() {
+        final ReadHandler localHandler = handler;
+        if (localHandler != null) {
+            handler = null;
+            if (connection.isOpen()) {
+                localHandler.onError(new CancellationException());
+            } else {
+                localHandler.onError(new EOFException());
+            }
+        }
     }
 }

@@ -278,7 +278,7 @@ public final class UDPNIOTransport extends NIOTransport implements
         try {
             if (connection != null
                     && serverConnections.remove(connection)) {
-                final GrizzlyFuture future = connection.close();
+                final GrizzlyFuture future = ((UDPNIOServerConnection) connection).unbind(null);
                 try {
                     future.get(1000, TimeUnit.MILLISECONDS);
                 } catch (Exception e) {
