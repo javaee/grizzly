@@ -764,6 +764,29 @@ public class InputBuffer {
     }
 
 
+    /**
+     * <p>
+     * Invoke {@link ReadHandler#onError(Throwable)} (assuming a {@link ReadHandler}
+     * is available) } passing a  {#link CancellationException}
+     * if the current {@link Connection} is open, or a {#link EOFException} if
+     * the connection was unexpectedly closed.
+     * </p>
+     *
+     * @since 2.0.1
+     */
+    public void terminate() {
+        final ReadHandler localHandler = handler;
+        if (localHandler != null) {
+            handler = null;
+            if (connection.isOpen()) {
+                localHandler.onError(new CancellationException());
+            } else {
+                localHandler.onError(new EOFException());
+            }
+        }
+    }
+
+
     // --------------------------------------------------------- Private Methods
 
 
@@ -963,15 +986,4 @@ public class InputBuffer {
         return (CompositeBuffer) inputContentBuffer;
     }
 
-    public void terminate() {
-        final ReadHandler localHandler = handler;
-        if (localHandler != null) {
-            handler = null;
-            if (connection.isOpen()) {
-                localHandler.onError(new CancellationException());
-            } else {
-                localHandler.onError(new EOFException());
-            }
-        }
-    }
 }
