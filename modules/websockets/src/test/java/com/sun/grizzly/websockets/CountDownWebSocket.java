@@ -62,7 +62,7 @@ public class CountDownWebSocket extends ClientWebSocket {
     }
 
     @Override
-    public void onMessage(DataFrame frame) {
+    public void onMessage(String frame) {
         countDown.decrementAndGet();
     }
 

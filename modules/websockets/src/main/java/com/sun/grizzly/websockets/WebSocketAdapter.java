@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -47,6 +47,18 @@ public class WebSocketAdapter implements WebSocketListener {
     public void onConnect(WebSocket socket) {
     }
 
-    public void onMessage(WebSocket socket, DataFrame frame) {
+    public void onMessage(WebSocket socket, String text) {
+    }
+
+    public void onMessage(WebSocket socket, byte[] bytes) {
+    }
+
+    public void onPing(WebSocket socket, byte[] bytes) {
+    }
+
+    public void onPong(WebSocket socket, byte[] bytes) {
+    }
+
+    public void onFragment(WebSocket socket, boolean last, byte[] bytes) {
     }
 }

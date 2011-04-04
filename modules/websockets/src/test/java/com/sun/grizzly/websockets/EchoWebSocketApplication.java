@@ -48,8 +48,8 @@ class EchoWebSocketApplication extends WebSocketApplication {
         return request.requestURI().equals("/echo");
     }
 
-    public void onMessage(WebSocket socket, DataFrame data) {
+    public void onMessage(WebSocket socket, String data) {
         super.onMessage(socket, data);
-        socket.send(data.getTextPayload());
+        socket.send(data);
     }
 }

@@ -41,7 +41,6 @@
 package com.sun.grizzly.samples.websockets;
 
 import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.websockets.DataFrame;
 import com.sun.grizzly.websockets.WebSocket;
 import com.sun.grizzly.websockets.WebSocketApplication;
 import com.sun.grizzly.websockets.WebSocketException;
@@ -59,12 +58,12 @@ public class ChatApplication extends WebSocketApplication {
         return new ChatWebSocket(listeners);
     }
 
-    public void onMessage(WebSocket socket, DataFrame frame) {
-        final String data = frame.getTextPayload();
-        if (data.startsWith("login:")) {
+    @Override
+    public void onMessage(WebSocket socket, String frame) {
+        if (frame.startsWith("login:")) {
             login((ChatWebSocket) socket, frame);
         } else {
-            broadcast(((ChatWebSocket) socket).getUser() + " : " + data);
+            broadcast(((ChatWebSocket) socket).getUser() + " : " + frame);
         }
     }
 
@@ -82,10 +81,10 @@ public class ChatApplication extends WebSocketApplication {
 
     }
 
-    private void login(ChatWebSocket socket, DataFrame frame) {
+    private void login(ChatWebSocket socket, String frame) {
         if (socket.getUser() == null) {
             WebSocketsServlet.logger.info("ChatApplication.login");
-            socket.setUser(frame.getTextPayload().split(":")[1].trim());
+            socket.setUser(frame.split(":")[1].trim());
             broadcast(socket.getUser() + " has joined the chat.");
         }
     }

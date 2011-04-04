@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,18 +40,30 @@
 
 package com.sun.grizzly.websockets;
 
-public interface WebSocketListener {
-    void onClose(WebSocket socket);
+import com.sun.grizzly.arp.DefaultAsyncHandler;
+import com.sun.grizzly.http.SelectorThread;
+import com.sun.grizzly.tcp.Adapter;
+import com.sun.grizzly.util.Utils;
 
-    void onConnect(WebSocket socket);
+import java.io.IOException;
 
-    void onMessage(WebSocket socket, String text);
+public class BaseWebSocketTest {
+    protected static SelectorThread createSelectorThread(final int port, final Adapter adapter)
+            throws IOException, InstantiationException {
+        SelectorThread st = new SelectorThread();
 
-    void onMessage(WebSocket socket, byte[] bytes);
+        st.setSsBackLog(8192);
+        st.setCoreThreads(2);
+        st.setMaxThreads(2);
+        st.setPort(port);
+        st.setDisplayConfiguration(Utils.VERBOSE_TESTS);
+        st.setAdapter(adapter);
+        st.setAsyncHandler(new DefaultAsyncHandler());
+        st.setEnableAsyncExecution(true);
+        st.getAsyncHandler().addAsyncFilter(new WebSocketAsyncFilter());
+        st.setTcpNoDelay(true);
+        st.listen();
 
-    void onPing(WebSocket socket, byte[] bytes);
-
-    void onPong(WebSocket socket, byte[] bytes);
-
-    void onFragment(WebSocket socket, boolean last, byte[] bytes);
+        return st;
+    }
 }

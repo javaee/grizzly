@@ -60,6 +60,7 @@ public abstract class BaseNetworkHandler implements NetworkHandler {
             throw e;
         }
         final DataFrame frame = type.create();
+        frame.setLast(fin);
         type.unframe(frame, data);
         return frame;
     }

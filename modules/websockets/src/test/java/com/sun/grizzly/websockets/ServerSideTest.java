@@ -40,11 +40,8 @@
 
 package com.sun.grizzly.websockets;
 
-import com.sun.grizzly.arp.DefaultAsyncHandler;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.servlet.ServletAdapter;
-import com.sun.grizzly.tcp.Adapter;
-import com.sun.grizzly.util.Utils;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -58,7 +55,7 @@ import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings({"StringContatenationInLoop"})
 @Test
-public class ServerSideTest {
+public class ServerSideTest extends BaseWebSocketTest {
     private static final int PORT = 1726;
 
     public static final int ITERATIONS = 10000;
@@ -120,7 +117,6 @@ public class ServerSideTest {
         }
     }
 
-    @Test
     public void multipleClients() throws IOException, InstantiationException, ExecutionException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
 
@@ -152,14 +148,13 @@ public class ServerSideTest {
         }
     }
 
-    @Test
     public void bigPayload() throws IOException, InstantiationException, ExecutionException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
         final int count = 5;
         final CountDownLatch received = new CountDownLatch(count);
         ClientWebSocket socket = new ClientWebSocket(String.format("ws://localhost:%s/echo", PORT)) {
             @Override
-            public void onMessage(DataFrame frame) {
+            public void onMessage(String frame) {
                 received.countDown();
             }
         };
@@ -183,7 +178,7 @@ public class ServerSideTest {
             for (int x = 0; x < count; x++) {
                 socket.send(data);
             }
-            Assert.assertTrue(received.await(300, TimeUnit.SECONDS), "Message should come back");
+            Assert.assertTrue(received.await(60, TimeUnit.SECONDS), "Message should come back");
         } finally {
             if (socket != null) {
                 socket.close();
@@ -197,25 +192,6 @@ public class ServerSideTest {
         final int total = 5 * ITERATIONS;
         final double time = (end.getTime() - start.getTime()) / 1000.0;
         System.out.printf("%s: sent %s messages in %.3fs for %.3f msg/s\n", method, total, time, total / time);
-    }
-
-    private SelectorThread createSelectorThread(final int port, final Adapter adapter)
-            throws IOException, InstantiationException {
-        SelectorThread st = new SelectorThread();
-
-        st.setSsBackLog(8192);
-        st.setCoreThreads(2);
-        st.setMaxThreads(2);
-        st.setPort(port);
-        st.setDisplayConfiguration(Utils.VERBOSE_TESTS);
-        st.setAdapter(adapter);
-        st.setAsyncHandler(new DefaultAsyncHandler());
-        st.setEnableAsyncExecution(true);
-        st.getAsyncHandler().addAsyncFilter(new WebSocketAsyncFilter());
-        st.setTcpNoDelay(true);
-        st.listen();
-
-        return st;
     }
 
 }

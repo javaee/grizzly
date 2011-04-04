@@ -63,7 +63,8 @@ public class ServletBasedTest {
                         thread = WebSocketsTest.createSelectorThread(WebSocketsTest.PORT, new StaticResourcesAdapter());
         try {
             ClientWebSocket socket = new ClientWebSocket(String.format("ws://localhost:%s/echo", WebSocketsTest.PORT), new WebSocketAdapter() {
-                public void onMessage(WebSocket socket, DataFrame frame) {
+                @Override
+                public void onMessage(WebSocket socket, String frame) {
                     latch.countDown();
                 }
             });

@@ -91,13 +91,21 @@ public interface WebSocket {
 
     void onConnect();
 
-    void onMessage(DataFrame frame);
+    void onMessage(String text);
+
+    void onMessage(byte[] data);
 
     void onClose(DataFrame frame);
 
     void onPing(DataFrame frame);
 
+    void onPong(DataFrame frame);
+
+    void onFragment(boolean last, byte[] binaryPayload);
+
     boolean add(WebSocketListener listener);
 
     boolean remove(WebSocketListener listener);
+
+    void stream(boolean last, byte[] bytes, int off, int len);
 }

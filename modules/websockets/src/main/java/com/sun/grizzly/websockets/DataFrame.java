@@ -51,6 +51,7 @@ public class DataFrame {
     private String payload;
     private byte[] bytes;
     private FrameType type;
+    private boolean last = true;
 
     public DataFrame() {
     }
@@ -103,7 +104,7 @@ public class DataFrame {
         int packetLength = 1 + lengthBytes.length;
 
         byte[] packet = new byte[packetLength + payloadBytes.length];
-        packet[0] = type.setOpcode((byte) 0x80);
+        packet[0] = type.setOpcode(last ? (byte) 0x80 : 0);
         System.arraycopy(lengthBytes, 0, packet, 1, lengthBytes.length);
         System.arraycopy(payloadBytes, 0, packet, packetLength, payloadBytes.length);
         return packet;
@@ -181,5 +182,13 @@ public class DataFrame {
                 .append(", bytes=").append(Arrays.toString(bytes))
                 .append('}')
                 .toString();
+    }
+
+    public boolean isLast() {
+        return last;
+    }
+
+    public void setLast(boolean last) {
+        this.last = last;
     }
 }

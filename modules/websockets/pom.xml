@@ -92,7 +92,7 @@
                     <argLine>-Xms512m -Xmx768m -server -Dgrizzly.websockets.constrainApplications=true</argLine>
                     <!-- <argLine>-Xmx3g -Xms3g -d64 -XX:CompileThreshold=3000 -Xss224k -XX:BiasedLockingStartupDelay=0 -XX:-DontCompileHugeMethods -XX:+UseOnStackReplacement</argLine> !-->
                 </configuration>
-              </plugin>           
+              </plugin>
         </plugins>
     </build>
     <dependencies>

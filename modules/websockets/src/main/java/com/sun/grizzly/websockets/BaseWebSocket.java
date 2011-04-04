@@ -40,6 +40,7 @@
 
 package com.sun.grizzly.websockets;
 
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -52,6 +53,8 @@ public class BaseWebSocket implements WebSocket {
     protected static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     private final List<WebSocketListener> listeners = new ArrayList<WebSocketListener>();
     private final AtomicBoolean connected = new AtomicBoolean(false);
+    private OutputStream outputStream;
+    private boolean midstream = false;
 
     public BaseWebSocket(WebSocketListener... listeners) {
         for (WebSocketListener listener : listeners) {
@@ -116,6 +119,16 @@ public class BaseWebSocket implements WebSocket {
         }
     }
 
+    public void onPong(DataFrame frame) {
+    }
+
+    public void onFragment(boolean last, byte[] binaryPayload) {
+        for (WebSocketListener listener : listeners) {
+            listener.onFragment(this, last, binaryPayload);
+        }
+
+    }
+
     public final boolean remove(WebSocketListener listener) {
         return listeners.remove(listener);
     }
@@ -143,9 +156,29 @@ public class BaseWebSocket implements WebSocket {
         connected.compareAndSet(false, true);
     }
 
-    public void onMessage(DataFrame frame) {
+    public void onMessage(String text) {
         for (WebSocketListener listener : listeners) {
-            listener.onMessage(this, frame);
+            listener.onMessage(this, text);
+        }
+    }
+
+    public void onMessage(byte[] data) {
+        for (WebSocketListener listener : listeners) {
+            listener.onMessage(this, data);
+        }
+    }
+
+    public void stream(boolean last, byte[] bytes, int off, int len) {
+        if (connected.get()) {
+            DataFrame frame = new DataFrame(midstream ? FrameType.CONTINUATION : FrameType.BINARY);
+            midstream = !last;
+            frame.setLast(last);
+            byte[] data = new byte[len];
+            System.arraycopy(bytes, off, data, 0, len);
+            frame.setPayload(data);
+            networkHandler.send(frame);
+        } else {
+            throw new RuntimeException("Socket is already closed.");
         }
     }
 }

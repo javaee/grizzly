@@ -94,7 +94,8 @@ public class FloodTest {
     private static class FloodListener extends WebSocketAdapter {
         private CountDownLatch latch = new CountDownLatch(1);
 
-        public void onMessage(WebSocket socket, DataFrame frame) {
+        @Override
+        public void onMessage(WebSocket socket, String frame) {
             latch.countDown();
         }
 

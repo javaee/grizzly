@@ -235,7 +235,7 @@ public class LifecycleTest {
         }
 
         @Override
-        public void onMessage(DataFrame frame) {
+        public void onMessage(String frame) {
             super.onMessage(frame);
             messages.countDown();
         }

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,23 +55,23 @@ public interface AsyncHandler {
     /**
      * Handle a {@link Task} execution. 
      */
-    public void handle(Task task);
+    void handle(Task task);
     
     
     /**
      * Add a {@link AsyncFilter}
      */
-    public void addAsyncFilter(AsyncFilter asyncFilter);
+    void addAsyncFilter(AsyncFilter asyncFilter);
     
     
     /**
      * Remove an {@link AsyncFilter}
      */
-    public boolean removeAsyncFilter(AsyncFilter asyncFilter);
+    boolean removeAsyncFilter(AsyncFilter asyncFilter);
     
     
     /**
      * Return a {@link Task} 
      */
-    public void returnTask(AsyncTask task);
+    void returnTask(AsyncTask task);
 }

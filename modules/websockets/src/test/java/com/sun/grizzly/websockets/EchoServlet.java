@@ -61,8 +61,8 @@ public class EchoServlet extends HttpServlet {
                 return request.requestURI().equals("/echo");
             }
 
-            public void onMessage(WebSocket socket, DataFrame data) {
-                socket.send(data.getTextPayload());
+            public void onMessage(WebSocket socket, String data) {
+                socket.send(data);
             }
 
             public void onConnect(WebSocket socket) {

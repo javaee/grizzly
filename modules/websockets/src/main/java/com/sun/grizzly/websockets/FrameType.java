@@ -43,7 +43,12 @@ package com.sun.grizzly.websockets;
 import java.io.UnsupportedEncodingException;
 
 public enum FrameType {
-    CONTINUATION,
+    CONTINUATION {
+        @Override
+        public void respond(WebSocket socket, DataFrame frame) {
+            socket.onFragment(frame.isLast(), frame.getBinaryPayload());
+        }
+    },
     CLOSING {
         @Override
         public DataFrame create() {
@@ -61,7 +66,12 @@ public enum FrameType {
             socket.onPing(frame);
         }
     },
-    PONG,
+    PONG {
+        @Override
+        public void respond(WebSocket socket, DataFrame frame) {
+            socket.onPong(frame);
+        }
+    },
     TEXT {
         @Override
         public void unframe(DataFrame frame, byte[] data) {
@@ -80,8 +90,22 @@ public enum FrameType {
                 throw new FramingException(e.getMessage(), e);
             }
         }
+
+        @Override
+        public void respond(WebSocket socket, DataFrame frame) {
+            socket.onMessage(frame.getTextPayload());
+        }
     },
-    BINARY;
+    BINARY {
+        @Override
+        public void respond(WebSocket socket, DataFrame frame) {
+            if(!frame.isLast()) {
+                socket.onFragment(frame.isLast(), frame.getBinaryPayload());
+            } else {
+                socket.onMessage(frame.getBinaryPayload());
+            }
+        }
+    };
 
     public void unframe(DataFrame frame, byte[] data) {
         frame.setPayload(data);
@@ -92,9 +116,7 @@ public enum FrameType {
         return dataFrame.getBinaryPayload();
     }
 
-    public void respond(WebSocket socket, DataFrame frame) {
-        socket.onMessage(frame);
-    }
+    public abstract void respond(WebSocket socket, DataFrame frame);
 
     public final byte setOpcode(byte b) {
         return (byte) (b | ordinal());

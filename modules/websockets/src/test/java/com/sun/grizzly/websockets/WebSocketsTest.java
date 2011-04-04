@@ -126,8 +126,8 @@ public class WebSocketsTest {
         try {
             client = new ClientWebSocket(String.format("ws://localhost:%s/echo", PORT), new WebSocketAdapter() {
                 @Override
-                public void onMessage(WebSocket socket, DataFrame data) {
-                    sent.remove(data.getTextPayload());
+                public void onMessage(WebSocket socket, String data) {
+                    sent.remove(data);
                     received.countDown();
                 }
 
@@ -168,8 +168,8 @@ public class WebSocketsTest {
             final CountDownLatch received = new CountDownLatch(MESSAGE_COUNT);
             client = new ClientWebSocket(String.format("ws://localhost:%s/echo", PORT), new WebSocketAdapter() {
                 @Override
-                public void onMessage(WebSocket socket, DataFrame data) {
-                    messages.remove(data.getTextPayload());
+                public void onMessage(WebSocket socket, String data) {
+                    messages.remove(data);
                     received.countDown();
                 }
             });
@@ -324,7 +324,7 @@ public class WebSocketsTest {
 
     public void testGetOnWebSocketApplication() throws IOException, InstantiationException, InterruptedException {
         final WebSocketApplication app = new WebSocketApplication() {
-            public void onMessage(WebSocket socket, DataFrame data) {
+            public void onMessage(WebSocket socket, String data) {
                 Assert.fail("A GET should never get here.");
             }
 

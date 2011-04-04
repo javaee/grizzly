@@ -41,16 +41,13 @@
 package com.sun.grizzly.samples.stickies;
 
 import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.websockets.DataFrame;
 import com.sun.grizzly.websockets.WebSocket;
 import com.sun.grizzly.websockets.WebSocketApplication;
 import com.sun.grizzly.websockets.WebSocketEngine;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class StickiesApplication extends WebSocketApplication {
@@ -63,8 +60,8 @@ public class StickiesApplication extends WebSocketApplication {
         return request.requestURI().equals("/");
     }
 
-    public void onMessage(WebSocket socket, DataFrame frame) throws IOException {
-        final String data = frame.getTextPayload();
+    @Override
+    public void onMessage(WebSocket socket, String data) {
         final String[] bits = data.split("-");
         Operations.valueOf(bits[0].toUpperCase()).accept(this, socket, bits);
     }
@@ -73,15 +70,11 @@ public class StickiesApplication extends WebSocketApplication {
     public void onConnect(WebSocket socket) {
         super.onConnect(socket);
         for (Note note : notes.values()) {
-            try {
-                socket.send("create-" + note.toString());
-            } catch (IOException e) {
-                logger.fine(e.getMessage());
-            }
+            socket.send("create-" + note.toString());
         }
     }
 
-    private void broadcast(WebSocket original, String text) throws IOException {
+    private void broadcast(WebSocket original, String text) {
         for (WebSocket webSocket : getWebSockets()) {
             if (!webSocket.equals(original)) {
                 send(webSocket, text);
@@ -90,22 +83,17 @@ public class StickiesApplication extends WebSocketApplication {
 
     }
 
-    private void send(WebSocket socket, String text) throws IOException {
-        try {
-            socket.send(text);
-        } catch (IOException e) {
-            logger.log(Level.SEVERE, "Removing client: " + e.getMessage(), e);
-            onClose(socket);
-        }
+    private void send(WebSocket socket, String text) {
+        socket.send(text);
     }
 
-    private void createNote(WebSocket socket, String[] params) throws IOException {
+    private void createNote(String[] params) {
         Note note = new Note();
         notes.put(note.getId(), note);
         broadcast(null, "create-" + note.toString());
     }
 
-    private void saveNote(WebSocket socket, String[] params) throws IOException {
+    private void saveNote(WebSocket socket, String[] params) {
         String[] pieces = params[1].split(",");
         Map<String, String> map = new HashMap<String, String>();
         for (String s : pieces) {
@@ -121,7 +109,7 @@ public class StickiesApplication extends WebSocketApplication {
         broadcast(socket, "save-" + note.toString());
     }
 
-    private void deleteNote(WebSocket socket, String[] params) throws IOException {
+    private void deleteNote(WebSocket socket, String[] params) {
         notes.remove(params[1]);
         broadcast(socket, "delete-" + params[1]);
     }
@@ -129,23 +117,23 @@ public class StickiesApplication extends WebSocketApplication {
     enum Operations {
         CREATE {
             @Override
-            void accept(StickiesApplication app, WebSocket socket, String[] params) throws IOException {
-                app.createNote(socket, params);
+            void accept(StickiesApplication app, WebSocket socket, String[] params) {
+                app.createNote(params);
             }
         },
         SAVE {
             @Override
-            void accept(StickiesApplication app, WebSocket socket, String[] params) throws IOException {
+            void accept(StickiesApplication app, WebSocket socket, String[] params) {
                 app.saveNote(socket, params);
             }
         },
         DELETE {
             @Override
-            void accept(StickiesApplication app, WebSocket socket, String[] params) throws IOException {
+            void accept(StickiesApplication app, WebSocket socket, String[] params) {
                 app.deleteNote(socket, params);
             }
         };
 
-        abstract void accept(StickiesApplication app, WebSocket socket, String[] params) throws IOException;
+        abstract void accept(StickiesApplication app, WebSocket socket, String[] params);
     }
 }
