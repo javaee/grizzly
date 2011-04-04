@@ -501,11 +501,13 @@ public class Request {
             inputBuffer.terminate();
         }
 
-        for (AfterServiceListener anAfterServicesList : afterServicesList) {
-            try {
-                anAfterServicesList.onAfterService(this);
-            } catch (Exception e) {
-                LOGGER.log(Level.WARNING, "Unexpected error during afterService notification", e);
+        if (!afterServicesList.isEmpty()) {
+            for (AfterServiceListener anAfterServicesList : afterServicesList) {
+                try {
+                    anAfterServicesList.onAfterService(this);
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "Unexpected error during afterService notification", e);
+                }
             }
         }
     }
