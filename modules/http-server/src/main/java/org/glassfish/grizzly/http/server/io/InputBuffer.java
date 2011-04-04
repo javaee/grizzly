@@ -652,8 +652,7 @@ public class InputBuffer {
      * @throws IllegalArgumentException if <code>handler</code> is <code>null</code>,
      *  or if <code>size</code> is less than zero.
      * @throws IllegalStateException if an attempt is made to register a handler
-     *  before an existing registered handler has been invoked or if all request
-     *  data has already been read.
+     *  before an existing registered handler has been invoked.
      */
     public void notifyAvailable(final ReadHandler handler, final int size) {
 
@@ -666,10 +665,7 @@ public class InputBuffer {
         if (this.handler != null) {
             throw new IllegalStateException("Illegal attempt to register a new handler before the existing handler has been notified");
         }
-        if (isFinished()) {
-            throw new IllegalStateException("All request data has already been read");
-        }
-        
+
         // If we don't expect more data - call onAllDataRead() directly
         if (closed || isFinished()) {
             try {
