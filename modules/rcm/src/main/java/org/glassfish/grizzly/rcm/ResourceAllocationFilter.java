@@ -85,12 +85,12 @@ public class ResourceAllocationFilter extends BaseFilter {
     protected final static String CEILING = "ceiling";
 
     protected final static String ALLOCATION_MODE =
-            "com.glassfish.grizzly.rcm.policyMethod";
+            "org.glassfish.grizzly.rcm.policyMethod";
 
     protected final static String RULE_TOKENS =
-            "com.glassfish.grizzly.rcm.policyMetric";
+            "org.glassfish.grizzly.rcm.policyMetric";
 
-    private final static String DELAY_VALUE = "com.glassfish.grizzly.rcm.delay";
+    private final static String DELAY_VALUE = "org.glassfish.grizzly.rcm.delay";
 
     protected final static String QUERY_STRING="?";
     protected final static String PATH_STRING="/";

@@ -117,7 +117,7 @@ public abstract class GrizzlyJmxManager {
 
     private static class DefaultJmxManager extends GrizzlyJmxManager {
         public DefaultJmxManager() {
-            super(ManagedObjectManagerFactory.createStandalone("com.glassfish.grizzly"));
+            super(ManagedObjectManagerFactory.createStandalone("org.glassfish.grizzly"));
             mom.stripPackagePrefix();
             mom.createRoot();
         }
