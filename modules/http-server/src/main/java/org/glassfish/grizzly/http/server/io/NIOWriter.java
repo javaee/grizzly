@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly.http.server.io;
 
+import org.glassfish.grizzly.Cacheable;
+
 import java.io.IOException;
 import java.io.Writer;
 
@@ -48,18 +50,9 @@ import java.io.Writer;
  *
  * @since 2.0
  */
-public class NIOWriter extends Writer implements NIOOutputSink {
+public class NIOWriter extends Writer implements NIOOutputSink, Cacheable {
 
-    private final OutputBuffer outputBuffer;
-
-    // ------------------------------------------------------------ Constructors
-
-
-    public NIOWriter(OutputBuffer outputBuffer) {
-
-        this.outputBuffer = outputBuffer;
-
-    }
+    private OutputBuffer outputBuffer;
 
 
     // ----------------------------------------------------- Methods from Writer
@@ -142,5 +135,29 @@ public class NIOWriter extends Writer implements NIOOutputSink {
     public void notifyCanWrite(final WriteHandler handler, final int length) {
         outputBuffer.notifyCanWrite(handler, length);
     }
-    
+
+
+    // -------------------------------------------------- Methods from Cacheable
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void recycle() {
+
+        outputBuffer = null;
+
+    }
+
+
+    // ---------------------------------------------------------- Public Methods
+
+
+    public void setOutputBuffer(final OutputBuffer outputBuffer) {
+
+        this.outputBuffer = outputBuffer;
+
+    }
+
 }

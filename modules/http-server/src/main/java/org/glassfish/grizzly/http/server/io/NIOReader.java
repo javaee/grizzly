@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly.http.server.io;
 
+import org.glassfish.grizzly.Cacheable;
+
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.CharBuffer;
@@ -50,25 +52,9 @@ import java.nio.CharBuffer;
  *
  * @since 2.0
  */
-public class NIOReader extends Reader implements NIOInputSource {
+public class NIOReader extends Reader implements NIOInputSource, Cacheable {
 
-    private final InputBuffer inputBuffer;
-
-
-    // ------------------------------------------------------------ Constructors
-
-
-    /**
-     * Constructs a new <code>NIOReader</code> using the specified
-     * {@link #inputBuffer}
-     * @param inputBuffer the <code>InputBuffer</code> from which character
-     *  content will be supplied
-     */
-    public NIOReader(InputBuffer inputBuffer) {
-
-        this.inputBuffer = inputBuffer;
-
-    }
+    private InputBuffer inputBuffer;
 
 
     // ----------------------------------------------------- Methods from Reader
@@ -191,4 +177,27 @@ public class NIOReader extends Reader implements NIOInputSource {
         return (inputBuffer.availableChar() > 0);
     }
 
+
+    // -------------------------------------------------- Methods from Cacheable
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void recycle() {
+
+        inputBuffer = null;
+
+    }
+
+
+    // ---------------------------------------------------------- Public Methods
+
+
+    public void setInputBuffer(final InputBuffer inputBuffer) {
+
+        this.inputBuffer = inputBuffer;
+
+    }
 }

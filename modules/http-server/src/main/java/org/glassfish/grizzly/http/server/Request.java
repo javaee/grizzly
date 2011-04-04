@@ -304,15 +304,13 @@ public class Request {
     /**
      * NIOInputStream.
      */
-    protected NIOInputStream inputStream;
-        //new NIOInputStream(inputBuffer);
+    protected NIOInputStreamImpl inputStream = new NIOInputStreamImpl();
 
 
     /**
      * Reader.
      */
-    protected NIOReader reader;
-            //new BufferedReader(new NIOReader(inputBuffer));
+    protected NIOReader reader = new NIOReader();
 
 
     /**
@@ -523,6 +521,8 @@ public class Request {
         requestDispatcherPath = null;
 
         inputBuffer.recycle();
+        inputStream.recycle();
+        reader.recycle();
         usingInputStream = false;
         usingReader = false;
         userPrincipal = null;
@@ -538,8 +538,6 @@ public class Request {
         locales.clear();
         localesParsed = false;
         secure = false;
-        inputStream = null;
-        reader = null;
 
         request.recycle();
         if (rawCookies != null) {
@@ -603,9 +601,8 @@ public class Request {
      * @exception java.io.IOException if an input/output error occurs
      */
     public NIOInputStream createInputStream() {
-        if (inputStream == null) {
-            inputStream = new NIOInputStreamImpl(inputBuffer);
-        }
+
+        inputStream.setInputBuffer(inputBuffer);
         return inputStream;
     }
 
@@ -809,10 +806,8 @@ public class Request {
                 (sm.getString("request.getInputStream.ise"));
 
         usingInputStream = true;
-        if (inputStream == null) {
-            inputBuffer.setAsyncEnabled(!blocking);
-            inputStream = new NIOInputStreamImpl(inputBuffer);
-        }
+        inputBuffer.setAsyncEnabled(!blocking);
+        inputStream.setInputBuffer(inputBuffer);
         return inputStream;
 
     }
@@ -979,12 +974,9 @@ public class Request {
                 (sm.getString("request.getReader.ise"));
 
         usingReader = true;
-        //inputBuffer.checkConverter();
-        if (reader == null) {
-            inputBuffer.processingChars();
-            inputBuffer.setAsyncEnabled(!blocking);
-            reader = new NIOReader(inputBuffer);
-        }
+        inputBuffer.processingChars();
+        inputBuffer.setAsyncEnabled(!blocking);
+        reader.setInputBuffer(inputBuffer);
         return reader;
 
     }

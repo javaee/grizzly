@@ -43,28 +43,21 @@ package org.glassfish.grizzly.http.server;
 
 import java.io.IOException;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Cacheable;
 import org.glassfish.grizzly.http.server.io.NIOOutputStream;
 import org.glassfish.grizzly.http.server.io.OutputBuffer;
 import org.glassfish.grizzly.http.server.io.WriteHandler;
 
 /**
- * {@link NIOOutputStream} implementation based on {@link InputBuffer}.
+ * {@link NIOOutputStream} implementation.
  *
  * @author Ryan Lubke
  * @author Alexey Stashok
  */
-class NIOOutputStreamImpl extends NIOOutputStream {
+class NIOOutputStreamImpl extends NIOOutputStream implements Cacheable {
 
 
-    private final OutputBuffer outputBuffer;
-
-
-    // ------------------------------------------------------------ Constructors
-
-
-    public NIOOutputStreamImpl(final OutputBuffer outputBuffer) {
-        this.outputBuffer = outputBuffer;
-    }
+    private OutputBuffer outputBuffer;
 
 
     // ----------------------------------------------- Methods from OutputStream
@@ -135,4 +128,26 @@ class NIOOutputStreamImpl extends NIOOutputStream {
     public void write(final Buffer buffer) throws IOException {
         outputBuffer.writeBuffer(buffer);
     }
+
+
+    // -------------------------------------------------- Methods from Cacheable
+
+
+    @Override
+    public void recycle() {
+
+        outputBuffer = null;
+
+    }
+
+
+    // ---------------------------------------------------------- Public Methods
+
+
+    public void setOutputBuffer(final OutputBuffer outputBuffer) {
+
+        this.outputBuffer = outputBuffer;
+
+    }
+
 }

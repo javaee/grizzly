@@ -42,6 +42,7 @@ package org.glassfish.grizzly.http.server;
 
 import java.io.IOException;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Cacheable;
 import org.glassfish.grizzly.http.server.io.InputBuffer;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
 import org.glassfish.grizzly.http.server.io.ReadHandler;
@@ -52,25 +53,9 @@ import org.glassfish.grizzly.http.server.io.ReadHandler;
  * @author Ryan Lubke
  * @author Alexey Stashok
  */
-final class NIOInputStreamImpl extends NIOInputStream {
+final class NIOInputStreamImpl extends NIOInputStream implements Cacheable {
 
-    private final InputBuffer inputBuffer;
-
-
-    // ------------------------------------------------------------ Constructors
-
-
-    /**
-     * Constructs a new <code>NIOInputStreamImpl</code> using the specified
-     * {@link #inputBuffer}
-     * @param inputBuffer the <code>InputBuffer</code> from which binary content
-     *  will be supplied
-     */
-    public NIOInputStreamImpl(InputBuffer inputBuffer) {
-
-        this.inputBuffer = inputBuffer;
-
-    }
+    private InputBuffer inputBuffer;
 
 
     // ------------------------------------------------ Methods from InputStream
@@ -134,7 +119,7 @@ final class NIOInputStreamImpl extends NIOInputStream {
     }
 
     /**
-     * This {@link InputStream} implementation supports marking.
+     * This {@link NIOInputStream} implementation supports marking.
      *
      * @return <code>true</code>
      */
@@ -197,4 +182,27 @@ final class NIOInputStreamImpl extends NIOInputStream {
         return inputBuffer.getBuffer();
     }
 
+
+    // -------------------------------------------------- Methods from Cacheable
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void recycle() {
+
+        inputBuffer = null;
+
+    }
+
+
+    // ---------------------------------------------------------- Public Methods
+
+
+    public void setInputBuffer(final InputBuffer inputBuffer) {
+
+        this.inputBuffer = inputBuffer;
+
+    }
 }

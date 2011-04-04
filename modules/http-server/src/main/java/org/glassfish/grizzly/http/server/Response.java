@@ -111,7 +111,7 @@ import org.glassfish.grizzly.utils.DelayedExecutor.DelayQueue;
 public class Response {
 
     private enum SuspendState {
-        ENABLED, RESUMING, DISABLED;
+        ENABLED, RESUMING, DISABLED
     }
 
     private static final Logger LOGGER = Grizzly.logger(Response.class);
@@ -205,19 +205,12 @@ public class Response {
     /**
      * The associated output stream.
      */
-    // START OF SJSAS 6231069
-    /*protected NIOOutputStream outputStream =
-        new NIOOutputStream(outputBuffer);*/
-    protected NIOOutputStream outputStream;
-    // END OF SJSAS 6231069
+    protected NIOOutputStreamImpl outputStream = new NIOOutputStreamImpl();
 
     /**
      * The associated writer.
      */
-    // START OF SJSAS 6231069
-    // protected NIOWriter writer = new NIOWriter(outputBuffer);
-    protected NIOWriter writer;
-    // END OF SJSAS 6231069
+    protected NIOWriter writer = new NIOWriter();
 
 
     /**
@@ -313,14 +306,14 @@ public class Response {
         delayQueue = null;
         suspendedContext.reset();
         outputBuffer.recycle();
+        outputStream.recycle();
+        writer.recycle();
         usingOutputStream = false;
         usingWriter = false;
         appCommitted = false;
         error = false;
         request = null;
         response.recycle();
-        writer = null;
-        outputStream = null;
 
         response = null;
         ctx = null;
@@ -497,10 +490,7 @@ public class Response {
      *
      */
     public NIOOutputStream createOutputStream() {
-        // Probably useless
-        if (outputStream == null) {
-            outputStream = new NIOOutputStreamImpl(outputBuffer);
-        }
+        outputStream.setOutputBuffer(outputBuffer);
         return outputStream;
     }
 
@@ -604,9 +594,7 @@ public class Response {
                 (sm.getString("response.getOutputStream.ise"));
 
         usingOutputStream = true;
-        if (outputStream == null) {
-            outputStream = new NIOOutputStreamImpl(outputBuffer);
-        }
+        outputStream.setOutputBuffer(outputBuffer);
         return outputStream;
 
     }
@@ -654,10 +642,8 @@ public class Response {
         setCharacterEncoding(getCharacterEncoding());
 
         usingWriter = true;
-        if (writer == null) {
-            outputBuffer.processingChars();
-            writer = new NIOWriter(outputBuffer);
-        }
+        outputBuffer.processingChars();
+        writer.setOutputBuffer(outputBuffer);
         return writer;
 
     }
