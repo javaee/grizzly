@@ -117,7 +117,7 @@ public class Response {
     private static final Logger LOGGER = Grizzly.logger(Response.class);
 
     private static final ThreadCache.CachedTypeIndex<Response> CACHE_IDX =
-            ThreadCache.obtainIndex(Response.class, 8);
+            ThreadCache.obtainIndex(Response.class, 16);
     private static final ThreadLocal<Response> current = new ThreadLocal<Response>();
 
     public static Response create() {

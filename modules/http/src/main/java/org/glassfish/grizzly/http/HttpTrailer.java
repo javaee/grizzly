@@ -51,9 +51,9 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
  */
 public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
     private static final ThreadCache.CachedTypeIndex<HttpTrailer> CACHE_IDX =
-            ThreadCache.obtainIndex(HttpTrailer.class, 8);
+            ThreadCache.obtainIndex(HttpTrailer.class, 16);
     private static final ThreadCache.CachedTypeIndex<Builder> BUILDER_CACHE_IDX =
-            ThreadCache.obtainIndex(Builder.class, 8);
+            ThreadCache.obtainIndex(Builder.class, 16);
 
     /**
      * Returns <tt>true</tt> if passed {@link HttpContent} is a <tt>HttpTrailder</tt>.

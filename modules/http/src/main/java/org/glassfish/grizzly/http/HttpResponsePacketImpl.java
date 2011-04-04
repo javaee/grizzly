@@ -49,7 +49,7 @@ import org.glassfish.grizzly.http.HttpCodecFilter.ContentParsingState;
  */
 class HttpResponsePacketImpl extends HttpResponsePacket implements HttpPacketParsing {
     private static final ThreadCache.CachedTypeIndex<HttpResponsePacketImpl> CACHE_IDX =
-            ThreadCache.obtainIndex(HttpResponsePacketImpl.class, 8);
+            ThreadCache.obtainIndex(HttpResponsePacketImpl.class, 16);
 
     public static HttpResponsePacketImpl create() {
         final HttpResponsePacketImpl httpResponseImpl =
