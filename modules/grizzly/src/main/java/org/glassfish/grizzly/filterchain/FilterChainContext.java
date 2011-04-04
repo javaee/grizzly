@@ -81,7 +81,7 @@ public final class FilterChainContext implements AttributeStorage {
     }
 
     private static final ThreadCache.CachedTypeIndex<FilterChainContext> CACHE_IDX =
-            ThreadCache.obtainIndex(FilterChainContext.class, 4);
+            ThreadCache.obtainIndex(FilterChainContext.class, 8);
 
     public static FilterChainContext create(Connection connection) {
         FilterChainContext context = ThreadCache.takeFromCache(CACHE_IDX);

@@ -62,9 +62,9 @@ public class HttpContent extends HttpPacket
         implements org.glassfish.grizzly.Appendable<HttpContent> {
     
     private static final ThreadCache.CachedTypeIndex<HttpContent> CACHE_IDX =
-            ThreadCache.obtainIndex(HttpContent.class, 8);
+            ThreadCache.obtainIndex(HttpContent.class, 16);
     private static final ThreadCache.CachedTypeIndex<Builder> BUILDER_CACHE_IDX =
-            ThreadCache.obtainIndex(Builder.class, 8);
+            ThreadCache.obtainIndex(Builder.class, 16);
 
     /**
      * Returns <tt>true</tt> if passed {@link HttpPacket} is a <tt>HttpContent</tt>.
