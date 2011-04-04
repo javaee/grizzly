@@ -186,26 +186,30 @@ public class HttpServerFilter extends BaseFilter
             } else {
                 // We're working with suspended HTTP request
                 if (handlerRequest.asyncInput()) {
-                    if (!handlerRequest.getInputBuffer().isFinished()) {
+                    try {
+                        if (!handlerRequest.getInputBuffer().isFinished()) {
 
-                        final Buffer content = httpContent.getContent();
+                            final Buffer content = httpContent.getContent();
 
-                        if (!content.hasRemaining() || !handlerRequest.getInputBuffer().append(content)) {
-                            if (!httpContent.isLast()) {
-                                // need more data?
-                                return ctx.getStopAction();
+                            if (!content.hasRemaining()
+                                    || !handlerRequest.getInputBuffer().append(content)) {
+                                if (!httpContent.isLast()) {
+                                    // need more data?
+                                    return ctx.getStopAction();
+                                }
+
                             }
-
+                            if (httpContent.isLast()) {
+                                handlerRequest.getInputBuffer().finished();
+                                // we have enough data? - terminate filter chain execution
+                                final NextAction action = ctx.getSuspendAction();
+                                ctx.completeAndRecycle();
+                                return action;
+                            }
                         }
-                        if (httpContent.isLast()) {
-                            handlerRequest.getInputBuffer().finished();
-                            // we have enough data? - terminate filter chain execution
-                            final NextAction action = ctx.getSuspendAction();
-                            ctx.completeAndRecycle();
-                            return action;
-                        }
+                    } finally {
+                        httpContent.recycle();
                     }
-                    httpContent.recycle();
                 }
             }
         } else { // this code will be run, when we resume after suspend
