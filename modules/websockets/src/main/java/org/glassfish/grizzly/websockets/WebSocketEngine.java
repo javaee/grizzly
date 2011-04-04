@@ -40,7 +40,6 @@
 package org.glassfish.grizzly.websockets;
 
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -84,7 +83,6 @@ public class WebSocketEngine {
     static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     public static final String SERVER_KEY_HASH = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     public static final int MASK_SIZE = 4;
-    static final SecureRandom random = new SecureRandom();
     private final List<WebSocketApplication> applications = new ArrayList<WebSocketApplication>();
     private final Attribute<WebSocketHolder> webSocketAttribute =
         Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("web-socket");
@@ -115,14 +113,6 @@ public class WebSocketEngine {
         return engine;
     }
 
-    public static byte[] generateMask() {
-        byte[] maskBytes = new byte[MASK_SIZE];
-        synchronized (random) {
-            random.nextBytes(maskBytes);
-        }
-        return maskBytes;
-    }
-
     public WebSocketApplication getApplication(HttpRequestPacket request) {
         for (WebSocketApplication application : applications) {
             if (application.upgrade(request)) {
@@ -143,7 +133,6 @@ public class WebSocketEngine {
                     final WebSocketHolder holder = new WebSocketHolder(true, socket);
                     webSocketAttribute.set(connection, holder);
                     ctx.write(new ServerHandshake(request).respond(request));
-
                     request.getConnection().addCloseListener(new CloseListener() {
                         @Override
                         public void onClosed(Connection connection) {
@@ -158,7 +147,7 @@ public class WebSocketEngine {
                 }
             } catch (HandshakeException e) {
                 logger.log(Level.SEVERE, e.getMessage(), e);
-                if(socket != null) {
+                if (socket != null) {
                     socket.close();
                 }
             }
@@ -186,6 +175,7 @@ public class WebSocketEngine {
     public void unregisterAll() {
         applications.clear();
     }
+
     /**
      * Returns <tt>true</tt> if passed Grizzly {@link Connection} is associated with a {@link WebSocket}, or
      * <tt>false</tt> otherwise.
@@ -221,7 +211,6 @@ public class WebSocketEngine {
         final WebSocketHolder holder = new WebSocketHolder(false, socket);
         holder.webSocket = socket;
         webSocketAttribute.set(connection, holder);
-        
         return holder;
     }
 

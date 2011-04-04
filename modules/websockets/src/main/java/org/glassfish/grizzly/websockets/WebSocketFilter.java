@@ -40,6 +40,7 @@
 package org.glassfish.grizzly.websockets;
 
 import java.io.IOException;
+import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -59,8 +60,8 @@ import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.websockets.WebSocketEngine.WebSocketHolder;
-import org.glassfish.grizzly.websockets.ParseResult;
 
 /**
  * WebSocket {@link Filter} implementation, which supposed to be placed into a {@link FilterChain} right after HTTP
@@ -72,6 +73,8 @@ import org.glassfish.grizzly.websockets.ParseResult;
  */
 public class WebSocketFilter extends BaseFilter {
     private static final Logger logger = Grizzly.logger(WebSocketFilter.class);
+    private static final Random random = new Random();
+    private static final MemoryManager memManager = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
 
     /**
      * Method handles Grizzly {@link Connection} connect phase. Check if the {@link Connection} is a client-side {@link
@@ -103,8 +106,8 @@ public class WebSocketFilter extends BaseFilter {
     /**
      * Method handles Grizzly {@link Connection} close phase. Check if the {@link Connection} is a {@link WebSocket}, if
      * yes - tries to close the websocket gracefully (sending close frame) and calls {@link
-     * WebSocket#onClose(DataFrame)}. If the Grizzly {@link Connection} is not websocket - passes processing to
-     * the next filter in the chain.
+     * WebSocket#onClose(DataFrame)}. If the Grizzly {@link Connection} is not websocket - passes processing to the next
+     * filter in the chain.
      *
      * @param ctx {@link FilterChainContext}
      *
@@ -132,8 +135,8 @@ public class WebSocketFilter extends BaseFilter {
     /**
      * Handle Grizzly {@link Connection} read phase. If the {@link Connection} has associated {@link WebSocket} object
      * (websocket connection), we check if websocket handshake has been completed for this connection, if not -
-     * initiate/validate handshake. If handshake has been completed - parse websocket {@link DataFrame}s one by one
-     * and pass processing to appropriate {@link WebSocket}: {@link WebSocketApplication} for server- and client- side
+     * initiate/validate handshake. If handshake has been completed - parse websocket {@link DataFrame}s one by one and
+     * pass processing to appropriate {@link WebSocket}: {@link WebSocketApplication} for server- and client- side
      * connections.
      *
      * @param ctx {@link FilterChainContext}
@@ -180,8 +183,9 @@ public class WebSocketFilter extends BaseFilter {
                     if (parsingFrame == null) {
                         parsingFrame = new DataFrame();
                     } else {
-                        if(holder.buffer != null) {
-                            buffer = Buffers.appendBuffers(NIOTransportBuilder.DEFAULT_MEMORY_MANAGER, holder.buffer, buffer);
+                        if (holder.buffer != null) {
+                            buffer = Buffers
+                                .appendBuffers(NIOTransportBuilder.DEFAULT_MEMORY_MANAGER, holder.buffer, buffer);
                             holder.buffer = null;
                             holder.frame = null;
                         }
@@ -199,7 +203,7 @@ public class WebSocketFilter extends BaseFilter {
                     }
                 }
             } catch (FramingException e) {
-                if(e.getCode() != -1) {
+                if (e.getCode() != -1) {
                     holder.webSocket.close(e.getCode(), e.getMessage());
                 } else {
                     holder.webSocket.close();
@@ -229,13 +233,29 @@ public class WebSocketFilter extends BaseFilter {
             // take a message as a websocket frame
             final DataFrame frame = (DataFrame) ctx.getMessage();
             // serialize it into a Buffer
-            final Buffer buffer = frame.frame(
-                !WebSocketEngine.getEngine().getWebSocketHolder(ctx.getConnection()).unmaskOnRead);
+            byte[] bytes = frame.frame();
+            if (!WebSocketEngine.getEngine().getWebSocketHolder(ctx.getConnection()).unmaskOnRead) {
+                byte[] masked = new byte[bytes.length + 4];
+                final byte[] mask = generateMask();
+                System.arraycopy(mask, 0, masked, 0, WebSocketEngine.MASK_SIZE);
+                for (int i = 0; i < bytes.length; i++) {
+                    masked[i + WebSocketEngine.MASK_SIZE] = (byte) (bytes[i] ^ mask[i % WebSocketEngine.MASK_SIZE]);
+                }
+                bytes = masked;
+            }
             // set Buffer as message on the context
-            ctx.setMessage(buffer);
+            ctx.setMessage(Buffers.wrap(memManager, bytes));
         }
         // invoke next filter in the chain
         return ctx.getInvokeAction();
+    }
+
+    public static byte[] generateMask() {
+        byte[] maskBytes = new byte[WebSocketEngine.MASK_SIZE];
+        synchronized (random) {
+            random.nextBytes(maskBytes);
+        }
+        return maskBytes;
     }
 
     /**

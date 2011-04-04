@@ -45,7 +45,6 @@ import java.util.logging.Logger;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.NIOTransportBuilder;
-import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
@@ -113,30 +112,23 @@ public class DataFrame {
         return bytes;
     }
 
-    public Buffer frame(boolean mask) {
-        Buffer packet;
+    public byte[] frame() {
         byte[] payloadBytes = type.frame(this);
         final byte[] lengthBytes = convert(payloadBytes.length);
-        packet = memManager.allocate(10);
-        if (mask) {
-            maskBytes = WebSocketEngine.generateMask();
-            packet.put(Buffers.wrap(memManager, maskBytes));
-            packet.put(applyMask(type.setOpcode(FINAL_FRAME)));
-            applyMask(lengthBytes);
-            applyMask(payloadBytes);
-        } else {
-            packet.put(type.setOpcode(FINAL_FRAME));
-        }
-        packet.trim();
-        
-        packet = Buffers.appendBuffers(memManager, packet, Buffers.wrap(memManager, lengthBytes));
-        packet = Buffers.appendBuffers(memManager, packet, Buffers.wrap(memManager, payloadBytes));
+        int packetLength = 1 + lengthBytes.length;
+
+        byte[] packet = new byte[packetLength + payloadBytes.length];
+        packet[0] = type.setOpcode(true ? (byte) 0x80 : 0);
+        System.arraycopy(lengthBytes, 0, packet, 1, lengthBytes.length);
+        System.arraycopy(payloadBytes, 0, packet, packetLength, payloadBytes.length);
         return packet;
     }
 
     private void applyMask(byte[] bytes) {
-        for (int i = 0; i < bytes.length; i++) {
-            bytes[i] = applyMask(bytes[i]);
+        if(maskBytes != null) {
+            for (int i = 0; i < bytes.length; i++) {
+                bytes[i] = applyMask(bytes[i]);
+            }
         }
     }
 
@@ -186,11 +178,7 @@ public class DataFrame {
     private byte[] get(Buffer buffer, int needed) {
         final byte[] reading = new byte[needed];
         buffer.get(reading);
-        if (maskBytes != null) {
-            for (int i = 0; i < needed; i++) {
-                reading[i] = applyMask(reading[i]);
-            }
-        }
+        applyMask(reading);
         return reading;
     }
 
