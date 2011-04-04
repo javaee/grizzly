@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.http;
 
+import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.http.util.BufferChunk;
 import org.glassfish.grizzly.Buffer;
@@ -103,6 +104,7 @@ public class HttpServerFilter extends HttpCodecFilter {
     private boolean authPassthroughEnabled;
     private boolean traceEnabled;
     private String defaultResponseContentType;
+    private byte[] defaultResponseContentTypeBytes;
 
     /**
      * Constructor, which creates <tt>HttpServerFilter</tt> instance
@@ -166,8 +168,12 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         this.keepAlive = keepAlive;
         this.processKeepAlive = keepAlive != null;
-        
-        this.defaultResponseContentType = defaultResponseContentType;
+
+        if (defaultResponseContentType != null) {
+            this.defaultResponseContentType = defaultResponseContentType;
+            defaultResponseContentTypeBytes =
+                    defaultResponseContentType.getBytes(Charsets.ASCII_CHARSET);
+        }
     }
 
     // ----------------------------------------------------------- Configuration
@@ -562,9 +568,8 @@ public class HttpServerFilter extends HttpCodecFilter {
             if (contentLanguage != null) {
                 headers.setValue("Content-Language").setString(contentLanguage);
             }
-            if (response.getContentType() == null &&
-                    defaultResponseContentType != null) {
-                response.setContentType(defaultResponseContentType);
+            if (!response.isContentTypeSet() && defaultResponseContentTypeBytes != null) {
+                response.setDefaultContentType(defaultResponseContentTypeBytes);
             }
         }
 

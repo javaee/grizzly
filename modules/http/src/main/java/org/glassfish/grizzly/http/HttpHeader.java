@@ -90,6 +90,8 @@ public abstract class HttpHeader extends HttpPacket
      */
     private boolean charEncodingParsed = false;
 
+    private byte[] defaultContentType;
+
     protected boolean contentTypeParsed;
     protected String contentType;
 
@@ -395,8 +397,10 @@ public abstract class HttpHeader extends HttpPacket
             return characterEncoding;
         }
 
-        characterEncoding = ContentType.getCharsetFromContentType(getContentType());
-        charEncodingParsed = true;
+        if (isContentTypeSet()) {
+            characterEncoding = ContentType.getCharsetFromContentType(getContentType());
+            charEncodingParsed = true;
+        }
 
         return characterEncoding;
     }
@@ -441,6 +445,17 @@ public abstract class HttpHeader extends HttpPacket
 
         dc.setString(getContentType());
     }
+
+
+    /**
+     * @return <code>true</code> if a content type has been set.
+     */
+    public boolean isContentTypeSet() {
+
+        return (contentType != null || headers.getValue("content-type") != null);
+
+    }
+
 
     /**
      * @return the content type of this HTTP message.
@@ -685,6 +700,7 @@ public abstract class HttpHeader extends HttpPacket
         isChunked = false;
         contentLength = -1;
         characterEncoding = null;
+        defaultContentType = null;
         quotedCharsetValue = null;
         charsetSet = false;
         charEncodingParsed = false;
@@ -701,6 +717,14 @@ public abstract class HttpHeader extends HttpPacket
     @Override
     public void recycle() {
         reset();
+    }
+
+    protected byte[] getDefaultContentType() {
+        return defaultContentType;
+    }
+
+    protected void setDefaultContentType(byte[] defaultContentType) {
+        this.defaultContentType = defaultContentType;
     }
 
     /**
