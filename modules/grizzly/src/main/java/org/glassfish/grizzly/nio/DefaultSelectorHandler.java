@@ -148,7 +148,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
             registerKey0(key, interest);
         } else {
             final SelectorHandlerTask task = new RegisterKeyTask(key, interest);
-            addPendingTask(selectorRunner, task);
+            addPendingTaskOptimized(selectorRunner, task);
         }
     }
 
@@ -159,7 +159,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
             deregisterKey0(key, interest);
         } else {
             final SelectorHandlerTask task = new DeRegisterKeyTask(key, interest);
-            addPendingTask(selectorRunner, task);
+            addPendingTaskOptimized(selectorRunner, task);
         }
     }
 
@@ -273,17 +273,23 @@ public class DefaultSelectorHandler implements SelectorHandler {
             task.cancel();
             return;
         }
+
+        addPendingTaskOptimized(selectorRunner, task);
         
+        if (selectorRunner.isStop() &&
+                selectorRunner.getPendingTasks().remove(task)) {
+            task.cancel();
+        }
+    }
+
+    private void addPendingTaskOptimized(final SelectorRunner selectorRunner,
+            final SelectorHandlerTask task) {
+
         final Queue<SelectorHandlerTask> pendingTasks =
                 selectorRunner.getPendingTasks();
         pendingTasks.offer(task);
 
         selectorRunner.wakeupSelector();
-
-        if (selectorRunner.isStop() &&
-                selectorRunner.getPendingTasks().remove(task)) {
-            task.cancel();
-        }
     }
 
     private void processPendingTasks(final SelectorRunner selectorRunner)

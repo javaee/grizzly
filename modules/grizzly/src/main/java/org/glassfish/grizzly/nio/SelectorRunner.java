@@ -60,12 +60,12 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Class is responsible for processing certain (single) {@link SelectorHandler}
@@ -108,7 +108,7 @@ public final class SelectorRunner implements Runnable {
         this.selector = selector;
         stateHolder = new AtomicReference<State>(State.STOP);
 
-        pendingTasks = DataStructures.getLTQInstance(SelectorHandlerTask.class);
+        pendingTasks = new ConcurrentLinkedQueue<SelectorHandlerTask>();
         postponedTasks = new ArrayDeque<SelectorHandlerTask>();
     }
 
