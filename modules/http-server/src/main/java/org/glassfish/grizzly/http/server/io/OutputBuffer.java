@@ -587,6 +587,7 @@ public class OutputBuffer {
     private void checkCurrentBuffer() {
         if (currentBuffer == null) {
             currentBuffer = memoryManager.allocate(DEFAULT_BUFFER_SIZE);
+            currentBuffer.allowBufferDispose(true);
         }
     }
 

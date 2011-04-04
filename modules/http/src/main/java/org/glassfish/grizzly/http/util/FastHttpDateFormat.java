@@ -80,17 +80,29 @@ public final class FastHttpDateFormat {
     /**
      * HTTP date format.
      */
-    protected static final ThreadLocal<SimpleDateFormat> FORMAT = 
-        new ThreadLocal<SimpleDateFormat>() {
+    private static final ThreadLocal<SimpleDateFormatter> FORMAT =
+        new ThreadLocal<SimpleDateFormatter>() {
             @Override
-            protected SimpleDateFormat initialValue() {
-                SimpleDateFormat f = 
-                    new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US);
-                f.setTimeZone(GMT_TIME_ZONE);
-                return f;
+            protected SimpleDateFormatter initialValue() {
+                return new SimpleDateFormatter();
             }
         };
 
+    private static final class SimpleDateFormatter {
+        private final Date date;
+        private final SimpleDateFormat f;
+
+        public SimpleDateFormatter() {
+            date = new Date();
+            f = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US);
+            f.setTimeZone(GMT_TIME_ZONE);
+        }
+
+        public final String format(final long timeMillis) {
+            date.setTime(timeMillis);
+            return f.format(date);
+        }
+    }
 
     protected final static TimeZone gmtZone = TimeZone.getTimeZone("GMT");
 
@@ -155,7 +167,7 @@ public final class FastHttpDateFormat {
             synchronized(FORMAT) {
                 if (now > nextGeneration) {
                     nextGeneration = now + 1000;
-                    currentDate = FORMAT.get().format(new Date(now));
+                    currentDate = FORMAT.get().format(now);
                 }
             }
         }
@@ -183,11 +195,11 @@ public final class FastHttpDateFormat {
             return cachedDate;
         }
         String newDate;
-        Date dateValue = new Date(value);
+//        Date dateValue = new Date(value);
         if (threadLocalFormat != null) {
-            newDate = threadLocalFormat.format(dateValue);
+            newDate = threadLocalFormat.format(value);
         } else {
-            newDate = FORMAT.get().format(dateValue);
+            newDate = FORMAT.get().format(value);
         }
         updateFormatCache(longValue, newDate);
         return newDate;

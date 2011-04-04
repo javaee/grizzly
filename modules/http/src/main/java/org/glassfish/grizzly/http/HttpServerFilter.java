@@ -562,10 +562,9 @@ public class HttpServerFilter extends HttpCodecFilter {
             if (contentLanguage != null) {
                 headers.setValue("Content-Language").setString(contentLanguage);
             }
-            if (response.getContentType() == null) {
-                if (defaultResponseContentType != null) {
-                    response.setContentType(defaultResponseContentType);
-                }
+            if (response.getContentType() == null &&
+                    defaultResponseContentType != null) {
+                response.setContentType(defaultResponseContentType);
             }
         }
 

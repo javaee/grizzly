@@ -44,7 +44,6 @@ import java.io.CharConversionException;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * {@link Buffer} chunk representation.
