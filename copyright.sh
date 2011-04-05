@@ -90,7 +90,7 @@ valid() {
 }
 
 run() {
-	$JAVA -jar copyright.jar  $* | while read LINE
+	$JAVA -jar copyright.jar -g $* | while read LINE
 	do
 		valid $LINE
 	done
