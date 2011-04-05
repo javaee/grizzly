@@ -115,8 +115,8 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
     public NIOConnection(NIOTransport transport) {
         this.transport = transport;
-        asyncReadQueue = TaskQueue.<AsyncReadQueueRecord>createTaskQueue();
-        asyncWriteQueue = TaskQueue.<AsyncWriteQueueRecord>createTaskQueue();
+        asyncReadQueue = TaskQueue.createTaskQueue();
+        asyncWriteQueue = TaskQueue.createTaskQueue();
         attributes = new IndexedAttributeHolder(transport.getAttributeBuilder());
     }
 
@@ -360,7 +360,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
             try {
                 final FutureImpl<Connection> resultFuture =
-                        SafeFutureImpl.<Connection>create();
+                        SafeFutureImpl.create();
                 
                 transport.getSelectorHandler().executeInSelectorThread(
                         selectorRunner, new Runnable() {
