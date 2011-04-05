@@ -39,9 +39,10 @@ manifest.mf
 modules/benchmark/runner/benchmark
 modules/benchmark/runner/fhb-runner
 modules/benchmark/runner/readme.txt
+nbproject
 prototype.js
 readme.txt
-rep -vwi readme
+grizzlypex/readme
 web-app_2_5.xsd
 web-app_3_0.xsd
 web-common_3_0.xsd

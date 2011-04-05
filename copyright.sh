@@ -39,8 +39,8 @@
 #
 
 run() {
-	echo $JAVA -jar copyright.jar -X @copyright.excludes -g $* 
-	$JAVA -jar copyright.jar -X @copyright.excludes -g $* 
+	echo $JAVA -jar copyright.jar -X @copyright.excludes -g -w $*
+	$JAVA -jar copyright.jar -X @copyright.excludes -g -w $*
 }
 
 JAVA=/files/hudson/tools/java1.6/bin/java
