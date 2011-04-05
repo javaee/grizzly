@@ -43,13 +43,14 @@ package org.glassfish.grizzly.nio.transport;
 import java.io.IOException;
 import java.nio.channels.DatagramChannel;
 import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.Processor;
 import org.glassfish.grizzly.ProcessorSelector;
-import java.util.logging.Logger;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 
 /**

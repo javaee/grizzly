@@ -38,62 +38,9 @@
 # holder.
 #
 
-valid() {
-	echo $* | \
-		grep -vi .apt | \
-		grep -vi .args | \
-		grep -vi .bundle | \
-		grep -vi .class | \
-		grep -vi .gif | \
-		grep -vi .ico | \
-		grep -vi .iml | \
-		grep -vi .ipr | \
-		grep -vi .iws | \
-		grep -vi .jar | \
-		grep -vi .jks | \
-		grep -vi .svg | \
-		grep -vi .jpg | \
-		grep -vi .js | \
-		grep -vi .mm | \
-		grep -vi .ods | \
-		grep -vi .png | \
-		grep -vi .project | \
-		grep -vi .gitignore | \
-		grep -vi ChangesFrom1_9.txt | \
-		grep -vi catalog.cat | \
-		grep -vi copyright.sh | \
-		grep -vi modules/benchmark/runner/benchmark | \
-		grep -vi modules/benchmark/runner/fhb-runner | \
-		grep -vi modules/benchmark/runner/readme.txt | \
-		grep -vi copyrightcheck.out | \
-		grep -vi last-occupied-test-port.info | \
-		grep -vi license.txt | \
-		grep -vi manifest.mf | \
-		grep -vi ./modules/http-servlet/src/main/resources/javaee_web_services_client_1_2.xsd | \
-		grep -vi ./modules/http-servlet/src/main/resources/javaee_web_services_client_1_2.xsd | \
-		grep -vi ./modules/http-servlet/src/main/resources/javaee_web_services_client_1_3.xsd | \
-		grep -vi ./modules/http-servlet/src/main/resources/javaee_web_services_client_1_3.xsd | \
-		grep -vi ./modules/http-servlet/src/main/resources/web-app_3_0.xsd | \
-		grep -vi ./modules/http-servlet/src/main/resources/web-app_3_0.xsd | \
-		grep -vi ./modules/http-servlet/src/main/resources/javaee_5.xsd | \
-		grep -vi ./modules/http-servlet/src/main/resources/javaee_5.xsd | \
-		grep -vi ./modules/http-servlet/src/main/resources/javaee_6.xsd | \
-		grep -vi ./modules/http-servlet/src/main/resources/javaee_6.xsd | \
-		grep -vi ./modules/http-servlet/src/main/resources/web-app_2_5.xsd | \
-		grep -vi ./modules/http-servlet/src/main/resources/web-app_2_5.xsd | \
-		grep -vi ./modules/http-servlet/src/main/resources/xml.xsd | \
-		grep -vi readme.txt | \
-		grep -vwi readme | \
-		grep -vi Grizzly-Migration-Guide | \
-		grep -vi GrizzlyPex.hudson | \
-		grep -vi zzzzzzzzzzzzzzzzzzz
-}
-
 run() {
-	$JAVA -jar copyright.jar -g $* | while read LINE
-	do
-		valid $LINE
-	done
+	echo $JAVA -jar copyright.jar -X @copyright.excludes -g $* 
+	$JAVA -jar copyright.jar -X @copyright.excludes -g $* 
 }
 
 JAVA=/files/hudson/tools/java1.6/bin/java
@@ -102,7 +49,6 @@ then
 	JAVA=java
 fi
 
-echo grizzly 2.0
 $JAVA -jar copyright.jar -V
 rm -f copyrightcheck.out
 run $* | tee copyrightcheck.out
