@@ -444,8 +444,9 @@ public class InputBuffer {
     }
 
     public int availableChar() {
-        final float available = inputContentBuffer.remaining() * averageCharsPerByte;
-        return Float.valueOf(available).intValue();
+
+        return ((int) (inputContentBuffer.remaining() * averageCharsPerByte));
+
     }
 
 
