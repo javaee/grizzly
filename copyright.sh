@@ -1,7 +1,7 @@
 #
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 #
-# Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
 #
 # The contents of this file are subject to the terms of either the GNU
 # General Public License Version 2 only ("GPL") or the Common Development
@@ -38,51 +38,12 @@
 # holder.
 #
 
-valid() {
-	echo $* | \
-		 grep -vi .apt | \
-		 grep -vi .args | \
-		 grep -vi .bundle | \
-		 grep -vi .class | \
-		 grep -vi .gif | \
-		 grep -vi .ico | \
-		 grep -vi .iml | \
-		 grep -vi .ipr | \
-		 grep -vi .iws | \
-		 grep -vi .jar | \
-		 grep -vi .jks | \
-		 grep -vi .jpg | \
-		 grep -vi .json | \
-		 grep -vi .manifest | \
-		 grep -vi .mm | \
-		 grep -vi .ods | \
-		 grep -vi .svg | \
-		 grep -vi .png | \
-		 grep -vi .project | \
-		 grep -vi behaviour.js | \
-		 grep -vi dojo | \
-		 grep -vi copyright.sh | \
-		 grep -vi copyrightcheck.out | \
-		 grep -vi license.txt | \
-		 grep -vi manifest.mf | \
-		 grep -vi moo.fx | \
-		 grep -vi prototype.js | \
-		 grep -vi readme.txt | \
-		 grep -vwi readme | \
-		 grep -vi BayeuxClient.java | \
-		 grep -vi Grizzly-Migration-Guide | \
-		 grep -vi target/ | \
-		 grep -vi zzzzzzzzzzzzzzzzzzz
-}
-
 run() {
-	$JAVA -jar copyright.jar $* | while read LINE
-	do
-		valid $LINE
-	done
+	echo $JAVA -jar copyright.jar -X @copyright.excludes -w $*
+	$JAVA -jar copyright.jar -X @copyright.excludes -w $*
 }
 
-JAVA=/export/home/hudson/tools/java1.6/bin/java
+JAVA=/files/hudson/tools/java1.6/bin/java
 if [ ! -f $JAVA ]
 then
 	JAVA=java
