@@ -79,6 +79,7 @@ sub checkoutGrizzly {
        chdir("2dot0");
        my @args = ("git", "pull");
        system(@args) == 0 or die "Git pull failed: $?";
+       chdir("..");
    } else {
        my @args = ("git", "clone", "$GIT", "2dot0");
        system(@args) == 0 or die "Git clone of Grizzly 2.0 failed: $?";

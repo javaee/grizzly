@@ -120,7 +120,7 @@ sub processRequest {
             $client->write($msg . "\n");
             print $msg;
             last;
-        } elsif ($line =~ /^ops|^%|^avg.|^max|^90th/) {
+        } elsif ($line =~ /^ops|^%|^avg. time|^max time|^90th/) {
             my @p = split /:/, $line;
             push(@results, trim(@p[1]) . " ");
         }   
