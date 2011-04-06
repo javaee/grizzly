@@ -48,7 +48,6 @@ then
 	JAVA=java
 fi
 
-$JAVA -jar copyright.jar -V
 CMD="$JAVA -jar copyright.jar -X @copyright.excludes -g -w $*"
 echo $CMD
 rm -f copyrightcheck.out
