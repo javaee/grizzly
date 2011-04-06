@@ -39,8 +39,7 @@
 #
 
 run() {
-	echo $JAVA -jar copyright.jar -X @copyright.excludes -w $*
-	$JAVA -jar copyright.jar -X @copyright.excludes -w $*
+	${CMD}
 }
 
 JAVA=/files/hudson/tools/java1.6/bin/java
@@ -50,6 +49,8 @@ then
 fi
 
 $JAVA -jar copyright.jar -V
+CMD="$JAVA -jar copyright.jar -X @copyright.excludes -g -w $*"
+echo $CMD
 rm -f copyrightcheck.out
 run $* | tee copyrightcheck.out
 
