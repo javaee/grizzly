@@ -231,6 +231,11 @@ final class EchoServer {
                 final OutputStream out = response.getOutputStream();
                 final byte[] buf = new byte[1024];
 
+                if (in.isFinished()) {
+                    doWrite(in, buf, out);
+                    return;
+                }
+
                 response.suspend();
 
                 in.notifyAvailable(new ReadHandler() {
@@ -268,6 +273,11 @@ final class EchoServer {
                 final NIOReader in = request.getReader(false);
                 final NIOWriter out = response.getWriter();
                 final char[] buf = new char[1024];
+
+                if (in.isFinished()) {
+                    doWrite(in, buf, out);
+                    return;
+                }
 
                 response.suspend();
                 in.notifyAvailable(new ReadHandler() {
