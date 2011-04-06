@@ -49,7 +49,7 @@ use strict;
 my $PORT = 5000;
 my $HOST = "localhost";
 my $BM = '';
-my $SVN = "https://svn.java.net/svn/grizzly~svn/branches/2dot0/code";
+my $GIT = "git://java.net/grizzly~git";
 my $G2DOT0 = "2dot0";
 my $BMDIR = $G2DOT0 . "/modules/benchmark/usecase";
 my @RUNS;
@@ -72,8 +72,18 @@ sub initializeGrizzly {
 }
 
 sub checkoutGrizzly {
-   my @args = ("svn", "co", "$SVN", "2dot0");
-   system(@args) == 0 or die "Checkout of Grizzly 2.0 failed: $?";
+   if ((-e "2dot0") && !(-d "2dot0")) {
+        die "2dot0 exists in current directory, but is not a directory itself."
+   }
+   if (-e "2dot0") {
+       chdir("2dot0");
+       my @args = ("git", "pull");
+       system(@args) == 0 or die "Git pull failed: $?";
+       chdir("..");
+   } else {
+       my @args = ("git", "clone", "$GIT", "2dot0");
+       system(@args) == 0 or die "Git clone of Grizzly 2.0 failed: $?";
+   }  
 }
 
 sub buildGrizzly {

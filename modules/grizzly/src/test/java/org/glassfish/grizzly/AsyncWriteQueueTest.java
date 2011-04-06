@@ -456,15 +456,17 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
 
             assertTrue(resultFuture.get(10, TimeUnit.SECONDS));
 
+            int counter = 0;
             while (!threadsHistory.isEmpty()) {
                 final Thread t = threadsHistory.poll();
                 if (!threadsHistory.isEmpty()) {
                     // not last thread in history (should be main/current)
-                    assertSame(currentThread, t);
+                    assertSame("counter=" + counter, currentThread, t);
                 } else {
                     // the last thread in history (should *not* be main/current)
-                    assertNotSame(currentThread, t);
+                    assertNotSame("counter=" + counter, currentThread, t);
                 }
+                counter++;
             }
         } finally {
             if (connection != null) {
