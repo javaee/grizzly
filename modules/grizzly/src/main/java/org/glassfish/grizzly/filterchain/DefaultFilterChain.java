@@ -615,16 +615,15 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         }
     }
 
-    private FilterChainContext cloneContext(FilterChainContext ctx) {
+    private FilterChainContext cloneContext(final FilterChainContext ctx) {
 
         final FilterChain p = ctx.getFilterChain();
         final FilterChainContext newContext =
                 p.obtainFilterChainContext(ctx.getConnection());
         newContext.setOperation(ctx.getOperation());
-        newContext.internalContext.setPostProcessor(
-                ctx.internalContext.getPostProcessor());
-        newContext.internalContext.setIoEvent(
-                ctx.internalContext.getIoEvent());
+        
+        ctx.internalContext.softCopyTo(newContext.internalContext);
+        
         newContext.setStartIdx(ctx.getStartIdx());
         newContext.setEndIdx(ctx.getEndIdx());
         newContext.setFilterIdx(ctx.getFilterIdx());

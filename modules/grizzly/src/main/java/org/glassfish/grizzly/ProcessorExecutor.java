@@ -48,17 +48,17 @@ import java.util.logging.Logger;
  *
  * @author oleksiys
  */
-public final class  ProcessorExecutor {
+public final class ProcessorExecutor {
 
     private static final Logger LOGGER = Grizzly.logger(ProcessorExecutor.class);
 
-    public static boolean execute(Connection connection,
-            IOEvent ioEvent, Processor processor,
-            PostProcessor postProcessor)
+    public static boolean execute(final Connection connection,
+            final IOEvent ioEvent, final Processor processor,
+            final IOEventProcessingHandler processingHandler)
             throws IOException {
 
         final Context context = Context.create(connection, processor, ioEvent);
-        context.setPostProcessor(postProcessor);
+        context.setProcessingHandler(processingHandler);
 
         return execute(context);
     }
@@ -105,10 +105,10 @@ public final class  ProcessorExecutor {
     private static void complete(Context context, ProcessorResult.Status status,
             boolean isRecycleContext) throws IOException {
 
-        final PostProcessor postProcessor = context.getPostProcessor();
+        final IOEventProcessingHandler postProcessor = context.getProcessingHandler();
         try {
             if (postProcessor != null) {
-                postProcessor.process(context, status);
+                postProcessor.onComplete(context, status);
             }
         } finally {
             if (isRecycleContext) {

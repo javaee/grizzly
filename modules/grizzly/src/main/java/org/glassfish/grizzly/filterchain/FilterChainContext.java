@@ -206,6 +206,8 @@ public final class FilterChainContext implements AttributeStorage {
      * Suspend processing of the current task
      */
     public Runnable suspend() {
+        internalContext.suspend();
+        
         this.state = State.SUSPEND;
         return getRunnable();
     }
@@ -214,6 +216,8 @@ public final class FilterChainContext implements AttributeStorage {
      * Resume processing of the current task
      */
     public void resume() {
+        internalContext.resume();
+        
         getRunnable().run();
     }
 

@@ -49,7 +49,7 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.PostProcessor;
+import org.glassfish.grizzly.IOEventProcessingHandler;
 import org.glassfish.grizzly.ProcessorExecutor;
 import org.glassfish.grizzly.ProcessorResult.Status;
 import org.glassfish.grizzly.attributes.Attribute;
@@ -204,7 +204,7 @@ public class PUFilter extends BaseFilter {
                     filterChain.obtainFilterChainContext(connection);
             final Context context = filterChainContext.getInternalContext();
             context.setIoEvent(IOEvent.READ);
-            context.setPostProcessor(new InternalPostProcessor());
+            context.setProcessingHandler(new InternalProcessingHandler());
             filterChainContext.setAddress(ctx.getAddress());
             filterChainContext.setMessage(ctx.getMessage());
             suspendedContextAttribute.set(context, ctx);
@@ -289,10 +289,10 @@ public class PUFilter extends BaseFilter {
     }
 
 
-    private class InternalPostProcessor implements PostProcessor {
+    private class InternalProcessingHandler implements IOEventProcessingHandler {
         
         @Override
-        public void process(final Context context, final Status status) throws IOException {
+        public void onComplete(final Context context, final Status status) throws IOException {
             final FilterChainContext suspendedContext =
                     suspendedContextAttribute.remove(context);
 
@@ -303,6 +303,14 @@ public class PUFilter extends BaseFilter {
                 case REREGISTER:
                     suspendedContext.resume();
             }
+        }
+
+        @Override
+        public void onSuspend(Context context) throws IOException {
+        }
+
+        @Override
+        public void onResume(Context context) throws IOException {
         }
     }
 

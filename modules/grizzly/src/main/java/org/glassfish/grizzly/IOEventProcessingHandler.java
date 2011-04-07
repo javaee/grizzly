@@ -43,20 +43,35 @@ package org.glassfish.grizzly;
 import java.io.IOException;
 
 /**
- * The post processor will be called, once {@link Processor} has been completed
- * so it would be possible to prepare the {@link Connection} for next
- * {@link IOEvent} processing.
+ * The {@link IOEvent} processing handler, which will be notified about changes
+ * in {@link IOEvent} processing statuses.
  * 
  * @author Alexey Stashok
  */
-public interface PostProcessor {
+public interface IOEventProcessingHandler {
     /**
-     * Post process the {@link IOEvent} processing.
+     * {@link IOEvent} processing suspended.
+     *
+     * @param context
+     * @throws IOException
+     */
+    public void onSuspend(Context context) throws IOException;
+
+    /**
+     * {@link IOEvent} processing resumed.
+     *
+     * @param context
+     * @throws IOException
+     */
+    public void onResume(Context context) throws IOException;
+
+    /**
+     * {@link IOEvent} processing completed.
      * 
      * @param context 
      * @param status
      * @throws IOException
      */
-    public void process(Context context, ProcessorResult.Status status)
+    public void onComplete(Context context, ProcessorResult.Status status)
             throws IOException;
 }

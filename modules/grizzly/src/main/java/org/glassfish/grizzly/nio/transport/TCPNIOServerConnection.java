@@ -54,7 +54,7 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.PostProcessor;
+import org.glassfish.grizzly.IOEventProcessingHandler;
 import org.glassfish.grizzly.ProcessorResult.Status;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
@@ -316,17 +316,25 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
     private final static boolean[] isRegisterMap = {true, false, true, false, false, false, true};
     // PostProcessor, which supposed to enable OP_READ interest, once Processor will be notified
     // about Connection ACCEPT
-    protected final static PostProcessor enableInterestPostProcessor =
-            new EnableReadPostProcessor();
+    protected final static IOEventProcessingHandler enableInterestPostProcessor =
+            new EnableReadHandler();
 
-    private static class EnableReadPostProcessor implements PostProcessor {
+    private static final class EnableReadHandler implements IOEventProcessingHandler {
 
         @Override
-        public void process(Context context, Status status) throws IOException {
+        public void onComplete(Context context, Status status) throws IOException {
             if (isRegisterMap[status.ordinal()]) {
                 final NIOConnection nioConnection = (NIOConnection) context.getConnection();
                 nioConnection.enableIOEvent(IOEvent.READ);
             }
+        }
+
+        @Override
+        public void onSuspend(Context context) {
+        }
+
+        @Override
+        public void onResume(Context context) {
         }
     }
 }

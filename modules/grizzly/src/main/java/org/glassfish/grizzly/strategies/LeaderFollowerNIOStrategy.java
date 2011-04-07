@@ -46,7 +46,7 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.PostProcessor;
+import org.glassfish.grizzly.IOEventProcessingHandler;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.SelectorRunner;
 
@@ -86,7 +86,7 @@ public final class LeaderFollowerNIOStrategy extends AbstractIOStrategy {
                                   final IOEvent ioEvent) throws IOException {
 
         final NIOConnection nioConnection = (NIOConnection) connection;
-        PostProcessor pp = null;
+        IOEventProcessingHandler pp = null;
         if (isReadWrite(ioEvent)) {
             nioConnection.disableIOEvent(ioEvent);
             pp = enableInterestPostProcessor;

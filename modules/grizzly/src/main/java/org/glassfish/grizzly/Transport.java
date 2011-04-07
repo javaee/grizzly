@@ -413,9 +413,10 @@ public interface Transport extends JmxMonitoringAware<TransportProbe> {
      *
      * @param ioEvent I/O event
      * @param connection {@link Connection}, on which we fire the event.
+     * @param processingHandler I/O event processing handler.
      */
     IOEventReg fireIOEvent(IOEvent ioEvent, Connection connection,
-            PostProcessor postProcessor) throws IOException;
+            IOEventProcessingHandler processingHandler) throws IOException;
 
     /**
      * Returns <tt>true</tt>, if this <tt>Transport</tt> is in stopped state,

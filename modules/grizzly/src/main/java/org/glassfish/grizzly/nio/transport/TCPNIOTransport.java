@@ -76,7 +76,7 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.PostProcessor;
+import org.glassfish.grizzly.IOEventProcessingHandler;
 import org.glassfish.grizzly.ProcessorExecutor;
 import org.glassfish.grizzly.Reader;
 import org.glassfish.grizzly.SocketBinder;
@@ -792,7 +792,7 @@ public final class TCPNIOTransport extends NIOTransport implements
 
     @Override
     public IOEventReg fireIOEvent(final IOEvent ioEvent,
-            final Connection connection, final PostProcessor postProcessor)
+            final Connection connection, final IOEventProcessingHandler postProcessor)
             throws IOException {
 
         try {
