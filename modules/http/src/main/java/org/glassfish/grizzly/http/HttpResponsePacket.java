@@ -201,10 +201,11 @@ public abstract class HttpResponsePacket extends HttpHeader {
      * (avoid creation of a String object}.
      */
     public final DataChunk getReasonPhraseDC() {
-        if (allowCustomReasonPhrase && !reasonPhraseC.isNull()) {
+        if (isCustomReasonPhraseSet()) {
             return HttpStatus.filter(reasonPhraseC);
         } else {
             final Buffer b = Buffers.wrap(null, httpStatus.getReasonPhraseBytes());
+            b.allowBufferDispose(true);
             reasonPhraseC.setBuffer(b, b.position(), b.limit());
             return reasonPhraseC;
         }
@@ -230,6 +231,10 @@ public abstract class HttpResponsePacket extends HttpHeader {
 
     public void setReasonPhrase(final Buffer reason) {
         reasonPhraseC.setBuffer(reason, reason.position(), reason.limit());
+    }
+
+    public final boolean isCustomReasonPhraseSet() {
+        return (allowCustomReasonPhrase && !reasonPhraseC.isNull());
     }
 
     /**
