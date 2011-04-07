@@ -59,7 +59,7 @@ import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.PostProcessor;
+import org.glassfish.grizzly.IOEventProcessingHandler;
 import org.glassfish.grizzly.Processor;
 import org.glassfish.grizzly.ProcessorExecutor;
 import org.glassfish.grizzly.ProcessorSelector;
@@ -638,7 +638,7 @@ public final class UDPNIOTransport extends NIOTransport implements
 
     @Override
     public IOEventReg fireIOEvent(final IOEvent ioEvent,
-            final Connection connection, final PostProcessor postProcessor)
+            final Connection connection, final IOEventProcessingHandler postProcessor)
             throws IOException {
 
         try {

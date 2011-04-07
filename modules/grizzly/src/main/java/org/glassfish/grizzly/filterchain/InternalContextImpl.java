@@ -59,4 +59,10 @@ class InternalContextImpl extends Context {
     public void recycle() {
         filterChainContext.completeAndRecycle();
     }
+
+    void softCopyTo(final InternalContextImpl targetContext) {
+        targetContext.processingHandler = this.processingHandler;
+        targetContext.ioEvent = this.ioEvent;
+        targetContext.wasSuspended = this.wasSuspended;
+    }
 }

@@ -41,13 +41,14 @@
 package org.glassfish.grizzly.strategies;
 
 import java.io.IOException;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.PostProcessor;
+import org.glassfish.grizzly.IOEventProcessingHandler;
+import org.glassfish.grizzly.ProcessorResult.Status;
 import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
@@ -63,6 +64,9 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
     private static final Logger logger = Grizzly.logger(SameThreadIOStrategy.class);
 
 
+    private static final EnableInterestProcessingHandler PROCESSING_HANDLER =
+            new EnableInterestProcessingHandler();
+    
     // ------------------------------------------------------------ Constructors
 
 
@@ -83,10 +87,10 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
     @Override
     public boolean executeIoEvent(final Connection connection,
                                   final IOEvent ioEvent) throws IOException {
-        PostProcessor pp = null;
+        IOEventProcessingHandler pp = null;
         if (isReadWrite(ioEvent)) {
-            connection.disableIOEvent(ioEvent);
-            pp = enableInterestPostProcessor;
+//            connection.disableIOEvent(ioEvent);
+            pp = PROCESSING_HANDLER;
         }
 
         fireIOEvent(connection, ioEvent, pp, logger);
@@ -105,4 +109,31 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
         return null;
     }
 
+    // ---------------------------------------------------------- Nested Classes
+
+
+    private static class EnableInterestProcessingHandler
+            implements IOEventProcessingHandler {
+
+        @Override
+        public void onComplete(final Context context, final Status status)
+        throws IOException {
+            if (context.wasSuspended() && isRegisterMap[status.ordinal()]) {
+                final IOEvent ioEvent = context.getIoEvent();
+                final Connection connection = context.getConnection();
+                connection.enableIOEvent(ioEvent);
+            }
+        }
+
+        @Override
+        public void onSuspend(final Context context) throws IOException {
+            final Connection connection = context.getConnection();
+            final IOEvent ioEvent = context.getIoEvent();
+            connection.disableIOEvent(ioEvent);
+        }
+
+        @Override
+        public void onResume(final Context context) {
+        }
+    }
 }

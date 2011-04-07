@@ -48,7 +48,7 @@ package org.glassfish.grizzly.strategies;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.PostProcessor;
+import org.glassfish.grizzly.IOEventProcessingHandler;
 import org.glassfish.grizzly.ProcessorResult.Status;
 import org.glassfish.grizzly.IOStrategy;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
@@ -66,7 +66,7 @@ import org.glassfish.grizzly.Transport;
  */
 public abstract class AbstractIOStrategy implements IOStrategy {
 
-    private final static boolean[] isRegisterMap = {
+    protected final static boolean[] isRegisterMap = {
             true,   // COMPLETE
             false,  // COMPLETE_LEAVE
             true,   // RE-REGISTER
@@ -76,8 +76,8 @@ public abstract class AbstractIOStrategy implements IOStrategy {
             false   // NOT_RUN
     };
 
-    protected final static PostProcessor enableInterestPostProcessor =
-            new EnableInterestPostProcessor();
+    protected final static IOEventProcessingHandler enableInterestPostProcessor =
+            new EnableInterestProcessingHandler();
 
 
     // ----------------------------- Methods from WorkerThreadPoolConfigProducer
@@ -113,7 +113,7 @@ public abstract class AbstractIOStrategy implements IOStrategy {
 
     protected static void fireIOEvent(final Connection connection,
                                       final IOEvent ioEvent,
-                                      final PostProcessor pp,
+                                      final IOEventProcessingHandler pp,
                                       final Logger logger) {
         try {
             connection.getTransport().fireIOEvent(ioEvent, connection, pp);
@@ -141,15 +141,26 @@ public abstract class AbstractIOStrategy implements IOStrategy {
     // ---------------------------------------------------------- Nested Classes
 
 
-    private static class EnableInterestPostProcessor implements PostProcessor {
+    private static class EnableInterestProcessingHandler 
+            implements IOEventProcessingHandler {
+        
         @Override
-        public void process(final Context context, final Status status)
-        throws IOException {
+        public void onComplete(final Context context, final Status status)
+                throws IOException {
+            
             if (isRegisterMap[status.ordinal()]) {
                 final IOEvent ioEvent = context.getIoEvent();
                 final Connection connection = context.getConnection();
                 connection.enableIOEvent(ioEvent);
             }
+        }
+
+        @Override
+        public void onSuspend(Context context) {
+        }
+
+        @Override
+        public void onResume(Context context) {
         }
     }
 }

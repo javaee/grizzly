@@ -88,7 +88,7 @@ public class Context implements AttributeStorage, Cacheable {
     /**
      * Processing IOEvent
      */
-    private IOEvent ioEvent = IOEvent.NONE;
+    protected IOEvent ioEvent = IOEvent.NONE;
     /**
      * Processor, responsible for I/O event processing
      */
@@ -98,13 +98,55 @@ public class Context implements AttributeStorage, Cacheable {
      */
     private final AttributeHolder attributes;
     /**
-     * PostProcessor is called, when Context is ready to be recycled,
-     * though the task might be still processed.
+     * IOEventProcessingHandler is called to notify about IOEvent processing
+     * life-cycle events like suspend, resume, complete.
      */
-    private PostProcessor postProcessor;
+    protected IOEventProcessingHandler processingHandler;
+    /**
+     * <tt>true</tt> if this IOEvent processing was suspended during its processing,
+     * or <tt>false</tt> otherwise.
+     */
+    protected boolean wasSuspended;
 
     public Context() {
         attributes = new IndexedAttributeHolder(Grizzly.DEFAULT_ATTRIBUTE_BUILDER);
+    }
+
+    /**
+     * Notify Context its processing will be suspended in the current thread.
+     */
+    public void suspend() {
+        wasSuspended = true;
+        final IOEventProcessingHandler processingHandlerLocal = this.processingHandler;
+        if (processingHandlerLocal != null) {
+            try {
+                processingHandlerLocal.onSuspend(this);
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+    }
+    
+    /**
+     * Notify Context its processing will be resumed in the current thread.
+     */
+    public void resume() {
+        final IOEventProcessingHandler processingHandlerLocal = this.processingHandler;
+        if (processingHandlerLocal != null) {
+            try {
+                processingHandlerLocal.onResume(this);
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+    }
+
+    /**
+     * @return  <tt>true</tt> if this IOEvent processing was suspended during
+     * its processing, or <tt>false</tt> otherwise.
+     */
+    public boolean wasSuspended() {
+        return wasSuspended;
     }
 
     /**
@@ -161,16 +203,16 @@ public class Context implements AttributeStorage, Cacheable {
      * @param processor the {@link Processor}, which is responsible to process
      * the {@link IOEvent}.
      */
-    public void setProcessor(Processor processor) {
+    public void setProcessor(final Processor processor) {
         this.processor = processor;
     }
 
-    public PostProcessor getPostProcessor() {
-        return postProcessor;
+    public IOEventProcessingHandler getProcessingHandler() {
+        return processingHandler;
     }
 
-    public void setPostProcessor(PostProcessor postProcessor) {
-        this.postProcessor = postProcessor;
+    public void setProcessingHandler(final IOEventProcessingHandler processingHandler) {
+        this.processingHandler = processingHandler;
     }
 
     /**
@@ -196,9 +238,10 @@ public class Context implements AttributeStorage, Cacheable {
         attributes.recycle();
 
         processor = null;
-        postProcessor = null;
+        processingHandler = null;
         connection = null;
         ioEvent = IOEvent.NONE;
+        wasSuspended = false;
     }
 
     /**

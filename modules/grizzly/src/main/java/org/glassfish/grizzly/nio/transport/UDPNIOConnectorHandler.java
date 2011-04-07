@@ -58,7 +58,7 @@ import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.PostProcessor;
+import org.glassfish.grizzly.IOEventProcessingHandler;
 import org.glassfish.grizzly.ProcessorResult.Status;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
@@ -231,7 +231,7 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
                     (UDPNIOTransport) connection.getTransport();
 
             udpTransport.fireIOEvent(IOEvent.CONNECTED, connection,
-                    new EnableReadPostProcessor(connectFuture, completionHandler));
+                    new EnableReadHandler(connectFuture, completionHandler));
 
         } catch (Exception e) {
             abortConnection(connection, connectFuture, completionHandler, e);
@@ -297,19 +297,19 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
     // PostProcessor, which supposed to enable OP_READ interest, once Processor will be notified
     // about Connection CONNECT
-    private static class EnableReadPostProcessor implements PostProcessor {
+    private static class EnableReadHandler implements IOEventProcessingHandler {
 
         private final FutureImpl<Connection> connectFuture;
         private final CompletionHandler<Connection> completionHandler;
 
-        private EnableReadPostProcessor(FutureImpl<Connection> connectFuture,
+        private EnableReadHandler(FutureImpl<Connection> connectFuture,
                 CompletionHandler<Connection> completionHandler) {
             this.connectFuture = connectFuture;
             this.completionHandler = completionHandler;
         }
 
         @Override
-        public void process(Context context, Status status) throws IOException {
+        public void onComplete(Context context, Status status) throws IOException {
             if (isRegisterMap[status.ordinal()]) {
                 final NIOConnection connection = (NIOConnection) context.getConnection();
 
@@ -323,6 +323,14 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
                     connection.enableIOEvent(IOEvent.READ);
                 }
             }
+        }
+
+        @Override
+        public void onSuspend(Context context) {
+        }
+
+        @Override
+        public void onResume(Context context) {
         }
     }
 

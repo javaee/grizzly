@@ -43,7 +43,7 @@ import java.io.IOException;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.PostProcessor;
+import org.glassfish.grizzly.IOEventProcessingHandler;
 import org.glassfish.grizzly.Processor;
 import java.util.logging.Logger;
 
@@ -82,7 +82,7 @@ public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
 
         final boolean disableInterest = isReadWrite(ioEvent);
 
-        final PostProcessor pp;
+        final IOEventProcessingHandler pp;
         if (disableInterest) {
             connection.disableIOEvent(ioEvent);
             pp = enableInterestPostProcessor;
@@ -111,7 +111,7 @@ public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
 
     private static void run0(final Connection connection,
                              final IOEvent ioEvent,
-                             final PostProcessor postProcessor) {
+                             final IOEventProcessingHandler postProcessor) {
 
         fireIOEvent(connection, ioEvent, postProcessor, logger);
 
