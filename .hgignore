@@ -1,0 +1,7 @@
+syntax: glob
+*.iml
+*.iws
+*.ipr
+*~
+atlassian-ide-plugin.xml
+target/
