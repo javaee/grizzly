@@ -80,20 +80,34 @@ public final class ProcessorExecutor {
             result.recycle();
 
             switch (status) {
-                case TERMINATE:
+                case COMPLETE:
+                    complete(context);
+                    return true;
+
+                case LEAVE:
+                    leave(context);
                     return false;
 
+                case TERMINATE:
+                    terminate(context);
+                    return false;
+
+                case REREGISTER:
+                    reregister(context);
+                    return true;
+
                 case RERUN:
+                    rerun(context);
                     context = (Context) resultContext;
                     continue;
 
-                case REREGISTER:
-                    complete(context, status, false);
-                    return true;
-                    
-                default:
-                    complete(context, status, true);
-                    return status == ProcessorResult.Status.COMPLETE;
+                case ERROR:
+                    error(context);
+                    return false;
+
+                case NOT_RUN:
+                    notRun(context);
+                    return false;                    
             }
         }
     }
@@ -102,18 +116,85 @@ public final class ProcessorExecutor {
         return execute(context);
     }
 
-    private static void complete(Context context, ProcessorResult.Status status,
-            boolean isRecycleContext) throws IOException {
+    private static void complete(final Context context) throws IOException {
 
-        final IOEventProcessingHandler postProcessor = context.getProcessingHandler();
+        final IOEventProcessingHandler processingHandler =
+                context.getProcessingHandler();
+        
         try {
-            if (postProcessor != null) {
-                postProcessor.onComplete(context, status);
+            if (processingHandler != null) {
+                processingHandler.onComplete(context);
             }
         } finally {
-            if (isRecycleContext) {
-                context.recycle();
-            }
+            context.recycle();
         }
     }
+
+    private static void leave(final Context context) throws IOException {
+        final IOEventProcessingHandler processingHandler =
+                context.getProcessingHandler();
+
+        try {
+            if (processingHandler != null) {
+                processingHandler.onLeave(context);
+            }
+        } finally {
+            context.recycle();
+        }
+    }
+
+    private static void reregister(final Context context) throws IOException {
+        final IOEventProcessingHandler processingHandler =
+                context.getProcessingHandler();
+        
+        if (processingHandler != null) {
+            processingHandler.onReregister(context);
+        }
+    }
+
+    private static void terminate(final Context context) throws IOException {
+        final IOEventProcessingHandler processingHandler =
+                context.getProcessingHandler();
+
+        if (processingHandler != null) {
+            processingHandler.onTerminate(context);
+        }
+    }
+
+    private static void rerun(final Context context) throws IOException {
+        final IOEventProcessingHandler processingHandler =
+                context.getProcessingHandler();
+
+        if (processingHandler != null) {
+            processingHandler.onRerun(context);
+        }
+    }
+
+    private static void error(final Context context) throws IOException {
+        final IOEventProcessingHandler processingHandler =
+                context.getProcessingHandler();
+        
+        try {
+            if (processingHandler != null) {
+                processingHandler.onError(context);
+            }
+        } finally {
+            context.recycle();
+        }
+
+    }
+
+    private static void notRun(final Context context) throws IOException {
+        final IOEventProcessingHandler processingHandler =
+                context.getProcessingHandler();
+        try {
+            if (processingHandler != null) {
+                processingHandler.onNotRun(context);
+            }
+        } finally {
+            context.recycle();
+        }
+
+    }
+
 }

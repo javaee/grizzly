@@ -49,6 +49,7 @@ import org.glassfish.grizzly.AbstractReader;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.Interceptor;
@@ -204,9 +205,11 @@ public abstract class AbstractNIOAsyncQueueReader
      * {@inheritDoc}
      */
     @Override
-    public void processAsync(final Connection connection) throws IOException {
+    public boolean processAsync(final Context context) throws IOException {
+        final NIOConnection nioConnection = (NIOConnection) context.getConnection();
+
         final TaskQueue<AsyncReadQueueRecord> connectionQueue =
-                ((NIOConnection) connection).getAsyncReadQueue();
+                nioConnection.getAsyncReadQueue();
 
 
         boolean done = false;
@@ -217,7 +220,7 @@ public abstract class AbstractNIOAsyncQueueReader
                     connectionQueue.obtainCurrentElementAndReserve()) != null) {
 
                 final ReadResult currentResult = queueRecord.getCurrentResult();
-                doRead(connection, queueRecord);
+                doRead(nioConnection, queueRecord);
 
                 final Interceptor<ReadResult> interceptor =
                         queueRecord.getInterceptor();
@@ -228,6 +231,16 @@ public abstract class AbstractNIOAsyncQueueReader
 
                 if ((interceptInstructions & Interceptor.COMPLETED) != 0
                         || (interceptor == null && isFinished(queueRecord))) {
+
+                    // Is here a chance that queue becomes empty?
+                    // If yes - we need to switch to manual io event processing
+                    // mode to *disable READ interest for SameThreadStrategy*,
+                    // so we don't get stuck, when other thread tried to add data
+                    // to the queue.
+                    if (!context.isManualIOEventControl() &&
+                            connectionQueue.spaceInBytes() - 1 <= 0) {
+                        context.setManualIOEventControl();
+                    }
 
                     done = (connectionQueue.releaseSpaceAndNotify(1) == 0);
 
@@ -251,8 +264,8 @@ public abstract class AbstractNIOAsyncQueueReader
                     onReadIncomplete(queueRecord);
                     intercept(Reader.INCOMPLETE_EVENT, queueRecord, null);
 
-                    onReadyToRead(connection);
-                    return;
+//                    onReadyToRead(nioConnection);
+                    return true;
                 }
             }
 
@@ -260,16 +273,19 @@ public abstract class AbstractNIOAsyncQueueReader
                 // Counter shows there should be some elements in queue,
                 // but seems write() method still didn't add them to a queue
                 // so we can release the thread for now
-                onReadyToRead(connection);
+//                onReadyToRead(nioConnection);
+                return true;
             }
         } catch (IOException e) {
-            onReadFailure(connection, queueRecord, e);
+            onReadFailure(nioConnection, queueRecord, e);
         } catch (Exception e) {
             String message = "Unexpected exception occurred in AsyncQueueReader";
             LOGGER.log(Level.SEVERE, message, e);
             IOException ioe = new IOException(e.getClass() + ": " + message);
-            onReadFailure(connection, queueRecord, ioe);
+            onReadFailure(nioConnection, queueRecord, ioe);
         }
+
+        return false;
     }
 
     /**

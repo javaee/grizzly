@@ -107,7 +107,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     }
 
     @Override
-    public ProcessorResult process(Context context) throws IOException {
+    public ProcessorResult process(final Context context) throws IOException {
         final InternalContextImpl internalContext = (InternalContextImpl) context;
         final FilterChainContext filterChainContext = internalContext.filterChainContext;
 
@@ -124,9 +124,9 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                         (AsyncQueueEnabledTransport) connection.getTransport();
                 final AsyncQueueWriter writer = transport.getAsyncQueueIO().getWriter();
 
-                writer.processAsync(connection);
-
-                return ProcessorResult.createCompleteLeave();
+                return writer.processAsync(context) ?
+                    ProcessorResult.createComplete() :
+                    ProcessorResult.createLeave();
             }
         }
 
@@ -313,7 +313,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                 LOGGER.log(Level.FINE, "Exception during reporting the failure", ioe);
             }
 
-            return ProcessorResult.createCompleteLeave();
+            return ProcessorResult.createLeave();
         } catch (Exception e) {
             try {
                 LOGGER.log(Level.WARNING, "Exception during FilterChain execution", e);
@@ -323,7 +323,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                 LOGGER.log(Level.FINE, "Exception during reporting the failure", ioe);
             }
 
-            return ProcessorResult.createCompleteLeave();
+            return ProcessorResult.createLeave();
         }
 
         return ProcessorResult.createComplete();

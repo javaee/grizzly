@@ -72,29 +72,33 @@ public class StandaloneProcessor implements Processor {
      * {@link IOEvent}.
      */
     @Override
-    public ProcessorResult process(Context context) throws IOException {
+    public ProcessorResult process(final Context context) throws IOException {
         final IOEvent iOEvent = context.getIoEvent();
         if (iOEvent == IOEvent.READ) {
             final Connection connection = context.getConnection();
             final AsyncQueueReader reader =
                     ((AsyncQueueEnabledTransport) connection.getTransport()).
                     getAsyncQueueIO().getReader();
-            if (reader.isReady(connection)) {
-                reader.processAsync(connection);
-            }
+//            if (reader.isReady(connection)) {
+//                reader.processAsync(context);
+//            }
 
-            return ProcessorResult.createCompleteLeave();
+            return reader.processAsync(context) ?
+                ProcessorResult.createComplete() :
+                ProcessorResult.createLeave();
         } else if (iOEvent == IOEvent.WRITE) {
             final Connection connection = context.getConnection();
             final AsyncQueueWriter writer =
                     ((AsyncQueueEnabledTransport) connection.getTransport()).
                     getAsyncQueueIO().getWriter();
             
-            if (writer.isReady(connection)) {
-                writer.processAsync(connection);
-            }
+//            if (writer.isReady(connection)) {
+//                writer.processAsync(context);
+//            }
 
-            return ProcessorResult.createCompleteLeave();
+            return writer.processAsync(context) ?
+                ProcessorResult.createComplete() :
+                ProcessorResult.createLeave();
         }
         
         throw new IllegalStateException("Unexpected IOEvent=" + iOEvent);

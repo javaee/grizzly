@@ -45,10 +45,10 @@ import java.util.logging.Logger;
 
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
+import org.glassfish.grizzly.EmptyIOEventProcessingHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.IOEventProcessingHandler;
-import org.glassfish.grizzly.ProcessorResult.Status;
 import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
@@ -112,13 +112,17 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
     // ---------------------------------------------------------- Nested Classes
 
 
-    private static class EnableInterestProcessingHandler
-            implements IOEventProcessingHandler {
+    private static final class EnableInterestProcessingHandler
+            extends EmptyIOEventProcessingHandler {
 
         @Override
-        public void onComplete(final Context context, final Status status)
-        throws IOException {
-            if (context.wasSuspended() && isRegisterMap[status.ordinal()]) {
+        public void onReregister(final Context context) throws IOException {
+            onComplete(context);
+        }
+
+        @Override
+        public void onComplete(final Context context) throws IOException {
+            if (context.wasSuspended() || context.isManualIOEventControl()) {
                 final IOEvent ioEvent = context.getIoEvent();
                 final Connection connection = context.getConnection();
                 connection.enableIOEvent(ioEvent);
@@ -126,14 +130,27 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
         }
 
         @Override
-        public void onSuspend(final Context context) throws IOException {
-            final Connection connection = context.getConnection();
-            final IOEvent ioEvent = context.getIoEvent();
-            connection.disableIOEvent(ioEvent);
+        public void onContextSuspend(final Context context) throws IOException {
+            // check manual io event control, to not disable ioevent twice
+            if (!context.isManualIOEventControl()) {
+                disableIOEvent(context);
+            }
         }
 
         @Override
-        public void onResume(final Context context) {
+        public void onContextManualIOEventControl(final Context context)
+                throws IOException {
+            // check suspended mode, to not disable ioevent twice
+            if (!context.wasSuspended()) {
+                disableIOEvent(context);
+            }
+        }
+
+        private static void disableIOEvent(final Context context)
+                throws IOException {
+            final Connection connection = context.getConnection();
+            final IOEvent ioEvent = context.getIoEvent();
+            connection.disableIOEvent(ioEvent);
         }
     }
 }

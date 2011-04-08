@@ -64,5 +64,6 @@ class InternalContextImpl extends Context {
         targetContext.processingHandler = this.processingHandler;
         targetContext.ioEvent = this.ioEvent;
         targetContext.wasSuspended = this.wasSuspended;
+        targetContext.isManualIOEventControl = this.isManualIOEventControl;
     }
 }

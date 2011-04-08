@@ -47,11 +47,10 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
+import org.glassfish.grizzly.EmptyIOEventProcessingHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.IOEventProcessingHandler;
 import org.glassfish.grizzly.ProcessorExecutor;
-import org.glassfish.grizzly.ProcessorResult.Status;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.Filter;
@@ -289,28 +288,21 @@ public class PUFilter extends BaseFilter {
     }
 
 
-    private class InternalProcessingHandler implements IOEventProcessingHandler {
+    private class InternalProcessingHandler extends EmptyIOEventProcessingHandler {
         
         @Override
-        public void onComplete(final Context context, final Status status) throws IOException {
+        public void onReregister(final Context context) throws IOException {
+            onComplete(context);
+        }
+
+        @Override
+        public void onComplete(final Context context) throws IOException {
             final FilterChainContext suspendedContext =
                     suspendedContextAttribute.remove(context);
 
             assert suspendedContext != null;
-            
-            switch (status) {
-                case COMPLETE:
-                case REREGISTER:
-                    suspendedContext.resume();
-            }
-        }
 
-        @Override
-        public void onSuspend(Context context) throws IOException {
-        }
-
-        @Override
-        public void onResume(Context context) throws IOException {
+            suspendedContext.resume();
         }
     }
 

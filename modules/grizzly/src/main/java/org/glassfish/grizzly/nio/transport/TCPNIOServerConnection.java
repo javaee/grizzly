@@ -55,13 +55,13 @@ import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.IOEventProcessingHandler;
-import org.glassfish.grizzly.ProcessorResult.Status;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
 import org.glassfish.grizzly.nio.SelectionKeyHandler;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.EmptyIOEventProcessingHandler;
 
 /**
  *
@@ -313,28 +313,28 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
         }
     }
     // COMPLETE, COMPLETE_LEAVE, REREGISTER, RERUN, ERROR, TERMINATE, NOT_RUN
-    private final static boolean[] isRegisterMap = {true, false, true, false, false, false, true};
+//    private final static boolean[] isRegisterMap = {true, false, true, false, false, false, true};
     // PostProcessor, which supposed to enable OP_READ interest, once Processor will be notified
     // about Connection ACCEPT
     protected final static IOEventProcessingHandler enableInterestPostProcessor =
             new EnableReadHandler();
 
-    private static final class EnableReadHandler implements IOEventProcessingHandler {
+    private static final class EnableReadHandler extends EmptyIOEventProcessingHandler {
 
         @Override
-        public void onComplete(Context context, Status status) throws IOException {
-            if (isRegisterMap[status.ordinal()]) {
-                final NIOConnection nioConnection = (NIOConnection) context.getConnection();
-                nioConnection.enableIOEvent(IOEvent.READ);
-            }
+        public void onReregister(final Context context) throws IOException {
+            onComplete(context);
         }
 
         @Override
-        public void onSuspend(Context context) {
+        public void onNotRun(final Context context) throws IOException {
+            onComplete(context);
         }
 
         @Override
-        public void onResume(Context context) {
+        public void onComplete(final Context context) throws IOException {
+            final NIOConnection nioConnection = (NIOConnection) context.getConnection();
+            nioConnection.enableIOEvent(IOEvent.READ);
         }
     }
 }

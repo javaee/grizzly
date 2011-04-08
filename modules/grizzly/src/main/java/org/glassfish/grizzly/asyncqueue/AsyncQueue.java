@@ -42,6 +42,7 @@ package org.glassfish.grizzly.asyncqueue;
 
 import java.io.IOException;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Context;
 
 /**
  * Common interface for {@link AsyncQueue} processors.
@@ -64,10 +65,13 @@ public interface AsyncQueue {
      * {@link AsyncQueue}, which are associated with the given
      * {@link Connection}
      * 
-     * @param connection {@link Connection}
+     * @param context {@link Context}
+     * @return <tt>true</tt>, if there are pending elements to be processed, or
+     * <tt>false</tt> otherwise.
+     * 
      * @throws java.io.IOException
      */
-    public abstract void processAsync(Connection connection) throws IOException;
+    public abstract boolean processAsync(Context context) throws IOException;
     
     /**
      * Callback method, which is called, when {@link Connection} has been closed,

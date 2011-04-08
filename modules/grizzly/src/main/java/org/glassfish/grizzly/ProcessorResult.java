@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -48,7 +48,7 @@ public class ProcessorResult {
 
     private static final ProcessorResult NOT_RUN_RESULT = new ProcessorResult(Status.NOT_RUN, null, false);
     private static final ProcessorResult COMPLETE_RESULT = new ProcessorResult(Status.COMPLETE, null, false);
-    private static final ProcessorResult COMPLETE_LEAVE_RESULT = new ProcessorResult(Status.COMPLETE_LEAVE, null, false);
+    private static final ProcessorResult LEAVE_RESULT = new ProcessorResult(Status.LEAVE, null, false);
     private static final ProcessorResult REREGISTER_RESULT = new ProcessorResult(Status.REREGISTER, null, false);
     private static final ProcessorResult ERROR_RESULT = new ProcessorResult(Status.ERROR);
     private static final ProcessorResult TERMINATE_RESULT = new ProcessorResult(Status.TERMINATE, null, false);
@@ -69,7 +69,7 @@ public class ProcessorResult {
      * Enumeration represents the status/code of {@link ProcessorResult}.
      */
     public enum Status {
-        COMPLETE, COMPLETE_LEAVE, REREGISTER, RERUN, ERROR, TERMINATE, NOT_RUN
+        COMPLETE, LEAVE, REREGISTER, RERUN, ERROR, TERMINATE, NOT_RUN
     }
     
     private final boolean canRecycle;
@@ -86,8 +86,8 @@ public class ProcessorResult {
         return COMPLETE_RESULT;
     }
 
-    public static ProcessorResult createCompleteLeave() {
-        return COMPLETE_LEAVE_RESULT;
+    public static ProcessorResult createLeave() {
+        return LEAVE_RESULT;
     }
 
     public static ProcessorResult createReregister() {

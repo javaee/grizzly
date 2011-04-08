@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,7 +55,7 @@ public interface IOEventProcessingHandler {
      * @param context
      * @throws IOException
      */
-    public void onSuspend(Context context) throws IOException;
+    public void onContextSuspend(Context context) throws IOException;
 
     /**
      * {@link IOEvent} processing resumed.
@@ -63,15 +63,70 @@ public interface IOEventProcessingHandler {
      * @param context
      * @throws IOException
      */
-    public void onResume(Context context) throws IOException;
+    public void onContextResume(Context context) throws IOException;
+
+    /**
+     * Processing switched to the manual IOEvent control.
+     * {@link Connection#enableIOEvent(org.glassfish.grizzly.IOEvent)} or
+     * {@link Connection#disableIOEvent(org.glassfish.grizzly.IOEvent)} might be
+     * explicitly called.
+     * 
+     * @param context
+     */
+    public void onContextManualIOEventControl(final Context context) throws IOException;
+
+    /**
+     * Reregister {@link IOEvent} interest.
+     *
+     * @param context
+     * @throws IOException
+     */
+    public void onReregister(Context context) throws IOException;
 
     /**
      * {@link IOEvent} processing completed.
      * 
      * @param context 
-     * @param status
      * @throws IOException
      */
-    public void onComplete(Context context, ProcessorResult.Status status)
-            throws IOException;
+    public void onComplete(Context context) throws IOException;
+
+    /**
+     * Detaching {@link IOEvent} processing out of this {@link Context}.
+     *
+     * @param context
+     * @throws IOException
+     */
+    public void onLeave(Context context) throws IOException;
+
+    /**
+     * Terminate {@link IOEvent} processing in this thread, but it's going to
+     * be continued later.
+     *
+     * @param context
+     * @throws IOException
+     */
+    public void onTerminate(Context context) throws IOException;
+
+    /**
+     * Re-run {@link IOEvent} processing.
+     *
+     * @param context
+     * @throws IOException
+     */
+    public void onRerun(Context context) throws IOException;
+
+    /**
+     * Error occurred during {@link IOEvent} processing.
+     *
+     * @param context
+     */
+    public void onError(Context context) throws IOException;
+
+    /**
+     * {@link IOEvent} wasn't processed.
+     *
+     * @param context
+     */
+    public void onNotRun(Context context) throws IOException;
 }

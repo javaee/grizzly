@@ -56,10 +56,9 @@ import org.glassfish.grizzly.AbstractSocketConnectorHandler;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.EmptyIOEventProcessingHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.IOEventProcessingHandler;
-import org.glassfish.grizzly.ProcessorResult.Status;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
@@ -293,11 +292,11 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         }
     }
     // COMPLETE, COMPLETE_LEAVE, REREGISTER, RERUN, ERROR, TERMINATE, NOT_RUN
-    private final static boolean[] isRegisterMap = {true, false, true, false, false, false, true};
+//    private final static boolean[] isRegisterMap = {true, false, true, false, false, false, true};
 
     // PostProcessor, which supposed to enable OP_READ interest, once Processor will be notified
     // about Connection CONNECT
-    private static class EnableReadHandler implements IOEventProcessingHandler {
+    private static class EnableReadHandler extends EmptyIOEventProcessingHandler {
 
         private final FutureImpl<Connection> connectFuture;
         private final CompletionHandler<Connection> completionHandler;
@@ -309,28 +308,28 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         }
 
         @Override
-        public void onComplete(Context context, Status status) throws IOException {
-            if (isRegisterMap[status.ordinal()]) {
-                final NIOConnection connection = (NIOConnection) context.getConnection();
+        public void onReregister(final Context context) throws IOException {
+            onComplete(context);
+        }
 
-                if (completionHandler != null) {
-                    completionHandler.completed(connection);
-                }
+        @Override
+        public void onNotRun(final Context context) throws IOException {
+            onComplete(context);
+        }
+        
+        @Override
+        public void onComplete(final Context context) throws IOException {
+            final NIOConnection connection = (NIOConnection) context.getConnection();
 
-                connectFuture.result(connection);
-
-                if (!connection.isStandalone()) {
-                    connection.enableIOEvent(IOEvent.READ);
-                }
+            if (completionHandler != null) {
+                completionHandler.completed(connection);
             }
-        }
 
-        @Override
-        public void onSuspend(Context context) {
-        }
+            connectFuture.result(connection);
 
-        @Override
-        public void onResume(Context context) {
+            if (!connection.isStandalone()) {
+                connection.enableIOEvent(IOEvent.READ);
+            }
         }
     }
 

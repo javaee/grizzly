@@ -62,6 +62,7 @@ import org.glassfish.grizzly.impl.SafeFutureImpl;
 
 import java.util.concurrent.Future;
 import java.util.logging.Level;
+import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.NullaryFunction;
 import org.glassfish.grizzly.threadpool.WorkerThread;
@@ -321,9 +322,9 @@ public abstract class AbstractNIOAsyncQueueWriter
      * {@inheritDoc}
      */
     @Override
-    public void processAsync(Connection connection) throws IOException {
+    public boolean processAsync(final Context context) throws IOException {
         final boolean isLogFine = logger.isLoggable(Level.FINEST);
-        final NIOConnection nioConnection = (NIOConnection) connection;
+        final NIOConnection nioConnection = (NIOConnection) context.getConnection();
         
         final TaskQueue<AsyncWriteQueueRecord> connectionQueue =
                 nioConnection.getAsyncWriteQueue();
@@ -337,19 +338,33 @@ public abstract class AbstractNIOAsyncQueueWriter
                 if (isLogFine) {
                     doFineLog("AsyncQueueWriter.processAsync doWrite"
                             + "connection={0} record={1}",
-                            connection, queueRecord);
+                            nioConnection, queueRecord);
                 }
 
                 final int bytesWritten = write0(nioConnection, queueRecord);
                 final int bytesToRelease = queueRecord.isEmptyRecord() ?
                     EMPTY_RECORD_SPACE_VALUE : bytesWritten;
 
+                final boolean isFinished = isFinished(queueRecord);
+
+                if (isFinished) {
+                    // Is here a chance that queue becomes empty?
+                    // If yes - we need to switch to manual io event processing
+                    // mode to *disable WRITE interest for SameThreadStrategy*,
+                    // so we don't have either neverending WRITE events processing
+                    // or stuck, when other thread tried to add data to the queue.
+                    if (!context.isManualIOEventControl() &&
+                            connectionQueue.spaceInBytes() - bytesToRelease <= 0) {
+                        context.setManualIOEventControl();
+                    }
+                }
+                
                 done = (connectionQueue.releaseSpaceAndNotify(bytesToRelease) == 0);
-                if (isFinished(queueRecord)) {
+                if (isFinished) {
                     if (isLogFine) {
                         doFineLog("AsyncQueueWriter.processAsync finished "
                                 + "connection={0} record={1}",
-                                connection, queueRecord);
+                                nioConnection, queueRecord);
                     }
                     // Do compareAndSet, because connection might have been close
                     // from another thread, and failReadRecord has been invoked already
@@ -357,23 +372,23 @@ public abstract class AbstractNIOAsyncQueueWriter
                     if (isLogFine) {
                         doFineLog("AsyncQueueWriter.processAsync nextRecord "
                                 + "connection={0} nextRecord={1}",
-                                connection, queueRecord);
+                                nioConnection, queueRecord);
                     }
                     if (done) {
-                        return;
+                        return false;
                     }
                 } else { // if there is still some data in current message
                     connectionQueue.setCurrentElement(queueRecord);
                     if (isLogFine) {
                         doFineLog("AsyncQueueWriter.processAsync onReadyToWrite "
                                 + "connection={0} peekRecord={1}",
-                                connection, queueRecord);
+                                nioConnection, queueRecord);
                     }
 
                     // If connection is closed - this will fail,
                     // and onWriteFaulure called properly
-                    onReadyToWrite(connection);
-                    return;
+//                    onReadyToWrite(nioConnection);
+                    return true;
                 }
             }
 
@@ -381,16 +396,19 @@ public abstract class AbstractNIOAsyncQueueWriter
                 // Counter shows there should be some elements in queue,
                 // but seems write() method still didn't add them to a queue
                 // so we can release the thread for now
-                onReadyToWrite(connection);
+//                onReadyToWrite(nioConnection);
+                return true;
             }
         } catch (IOException e) {
             if (isLogFine) {
                 logger.log(Level.FINEST, "AsyncQueueWriter.processAsync "
-                        + "exception connection=" + connection + " peekRecord=" +
+                        + "exception connection=" + nioConnection + " peekRecord=" +
                         queueRecord, e);
             }
-            onWriteFailure(connection, queueRecord, e);
+            onWriteFailure(nioConnection, queueRecord, e);
         }
+
+        return false;
     }
        
     private static void doFineLog(String msg, Object... params) {

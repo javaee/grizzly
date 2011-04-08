@@ -108,6 +108,8 @@ public class Context implements AttributeStorage, Cacheable {
      */
     protected boolean wasSuspended;
 
+    protected boolean isManualIOEventControl;
+
     public Context() {
         attributes = new IndexedAttributeHolder(Grizzly.DEFAULT_ATTRIBUTE_BUILDER);
     }
@@ -120,7 +122,7 @@ public class Context implements AttributeStorage, Cacheable {
         final IOEventProcessingHandler processingHandlerLocal = this.processingHandler;
         if (processingHandlerLocal != null) {
             try {
-                processingHandlerLocal.onSuspend(this);
+                processingHandlerLocal.onContextSuspend(this);
             } catch (IOException e) {
                 throw new IllegalStateException(e);
             }
@@ -134,7 +136,7 @@ public class Context implements AttributeStorage, Cacheable {
         final IOEventProcessingHandler processingHandlerLocal = this.processingHandler;
         if (processingHandlerLocal != null) {
             try {
-                processingHandlerLocal.onResume(this);
+                processingHandlerLocal.onContextResume(this);
             } catch (IOException e) {
                 throw new IllegalStateException(e);
             }
@@ -149,6 +151,31 @@ public class Context implements AttributeStorage, Cacheable {
         return wasSuspended;
     }
 
+    /**
+     * Switches processing to the manual IOEvent control.
+     * {@link Connection#enableIOEvent(org.glassfish.grizzly.IOEvent)} or
+     * {@link Connection#disableIOEvent(org.glassfish.grizzly.IOEvent)} might be
+     * explicitly called.
+     */
+    public void setManualIOEventControl() {
+        isManualIOEventControl = true;
+        final IOEventProcessingHandler processingHandlerLocal = this.processingHandler;
+        if (processingHandlerLocal != null) {
+            try {
+                processingHandlerLocal.onContextManualIOEventControl(this);
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+    }
+
+    /**
+     * @return <tt>true</tt>, if processing was switched to the manual IOEvent
+     * control, or <tt>false</tt> otherwise.
+     */
+    public boolean isManualIOEventControl() {
+        return isManualIOEventControl;
+    }
     /**
      * Get the processing {@link IOEvent}.
      *
@@ -242,6 +269,7 @@ public class Context implements AttributeStorage, Cacheable {
         connection = null;
         ioEvent = IOEvent.NONE;
         wasSuspended = false;
+        isManualIOEventControl = false;
     }
 
     /**

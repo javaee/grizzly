@@ -37,19 +37,12 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
-
 package org.glassfish.grizzly.strategies;
 
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.IOEventProcessingHandler;
-import org.glassfish.grizzly.ProcessorResult.Status;
 import org.glassfish.grizzly.IOStrategy;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
@@ -57,6 +50,7 @@ import java.io.IOException;
 import java.util.concurrent.Executor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.EmptyIOEventProcessingHandler;
 
 import org.glassfish.grizzly.Transport;
 
@@ -66,15 +60,15 @@ import org.glassfish.grizzly.Transport;
  */
 public abstract class AbstractIOStrategy implements IOStrategy {
 
-    protected final static boolean[] isRegisterMap = {
-            true,   // COMPLETE
-            false,  // COMPLETE_LEAVE
-            true,   // RE-REGISTER
-            false,  // RERUN
-            false,  // ERROR
-            false,  // TERMINATE
-            false   // NOT_RUN
-    };
+//    protected final static boolean[] isRegisterMap = {
+//            true,   // COMPLETE
+//            false,  // COMPLETE_LEAVE
+//            true,   // RE-REGISTER
+//            false,  // RERUN
+//            false,  // ERROR
+//            false,  // TERMINATE
+//            false   // NOT_RUN
+//    };
 
     protected final static IOEventProcessingHandler enableInterestPostProcessor =
             new EnableInterestProcessingHandler();
@@ -141,26 +135,19 @@ public abstract class AbstractIOStrategy implements IOStrategy {
     // ---------------------------------------------------------- Nested Classes
 
 
-    private static class EnableInterestProcessingHandler 
-            implements IOEventProcessingHandler {
+    private final static class EnableInterestProcessingHandler
+            extends EmptyIOEventProcessingHandler {
         
         @Override
-        public void onComplete(final Context context, final Status status)
-                throws IOException {
-            
-            if (isRegisterMap[status.ordinal()]) {
-                final IOEvent ioEvent = context.getIoEvent();
-                final Connection connection = context.getConnection();
-                connection.enableIOEvent(ioEvent);
-            }
+        public void onReregister(final Context context) throws IOException {
+            onComplete(context);
         }
 
         @Override
-        public void onSuspend(Context context) {
-        }
-
-        @Override
-        public void onResume(Context context) {
+        public void onComplete(final Context context) throws IOException {
+            final IOEvent ioEvent = context.getIoEvent();
+            final Connection connection = context.getConnection();
+            connection.enableIOEvent(ioEvent);
         }
     }
 }
