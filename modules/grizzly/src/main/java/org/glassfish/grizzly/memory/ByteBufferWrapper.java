@@ -348,24 +348,28 @@ public class ByteBufferWrapper implements Buffer {
 
     @Override
     public Buffer get(final ByteBuffer dst) {
-        dst.put(visible);
+        if (visible.remaining() <= dst.remaining()) {
+            dst.put(visible);
+        } else {
+            get(dst, dst.position(), dst.remaining());
+        }
 
         return this;
     }
 
     @Override
     public Buffer get(final ByteBuffer dst, final int position, final int length) {
-        final int oldPos = dst.position();
-        final int oldLim = dst.limit();
+        final int oldLim = visible.limit();
 
         try {
-            Buffers.setPositionLimit(dst, position, position + length);
+            visible.limit(length);
             dst.put(visible);
         } finally {
-            Buffers.setPositionLimit(dst, oldPos, oldLim);
+            Buffers.setPositionLimit(visible, length, oldLim);
         }
 
-        return this;    }
+        return this;
+    }
 
 
     @Override
