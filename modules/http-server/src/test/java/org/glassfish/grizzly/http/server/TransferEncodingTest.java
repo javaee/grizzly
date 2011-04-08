@@ -57,10 +57,14 @@ import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.HttpClientFilter;
 import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
+import org.glassfish.grizzly.http.server.io.NIOInputStream;
+import org.glassfish.grizzly.http.server.io.NIOOutputStream;
+import org.glassfish.grizzly.http.server.io.ReadHandler;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -116,6 +120,19 @@ public class TransferEncodingTest extends TestCase {
         assertTrue(response.getHttpHeader().isChunked());
     }
 
+    public void testLongContentLength() throws Exception {
+        final long contentLength = Long.MAX_VALUE;
+        HttpRequestPacket.Builder b = HttpRequestPacket.builder();
+        b.method(Method.POST).protocol(Protocol.HTTP_1_1).uri("/postit")
+                .header("Host", "localhost:" + PORT);
+        b.contentLength(contentLength);
+
+        final HttpHandler httpHandler = new EchoHandler();
+        final HttpHeader response = doTestHeader(httpHandler, b.build(), 10);
+
+        assertEquals(contentLength, response.getContentLength());
+    }
+    
     @SuppressWarnings({"unchecked"})
     private HttpPacket createRequest(String uri, Map<String, String> headers) {
 
@@ -147,6 +164,45 @@ public class TransferEncodingTest extends TestCase {
             clientFilterChainBuilder.add(new ChunkingFilter(3));
             clientFilterChainBuilder.add(new HttpClientFilter());
             clientFilterChainBuilder.add(new ClientFilter(testResultFuture));
+            clientTransport.setProcessor(clientFilterChainBuilder.build());
+
+            clientTransport.start();
+
+            Future<Connection> connectFuture = clientTransport.connect("localhost", PORT);
+            Connection connection = null;
+            try {
+                connection = connectFuture.get(timeout, TimeUnit.SECONDS);
+                connection.write(request);
+                return testResultFuture.get(timeout, TimeUnit.SECONDS);
+            } finally {
+                // Close the client connection
+                if (connection != null) {
+                    connection.close();
+                }
+            }
+        } finally {
+            clientTransport.stop();
+            server.stop();
+        }
+    }
+
+    private HttpHeader doTestHeader(final HttpHandler httpHandler,
+            final HttpPacket request,
+            final int timeout)
+            throws Exception {
+
+        final TCPNIOTransport clientTransport =
+                TCPNIOTransportBuilder.newInstance().build();
+        final HttpServer server = createWebServer(httpHandler);
+        try {
+            final FutureImpl<HttpHeader> testResultFuture = SafeFutureImpl.create();
+
+            server.start();
+            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+            clientFilterChainBuilder.add(new TransportFilter());
+            clientFilterChainBuilder.add(new ChunkingFilter(3));
+            clientFilterChainBuilder.add(new HttpClientFilter());
+            clientFilterChainBuilder.add(new HeaderTestClientFilter(testResultFuture));
             clientTransport.setProcessor(clientFilterChainBuilder.build());
 
             clientTransport.start();
@@ -245,6 +301,62 @@ public class TransferEncodingTest extends TestCase {
 
     } // END ClientFilter
 
+    private static class HeaderTestClientFilter extends BaseFilter {
+        private final static Logger logger = Grizzly.logger(ClientFilter.class);
+
+        private FutureImpl<HttpHeader> testFuture;
+
+        // -------------------------------------------------------- Constructors
+
+
+        public HeaderTestClientFilter(FutureImpl<HttpHeader> testFuture) {
+
+            this.testFuture = testFuture;
+
+        }
+
+
+        // ------------------------------------------------- Methods from Filter
+
+        @Override
+        public NextAction handleRead(FilterChainContext ctx)
+                throws IOException {
+
+            // Cast message to a HttpContent
+            final HttpContent httpContent = (HttpContent) ctx.getMessage();
+
+            logger.log(Level.FINE, "Got HTTP response chunk");
+
+            // Get HttpContent's Buffer
+            final Buffer buffer = httpContent.getContent();
+
+            if (logger.isLoggable(Level.FINE)) {
+                logger.log(Level.FINE, "HTTP content size: {0}", buffer.remaining());
+            }
+
+            testFuture.result(httpContent.getHttpHeader());
+
+            return ctx.getStopAction();
+        }
+
+        @Override
+        public NextAction handleClose(FilterChainContext ctx)
+                throws IOException {
+            close();
+            return ctx.getStopAction();
+        }
+
+        private void close() throws IOException {
+
+            if (!testFuture.isDone()) {
+                //noinspection ThrowableInstanceNeverThrown
+                testFuture.failure(new IOException("Connection was closed"));
+            }
+
+        }
+
+    } // END ClientFilter
+
     public class ExplicitContentLengthHandler extends HttpHandler {
         private final int length;
 
@@ -301,4 +413,46 @@ public class TransferEncodingTest extends TestCase {
             response.getWriter().write(sb.toString());
         }
     }
+
+    public class EchoHandler extends HttpHandler {
+        @Override
+        public void service(final Request request, final Response response)
+                throws Exception {
+            response.setContentLengthLong(request.getContentLengthLong());
+            response.flush();
+
+            response.suspend();
+
+            final NIOInputStream inputStream = request.getInputStream(false);
+            final NIOOutputStream outputStream = response.getOutputStream();
+            
+            inputStream.notifyAvailable(new ReadHandler() {
+
+                @Override
+                public void onDataAvailable() throws IOException {
+                    echo();
+                }
+
+                @Override
+                public void onAllDataRead() throws IOException {
+                    echo();
+                    response.resume();
+                }
+
+                @Override
+                public void onError(Throwable t) {
+                }
+
+                private void echo() throws IOException {
+                    final int availabe = inputStream.available();
+                    final byte[] buf = new byte[availabe];
+                    inputStream.read(buf);
+                    outputStream.write(buf);
+                    outputStream.flush();
+                }
+
+            });
+        }
+    }
+
 }

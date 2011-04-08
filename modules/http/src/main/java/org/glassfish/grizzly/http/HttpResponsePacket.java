@@ -434,8 +434,8 @@ public abstract class HttpResponsePacket extends HttpHeader {
         }
         if (name.equalsIgnoreCase("Content-Length")) {
             try {
-                int cL = Integer.parseInt(value);
-                setContentLength(cL);
+                final long cLL = Long.parseLong(value);
+                setContentLengthLong(cLL);
                 return true;
             } catch (NumberFormatException ex) {
                 // Do nothing - the spec doesn't have any "throws"

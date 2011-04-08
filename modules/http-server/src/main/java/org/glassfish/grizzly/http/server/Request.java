@@ -298,19 +298,19 @@ public class Request {
     /**
      * The associated input buffer.
      */
-    protected InputBuffer inputBuffer = new InputBuffer();
+    protected final InputBuffer inputBuffer = new InputBuffer();
 
 
     /**
      * NIOInputStream.
      */
-    protected NIOInputStreamImpl inputStream = new NIOInputStreamImpl();
+    private final NIOInputStreamImpl inputStream = new NIOInputStreamImpl();
 
 
     /**
      * Reader.
      */
-    protected NIOReader reader = new NIOReader();
+    protected final NIOReader reader = new NIOReader();
 
 
     /**
@@ -781,6 +781,13 @@ public class Request {
         return (int) request.getContentLength();
     }
 
+
+    /**
+     * Return the content length for this Request represented by Java long type.
+     */
+    public long getContentLengthLong() {
+        return request.getContentLength();
+    }
 
     /**
      * Return the content type for this Request.

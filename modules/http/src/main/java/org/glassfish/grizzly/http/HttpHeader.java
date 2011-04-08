@@ -317,7 +317,7 @@ public abstract class HttpHeader extends HttpPacket
      *
      * @param len the length of this HTTP message.
      */
-    public void setContentLength(int len) {
+    public void setContentLength(final int len) {
         this.contentLength = len;
     }
 
@@ -328,7 +328,7 @@ public abstract class HttpHeader extends HttpPacket
      * @param contentLength  the content-length of this {@link HttpPacket}.
      * Applicable only in case of fixed-length HTTP message.
      */
-    public void setContentLength(long contentLength) {
+    public void setContentLengthLong(final long contentLength) {
         this.contentLength = contentLength;
     }
 
@@ -777,7 +777,7 @@ public abstract class HttpHeader extends HttpPacket
          */
         @SuppressWarnings({"unchecked"})
         public final T contentLength(long contentLength) {
-            packet.setContentLength(contentLength);
+            packet.setContentLengthLong(contentLength);
             return (T) this;
         }
 

@@ -205,12 +205,12 @@ public class Response {
     /**
      * The associated output stream.
      */
-    protected NIOOutputStreamImpl outputStream = new NIOOutputStreamImpl();
+    private final NIOOutputStreamImpl outputStream = new NIOOutputStreamImpl();
 
     /**
      * The associated writer.
      */
-    protected NIOWriter writer = new NIOWriter();
+    protected final NIOWriter writer = new NIOWriter();
 
 
     /**
@@ -523,6 +523,13 @@ public class Response {
         return (int) response.getContentLength();
     }
 
+    /**
+     * Return the content length that was set or calculated for this Response.
+     */
+    public long getContentLengthLong() {
+        checkResponse();
+        return response.getContentLength();
+    }
 
     /**
      * Return the content type that was set or calculated for this response,
@@ -749,7 +756,7 @@ public class Response {
      *
      * @param length The new content length
      */
-    public void setContentLengthLong(long length) {
+    public void setContentLengthLong(final long length) {
         checkResponse();
         if (isCommitted())
             return;
@@ -757,7 +764,7 @@ public class Response {
         if (usingWriter)
             return;
 
-        response.setContentLength(length);
+        response.setContentLengthLong(length);
 
     }
 
@@ -767,7 +774,7 @@ public class Response {
      *
      * @param length The new content length
      */
-    public void setContentLength(int length) {
+    public void setContentLength(final int length) {
         checkResponse();
         if (isCommitted())
             return;

@@ -1012,7 +1012,7 @@ public abstract class HttpCodecFilter extends BaseFilter
             if (Ascii.isDigit(b)) {
                 parsingState.parsingNumericValue =
                         parsingState.parsingNumericValue * 10 + (b - '0');
-                httpHeader.setContentLength(parsingState.parsingNumericValue);
+                httpHeader.setContentLengthLong(parsingState.parsingNumericValue);
             } else {
                 throw new IllegalStateException("Content-length value is not digital");
             }

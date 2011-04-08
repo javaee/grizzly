@@ -355,7 +355,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
         response.setContentType(entry.contentType);
 
         if (flushBody) {
-            response.setContentLength(entry.contentLength);
+            response.setContentLengthLong(entry.contentLength);
             final ByteBuffer sliced = entry.bb.slice();
             final Buffer buffer = Buffers.wrap(memoryManager, sliced);
 
