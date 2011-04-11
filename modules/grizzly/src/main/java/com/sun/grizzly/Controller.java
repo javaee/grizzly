@@ -68,11 +68,14 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Queue;
+import java.util.WeakHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -249,12 +252,17 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * Attributes, associated with the {@link Controller} instance
      */
     protected Map<String, Object> attributes;
+
     /**
-     * The current Controller instance.
-     *
+     * The existing Controller instances.
      */
-    private final static Queue<Controller> controllers =
-            DataStructures.getCLQinstance(Controller.class);
+    private final static WeakHashMap<Controller, Boolean> controllers =
+            new WeakHashMap<Controller, Boolean>();
+    /**
+     * The {@link #controllers} map lock.
+     */
+    private final static ReadWriteLock controllersLock =
+            new ReentrantReadWriteLock();
 
     // Internal Thread Pool.
     private ExecutorService kernelExecutor;
@@ -329,7 +337,13 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             connectorHandlerPool = new DefaultConnectorHandlerPool(this);
         }
         kernelExecutor = createKernelExecutor();
-        controllers.add(this);
+
+        controllersLock.writeLock().lock();
+        try {
+            controllers.put(this, Boolean.TRUE);
+        } finally {
+            controllersLock.writeLock().unlock();
+        }
     }
 
     private void ensureAppropriatePoolSize( ExecutorService threadPool ) {
@@ -1187,10 +1201,15 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      */
     public static Controller getHandlerController(Handler handler) {
         if (handler instanceof SelectorHandler) {
-            for (Controller controller : controllers) {
-                if (controller.getSelectorHandlers().contains(handler)) {
-                    return controller;
+            controllersLock.readLock().lock();
+            try {
+                for (Controller controller : controllers.keySet()) {
+                    if (controller.getSelectorHandlers().contains(handler)) {
+                        return controller;
+                    }
                 }
+            } finally {
+                controllersLock.readLock().unlock();
             }
         }
         return null;
