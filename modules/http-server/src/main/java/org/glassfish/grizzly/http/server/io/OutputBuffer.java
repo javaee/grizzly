@@ -479,7 +479,7 @@ public class OutputBuffer {
         if (asyncWriter == null || canWrite(length)) {
             try {
                 handler.onWritePossible();
-            } catch (IOException ioe) {
+            } catch (Exception ioe) {
                 handler.onError(ioe);
             }
             return;

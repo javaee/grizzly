@@ -40,8 +40,6 @@
 
 package org.glassfish.grizzly.http.server.io;
 
-import java.io.IOException;
-
 
 /**
  * Callback notification mechanism that signals the developer it's possible
@@ -55,11 +53,11 @@ public interface WriteHandler {
      * This callback will be invoked when the requirements as dictated
      * by {@link NIOOutputSink#notifyCanWrite(WriteHandler, int)} are met.
      * 
-     * @throws IOException, {@link IOException} might be thrown by the custom
+     * @throws Exception, {@link Exception} might be thrown by the custom
      *  handler code. This exception will be delegated for processing to
      *  {@link #onError(java.lang.Throwable)}.
      */
-    void onWritePossible() throws IOException;
+    void onWritePossible() throws Exception;
 
     /**
      * <p>

@@ -40,13 +40,11 @@
 
 package org.glassfish.grizzly.http.server.io;
 
-import java.io.IOException;
-
 /*
 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  * 
- * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2010-2011 Sun Microsystems, Inc. All rights reserved.
  * 
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -94,11 +92,11 @@ public interface ReadHandler {
      * Invoked when data is available to be read without blocking.
      * </p>
      *
-     * @throws IOException, {@link IOException} might be thrown by the custom
+     * @throws Exception, {@link Exception} might be thrown by the custom
      *  handler code. This exception will be delegated for processing to
      *  {@link #onError(java.lang.Throwable)}.
      */
-    void onDataAvailable() throws IOException;
+    void onDataAvailable() throws Exception;
 
     
     /**
@@ -114,10 +112,10 @@ public interface ReadHandler {
      * Invoked when all data for the current request has been read.
      * </p>
      * 
-     * @throws IOException, {@link IOException} might be thrown by the custom
+     * @throws Exception, {@link Exception} might be thrown by the custom
      *  handler code. This exception will be delegated for processing to
      *  {@link #onError(java.lang.Throwable)}.
      */
-    void onAllDataRead() throws IOException;
+    void onAllDataRead() throws Exception;
 
 }
