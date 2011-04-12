@@ -43,7 +43,6 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import java.io.IOException;
 
-import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import java.io.BufferedReader;

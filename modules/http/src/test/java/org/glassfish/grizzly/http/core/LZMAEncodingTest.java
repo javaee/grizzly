@@ -43,7 +43,6 @@ package org.glassfish.grizzly.http.core;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.compression.lzma.LZMAEncoder;
 import org.glassfish.grizzly.compression.lzma.impl.Encoder;
 import org.glassfish.grizzly.filterchain.BaseFilter;
