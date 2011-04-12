@@ -51,6 +51,7 @@ import org.glassfish.grizzly.http.server.io.NIOInputStream;
 import org.glassfish.grizzly.http.server.io.NIOReader;
 import org.glassfish.grizzly.http.server.io.NIOWriter;
 import org.glassfish.grizzly.http.server.io.ReadHandler;
+import org.glassfish.grizzly.memory.ByteBufferManager;
 import org.glassfish.grizzly.memory.MemoryProbe;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
@@ -82,8 +83,11 @@ final class EchoServer {
         final NetworkListener listener = new NetworkListener(LISTENER_NAME,
                                                              settings.getHost(),
                                                              settings.getPort());
+        final NetworkListener listener2 = new NetworkListener("Foo", "0.0.0.0", 9012);
+        listener.getTransport().setMemoryManager(new ByteBufferManager());
         listener.getFileCache().setEnabled(false);
         httpServer.addListener(listener);
+        httpServer.addListener(listener2);
         configureServer(settings);
     }
 
@@ -151,7 +155,7 @@ final class EchoServer {
         final ThreadPoolConfig tpc = ThreadPoolConfig.defaultConfig().clone().
                 setPoolName(POOL_NAME).
                 setCorePoolSize(poolSize).setMaxPoolSize(poolSize);
-
+        tpc.setMemoryManager(transport.getMemoryManager());
         transport.setWorkerThreadPool(GrizzlyExecutorService.createInstance(tpc));
 
     }

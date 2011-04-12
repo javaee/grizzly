@@ -236,6 +236,7 @@ public final class TCPNIOTransport extends NIOTransport implements
             }
 
             if (kernelPool == null) {
+                kernelPoolConfig.setMemoryManager(memoryManager);
                 setKernelPool0(GrizzlyExecutorService.createInstance(kernelPoolConfig));
             }
 
@@ -243,6 +244,7 @@ public final class TCPNIOTransport extends NIOTransport implements
                 if (workerPoolConfig != null) {
                     workerPoolConfig.getInitialMonitoringConfig().addProbes(
                         getThreadPoolMonitoringConfig().getProbes());
+                    workerPoolConfig.setMemoryManager(memoryManager);
                     setWorkerThreadPool0(GrizzlyExecutorService.createInstance(workerPoolConfig));
                 }
             }
