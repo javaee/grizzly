@@ -168,7 +168,7 @@ public class HttpServerFilter extends BaseFilter
                         handlerResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
                         handlerResponse.setContentType("text/html");
                         handlerResponse.setCharacterEncoding("UTF-8");
-                        final MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
+                        final MemoryManager mm = ctx.getMemoryManager();
                         final Buffer buf = Buffers.wrap(mm, b);
                         handlerResponse.getOutputBuffer().writeBuffer(buf);
                     }

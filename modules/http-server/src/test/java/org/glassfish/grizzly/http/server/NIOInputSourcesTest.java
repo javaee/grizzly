@@ -144,7 +144,7 @@ public class NIOInputSourcesTest extends TestCase {
             public void doWrite(FilterChainContext ctx) throws IOException {
 
                 ctx.write(request);
-                MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
+                MemoryManager mm = ctx.getMemoryManager();
 
                 for (int i = 0, count = (5000 / 1000); i < count; i++) {
                     int start = 0;
@@ -190,7 +190,7 @@ public class NIOInputSourcesTest extends TestCase {
             public void doWrite(FilterChainContext ctx) throws IOException {
 
                 ctx.write(request);
-                MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
+                MemoryManager mm = ctx.getMemoryManager();
 
                 for (int i = 0, count = (5000 / 1000); i < count; i++) {
                     int start = 0;
@@ -283,7 +283,7 @@ public class NIOInputSourcesTest extends TestCase {
             public void doWrite(FilterChainContext ctx) throws IOException {
 
                 ctx.write(request);
-                MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
+                MemoryManager mm = ctx.getMemoryManager();
 
                 for (int i = 0, count = (5000 / 1000); i < count; i++) {
                     int start = 0;
@@ -329,7 +329,7 @@ public class NIOInputSourcesTest extends TestCase {
             public void doWrite(FilterChainContext ctx) throws IOException {
 
                 ctx.write(request);
-                MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
+                MemoryManager mm = ctx.getMemoryManager();
 
                 for (int i = 0, count = (5000 / 1000); i < count; i++) {
                     int start = 0;

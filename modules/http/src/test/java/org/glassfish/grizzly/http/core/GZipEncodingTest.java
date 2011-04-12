@@ -535,11 +535,10 @@ public class GZipEncodingTest extends TestCase {
                         .append(requestContent.hasRemaining() ?
                             requestContent.toStringContent() :
                             "<nothing>");
-                final MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
 
                 final HttpContent responseContent = HttpContent.builder(response)
                         .last(true)
-                        .content(Buffers.wrap(mm, sb.toString()))
+                        .content(Buffers.wrap(ctx.getMemoryManager(), sb.toString()))
                         .build();
 
                 ctx.write(responseContent);

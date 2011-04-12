@@ -111,8 +111,7 @@ public class RCMTest extends TestCase {
                 final Buffer requestBuffer = (Buffer) ctx.getMessage();
                 final Connection connection = ctx.getConnection();
 
-                final MemoryManager memoryManager =
-                        ctx.getConnection().getTransport().getMemoryManager();
+                final MemoryManager memoryManager = ctx.getMemoryManager();
 
                 requestBuffer.limit(requestBuffer.position());
 

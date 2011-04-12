@@ -203,9 +203,9 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
      */
     @Override
     public Buffer serializePacket(FilterChainContext ctx, HttpContent httpContent) {
-        final MemoryManager memoryManager = ctx.getConnection().getTransport().getMemoryManager();
-        return encodeHttpChunk(memoryManager,
-                httpContent, httpContent.isLast());
+        return encodeHttpChunk(ctx.getMemoryManager(),
+                               httpContent,
+                               httpContent.isLast());
     }
 
     private void initTrailerParsing(HttpPacketParsing httpPacket) {

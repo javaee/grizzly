@@ -222,7 +222,7 @@ public class HttpSemanticsTest extends TestCase {
                                 ((HttpContent) ctx.getMessage()).getHttpHeader();
                 HttpResponsePacket response = request.getResponse();
                 HttpStatus.OK_200.setValues(response);
-                MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
+                MemoryManager mm = ctx.getMemoryManager();
                 HttpContent content = response.httpContentBuilder().content(Buffers.wrap(mm, "Content")).build();
                 content.setLast(true);        
                 ctx.write(content);
@@ -257,7 +257,7 @@ public class HttpSemanticsTest extends TestCase {
                                 ((HttpContent) ctx.getMessage()).getHttpHeader();
                 HttpResponsePacket response = request.getResponse();
                 HttpStatus.OK_200.setValues(response);
-                MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
+                MemoryManager mm = ctx.getMemoryManager();
                 HttpContent content = response.httpContentBuilder().content(Buffers.wrap(mm, "Content")).build();
                 content.setLast(true);
                 ctx.write(content);

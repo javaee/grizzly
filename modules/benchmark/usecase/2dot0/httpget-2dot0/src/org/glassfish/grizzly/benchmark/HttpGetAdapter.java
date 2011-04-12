@@ -66,7 +66,7 @@ public class HttpGetAdapter extends GrizzlyAdapter {
         int size = parseSize(sizeParamter);
 
         final MemoryManager mm =
-                request.getContext().getConnection().getTransport().getMemoryManager();
+                request.getContext().getMemoryManager();
 
         final Buffer buffer = mm.allocate(size);
         buffer.allowBufferDispose();

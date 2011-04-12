@@ -1149,7 +1149,7 @@ public class HttpInputStreamsTest extends TestCase {
             ((HttpHeader) request).addHeader("Content-Type", "plain/text;charset=" + encoding);
             ctx.write(request);
             byte[] bytes = requestData.getBytes(encoding);
-            MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
+            MemoryManager mm = ctx.getMemoryManager();
             Buffer b = Buffers.wrap(mm, bytes);
             HttpContent.Builder builder = ((HttpHeader) request).httpContentBuilder();
             builder.content(b);

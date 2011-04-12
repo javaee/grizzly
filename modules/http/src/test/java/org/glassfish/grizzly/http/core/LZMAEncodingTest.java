@@ -552,7 +552,7 @@ public class LZMAEncodingTest {
                         .append(requestContent.hasRemaining() ?
                             requestContent.toStringContent() :
                             "<nothing>");
-                final MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
+                final MemoryManager mm = ctx.getMemoryManager();
 
                 final HttpContent responseContent = HttpContent.builder(response)
                         .last(true)

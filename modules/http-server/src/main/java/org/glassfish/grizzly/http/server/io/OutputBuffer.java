@@ -128,7 +128,7 @@ public class OutputBuffer {
 
         this.response = response;
         this.ctx = ctx;
-        memoryManager = ctx.getConnection().getTransport().getMemoryManager();
+        memoryManager = ctx.getMemoryManager();
         compositeBuffer = createCompositeBuffer();
         final Connection c = ctx.getConnection();
         asyncWriter = ((AsyncQueueWriter) c.getTransport().getWriter(c));
