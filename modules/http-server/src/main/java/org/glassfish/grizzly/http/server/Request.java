@@ -310,7 +310,7 @@ public class Request {
     /**
      * Reader.
      */
-    protected final NIOReader reader = new NIOReader();
+    private final NIOReaderImpl reader = new NIOReaderImpl();
 
 
     /**

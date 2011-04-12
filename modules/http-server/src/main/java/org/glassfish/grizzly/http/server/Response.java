@@ -210,7 +210,7 @@ public class Response {
     /**
      * The associated writer.
      */
-    protected final NIOWriter writer = new NIOWriter();
+    private final NIOWriterImpl writer = new NIOWriterImpl();
 
 
     /**

@@ -831,28 +831,24 @@ public class InputBuffer {
      *
      * @throws IOException if an I/O error occurs while reading content
      */
-    private int fillChar(int requestedLen,
-                         CharBuffer dst,
-                         boolean block,
-                         boolean flip) throws IOException {
+    private int fillChar(final int requestedLen,
+                         final CharBuffer dst,
+                         final boolean block,
+                         final boolean flip) throws IOException {
 
         if (inputContentBuffer.hasRemaining() || !block) {
             final CharsetDecoder decoderLocal = getDecoder();
-            int charPos = dst.position();
+            final int charPos = dst.position();
             final ByteBuffer bb = inputContentBuffer.toByteBuffer();
-            int bbPos = bb.position();
-            CoderResult result = decoderLocal.decode(bb, dst, false);
+            final int bbPos = bb.position();
+            decoderLocal.decode(bb, dst, false);
 
             int readChars = dst.position() - charPos;
-            int readBytes = bb.position() - bbPos;
+            final int readBytes = bb.position() - bbPos;
             bb.position(bbPos);
-            if (result == CoderResult.UNDERFLOW) {
-                inputContentBuffer.position(inputContentBuffer.position() + readBytes);
-                inputContentBuffer.shrink();
-            } else {
-                inputContentBuffer.position(inputContentBuffer.position() + readBytes);
-                inputContentBuffer.shrink();
-            }
+
+            inputContentBuffer.position(inputContentBuffer.position() + readBytes);
+            inputContentBuffer.shrink();
             
             if (inputContentBuffer.hasRemaining() && readChars < requestedLen) {
                 readChars += fillChar(0, dst, false, false);
