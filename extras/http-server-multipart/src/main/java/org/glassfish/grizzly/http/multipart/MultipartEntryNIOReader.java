@@ -40,17 +40,24 @@
 
 package org.glassfish.grizzly.http.multipart;
 
-import org.glassfish.grizzly.Buffer;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CodingErrorAction;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
+import org.glassfish.grizzly.http.server.io.NIOReader;
 import org.glassfish.grizzly.http.server.io.ReadHandler;
+import org.glassfish.grizzly.http.util.Charsets;
 
 /**
- * Stream implementation to read {@link MultipartEntry} content in the binary mode.
+ * Stream implementation to read {@link MultipartEntry} content in the character mode.
  *
  * @since 2.0.1
  */
-final class MultipartEntryNIOInputStream extends NIOInputStream {
+
+final class MultipartEntryNIOReader extends NIOReader {
 
     private boolean isClosed;
 
@@ -58,37 +65,51 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
     private final MultipartEntry multipartEntry;
     private NIOInputStream requestNIOInputStream;
 
+    private String encoding;
+    private CharsetDecoder decoder;
+    private float averageCharsPerByte;
+    /**
+     * {@link CharBuffer} for converting a single character at a time.
+     */
+    private final CharBuffer singleCharBuf = CharBuffer.allocate(1);
+
     private int requestedSize;
     private ReadHandler handler;
-    
+
     // ------------------------------------------------------------ Constructors
-
-
+    
     /**
      * Constructs a new <code>NIOInputStream</code> using the specified
      * {@link #requestNIOInputStream}
      * @param multipartEntry {@link MultipartEntry} the {@link NIOInputStream
      * belongs to.
      */
-    public MultipartEntryNIOInputStream(
-            final MultipartEntry multipartEntry
-            //            final ReadHandler parentReadHandler,
-            ) {
-        
+    public MultipartEntryNIOReader(final MultipartEntry multipartEntry) {
         this.multipartEntry = multipartEntry;
-//        this.parentReadHandler = parentReadHandler;
     }
 
     /**
+     * 
      * @param requestNIOInputStream the {@link Request} {@link NIOInputStream}
      * from which binary content will be supplied
      */
-    protected void initialize(final NIOInputStream requestNIOInputStream) {
-        this.requestNIOInputStream = requestNIOInputStream;
+    protected void initialize(final NIOInputStream requestInputStream,
+            final String encoding) {
+        this.requestNIOInputStream = requestInputStream;
+        this.encoding = encoding;
+        this.averageCharsPerByte = getDecoder().averageCharsPerByte();
     }
-    
-    // ------------------------------------------------ Methods from InputStream
+    // ----------------------------------------------------- Methods from Reader
 
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override public int read(final CharBuffer target) throws IOException {
+        final int count = fillChar(target.capacity(), target);
+        target.flip();
+        return count;
+    }
 
     /**
      * {@inheritDoc}
@@ -98,22 +119,29 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
             throw new IOException();
         }
 
-        if (readyData() == 0) {
-            throw new IllegalStateException("Can't be invoked when available() == 0");
+        singleCharBuf.position(0);
+        int read = read(singleCharBuf);
+        if (read == -1) {
+            return -1;
         }
+        final char c = singleCharBuf.get(0);
 
-        multipartEntry.addAvailableBytes(-1);
-//        available--;
-        
-        return requestNIOInputStream.read();
+        singleCharBuf.position(0);
+        return c;
     }
 
     /**
      * {@inheritDoc}
      */
-    @Override
-    public int read(final byte[] b, final int off, final int len)
-            throws IOException {
+    @Override public int read(final char[] cbuf) throws IOException {
+        return read(cbuf, 0, cbuf.length);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override public int read(final char[] cbuf, final int off, final int len)
+    throws IOException {
         if (isClosed) {
             throw new IOException();
         }
@@ -122,12 +150,8 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
             return 0;
         }
 
-        final int nlen = Math.min(multipartEntry.availableBytes(), len);
-        multipartEntry.addAvailableBytes(-nlen);
-//        available -= nlen;
-        
-        return requestNIOInputStream.read(b, off, nlen);
-        
+        final CharBuffer buf = CharBuffer.wrap(cbuf, off, len);
+        return read(buf);
     }
 
     /**
@@ -138,21 +162,54 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
             throw new IOException();
         }
 
-        if (readyData() < n) {
+
+        if (n > multipartEntry.availableBytes()) {
             throw new IllegalStateException("Can not skip more bytes than available");
         }
 
-        multipartEntry.addAvailableBytes((int) -n);
-//        available-= n;
+        if (n < 0) { // required by java.io.Reader.skip()
+            throw new IllegalArgumentException();
+        }
+        if (n == 0) {
+            return 0L;
+        }
+        
+        final CharBuffer skipBuffer = CharBuffer.allocate((int) n);
 
-        return requestNIOInputStream.skip(n);
+        if (fillChar((int) n, skipBuffer) == -1) {
+            return 0;
+        }
+        return Math.min(skipBuffer.position(), n);
     }
 
     /**
      * {@inheritDoc}
      */
-    @Override public int available() throws IOException {
-        return readyData();
+    @Override public boolean ready() throws IOException {
+        return isReady();
+    }
+
+    /**
+     * This {@link Reader} implementation does not support marking.
+     *
+     * @return <code>false</code>
+     */
+    @Override public boolean markSupported() {
+        return false;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override public void mark(int readAheadLimit) throws IOException {
+        throw new IOException();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override public void reset() throws IOException {
+        throw new IOException();
     }
 
     /**
@@ -162,32 +219,7 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
         isClosed = true;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override public void mark(final int readlimit) {
-        requestNIOInputStream.mark(readlimit);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override public void reset() throws IOException {
-        requestNIOInputStream.reset();
-    }
-
-    /**
-     * This {@link InputStream} implementation supports marking.
-     *
-     * @return <code>true</code>
-     */
-    @Override public boolean markSupported() {
-        return requestNIOInputStream.markSupported();
-    }
-
-
     // --------------------------------------------- Methods from NIOInputSource
-
 
     /**
      * {@inheritDoc}
@@ -220,7 +252,7 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
             return;
         }
 
-        if (shouldNotifyNow(size, multipartEntry.availableBytes())) {
+        if (shouldNotifyNow(size, readyData())) {
             try {
                 handler.onDataAvailable();
             } catch (Exception ioe) {
@@ -253,7 +285,7 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
      */
     @Override
     public int readyData() {
-        return isClosed ? 0 : multipartEntry.availableBytes();
+        return ((int) (multipartEntry.availableBytes() * averageCharsPerByte));
     }
 
     /**
@@ -264,19 +296,11 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
         return readyData() > 0;
     }
 
-
-    // --------------------------------------- Methods from BinaryNIOInputSource
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Buffer getBuffer() {
-        return requestNIOInputStream.getBuffer();
-    }
-
     protected void recycle() {
         requestNIOInputStream = null;
+        decoder = null;
+        averageCharsPerByte = 1;
+        encoding = null;
         handler = null;
         isClosed = false;
         requestedSize = 0;
@@ -287,11 +311,11 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
      */
     void onDataCame() {
         if (handler == null) return;
-        
+
         try {
             if (isFinished()) {
                 handler.onAllDataRead();
-            } else if (shouldNotifyNow(requestedSize, multipartEntry.availableBytes())) {
+            } else if (shouldNotifyNow(requestedSize, readyData())) {
                 handler.onDataAvailable();
             }
         } catch (Exception e) {
@@ -305,7 +329,59 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
             }
         }
     }
+    /**
+     * <p>
+     * Used to convert bytes to char.
+     * </p>
+     *
+     * @param requestedLen how much content should attempt to be read
+     *
+     * @return the number of bytes actually read
+     *
+     * @throws IOException if an I/O error occurs while reading content
+     */
+    private int fillChar(final int requestedLen,
+                         final CharBuffer dst) throws IOException {
 
+        final int charPos = dst.position();
+        final ByteBuffer bb = requestNIOInputStream.getBuffer().toByteBuffer();
+        final int bbPos = bb.position();
+        final int bbLim = bb.limit();
+        bb.limit(bbPos + multipartEntry.availableBytes());
+        getDecoder().decode(bb, dst, false);
+
+        int readChars = dst.position() - charPos;
+        int readBytes = bb.position() - bbPos;
+        bb.position(bbPos);
+        bb.limit(bbLim);
+
+        requestNIOInputStream.skip(readBytes);
+        multipartEntry.addAvailableBytes(-readBytes);
+
+        if (multipartEntry.availableBytes() > 0 && readChars < requestedLen) {
+            readChars += fillChar(0, dst);
+        }
+
+        return readChars;
+    }
+
+    /**
+     * @return the {@link CharsetDecoder} that should be used when converting
+     *  content from binary to character
+     */
+    private CharsetDecoder getDecoder() {
+
+        if (decoder == null) {
+            Charset cs = Charsets.lookupCharset(encoding);
+            decoder = cs.newDecoder();
+            decoder.onMalformedInput(CodingErrorAction.REPLACE);
+            decoder.onUnmappableCharacter(CodingErrorAction.REPLACE);
+        }
+
+        return decoder;
+
+    }
+    
     /**
      * @param size the amount of data that must be available for a {@link ReadHandler}
      *  to be notified.

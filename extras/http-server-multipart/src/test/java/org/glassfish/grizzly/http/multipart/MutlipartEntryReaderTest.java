@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly.http.multipart;
 
+import org.glassfish.grizzly.http.server.io.NIOWriter;
+import org.glassfish.grizzly.http.server.io.NIOReader;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.Response;
@@ -71,19 +73,17 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import java.io.IOException;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.HttpServer;
-import org.glassfish.grizzly.http.server.io.NIOInputStream;
-import org.glassfish.grizzly.http.server.io.NIOOutputStream;
 import org.glassfish.grizzly.http.server.io.ReadHandler;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
 /**
- * {@link MultipartEntryNIOInputStream} tests.
+ * {@link MultipartEntryNIOReader} tests.
  * 
  * @author Alexey Stashok
  */
 @SuppressWarnings ("unchecked")
-public class MutlipartEntryInputStreamTest {
+public class MutlipartEntryReaderTest {
     private final int PORT = 18203;
 
     @Test
@@ -154,10 +154,10 @@ public class MutlipartEntryInputStreamTest {
                     scanner.scan(request, new MultipartEntryHandler() {
                         @Override
                         public void handle(MultipartEntry part) throws Exception {
-                            final NIOInputStream nioInputStream = part.getNIOInputStream();
-                            nioInputStream.notifyAvailable(
-                                    new EchoReadHandler(nioInputStream,
-                                    response.getOutputStream()));
+                            final NIOReader nioReader = part.getNIOReader();
+                            nioReader.notifyAvailable(
+                                    new EchoReadHandler(nioReader,
+                                    response.getWriter()));
                         }
                     }, new ResumeCompletionHandler(response));
                 }
@@ -173,7 +173,7 @@ public class MutlipartEntryInputStreamTest {
                 final Future<HttpPacket> responsePacketFuture =
                         httpClient.get(request);
                 final HttpPacket responsePacket =
-                        responsePacketFuture.get(10, TimeUnit.SECONDS);
+                        responsePacketFuture.get(1000, TimeUnit.SECONDS);
 
                 assertTrue(HttpContent.isContent(responsePacket));
 
@@ -308,11 +308,11 @@ public class MutlipartEntryInputStreamTest {
     }
 
     private class EchoReadHandler implements ReadHandler {
-        private final NIOOutputStream outputStream;
-        private final NIOInputStream inputStream;
-        public EchoReadHandler(NIOInputStream inputStream, NIOOutputStream outputStream) {
-            this.inputStream = inputStream;
-            this.outputStream = outputStream;
+        private final NIOWriter writer;
+        private final NIOReader reader;
+        public EchoReadHandler(NIOReader reader, NIOWriter writer) {
+            this.reader = reader;
+            this.writer = writer;
         }
 
 
@@ -331,11 +331,11 @@ public class MutlipartEntryInputStreamTest {
         }
 
         private void echo() throws IOException {
-            final int available = inputStream.readyData();
-            if (available > 0) {
-                byte[] buf = new byte[inputStream.readyData()];
-                inputStream.read(buf);
-                outputStream.write(buf);
+            while (reader.ready()) {
+                final int available = reader.readyData();
+                char[] buf = new char[available];
+                int size = reader.read(buf);
+                writer.write(buf, 0, size);
             }
         }
     }

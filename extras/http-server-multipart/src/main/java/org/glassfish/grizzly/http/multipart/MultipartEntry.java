@@ -46,6 +46,7 @@ import java.util.Map;
 import java.util.Set;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
+import org.glassfish.grizzly.http.server.io.NIOReader;
 
 /**
  * Abstraction represents single multipart entry, its functionality is pretty
@@ -63,11 +64,14 @@ public class MultipartEntry {
     
     private static final String DEFAULT_CONTENT_TYPE =
             "text/plain; charset=US-ASCII";
+    private static final String DEFAULT_CONTENT_ENCODING =
+            "US-ASCII";
 
     private Request request;
     private NIOInputStream requestInputStream;
     
-    private MultipartEntryNIOInputStream inputStream;
+    private final MultipartEntryNIOInputStream inputStream;
+    private final MultipartEntryNIOReader reader;
 
     private final Map<String, String> headers = new HashMap<String, String>();
 
@@ -84,22 +88,53 @@ public class MultipartEntry {
 
     private boolean isSkipping;
     
+    /**
+     * Using stream flag.
+     */
+    protected boolean usingInputStream = false;
+
+
+    /**
+     * Using writer flag.
+     */
+    protected boolean usingReader = false;
+
     MultipartEntry(final MultipartReadHandler multipartReadHandler) {
         this.multipartReadHandler = multipartReadHandler;
+        inputStream = new MultipartEntryNIOInputStream(this);
+        reader = new MultipartEntryNIOReader(this);
     }
 
     void initialize(final Request request) {
         this.request = request;
         this.requestInputStream = request.getInputStream(false);
 
-        inputStream = new MultipartEntryNIOInputStream(
-                this,
-//                multipartReadHandler,
-                requestInputStream);
     }
 
     public NIOInputStream getNIOInputStream() {
+        if (usingReader)
+            throw new IllegalStateException("MultipartEntry is in the character mode");
+
+        if (!usingInputStream) {
+            inputStream.initialize(requestInputStream);
+        }
+        
+        usingInputStream = true;
+        
         return inputStream;
+    }
+
+    public NIOReader getNIOReader() {
+        if (usingInputStream)
+            throw new IllegalStateException("MultipartEntry is in the binary mode");
+
+        if (!usingReader) {
+            reader.initialize(requestInputStream, getEncoding());
+        }
+
+        usingReader = true;
+
+        return reader;
     }
 
     public String getContentType() {
@@ -136,6 +171,16 @@ public class MultipartEntry {
         availableBytes = 0;
     }
 
+    protected String getEncoding() {
+        String contentEncoding = null;
+
+        if (request != null) {
+            contentEncoding = request.getCharacterEncoding();
+        }
+
+        return contentEncoding != null ? contentEncoding : DEFAULT_CONTENT_ENCODING;
+    }
+
     void reset() {
         headers.clear();
         contentType = DEFAULT_CONTENT_TYPE;
@@ -144,6 +189,10 @@ public class MultipartEntry {
         reservedBytes = 0;
         isFinished = false;
         isSkipping = false;
+        usingInputStream = false;
+        usingReader = false;
+        inputStream.recycle();
+        reader.recycle();
     }
 
     void onFinished() {
@@ -163,7 +212,11 @@ public class MultipartEntry {
             return;
         }
 
-        inputStream.onDataCame();
+        if (usingInputStream) {
+            inputStream.onDataCame();
+        } else if (usingReader) {
+            reader.onDataCame();
+        }
     }
 
     boolean isFinished() {
