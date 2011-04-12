@@ -43,7 +43,6 @@ package org.glassfish.grizzly.http.multipart.utils;
 import java.util.ArrayList;
 import java.util.List;
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.http.server.Constants;
 import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.memory.Buffers;
@@ -96,7 +95,7 @@ public class MultipartPacketBuilder {
     }
 
     public Buffer build() {
-        final MemoryManager memoryManager = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
+        final MemoryManager memoryManager = MemoryManager.DEFAULT_MEMORY_MANAGER;
         Buffer resultBuffer = null;
 
         boolean isFirst = true;

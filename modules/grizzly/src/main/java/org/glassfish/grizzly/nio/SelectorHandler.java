@@ -52,6 +52,12 @@ import java.util.Set;
  * @author Alexey Stashok
  */
 public interface SelectorHandler {
+
+    /**
+     * The default {@link SelectorHandler} used by all created builder instances.
+     */
+    public static SelectorHandler DEFAULT_SELECTOR_HANDLER = new DefaultSelectorHandler();
+
     long getSelectTimeout();
 
     void preSelect(SelectorRunner selectorRunner) throws IOException;

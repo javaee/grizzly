@@ -110,7 +110,7 @@ public abstract class AbstractTransformer<K, L> implements Transformer<K, L> {
             return connection.getTransport().getMemoryManager();
         }
 
-        return NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
+        return MemoryManager.DEFAULT_MEMORY_MANAGER;
     }
     
     public MemoryManager getMemoryManager() {

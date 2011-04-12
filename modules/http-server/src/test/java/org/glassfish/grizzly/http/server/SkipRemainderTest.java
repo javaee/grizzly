@@ -157,7 +157,7 @@ public class SkipRemainderTest {
             final BlockingQueue<Integer> transferQueue)
             throws Exception, InterruptedException {
 
-        final MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
+        final MemoryManager mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
         
         final int contentSizeHalf = content.length / 2;
         

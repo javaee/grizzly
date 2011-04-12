@@ -74,7 +74,7 @@ import org.glassfish.grizzly.websockets.WebSocketEngine.WebSocketHolder;
 public class WebSocketFilter extends BaseFilter {
     private static final Logger logger = Grizzly.logger(WebSocketFilter.class);
     private static final Random random = new Random();
-    private static final MemoryManager memManager = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
+    private static final MemoryManager memManager = MemoryManager.DEFAULT_MEMORY_MANAGER;
 
     /**
      * Method handles Grizzly {@link Connection} connect phase. Check if the {@link Connection} is a client-side {@link
@@ -185,7 +185,7 @@ public class WebSocketFilter extends BaseFilter {
                     } else {
                         if (holder.buffer != null) {
                             buffer = Buffers
-                                .appendBuffers(NIOTransportBuilder.DEFAULT_MEMORY_MANAGER, holder.buffer, buffer);
+                                .appendBuffers(MemoryManager.DEFAULT_MEMORY_MANAGER, holder.buffer, buffer);
                             holder.buffer = null;
                             holder.frame = null;
                         }

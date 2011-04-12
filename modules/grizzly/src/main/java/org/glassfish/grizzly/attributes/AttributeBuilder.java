@@ -52,6 +52,21 @@ package org.glassfish.grizzly.attributes;
  * @author Alexey Stashok
  */
 public interface AttributeBuilder {
+
+    /**
+     * <p>
+     * The default {@link AttributeBuilder} implementation used by all created builder
+     * instances.
+     * </p>
+     *
+     * <p>
+     * This may be updated with an alternate {@link AttributeBuilder} implementation
+     * if so desired.
+     * </p>
+     */
+    public static AttributeBuilder DEFAULT_ATTRIBUTE_BUILDER =
+            new DefaultAttributeBuilder();
+
     /**
      * Create Attribute with name
      * 

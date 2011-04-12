@@ -75,7 +75,7 @@ public class URIDecoderTest extends TestCase {
     @SuppressWarnings({"unchecked"})
     private void testDecoder(String inputURI) throws Exception {
         
-        MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
+        MemoryManager mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
         String encodedURI = URLEncoder.encode(inputURI, UTF8_CHARSET.name());
 
         Buffer b = Buffers.wrap(mm, encodedURI);

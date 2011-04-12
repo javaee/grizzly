@@ -58,7 +58,7 @@ public class BuffersBufferTest extends GrizzlyTestCase {
     @Override
     protected void setUp() throws Exception {
         super.setUp();
-        mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
+        mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
     }
 
 

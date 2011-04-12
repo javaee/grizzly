@@ -72,7 +72,7 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
     private static final Buffer header;
 
     static {
-        header = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER.allocate(10);
+        header = MemoryManager.DEFAULT_MEMORY_MANAGER.allocate(10);
         header.put((byte) GZIP_MAGIC);                // Magic number (short)
         header.put((byte) (GZIP_MAGIC >> 8));                // Magic number (short)
         header.put((byte) Deflater.DEFLATED);         // Compression method (CM)

@@ -56,9 +56,9 @@ import java.util.logging.Logger;
 
 import org.glassfish.grizzly.ConnectionProbe;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.Processor;
 import org.glassfish.grizzly.TransportProbe;
+import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
@@ -584,7 +584,7 @@ public class HttpServer {
             @Override
             public Thread newThread(Runnable r) {
                 final Thread newThread = new DefaultWorkerThread(
-                        NIOTransportBuilder.DEFAULT_ATTRIBUTE_BUILDER,
+                        AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER,
                         serverConfig.getName() + "-" + threadCounter.getAndIncrement(),
                         null,
                         r);

@@ -51,6 +51,13 @@ import java.nio.channels.SelectionKey;
  * @author Alexey Stashok
  */
 public interface SelectionKeyHandler {
+
+    /**
+     * The default {@link SelectionKeyHandler} used by all created builder instances.
+     */
+    public static SelectionKeyHandler DEFAULT_SELECTION_KEY_HANDLER =
+            new DefaultSelectionKeyHandler();
+
     void onKeyRegistered(SelectionKey key);
     
     void onKeyDeregistered(SelectionKey key);

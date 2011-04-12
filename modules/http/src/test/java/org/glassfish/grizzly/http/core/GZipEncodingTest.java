@@ -141,7 +141,7 @@ public class GZipEncodingTest extends TestCase {
         result.setStatusCode(200);
         result.addHeader("content-encoding", "gzip");
 
-        final MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
+        final MemoryManager mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
         result.setContent(Buffers.wrap(mm, "Echo: <nothing>"));
         doTest(request, result, gzipServerContentEncoding, gzipClientContentEncoding);
     }
@@ -174,7 +174,7 @@ public class GZipEncodingTest extends TestCase {
             }
         });
 
-        final MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
+        final MemoryManager mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
 
         String reqString = "GZipped hello. Works?";
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -241,7 +241,7 @@ public class GZipEncodingTest extends TestCase {
             }
         });
 
-        final MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
+        final MemoryManager mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
 
         String reqString = generateBigString(16384);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -308,7 +308,7 @@ public class GZipEncodingTest extends TestCase {
             }
         });
 
-        final MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
+        final MemoryManager mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
 
         String reqString = generateBigString(16384);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();

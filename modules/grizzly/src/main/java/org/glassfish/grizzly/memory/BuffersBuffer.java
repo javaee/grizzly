@@ -63,7 +63,7 @@ public final class BuffersBuffer extends CompositeBuffer {
      * Construct <tt>BuffersBuffer</tt>.
      */
     public static BuffersBuffer create() {
-        return create(NIOTransportBuilder.DEFAULT_MEMORY_MANAGER,
+        return create(MemoryManager.DEFAULT_MEMORY_MANAGER,
                 null, 0, false);
     }
 
@@ -140,7 +140,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         if (memoryManager != null) {
             this.memoryManager = memoryManager;
         } else {
-            this.memoryManager = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
+            this.memoryManager = MemoryManager.DEFAULT_MEMORY_MANAGER;
         }
 
         if (buffers != null || this.buffers == null) {

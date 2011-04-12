@@ -547,7 +547,7 @@ public class Cookie implements Cloneable {
 
     public Buffer asServerCookieBuffer(MemoryManager memoryManager) {
         if (memoryManager == null) memoryManager =
-                NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
+                MemoryManager.DEFAULT_MEMORY_MANAGER;
         
         final Buffer buffer = memoryManager.allocate(4096);
         CookieSerializerUtils.serializeServerCookie(buffer, this);
@@ -568,7 +568,7 @@ public class Cookie implements Cloneable {
 
     public Buffer asClientCookieBuffer(MemoryManager memoryManager) {
         if (memoryManager == null) memoryManager =
-                NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
+                MemoryManager.DEFAULT_MEMORY_MANAGER;
 
         final Buffer buffer = memoryManager.allocate(4096);
         CookieSerializerUtils.serializeClientCookies(buffer, this);

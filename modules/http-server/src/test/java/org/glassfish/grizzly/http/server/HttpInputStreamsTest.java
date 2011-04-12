@@ -935,7 +935,7 @@ public class HttpInputStreamsTest extends TestCase {
     @SuppressWarnings({"unchecked"})
     private HttpPacket createRequest(final String method, final String content) {
         final Buffer contentBuffer = content != null ?
-            Buffers.wrap(NIOTransportBuilder.DEFAULT_MEMORY_MANAGER, content) :
+            Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, content) :
             null;
         
         HttpRequestPacket.Builder b = HttpRequestPacket.builder();

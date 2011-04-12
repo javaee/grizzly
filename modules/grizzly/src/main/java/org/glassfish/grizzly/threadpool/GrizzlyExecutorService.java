@@ -40,7 +40,7 @@
 
 package org.glassfish.grizzly.threadpool;
 
-import org.glassfish.grizzly.NIOTransportBuilder;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
 
@@ -90,7 +90,7 @@ public class GrizzlyExecutorService extends AbstractExecutorService
         cfg = cfg.clone();
 
         if (cfg.getMemoryManager() == null) {
-            cfg.setMemoryManager(NIOTransportBuilder.DEFAULT_MEMORY_MANAGER);
+            cfg.setMemoryManager(MemoryManager.DEFAULT_MEMORY_MANAGER);
         }
         
         final Queue<Runnable> queue = cfg.getQueue();

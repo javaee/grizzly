@@ -573,7 +573,7 @@ public class NIOInputSourcesTest extends TestCase {
 
         if (content != null) {
             HttpContent.Builder cb = request.httpContentBuilder();
-            MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
+            MemoryManager mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
             Buffer contentBuffer;
             if (encoding != null) {
                 try {

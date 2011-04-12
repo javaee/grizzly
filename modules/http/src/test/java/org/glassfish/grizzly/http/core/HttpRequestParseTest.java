@@ -191,7 +191,7 @@ public class HttpRequestParseTest extends TestCase {
     @SuppressWarnings({"unchecked"})
     private HttpPacket doTestDecoder(String request, int limit) {
 
-        MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
+        MemoryManager mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
         Buffer input = Buffers.wrap(mm, request);
         
         HttpServerFilter filter = new HttpServerFilter(true, limit, null, null) {

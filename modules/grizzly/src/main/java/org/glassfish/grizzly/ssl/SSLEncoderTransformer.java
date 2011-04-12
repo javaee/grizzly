@@ -77,7 +77,7 @@ public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buf
     private final MemoryManager memoryManager;
 
     public SSLEncoderTransformer() {
-        this(NIOTransportBuilder.DEFAULT_MEMORY_MANAGER);
+        this(MemoryManager.DEFAULT_MEMORY_MANAGER);
     }
 
     public SSLEncoderTransformer(MemoryManager memoryManager) {

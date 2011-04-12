@@ -168,7 +168,7 @@ public class HttpResponseParseTest extends TestCase {
     @SuppressWarnings({"unchecked"})
     private HttpPacket doTestDecoder(String response, int limit) {
 
-        MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
+        MemoryManager mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
         Buffer input = Buffers.wrap(mm, response);
         
         HttpClientFilter filter = new HttpClientFilter(limit);

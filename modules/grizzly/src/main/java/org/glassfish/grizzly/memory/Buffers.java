@@ -524,6 +524,6 @@ public class Buffers {
     }
 
     private static MemoryManager getDefaultMemoryManager() {
-        return NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
+        return MemoryManager.DEFAULT_MEMORY_MANAGER;
     }
 }

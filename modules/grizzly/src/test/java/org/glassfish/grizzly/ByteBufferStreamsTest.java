@@ -1116,7 +1116,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
         future.get(10, TimeUnit.SECONDS);
         
         // test streaming
-        MemoryManager alloc = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;;
+        MemoryManager alloc = MemoryManager.DEFAULT_MEMORY_MANAGER;;
         byte[] testdata = new byte[500];
 
 

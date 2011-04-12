@@ -54,6 +54,20 @@ import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
  */
 public interface MemoryManager<E extends Buffer>
         extends JmxMonitoringAware<MemoryProbe> {
+
+    /**
+     * <p>
+     * The default {@link MemoryManager} implementation used by all created builder
+     * instances.
+     * </p>
+     *
+     * <p>
+     * This may be updated with an alternate {@link MemoryManager} implementation
+     * if so desired.
+     * </p>
+     */
+    public static MemoryManager DEFAULT_MEMORY_MANAGER = new HeapMemoryManager();
+
     /**
      * Allocated {@link Buffer} of the required size.
      *

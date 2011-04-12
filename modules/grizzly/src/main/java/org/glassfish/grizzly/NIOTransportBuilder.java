@@ -41,11 +41,7 @@
 package org.glassfish.grizzly;
 
 import org.glassfish.grizzly.attributes.AttributeBuilder;
-import org.glassfish.grizzly.attributes.DefaultAttributeBuilder;
-import org.glassfish.grizzly.memory.HeapMemoryManager;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.nio.DefaultSelectionKeyHandler;
-import org.glassfish.grizzly.nio.DefaultSelectorHandler;
 import org.glassfish.grizzly.nio.NIOChannelDistributor;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.nio.SelectionKeyHandler;
@@ -64,47 +60,6 @@ import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
  * @since 2.0
  */
 public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
-
-
-    /**
-     * <p>
-     * The default {@link MemoryManager} implementation used by all created builder
-     * instances.
-     * </p>
-     *
-     * <p>
-     * This may be updated with an alternate {@link MemoryManager} implementation
-     * if so desired.
-     * </p>
-     */
-    public static MemoryManager DEFAULT_MEMORY_MANAGER =
-            new HeapMemoryManager();
-
-    /**
-     * <p>
-     * The default {@link AttributeBuilder} implementation used by all created builder
-     * instances.
-     * </p>
-     *
-     * <p>
-     * This may be updated with an alternate {@link AttributeBuilder} implementation
-     * if so desired.
-     * </p>
-     */
-    public static AttributeBuilder DEFAULT_ATTRIBUTE_BUILDER =
-            new DefaultAttributeBuilder();
-
-    /**
-     * The default {@link SelectorHandler} used by all created builder instances.
-     */
-    private static SelectorHandler DEFAULT_SELECTOR_HANDLER =
-            new DefaultSelectorHandler();
-
-    /**
-     * The default {@link SelectionKeyHandler} used by all created builder instances.
-     */
-    private static SelectionKeyHandler DEFAULT_SELECTION_KEY_HANDLER =
-            new DefaultSelectionKeyHandler();
 
     /**
      * The {@link NIOTransport} implementation.
@@ -142,10 +97,10 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
         final ThreadPoolConfig selectorConfig = configSelectorPool((workerConfig != null)
                                                    ? workerConfig.clone()
                                                    : ThreadPoolConfig.defaultConfig().clone());
-        transport.setSelectorHandler(DEFAULT_SELECTOR_HANDLER);
-        transport.setSelectionKeyHandler(DEFAULT_SELECTION_KEY_HANDLER);
-        transport.setMemoryManager(DEFAULT_MEMORY_MANAGER);
-        transport.setAttributeBuilder(DEFAULT_ATTRIBUTE_BUILDER);
+        transport.setSelectorHandler(SelectorHandler.DEFAULT_SELECTOR_HANDLER);
+        transport.setSelectionKeyHandler(SelectionKeyHandler.DEFAULT_SELECTION_KEY_HANDLER);
+        transport.setMemoryManager(MemoryManager.DEFAULT_MEMORY_MANAGER);
+        transport.setAttributeBuilder(AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER);
         transport.setIOStrategy(strategy);
         transport.setWorkerThreadPoolConfig(workerConfig);
         transport.setKernelThreadPoolConfig(selectorConfig);
@@ -199,7 +154,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
 
     /**
      * @return the {@link MemoryManager} that will be used by the created {@link NIOTransport}.
-     *  If not explicitly set, then {@link #DEFAULT_MEMORY_MANAGER} will be used.
+     *  If not explicitly set, then {@link MemoryManager#DEFAULT_MEMORY_MANAGER} will be used.
      */
     public MemoryManager getMemoryManager() {
         return transport.getMemoryManager();
@@ -219,7 +174,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
 
     /**
      * @return the {@link SelectorHandler} that will be used by the created {@link NIOTransport}.
-     *  If not explicitly set, then {@link #DEFAULT_SELECTOR_HANDLER} will be used.
+     *  If not explicitly set, then {@link SelectorHandler#DEFAULT_SELECTOR_HANDLER} will be used.
      */
     public SelectorHandler getSelectorHandler() {
         return transport.getSelectorHandler();
@@ -239,7 +194,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
 
     /**
      * @return the {@link SelectionKeyHandler} that will be used by the created {@link NIOTransport}.
-     *  If not explicitly set, then {@link #DEFAULT_SELECTION_KEY_HANDLER} will be used.
+     *  If not explicitly set, then {@link SelectionKeyHandler#DEFAULT_SELECTION_KEY_HANDLER} will be used.
      */
     public SelectionKeyHandler getSelectionKeyHandler() {
         return transport.getSelectionKeyHandler();
@@ -259,7 +214,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
 
     /**
      * @return the {@link AttributeBuilder} that will be used by the created {@link NIOTransport}.
-     *  If not explicitly set, then {@link #DEFAULT_ATTRIBUTE_BUILDER} will be used.
+     *  If not explicitly set, then {@link AttributeBuilder#DEFAULT_ATTRIBUTE_BUILDER} will be used.
      */
     public AttributeBuilder getAttributeBuilder() {
         return transport.getAttributeBuilder();
@@ -279,7 +234,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
 
     /**
      * @return the {@link NIOChannelDistributor} that will be used by the created {@link NIOTransport}.
-     *  If not explicitly set, then {@link #DEFAULT_ATTRIBUTE_BUILDER} will be used.
+     *  If not explicitly set, then {@link AttributeBuilder#DEFAULT_ATTRIBUTE_BUILDER} will be used.
      */
     public NIOChannelDistributor getNIOChannelDistributor() {
         return transport.getNIOChannelDistributor();

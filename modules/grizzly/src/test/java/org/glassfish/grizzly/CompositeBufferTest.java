@@ -47,6 +47,7 @@ import org.glassfish.grizzly.memory.CompositeBuffer;
 import java.util.Arrays;
 import java.util.List;
 import org.glassfish.grizzly.memory.ByteBufferArray;
+import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
  * {@link CompositeBuffer} test set.
@@ -589,6 +590,6 @@ public class CompositeBufferTest extends GrizzlyTestCase {
 
     private CompositeBuffer createCompositeBuffer(Buffer... buffers) {
         return CompositeBuffer.newBuffer(
-                NIOTransportBuilder.DEFAULT_MEMORY_MANAGER, buffers);
+                MemoryManager.DEFAULT_MEMORY_MANAGER, buffers);
     }
 }

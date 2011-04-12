@@ -143,7 +143,7 @@ public class LZMAEncodingTest {
             result.setStatusCode(200);
             result.addHeader("content-encoding", "lzma");
 
-            final MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
+            final MemoryManager mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
             result.setContent(Buffers.wrap(mm, "Echo: <nothing>"));
             try {
                doTest(request, result, LZMAServerContentEncoding, LZMAClientContentEncoding, i);
@@ -182,7 +182,7 @@ public class LZMAEncodingTest {
             }
         });
 
-        final MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
+        final MemoryManager mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
 
         String reqString = "LZMAped hello. Works?";
         Buffer LZMApedContent = lzmaCompress(reqString, mm);
@@ -250,7 +250,7 @@ public class LZMAEncodingTest {
             }
         });
 
-        final MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
+        final MemoryManager mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
 
         String reqString = generateBigString(16384);
 
@@ -320,7 +320,7 @@ public class LZMAEncodingTest {
             }
         });
 
-        final MemoryManager mm = NIOTransportBuilder.DEFAULT_MEMORY_MANAGER;
+        final MemoryManager mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
 
         String reqString = generateBigString(16384);
 
