@@ -47,7 +47,6 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
@@ -74,7 +73,6 @@ import org.glassfish.grizzly.websockets.WebSocketEngine.WebSocketHolder;
 public class WebSocketFilter extends BaseFilter {
     private static final Logger logger = Grizzly.logger(WebSocketFilter.class);
     private static final Random random = new Random();
-    private static final MemoryManager memManager = MemoryManager.DEFAULT_MEMORY_MANAGER;
 
     /**
      * Method handles Grizzly {@link Connection} connect phase. Check if the {@link Connection} is a client-side {@link
@@ -244,7 +242,7 @@ public class WebSocketFilter extends BaseFilter {
                 bytes = masked;
             }
             // set Buffer as message on the context
-            ctx.setMessage(Buffers.wrap(memManager, bytes));
+            ctx.setMessage(Buffers.wrap(ctx.getMemoryManager(), bytes));
         }
         // invoke next filter in the chain
         return ctx.getInvokeAction();

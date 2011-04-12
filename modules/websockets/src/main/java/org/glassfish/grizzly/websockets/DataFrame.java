@@ -54,7 +54,6 @@ import org.glassfish.grizzly.memory.MemoryManager;
  */
 public class DataFrame {
     private static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
-    private static final MemoryManager memManager = MemoryManager.DEFAULT_MEMORY_MANAGER;
     private static final byte FINAL_FRAME = (byte) 0x80;
     // This isn't a spec'd value.  This is one *we* have defined to help protect
     // against OOMEs.  Frame larger than this should be fragmented.

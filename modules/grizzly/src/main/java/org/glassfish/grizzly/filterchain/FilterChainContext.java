@@ -60,6 +60,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
  * {@link FilterChain} {@link Context} implementation.
@@ -644,6 +645,17 @@ public final class FilterChainContext implements AttributeStorage {
     public final boolean removeCompletionListener(final CompletionListener listener) {
         return completionListeners.remove(listener);
     }
+
+    /**
+     * <p>A simple alias for <code>FilterChainContext.getConnection().getTransport().getMemoryManager()</code>.
+     *
+     * @return the {@link MemoryManager} associated with the {@link Connection}
+     *  of this <code>FilterChainContext</code>.
+     */
+    public final MemoryManager getMemoryManager() {
+        return (getConnection().getTransport().getMemoryManager());
+    }
+
     /**
      * Release the context associated resources.
      */
