@@ -171,6 +171,46 @@ public class MutlipartEntryReaderTest {
                 new Task(multipartPacket2, new StringChecker("three\u043F\u0440\u0438\u0432\u0435\u0442")));
     }
 
+    @Test
+    public void testMultipartMixedEcho() throws Exception {
+        MultipartEntryPacket entry11 = MultipartEntryPacket.builder()
+                .contentDisposition("form-data; name=\"one\"")
+                .contentType("text/plain; charset=UTF-16")
+                .content("\u043E\u0434\u0438\u043D")
+                .build();
+
+        MultipartEntryPacket entry121 = MultipartEntryPacket.builder()
+                .contentDisposition("form-data; name=\"two-one\"")
+                .content("two-one")
+                .build();
+        MultipartEntryPacket entry122 = MultipartEntryPacket.builder()
+                .contentDisposition("form-data; name=\"two-two\"")
+                .contentType("text/plain; charset=UTF-16")
+                .content("\u0434\u0432\u0430\u002D\u0434\u0432\u0430")
+                .build();
+        MultipartEntryPacket entry123 = MultipartEntryPacket.builder()
+                .contentDisposition("form-data; name=\"two-three\"")
+                .content("two-three")
+                .build();
+
+        MultipartEntryPacket entry12 = createMultipartMixedPacket(
+                "---------------------------103832778631716", "preamble2", "epilogue2",
+                entry121, entry122, entry123);
+
+
+        MultipartEntryPacket entry13 = MultipartEntryPacket.builder()
+                .contentDisposition("form-data; name=\"three\"")
+                .content("three")
+                .build();
+
+        final HttpPacket multipartPacket1 = createMultipartPacket(
+                "---------------------------103832778631715", "preamble", "epilogue",
+                entry11, entry12, entry13);
+
+
+        doEchoTest(new Task(multipartPacket1, new StringChecker("\u043E\u0434\u0438\u043Dtwo-one\u0434\u0432\u0430\u002D\u0434\u0432\u0430two-threethree")));
+    }
+
     private void doEchoTest(Task... tasks) throws Exception {
         final HttpServer httpServer = createServer("0.0.0.0", PORT);
 
@@ -187,15 +227,9 @@ public class MutlipartEntryReaderTest {
                     
                     MultipartScanner scanner = new MultipartScanner();
 
-                    scanner.scan(request, new MultipartEntryHandler() {
-                        @Override
-                        public void handle(MultipartEntry part) throws Exception {
-                            final NIOReader nioReader = part.getNIOReader();
-                            nioReader.notifyAvailable(
-                                    new EchoReadHandler(nioReader,
-                                    response.getWriter()));
-                        }
-                    }, new ResumeCompletionHandler(response));
+                    scanner.scan(request,
+                            new TestMultipartEntryHandler(scanner, response.getWriter()),
+                            new ResumeCompletionHandler(response));
                 }
             }, "/");
 
@@ -220,6 +254,23 @@ public class MutlipartEntryReaderTest {
             httpServer.stop();
 //            httpClient.close();
         }
+    }
+
+    private MultipartEntryPacket createMultipartMixedPacket(String boundary, String preamble,
+            String epilogue, MultipartEntryPacket... entries) {
+        MultipartPacketBuilder mpb = MultipartPacketBuilder.builder(boundary);
+        mpb.preamble(preamble).epilogue(epilogue);
+
+        for (MultipartEntryPacket entry : entries) {
+            mpb.addMultipartEntry(entry);
+        }
+
+        final Buffer bodyBuffer = mpb.build();
+
+        return MultipartEntryPacket.builder()
+                .contentType("multipart/mixed; boundary=" + boundary)
+                .content(bodyBuffer)
+                .build();
     }
 
     private HttpPacket createMultipartPacket(String boundary, String preamble,
@@ -247,6 +298,31 @@ public class MutlipartEntryReaderTest {
                 .build();
 
         return request;
+    }
+
+    class TestMultipartEntryHandler extends MultipartEntryHandler {
+
+        final MultipartScanner scanner;
+        final NIOWriter writer;
+
+        public TestMultipartEntryHandler(final MultipartScanner scanner,
+                final NIOWriter writer) {
+            this.scanner = scanner;
+            this.writer = writer;
+        }
+
+        @Override
+        public void handle(MultipartEntry part) throws Exception {
+            if (!part.isMultipartMixed()) {
+                final NIOReader nioReader = part.getNIOReader();
+                nioReader.notifyAvailable(
+                        new EchoReadHandler(nioReader, writer));
+            } else {
+                scanner.scan(part,
+                        new TestMultipartEntryHandler(scanner, writer),
+                        null);
+            }
+        }
     }
 
     private static class HttpClient {

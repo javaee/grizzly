@@ -58,8 +58,8 @@ import org.glassfish.grizzly.http.server.io.NIOInputStream;
 public class MultipartScanner {
     private static final Logger LOGGER = Grizzly.logger(MultipartScanner.class);
 
-    private static final String MULTIPART_CONTENT_TYPE = "multipart/form-data";
-    private static final String MULTIPART_MIXED_CONTENT_TYPE = "multipart/mixed";
+    static final String MULTIPART_CONTENT_TYPE = "multipart/form-data";
+    static final String MULTIPART_MIXED_CONTENT_TYPE = "multipart/mixed";
     
     private static final String BOUNDARY_ATTR = "boundary";
     public MultipartScanner() {

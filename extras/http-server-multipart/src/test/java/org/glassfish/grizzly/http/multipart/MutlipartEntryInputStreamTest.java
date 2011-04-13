@@ -163,7 +163,7 @@ public class MutlipartEntryInputStreamTest {
 
 
         MultipartEntryPacket entry13 = MultipartEntryPacket.builder()
-                .contentDisposition("form-data; name=\"two\"")
+                .contentDisposition("form-data; name=\"three\"")
                 .content("three")
                 .build();
 
@@ -278,10 +278,7 @@ public class MutlipartEntryInputStreamTest {
 
         @Override
         public void handle(MultipartEntry part) throws Exception {
-            final boolean isMultipartMixed = part.getContentType() != null
-                    && part.getContentType().startsWith("multipart/mixed");
-
-            if (!isMultipartMixed) {
+            if (!part.isMultipartMixed()) {
                 final NIOInputStream nioInputStream = part.getNIOInputStream();
                 nioInputStream.notifyAvailable(
                         new EchoReadHandler(nioInputStream,

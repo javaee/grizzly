@@ -92,11 +92,20 @@ public class MultipartEntry {
      */
     protected boolean usingInputStream = false;
 
-
     /**
      * Using writer flag.
      */
     protected boolean usingReader = false;
+
+    /**
+     * Is this entry multipart/mixed
+     */
+    private boolean isMultipartMixed;
+
+    /**
+     * Have we parsed content-type and figured out whether it's multipart/mixed?
+     */
+    private boolean isMultipartMixedParsed;
 
     MultipartEntry() {
         inputStream = new MultipartEntryNIOInputStream(this);
@@ -133,6 +142,28 @@ public class MultipartEntry {
         return reader;
     }
 
+    /**
+     * Returns <tt>true</tt> if this is "multipart/mixed" multipart entry, or
+     * <tt>false</tt> otherwise.
+     *
+     * @return <tt>true</tt> if this is "multipart/mixed" multipart entry, or
+     * <tt>false</tt> otherwise.
+     */
+    public boolean isMultipartMixed() {
+        if (!isMultipartMixedParsed) {
+            isMultipartMixedParsed = true;
+
+            isMultipartMixed = contentType != null &&
+                    contentType.startsWith(MultipartScanner.MULTIPART_MIXED_CONTENT_TYPE);
+        }
+
+        return isMultipartMixed;
+    }
+
+    /**
+     * Get the multipart entry content-type.
+     * @return the multipart entry content-type.
+     */
     public String getContentType() {
         return contentType;
     }
@@ -141,6 +172,10 @@ public class MultipartEntry {
         this.contentType = contentType;
     }
 
+    /**
+     * Get the multipart entry content-disposition.
+     * @return the multipart entry content-disposition.
+     */
     public String getContentDisposition() {
         return contentDisposition;
     }
@@ -149,10 +184,20 @@ public class MultipartEntry {
         this.contentDisposition = contentDisposition;
     }
 
+    /**
+     * Get the multipart entry header names.
+     * @return the multipart entry header names.
+     */
     public Set<String> getHeaderNames() {
         return headers.keySet();
     }
 
+    /**
+     * Get the multipart entry header value.
+     * 
+     * @param multipart entry header name.
+     * @return the multipart entry header value.
+     */
     public String getHeader(final String name) {
         return headers.get(name);
     }
@@ -161,6 +206,9 @@ public class MultipartEntry {
         headers.put(name, value);
     }
 
+    /**
+     * Skip the multipart entry processing.
+     */
     @SuppressWarnings({"ResultOfMethodCallIgnored"})
     public void skip() throws IOException {
         isSkipping = true;
@@ -185,6 +233,7 @@ public class MultipartEntry {
         usingReader = false;
         inputStream.recycle();
         reader.recycle();
+        isMultipartMixedParsed = false;
     }
 
     void onFinished() {
