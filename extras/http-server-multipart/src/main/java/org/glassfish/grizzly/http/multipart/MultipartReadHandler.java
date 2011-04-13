@@ -244,7 +244,7 @@ public class MultipartReadHandler implements ReadHandler {
             }
         } while (isComplete);
 
-        multipartEntry.onDataCame();
+        multipartEntry.onDataReceived();
     }
 
     private boolean skipEpilogie() {

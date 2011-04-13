@@ -68,7 +68,6 @@ public class MultipartEntry {
     private static final String DEFAULT_CONTENT_ENCODING =
             "US-ASCII";
 
-    private Request request;
     private NIOInputStream requestInputStream;
     
     private final MultipartEntryNIOInputStream inputStream;
@@ -107,9 +106,7 @@ public class MultipartEntry {
     }
 
     void initialize(final Request request) {
-        this.request = request;
         this.requestInputStream = request.getInputStream(false);
-
     }
 
     public NIOInputStream getNIOInputStream() {
@@ -194,10 +191,10 @@ public class MultipartEntry {
 
     void onFinished() {
         isFinished = true;
-        onDataCame();
+        onDataReceived();
     }
 
-    void onDataCame() {
+    void onDataReceived() {
         if (isSkipping) {
             try {
                 requestInputStream.skip(availableBytes);
