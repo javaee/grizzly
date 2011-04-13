@@ -83,11 +83,9 @@ final class EchoServer {
         final NetworkListener listener = new NetworkListener(LISTENER_NAME,
                                                              settings.getHost(),
                                                              settings.getPort());
-        final NetworkListener listener2 = new NetworkListener("Foo", "0.0.0.0", 9012);
         listener.getTransport().setMemoryManager(new ByteBufferManager());
         listener.getFileCache().setEnabled(false);
         httpServer.addListener(listener);
-        httpServer.addListener(listener2);
         configureServer(settings);
     }
 
