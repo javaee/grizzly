@@ -108,11 +108,8 @@ public class DelayedExecutor {
         return queue;
     }
 
-    private static boolean wasModified(Long l1, Long l2) {
-        if (l1 != null) {
-            return !l1.equals(l2);
-        }
-        return l2 != null && !l2.equals(l1);
+    private static boolean wasModified(final Long l1, final Long l2) {
+        return l1 != l2 && (l1 != null ? !l1.equals(l2) : !l2.equals(l1));
     }
 
     private class DelayedRunnable implements Runnable {
