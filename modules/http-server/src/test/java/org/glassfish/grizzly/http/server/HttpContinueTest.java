@@ -81,7 +81,7 @@ public class HttpContinueTest extends TestCase {
             out.write(("Host: localhost:" + PORT + "\r\n").getBytes());
             out.write("Content-Type: application/x-www-form-urlencoded\r\n".getBytes());
             out.write("Content-Length: 7\r\n".getBytes());
-            out.write("Expect: 100-Continue\r\n".getBytes());
+            out.write("Expect: 100-continue\r\n".getBytes());
             out.write("\r\n".getBytes());
 
             StringBuilder sb = new StringBuilder();
@@ -137,7 +137,7 @@ public class HttpContinueTest extends TestCase {
             StringBuilder post = new StringBuilder();
             post.append("POST /path HTTP/1.1\r\n");
             post.append("Host: localhost:").append(PORT).append("\r\n");
-            post.append("Expect: 100-Continue\r\n");
+            post.append("Expect: 100-continue\r\n");
             post.append("Content-Type: application/x-www-form-urlencoded\r\n");
             post.append("Content-Length: 7\r\n");
             post.append("\r\n");
