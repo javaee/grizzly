@@ -61,19 +61,19 @@ import org.glassfish.grizzly.http.util.Constants;
 public class MultipartReadHandler implements ReadHandler {
 
     private enum State {
-        EPILOGUE, PARSE_MULTIPART_ENTRY_HEADERS, START_BODY, BODY, RESET;
+        EPILOGUE, PARSE_MULTIPART_ENTRY_HEADERS, START_BODY, BODY, RESET
     }
 
     private final Request request;
     private final NIOInputStream requestInputStream;
     
-    private final MultipartEntryHandler mutlipartHandler;
+    private final MultipartEntryHandler multipartHandler;
     private final CompletionHandler<Request> completionHandler;
     private final String boundary;
 
     private final Line line = new Line();
 
-    private final MultipartEntry multipartEntry = new MultipartEntry(this);
+    private final MultipartEntry multipartEntry = new MultipartEntry();
     
     private State state = State.EPILOGUE;
 
@@ -84,7 +84,7 @@ public class MultipartReadHandler implements ReadHandler {
             final CompletionHandler<Request> completionHandler,
             final String boundary) {
         this.request = request;
-        this.mutlipartHandler = multipartHandler;
+        this.multipartHandler = multipartHandler;
         this.completionHandler = completionHandler;
         this.boundary = boundary;
 
@@ -155,7 +155,7 @@ public class MultipartReadHandler implements ReadHandler {
                 {
                     state = State.BODY;
 //                    feedMultipartEntry();
-                    mutlipartHandler.handle(multipartEntry);
+                    multipartHandler.handle(multipartEntry);
 
 //                    if (!multipartEntry.isFinished()) {
 //                        return false;
@@ -190,6 +190,7 @@ public class MultipartReadHandler implements ReadHandler {
         } while (true);
     }
 
+    @SuppressWarnings({"ResultOfMethodCallIgnored"})
     private void feedMultipartEntry() {
 //        int available = 0;
         boolean isComplete;
@@ -426,10 +427,6 @@ public class MultipartReadHandler implements ReadHandler {
             return isBoundary || parseBoundary();
         }
 
-        private boolean isFinalBoundary() {
-            return isFinalBoundary || (parseBoundary() && isFinalBoundary);
-        }
-
         private boolean parseBoundary() {
             final int lineTerminatorLength = getLineTerminatorLength();
             final int boundaryLength = boundary.length();
@@ -503,6 +500,7 @@ public class MultipartReadHandler implements ReadHandler {
             return 1 + (isCrLf ? 1 : 0);
         }
 
+        @SuppressWarnings({"ResultOfMethodCallIgnored"})
         private void skip() {
             try {
                 requestInputStream.skip(line.len);

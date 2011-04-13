@@ -61,8 +61,7 @@ import org.glassfish.grizzly.http.util.ContentType;
  * @author Alexey Stashok
  */
 public class MultipartEntry {
-    private final MultipartReadHandler multipartReadHandler;
-    
+
     private static final String DEFAULT_CONTENT_TYPE =
             "text/plain; charset=US-ASCII";
     private static final String DEFAULT_CONTENT_ENCODING =
@@ -99,8 +98,7 @@ public class MultipartEntry {
      */
     protected boolean usingReader = false;
 
-    MultipartEntry(final MultipartReadHandler multipartReadHandler) {
-        this.multipartReadHandler = multipartReadHandler;
+    MultipartEntry() {
         inputStream = new MultipartEntryNIOInputStream(this);
         reader = new MultipartEntryNIOReader(this);
     }
@@ -163,6 +161,7 @@ public class MultipartEntry {
         headers.put(name, value);
     }
 
+    @SuppressWarnings({"ResultOfMethodCallIgnored"})
     public void skip() throws IOException {
         isSkipping = true;
         requestInputStream.skip(availableBytes);
@@ -170,8 +169,7 @@ public class MultipartEntry {
     }
 
     protected String getEncoding() {
-        String contentEncoding = null;
-        contentEncoding = ContentType.getCharsetFromContentType(getContentType());
+        String contentEncoding = ContentType.getCharsetFromContentType(getContentType());
         return contentEncoding != null ? contentEncoding : DEFAULT_CONTENT_ENCODING;
     }
 
@@ -194,6 +192,7 @@ public class MultipartEntry {
         onDataReceived();
     }
 
+    @SuppressWarnings({"ResultOfMethodCallIgnored"})
     void onDataReceived() {
         if (isSkipping) {
             try {
