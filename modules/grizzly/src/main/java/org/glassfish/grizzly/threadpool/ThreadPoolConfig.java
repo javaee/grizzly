@@ -62,7 +62,12 @@ public class ThreadPoolConfig {
             null, Thread.MAX_PRIORITY, null, null, -1);
 
     public static ThreadPoolConfig defaultConfig() {
-        return DEFAULT.clone();
+        try {
+            return DEFAULT.clone();
+        } catch (CloneNotSupportedException cnse) {
+            // shouldn't happen...
+            throw new IllegalStateException(cnse);
+        }
     }
 
     protected String poolName;
@@ -80,7 +85,7 @@ public class ThreadPoolConfig {
     /**
      * Thread pool probes
      */
-    protected final MonitoringConfigImpl<ThreadPoolProbe> threadPoolMonitoringConfig;
+    protected MonitoringConfigImpl<ThreadPoolProbe> threadPoolMonitoringConfig;
             
     
     public ThreadPoolConfig(
@@ -118,7 +123,7 @@ public class ThreadPoolConfig {
                 ThreadPoolProbe.class);
     }
 
-    public ThreadPoolConfig(ThreadPoolConfig cfg) {
+    protected void initThreadPoolConfig(ThreadPoolConfig cfg) {
         this.queue           = cfg.queue;
         this.threadFactory   = cfg.threadFactory;
         this.poolName        = cfg.poolName;
@@ -134,8 +139,10 @@ public class ThreadPoolConfig {
     }
 
     @Override
-    public ThreadPoolConfig clone() {
-        return new ThreadPoolConfig(this);
+    public ThreadPoolConfig clone() throws CloneNotSupportedException {
+        final ThreadPoolConfig config = (ThreadPoolConfig) super.clone();
+        config.initThreadPoolConfig(this);
+        return config;
     }
 
     /**
