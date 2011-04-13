@@ -42,6 +42,8 @@ package org.glassfish.grizzly.http.multipart.utils;
 
 import java.nio.charset.Charset;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.http.util.Charsets;
+import org.glassfish.grizzly.http.util.ContentType;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.Buffers;
 
@@ -125,8 +127,7 @@ public class MultipartEntryPacket {
         }
 
         public Builder content(String content) {
-            packet.content = Buffers.wrap(null, content);
-            return this;
+            return content(content, getCharset());
         }
 
         public Builder content(String content, Charset charset) {
@@ -142,5 +143,19 @@ public class MultipartEntryPacket {
         public final MultipartEntryPacket build() {
             return (MultipartEntryPacket) packet;
         }
+
+        private Charset getCharset() {
+            String charset = null;
+            if (packet.contentType != null) {
+                charset = ContentType.getCharsetFromContentType(packet.contentType);
+            }
+
+            if (charset == null) {
+                return Charsets.ASCII_CHARSET;
+            }
+            
+            return Charsets.lookupCharset(charset);
+        }
+
     }
 }

@@ -47,6 +47,7 @@ import java.util.Set;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
 import org.glassfish.grizzly.http.server.io.NIOReader;
+import org.glassfish.grizzly.http.util.ContentType;
 
 /**
  * Abstraction represents single multipart entry, its functionality is pretty
@@ -75,7 +76,7 @@ public class MultipartEntry {
 
     private final Map<String, String> headers = new HashMap<String, String>();
 
-    private String contentType;
+    private String contentType = DEFAULT_CONTENT_TYPE;
     private String contentDisposition;
 
     private int availableBytes;
@@ -173,11 +174,7 @@ public class MultipartEntry {
 
     protected String getEncoding() {
         String contentEncoding = null;
-
-        if (request != null) {
-            contentEncoding = request.getCharacterEncoding();
-        }
-
+        contentEncoding = ContentType.getCharsetFromContentType(getContentType());
         return contentEncoding != null ? contentEncoding : DEFAULT_CONTENT_ENCODING;
     }
 

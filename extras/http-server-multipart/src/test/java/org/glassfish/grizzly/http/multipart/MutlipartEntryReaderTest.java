@@ -136,6 +136,40 @@ public class MutlipartEntryReaderTest {
                 new Task(multipartPacket2, new StringChecker("threefour")));
     }
 
+//    @Test
+    public void testTwoBytesPerCharEcho() throws Exception {
+        MultipartEntryPacket entry11 = MultipartEntryPacket.builder()
+                .contentDisposition("form-data; name=\"one\"")
+                .contentType("text/plain; charset=UTF-16")
+                .content("\u043F\u0440\u0438\u0432\u0435\u0442")
+                .build();
+        MultipartEntryPacket entry12 = MultipartEntryPacket.builder()
+                .contentDisposition("form-data; name=\"two\"")
+                .content("two")
+                .build();
+
+        final HttpPacket multipartPacket1 = createMultipartPacket(
+                "---------------------------103832778631715", "preamble", "epilogue",
+                entry11, entry12);
+
+        MultipartEntryPacket entry21 = MultipartEntryPacket.builder()
+                .contentDisposition("form-data; name=\"three\"")
+                .content("three")
+                .build();
+        MultipartEntryPacket entry22 = MultipartEntryPacket.builder()
+                .contentDisposition("form-data; name=\"four\"")
+                .contentType("text/plain; charset=UTF-16")
+                .content("\u043F\u0440\u0438\u0432\u0435\u0442")
+                .build();
+
+        final HttpPacket multipartPacket2 = createMultipartPacket(
+                "---------------------------103832778631715", "preamble", "epilogue",
+                entry21, entry22);
+
+        doEchoTest(new Task(multipartPacket1, new StringChecker("\u043F\u0440\u0438\u0432\u0435\u0442two")),
+                new Task(multipartPacket2, new StringChecker("three\u043F\u0440\u0438\u0432\u0435\u0442")));
+    }
+
     private void doEchoTest(Task... tasks) throws Exception {
         final HttpServer httpServer = createServer("0.0.0.0", PORT);
 
@@ -148,7 +182,8 @@ public class MutlipartEntryReaderTest {
                 public void service(final Request request, final Response response)
                         throws Exception {
                     response.suspend();
-
+                    response.setCharacterEncoding("UTF-8");
+                    
                     MultipartScanner scanner = new MultipartScanner();
 
                     scanner.scan(request, new MultipartEntryHandler() {
