@@ -52,6 +52,7 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
+import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
@@ -494,7 +495,7 @@ public class MutlipartEntryReaderTest {
 
         @Override
         public void check(HttpContent httpContent) {
-            assertEquals(result, httpContent.getContent().toStringContent());
+            assertEquals(result, httpContent.getContent().toStringContent(Charsets.UTF8_CHARSET));
         }
     }
 
