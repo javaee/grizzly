@@ -290,7 +290,7 @@ public abstract class HttpHandler {
             final Response response)
             throws IOException {
 
-        if ("100-Continue".equals(request.getHeader("Expect"))) {
+        if ("100-continue".equals(request.getHeader("Expect"))) {
             response.setStatus(HttpStatus.CONINTUE_100);
             response.sendAcknowledgement();
             return true;
