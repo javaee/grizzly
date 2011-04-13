@@ -94,8 +94,10 @@ public class MultipartReadHandler implements ReadHandler {
     @Override
     public void onDataAvailable() throws Exception {
         if (!process()) {
-            requestInputStream.notifyAvailable(this,
-                    multipartEntry.getReservedBytes() + line.len + 1);
+            final int totalBytesAvailable =  multipartEntry.getReservedBytes() +
+                    multipartEntry.availableBytes() + line.len;
+
+            requestInputStream.notifyAvailable(this, totalBytesAvailable + 1);
         } else {
             checkComplete();
         }

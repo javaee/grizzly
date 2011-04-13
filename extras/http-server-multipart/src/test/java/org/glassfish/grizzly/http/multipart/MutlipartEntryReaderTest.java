@@ -74,6 +74,7 @@ import java.io.IOException;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.io.ReadHandler;
+import org.glassfish.grizzly.utils.DelayFilter;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -136,7 +137,7 @@ public class MutlipartEntryReaderTest {
                 new Task(multipartPacket2, new StringChecker("threefour")));
     }
 
-//    @Test
+    @Test
     public void testTwoBytesPerCharEcho() throws Exception {
         MultipartEntryPacket entry11 = MultipartEntryPacket.builder()
                 .contentDisposition("form-data; name=\"one\"")
@@ -208,7 +209,7 @@ public class MutlipartEntryReaderTest {
                 final Future<HttpPacket> responsePacketFuture =
                         httpClient.get(request);
                 final HttpPacket responsePacket =
-                        responsePacketFuture.get(1000, TimeUnit.SECONDS);
+                        responsePacketFuture.get(10, TimeUnit.SECONDS);
 
                 assertTrue(HttpContent.isContent(responsePacket));
 
@@ -269,6 +270,7 @@ public class MutlipartEntryReaderTest {
             filterChainBuilder.add(new TransportFilter());
 
             if (chunkSize > 0) {
+                filterChainBuilder.add(new DelayFilter(0, 5));
                 filterChainBuilder.add(new ChunkingFilter(chunkSize));
             }
 

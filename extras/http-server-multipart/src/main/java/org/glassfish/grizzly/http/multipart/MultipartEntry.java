@@ -81,8 +81,8 @@ public class MultipartEntry {
 
     private int availableBytes;
 
-    // Line terminator bytes, which we're not sure about, if they are part of section boundary
-    // or multipart entry content
+    // Previous (processed) line terminator bytes, which we're not sure about,
+    // whether they are part of section boundary or multipart entry content
     private int reservedBytes;
     
     private boolean isFinished;
@@ -228,10 +228,25 @@ public class MultipartEntry {
         availableBytes += delta;
     }
 
+    /**
+     * Get the previous (processed) line terminator bytes, which we're not sure about,
+     * whether they are part of section boundary or multipart entry content
+     * 
+     * @return the previous (processed) line terminator bytes, which we're not sure about,
+     * whether they are part of section boundary or multipart entry content
+     */
     int getReservedBytes() {
         return reservedBytes;
     }
 
+    /**
+     * Set the previous (processed) line terminator bytes, which we're not sure about,
+     * whether they are part of section boundary or multipart entry content
+     *
+     * @param reservedBytes the previous (processed) line terminator bytes,
+     * which we're not sure about, whether they are part of section boundary or
+     * multipart entry content
+     */
     void setReservedBytes(int reservedBytes) {
         this.reservedBytes = reservedBytes;
     }
