@@ -388,7 +388,7 @@ public abstract class AbstractTransport implements Transport {
      */
     @Override
     public ThreadPoolConfig getKernelThreadPoolConfig() {
-        return ((isStopped()) ? kernelPoolConfig : kernelPoolConfig.clone());
+        return ((isStopped()) ? kernelPoolConfig : kernelPoolConfig.copy());
     }
 
     /**
@@ -396,7 +396,7 @@ public abstract class AbstractTransport implements Transport {
      */
     @Override
     public ThreadPoolConfig getWorkerThreadPoolConfig() {
-        return ((isStopped()) ? workerPoolConfig : workerPoolConfig.clone());
+        return ((isStopped()) ? workerPoolConfig : workerPoolConfig.copy());
     }
 
     /**

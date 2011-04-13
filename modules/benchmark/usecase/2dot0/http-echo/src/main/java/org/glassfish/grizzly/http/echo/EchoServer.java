@@ -150,7 +150,7 @@ final class EchoServer {
                 ? selectorCount
                 : settings.getWorkerThreads());
         settings.setWorkerThreads(poolSize);
-        final ThreadPoolConfig tpc = ThreadPoolConfig.defaultConfig().clone().
+        final ThreadPoolConfig tpc = ThreadPoolConfig.defaultConfig().copy().
                 setPoolName(POOL_NAME).
                 setCorePoolSize(poolSize).setMaxPoolSize(poolSize);
         tpc.setMemoryManager(transport.getMemoryManager());

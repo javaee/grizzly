@@ -50,7 +50,7 @@ import javax.net.ssl.SSLEngine;
  * 
  * @author Alexey Stashok
  */
-public class SSLEngineConfigurator implements Cloneable {
+public class SSLEngineConfigurator {
     private final Object sync = new Object();
     
     protected volatile SSLContextConfigurator sslContextConfiguration;
@@ -149,6 +149,20 @@ public class SSLEngineConfigurator implements Cloneable {
         this.clientMode = clientMode;
         this.needClientAuth = needClientAuth;
         this.wantClientAuth = wantClientAuth;
+    }
+
+    public SSLEngineConfigurator(SSLEngineConfigurator pattern) {
+        this.sslContextConfiguration = pattern.sslContextConfiguration;
+        this.sslContext = pattern.sslContext;
+        this.clientMode = pattern.clientMode;
+        this.needClientAuth = pattern.needClientAuth;
+        this.wantClientAuth = pattern.wantClientAuth;
+
+        this.enabledCipherSuites = pattern.enabledCipherSuites;
+        this.enabledProtocols = pattern.enabledProtocols;
+
+        this.isCipherConfigured = pattern.isCipherConfigured;
+        this.isProtocolConfigured = pattern.isProtocolConfigured;
     }
 
     protected SSLEngineConfigurator() {
@@ -369,20 +383,6 @@ public class SSLEngineConfigurator implements Cloneable {
         return ciphers;
     }
 
-    private void initializeFrom(SSLEngineConfigurator pattern) {
-        this.sslContextConfiguration = pattern.sslContextConfiguration;
-        this.sslContext = pattern.sslContext;
-        this.clientMode = pattern.clientMode;
-        this.needClientAuth = pattern.needClientAuth;
-        this.wantClientAuth = pattern.wantClientAuth;
-
-        this.enabledCipherSuites = pattern.enabledCipherSuites;
-        this.enabledProtocols = pattern.enabledProtocols;
-
-        this.isCipherConfigured = pattern.isCipherConfigured;
-        this.isProtocolConfigured = pattern.isProtocolConfigured;
-    }
-
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder();
@@ -400,10 +400,7 @@ public class SSLEngineConfigurator implements Cloneable {
         return sb.toString();
     }
 
-    @Override
-    public SSLEngineConfigurator clone() throws CloneNotSupportedException {
-        final SSLEngineConfigurator config = (SSLEngineConfigurator) super.clone();
-        config.initializeFrom(this);
-        return config;
+    public SSLEngineConfigurator copy() {
+        return new SSLEngineConfigurator(this);
     }
 }

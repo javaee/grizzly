@@ -76,7 +76,7 @@ public class SSLEchoServer {
 
         // Initialize and add SSLFilter
         final SSLEngineConfigurator serverConfig = initializeSSL();
-        final SSLEngineConfigurator clientConfig = serverConfig.clone().setClientMode(true);
+        final SSLEngineConfigurator clientConfig = serverConfig.copy().setClientMode(true);
 
         filterChainBuilder.add(new SSLFilter(serverConfig, clientConfig));
 

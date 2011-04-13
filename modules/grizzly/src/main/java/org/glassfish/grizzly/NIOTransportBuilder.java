@@ -95,8 +95,8 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
         transport = transportClass.newInstance();
         final ThreadPoolConfig workerConfig = strategy.createDefaultWorkerPoolConfig(transport);
         final ThreadPoolConfig selectorConfig = configSelectorPool((workerConfig != null)
-                                                   ? workerConfig.clone()
-                                                   : ThreadPoolConfig.defaultConfig().clone());
+                                                   ? workerConfig.copy()
+                                                   : ThreadPoolConfig.defaultConfig().copy());
         transport.setSelectorHandler(SelectorHandler.DEFAULT_SELECTOR_HANDLER);
         transport.setSelectionKeyHandler(SelectionKeyHandler.DEFAULT_SELECTION_KEY_HANDLER);
         transport.setMemoryManager(MemoryManager.DEFAULT_MEMORY_MANAGER);

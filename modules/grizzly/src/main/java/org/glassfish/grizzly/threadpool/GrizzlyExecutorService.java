@@ -87,7 +87,7 @@ public class GrizzlyExecutorService extends AbstractExecutorService
             throw new IllegalArgumentException("config is null");
         }
 
-        cfg = cfg.clone();
+        cfg = cfg.copy();
 
         if (cfg.getMemoryManager() == null) {
             cfg.setMemoryManager(MemoryManager.DEFAULT_MEMORY_MANAGER);
@@ -133,7 +133,7 @@ public class GrizzlyExecutorService extends AbstractExecutorService
      * @return config - {@link ThreadPoolConfig}
      */
     public ThreadPoolConfig getConfiguration() {
-        return config.clone();
+        return config.copy();
     }
 
     @Override

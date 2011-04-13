@@ -111,7 +111,7 @@ public final class SimpleDynamicNIOStrategy implements IOStrategy {
     @Override
     public ThreadPoolConfig createDefaultWorkerPoolConfig(final Transport transport) {
 
-        final ThreadPoolConfig config = ThreadPoolConfig.defaultConfig().clone();
+        final ThreadPoolConfig config = ThreadPoolConfig.defaultConfig().copy();
         final int selectorRunnerCount = ((NIOTransport) transport).getSelectorRunnersCount();
         config.setCorePoolSize(selectorRunnerCount * 2);
         config.setMaxPoolSize(selectorRunnerCount * 2);
