@@ -59,6 +59,8 @@ public class MultipartScanner {
     private static final Logger LOGGER = Grizzly.logger(MultipartScanner.class);
 
     private static final String MULTIPART_CONTENT_TYPE = "multipart/form-data";
+    private static final String MULTIPART_MIXED_CONTENT_TYPE = "multipart/mixed";
+    
     private static final String BOUNDARY_ATTR = "boundary";
     public MultipartScanner() {
     }
@@ -87,7 +89,7 @@ public class MultipartScanner {
 
             if (boundaryNameValue.length != 2 ||
                     !BOUNDARY_ATTR.equals(boundaryNameValue[0].trim())) {
-                throw new IllegalStateException("Not multipart request");
+                throw new IllegalStateException("Boundary not found");
             }
 
             String boundaryValue = boundaryNameValue[1].trim();
@@ -98,6 +100,52 @@ public class MultipartScanner {
             final NIOInputStream nioInputStream = request.getInputStream(false);
 
             nioInputStream.notifyAvailable(new MultipartReadHandler(request,
+                    partHandler, completionHandler, boundaryValue));
+        } catch (Exception e) {
+            if (completionHandler != null) {
+                completionHandler.failed(e);
+            } else {
+                LOGGER.log(Level.WARNING, "Error occurred, but no CompletionHandler installed to handle it", e);
+            }
+        }
+    }
+
+    /**
+     * Initialize the multipart/mixed {@link MultipartEntry} processing.
+     * 
+     * @param multipartMixedEntry the multipart/mixed {@link MultipartEntry}.
+     * @param partHandler the {@link MultipartEntryHandler}, which is responsible
+     * for processing multipart sub-entries.
+     * @param completionHandler {@link CompletionHandler}, which is invoked after
+     * multipart/mixed {@link MultipartEntry} has been processed, or error occurred.
+     */
+    public void scan(final MultipartEntry multipartMixedEntry,
+            final MultipartEntryHandler partHandler,
+            final CompletionHandler<MultipartEntry> completionHandler) {
+        try {
+            final String contentType = multipartMixedEntry.getContentType();
+            final String[] contentTypeParams = contentType.split(";");
+            if (contentTypeParams.length != 2 ||
+                    !MULTIPART_MIXED_CONTENT_TYPE.equals(contentTypeParams[0])) {
+                throw new IllegalStateException("Not multipart/mixed entry");
+            }
+
+            final String boundaryString = contentTypeParams[1].trim();
+            final String[] boundaryNameValue = boundaryString.split("=");
+
+            if (boundaryNameValue.length != 2 ||
+                    !BOUNDARY_ATTR.equals(boundaryNameValue[0].trim())) {
+                throw new IllegalStateException("Boundary not found");
+            }
+
+            String boundaryValue = boundaryNameValue[1].trim();
+            if (boundaryValue.charAt(0) == '"') {
+                boundaryValue = boundaryValue.substring(1, boundaryValue.length() - 1);
+            }
+
+            final NIOInputStream nioInputStream = multipartMixedEntry.getNIOInputStream();
+
+            nioInputStream.notifyAvailable(new MultipartReadHandler(multipartMixedEntry,
                     partHandler, completionHandler, boundaryValue));
         } catch (Exception e) {
             if (completionHandler != null) {

@@ -56,7 +56,7 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
 
 //    private final ReadHandler parentReadHandler;
     private final MultipartEntry multipartEntry;
-    private NIOInputStream requestNIOInputStream;
+    private NIOInputStream parentNIOInputStream;
 
     private int requestedSize;
     private ReadHandler handler;
@@ -66,7 +66,7 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
 
     /**
      * Constructs a new <code>NIOInputStream</code> using the specified
-     * {@link #requestNIOInputStream}
+     * {@link #parentNIOInputStream}
      * @param multipartEntry {@link MultipartEntry} the {@link NIOInputStream
      * belongs to.
      */
@@ -80,11 +80,11 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
     }
 
     /**
-     * @param requestNIOInputStream the {@link Request} {@link NIOInputStream}
+     * @param parentNIOInputStream the {@link Request} {@link NIOInputStream}
      * from which binary content will be supplied
      */
-    protected void initialize(final NIOInputStream requestNIOInputStream) {
-        this.requestNIOInputStream = requestNIOInputStream;
+    protected void initialize(final NIOInputStream parentNIOInputStream) {
+        this.parentNIOInputStream = parentNIOInputStream;
     }
     
     // ------------------------------------------------ Methods from InputStream
@@ -105,7 +105,7 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
         multipartEntry.addAvailableBytes(-1);
 //        available--;
         
-        return requestNIOInputStream.read();
+        return parentNIOInputStream.read();
     }
 
     /**
@@ -126,7 +126,7 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
         multipartEntry.addAvailableBytes(-nlen);
 //        available -= nlen;
         
-        return requestNIOInputStream.read(b, off, nlen);
+        return parentNIOInputStream.read(b, off, nlen);
         
     }
 
@@ -145,7 +145,7 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
         multipartEntry.addAvailableBytes((int) -n);
 //        available-= n;
 
-        return requestNIOInputStream.skip(n);
+        return parentNIOInputStream.skip(n);
     }
 
     /**
@@ -166,14 +166,14 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
      * {@inheritDoc}
      */
     @Override public void mark(final int readlimit) {
-        requestNIOInputStream.mark(readlimit);
+        parentNIOInputStream.mark(readlimit);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override public void reset() throws IOException {
-        requestNIOInputStream.reset();
+        parentNIOInputStream.reset();
     }
 
     /**
@@ -182,7 +182,7 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
      * @return <code>true</code>
      */
     @Override public boolean markSupported() {
-        return requestNIOInputStream.markSupported();
+        return parentNIOInputStream.markSupported();
     }
 
 
@@ -211,7 +211,7 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
                     handler.onError(ioe);
                 } finally {
                     try {
-                        requestNIOInputStream.close();
+                        parentNIOInputStream.close();
                     } catch (IOException e) {
                     }
                 }
@@ -228,7 +228,7 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
                     handler.onError(ioe);
                 } finally {
                     try {
-                        requestNIOInputStream.close();
+                        parentNIOInputStream.close();
                     } catch (IOException e) {
                     }
                 }
@@ -272,11 +272,11 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
      */
     @Override
     public Buffer getBuffer() {
-        return requestNIOInputStream.getBuffer();
+        return parentNIOInputStream.getBuffer();
     }
 
     protected void recycle() {
-        requestNIOInputStream = null;
+        parentNIOInputStream = null;
         handler = null;
         isClosed = false;
         requestedSize = 0;
@@ -299,7 +299,7 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
                 handler.onError(e);
             } finally {
                 try {
-                    requestNIOInputStream.close();
+                    parentNIOInputStream.close();
                 } catch (IOException ee) {
                 }
             }

@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.http.multipart;
 
+import org.glassfish.grizzly.utils.DelayFilter;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.Response;
@@ -136,6 +137,44 @@ public class MutlipartEntryInputStreamTest {
                 new Task(multipartPacket2, new StringChecker("threefour")));
     }
 
+    @Test
+    public void testMultipartMixedEcho() throws Exception {
+        MultipartEntryPacket entry11 = MultipartEntryPacket.builder()
+                .contentDisposition("form-data; name=\"one\"")
+                .content("one")
+                .build();
+
+        MultipartEntryPacket entry121 = MultipartEntryPacket.builder()
+                .contentDisposition("form-data; name=\"two-one\"")
+                .content("two-one")
+                .build();
+        MultipartEntryPacket entry122 = MultipartEntryPacket.builder()
+                .contentDisposition("form-data; name=\"two-two\"")
+                .content("two-two")
+                .build();
+        MultipartEntryPacket entry123 = MultipartEntryPacket.builder()
+                .contentDisposition("form-data; name=\"two-three\"")
+                .content("two-three")
+                .build();
+
+        MultipartEntryPacket entry12 = createMultipartMixedPacket(
+                "---------------------------103832778631716", "preamble2", "epilogue2",
+                entry121, entry122, entry123);
+
+
+        MultipartEntryPacket entry13 = MultipartEntryPacket.builder()
+                .contentDisposition("form-data; name=\"two\"")
+                .content("three")
+                .build();
+
+        final HttpPacket multipartPacket1 = createMultipartPacket(
+                "---------------------------103832778631715", "preamble", "epilogue",
+                entry11, entry12, entry13);
+
+
+        doEchoTest(new Task(multipartPacket1, new StringChecker("onetwo-onetwo-twotwo-threethree")));
+    }
+
     private void doEchoTest(Task... tasks) throws Exception {
         final HttpServer httpServer = createServer("0.0.0.0", PORT);
 
@@ -149,17 +188,11 @@ public class MutlipartEntryInputStreamTest {
                         throws Exception {
                     response.suspend();
 
-                    MultipartScanner scanner = new MultipartScanner();
+                    final MultipartScanner scanner = new MultipartScanner();
 
-                    scanner.scan(request, new MultipartEntryHandler() {
-                        @Override
-                        public void handle(MultipartEntry part) throws Exception {
-                            final NIOInputStream nioInputStream = part.getNIOInputStream();
-                            nioInputStream.notifyAvailable(
-                                    new EchoReadHandler(nioInputStream,
-                                    response.getOutputStream()));
-                        }
-                    }, new ResumeCompletionHandler(response));
+                    scanner.scan(request, new TestMultipartEntryHandler(scanner,
+                            response.getOutputStream()),
+                            new ResumeCompletionHandler(response));
                 }
             }, "/");
 
@@ -173,7 +206,7 @@ public class MutlipartEntryInputStreamTest {
                 final Future<HttpPacket> responsePacketFuture =
                         httpClient.get(request);
                 final HttpPacket responsePacket =
-                        responsePacketFuture.get(10, TimeUnit.SECONDS);
+                        responsePacketFuture.get(1000, TimeUnit.SECONDS);
 
                 assertTrue(HttpContent.isContent(responsePacket));
 
@@ -186,8 +219,26 @@ public class MutlipartEntryInputStreamTest {
         }
     }
 
-    private HttpPacket createMultipartPacket(String boundary, String preamble,
+    private MultipartEntryPacket createMultipartMixedPacket(String boundary, String preamble,
             String epilogue, MultipartEntryPacket... entries) {
+        MultipartPacketBuilder mpb = MultipartPacketBuilder.builder(boundary);
+        mpb.preamble(preamble).epilogue(epilogue);
+
+        for (MultipartEntryPacket entry : entries) {
+            mpb.addMultipartEntry(entry);
+        }
+
+        final Buffer bodyBuffer = mpb.build();
+
+        return MultipartEntryPacket.builder()
+                .contentType("multipart/mixed; boundary=" + boundary)
+                .content(bodyBuffer)
+                .build();
+    }
+
+    private HttpPacket createMultipartPacket(String boundary,
+            String preamble, String epilogue, MultipartEntryPacket... entries) {
+        
         MultipartPacketBuilder mpb = MultipartPacketBuilder.builder(boundary);
         mpb.preamble(preamble).epilogue(epilogue);
 
@@ -213,6 +264,36 @@ public class MutlipartEntryInputStreamTest {
         return request;
     }
 
+
+    class TestMultipartEntryHandler extends MultipartEntryHandler {
+
+        final MultipartScanner scanner;
+        final NIOOutputStream outputStream;
+
+        public TestMultipartEntryHandler(final MultipartScanner scanner,
+                final NIOOutputStream outputStream) {
+            this.scanner = scanner;
+            this.outputStream = outputStream;
+        }
+
+        @Override
+        public void handle(MultipartEntry part) throws Exception {
+            final boolean isMultipartMixed = part.getContentType() != null
+                    && part.getContentType().startsWith("multipart/mixed");
+
+            if (!isMultipartMixed) {
+                final NIOInputStream nioInputStream = part.getNIOInputStream();
+                nioInputStream.notifyAvailable(
+                        new EchoReadHandler(nioInputStream,
+                        outputStream));
+            } else {
+                scanner.scan(part,
+                        new TestMultipartEntryHandler(scanner, outputStream),
+                        null);
+            }
+        }
+    }
+
     private static class HttpClient {
         private final TCPNIOTransport transport;
         private final int chunkSize;
@@ -234,6 +315,7 @@ public class MutlipartEntryInputStreamTest {
             filterChainBuilder.add(new TransportFilter());
 
             if (chunkSize > 0) {
+                filterChainBuilder.add(new DelayFilter(0, 5));
                 filterChainBuilder.add(new ChunkingFilter(chunkSize));
             }
 

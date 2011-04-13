@@ -61,34 +61,59 @@ import org.glassfish.grizzly.http.util.Constants;
 public class MultipartReadHandler implements ReadHandler {
 
     private enum State {
-        EPILOGUE, PARSE_MULTIPART_ENTRY_HEADERS, START_BODY, BODY, RESET;
+        PREAMBLE, PARSE_MULTIPART_ENTRY_HEADERS, START_BODY, BODY, RESET
     }
 
     private final Request request;
-    private final NIOInputStream requestInputStream;
+    private final CompletionHandler<Request> requestCompletionHandler;
     
-    private final MultipartEntryHandler mutlipartHandler;
-    private final CompletionHandler<Request> completionHandler;
+    private final MultipartEntry multipartMixedEntry;
+    private final CompletionHandler<MultipartEntry> multipartMixedCompletionHandler;
+
+    private final NIOInputStream parentInputStream;
+    
+    private final MultipartEntryHandler multipartHandler;
     private final String boundary;
 
     private final Line line = new Line();
 
-    private final MultipartEntry multipartEntry = new MultipartEntry(this);
+    private final MultipartEntry multipartEntry = new MultipartEntry();
     
-    private State state = State.EPILOGUE;
+    private State state = State.PREAMBLE;
 
     private boolean isFinished;
+
+    private boolean isMultipartMixed;
     
     public MultipartReadHandler(final Request request,
             final MultipartEntryHandler multipartHandler,
             final CompletionHandler<Request> completionHandler,
             final String boundary) {
         this.request = request;
-        this.mutlipartHandler = multipartHandler;
-        this.completionHandler = completionHandler;
+        this.multipartHandler = multipartHandler;
+        this.requestCompletionHandler = completionHandler;
         this.boundary = boundary;
 
-        this.requestInputStream = request.getInputStream(false);
+        this.parentInputStream = request.getInputStream(false);
+
+        multipartMixedCompletionHandler = null;
+        multipartMixedEntry = null;
+    }
+
+    public MultipartReadHandler(final MultipartEntry parentMultipartEntry,
+            final MultipartEntryHandler multipartHandler,
+            final CompletionHandler<MultipartEntry> completionHandler,
+            final String boundary) {
+        this.multipartMixedEntry = parentMultipartEntry;
+        this.multipartHandler = multipartHandler;
+        this.multipartMixedCompletionHandler = completionHandler;
+        this.boundary = boundary;
+
+        this.parentInputStream = parentMultipartEntry.getNIOInputStream();
+
+        request = null;
+        requestCompletionHandler = null;
+        isMultipartMixed = true;
     }
 
     @Override
@@ -97,7 +122,7 @@ public class MultipartReadHandler implements ReadHandler {
             final int totalBytesAvailable =  multipartEntry.getReservedBytes() +
                     multipartEntry.availableBytes() + line.len;
 
-            requestInputStream.notifyAvailable(this, totalBytesAvailable + 1);
+            parentInputStream.notifyAvailable(this, totalBytesAvailable + 1);
         } else {
             checkComplete();
         }
@@ -111,16 +136,33 @@ public class MultipartReadHandler implements ReadHandler {
 
     private void checkComplete() {
         if (isFinished) {
-            final CompletionHandler<Request> localCompletionHandler = completionHandler;
-            if (localCompletionHandler != null) {
-                localCompletionHandler.completed(request);
+            if (isMultipartMixed) {
+                checkMultipartMixedComplete(multipartMixedCompletionHandler);
+            } else {
+                checkRequestComplete(requestCompletionHandler);
             }
+        }
+    }
+
+    private void checkMultipartMixedComplete(
+            final CompletionHandler<MultipartEntry> multipartMixedCompletionHandler) {
+        
+        if (multipartMixedCompletionHandler != null) {
+            multipartMixedCompletionHandler.completed(multipartMixedEntry);
+        }
+    }
+
+    private void checkRequestComplete(
+            final CompletionHandler<Request> requestCompletionHandler) {
+
+        if (requestCompletionHandler != null) {
+            requestCompletionHandler.completed(request);
         }
     }
 
     @Override
     public void onError(Throwable t) {
-        final CompletionHandler<Request> localCompletionHandler = completionHandler;
+        final CompletionHandler<Request> localCompletionHandler = requestCompletionHandler;
         if (localCompletionHandler != null) {
             localCompletionHandler.failed(t);
         }
@@ -131,9 +173,9 @@ public class MultipartReadHandler implements ReadHandler {
     private boolean process() throws Exception {
         do {
             switch(state) {
-                case EPILOGUE:
+                case PREAMBLE:
                 {
-                    if (!skipEpilogie()) {
+                    if (!skipPreamble()) {
                         return false;
                     }
 
@@ -155,7 +197,7 @@ public class MultipartReadHandler implements ReadHandler {
                 {
                     state = State.BODY;
 //                    feedMultipartEntry();
-                    mutlipartHandler.handle(multipartEntry);
+                    multipartHandler.handle(multipartEntry);
 
 //                    if (!multipartEntry.isFinished()) {
 //                        return false;
@@ -190,6 +232,7 @@ public class MultipartReadHandler implements ReadHandler {
         } while (true);
     }
 
+    @SuppressWarnings({"ResultOfMethodCallIgnored"})
     private void feedMultipartEntry() {
 //        int available = 0;
         boolean isComplete;
@@ -211,7 +254,7 @@ public class MultipartReadHandler implements ReadHandler {
                     try {
                         // Skip the boundary + all the leftovers from the prev.
                         // multipart entry
-                        requestInputStream.skip(multipartEntry.availableBytes()
+                        parentInputStream.skip(multipartEntry.availableBytes()
                                 + multipartEntry.getReservedBytes() + line.len);
                     } catch (IOException ignored) {
                         // should never happen
@@ -247,7 +290,7 @@ public class MultipartReadHandler implements ReadHandler {
         multipartEntry.onDataReceived();
     }
 
-    private boolean skipEpilogie() {
+    private boolean skipPreamble() {
         do {
             readLine();
             if (!line.isComplete) {
@@ -295,7 +338,11 @@ public class MultipartReadHandler implements ReadHandler {
     private void finishHeadersParsing() {
         state = State.START_BODY;
 
-        multipartEntry.initialize(request);
+        if (isMultipartMixed) {
+            multipartEntry.initialize(multipartMixedEntry.getNIOInputStream());
+        } else {
+            multipartEntry.initialize(request.getInputStream(false));
+        }
         
         final String contentType = multipartEntry.getHeader("content-type");
         if (contentType != null) {
@@ -309,7 +356,7 @@ public class MultipartReadHandler implements ReadHandler {
     }
 
     private void setHeader() {
-        final Buffer buffer = requestInputStream.getBuffer();
+        final Buffer buffer = parentInputStream.getBuffer();
         final int position = buffer.position();
         final int contentLength = line.len - line.getLineTerminatorLength();
 
@@ -333,10 +380,11 @@ public class MultipartReadHandler implements ReadHandler {
     }
 
     void readLine() {
-        final Buffer buffer = requestInputStream.getBuffer();
+        final Buffer buffer = parentInputStream.getBuffer();
 
         final int position = buffer.position() + line.offset;
-        final int limit = buffer.limit();
+//        final int limit = buffer.limit();
+        final int limit = buffer.position() + parentInputStream.readyData();
         int offset = position + line.len;
 
         while(offset < limit) {
@@ -426,10 +474,6 @@ public class MultipartReadHandler implements ReadHandler {
             return isBoundary || parseBoundary();
         }
 
-        private boolean isFinalBoundary() {
-            return isFinalBoundary || (parseBoundary() && isFinalBoundary);
-        }
-
         private boolean parseBoundary() {
             final int lineTerminatorLength = getLineTerminatorLength();
             final int boundaryLength = boundary.length();
@@ -440,7 +484,7 @@ public class MultipartReadHandler implements ReadHandler {
                 return false;
             }
 
-            final Buffer buffer = requestInputStream.getBuffer();
+            final Buffer buffer = parentInputStream.getBuffer();
             final int position = buffer.position() + offset;
 
             // if we called couldBeBoundary() for the incomplete boundary line - let's reuse its findings
@@ -480,7 +524,7 @@ public class MultipartReadHandler implements ReadHandler {
                 return false;
             }
             
-            final Buffer buffer = requestInputStream.getBuffer();
+            final Buffer buffer = parentInputStream.getBuffer();
             final int position = buffer.position();
 
             for (; couldBeBoundaryOffset < 2 && couldBeBoundaryOffset < len; couldBeBoundaryOffset++) {
@@ -503,9 +547,10 @@ public class MultipartReadHandler implements ReadHandler {
             return 1 + (isCrLf ? 1 : 0);
         }
 
+        @SuppressWarnings({"ResultOfMethodCallIgnored"})
         private void skip() {
             try {
-                requestInputStream.skip(line.len);
+                parentInputStream.skip(line.len);
             } catch (IOException ignored) {
                 // shouldn't get here
             }
@@ -515,7 +560,7 @@ public class MultipartReadHandler implements ReadHandler {
         public String toString() {
             final StringBuilder sb = new StringBuilder();
             if (len > 0) {
-                final Buffer buffer = requestInputStream.getBuffer();
+                final Buffer buffer = parentInputStream.getBuffer();
                 final int start = buffer.position() + offset;
                 
                 sb.append(buffer.toStringContent(null, start, start + len));
