@@ -108,7 +108,7 @@ public class Encoder {
     static final int kDefaultDictionaryLogSize = 22;
     static final int kNumFastBytesDefault = 0x20;
 
-    class LiteralEncoder {
+    static class LiteralEncoder {
 
         class Encoder2 {
 
@@ -298,7 +298,7 @@ public class Encoder {
     }
     static final int kNumOpts = 1 << 12;
 
-    class Optimal {
+    static class Optimal {
 
         public int State;
         public boolean Prev1IsChar;
@@ -1203,7 +1203,7 @@ public class Encoder {
     long[] processedOutSize = new long[1];
     boolean[] finished = new boolean[1];
 
-    public void Code(LZMAEncoder.LZMAOutputState state, long inSize, long outSize) throws IOException {
+    public void code(LZMAEncoder.LZMAOutputState state, long inSize, long outSize) throws IOException {
         _needReleaseMFStream = false;
         try {
             setStreams(state.getSrc(), state.getDst(), state.getMemoryManager(), inSize, outSize);

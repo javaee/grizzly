@@ -557,6 +557,23 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
             disposeStackTrace = null;
         }
 
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            if (!super.equals(o)) return false;
+
+            TrimmableHeapBuffer that = (TrimmableHeapBuffer) o;
+
+            return !(mm != null ? !mm.equals(that.mm) : that.mm != null);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = super.hashCode();
+            result = 31 * result + (mm != null ? mm.hashCode() : 0);
+            return result;
+        }
 
     } // END TrimAwareWrapper
 

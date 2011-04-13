@@ -359,9 +359,6 @@ public class BinTree extends InWindow {
         reduceOffsets(subValue);
     }
 
-    public void SsetCutValue(int cutValue) {
-        _cutValue = cutValue;
-    }
     private static final int[] CrcTable = new int[256];
 
     static {

@@ -127,7 +127,7 @@ public class SSLStreamWriter extends TransformerStreamWriter {
         }
     }
 
-    protected class SSLHandshakeCondition implements Condition {
+    protected static class SSLHandshakeCondition implements Condition {
 
         private final SSLEngineConfigurator configurator;
         private final Connection connection;

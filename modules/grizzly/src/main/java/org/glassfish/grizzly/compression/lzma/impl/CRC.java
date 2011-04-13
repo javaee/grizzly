@@ -47,7 +47,7 @@ package org.glassfish.grizzly.compression.lzma.impl;
  */
 public class CRC {
 
-    static public int[] Table = new int[256];
+    static final int[] TABLE = new int[256];
 
     static {
         for (int i = 0; i < 256; i++) {
@@ -59,7 +59,7 @@ public class CRC {
                     r >>>= 1;
                 }
             }
-            Table[i] = r;
+            TABLE[i] = r;
         }
     }
     int _value = -1;
@@ -70,19 +70,19 @@ public class CRC {
 
     public void update(byte[] data, int offset, int size) {
         for (int i = 0; i < size; i++) {
-            _value = Table[(_value ^ data[offset + i]) & 0xFF] ^ (_value >>> 8);
+            _value = TABLE[(_value ^ data[offset + i]) & 0xFF] ^ (_value >>> 8);
         }
     }
 
     public void update(byte[] data) {
         int size = data.length;
         for (int i = 0; i < size; i++) {
-            _value = Table[(_value ^ data[i]) & 0xFF] ^ (_value >>> 8);
+            _value = TABLE[(_value ^ data[i]) & 0xFF] ^ (_value >>> 8);
         }
     }
 
     public void updateByte(int b) {
-        _value = Table[(_value ^ b) & 0xFF] ^ (_value >>> 8);
+        _value = TABLE[(_value ^ b) & 0xFF] ^ (_value >>> 8);
     }
 
     public int getDigest() {

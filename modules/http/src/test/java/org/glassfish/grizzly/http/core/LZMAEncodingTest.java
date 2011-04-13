@@ -72,7 +72,6 @@ import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.ChunkingFilter;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -593,7 +592,7 @@ public class LZMAEncodingTest {
         encoder.setLcLpPb(props.getLc(), props.getLp(), props.getPb());
         encoder.setEndMarkerMode(true);
         encoder.writeCoderProperties(out);
-        encoder.Code(state, -1, -1);
+        encoder.code(state, -1, -1);
         out = state.getDst();
         state.recycle();
         out.trim();

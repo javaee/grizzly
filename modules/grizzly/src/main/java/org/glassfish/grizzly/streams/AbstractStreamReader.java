@@ -89,11 +89,6 @@ public abstract class AbstractStreamReader implements StreamReader {
         LOGGER.info("READERSTREAM:DEBUG:" + msg);
     }
 
-    private static void msg(final Exception exc) {
-        msg("Exception:" + exc);
-        exc.printStackTrace();
-    }
-
     private static void displayBuffer(final String str,
             final Buffer wrapper) {
         msg(str);

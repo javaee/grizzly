@@ -147,7 +147,7 @@ public class Decoder {
         }
     }
 
-    public class LiteralDecoder {
+    public static class LiteralDecoder {
 
         public class Decoder2 {
 

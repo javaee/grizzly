@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -305,6 +305,7 @@ public class SSLContextConfigurator {
         boolean valid = true;
 
         if (keyStoreFile != null) {
+            InputStream keyStoreInputStream = null;
             try {
                 KeyStore keyStore;
                 if (keyStoreProvider != null) {
@@ -316,14 +317,12 @@ public class SSLContextConfigurator {
                             .getInstance(keyStoreType != null ? keyStoreType
                                     : KeyStore.getDefaultType());
                 }
-                InputStream keyStoreInputStream = null;
+
                 if (!keyStoreFile.equals("NONE")) {
                     keyStoreInputStream = new FileInputStream(keyStoreFile);
                 }
                 keyStore.load(keyStoreInputStream, keyStorePass);
-                if (keyStoreInputStream != null) {
-                    keyStoreInputStream.close();
-                }
+
 
                 String kmfAlgorithm = keyManagerFactoryAlgorithm;
                 if (kmfAlgorithm == null) {
@@ -360,12 +359,20 @@ public class SSLContextConfigurator {
                 LOGGER.log(Level.FINE,
                         "Error initializing key store (no such provider)", e);
                 valid = false;
+            } finally {
+                if (keyStoreInputStream != null) {
+                    try {
+                        keyStoreInputStream.close();
+                    } catch (IOException ignored) {
+                    }
+                }
             }
         } else {
             valid &= !needsKeyStore;
         }
 
         if (trustStoreFile != null) {
+            InputStream trustStoreInputStream = null;
             try {
                 KeyStore trustStore;
                 if (trustStoreProvider != null) {
@@ -377,7 +384,7 @@ public class SSLContextConfigurator {
                             .getInstance(trustStoreType != null ? trustStoreType
                                     : KeyStore.getDefaultType());
                 }
-                InputStream trustStoreInputStream = null;
+
                 if (!trustStoreFile.equals("NONE")) {
                     trustStoreInputStream = new FileInputStream(trustStoreFile);
                 }
@@ -421,6 +428,13 @@ public class SSLContextConfigurator {
                 LOGGER.log(Level.FINE,
                         "Error initializing trust store (no such provider)", e);
                 valid = false;
+            } finally {
+                if (trustStoreInputStream != null) {
+                    try {
+                        trustStoreInputStream.close();
+                    } catch (IOException ignored) {
+                    }
+                }
             }
         }
         return valid;

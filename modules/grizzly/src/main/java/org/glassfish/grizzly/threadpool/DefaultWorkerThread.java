@@ -64,8 +64,6 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
     private long transactionTimeoutMillis =
             WorkerThread.UNLIMITED_TRANSACTION_TIMEOUT;
 
-    private long transactionStartedTimeMillis;
-
     private boolean isSelectorThread;
 
     public DefaultWorkerThread(AttributeBuilder attrBuilder,
@@ -110,18 +108,6 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
     public void setTransactionTimeout(long timeout, TimeUnit timeunit) {
         this.transactionTimeoutMillis =
                 TimeUnit.MILLISECONDS.convert(timeout, timeunit);
-    }
-
-    public long getTransactionStartedTime(TimeUnit timeunit) {
-        return timeunit.convert(transactionTimeoutMillis, TimeUnit.MILLISECONDS);
-    }
-
-    protected void onBeforeRun() {
-        transactionStartedTimeMillis = System.currentTimeMillis();
-    }
-    
-    protected void onAfterRun() {
-        transactionStartedTimeMillis = 0;
     }
     
     @Override

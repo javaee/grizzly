@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -87,12 +87,4 @@ public interface IOEventMask {
         }
     };
     
-    public static final IOEventMask SERVER_EVENTS_MASK =
-            ImmutableIOEventMask.getImmutable(
-            new ArrayIOEventMask(IOEvent.SERVER_ACCEPT));
-
-    public static final IOEventMask CLIENT_EVENTS_MASK =
-            ImmutableIOEventMask.getImmutable(new ArrayIOEventMask(
-            IOEvent.ACCEPTED, IOEvent.CONNECTED, IOEvent.READ, IOEvent.WRITE,
-            IOEvent.CLOSED));
 }
