@@ -452,7 +452,9 @@ public abstract class HttpHeader extends HttpPacket
      */
     public boolean isContentTypeSet() {
 
-        return (contentType != null || headers.getValue("content-type") != null);
+        return (contentType != null
+                    || characterEncoding != null
+                    || headers.getValue("content-type") != null);
 
     }
 
