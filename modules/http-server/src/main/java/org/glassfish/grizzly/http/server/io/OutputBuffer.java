@@ -683,6 +683,9 @@ public class OutputBuffer {
     private static void updateBufferPosition(final Buffer buffer,
             final ByteBuffer byteBuffer, final int oldByteBufferPos) {
         final int newPos = byteBuffer.position();
+        if (newPos == buffer.position()) {
+            return;
+        }
         buffer.position(buffer.position() + newPos - oldByteBufferPos);
     }
 }
