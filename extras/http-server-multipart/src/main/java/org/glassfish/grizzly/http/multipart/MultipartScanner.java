@@ -62,9 +62,7 @@ public class MultipartScanner {
     static final String MULTIPART_MIXED_CONTENT_TYPE = "multipart/mixed";
     
     private static final String BOUNDARY_ATTR = "boundary";
-    public MultipartScanner() {
-    }
-
+    
     /**
      * Initialize the multipart HTTP request processing.
      * 
@@ -74,7 +72,8 @@ public class MultipartScanner {
      * @param completionHandler {@link CompletionHandler}, which is invoked after
      * multipart Request has been processed, or error occurred.
      */
-    public void scan(final Request request, final MultipartEntryHandler partHandler,
+    public static void scan(final Request request,
+            final MultipartEntryHandler partHandler,
             final CompletionHandler<Request> completionHandler) {
         try {
             final String contentType = request.getContentType();
@@ -119,7 +118,7 @@ public class MultipartScanner {
      * @param completionHandler {@link CompletionHandler}, which is invoked after
      * multipart/mixed {@link MultipartEntry} has been processed, or error occurred.
      */
-    public void scan(final MultipartEntry multipartMixedEntry,
+    public static void scan(final MultipartEntry multipartMixedEntry,
             final MultipartEntryHandler partHandler,
             final CompletionHandler<MultipartEntry> completionHandler) {
         try {
