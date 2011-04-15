@@ -654,38 +654,31 @@ public class OutputBuffer {
         final CharsetEncoder enc = getEncoder();
         checkCurrentBuffer();
         ByteBuffer currentByteBuffer = currentBuffer.toByteBuffer();
-        int pos = currentByteBuffer.position();
+        int bufferPos = currentBuffer.position();
+        int byteBufferPos = currentByteBuffer.position();
 
         CoderResult res = enc.encode(charBuf,
                                      currentByteBuffer,
                                      true);
 
-        updateBufferPosition(currentBuffer, currentByteBuffer, pos);
+        currentBuffer.position(bufferPos + (currentByteBuffer.position() - byteBufferPos));
         
         while (res == CoderResult.OVERFLOW) {
             final boolean isJustCommitted = doCommit();
             writeContentChunk(!isJustCommitted, false);
             checkCurrentBuffer();
             currentByteBuffer = currentBuffer.toByteBuffer();
-            pos = currentByteBuffer.position();
+            bufferPos = currentBuffer.position();
+            byteBufferPos = currentByteBuffer.position();
             
             res = enc.encode(charBuf, currentByteBuffer, true);
 
-            updateBufferPosition(currentBuffer, currentByteBuffer, pos);
+            currentBuffer.position(bufferPos + (currentByteBuffer.position() - byteBufferPos));
         }
 
         if (res != CoderResult.UNDERFLOW) {
             throw new IOException("Encoding error");
         }
 
-    }
-
-    private static void updateBufferPosition(final Buffer buffer,
-            final ByteBuffer byteBuffer, final int oldByteBufferPos) {
-        final int newPos = byteBuffer.position();
-        if (newPos == buffer.position()) {
-            return;
-        }
-        buffer.position(buffer.position() + newPos - oldByteBufferPos);
     }
 }
