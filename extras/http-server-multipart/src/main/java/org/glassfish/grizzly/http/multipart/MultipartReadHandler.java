@@ -351,7 +351,8 @@ public class MultipartReadHandler implements ReadHandler {
 
         final String contentDisposition = multipartEntry.getHeader("content-disposition");
         if (contentDisposition != null) {
-            multipartEntry.setContentDisposition(contentDisposition);
+            multipartEntry.setContentDisposition(
+                    new ContentDisposition(contentDisposition));
         }
     }
 

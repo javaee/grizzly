@@ -75,7 +75,7 @@ public class MultipartEntry {
     private final Map<String, String> headers = new HashMap<String, String>();
 
     private String contentType = DEFAULT_CONTENT_TYPE;
-    private String contentDisposition;
+    private ContentDisposition contentDisposition;
 
     private int availableBytes;
 
@@ -176,11 +176,11 @@ public class MultipartEntry {
      * Get the multipart entry content-disposition.
      * @return the multipart entry content-disposition.
      */
-    public String getContentDisposition() {
+    public ContentDisposition getContentDisposition() {
         return contentDisposition;
     }
 
-    void setContentDisposition(final String contentDisposition) {
+    void setContentDisposition(final ContentDisposition contentDisposition) {
         this.contentDisposition = contentDisposition;
     }
 
