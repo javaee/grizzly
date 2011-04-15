@@ -74,14 +74,14 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
     /**
      * The list of {@link HttpHandler} instance.
      */
-    private ConcurrentHashMap<HttpHandler, String[]> handlers =
+    private final ConcurrentHashMap<HttpHandler, String[]> handlers =
             new ConcurrentHashMap<HttpHandler, String[]>();
-    private ConcurrentHashMap<HttpHandler, JmxObject> monitors =
+    private final ConcurrentHashMap<HttpHandler, JmxObject> monitors =
             new ConcurrentHashMap<HttpHandler, JmxObject>();
     /**
      * Internal {@link Mapper} used to Map request to their associated {@link HttpHandler}
      */
-    private Mapper mapper;
+    private final Mapper mapper;
     /**
      * The default host.
      */
@@ -261,7 +261,7 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
         if (monitors.putIfAbsent(httpHandler, jmx) == null) {
             httpServer.jmxManager.register(httpServer.managementObject, jmx,
                     jmx.getJmxName());
-    }
+        }
     }
 
     private void deregisterJmxForHandler(final HttpHandler httpHandler) {
