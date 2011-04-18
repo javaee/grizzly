@@ -600,6 +600,17 @@ public abstract class HttpRequestPacket extends HttpHeader {
         attributes.remove(name);
     }
 
+    /**
+     * Returns <code>true</code> if this request is a <code>HEAD</code>
+     *  request, otherwise returns <code>false</code>.
+     *
+     * @return <code>true</code> if this request is a <code>HEAD</code>
+     *  request, otherwise returns <code>false</code>.
+     */
+    public boolean isHeadRequest() {
+        return (Method.HEAD.equals(getMethod()));
+    }
+
     // -------------------- Recycling --------------------
 
     /**

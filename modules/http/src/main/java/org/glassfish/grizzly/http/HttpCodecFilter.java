@@ -647,7 +647,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         }
 
         
-        if (!isHeader) {
+        if (!isHeader && httpHeader.isExpectContent()) {
             final HttpContent encodedHttpContent;
 
             HttpProbeNotifier.notifyContentChunkSerialize(this, connection, httpContent);
@@ -1175,7 +1175,8 @@ public abstract class HttpCodecFilter extends BaseFilter
     final HttpContent decodeContent(final FilterChainContext ctx,
                                     HttpContent httpContent) {
 
-        if (!httpContent.getContent().hasRemaining()) {
+        if (!httpContent.getContent().hasRemaining()
+                || isResponseToHeadRequest(httpContent.getHttpHeader())) {
             httpContent.recycle();
             return null;
         }
@@ -1451,13 +1452,19 @@ public abstract class HttpCodecFilter extends BaseFilter
         return monitoringConfig;
     }
 
-
     protected JmxObject createJmxManagementObject() {
         return new org.glassfish.grizzly.http.jmx.HttpCodecFilter(this);
     }
 
+    private boolean isResponseToHeadRequest(HttpHeader header) {
+        if (header.isRequest()) {
+            return false;
+        } else {
+            HttpRequestPacket request = ((HttpResponsePacket) header).getRequest();
+            return request.isHeadRequest();
+        }
+    }
 
-    
     protected static final class ContentParsingState {
         public boolean isLastChunk;
         public int chunkContentStart = -1;

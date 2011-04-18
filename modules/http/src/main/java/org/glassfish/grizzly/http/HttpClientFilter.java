@@ -50,6 +50,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
 import java.io.IOException;
 import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.Constants;
+
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 
 /**
@@ -163,10 +164,12 @@ public class HttpClientFilter extends HttpCodecFilter {
     protected boolean onHttpHeaderParsed(final HttpHeader httpHeader, final Buffer buffer,
             final FilterChainContext ctx) {
         final HttpResponsePacketImpl response = (HttpResponsePacketImpl) httpHeader;
+        final HttpRequestPacket request = response.getRequest();
         final int statusCode = response.getStatus();
 
         if ((statusCode == 204) || (statusCode == 205)
-                || (statusCode == 304)) {
+                || (statusCode == 304)
+                || ((request != null) && request.isHeadRequest())) {
             // No entity body
             response.setExpectContent(false);
         }
