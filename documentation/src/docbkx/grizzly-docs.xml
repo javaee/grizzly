@@ -65,6 +65,8 @@
 
   <xi:include href="content/httpserverframework.xml" xpointer="element(/1)" />
 
+  <xi:include href="content/comet.xml" xpointer="element(/1)" />
+
   <xi:include href="content/portunification.xml" xpointer="element(/1)" />
 
   <xi:include href="content/ajp.xml" xpointer="element(/1)" />
