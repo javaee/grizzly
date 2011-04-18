@@ -144,7 +144,7 @@
     <itemizedlist>
       <listitem>
         <para><link
-        xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-framework/2.0/grizzly-framework-2.0.jar">grizzly-framework.jar</link></para>
+        xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-framework/2.0.1/grizzly-framework-2.0.1.jar">grizzly-framework.jar</link></para>
       </listitem>
 
       <listitem>
@@ -169,7 +169,7 @@
     linkend="core-dep">Core framework</link>, require:<itemizedlist>
         <listitem>
           <para><link
-          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-http/2.0/grizzly-http-2.0.jar">grizzly-http.jar</link></para>
+          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-http/2.0.1/grizzly-http-2.0.1.jar">grizzly-http.jar</link></para>
         </listitem>
       </itemizedlist></para>
   </section>
@@ -189,7 +189,7 @@
     linkend="http-dep">HTTP framework</link>, require:<itemizedlist>
         <listitem>
           <para><link
-          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-http-server/2.0/grizzly-http-server-2.0.jar">grizzly-http-server.jar</link></para>
+          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-http-server/2.0.1/grizzly-http-server-2.0.1.jar">grizzly-http-server.jar</link></para>
         </listitem>
       </itemizedlist></para>
   </section>
@@ -210,7 +210,7 @@
     require:<itemizedlist>
         <listitem>
           <para><link
-          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-http-servlet/2.0/grizzly-http-servlet-2.0.jar">grizzly-http-servlet.jar</link></para>
+          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-http-servlet/2.0.1/grizzly-http-servlet-2.0.1.jar">grizzly-http-servlet.jar</link></para>
         </listitem>
 
         <listitem>
@@ -235,7 +235,7 @@
     linkend="core-dep">Core framework</link>, require:<itemizedlist>
         <listitem>
           <para><link
-          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-portunif/2.0/grizzly-portunif-2.0.jar">grizzly-portunif.jar</link></para>
+          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-portunif/2.0.1/grizzly-portunif-2.0.1.jar">grizzly-portunif.jar</link></para>
         </listitem>
       </itemizedlist></para>
   </section>
@@ -256,7 +256,7 @@
     require:<itemizedlist>
         <listitem>
           <para><link
-          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-comet/2.0/grizzly-comet-2.0.jar">grizzly-comet.jar</link></para>
+          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-comet/2.0.1/grizzly-comet-2.0.1.jar">grizzly-comet.jar</link></para>
         </listitem>
       </itemizedlist></para>
   </section>
@@ -277,7 +277,7 @@
     require:<itemizedlist>
         <listitem>
           <para><link
-          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-websockets/2.0/grizzly-websockets-2.0.jar">grizzly-websockets.jar</link></para>
+          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-websockets/2.0.1/grizzly-websockets-2.0.1.jar">grizzly-websockets.jar</link></para>
         </listitem>
       </itemizedlist></para>
   </section>
