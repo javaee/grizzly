@@ -44,15 +44,19 @@ import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 
 /**
- *
- * @author oleksiys
+ * Simple Grizzly {@link HttpHandler}, which returns HTML upload form.
+ * 
+ * @author Alexey Stashok
  */
 public class FormHttpHandler extends HttpHandler {
 
     @Override
     public void service(final Request request, final Response response)
             throws Exception {
+        // Set the response content type
         response.setContentType("text/html");
+
+        // Return the HTML upload form
         response.getWriter().write(
                 "<form action=\"upload\" method=\"post\" enctype=\"multipart/form-data\">"
                 + "Description: <input name=\"description\"/><br/>"

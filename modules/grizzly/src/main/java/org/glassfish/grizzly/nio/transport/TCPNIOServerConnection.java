@@ -305,7 +305,7 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
 
                 // if not standalone - enable OP_READ after IOEvent.ACCEPTED will be processed
                 transport.fireIOEvent(IOEvent.ACCEPTED, connection,
-                        !isStandalone() ? enableInterestPostProcessor : null);
+                        !isStandalone() ? enableInterestProcessingHandler : null);
             } catch (Exception e) {
                 LOGGER.log(Level.FINE, "Exception happened, when "
                         + "trying to accept the connection", e);
@@ -316,7 +316,7 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
 //    private final static boolean[] isRegisterMap = {true, false, true, false, false, false, true};
     // PostProcessor, which supposed to enable OP_READ interest, once Processor will be notified
     // about Connection ACCEPT
-    protected final static IOEventProcessingHandler enableInterestPostProcessor =
+    protected final static IOEventProcessingHandler enableInterestProcessingHandler =
             new EnableReadHandler();
 
     private static final class EnableReadHandler extends EmptyIOEventProcessingHandler {

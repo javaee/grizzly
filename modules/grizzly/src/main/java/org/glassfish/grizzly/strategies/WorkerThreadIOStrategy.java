@@ -85,7 +85,7 @@ public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
         final IOEventProcessingHandler pp;
         if (disableInterest) {
             connection.disableIOEvent(ioEvent);
-            pp = enableInterestPostProcessor;
+            pp = enableInterestProcessingHandler;
         } else {
             pp = null;
         }
@@ -111,9 +111,9 @@ public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
 
     private static void run0(final Connection connection,
                              final IOEvent ioEvent,
-                             final IOEventProcessingHandler postProcessor) {
+                             final IOEventProcessingHandler processingHandler) {
 
-        fireIOEvent(connection, ioEvent, postProcessor, logger);
+        fireIOEvent(connection, ioEvent, processingHandler, logger);
 
     }
 

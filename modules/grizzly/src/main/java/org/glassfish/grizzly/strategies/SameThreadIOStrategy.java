@@ -87,13 +87,13 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
     @Override
     public boolean executeIoEvent(final Connection connection,
                                   final IOEvent ioEvent) throws IOException {
-        IOEventProcessingHandler pp = null;
+        IOEventProcessingHandler ph = null;
         if (isReadWrite(ioEvent)) {
 //            connection.disableIOEvent(ioEvent);
-            pp = PROCESSING_HANDLER;
+            ph = PROCESSING_HANDLER;
         }
 
-        fireIOEvent(connection, ioEvent, pp, logger);
+        fireIOEvent(connection, ioEvent, ph, logger);
 
         return true;
     }

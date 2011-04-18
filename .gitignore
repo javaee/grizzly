@@ -1,4 +1,3 @@
-syntax: glob
 *.iml
 *.ipr
 *.iws

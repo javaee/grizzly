@@ -640,14 +640,15 @@ public final class UDPNIOTransport extends NIOTransport implements
 
     @Override
     public IOEventReg fireIOEvent(final IOEvent ioEvent,
-            final Connection connection, final IOEventProcessingHandler postProcessor)
+            final Connection connection,
+            final IOEventProcessingHandler processingHandler)
             throws IOException {
 
         try {
             final Processor conProcessor = connection.obtainProcessor(ioEvent);
 
             if (ProcessorExecutor.execute(
-                    connection, ioEvent, conProcessor, postProcessor)) {
+                    connection, ioEvent, conProcessor, processingHandler)) {
                 return IOEventReg.REGISTER;
             } else {
                 return IOEventReg.DEREGISTER;
