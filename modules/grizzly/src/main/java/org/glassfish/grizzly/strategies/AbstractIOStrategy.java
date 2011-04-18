@@ -70,7 +70,7 @@ public abstract class AbstractIOStrategy implements IOStrategy {
 //            false   // NOT_RUN
 //    };
 
-    protected final static IOEventProcessingHandler enableInterestPostProcessor =
+    protected final static IOEventProcessingHandler enableInterestProcessingHandler =
             new EnableInterestProcessingHandler();
 
 
@@ -107,10 +107,10 @@ public abstract class AbstractIOStrategy implements IOStrategy {
 
     protected static void fireIOEvent(final Connection connection,
                                       final IOEvent ioEvent,
-                                      final IOEventProcessingHandler pp,
+                                      final IOEventProcessingHandler ph,
                                       final Logger logger) {
         try {
-            connection.getTransport().fireIOEvent(ioEvent, connection, pp);
+            connection.getTransport().fireIOEvent(ioEvent, connection, ph);
         } catch (IOException e) {
             logger.log(Level.FINE, "Uncaught exception: ", e);
             try {

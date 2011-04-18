@@ -86,21 +86,21 @@ public final class LeaderFollowerNIOStrategy extends AbstractIOStrategy {
                                   final IOEvent ioEvent) throws IOException {
 
         final NIOConnection nioConnection = (NIOConnection) connection;
-        IOEventProcessingHandler pp = null;
+        IOEventProcessingHandler ph = null;
         if (isReadWrite(ioEvent)) {
             nioConnection.disableIOEvent(ioEvent);
-            pp = enableInterestPostProcessor;
+            ph = enableInterestProcessingHandler;
         }
 
         if (isExecuteInWorkerThread(ioEvent)) {
             final SelectorRunner runner = nioConnection.getSelectorRunner();
             runner.postpone();
             getWorkerThreadPool(connection).execute(runner);
-            fireIOEvent(connection, ioEvent, pp, logger);
+            fireIOEvent(connection, ioEvent, ph, logger);
 
             return false;
         } else {
-            fireIOEvent(connection, ioEvent, pp, logger);
+            fireIOEvent(connection, ioEvent, ph, logger);
             return true;
         }
     }
