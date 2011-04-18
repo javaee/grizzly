@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<chapter version="5.0" xmlns="http://docbook.org/ns/docbook"
+         xmlns:xlink="http://www.w3.org/1999/xlink"
+         xmlns:xi="http://www.w3.org/2001/XInclude"
+         xmlns:svg="http://www.w3.org/2000/svg"
+         xmlns:m="http://www.w3.org/1998/Math/MathML"
+         xmlns:html="http://www.w3.org/1999/xhtml"
+         xmlns:db="http://docbook.org/ns/docbook">
+  <title>Comet</title>
+
+  <section>
+    <title>Introduction</title>
+
+    <para>From the wikipedia page:</para>
+
+    <para annotations="">Comet is an umbrella term used to describe a
+    technique allowing web browser to recieve almost real time updates from
+    the server. The two most common approaches are long polling and streaming.
+    Long polling differs from streaming in that each update from the server
+    ultimately results in another follow up request from the server. With
+    streaming, there is one long lived request serving multiple updates. The
+    following sections will cover each option with samples of how to implement
+    each approach.</para>
+
+    <section>
+      <title>Long Polling</title>
+
+      <para>With long polling an initial request is made to the server. This
+      request is "parked" waiting for an update. This sleeping request is then
+      awakened when an event is called on the CometHandler for the request.
+      CometHandler is an interface in the Grizzly framework which an
+      application developer implements to register a suspended request with
+      the comet system and manage event and lifecyle issues. CometHandler is
+      typically where your application logic for your comet-based applications
+      lives. The following example shows how to set up a long polling request
+      and notify it about events. This code is taken from the count-clicker
+      comet sample in the grizzly source repository
+      (https://svn.java.net/svn/grizzly~svn/branches/2dot0/code/samples/comet/comet-counter).</para>
+    </section>
+  </section>
+</chapter>
