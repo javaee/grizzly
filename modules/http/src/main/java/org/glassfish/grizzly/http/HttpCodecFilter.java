@@ -713,7 +713,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         } else {
             final byte[] defaultType = httpHeader.getDefaultContentType();
             if (defaultType != null) {
-                final Buffer b = Buffers.wrap(memoryManager, httpHeader.getDefaultContentType());
+                final Buffer b = Buffers.wrap(memoryManager, defaultType);
                 b.allowBufferDispose(true);
                 value.setBuffer(b, 0, b.limit());
             }
