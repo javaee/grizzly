@@ -47,17 +47,18 @@
   <section>
     <title>Multipart (multipart/form-data) HTTP Requests Processing</title>
 
-    <para>The file sharing became a very popular internet service, when users are able to upload
-      files and share them for group of people. Regulary the way users may upload their files is
-      regular HTML form
-      like:<programlisting language="html">&lt;form action="upload" method="post" enctype="multipart/form-data">
+    <para>File sharing has became a very popular internet service where users are able to upload
+            files and share them for group of people. Typically users will upload their files via a
+            regular HTML form
+            like:<programlisting language="html">&lt;form action="upload" method="post" enctype="multipart/form-data">
   &lt;input type="text" name="description"/>
   &lt;input type="file" name="fileName"/>
   &lt;input type="submit" value="submit"/>
 &lt;/form></programlisting></para>
-    <para>which finally, after you press "submit" button will generate multipart HTTP request. For
-      sample above, HTTP request will contain two parts: text description and chosen file content,
-      like:<programlisting>POST /upload HTTP/1.1
+    <para>wher after you press "submit",  a multipart HTTP request is generated. For the example
+            above above, the HTTP request will contain two parts: text description and chosen file
+            content,
+            like:<programlisting>POST /upload HTTP/1.1
 Host: localhost:18080
 Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
 Accept-Language: en-us,en;q=0.7,uk;q=0.3
@@ -74,31 +75,30 @@ Content-Type: text/plain
 
 TEST
 -----------------------------78965753017082023611608934090-- </programlisting></para>
-    <para>When using standard Grizzly http-server module, the content of the message above will
-      be represented as one single message together with boundaries, so user will be responsible for
-      parsing content himself or use  existing library, which usually processes multipart requests
-      in a blocking way.</para>
-    <para>Grizzly http-server-multipart module provides API, which simplifies multipart HTTP
-      requests processing asynchronously in non-blocking way. Basically it's represented by
-      MultipartScanner, containing two "scan" methods:<itemizedlist>
-        <listitem>
-          <para>Top level multipart HTTP request scanner (multipart/form-data)</para>
-          <programlisting language="java">public static void scan(final Request request,
+    <para>When using the Grizzly http-server module, the content of the message above will be
+            represented as one single message together with boundaries.  This means the user will be
+            responsible for parsing content himself or use an existing library (which, most likely,
+            will process processes multipart requests in a blocking fashion).</para>
+    <para>The Grizzly http-server-multipart module provides an API which simplifies multipart HTTP
+            requests processing and does so in a non-blocking fashion. At the core of the API is the
+            MultipartScanner, containing two "scan" methods:<itemizedlist>
+                <listitem>
+                    <para>Top level multipart HTTP request scanner (multipart/form-data)</para>
+                    <programlisting language="java">public static void scan(final Request request,
         final MultipartEntryHandler partHandler,
         final CompletionHandler&lt;Request> completionHandler);</programlisting>
-        </listitem>
-        <listitem>
-          <para>multipart/mixed entries
-            scanner<programlisting language="java">public static void scan(final MultipartEntry multipartMixedEntry,
+                </listitem>
+                <listitem>
+                    <para>multipart/mixed entries
+                        scanner<programlisting language="java">public static void scan(final MultipartEntry multipartMixedEntry,
         final MultipartEntryHandler partHandler,
         final CompletionHandler&lt;MultipartEntry> completionHandler);</programlisting></para>
-        </listitem>
-        
-      </itemizedlist></para>
-    <para>By calling one of the methods above we initialize asynchronous multipart request
-      processing, which is going to be handled by passed MultipartEntryHandler (which is very
-      similar to HttpHandler) and ultimately passed CompletionHandler will be notified about
-      multipart HTTP request processing success or error.</para>
+                </listitem>
+            </itemizedlist></para>
+    <para>By calling one of the methods above, we initialize asynchronous multipart request
+            processing which is going to be handled by the provided MultipartEntryHandler (which is
+            very similar to HttpHandler) and ultimately passed CompletionHandler will be notified
+            about multipart HTTP request processing (i.e., success or error).</para>
     <para>The MultipartEntryHandler API is very simple and looks very similar to
       HttpHandler:<programlisting language="java">/**
  * General interface for processing {@link MultipartEntry}s, one by one.
@@ -115,18 +115,20 @@ public interface MultipartEntryHandler {
      */
     public void handle(final MultipartEntry multipartEntry) throws Exception;
 }</programlisting></para>
-    <para>so inside the handle(...) method we're able to process the passed multipart entry,
-      check its content type, disposition etc... and finally initialize the asynchronous
-      non-blocking processing of entry's content using either NIOInputStream (binary mode) or
-      NIOReader (text mode) API described in the http-server <link linkend="hsf-nio-streams">section</link><programlisting language="java">NIOInputStream nioInputStream = multipartEntry.getNIOInputStream();</programlisting></para>
+    <para>Inside the handle(...) method we're able to process the passed multipart entry, check its
+            content type, disposition etc., and finally initialize the asynchronous non-blocking
+            processing of an entry's content using either the NIOInputStream (binary mode) or the
+            NIOReader (text mode) API described in the http-server <link linkend="hsf-nio-streams"
+                >section</link><programlisting language="java">NIOInputStream nioInputStream = multipartEntry.getNIOInputStream();</programlisting></para>
     <para>or<programlisting language="java">NIOReader nioReader = multipartEntry.getNIOReader();</programlisting></para>
-    <para>Please note, unlike the NIOInputStream and NIOReader got from HTTP Request, the ones
-      got out of MultipartEntry would have content of a single multipart entry and report end of
-      stream once end of multipart entry is reached.</para>
-    <para>Also it's important to understand that multipart message processing is asynchronous so
-      we have to suspend HTTP request processing before starting the scanning and don't forget to
-      resume the HTTP request processing inside the passed CompletionHandler. See http-server
-      <link linkend="hsf-suspend-resume">section</link> for more information on HTTP request suspend/resume.</para>
+    <para>Please note, unlike the NIOInputStream and NIOReader got from HTTP Request, the
+            implementations provided by MultipartEntry expose the  content of a single multipart
+            entry and report end of stream once end of multipart entry is reached. </para>
+    <para>Also it's important to understand that multipart message processing is asynchronous, so we
+            have to suspend HTTP request processing before starting the scan.   Also, don't forget
+            to resume the HTTP request processing inside the passed CompletionHandler. See
+            http-server <link linkend="hsf-suspend-resume">section</link> for more information on
+            HTTP request suspend/resume.</para>
     <section>
       <title>Dependencies</title>
       <para>Maven developers require a dependency on the http-server-multipart module. The following
@@ -137,22 +139,21 @@ public interface MultipartEntryHandler {
      &lt;version&gt;2.0.1&lt;/version&gt;
 &lt;/dependency&gt;</programlisting></para>
       
-      <para>Non-maven developers, additionally to jars, required by <link
-        linkend="http-server-dep">HTTP Server framework</link>,
-        require:<itemizedlist>
-          <listitem>
-            <para><link
-                xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-http-servlet/2.0.1/grizzly-http-server-multipart-2.0.1.jar"
-                >grizzly-http-server-multipart.jar</link></para>
-          </listitem>
-        </itemizedlist></para>
+      <para>Non-maven developers: additional dependencies: <link linkend="http-server-dep">HTTP
+                    Server framework</link>, required by:<itemizedlist>
+                    <listitem>
+                        <para><link
+                                xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-http-servlet/2.0.1/grizzly-http-server-multipart-2.0.1.jar"
+                                >grizzly-http-server-multipart.jar</link></para>
+                    </listitem>
+                </itemizedlist></para>
     </section>
     <section>
       <title>Sample</title>
-      <para>Let's see how the file-uploader implementation may look like.</para>
+      <para>Let's see how a file-uploader implementation may be implemented.</para>
       <para>First of all let's create HttpHandler, which would be responsible for multipart HTTP
-        requests
-        processing<programlisting language="java">public class UploaderHttpHandler extends HttpHandler {
+                requests
+                processing:<programlisting language="java">public class UploaderHttpHandler extends HttpHandler {
     private static final String DESCRIPTION_NAME = "description";
     private static final String FILENAME_ENTRY = "fileName";
 
@@ -210,12 +211,12 @@ public interface MultipartEntryHandler {
         });
     }
 }</programlisting></para>
-      <para>the important part in the code is calls to response.suspend() before starting the
-        multipart request scanning and response.resume() once multipart HTTP request is
-        processed.</para>
+      <para>The important part in the code is calls to response.suspend() before starting the
+                multipart request scanning and response.resume() once multipart HTTP request is
+                processed.</para>
       <para>Now we're ready to take a look at the UploaderMultipartHandler code, which is
-        responsible for processing single multipart
-        entries<programlisting language="java">    /**
+                responsible for processing single multipart
+                entries:<programlisting language="java">    /**
      * {@link MultipartEntryHandler}, responsible for processing the upload.
      */
     private final class UploaderMultipartHandler
@@ -274,12 +275,12 @@ public interface MultipartEntryHandler {
             return uploadedBytesCounter.get();
         }
     }</programlisting></para>
-      <para>inside the handle(...) method we check if multipart entry represents a file to be
-        uploaded, because as we mentioned in the beginning, the HTTP multipart request contains two
-        multipart entries: one for description and second is actual file content. If multipart entry
-        represents a text description - we just skip it by calling multipartEntry.skip(). However if
-        multipart entry represents a file content - we start the asynchronous content reading using
-        NIOInputStream.</para>
+      <para>Inside the handle(...) method we check if the multipart entry represents a file to be
+                uploaded, because as we mentioned in the beginning, the HTTP multipart request
+                contains two multipart entries: one for description and the second for actual file
+                content. If the multipart entry represents a text description, we just skip it by
+                calling multipartEntry.skip(). However, if multipart entry represents file content,
+                we start the asynchronous content reading using NIOInputStream.</para>
       <para>Let's see how our asynchronous ReadHandler looks
         like:<programlisting language="java">    /**
      * Simple {@link ReadHandler} implementation, which is reading HTTP request
@@ -376,10 +377,11 @@ public interface MultipartEntryHandler {
             }
         }
     }</programlisting></para>
-      <para>As we see the logic is pretty simple, once ReadHandler is notified about some data
-        being available - we read the data off the NIOInputStream and store it to a local file. If
-        we expect more data - we just reregister the ReadHandler to wait for it, otherwise finish
-        the upload by closing the local file output stream.</para>
+      <para>As you can see, the logic is pretty simple.  Once the ReadHandler is notified about data
+                being available, we read the data off the NIOInputStream and store it to a local
+                file. If we expect more data, we just re-register the ReadHandler to wait for it to
+                be notified.  If there is no more data to be processed, finish the upload by closing
+                the local file output stream.</para>
       <para>The complete working sample could be downloaded <link
           xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/samples/grizzly-http-multipart-samples/2.0.1/grizzly-http-multipart-samples-2.0.1-sources.jar"
           >here</link></para>

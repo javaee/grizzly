@@ -47,6 +47,7 @@
                 version='1.0'>
 
     <xsl:import href="urn:docbkx:stylesheet"/>
+    <!-- <xsl:import href="urn:docbkx:stylesheet/highlight.xsl"/> -->
 
     <!--
          The following templates are to remove explicit style attributes that
