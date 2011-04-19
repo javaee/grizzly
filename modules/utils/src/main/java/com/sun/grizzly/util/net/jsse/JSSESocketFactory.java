@@ -73,6 +73,7 @@ import java.util.Vector;
 import java.security.KeyStore;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLException;
@@ -104,7 +105,7 @@ public abstract class JSSESocketFactory
 
     // defaults
     static String defaultProtocol = "TLS";
-    static String defaultAlgorithm = "SunX509";
+    static String defaultAlgorithm = KeyManagerFactory.getDefaultAlgorithm();
     static boolean defaultClientAuth = false;
     private static final String defaultKeyPass = "changeit";
 
