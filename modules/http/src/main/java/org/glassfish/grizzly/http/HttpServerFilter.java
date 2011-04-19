@@ -562,6 +562,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         final Method method = request.getMethod();
         if (Method.HEAD.equals(method)) {
             // No entity body
+            response.setExpectContent(false);
             state.contentDelimitation = true;
         }
 

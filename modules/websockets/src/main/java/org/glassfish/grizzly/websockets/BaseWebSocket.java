@@ -106,6 +106,7 @@ public class BaseWebSocket implements WebSocket {
         }
     }
 
+    @SuppressWarnings({"unchecked"})
     private <T> GrizzlyFuture<T> write(final DataFrame frame, final CompletionHandler<T> completionHandler) {
         try {
             return connection.write(frame, completionHandler);

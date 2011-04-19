@@ -40,7 +40,9 @@
 
 -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-project</artifactId>
@@ -107,10 +109,10 @@
         </license>
     </licenses>
     <scm>
-        <connection>scm:svn:https://svn.java.net/svn/grizzly~svn/branches/2dot0/code</connection>
-        <developerConnection>scm:svn:https://svn.java.net/svn/grizzly~svn/branches/2dot0/code/</developerConnection>
-        <tag>HEAD</tag>
-        <url>http://java.net/projects/grizzly/sources/svn/show/branches/2dot0/code/</url>
+        <connection>scm:git:git://java.net/grizzly~git</connection>
+        <developerConnection>scm:git:ssh://username@git.java.net/grizzly~git</developerConnection>
+        <tag>master</tag>
+        <url>http://java.net/projects/grizzly/sources/git/show</url>
     </scm>
     <organization>
         <name>Oracle Corpration</name>
@@ -200,9 +202,6 @@
             </plugin>
             <plugin>
                 <artifactId>maven-release-plugin</artifactId>
-                <configuration>
-                    <tagBase>https://www.dev.java.net/svn/grizzly/tags</tagBase>
-                </configuration>
             </plugin>
             <plugin>
                 <inherited>true</inherited>

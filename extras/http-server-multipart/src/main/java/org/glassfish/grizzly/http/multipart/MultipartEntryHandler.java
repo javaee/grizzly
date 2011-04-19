@@ -47,13 +47,13 @@ package org.glassfish.grizzly.http.multipart;
  *
  * @author Alexey Stashok
  */
-public abstract class MultipartEntryHandler {
+public interface MultipartEntryHandler {
     /**
      * The method is called once {@link MultipartEntry} header is ready to be
      * processed by user code.
      * 
-     * @param part {@link MultipartEntry}
+     * @param multipartEntry {@link MultipartEntry}
      * @throws Exception
      */
-    public abstract void handle(final MultipartEntry part) throws Exception;
+    public void handle(final MultipartEntry multipartEntry) throws Exception;
 }

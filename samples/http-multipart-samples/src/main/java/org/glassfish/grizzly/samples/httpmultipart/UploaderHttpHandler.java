@@ -139,7 +139,9 @@ public class UploaderHttpHandler extends HttpHandler {
     /**
      * {@link MultipartEntryHandler}, responsible for processing the upload.
      */
-    private final class UploaderMultipartHandler extends MultipartEntryHandler {
+    private final class UploaderMultipartHandler
+            implements MultipartEntryHandler {
+        
         // upload number
         private final int uploadNumber;
         // number of bytes uploaded

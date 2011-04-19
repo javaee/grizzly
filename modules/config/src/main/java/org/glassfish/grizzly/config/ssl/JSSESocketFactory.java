@@ -72,6 +72,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
@@ -92,7 +93,7 @@ public abstract class JSSESocketFactory extends ServerSocketFactory {
             JSSESocketFactory.class.getPackage().getName(),
             JSSESocketFactory.class.getClassLoader());
     public final static String defaultProtocol = "TLS";
-    public final static String defaultAlgorithm = "SunX509";
+    public final static String defaultAlgorithm = KeyManagerFactory.getDefaultAlgorithm();
     final static boolean defaultClientAuth = false;
     private static final String defaultKeyPass = "changeit";
     protected static final Logger logger = Logger.getLogger(JSSESocketFactory.class.getName());

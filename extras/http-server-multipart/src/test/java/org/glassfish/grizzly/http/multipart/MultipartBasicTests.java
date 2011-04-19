@@ -98,9 +98,7 @@ public class MultipartBasicTests {
                         throws Exception {
                     response.suspend();
                     
-                    MultipartScanner scanner = new MultipartScanner();
-
-                    scanner.scan(request, new MultipartEntryHandler() {
+                    MultipartScanner.scan(request, new MultipartEntryHandler() {
                         @Override
                         public void handle(MultipartEntry part) throws Exception {
                             part.skip();
@@ -166,9 +164,7 @@ public class MultipartBasicTests {
                         throws Exception {
                     response.suspend();
                     
-                    MultipartScanner scanner = new MultipartScanner();
-
-                    scanner.scan(request, new MultipartEntryHandler() {
+                    MultipartScanner.scan(request, new MultipartEntryHandler() {
                         @Override
                         public void handle(MultipartEntry part) throws Exception {
                             part.skip();

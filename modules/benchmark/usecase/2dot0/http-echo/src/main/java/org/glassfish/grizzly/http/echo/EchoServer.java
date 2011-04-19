@@ -51,7 +51,6 @@ import org.glassfish.grizzly.http.server.io.NIOInputStream;
 import org.glassfish.grizzly.http.server.io.NIOReader;
 import org.glassfish.grizzly.http.server.io.NIOWriter;
 import org.glassfish.grizzly.http.server.io.ReadHandler;
-import org.glassfish.grizzly.memory.ByteBufferManager;
 import org.glassfish.grizzly.memory.MemoryProbe;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;

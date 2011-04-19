@@ -188,9 +188,7 @@ public class MutlipartEntryInputStreamTest {
                         throws Exception {
                     response.suspend();
 
-                    final MultipartScanner scanner = new MultipartScanner();
-
-                    scanner.scan(request, new TestMultipartEntryHandler(scanner,
+                    MultipartScanner.scan(request, new TestMultipartEntryHandler(
                             response.getOutputStream()),
                             new ResumeCompletionHandler(response));
                 }
@@ -265,14 +263,11 @@ public class MutlipartEntryInputStreamTest {
     }
 
 
-    class TestMultipartEntryHandler extends MultipartEntryHandler {
+    class TestMultipartEntryHandler implements MultipartEntryHandler {
 
-        final MultipartScanner scanner;
         final NIOOutputStream outputStream;
 
-        public TestMultipartEntryHandler(final MultipartScanner scanner,
-                final NIOOutputStream outputStream) {
-            this.scanner = scanner;
+        public TestMultipartEntryHandler(final NIOOutputStream outputStream) {
             this.outputStream = outputStream;
         }
 
@@ -284,8 +279,8 @@ public class MutlipartEntryInputStreamTest {
                         new EchoReadHandler(nioInputStream,
                         outputStream));
             } else {
-                scanner.scan(part,
-                        new TestMultipartEntryHandler(scanner, outputStream),
+                MultipartScanner.scan(part,
+                        new TestMultipartEntryHandler(outputStream),
                         null);
             }
         }
