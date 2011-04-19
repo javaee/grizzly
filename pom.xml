@@ -110,7 +110,7 @@
     </licenses>
     <scm>
         <connection>scm:git:git://java.net/grizzly~git</connection>
-        <developerConnection>scm:git:git://java.net/grizzly~git</developerConnection>
+        <developerConnection>scm:git:ssh://username@git.java.net/grizzly~git</developerConnection>
         <tag>master</tag>
         <url>http://java.net/projects/grizzly/sources/git/show</url>
     </scm>
