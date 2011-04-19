@@ -362,6 +362,7 @@ public class NIOInputSourcesTest extends TestCase {
      * Test ReadHandler.onError to be notified, when client unexpectedly
      * terminates the connection
      */
+    @SuppressWarnings({"unchecked"})
     public void testDisconnect() throws Throwable {
 
         final AtomicInteger bytesRead = new AtomicInteger();
@@ -435,7 +436,7 @@ public class NIOInputSourcesTest extends TestCase {
                     public void completed(WriteResult result) {
                         try {
                             result.getConnection().close();
-                        } catch (IOException ex) {
+                        } catch (IOException ignored) {
                         }
                     }
                 });
