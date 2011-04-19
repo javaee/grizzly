@@ -62,6 +62,9 @@ public class MultipartScanner {
     static final String MULTIPART_MIXED_CONTENT_TYPE = "multipart/mixed";
     
     private static final String BOUNDARY_ATTR = "boundary";
+
+    private MultipartScanner() {
+    }
     
     /**
      * Initialize the multipart HTTP request processing.

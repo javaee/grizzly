@@ -226,10 +226,8 @@ public class MutlipartEntryReaderTest {
                     response.suspend();
                     response.setCharacterEncoding("UTF-8");
                     
-                    MultipartScanner scanner = new MultipartScanner();
-
-                    scanner.scan(request,
-                            new TestMultipartEntryHandler(scanner, response.getWriter()),
+                    MultipartScanner.scan(request,
+                            new TestMultipartEntryHandler(response.getWriter()),
                             new ResumeCompletionHandler(response));
                 }
             }, "/");
@@ -301,14 +299,11 @@ public class MutlipartEntryReaderTest {
         return request;
     }
 
-    class TestMultipartEntryHandler extends MultipartEntryHandler {
+    class TestMultipartEntryHandler implements MultipartEntryHandler {
 
-        final MultipartScanner scanner;
         final NIOWriter writer;
 
-        public TestMultipartEntryHandler(final MultipartScanner scanner,
-                final NIOWriter writer) {
-            this.scanner = scanner;
+        public TestMultipartEntryHandler(final NIOWriter writer) {
             this.writer = writer;
         }
 
@@ -319,8 +314,8 @@ public class MutlipartEntryReaderTest {
                 nioReader.notifyAvailable(
                         new EchoReadHandler(nioReader, writer));
             } else {
-                scanner.scan(part,
-                        new TestMultipartEntryHandler(scanner, writer),
+                MultipartScanner.scan(part,
+                        new TestMultipartEntryHandler(writer),
                         null);
             }
         }
