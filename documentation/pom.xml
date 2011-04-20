@@ -96,10 +96,10 @@
                             <!-- This copies content (images, etc) for the HTML version -->
                             <preProcess>
                                 <copy todir="target/docbkx/html/images">
-                                    <fileset dir="src/docbkx/images" />
+                                    <fileset dir="src/docbkx/images"/>
                                 </copy>
                                 <copy todir="target/docbkx/html/css">
-                                    <fileset dir="src/docbkx/css" />
+                                    <fileset dir="src/docbkx/css"/>
                                 </copy>
                             </preProcess>
                             <imgSrcPath>images/</imgSrcPath>
@@ -107,6 +107,12 @@
                             <htmlStylesheet>css/style.css</htmlStylesheet>
                             <htmlCustomization>src/docbkx/hightlight.xsl</htmlCustomization>
                             <!-- Any parameters specific to HTML version go here -->
+                            <entities>
+                                <entity>
+                                    <name>project.version</name>
+                                    <value>${project.version}</value>
+                                </entity>
+                            </entities>
                         </configuration>
                         <phase>install</phase>
                     </execution>

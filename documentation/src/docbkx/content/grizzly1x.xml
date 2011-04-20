@@ -155,7 +155,7 @@
                 pom:<programlisting language="xml">&lt;dependency>
     &lt;groupId>com.sun.grizzly&lt;/groupId>
     &lt;artifactId>grizzly-framework&lt;/artifactId>
-    &lt;version>1.9.32&lt;/version>
+    &lt;version><?eval ${project.version}?>&lt;/version>
 &lt;/dependency></programlisting></para>
             <para>And the following repositories need to be added to the pom:</para>
             <programlisting language="xml">&lt;repository>
@@ -172,16 +172,16 @@
             <para>Non-maven developers require:</para>
             <itemizedlist>
                 <listitem>
-                    <para><link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-framework/1.9.32/grizzly-framework-1.9.32.jar">grizzly-framework.jar</link></para>
+                    <para><link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-framework/${project.version}/grizzly-framework-${project.version}.jar">grizzly-framework.jar</link></para>
                 </listitem>
                 <listitem>
-                    <para><link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-utils/1.9.32/grizzly-utils-1.9.32.jar">grizzly-utils.jar</link></para>
+                    <para><link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-utils/${project.version}/grizzly-utils-${project.version}.jar">grizzly-utils.jar</link></para>
                 </listitem>
                 <listitem>
-                    <para><link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-lzma/1.9.32/grizzly-lzma-1.9.32.jar">grizzly-lzma.jar</link></para>
+                    <para><link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-lzma/${project.version}/grizzly-lzma-${project.version}.jar">grizzly-lzma.jar</link></para>
                 </listitem>
             </itemizedlist>
-            <para>or use single bundle: <link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-nio-framework/1.9.32/grizzly-nio-framework-1.9.32.jar">grizzly-nio-framework.jar</link></para>
+            <para>or use single bundle: <link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-nio-framework/${project.version}/grizzly-nio-framework-${project.version}.jar">grizzly-nio-framework.jar</link></para>
         </section>
         <section xml:id="portunif-dep_19x">
             <title>Port unification</title>
@@ -190,11 +190,11 @@
                 pom:<programlisting language="xml">&lt;dependency>
      &lt;groupId>com.sun.grizzly&lt;/groupId>
      &lt;artifactId>grizzly-portunif&lt;/artifactId>
-     &lt;version>1.9.32&lt;/version>
+     &lt;version><?eval ${project.version}?>&lt;/version>
 &lt;/dependency></programlisting></para>
             <para>Non-maven developers, additionally to jars, required by <link linkend="core-dep_19x">Core framework</link>, require:<itemizedlist>
                 <listitem>
-                    <para><link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-portunif/1.9.32/grizzly-portunif-1.9.32.jar">grizzly-portunif.jar</link></para>
+                    <para><link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-portunif/${project.version}/grizzly-portunif-${project.version}.jar">grizzly-portunif.jar</link></para>
                 </listitem>
             </itemizedlist></para>
         </section>
@@ -205,18 +205,18 @@
                 pom:<programlisting language="xml">&lt;dependency>
      &lt;groupId>com.sun.grizzly&lt;/groupId>
      &lt;artifactId>grizzly-http&lt;/artifactId>
-     &lt;version>1.9.32&lt;/version>
+     &lt;version><?eval ${project.version}?>&lt;/version>
 &lt;/dependency></programlisting></para>
             <para>Non-maven developers, additionally to jars, required by <link
                     linkend="core-dep_19x">Core framework</link> and <link
                     linkend="portunif-dep_19x">Port unification</link>, require:<itemizedlist>
                     <listitem>
                         <para><link
-                                xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-http/1.9.32/grizzly-http-1.9.32.jar"
+                                xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-http/${project.version}/grizzly-http-${project.version}.jar"
                                 >grizzly-http.jar</link></para>
                     </listitem>
                 </itemizedlist></para>
-            <para>or use single bundle: <link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-http-webserver/1.9.32/grizzly-http-webserver-1.9.32.jar">grizzly-http-webserver.jar</link></para>
+            <para>or use single bundle: <link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-http-webserver/${project.version}/grizzly-http-webserver-${project.version}.jar">grizzly-http-webserver.jar</link></para>
         </section>
         <section xml:id="http-servlet-dep_19x">
             <title>HTTP Servlet framework</title>
@@ -225,23 +225,23 @@
                 pom:<programlisting language="xml">&lt;dependency>
      &lt;groupId>com.sun.grizzly&lt;/groupId>
      &lt;artifactId>grizzly-http-servlet&lt;/artifactId>
-     &lt;version>1.9.32&lt;/version>
+     &lt;version><?eval ${project.version}?>&lt;/version>
 &lt;/dependency></programlisting></para>
             <para>Non-maven developers require:<itemizedlist>
                     <listitem>
-                        <para><link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-http-servlet/1.9.32/grizzly-http-servlet-1.9.32.jar">grizzly-http-servlet.jar</link></para>
+                        <para><link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-http-servlet/${project.version}/grizzly-http-servlet-${project.version}.jar">grizzly-http-servlet.jar</link></para>
                     </listitem>
                 <listitem>
-                    <para><link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-utils/1.9.32/grizzly-utils-1.9.32.jar">grizzly-utils.jar</link></para>
+                    <para><link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-utils/${project.version}/grizzly-utils-${project.version}.jar">grizzly-utils.jar</link></para>
                 </listitem>
                 <listitem>
-                    <para><link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-lzma/1.9.32/grizzly-lzma-1.9.32.jar">grizzly-lzma.jar</link></para>
+                    <para><link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-lzma/${project.version}/grizzly-lzma-${project.version}.jar">grizzly-lzma.jar</link></para>
                 </listitem>
                 <listitem>
                     <para><link xlink:href="http://mirrors.ibiblio.org/pub/mirrors/maven2/javax/servlet/servlet-api/2.5/servlet-api-2.5.jar">servlet-api.jar</link></para>
                 </listitem>
             </itemizedlist></para>
-            <para>or use single bundle: <link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-servlet-webserver/1.9.32/grizzly-servlet-webserver-1.9.32.jar">grizzly-servlet-webserver.jar</link></para>
+            <para>or use single bundle: <link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-servlet-webserver/${project.version}/grizzly-servlet-webserver-${project.version}.jar">grizzly-servlet-webserver.jar</link></para>
         </section>
         <section xml:id="http-servlet-deployer-dep_19x">
             <title>HTTP Servlet Deployer framework</title>
@@ -250,27 +250,27 @@
                 pom:<programlisting language="xml">&lt;dependency>
      &lt;groupId>com.sun.grizzly&lt;/groupId>
      &lt;artifactId>grizzly-servlet-deployer&lt;/artifactId>
-     &lt;version>1.9.32&lt;/version>
+     &lt;version><?eval ${project.version}?>&lt;/version>
 &lt;/dependency></programlisting></para>
             <para>Non-maven developers, additionally to jars, required by <link
                     linkend="http-servlet-dep_19x">HTTP Servlet framework</link>, require:<itemizedlist>
                     <listitem>
                         <para><link
-                            xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-servlet-deployer/1.9.32/grizzly-servlet-deployer-1.9.32.jar"
+                            xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-servlet-deployer/${project.version}/grizzly-servlet-deployer-${project.version}.jar"
                                 >grizzly-servlet-deployer.jar</link></para>
                     </listitem>
                     <listitem>
                         <para><link
-                            xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-compat/1.9.32/grizzly-compat-1.9.32.jar"
+                            xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-compat/${project.version}/grizzly-compat-${project.version}.jar"
                                 >grizzly-compat.jar</link></para>
                     </listitem>
                     <listitem>
                         <para><link
-                            xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-cometd/1.9.32/grizzly-cometd-1.9.32.jar"
+                            xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-cometd/${project.version}/grizzly-cometd-${project.version}.jar"
                                 >grizzly-cometd.jar</link></para>
                     </listitem>
                 </itemizedlist></para>
-            <para>or use single bundle: <link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-http-servlet-deployer/1.9.32/grizzly-http-servlet-deployer-1.9.32.jar">grizzly-http-servlet-deployer.jar</link></para>
+            <para>or use single bundle: <link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-http-servlet-deployer/${project.version}/grizzly-http-servlet-deployer-${project.version}.jar">grizzly-http-servlet-deployer.jar</link></para>
         </section>        
         <section xml:id="comet-dep_19x">
             <title>Comet</title>
@@ -279,14 +279,14 @@
                 pom:<programlisting language="xml">&lt;dependency>
      &lt;groupId>com.sun.grizzly&lt;/groupId>
      &lt;artifactId>grizzly-comet&lt;/artifactId>
-     &lt;version>1.9.32&lt;/version>
+     &lt;version><?eval ${project.version}?>&lt;/version>
 &lt;/dependency></programlisting></para>
             <para>Non-maven developers, additionally to jars, required by <link linkend="http-dep_19x">HTTP framework</link>, require:<itemizedlist>
                 <listitem>
-                    <para><link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-comet/1.9.32/grizzly-comet-1.9.32.jar">grizzly-comet.jar</link></para>
+                    <para><link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-comet/${project.version}/grizzly-comet-${project.version}.jar">grizzly-comet.jar</link></para>
                 </listitem>
             </itemizedlist></para>
-            <para>or use single bundle: <link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-comet-webserver/1.9.32/grizzly-comet-webserver-1.9.32.jar">grizzly-comet-webserver.jar</link></para>
+            <para>or use single bundle: <link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-comet-webserver/${project.version}/grizzly-comet-webserver-${project.version}.jar">grizzly-comet-webserver.jar</link></para>
         </section>
         <section xml:id="websockets-dep_19x">
             <title>WebSockets</title>
@@ -295,11 +295,11 @@
                 pom:<programlisting language="xml">&lt;dependency>
      &lt;groupId>com.sun.grizzly&lt;/groupId>
      &lt;artifactId>grizzly-websockets&lt;/artifactId>
-     &lt;version>1.9.32&lt;/version>
+     &lt;version><?eval ${project.version}?>&lt;/version>
 &lt;/dependency></programlisting></para>
             <para>Non-maven developers, additionally to jars, required by <link linkend="http-dep_19x">HTTP framework</link> and , <link linkend="http-servlet-dep_19x">HTTP Servlet framework</link> require:<itemizedlist>
                 <listitem>
-                    <para><link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-websockets/1.9.32/grizzly-websockets-1.9.32.jar">grizzly-websockets.jar</link></para>
+                    <para><link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/grizzly-websockets/${project.version}/grizzly-websockets-${project.version}.jar">grizzly-websockets.jar</link></para>
                 </listitem>
             </itemizedlist></para>
         </section>
@@ -310,14 +310,14 @@
                 pom:<programlisting language="xml">&lt;dependency>
      &lt;groupId>com.sun.grizzly.osgi&lt;/groupId>
      &lt;artifactId>grizzly-httpservice&lt;/artifactId>
-     &lt;version>1.9.32&lt;/version>
+     &lt;version><?eval ${project.version}?>&lt;/version>
 &lt;/dependency></programlisting></para>
             <para>Non-maven developers, additionally to jars, required by <link
                     linkend="http-dep_19x">HTTP framework</link> and , <link
                     linkend="http-servlet-dep_19x">HTTP Servlet framework</link> require:<itemizedlist>
                     <listitem>
                         <para><link
-                            xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/osgi/grizzly-httpservice/1.9.32/grizzly-httpservice-1.9.32.jar"
+                            xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/osgi/grizzly-httpservice/${project.version}/grizzly-httpservice-${project.version}.jar"
                                 >grizzly-httpservice.jar</link></para>
                     </listitem>
                     <listitem>
@@ -331,7 +331,7 @@
                                 >org.osgi.compendium.jar</link></para>
                         </listitem>
                     </itemizedlist></para>
-            <para>or use single bundle: <link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/osgi/grizzly-httpservice-bundle/1.9.32/grizzly-httpservice-bundle-1.9.32.jar">grizzly-httpservice-bundle.jar</link></para>
+            <para>or use single bundle: <link xlink:href="http://download.java.net/maven/glassfish/com/sun/grizzly/osgi/grizzly-httpservice-bundle/${project.version}/grizzly-httpservice-bundle-${project.version}.jar">grizzly-httpservice-bundle.jar</link></para>
         </section>                
     </section>
     <section xml:id="samples_19x">
