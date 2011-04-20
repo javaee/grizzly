@@ -65,6 +65,16 @@ public abstract class HttpServerAbstractTest extends TestCase {
         return reader.readLine();
     }
 
+    protected StringBuilder readMultilineResponse(HttpURLConnection conn) throws IOException {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+        StringBuilder sb = new StringBuilder();
+        String line = null;
+        while((line = reader.readLine())!=null){
+            sb.append(line).append("\n");
+        }
+        return sb;
+    }
+
     protected HttpURLConnection getConnection(String alias, int port) throws IOException {
         URL url = new URL("http", "localhost", port, alias);
         HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();

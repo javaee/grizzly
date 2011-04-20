@@ -53,6 +53,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.http.server.util.DispatcherHelper;
 
 /**
  * The HttpHandlerChain class allows the invocation of multiple {@link HttpHandler}s
@@ -72,6 +73,12 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
     private static final Logger LOGGER = Grizzly.logger(HttpHandlerChain.class);
 
     /**
+     * The name -> {@link HttpHandler} map.
+     */
+    private final ConcurrentHashMap<String, HttpHandler> handlersByName =
+            new ConcurrentHashMap<String, HttpHandler>();
+
+    /**
      * The list of {@link HttpHandler} instance.
      */
     private final ConcurrentHashMap<HttpHandler, String[]> handlers =
@@ -82,6 +89,11 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
      * Internal {@link Mapper} used to Map request to their associated {@link HttpHandler}
      */
     private final Mapper mapper;
+    /**
+     * DispatchHelper, which maps path or name to the Mapper entry
+     */
+    private final DispatcherHelper dispatchHelper;
+
     /**
      * The default host.
      */
@@ -103,6 +115,7 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
         this.httpServer = httpServer;
         mapper = new Mapper();
         mapper.setDefaultHostName(LOCAL_HOST);
+        dispatchHelper = new DispatchHelperImpl();
         // We will decode it
         setDecodeUrl(false);
     }
@@ -215,7 +228,14 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
                     registerJmxForHandler(httpHandler);
                 }
             }
+
             handlers.put(httpHandler, mappings);
+            
+            final String name = httpHandler.getName();
+            if (name != null) {
+                handlersByName.put(httpHandler.getName(), httpHandler);
+            }
+
             for (String mapping : mappings) {
 
                 final String ctx = getContextPath(mapping);
@@ -245,7 +265,8 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
                 }
                 mapper.addWrapper(LOCAL_HOST, ctx, wrapper, httpHandler);
 
-
+                httpHandler.setDispatcherHelper(dispatchHelper);
+                
 //                String ctx = getContextPath(mapping);
 //                mapper.addContext(LOCAL_HOST, ctx, httpHandler,
 //                        new String[]{"index.html", "index.htm"}, null);
@@ -253,6 +274,49 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
             }
         }
 
+    }
+
+    /**
+     * Remove a {@link HttpHandler}
+     * @return <tt>true</tt> if removed
+     */
+    public boolean removeHttpHandler(final HttpHandler httpHandler) {
+        if (httpHandler == null) {
+            throw new IllegalStateException();
+        }
+        
+        final String name = httpHandler.getName();
+        if (name != null) {
+            handlersByName.remove(name);
+        }
+
+        String[] mappings = handlers.remove(httpHandler);
+        if (mappings != null) {
+            for (String mapping : mappings) {
+                String ctx = getContextPath(mapping);
+                mapper.removeContext(LOCAL_HOST, ctx);
+            }
+            deregisterJmxForHandler(httpHandler);
+            httpHandler.destroy();
+
+        }
+
+        return (mappings != null);
+    }
+
+    public void removeAllHttpHandlers() {
+        for (final HttpHandler handler : handlers.keySet()) {
+            removeHttpHandler(handler);
+        }
+    }
+    
+    @Override
+    public void destroy() {
+        for (Entry<HttpHandler, String[]> handler : handlers.entrySet()) {
+            final HttpHandler a = handler.getKey();
+            a.destroy();
+        }
+        started = false;
     }
 
     private void registerJmxForHandler(final HttpHandler httpHandler) {
@@ -314,40 +378,24 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
         return ctx;
     }
 
-    @Override
-    public void destroy() {
-        for (Entry<HttpHandler, String[]> handler : handlers.entrySet()) {
-            final HttpHandler a = handler.getKey();
-            a.destroy();
-        }
-        started = false;
-    }
+    private final class DispatchHelperImpl implements DispatcherHelper {
 
-    /**
-     * Remove a {@link HttpHandler}
-     * @return <tt>true</tt> if removed
-     */
-    public boolean removeHttpHandler(final HttpHandler httpHandler) {
-        if (httpHandler == null) {
-            throw new IllegalStateException();
+        @Override
+        public void mapPath(final DataChunk host, final DataChunk path,
+                final MappingData mappingData) throws Exception {
+            
+            mapper.map(host, path, mappingData);
         }
-        String[] mappings = handlers.remove(httpHandler);
-        if (mappings != null) {
-            for (String mapping : mappings) {
-                String ctx = getContextPath(mapping);
-                mapper.removeContext(LOCAL_HOST, ctx);
+
+        @Override
+        public void mapName(final DataChunk name, final MappingData mappingData) {
+            final String nameStr = name.toString();
+            
+            final HttpHandler handler = handlersByName.get(nameStr);
+            if (handler != null) {
+                mappingData.wrapper = handler;
+                mappingData.servletName = nameStr;
             }
-            deregisterJmxForHandler(httpHandler);
-            httpHandler.destroy();
-
-        }
-
-        return (mappings != null);
-    }
-
-    public void removeAllHttpHandlers() {
-        for (final HttpHandler handler : handlers.keySet()) {
-            removeHttpHandler(handler);
         }
     }
 }

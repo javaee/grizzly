@@ -52,6 +52,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.http.server.util.DispatcherHelper;
 import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.http.util.RequestURIRef;
 
@@ -93,11 +94,31 @@ public abstract class HttpHandler {
     private boolean allowCustomStatusMessage = true;
 
     /**
+     * HttpHandler name
+     */
+    private final String name;
+
+    /**
      * Create <tt>HttpHandler</tt>.
      */
     public HttpHandler() {
+        this(null);
     }
 
+    /**
+     * Create <tt>HttpHandler</tt> with the specific name.
+     */
+    public HttpHandler(String name) {
+        this.name = name;
+    }
+
+    /**
+     * Get the <tt>HttpHandler</tt> name.
+     * @return the <tt>HttpHandler</tt> name.
+     */
+    public String getName() {
+        return name;
+    }
 
     /**
      * Pre-processes <tt>HttpHandler</tt> {@link Request} and {@link Response},
@@ -313,7 +334,11 @@ public abstract class HttpHandler {
      * @param request
      * @param contextPath
      */
-    protected static void updateContextPath(final Request request, final String contextPath) {
+    protected static void updateContextPath(final Request request,
+            final String contextPath) {
         request.setContextPath(contextPath);
+    }
+
+    protected void setDispatcherHelper(final DispatcherHelper dispatcherHelper) {
     }
 }

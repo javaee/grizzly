@@ -59,6 +59,7 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletRequestEvent;
 import javax.servlet.ServletRequestListener;
 import javax.servlet.ServletResponse;
+
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.Note;
@@ -68,6 +69,7 @@ import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.util.ClassLoaderUtil;
+import org.glassfish.grizzly.http.server.util.DispatcherHelper;
 import org.glassfish.grizzly.http.server.util.IntrospectionUtils;
 import org.glassfish.grizzly.http.util.CharChunk;
 import org.glassfish.grizzly.http.util.HttpRequestURIDecoder;
@@ -179,7 +181,11 @@ public class ServletHandler extends HttpHandler {
     private int n = 0;
 
     public ServletHandler() {
-        this(new ServletContextImpl(),
+        this((String) null);
+    }
+
+    public ServletHandler(final String servletName) {
+        this(servletName, new ServletContextImpl(),
                 new HashMap<String, String>(), new HashMap<String, String>(),
                 new ArrayList<String>());
     }
@@ -190,7 +196,7 @@ public class ServletHandler extends HttpHandler {
      * @param servlet Instance to be used by this adapter.
      */
     public ServletHandler(Servlet servlet) {
-        this();
+        this(servlet.getServletConfig() != null ? servlet.getServletConfig().getServletName() : null);
         this.servletInstance = servlet;
     }
 
@@ -202,10 +208,11 @@ public class ServletHandler extends HttpHandler {
      * @param servletInitParameters servlet initialization parameters.
      * @param listeners Listeners.
      */
-    protected ServletHandler(ServletContextImpl servletCtx,
+    protected ServletHandler(String servletName, ServletContextImpl servletCtx,
             Map<String, String> contextParameters, Map<String, String> servletInitParameters,
             List<String> listeners) {
-        this(servletCtx, contextParameters, servletInitParameters, listeners, true);
+        this(servletName, servletCtx, contextParameters, servletInitParameters,
+                listeners, true);
     }
 
     /**
@@ -217,11 +224,12 @@ public class ServletHandler extends HttpHandler {
      * @param listeners Listeners.
      * @param initialize false only when the {@link #newServletHandler(javax.servlet.Servlet)} is invoked.
      */
-    protected ServletHandler(ServletContextImpl servletCtx,
+    protected ServletHandler(String servletName, ServletContextImpl servletCtx,
             Map<String, String> contextParameters, Map<String, String> servletInitParameters,
             List<String> listeners, boolean initialize) {
         this.servletCtx = servletCtx;
         servletConfig = new ServletConfigImpl(servletCtx, servletInitParameters);
+        servletConfig.setServletName(servletName);
         this.contextParameters = contextParameters;
         this.servletInitParameters = servletInitParameters;
         this.listeners = listeners;
@@ -236,11 +244,14 @@ public class ServletHandler extends HttpHandler {
      * @param servletInitParameters servlet initialization parameters.
      * @param initialize false only when the {@link #newServletHandler(javax.servlet.Servlet)} is invoked.
      */
-    protected ServletHandler(ServletContextImpl servletCtx,
+    protected ServletHandler(String servletName, ServletContextImpl servletCtx,
             Map<String, String> contextParameters, Map<String, String> servletInitParameters,
             boolean initialize) {
         this.servletCtx = servletCtx;
+        
         servletConfig = new ServletConfigImpl(servletCtx, servletInitParameters);
+        servletConfig.setServletName(servletName);
+
         this.contextParameters = contextParameters;
         this.servletInitParameters = servletInitParameters;
         this.initialize = initialize;
@@ -364,6 +375,21 @@ public class ServletHandler extends HttpHandler {
         } catch (Throwable ex) {
             LOGGER.log(Level.SEVERE, "service exception:", ex);
             customizeErrorPage(response, "Internal Error", 500);
+        }
+    }
+
+    void doServletService(final ServletRequest servletRequest, final ServletResponse servletResponse)
+            throws IOException, ServletException {
+        try {
+            loadServlet();
+            FilterChainImpl filterChain = new FilterChainImpl(servletInstance, servletConfig);
+            filterChain.invokeFilterChain(servletRequest, servletResponse);
+        } catch (ServletException se) {
+            LOGGER.log(Level.SEVERE, "service exception:", se);
+            throw se;
+        } catch (IOException ie) {
+            LOGGER.log(Level.SEVERE, "service exception:", ie);
+            throw ie;
         }
     }
 
@@ -760,7 +786,12 @@ public class ServletHandler extends HttpHandler {
      * @return a new {@link ServletHandler}
      */
     public ServletHandler newServletHandler(Servlet servlet) {
-        ServletHandler sa = new ServletHandler(servletCtx, contextParameters,
+        final String servletName = servlet.getServletConfig() != null ?
+            servlet.getServletConfig().getServletName() : null;
+
+        ServletHandler sa = new ServletHandler(
+                servletName,
+                servletCtx, contextParameters,
                 new HashMap<String, String>(), listeners,
                 false);
         if (classLoader != null) {
@@ -791,6 +822,11 @@ public class ServletHandler extends HttpHandler {
         this.classLoader = classLoader;
     }
 
+    @Override
+    public String getName() {
+        return servletConfig.getServletName();
+    }
+
 //    private String getDefaultDocRootPath() {
 //        final File[] basePaths = getDocRoots().getArray();
 //        return (basePaths != null && basePaths.length > 0) ? basePaths[0].getPath() : null;
@@ -817,6 +853,11 @@ public class ServletHandler extends HttpHandler {
 
             filters[n++] = filterConfig;
         }
+    }
+
+    @Override
+    protected void setDispatcherHelper( final DispatcherHelper dispatcherHelper ) {
+        servletCtx.setDispatcherHelper( dispatcherHelper );
     }
 
     // ---------------------------------------------------------- Nested Classes
