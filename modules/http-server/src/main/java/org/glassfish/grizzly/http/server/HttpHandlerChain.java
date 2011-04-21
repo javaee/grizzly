@@ -233,7 +233,7 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
             
             final String name = httpHandler.getName();
             if (name != null) {
-                handlersByName.put(httpHandler.getName(), httpHandler);
+                handlersByName.put(name, httpHandler);
             }
 
             for (String mapping : mappings) {
@@ -265,13 +265,13 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
                 }
                 mapper.addWrapper(LOCAL_HOST, ctx, wrapper, httpHandler);
 
-                httpHandler.setDispatcherHelper(dispatchHelper);
-                
+
 //                String ctx = getContextPath(mapping);
 //                mapper.addContext(LOCAL_HOST, ctx, httpHandler,
 //                        new String[]{"index.html", "index.htm"}, null);
 //                mapper.addWrapper(LOCAL_HOST, ctx, mapping.substring(ctx.length()), httpHandler);
             }
+            httpHandler.setDispatcherHelper(dispatchHelper);
         }
 
     }
