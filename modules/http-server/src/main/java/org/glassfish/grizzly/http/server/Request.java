@@ -1883,7 +1883,7 @@ public class Request {
             // Add a new Locale to the list of Locales for this quality level
             Locale locale = new Locale(language, country, variant);
             Double key = -quality;  // Reverse the order
-            ArrayList<Locale> values = (ArrayList<Locale>) localLocales.get(key);
+            List<Locale> values = localLocales.get(key);
             if (values == null) {
                 values = new ArrayList<Locale>();
                 localLocales.put(key, values);
@@ -1894,11 +1894,9 @@ public class Request {
 
         // Process the quality values in highest->lowest order (due to
         // negating the Double value when creating the key)
-        for (Object o : localLocales.keySet()) {
-            Double key = (Double) o;
-            ArrayList list = (ArrayList) localLocales.get(key);
-            for (Object aList : list) {
-                Locale locale = (Locale) aList;
+        for (Double key : localLocales.keySet()) {
+            List<Locale> list = localLocales.get(key);
+            for (Locale locale : list) {
                 addLocale(locale);
             }
         }
