@@ -766,7 +766,7 @@ public interface NIOInputSource {
       non-blocking reads. The developer can check to see if data is available
       to be read without blocking by calling isReady() or checking for a
       non-zero return from readyData(). If no data can be read without
-      blocking, use notifyAvailable(ReadHander) or
+      blocking, use notifyAvailable(ReadHandler) or
       notifyAvailable(ReadHandler, int). When data is becomes available, the
       ReadHandler will be invoked. Note that if no length is provided to the
       notifyAvailable() methods, the ReadHandler will be invoked as soon as
@@ -942,8 +942,7 @@ public class WebSocketAddOn implements AddOn {
     the following code snippets are part of a single example that makes use
     nested classes.</para>
 
-    <programlisting language="java" linenumbering="numbered"
-                    startinglinenumber="304">/**
+    <programlisting language="java" linenumbering="numbered" startinglinenumber="304">/**
  * This handler using non-blocking streams to read POST data and echo it
  * back to the client.
  */
@@ -967,7 +966,7 @@ private static class NonBlockingEchoHandler extends HttpHandler {
          in.notifyAvailable(new ReadHandler() {
 
             @Override
-            public void onDataAvailable() throws IOException {
+            public void onDataAvailable() throws Exception {
                 System.out.println("[onDataAvailable] length: " + in.readyData());
                 in.notifyAvailable(this);
             }
@@ -978,7 +977,7 @@ private static class NonBlockingEchoHandler extends HttpHandler {
             }
 
             @Override
-            public void onAllDataRead() throws IOException {
+            public void onAllDataRead() throws Exception {
                 System.out.println("[onAllDataRead] length: " + in.readyData());
                 try {
                     echoAvailableData(in, out, buf);

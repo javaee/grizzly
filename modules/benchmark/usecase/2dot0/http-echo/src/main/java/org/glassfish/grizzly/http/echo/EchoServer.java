@@ -283,7 +283,7 @@ final class EchoServer {
                 in.notifyAvailable(new ReadHandler() {
 
                     @Override
-                    public void onDataAvailable() throws IOException {
+                    public void onDataAvailable() throws Exception {
                         doWrite(in, buf, out);
 
                         in.notifyAvailable(this);
@@ -294,7 +294,7 @@ final class EchoServer {
                     }
 
                     @Override
-                    public void onAllDataRead() throws IOException {
+                    public void onAllDataRead() throws Exception {
                         try {
                             doWrite(in, buf, out);
                         } finally {

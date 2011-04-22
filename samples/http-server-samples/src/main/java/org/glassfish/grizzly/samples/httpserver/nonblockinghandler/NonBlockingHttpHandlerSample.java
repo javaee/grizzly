@@ -324,7 +324,7 @@ public class NonBlockingHttpHandlerSample {
             in.notifyAvailable(new ReadHandler() {
 
                 @Override
-                public void onDataAvailable() throws IOException {
+                public void onDataAvailable() throws Exception {
                     System.out.println("[onDataAvailable] length: " + in.readyData());
                     in.notifyAvailable(this);
                 }
@@ -335,7 +335,7 @@ public class NonBlockingHttpHandlerSample {
                 }
 
                 @Override
-                public void onAllDataRead() throws IOException {
+                public void onAllDataRead() throws Exception {
                     System.out.println("[onAllDataRead] length: " + in.readyData());
                     try {
                         echoAvailableData(in, out, buf);
