@@ -96,6 +96,11 @@ verify JN_USER "Missing --user option for your svn user name"
 verify JN_PWD "Missing --password option for your svn password"
 [ "${MISSING}" ] && exit
 
+if [ -z "${PREPARE}" ]
+then
+        SCM_URL="-DconnectionUrl=scm:git:ssh://${JN_USER}@git.java.net/grizzly~git"
+fi
+
 if [ "${PREPARE}" ]
 then
 	CMD="mvn -Darguments=-Dmaven.test.skip.exec=true -B -e -P release-profile -DdryRun=$DRYRUN -DautoVersionSubmodules=true -DdevelopmentVersion=${DEV_VER} -DreleaseVersion=${RELEASE_VER} -Dtag=${BRANCH} -Dpassword=${JN_PWD} -Dusername=${JN_USER} ${PREPARE}"
@@ -104,7 +109,7 @@ then
 	eval ${CMD}
 fi
 
-CMD="mvn -Darguments=-Dmaven.test.skip.exec=true -B -e -P release-profile -DdryRun=$DRYRUN -DautoVersionSubmodules=true -DdevelopmentVersion=${DEV_VER} -DreleaseVersion=${RELEASE_VER} -Dtag=${BRANCH} -Dpassword=${JN_PWD} -Dusername=${JN_USER} ${SVN_URL} release:perform"
+CMD="mvn -Darguments=-Dmaven.test.skip.exec=true -B -e -P release-profile -DdryRun=$DRYRUN -DautoVersionSubmodules=true -DdevelopmentVersion=${DEV_VER} -DreleaseVersion=${RELEASE_VER} -Dtag=${BRANCH} -Dpassword=${JN_PWD} -Dusername=${JN_USER} ${SCM_URL} release:perform"
 
 echo ${CMD}
 eval ${CMD}
