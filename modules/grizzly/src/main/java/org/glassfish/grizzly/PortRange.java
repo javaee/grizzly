@@ -39,7 +39,6 @@
  */
 package org.glassfish.grizzly;
 
-import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -55,10 +54,6 @@ public class PortRange {
             Pattern.compile("(\\d+)(?:(?:,|:)(\\d+))?");
     private final int lower;
     private final int upper;
-    /**
-     * Random number generator used when binding sockets.
-     */
-    private final static Random _random = new Random();
 
     /**
      * Creates a port range with the given bounds (both inclusive).

@@ -44,13 +44,15 @@ import org.glassfish.grizzly.AbstractTransport;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.TransportProbe;
 import java.io.IOException;
-import java.nio.channels.Selector;
+import java.util.Random;
 
 /**
  *
  * @author oleksiys
  */
 public abstract class NIOTransport extends AbstractTransport {
+    protected static final Random RANDOM = new Random();
+    
     protected SelectorHandler selectorHandler;
     protected SelectionKeyHandler selectionKeyHandler;
 

@@ -255,7 +255,16 @@ public final class UDPNIOTransport extends NIOTransport implements
             final PortRange portRange, final int backlog) throws IOException {
 
         IOException ioException = null;
-        for (int port = portRange.getLower(); port <= portRange.getUpper(); port++) {
+
+        final int lower = portRange.getLower();
+        final int range = portRange.getUpper() - lower + 1;
+
+        int offset = RANDOM.nextInt(range);
+        final int start = offset;
+
+        do {
+            final int port = lower + offset;
+
             try {
                 final UDPNIOServerConnection serverConnection =
                         bind(host, port, backlog);
@@ -263,7 +272,9 @@ public final class UDPNIOTransport extends NIOTransport implements
             } catch (IOException e) {
                 ioException = e;
             }
-        }
+
+            offset = (offset + 1) % range;
+        } while (offset != start);
 
         throw ioException;
     }
