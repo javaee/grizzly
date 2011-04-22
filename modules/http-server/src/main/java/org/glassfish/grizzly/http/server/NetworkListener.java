@@ -40,6 +40,7 @@
 package org.glassfish.grizzly.http.server;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
@@ -55,6 +56,7 @@ import org.glassfish.grizzly.http.HttpCodecFilter;
 import org.glassfish.grizzly.http.KeepAlive;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
+import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
@@ -201,7 +203,7 @@ public class NetworkListener {
         final int port) {
         validateArg("name", name);
         validateArg("host", name);
-        if (port <= 0) {
+        if (port < 0) {
             throw new IllegalArgumentException("Invalid port");
         }
         this.name = name;
@@ -502,7 +504,10 @@ public class NetworkListener {
             throw new IllegalStateException("No FilterChain available."); // i18n
         }
         transport.setProcessor(filterChain);
+        final TCPNIOServerConnection serverConnection =
         transport.bind(host, port);
+        port = ((InetSocketAddress) serverConnection.getLocalAddress()).getPort();
+
         transport.start();
         if (LOGGER.isLoggable(Level.INFO)) {
             LOGGER.log(Level.INFO,
