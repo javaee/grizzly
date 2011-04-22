@@ -49,6 +49,7 @@ import javax.net.ssl.SSLEngine;
 
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.PortRange;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.http.ContentEncoding;
@@ -84,6 +85,14 @@ public class NetworkListener {
      * If not explicitly set, the value of {@link #DEFAULT_NETWORK_PORT} will be used.
      */
     private int port = DEFAULT_NETWORK_PORT;
+
+    /**
+     * The network port range to which the <code>HttpServer<code> will bind to
+     * in order to service <code>HTTP</code> requests.
+     * If not explicitly set, the value of {@link #port} will be used.
+     */
+    private PortRange portRange;
+
     /**
      * The logical <code>name</code> of this particular <code>NetworkListener</code> instance.
      */
@@ -183,11 +192,7 @@ public class NetworkListener {
      * @param host the network host to which this listener will bind.
      */
     public NetworkListener(final String name, final String host) {
-        validateArg("name", name);
-        validateArg("host", host);
-        this.name = name;
-        this.host = host;
-
+        this(name, host, DEFAULT_NETWORK_PORT);
     }
 
     /**
@@ -211,6 +216,27 @@ public class NetworkListener {
         this.port = port;
 
     }
+
+    /**
+     * <p> Constructs a new <code>NetworkListener</code> using the specified <code>name</code>, <code>host</code>, and
+     * <code>port</code>. </p>
+     *
+     * @param name the logical name of the listener.
+     * @param host the network host to which this listener will bind.
+     * @param portRange the network port range to which this listener will bind..
+     */
+    public NetworkListener(final String name,
+        final String host,
+        final PortRange portRange) {
+        validateArg("name", name);
+        validateArg("host", name);
+
+        this.name = name;
+        this.host = host;
+        this.port = -1;
+        this.portRange = portRange;
+    }
+
     // ----------------------------------------------------------- Configuration
 
     /**
@@ -231,9 +257,24 @@ public class NetworkListener {
 
     /**
      * @return the network port to which this listener is configured to bind to.
+     * If the {@link HttpServer} has not been started yet - the returned value
+     * may be:
+     * <tt>-1</tt>, if {@link PortRange} will be used to bind the listener;
+     * <tt>0</tt>, if the port will be assigned by OS;
+     * <tt>0 < N < 65536</tt>, the port this listener will be bound to.
+     * If {@link HttpServer} has been started - the value returned is the port the
+     * this listener is bound to.
      */
     public int getPort() {
         return port;
+
+    }
+
+    /**
+     * @return the network port range to which this listener is configured to bind to.
+     */
+    public PortRange getPortRange() {
+        return portRange;
 
     }
 
@@ -504,8 +545,11 @@ public class NetworkListener {
             throw new IllegalStateException("No FilterChain available."); // i18n
         }
         transport.setProcessor(filterChain);
-        final TCPNIOServerConnection serverConnection =
-        transport.bind(host, port);
+
+        final TCPNIOServerConnection serverConnection = (port != -1) ?
+            transport.bind(host, port) :
+            transport.bind(host, portRange, transport.getServerConnectionBackLog());
+        
         port = ((InetSocketAddress) serverConnection.getLocalAddress()).getPort();
 
         transport.start();

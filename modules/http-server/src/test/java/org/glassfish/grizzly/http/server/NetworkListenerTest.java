@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.http.server;
 
 import java.io.IOException;
+import org.glassfish.grizzly.PortRange;
 import org.junit.Test;
 import static org.junit.Assert.*;
 /**
@@ -53,7 +54,7 @@ public class NetworkListenerTest {
 
     @Test
     public void testSetPort() throws IOException {
-        NetworkListener listener = new NetworkListener("default-port", "0.0.0.0", PORT);
+        NetworkListener listener = new NetworkListener("set-port", "0.0.0.0", PORT);
         HttpServer httpServer = new HttpServer();
         httpServer.addListener(listener);
 
@@ -68,7 +69,7 @@ public class NetworkListenerTest {
 
     @Test
     public void testAutoPort() throws IOException {
-        NetworkListener listener = new NetworkListener("default-port", "0.0.0.0", 0);
+        NetworkListener listener = new NetworkListener("auto-port", "0.0.0.0", 0);
         HttpServer httpServer = new HttpServer();
         httpServer.addListener(listener);
 
@@ -76,6 +77,25 @@ public class NetworkListenerTest {
             assertEquals(0, listener.getPort());
             httpServer.start();
             assertNotSame(0, listener.getPort());
+        } finally {
+            httpServer.stop();
+        }
+    }
+
+    @Test
+    public void testPortRange() throws IOException {
+        final int RANGE = 10;
+        final PortRange portRange = new PortRange(PORT, PORT + RANGE);
+        NetworkListener listener = new NetworkListener("set-port", "0.0.0.0",
+                portRange);
+        HttpServer httpServer = new HttpServer();
+        httpServer.addListener(listener);
+
+        try {
+            assertEquals(-1, listener.getPort());
+            httpServer.start();
+            assertTrue(listener.getPort() >= PORT);
+            assertTrue(listener.getPort() <= PORT + RANGE);
         } finally {
             httpServer.stop();
         }
