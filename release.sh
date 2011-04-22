@@ -98,13 +98,13 @@ verify JN_PWD "Missing --password option for your svn password"
 
 if [ "${PREPARE}" ]
 then
-	CMD="mvn -Darguments=-Dmaven.test.skip.exec=true -e -P release-profile -DdryRun=$DRYRUN -DautoVersionSubmodules=true -DdevelopmentVersion=${DEV_VER} -DreleaseVersion=${RELEASE_VER} -Dtag=${BRANCH} -Dpassword=${JN_PWD} -Dusername=${JN_USER} ${PREPARE}"
+	CMD="mvn -Darguments=-Dmaven.test.skip.exec=true -B -e -P release-profile -DdryRun=$DRYRUN -DautoVersionSubmodules=true -DdevelopmentVersion=${DEV_VER} -DreleaseVersion=${RELEASE_VER} -Dtag=${BRANCH} -Dpassword=${JN_PWD} -Dusername=${JN_USER} ${PREPARE}"
 
 	echo ${CMD}
 	eval ${CMD}
 fi
 
-CMD="mvn -Darguments=-Dmaven.test.skip.exec=true -e -P release-profile -DdryRun=$DRYRUN -DautoVersionSubmodules=true -DdevelopmentVersion=${DEV_VER} -DreleaseVersion=${RELEASE_VER} -Dtag=${BRANCH} -Dpassword=${JN_PWD} -Dusername=${JN_USER} ${SVN_URL} release:perform"
+CMD="mvn -Darguments=-Dmaven.test.skip.exec=true -B -e -P release-profile -DdryRun=$DRYRUN -DautoVersionSubmodules=true -DdevelopmentVersion=${DEV_VER} -DreleaseVersion=${RELEASE_VER} -Dtag=${BRANCH} -Dpassword=${JN_PWD} -Dusername=${JN_USER} ${SVN_URL} release:perform"
 
 echo ${CMD}
 eval ${CMD}
