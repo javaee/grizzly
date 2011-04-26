@@ -52,7 +52,7 @@
   <section xml:id="mem-overview">
     <title>Overview</title>
 
-    <para>Grizzly 2.0 introduces a new subsystem to inprove memory mamangement
+    <para>Grizzly 2.1 introduces a new subsystem to improve memory management
     within the runtime. This subsystem is comprised of three main
     artifacts:</para>
 
@@ -146,7 +146,7 @@
     the <emphasis>NIOTransport</emphasis> being used by the
     application.</para>
 
-    <para>Grizzly 2.0 includes two <emphasis>MemoryManager</emphasis>
+    <para>Grizzly 2.1 includes two <emphasis>MemoryManager</emphasis>
     implementations: <emphasis>HeapMemoryManager</emphasis> and
     <emphasis>ByteBufferManager</emphasis>. By default, the Grizzly runtime
     will use the <emphasis>HeapMemoryManager</emphasis>, however if a Grizzly
@@ -232,7 +232,7 @@
   <section xml:id="mem-buffers">
     <title>Buffers</title>
 
-    <para>Grizzly 2.0 provides several buffers for developers to leverage when
+    <para>Grizzly 2.1 provides several buffers for developers to leverage when
     creating applications. These <emphasis>Buffer</emphasis> implementations
     offer features not available when using the JDK's ByteBuffer.</para>
 

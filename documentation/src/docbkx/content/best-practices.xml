@@ -72,7 +72,7 @@
         <para>For example, if we implement general HTTP Servlet container, we
         can't be sure about nature of specific Servlets developers may have.
         In this case it's safter to use the worker-thread IOStrategy. However,
-        if application uses the Grizzly 2.0 HttpServer and HttpHandler, which
+        if application uses the Grizzly 2.1 HttpServer and HttpHandler, which
         leverages NIO streams, then the same-thread strategy could be used to
         optimize processing time and resource consumption;</para>
       </listitem>
@@ -80,7 +80,7 @@
       <listitem>
         <para><emphasis role="bold">Selector runners count</emphasis></para>
 
-        <para>The Grizzly runtiem will automatically set the SelectorRunner
+        <para>The Grizzly runtime will automatically set the SelectorRunner
         count value equal to <link
         xlink:href="http://download.oracle.com/javase/6/docs/api/java/lang/Runtime.html#availableProcessors()">Runtime.getRuntime().availableProcessors()</link>.
         Depending on usecase, developers may change this value to better suit

@@ -50,16 +50,16 @@
          xmlns:html="http://www.w3.org/1999/xhtml">
   <title>Quick Start</title>
 
-  <para>This chapter will present how to get started with Grizzly 2.0.1, both
+  <para>This chapter will present how to get started with Grizzly 2.1, both
   client and server side.</para>
 
-  <para>First, it is necessary to depend on the correct Grizzly 2.0.1 <link
+  <para>First, it is necessary to depend on the correct Grizzly 2.1 <link
   xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-framework/">core</link>
   artifact. Maven developers will need to add following dependency to the
   pom:<programlisting language="xml">&lt;dependency&gt;
     &lt;groupId&gt;org.glassfish.grizzly&lt;/groupId&gt;
     &lt;artifactId&gt;grizzly-framework&lt;/artifactId&gt;
-    &lt;version&gt;2.0.1&lt;/version&gt;
+    &lt;version&gt;2.1&lt;/version&gt;
 &lt;/dependency&gt;</programlisting></para>
 
   <para>Maven repository to be used is<programlisting language="xml">&lt;repository&gt;
@@ -131,7 +131,7 @@
  8  import org.glassfish.grizzly.utils.StringFilter;
  9
 10  /**
-11   * Class initializes and starts the echo server, based on Grizzly 2.0
+11   * Class initializes and starts the echo server, based on Grizzly 2.1
 12   */
 13  public class EchoServer {
 14      private static final Logger logger = Logger.getLogger(EchoServer.class.getName());

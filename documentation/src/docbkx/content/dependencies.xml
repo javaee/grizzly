@@ -122,7 +122,7 @@
     language="xml">&lt;dependency&gt;
     &lt;groupId&gt;org.glassfish.grizzly&lt;/groupId&gt;
     &lt;artifactId&gt;grizzly-framework&lt;/artifactId&gt;
-    &lt;version&gt;2.0.1&lt;/version&gt;
+    &lt;version&gt;2.1&lt;/version&gt;
 &lt;/dependency&gt;</programlisting></para>
 
     <para>And the following repositories need to be added to the pom:</para>
@@ -144,7 +144,7 @@
     <itemizedlist>
       <listitem>
         <para><link
-        xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-framework/2.0.1/grizzly-framework-2.0.1.jar">grizzly-framework.jar</link></para>
+        xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-framework/2.1/grizzly-framework-2.1.jar">grizzly-framework.jar</link></para>
       </listitem>
 
       <listitem>
@@ -162,14 +162,14 @@
     language="xml">&lt;dependency&gt;
      &lt;groupId&gt;org.glassfish.grizzly&lt;/groupId&gt;
      &lt;artifactId&gt;grizzly-http&lt;/artifactId&gt;
-     &lt;version&gt;2.0.1&lt;/version&gt;
+     &lt;version&gt;2.1&lt;/version&gt;
 &lt;/dependency&gt;</programlisting></para>
 
     <para>Non-maven developers additionally to jars, required by <link
     linkend="core-dep">Core framework</link>, require:<itemizedlist>
         <listitem>
           <para><link
-          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-http/2.0.1/grizzly-http-2.0.1.jar">grizzly-http.jar</link></para>
+          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-http/2.1/grizzly-http-2.1.jar">grizzly-http.jar</link></para>
         </listitem>
       </itemizedlist></para>
   </section>
@@ -182,14 +182,14 @@
     language="xml">&lt;dependency&gt;
      &lt;groupId&gt;org.glassfish.grizzly&lt;/groupId&gt;
      &lt;artifactId&gt;grizzly-http-server&lt;/artifactId&gt;
-     &lt;version&gt;2.0.1&lt;/version&gt;
+     &lt;version&gt;2.1&lt;/version&gt;
 &lt;/dependency&gt;</programlisting></para>
 
     <para>Non-maven developers, additionally to jars, required by <link
     linkend="http-dep">HTTP framework</link>, require:<itemizedlist>
         <listitem>
           <para><link
-          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-http-server/2.0.1/grizzly-http-server-2.0.1.jar">grizzly-http-server.jar</link></para>
+          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-http-server/2.1/grizzly-http-server-2.1.jar">grizzly-http-server.jar</link></para>
         </listitem>
       </itemizedlist></para>
   </section>
@@ -202,7 +202,7 @@
     language="xml">&lt;dependency&gt;
      &lt;groupId&gt;org.glassfish.grizzly&lt;/groupId&gt;
      &lt;artifactId&gt;grizzly-http-servlet&lt;/artifactId&gt;
-     &lt;version&gt;2.0.1&lt;/version&gt;
+     &lt;version&gt;2.1&lt;/version&gt;
 &lt;/dependency&gt;</programlisting></para>
 
     <para>Non-maven developers, additionally to jars, required by <link
@@ -210,7 +210,7 @@
     require:<itemizedlist>
         <listitem>
           <para><link
-          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-http-servlet/2.0.1/grizzly-http-servlet-2.0.1.jar">grizzly-http-servlet.jar</link></para>
+          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-http-servlet/2.1/grizzly-http-servlet-2.1.jar">grizzly-http-servlet.jar</link></para>
         </listitem>
 
         <listitem>
@@ -228,14 +228,14 @@
     language="xml">&lt;dependency&gt;
      &lt;groupId&gt;org.glassfish.grizzly&lt;/groupId&gt;
      &lt;artifactId&gt;grizzly-portunif&lt;/artifactId&gt;
-     &lt;version&gt;2.0.1&lt;/version&gt;
+     &lt;version&gt;2.1&lt;/version&gt;
 &lt;/dependency&gt;</programlisting></para>
 
     <para>Non-maven developers, additionally to jars, required by <link
     linkend="core-dep">Core framework</link>, require:<itemizedlist>
         <listitem>
           <para><link
-          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-portunif/2.0.1/grizzly-portunif-2.0.1.jar">grizzly-portunif.jar</link></para>
+          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-portunif/2.1/grizzly-portunif-2.1.jar">grizzly-portunif.jar</link></para>
         </listitem>
       </itemizedlist></para>
   </section>
@@ -248,7 +248,7 @@
     language="xml">&lt;dependency&gt;
      &lt;groupId&gt;org.glassfish.grizzly&lt;/groupId&gt;
      &lt;artifactId&gt;grizzly-comet&lt;/artifactId&gt;
-     &lt;version&gt;2.0.1&lt;/version&gt;
+     &lt;version&gt;2.1&lt;/version&gt;
 &lt;/dependency&gt;</programlisting></para>
 
     <para>Non-maven developers, additionally to jars, required by <link
@@ -256,7 +256,7 @@
     require:<itemizedlist>
         <listitem>
           <para><link
-          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-comet/2.0.1/grizzly-comet-2.0.1.jar">grizzly-comet.jar</link></para>
+          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-comet/2.1/grizzly-comet-2.1.jar">grizzly-comet.jar</link></para>
         </listitem>
       </itemizedlist></para>
   </section>
@@ -269,7 +269,7 @@
     language="xml">&lt;dependency&gt;
      &lt;groupId&gt;org.glassfish.grizzly&lt;/groupId&gt;
      &lt;artifactId&gt;grizzly-websockets&lt;/artifactId&gt;
-     &lt;version&gt;2.0.1&lt;/version&gt;
+     &lt;version&gt;2.1&lt;/version&gt;
 &lt;/dependency&gt;</programlisting></para>
 
     <para>Non-maven developers, additionally to jars, required by <link
@@ -277,7 +277,7 @@
     require:<itemizedlist>
         <listitem>
           <para><link
-          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-websockets/2.0.1/grizzly-websockets-2.0.1.jar">grizzly-websockets.jar</link></para>
+          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-websockets/2.1/grizzly-websockets-2.1.jar">grizzly-websockets.jar</link></para>
         </listitem>
       </itemizedlist></para>
   </section>
@@ -290,7 +290,7 @@
     language="xml">&lt;dependency&gt;
      &lt;groupId&gt;org.glassfish.grizzly&lt;/groupId&gt;
      &lt;artifactId&gt;grizzly-http-ajp&lt;/artifactId&gt;
-     &lt;version&gt;2.0.1&lt;/version&gt;
+     &lt;version&gt;2.1&lt;/version&gt;
 &lt;/dependency&gt;</programlisting></para>
 
     <para>Non-maven developers, additionally to jars, required by <link
@@ -298,7 +298,7 @@
     require:<itemizedlist>
         <listitem>
           <para><link
-          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-http-ajp/2.0.1/grizzly-http-ajp-2.0.1.jar">grizzly-http-ajp.jar</link></para>
+          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-http-ajp/2.1/grizzly-http-ajp-2.1.jar">grizzly-http-ajp.jar</link></para>
         </listitem>
       </itemizedlist></para>
   </section>

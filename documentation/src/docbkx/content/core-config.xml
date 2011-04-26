@@ -89,7 +89,7 @@
             the WorkerThreadIOStrategy will be employed. See the section on
             <link xlink:href="iostrategies.xml"
             xml:id="ios001">IOStrategies</link> for specifics on each
-            concreate IOStrategy included with Grizzly 2.0.</entry>
+            concreate IOStrategy included with Grizzly 2.1.</entry>
           </row>
 
           <row>

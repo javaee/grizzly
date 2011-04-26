@@ -52,10 +52,10 @@
   <section xml:id="ajp-overview">
     <title>Overview</title>
 
-    <para>Starting with version 2.0.1, Grizzly supports <link
+    <para>Starting with version 2.1, Grizzly supports <link
     xlink:href="http://en.wikipedia.org/wiki/Apache_JServ_Protocol">AJP</link>
     1.3 (Apache JServ Protocol) natively. "Natively" means AJP is implemented
-    using core Grizzly 2.0.1 APIs and naturally fits into entire Grizzly
+    using core Grizzly 2.1 APIs and naturally fits into entire Grizzly
     infrastructure: memory management, threading etc...</para>
   </section>
 
@@ -173,10 +173,10 @@ listener.registerAddOn(ajpAddon);
         // Map the path, /grizzly, to the HelloWorldHandler
         config.addHttpHandler(new HelloWorldHandler(), "/grizzly");</programlisting></para>
 
-    <para>The readme.txt (@TODO update after 2.0.1 branch created) contains
+    <para>The readme.txt (@TODO update after 2.1 tag created) contains
     setup and run instructions.</para>
 
     <para>Complete sources and instructions could be found here. (@TODO update
-    after 2.0.1 branch created)</para>
+    after 2.1 tag created)</para>
   </section>
 </chapter>

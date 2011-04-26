@@ -74,7 +74,7 @@
     <title>How it works</title>
 
     <para>Port Unification, in Grizzly, is represented by PUFilter which is a
-    Grizzly 2.0 FilterChain Filter. This filter plays role of a fork in the
+    Grizzly 2.1 FilterChain Filter. This filter plays role of a fork in the
     FilterChain.</para>
 
     <para>Each "unified" protocol, should be represented by a object
@@ -255,6 +255,6 @@ public class AddProtocolFinder implements ProtocolFinder {
         transport.start();</programlisting></para>
 
     <para>Complete sample code could be found <link
-    xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/samples/grizzly-portunif-samples/2.0.1">here</link>.</para>
+    xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/samples/grizzly-portunif-samples/2.1">here</link>.</para>
   </section>
 </chapter>

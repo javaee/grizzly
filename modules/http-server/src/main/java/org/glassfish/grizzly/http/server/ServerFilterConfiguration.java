@@ -49,7 +49,7 @@ public class ServerFilterConfiguration {
     private String httpServerVersion;
 
     public ServerFilterConfiguration() {
-        this("Grizzly", "2.0");
+        this("Grizzly", "2.1");
     }
 
     public ServerFilterConfiguration(final String serverName, final String serverVersion) {

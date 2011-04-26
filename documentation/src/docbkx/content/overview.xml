@@ -78,7 +78,7 @@
   <section xml:id="overview-sysreq">
     <title>System Requirements</title>
 
-    <para>The system requirements for Grizzly 2.0 are quite simple. Basically,
+    <para>The system requirements for Grizzly 2.1 are quite simple. Basically,
     Grizzly is able to run on any platform that <link
     xlink:href="http://www.oracle.com/technetwork/java/index.html">JDK
     1.6</link> is available on.</para>
@@ -90,10 +90,10 @@
     <para>Grizzly source are located in the Java.Net git <link
     xlink:href="http://java.net/projects/grizzly/sources/git/show">repository</link>.</para>
 
-    <para>Grizzly 2.0 could be checked out using following
+    <para>Grizzly 2.1 could be checked out using following
     command:<programlisting>git clone git://java.net/grizzly~git
 cd grizzly~git
-git checkout 2_0_1</programlisting></para>
+git checkout 2_1_0</programlisting></para>
   </section>
 
   <section xml:id="overview-help">
