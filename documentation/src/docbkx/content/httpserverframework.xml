@@ -1323,7 +1323,7 @@ INFO: Stopped listener bound to [0.0.0.0:8080]</screen>
     actually output. It's been added to visualize the artificial delay added
     by the Filter used by the client.</para>
 
-    <para>This example in it's entirety is available within the samples
+    <para>This example in its entirety is available within the samples
     section of the Grizzly @project.version@ repository.</para>
   </section>
 </chapter>

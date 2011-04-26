@@ -81,7 +81,7 @@
         diagram<itemizedlist>
             <listitem>
               <para>MemoryManager implements the memory allocation/release
-              logic (see the <link linkend="memory">Memory managment</link>
+              logic (see the <link linkend="memory">Memory management</link>
               section);</para>
             </listitem>
 

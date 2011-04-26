@@ -298,7 +298,7 @@ public interface TransferEncoding {
       <title>Content Encodings</title>
 
       <para>Content encodings describe when encodings have been applied to the
-      message body prior to their being transfered to the recipient. At the
+      message body prior to their being transferred to the recipient. At the
       time that this was written, Grizzly @project.version@ only supports gzip content
       encoding (implemented by
       org.glassfish.grizzly.http.GzipContentEnconding).</para>
