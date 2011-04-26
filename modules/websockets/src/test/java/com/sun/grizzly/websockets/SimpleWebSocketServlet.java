@@ -75,10 +75,6 @@ public class SimpleWebSocketServlet extends HttpServlet {
             }
 
             @Override
-            public void onConnect(WebSocket socket) {
-            }
-
-            @Override
             public void onClose(WebSocket socket) {
                 System.out.println("socket: " + socket + " closed");
             }
