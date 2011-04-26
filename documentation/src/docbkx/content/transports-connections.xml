@@ -50,13 +50,13 @@
   <title>Transports and Connections</title>
 
   <para>Transport and Connection represent the core network API in Grizzly
-  2.1.</para>
+  @project.version@.</para>
 
   <para>Transport defines a network transport such as TCP or UDP, including
   associated resources (thread-pool, memory manager etc) and default
   configuration for nested Connections.</para>
 
-  <para>Connection in Grizzly 2.1 represents a single network connection (very
+  <para>Connection in Grizzly @project.version@ represents a single network connection (very
   similar to socket), depending on type of Transport it could be TCP or UDP
   connection or any custom connection type.</para>
 
@@ -72,7 +72,7 @@
             </imageobject>
           </inlinemediaobject></para>
 
-        <para>Per class diagram above, Grizzly 2.1 has two Transport
+        <para>Per class diagram above, Grizzly @project.version@ has two Transport
         implementations: NIO TCP and NIO UDP, which is based on Java NIO,
         though in the future, support for NIO.2 based transports and SCTP will
         be added once JDK 7 is available.</para>
@@ -148,7 +148,7 @@
           </inlinemediaobject></para>
 
         <para>On the diagram above we see how Connections are related to
-        Transports and basic Connection abstractions. In Grizzly 2.1 we have
+        Transports and basic Connection abstractions. In Grizzly @project.version@ we have
         TCP and UDP Connection realization, besides that we have special
         server-Connections for both TCP and UDP.<itemizedlist>
             <listitem>

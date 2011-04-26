@@ -51,7 +51,7 @@
   <title>Monitoring</title>
 
   <para>The ability to provide data of how an application is being used at
-  runtime is an important feature offered by many frameworks. Grizzly 2.1 is
+  runtime is an important feature offered by many frameworks. Grizzly @project.version@ is
   no exception. Grizzly provides the ability to monitor key components within
   the framework and allows this monitoring to be extended by custom authored
   components. Let's start by looking at the entities that enable monitoring

@@ -125,7 +125,7 @@
         <para><emphasis role="bold">Leader-follower
         IOStrategy</emphasis>.</para>
 
-        <para>The last IOStrategy included with Grizzly 2.1, is the
+        <para>The last IOStrategy included with Grizzly @project.version@, is the
         leader-follower strategy:</para>
 
         <para><inlinemediaobject>
@@ -142,7 +142,7 @@
       </listitem>
     </orderedlist></para>
 
-  <para>Grizzly 2.1 provides general interface <emphasis
+  <para>Grizzly @project.version@ provides general interface <emphasis
   role="italic">org.glassfish.grizzly.IOStrategy:</emphasis></para>
 
   <programlisting language="java">/**
@@ -181,7 +181,7 @@ public interface IOStrategy extends WorkerThreadPoolConfigProducer {
   <para>And the IOStrategy implementation may decide what to do with the
   specific NIO event processing.</para>
 
-  <para>Grizzly 2.1 has four predefined IOStrategy implementations, as per
+  <para>Grizzly @project.version@ has four predefined IOStrategy implementations, as per
   list above:</para>
 
   <para><orderedlist>

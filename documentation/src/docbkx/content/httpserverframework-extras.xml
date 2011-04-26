@@ -42,7 +42,7 @@
 -->
 <chapter xml:id="http-server-framework-extras" version="5.0" xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:svg="http://www.w3.org/2000/svg" xmlns:m="http://www.w3.org/1998/Math/MathML" xmlns:html="http://www.w3.org/1999/xhtml" xmlns:db="http://docbook.org/ns/docbook">
   <title>The HTTP Server Framework Extras</title>
-  <para>The extra Grizzly 2.1 HTTP server framework features, provided by separate modules</para>
+  <para>The extra Grizzly HTTP server framework features, provided by separate modules</para>
 
   <section>
     <title>Multipart (multipart/form-data) HTTP Requests Processing</title>
@@ -136,14 +136,14 @@ public interface MultipartEntryHandler {
         pom:<programlisting language="xml">&lt;dependency&gt;
      &lt;groupId&gt;org.glassfish.grizzly&lt;/groupId&gt;
      &lt;artifactId&gt;grizzly-http-server-multipart&lt;/artifactId&gt;
-     &lt;version&gt;2.1&lt;/version&gt;
+     &lt;version&gt;@project.version@&lt;/version&gt;
 &lt;/dependency&gt;</programlisting></para>
       
       <para>Non-maven developers: additional dependencies: <link linkend="http-server-dep">HTTP
                     Server framework</link>, required by:<itemizedlist>
                     <listitem>
                         <para><link
-                                xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-http-servlet/2.1/grizzly-http-server-multipart-2.1.jar"
+                                xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-http-servlet/@project.version@/grizzly-http-server-multipart-@project.version@.jar"
                                 >grizzly-http-server-multipart.jar</link></para>
                     </listitem>
                 </itemizedlist></para>
@@ -383,7 +383,7 @@ public interface MultipartEntryHandler {
                 be notified.  If there is no more data to be processed, finish the upload by closing
                 the local file output stream.</para>
       <para>The complete working sample could be downloaded <link
-          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/samples/grizzly-http-multipart-samples/2.1/grizzly-http-multipart-samples-2.1-sources.jar"
+          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/samples/grizzly-http-multipart-samples/@project.version@/grizzly-http-multipart-samples-@project.version@-sources.jar"
           >here</link></para>
     </section>  
   </section>

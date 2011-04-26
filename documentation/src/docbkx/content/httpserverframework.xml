@@ -53,7 +53,7 @@
   <section xml:id="hsf-overview">
     <title>Overview</title>
 
-    <para>The Grizzly 2.1 HTTP server framework builds off the HTTP codec
+    <para>The Grizzly HTTP server framework builds off the HTTP codec
     framework to provide a more useful abstraction for day-to-day work. At a
     high level, this framework includes the following:</para>
 
@@ -193,7 +193,7 @@
     &lt;dependency&gt;
         &lt;groupId&gt;org.glassfish.grizzly&lt;/groupId&gt;
         &lt;artifactId&gt;grizzly-http-server&lt;/artifactId&gt;
-        &lt;version&gt;2.1&lt;/version&gt;
+        &lt;version&gt;@project.version@&lt;/version&gt;
     &lt;/dependency&gt;
 &lt;/dependencies&gt;</programlisting>
 
@@ -270,7 +270,7 @@ try {
             <entry>version</entry>
 
             <entry>Set the version of this server instance. If not explicitly
-            set, the version will be 2.1.</entry>
+            set, the version will be @project.version@.</entry>
           </row>
         </tbody>
       </tgroup>
@@ -571,7 +571,7 @@ try {
     <para>In Grizzly 1.9, it was possible to write data to the client using
     non-blocking I/O, however, when reading post data from within a
     GrizzlyAdapter implementation, all I/O in that case was blocking. In
-    Grizzly 2.1, it's very simple using the InputStream/Reader from the
+    Grizzly @project.version@, it's very simple using the InputStream/Reader from the
     request and read data in a non-blocking manner. As far as writing, all I/O
     will be written in non-blocking mode, but there is some extra features on
     the OutputStream vended by the Response instance that will be covered that
@@ -646,7 +646,7 @@ public interface NIOOutputSink {
       notified to allow the developer to continue sending content to the
       client.</para>
 
-      <para>For Grizzly 2.1 HTTP applications that deal in primarily binary
+      <para>For Grizzly @project.version@ HTTP applications that deal in primarily binary
       data and are using Grizzly Buffers, they can leverage an additional
       method available on the NIOOutputStream specified by the
       BinaryNIOutputSink interface. This interface allows the direct writing
@@ -1324,6 +1324,6 @@ INFO: Stopped listener bound to [0.0.0.0:8080]</screen>
     by the Filter used by the client.</para>
 
     <para>This example in it's entirety is available within the samples
-    section of the Grizzly 2.1 repository.</para>
+    section of the Grizzly @project.version@ repository.</para>
   </section>
 </chapter>

@@ -55,7 +55,7 @@
     <para>Starting with version 2.1, Grizzly supports <link
     xlink:href="http://en.wikipedia.org/wiki/Apache_JServ_Protocol">AJP</link>
     1.3 (Apache JServ Protocol) natively. "Natively" means AJP is implemented
-    using core Grizzly 2.1 APIs and naturally fits into entire Grizzly
+    using core Grizzly APIs and naturally fits into entire Grizzly
     infrastructure: memory management, threading etc...</para>
   </section>
 

@@ -72,7 +72,7 @@
         <para>For example, if we implement general HTTP Servlet container, we
         can't be sure about nature of specific Servlets developers may have.
         In this case it's safter to use the worker-thread IOStrategy. However,
-        if application uses the Grizzly 2.1 HttpServer and HttpHandler, which
+        if application uses the Grizzly's HttpServer and HttpHandler, which
         leverages NIO streams, then the same-thread strategy could be used to
         optimize processing time and resource consumption;</para>
       </listitem>

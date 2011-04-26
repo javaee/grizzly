@@ -254,7 +254,7 @@ cd samples/framworksamples</screen>
 
       <listitem>
         <para>Download the sample source bundle from: <link
-        xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/samples/grizzly-framework-samples/2.1/grizzly-framework-samples-2.1-sources.jar">http://download.java.net/maven/glassfish/org/glassfish/grizzly/samples/grizzly-framework-samples/2.1/grizzly-framework-samples-2.1-sources.jar</link></para>
+        xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/samples/grizzly-framework-samples/@project.version@/grizzly-framework-samples-@project.version@-sources.jar">http://download.java.net/maven/glassfish/org/glassfish/grizzly/samples/grizzly-framework-samples/@project.version@/grizzly-framework-samples-@project.version@-sources.jar</link></para>
       </listitem>
     </itemizedlist>
   </section>

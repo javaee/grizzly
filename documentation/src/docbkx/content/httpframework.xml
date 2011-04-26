@@ -52,7 +52,7 @@
   <section xml:id="http-overview">
     <title>Overview</title>
 
-    <para>The Grizzly 2.1 HTTP framework provides codecs for
+    <para>The Grizzly @project.version@ HTTP framework provides codecs for
     marshalling/unmarshalling HTTP request/response data for both the server
     and clients. In addition to the codecs themselves, the framework includes
     base HTTP primitives and utilities to make working with the protocol
@@ -299,7 +299,7 @@ public interface TransferEncoding {
 
       <para>Content encodings describe when encodings have been applied to the
       message body prior to their being transfered to the recipient. At the
-      time that this was written, Grizzly 2.1 only supports gzip content
+      time that this was written, Grizzly @project.version@ only supports gzip content
       encoding (implemented by
       org.glassfish.grizzly.http.GzipContentEnconding).</para>
 
@@ -1085,14 +1085,14 @@ public class WebServerFilter extends BaseFilter {
     the details on what's going on here. Let's see the output of the examples
     in action. Here's the server start:</para>
 
-    <screen>[586][target]$ java -cp grizzly-http-samples-2.1.jar org.glassfish.grizzly.samples.http.download.Server /tmp
+    <screen>[586][target]$ java -cp grizzly-http-samples-@project.version@.jar org.glassfish.grizzly.samples.http.download.Server /tmp
 Jan 28, 2011 1:11:17 PM org.glassfish.grizzly.samples.http.download.Server main
 INFO: Press any key to stop the server...
 </screen>
 
     <para>And on the client side:</para>
 
-    <screen>[574][ryanlubke.lunasa: target]$ java -cp grizzly-http-samples-2.1.jar org.glassfish.grizzly.samples.http.download.Client http://localhost:7777/test.html
+    <screen>[574][ryanlubke.lunasa: target]$ java -cp grizzly-http-samples-@project.version@.jar org.glassfish.grizzly.samples.http.download.Client http://localhost:7777/test.html
 Jan 28, 2011 1:54:49 PM org.glassfish.grizzly.samples.http.download.ClientDownloadFilter handleConnect
 INFO: Connected... Sending the request: HttpRequestPacket (
    method=GET
@@ -1117,6 +1117,6 @@ INFO: Stopped transport...
 </screen>
 
     <para>This example within the java.net maven repository: <link
-    xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/samples/grizzly-http-samples/2.1">http://download.java.net/maven/glassfish/org/glassfish/grizzly/samples/grizzly-http-samples/2.1</link>.</para>
+    xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/samples/grizzly-http-samples/@project.version@">http://download.java.net/maven/glassfish/org/glassfish/grizzly/samples/grizzly-http-samples/@project.version@</link>.</para>
   </section>
 </chapter>
