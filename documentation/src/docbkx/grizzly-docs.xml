@@ -49,7 +49,7 @@
       xmlns:html="http://www.w3.org/1999/xhtml"
       xmlns:db="http://docbook.org/ns/docbook">
   <info>
-    <title>Grizzly 1.9 User's Guide</title>
+    <title>Grizzly @project.version@ User's Guide</title>
     <author>
       <personname><firstname>The Grizzly Team</firstname></personname>
     </author>

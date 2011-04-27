@@ -126,6 +126,9 @@
                     <linenumberingEveryNth>1</linenumberingEveryNth>
                     <calloutsExtension>1</calloutsExtension>
                     <xincludeSupported>true</xincludeSupported>
+                    <postProcess>
+                        <replace dir="target/docbkx/html" token="@project.version@" value="${project.version}"/>
+                    </postProcess>
                 </configuration>
             </plugin>
         </plugins>
