@@ -55,7 +55,7 @@
         <title>Source code</title>
         <para>Grizzly source are located in the Java.Net Subversion <link xlink:href="http://java.net/projects/grizzly/sources/svn/show/">repository</link>.</para>
         <para>Grizzly 1.9 can be checked out using following
-            command:<programlisting>svn co https://svn.java.net/svn/grizzly~svn/trunk/code 1.9</programlisting></para>>
+            command:<programlisting>svn co https://svn.java.net/svn/grizzly~svn/trunk/code grizzly19</programlisting></para>>
     </section>
     <section>
         <title>Quick Start</title>
