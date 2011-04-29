@@ -40,7 +40,7 @@
     holder.
 
 -->
-<chapter xml:id="ajp" version="5.0" xmlns="http://docbook.org/ns/docbook"
+<chapter version="5.0" xml:id="ajp" xmlns="http://docbook.org/ns/docbook"
          xmlns:xlink="http://www.w3.org/1999/xlink"
          xmlns:xi="http://www.w3.org/2001/XInclude"
          xmlns:svg="http://www.w3.org/2000/svg"
@@ -73,33 +73,31 @@
     <para>Here is a FilterChain, which is being normally constructed, when
     Grizzly HttpServer being used:</para>
 
-    <para>
-      <inlinemediaobject>
+    <para><inlinemediaobject>
         <imageobject>
-          <imagedata fileref="../images/ajp/httpserver-filterchain.png" />
+          <imagedata fileref="../images/ajp/httpserver-filterchain.png"></imagedata>
         </imageobject>
-      </inlinemediaobject>
-    </para>
+      </inlinemediaobject></para>
 
     <para>Now, what happens, if we want to use AJP? It's easy, we replace HTTP
     Filter, which works as a codec for Buffer &lt;-&gt; HTTP transformation,
     with the two Filters mentioned above: AjpMessageFilter and
     AjpHandlerFilter:</para>
 
-    <para>
-      <inlinemediaobject>
+    <para><inlinemediaobject>
         <imageobject>
-          <imagedata fileref="../images/ajp/httpserver-ajp-filterchain.png" />
+          <imagedata fileref="../images/ajp/httpserver-ajp-filterchain.png"></imagedata>
         </imageobject>
-      </inlinemediaobject>
-    </para>
+      </inlinemediaobject></para>
 
     <para>So the Grizzly HttpServer Filter won't even notice it operates over
     AJP rather than plain HTTP.</para>
 
     <para>In order to simplify HttpServer AJP configuration, there is an
     AjpAddOn available, which may be registered on the required HttpServer's
-    NetworkListener like:<programlisting language="java">HttpServer httpServer = new HttpServer();
+    NetworkListener like:</para>
+
+    <programlisting language="java">HttpServer httpServer = new HttpServer();
 NetworkListener listener =
          new NetworkListener("grizzly",
          NetworkListener.DEFAULT_NETWORK_HOST, PORT);
@@ -107,7 +105,7 @@ NetworkListener listener =
 AjpAddOn ajpAddon = new AjpAddOn();
 listener.registerAddOn(ajpAddon);
         
-        httpServer.addListener(listener);</programlisting></para>
+        httpServer.addListener(listener);</programlisting>
   </section>
 
   <section xml:id="ajp-config">
@@ -153,7 +151,9 @@ listener.registerAddOn(ajpAddon);
     <para>There is a simple AJP "Hello World" sample available, which contains
     a single class, single HttpHandler, which is accessable via AJP and HTTP
     at the same time. Here is the most interesting part of it responsible for
-    HttpServer initialization.<programlisting language="java">        final HttpServer server = new HttpServer();
+    HttpServer initialization.</para>
+
+    <programlisting language="java">        final HttpServer server = new HttpServer();
 
         // Create plain HTTP listener, which will handle port 8080
         final NetworkListener httpNetworkListener =
@@ -171,10 +171,10 @@ listener.registerAddOn(ajpAddon);
         final ServerConfiguration config = server.getServerConfiguration();
 
         // Map the path, /grizzly, to the HelloWorldHandler
-        config.addHttpHandler(new HelloWorldHandler(), "/grizzly");</programlisting></para>
+        config.addHttpHandler(new HelloWorldHandler(), "/grizzly");</programlisting>
 
-    <para>The readme.txt (@TODO update after 2.1 tag created) contains
-    setup and run instructions.</para>
+    <para>The readme.txt (@TODO update after 2.1 tag created) contains setup
+    and run instructions.</para>
 
     <para>Complete sources and instructions could be found here. (@TODO update
     after 2.1 tag created)</para>
