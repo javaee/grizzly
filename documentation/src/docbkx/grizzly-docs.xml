@@ -54,7 +54,7 @@
       <personname><firstname>The Grizzly Team</firstname></personname>
     </author>
 
-    <pubdate>TBD</pubdate>
+    <pubdate>04/26/2011</pubdate>
   </info>
 
   <xi:include href="content/overview.xml" xpointer="element(/1)" />
