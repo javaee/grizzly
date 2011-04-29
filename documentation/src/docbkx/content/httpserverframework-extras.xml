@@ -47,7 +47,7 @@
   <section>
     <title>Multipart (multipart/form-data) HTTP Requests Processing</title>
 
-    <para>File sharing has became a very popular internet service where users are able to upload
+    <para>File sharing has become a very popular internet service where users are able to upload
             files and share them for group of people. Typically users will upload their files via a
             regular HTML form
             like:<programlisting language="html">&lt;form action="upload" method="post" enctype="multipart/form-data">
@@ -55,8 +55,8 @@
   &lt;input type="file" name="fileName"/>
   &lt;input type="submit" value="submit"/>
 &lt;/form></programlisting></para>
-    <para>wher after you press "submit",  a multipart HTTP request is generated. For the example
-            above above, the HTTP request will contain two parts: text description and chosen file
+    <para>where after you press "submit",  a multipart HTTP request is generated. For the example
+            above, the HTTP request will contain two parts: text description and chosen file
             content,
             like:<programlisting>POST /upload HTTP/1.1
 Host: localhost:18080
