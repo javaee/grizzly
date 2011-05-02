@@ -151,9 +151,9 @@ public class SSLAsyncProtocolFilter extends AsyncProtocolFilter {
     protected void configureInputBuffer(
             InputReader inputStream, Context context, 
             HttpWorkerThread workerThread) {
-        ((SSLAsyncStream) inputStream).setSslEngine(workerThread.getSSLEngine());
-        ((SSLAsyncStream) inputStream).setInputBB(workerThread.getInputBB());
         inputStream.setSelectionKey(context.getSelectionKey());        
+        inputStream.setSslEngine(workerThread.getSSLEngine());
+        ((SSLAsyncStream) inputStream).setInputBB(workerThread.getInputBB());
     }
 
     /**

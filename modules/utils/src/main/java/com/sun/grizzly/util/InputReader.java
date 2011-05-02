@@ -45,6 +45,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import javax.net.ssl.SSLEngine;
 
 /**
  * This class implement IO stream operations on top of a {@link ByteBuffer}. 
@@ -75,6 +76,10 @@ public class InputReader extends InputStream {
      */
     protected ByteBuffer byteBuffer;
 
+    /**
+     * The encrypted {@link ByteBuffer}
+     */
+    protected ByteBuffer inputBB;
     
     /**
      * The {@link SelectionKey} used by this stream.
@@ -97,7 +102,12 @@ public class InputReader extends InputStream {
      * Is the underlying {@link SocketChannel} closed?
      */
     private boolean isClosed = false;
-    
+
+    /**
+     * The SSLEngine to use for unwrapping bytes.
+     */
+    protected SSLEngine sslEngine;
+
     // ------------------------------------------------- Constructor -------//
     
     
@@ -238,7 +248,11 @@ public class InputReader extends InputStream {
      * Recycle this object.
      */ 
     public void recycle(){
+        sslEngine = null;
+        secure = false;
+        
         byteBuffer = null;  
+        inputBB = null;
         key = null;
         isClosed = false;
     }
@@ -293,13 +307,10 @@ public class InputReader extends InputStream {
      * @return  number of bytes read
      * @throws java.io.IOException 
      */    
-    protected  int doSecureRead() throws IOException{ 
-        final WorkerThread workerThread = 
-                (WorkerThread)Thread.currentThread();
-
+    protected  int doSecureRead() throws IOException {
         Utils.Result r = SSLUtils.doSecureRead((SocketChannel) key.channel(), 
-                workerThread.getSSLEngine(), byteBuffer, 
-                workerThread.getInputBB());
+                sslEngine, byteBuffer, 
+                inputBB);
         
         byteBuffer.flip();       
         isClosed = r.isClosed;      
@@ -390,5 +401,23 @@ public class InputReader extends InputStream {
     public void setSecure(boolean secure) {
         this.secure = secure;
     }
+
+    public SSLEngine getSslEngine() {
+        return sslEngine;
+    }
+
+
+    public void setSslEngine(SSLEngine sslEngine) {
+        this.sslEngine = sslEngine;
+    }
+    
+    public ByteBuffer getInputBB() {
+        return inputBB;
+    }
+
+    
+    public void setInputBB(ByteBuffer inputBB) {
+        this.inputBB = inputBB;
+    }    
 }
 

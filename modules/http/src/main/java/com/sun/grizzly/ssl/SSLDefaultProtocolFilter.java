@@ -42,7 +42,9 @@ package com.sun.grizzly.ssl;
 
 import com.sun.grizzly.Context;
 import com.sun.grizzly.http.DefaultProtocolFilter;
+import com.sun.grizzly.http.HttpWorkerThread;
 import com.sun.grizzly.http.ProcessorTask;
+import com.sun.grizzly.util.InputReader;
 import com.sun.grizzly.util.StreamAlgorithm;
 import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.net.SSLImplementation;
@@ -119,7 +121,19 @@ public class SSLDefaultProtocolFilter extends DefaultProtocolFilter {
         SSLSupport sslSupport = sslImplementation.
                 getSSLSupport(((WorkerThread)Thread.currentThread()).getSSLEngine());
         processorTask.setSSLSupport(sslSupport);
-    }    
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void configureInputBuffer(final InputReader inputStream,
+            final Context context, final HttpWorkerThread workerThread) {
+        super.configureInputBuffer(inputStream, context, workerThread);
+        inputStream.setSslEngine(workerThread.getSSLEngine());        
+        inputStream.setInputBB(workerThread.getInputBB());        
+    }
+    
     
     /**
      * {@inheritDoc}

@@ -47,7 +47,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.net.ssl.SSLEngine;
 
 /**
  * This class add support for TLS|SSL to a {@link InputReader}.
@@ -55,17 +54,6 @@ import javax.net.ssl.SSLEngine;
  * @author Jean-Francois Arcand
  */
 public class SSLAsyncStream extends InputReader {
-
-    /**
-     * The SSLEngine to use for unwrapping bytes.
-     */
-    private SSLEngine sslEngine;
-    
-    
-    /**
-     * The encrypted {@link ByteBuffer}
-     */
-    private ByteBuffer inputBB;
     
     
     public SSLAsyncStream (final ByteBuffer byteBuffer) {
@@ -103,26 +91,6 @@ public class SSLAsyncStream extends InputReader {
 
         byteBuffer.flip();
         return byteRead;
-    } 
-
-    
-    public SSLEngine getSslEngine() {
-        return sslEngine;
-    }
-
-    
-    public void setSslEngine(SSLEngine sslEngine) {
-        this.sslEngine = sslEngine;
-    }
-
-    
-    public ByteBuffer getInputBB() {
-        return inputBB;
-    }
-
-    
-    public void setInputBB(ByteBuffer inputBB) {
-        this.inputBB = inputBB;
-    }
+    }     
 }
 

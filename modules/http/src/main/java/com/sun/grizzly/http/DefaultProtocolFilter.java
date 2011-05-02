@@ -230,6 +230,7 @@ public class DefaultProtocolFilter implements ProtocolFilter {
                     workerThread.setInputStream(new InputReader());
                     workerThread.setByteBuffer(null);
                     workerThread.setProcessorTask(null);
+                    workerThread.setInputBB(null);
 
                     ctx.setKeyRegistrationState(
                             Context.KeyRegistrationState.NONE);
@@ -253,6 +254,8 @@ public class DefaultProtocolFilter implements ProtocolFilter {
         }
         
         streamAlgorithm.postParse(byteBuffer);
+        
+        inputStream.recycle();
         
         if (processorTask != null){
             processorTask.recycle();
@@ -334,6 +337,7 @@ public class DefaultProtocolFilter implements ProtocolFilter {
                 selectorHandler.addPendingKeyCancel(selectionKey);
             }
 
+            ((InputReader) processorTask.getInputStream()).recycle();
             processorTask.recycle();
             selectorThread.returnTask(processorTask);
         }

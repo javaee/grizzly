@@ -115,7 +115,7 @@ public class SuspendTest {
                     {Boolean.FALSE, Boolean.TRUE},
                     {Boolean.TRUE, Boolean.FALSE},
                     {Boolean.TRUE, Boolean.TRUE}
-                });
+        });
     }
 
     @Before
@@ -565,6 +565,57 @@ public class SuspendTest {
     }
 
     @Test
+    public void testSuspendedRead() throws Exception {
+        Utils.dumpErr("Test: testSuspendedRead isSslEnabled=" + isSslEnabled);
+        
+        final byte[] msg = "Hello world".getBytes();
+        
+        setAdapterAndListen(new GrizzlyAdapter() {
+
+            @Override
+            public void service(final GrizzlyRequest req,
+                    final GrizzlyResponse res) {
+                res.suspend();
+                pe.schedule(new Runnable() {
+
+                    public void run() {
+                        try {
+                            InputStream is = req.getInputStream();
+                            
+                            byte[] inputMsg = new byte[msg.length + 1];
+                            int size = 0;
+                            int bytesRead = 0;
+                            while ((bytesRead = is.read(
+                                    inputMsg, size, inputMsg.length - size)) != -1) {
+                                size += bytesRead;
+                            }
+
+                            if (size != msg.length) {
+                                res.getWriter().write("wrong size " + size);
+                            } else if (!Arrays.equals(msg, Arrays.copyOf(inputMsg, size))) {
+                                res.getWriter().write("wrong data: " +
+                                        new String(inputMsg, 0, size));
+                                
+                            } else {
+                                res.getWriter().write(testString);
+                            }
+                        } catch (Exception e) {
+                            try {
+                                res.getWriter().write(e.getClass().getName() +
+                                        ": " + e.getMessage());
+                            } catch (IOException e1) {
+                            }
+                        }
+                        
+                        res.resume();
+                    }
+                }, 2, TimeUnit.SECONDS);
+            }
+        });
+        sendPostRequest(isSslEnabled, msg);
+    }
+
+    @Test
     public void testSuspendResumeOneTransaction() throws Exception {
         Utils.dumpErr("Test: testSuspendResumeOneTransaction isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
@@ -650,6 +701,59 @@ public class SuspendTest {
             }
             if (assertResponse) {
                 assertTrue(gotCorrectResponse);
+            }
+        } finally {
+        }
+    }
+
+    private void sendPostRequest(boolean isSslEnabled, byte[] msg) throws Exception {
+        sendPostRequest(isSslEnabled, msg, true);
+    }
+
+    private void sendPostRequest(boolean isSslEnabled, byte[] msg, boolean assertResponse)
+            throws Exception {
+        Socket s;
+
+        if (isSslEnabled) {
+            s = SSLConfig.DEFAULT_CONFIG.createSSLContext().getSocketFactory().createSocket("localhost", PORT);
+        } else {
+            s = new Socket("localhost", PORT);
+        }
+
+        try {
+//            s.setSoTimeout(30 * 1000);
+            OutputStream os = s.getOutputStream();
+
+            Utils.dumpErr(("POST / HTTP/1.1\n"));
+
+            os.write(("POST / HTTP/1.1\n").getBytes());
+            os.write(("Host: localhost:" + PORT + "\n").getBytes());
+            os.write(("Content-Length: " + msg.length + "\n").getBytes());
+            os.write("\n".getBytes());
+            os.flush();
+
+            Thread.sleep(1000);
+
+            os.write(msg);
+            os.flush();
+
+            InputStream is = new DataInputStream(s.getInputStream());
+            BufferedReader br = new BufferedReader(new InputStreamReader(is));
+            String line = null;
+            Utils.dumpErr("================== reading the response");
+            boolean gotCorrectResponse = false;
+            StringBuilder responseSB = new StringBuilder();
+            
+            while ((line = br.readLine()) != null) {
+                responseSB.append(line).append('\n');
+                Utils.dumpErr("-> " + line + " --> " + line.startsWith(testString));
+                if (line.startsWith(testString)) {
+                    gotCorrectResponse = true;
+                    break;
+                }
+            }
+            if (assertResponse) {
+                assertTrue(responseSB.toString(), gotCorrectResponse);
             }
         } finally {
         }
