@@ -97,7 +97,6 @@ import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
 
 /**
  * Set of SSL tests
@@ -118,14 +117,17 @@ public class SSLTest {
 
     private final TrustManager trustManager = new X509TrustManager() {
 
+        @Override
         public X509Certificate[] getAcceptedIssuers() {
             return new X509Certificate[0];
         }
 
+        @Override
         public void checkClientTrusted(X509Certificate[] chain, String authType)
         throws CertificateException {
         }
 
+        @Override
         public void checkServerTrusted(X509Certificate[] chain,
                                        String authType)
         throws CertificateException {

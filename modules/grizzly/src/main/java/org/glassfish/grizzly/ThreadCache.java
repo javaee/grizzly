@@ -94,14 +94,46 @@ public final class ThreadCache {
         }
     }
 
-    public static <E> E takeFromCache(CachedTypeIndex<E> index) {
+    /**
+     * Get the cached object with the given type index from cache.
+     * Unlike {@link #takeFromCache(org.glassfish.grizzly.ThreadCache.CachedTypeIndex)}, the
+     * object won't be removed from cache.
+     *
+     * @param <E>
+     * @param index the cached object type index.
+     * @return cached object.
+     */
+    public static <E> E getFromCache(final CachedTypeIndex<E> index) {
+        final Thread currentThread = Thread.currentThread();
+        if (currentThread instanceof DefaultWorkerThread) {
+            return ((DefaultWorkerThread) currentThread).getFromCache(index);
+        } else {
+            final ObjectCache genericCache = genericCacheAttr.get();
+            if (genericCache != null) {
+                return genericCache.get(index);
+            }
+
+            return null;
+        }
+    }
+
+    /**
+     * Take the cached object with the given type index from cache.
+     * Unlike {@link #getFromCache(org.glassfish.grizzly.ThreadCache.CachedTypeIndex)}, the
+     * object will be removed from cache.
+     *
+     * @param <E>
+     * @param index the cached object type index.
+     * @return cached object.
+     */
+    public static <E> E takeFromCache(final CachedTypeIndex<E> index) {
         final Thread currentThread = Thread.currentThread();
         if (currentThread instanceof DefaultWorkerThread) {
             return ((DefaultWorkerThread) currentThread).takeFromCache(index);
         } else {
             final ObjectCache genericCache = genericCacheAttr.get();
             if (genericCache != null) {
-                return genericCache.get(index);
+                return genericCache.take(index);
             }
 
             return null;
@@ -136,8 +168,17 @@ public final class ThreadCache {
             return objectCache.put(o);
         }
 
+        /**
+         * Get the cached object with the given type index from cache.
+         * Unlike {@link #take(org.glassfish.grizzly.ThreadCache.CachedTypeIndex)}, the
+         * object won't be removed from cache.
+         * 
+         * @param <E>
+         * @param index the cached object type index.
+         * @return cached object.
+         */
         @SuppressWarnings("unchecked")
-        public <E> E get(CachedTypeIndex<E> index) {
+        public <E> E get(final CachedTypeIndex<E> index) {
             final int idx;
             if (objectCacheElements != null &&
                     (idx = index.getIndex()) < objectCacheElements.length) {
@@ -146,6 +187,30 @@ public final class ThreadCache {
                 if (objectCache == null) return null;
 
                 return (E) objectCache.get();
+            }
+
+            return null;
+        }
+
+        /**
+         * Take the cached object with the given type index from cache.
+         * Unlike {@link #get(org.glassfish.grizzly.ThreadCache.CachedTypeIndex)}, the
+         * object will be removed from cache.
+         *
+         * @param <E>
+         * @param index the cached object type index.
+         * @return cached object.
+         */
+        @SuppressWarnings("unchecked")
+        public <E> E take(final CachedTypeIndex<E> index) {
+            final int idx;
+            if (objectCacheElements != null &&
+                    (idx = index.getIndex()) < objectCacheElements.length) {
+
+                final ObjectCacheElement objectCache = objectCacheElements[idx];
+                if (objectCache == null) return null;
+
+                return (E) objectCache.take();
             }
 
             return null;
@@ -171,7 +236,28 @@ public final class ThreadCache {
             return false;
         }
 
+        /**
+         * Get (peek) the object from cache.
+         * Unlike {@link #take()} the object will not be removed from cache.
+         *
+         * @return object from cache.
+         */
         public Object get() {
+            if (index > 0) {
+                final Object o = cache[index - 1];
+                return o;
+            }
+
+            return null;
+        }
+
+        /**
+         * Take (poll) the object from cache.
+         * Unlike {@link #get()} the object will be removed from cache.
+         *
+         * @return object from cache.
+         */
+        public Object take() {
             if (index > 0) {
                 index--;
                 

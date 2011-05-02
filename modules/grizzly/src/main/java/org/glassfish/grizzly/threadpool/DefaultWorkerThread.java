@@ -90,8 +90,30 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
         return memoryPool;
     }
 
-    public final <E> E takeFromCache(final ThreadCache.CachedTypeIndex<E> index) {
+    /**
+     * Get the cached object with the given type index from cache.
+     * Unlike {@link #takeFromCache(org.glassfish.grizzly.ThreadCache.CachedTypeIndex)}, the
+     * object won't be removed from cache.
+     *
+     * @param <E>
+     * @param index the cached object type index.
+     * @return cached object.
+     */
+    public final <E> E getFromCache(final ThreadCache.CachedTypeIndex<E> index) {
         return objectCache.get(index);
+    }
+
+    /**
+     * Take the cached object with the given type index from cache.
+     * Unlike {@link #getFromCache(org.glassfish.grizzly.ThreadCache.CachedTypeIndex)}, the
+     * object will be removed from cache.
+     *
+     * @param <E>
+     * @param index the cached object type index.
+     * @return cached object.
+     */
+    public final <E> E takeFromCache(final ThreadCache.CachedTypeIndex<E> index) {
+        return objectCache.take(index);
     }
 
     public final <E> boolean putToCache(final ThreadCache.CachedTypeIndex<E> index,
