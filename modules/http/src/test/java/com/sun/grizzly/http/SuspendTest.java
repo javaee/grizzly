@@ -865,7 +865,7 @@ public class SuspendTest {
     
     private static byte[] copyOf(byte[] src, int size) {
         final byte[] dst = new byte[size];
-        System.arraycopy(src, size, dst, 0, size);
+        System.arraycopy(src, 0, dst, 0, size);
         return dst;
     }
 }
