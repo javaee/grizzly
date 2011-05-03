@@ -56,7 +56,7 @@ import java.util.regex.Pattern;
  * @author Hubert Iwaniuk
  */
 public class Grizzly {
-    private static final Pattern versionPattern = Pattern.compile("((\\d+)\\.(\\d+)\\.(\\d+)){1}(?:-(.+))?");
+    private static final Pattern versionPattern = Pattern.compile("((\\d+)\\.(\\d+)(\\.\\d+)*){1}(?:-(.+))?");
     
     public static final AttributeBuilder DEFAULT_ATTRIBUTE_BUILDER = new DefaultAttributeBuilder();
     
@@ -106,7 +106,7 @@ public class Grizzly {
     }
 
     /**
-     * Return the dotted version of the curent release.
+     * Return the dotted version of the current release.
      *
      * @return like "2.0.1"
      */
