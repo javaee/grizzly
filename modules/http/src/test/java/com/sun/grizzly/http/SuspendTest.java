@@ -592,7 +592,7 @@ public class SuspendTest {
 
                             if (size != msg.length) {
                                 res.getWriter().write("wrong size " + size);
-                            } else if (!Arrays.equals(msg, Arrays.copyOf(inputMsg, size))) {
+                            } else if (!Arrays.equals(msg, copyOf(inputMsg, size))) {
                                 res.getWriter().write("wrong data: " +
                                         new String(inputMsg, 0, size));
                                 
@@ -861,5 +861,11 @@ public class SuspendTest {
         public void cancelled(StaticResourcesAdapter attachment) {
             fail("Unexpected Cancel");
         }
+    }
+    
+    private static byte[] copyOf(byte[] src, int size) {
+        final byte[] dst = new byte[size];
+        System.arraycopy(src, size, dst, 0, size);
+        return dst;
     }
 }
