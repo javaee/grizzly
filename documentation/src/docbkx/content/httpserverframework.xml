@@ -40,7 +40,7 @@
     holder.
 
 -->
-<chapter xml:id="http-server-framework" version="5.0"
+<chapter version="5.0" xml:id="http-server-framework"
          xmlns="http://docbook.org/ns/docbook"
          xmlns:xlink="http://www.w3.org/1999/xlink"
          xmlns:xi="http://www.w3.org/2001/XInclude"
@@ -550,7 +550,8 @@ try {
 
       <mediaobject>
         <imageobject>
-          <imagedata fileref="../images/httpserverframework/susres.png" />
+          <imagedata fileref="../images/httpserverframework/susres.png"
+                     scalefit="1"></imagedata>
         </imageobject>
       </mediaobject>
     </figure>
@@ -571,11 +572,11 @@ try {
     <para>In Grizzly 1.9, it was possible to write data to the client using
     non-blocking I/O, however, when reading post data from within a
     GrizzlyAdapter implementation, all I/O in that case was blocking. In
-    Grizzly @project.version@, it's very simple using the InputStream/Reader from the
-    request and read data in a non-blocking manner. As far as writing, all I/O
-    will be written in non-blocking mode, but there is some extra features on
-    the OutputStream vended by the Response instance that will be covered that
-    expose advanced non-blocking operations.</para>
+    Grizzly @project.version@, it's very simple using the InputStream/Reader
+    from the request and read data in a non-blocking manner. As far as
+    writing, all I/O will be written in non-blocking mode, but there is some
+    extra features on the OutputStream vended by the Response instance that
+    will be covered that expose advanced non-blocking operations.</para>
 
     <section xml:id="hsf-nio-streams-non-blocking">
       <title>Non-Blocking Writing</title>
@@ -646,9 +647,9 @@ public interface NIOOutputSink {
       notified to allow the developer to continue sending content to the
       client.</para>
 
-      <para>For Grizzly @project.version@ HTTP applications that deal in primarily binary
-      data and are using Grizzly Buffers, they can leverage an additional
-      method available on the NIOOutputStream specified by the
+      <para>For Grizzly @project.version@ HTTP applications that deal in
+      primarily binary data and are using Grizzly Buffers, they can leverage
+      an additional method available on the NIOOutputStream specified by the
       BinaryNIOutputSink interface. This interface allows the direct writing
       of Buffer instances. This optimizes away the need to copy bytes to a
       Buffer implementation under the covers.</para>
@@ -942,7 +943,8 @@ public class WebSocketAddOn implements AddOn {
     the following code snippets are part of a single example that makes use
     nested classes.</para>
 
-    <programlisting language="java" linenumbering="numbered" startinglinenumber="304">/**
+    <programlisting language="java" linenumbering="numbered"
+                    startinglinenumber="304">/**
  * This handler using non-blocking streams to read POST data and echo it
  * back to the client.
  */
@@ -1323,7 +1325,7 @@ INFO: Stopped listener bound to [0.0.0.0:8080]</screen>
     actually output. It's been added to visualize the artificial delay added
     by the Filter used by the client.</para>
 
-    <para>This example in its entirety is available within the samples
-    section of the Grizzly @project.version@ repository.</para>
+    <para>This example in its entirety is available within the samples section
+    of the Grizzly @project.version@ repository.</para>
   </section>
 </chapter>
