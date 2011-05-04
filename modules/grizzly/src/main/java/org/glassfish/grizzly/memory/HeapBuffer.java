@@ -718,6 +718,30 @@ public class HeapBuffer implements Buffer {
         return this;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void bulkTransform(final BulkTransformer transformer) {
+        bulkTransform(transformer, pos, lim);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void bulkTransform(final BulkTransformer transformer,
+            final int position, final int limit) {
+        
+        checkDispose();
+        final int size = limit - position;
+        int idx = offset + position;
+        for (int i = 0; i < size; i++) {
+            heap[idx] = transformer.transform(heap[idx]);
+            idx++;
+        }
+    }
+    
     @Override
     public int hashCode() {
         int result = (allowBufferDispose ? 1 : 0);

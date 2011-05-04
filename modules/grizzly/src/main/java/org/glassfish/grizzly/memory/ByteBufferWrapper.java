@@ -553,6 +553,28 @@ public class ByteBufferWrapper implements Buffer {
         return this;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void bulkTransform(final BulkTransformer transformer) {
+        bulkTransform(transformer, visible.position(), visible.limit());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void bulkTransform(final BulkTransformer transformer,
+            int position, final int limit) {
+        
+        checkDispose();
+        while (position < limit) {
+            visible.put(position, transformer.transform(visible.get(position)));
+            position++;
+        }
+    }
+    
     @Override
     public int hashCode() {
         return visible.hashCode();

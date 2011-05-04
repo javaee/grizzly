@@ -41,7 +41,6 @@
 package org.glassfish.grizzly.memory;
 
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.ThreadCache;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
@@ -1093,6 +1092,50 @@ public final class BuffersBuffer extends CompositeBuffer {
         return putLong(index, Double.doubleToLongBits(value));
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void bulkTransform(final BulkTransformer transformer) {
+        bulkTransform(transformer, position, limit);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void bulkTransform(final BulkTransformer transformer,
+            final int position, final int limit) {
+        
+        checkDispose();
+
+        int length = limit - position;
+        if (length == 0) return;
+
+        checkIndex(position);
+
+        int bufferIdx = lastSegmentIndex;
+        Buffer buffer = activeBuffer;
+        int bufferPosition = toActiveBufferPos(position);
+
+
+        while(true) {
+            final int bytesToProcess = Math.min(
+                    buffer.limit() - bufferPosition, length);
+            
+            buffer.bulkTransform(transformer, bufferPosition,
+                    bufferPosition + bytesToProcess);
+            
+            length -= bytesToProcess;
+
+            if (length == 0) break;
+
+            bufferIdx++;
+            buffer = buffers[bufferIdx];
+            bufferPosition = buffer.position();
+        }
+    }
+    
     @Override
     public int compareTo(Buffer that) {
         checkDispose();
@@ -1151,7 +1194,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         setPosLim(oldPosition, oldLimit);
         return new String(tmpBuffer, charset);
     }
-
+        
     @Override
     public ByteBuffer toByteBuffer() {
         return toByteBuffer(position, limit);

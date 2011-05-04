@@ -1402,6 +1402,22 @@ public interface Buffer extends Comparable<Buffer> {
      * @return {@link String} representation of part of this {@link Buffer}.
      */
     String toStringContent(Charset charset, int position, int limit);
+    
+    /**
+     * Iterates over {@link Buffer} bytes from {@link #position()} to {@link #limit()}
+     * and lets {@link BulkTransformer} change the buffer content;
+     * 
+     * @param transformer {@link BulkTransformer}
+     */
+    void bulkTransform(BulkTransformer transformer);
+    
+    /**
+     * Iterates over {@link Buffer} bytes from position to limit
+     * and lets {@link BulkTransformer} change the buffer content;
+     * 
+     * @param transformer {@link BulkTransformer}
+     */
+    void bulkTransform(BulkTransformer transformer, int position, int limit);
 
     ByteBuffer toByteBuffer();
 
@@ -1423,4 +1439,15 @@ public interface Buffer extends Comparable<Buffer> {
 
     BufferArray toBufferArray(BufferArray array, int position, int limit);
 
+    /**
+     * Bulk Buffer transformer, responsible for byte-by-byte Buffer transformation
+     */
+    public interface BulkTransformer {
+        /**
+         * Method is responsible to transform/change one single Buffer's byte.
+         * @param srcValue the initial value
+         * @return changed value
+         */
+        byte transform(byte srcValue);
+    }
 }

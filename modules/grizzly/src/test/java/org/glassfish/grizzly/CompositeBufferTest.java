@@ -40,6 +40,7 @@
 package org.glassfish.grizzly;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.ByteBufferManager;
@@ -478,6 +479,51 @@ public class CompositeBufferTest extends GrizzlyTestCase {
         }
     }
 
+    public void testToStringContent() {
+        final ByteBufferManager manager = new ByteBufferManager();
+        final CompositeBuffer composite = CompositeBuffer.newBuffer(
+                manager, Buffers.wrap(manager, "hello"),
+                Buffers.wrap(manager, " world"));
+
+        assertEquals("hello world", composite.toStringContent());
+    }
+    
+    public void testToStringContent2() {
+        final ByteBufferManager manager = new ByteBufferManager();
+        final Charset utf16 = Charset.forName("UTF-16");
+        
+        final String msg = "\u043F\u0440\u0438\u0432\u0435\u0442";
+        final Buffer msgBuffer = Buffers.wrap(manager, msg, utf16);
+        final Buffer b1 = msgBuffer.duplicate();
+        final Buffer b2 = b1.split(3);
+        
+        final CompositeBuffer composite = CompositeBuffer.newBuffer(
+                manager, b1, b2);
+
+        assertTrue(composite.equals(msgBuffer));
+
+        assertEquals(msg, composite.toStringContent(utf16));
+    }
+
+    public void testBulk() {
+        final ByteBufferManager manager = new ByteBufferManager();
+        final Charset ascii = Charset.forName("ASCII");
+        
+        final CompositeBuffer composite = CompositeBuffer.newBuffer(
+                manager, Buffers.wrap(manager, "hello", ascii),
+                Buffers.wrap(manager, " world", ascii));
+
+        composite.bulkTransform(new Buffer.BulkTransformer() {
+
+            @Override
+            public byte transform(final byte src) {
+                return (byte) Character.toUpperCase(src);
+            }
+        });
+        
+        assertEquals("HELLO WORLD", composite.toStringContent(ascii));
+    }
+    
     private <E> void doTest(E[] testData,
             int buffersNum, int bufferSize, Put<E> put, Get<E> get) {
 
