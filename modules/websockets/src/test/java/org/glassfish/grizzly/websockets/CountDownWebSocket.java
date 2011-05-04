@@ -42,17 +42,12 @@ package org.glassfish.grizzly.websockets;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.glassfish.grizzly.GrizzlyFuture;
 
 public class CountDownWebSocket extends ClientWebSocket {
-    private final AtomicInteger countDown = new AtomicInteger(0);
+    private final Object sync = new Object();
+    private int countDown;
 
     public CountDownWebSocket(String url, WebSocketListener... listeners) throws IOException, URISyntaxException {
         super(url, listeners);
@@ -60,35 +55,32 @@ public class CountDownWebSocket extends ClientWebSocket {
 
     @Override
     public GrizzlyFuture<DataFrame> send(String data) {
-        countDown.incrementAndGet();
+        synchronized(sync) {
+            countDown++;
+        }
+        
         return super.send(data);
     }
 
     @Override
     public void onMessage(String data) {
-        countDown.decrementAndGet();
+        synchronized(sync) {
+            if (--countDown == 0) {
+                sync.notify();
+            }
+        }
     }
 
     public boolean countDown() {
-        final FutureTask<Boolean> command = new FutureTask<Boolean>(new Callable<Boolean>() {
-            public Boolean call() throws Exception {
-                while (countDown.get() > 0) {
-//                    Thread.sleep(1);
-                }
-
-                return countDown.get() == 0;
+        synchronized(sync) {
+            if (countDown == 0) return true;
+            
+            try {
+                sync.wait(30000);
+            } catch (InterruptedException e) {
             }
-        });
-
-        execute(command);
-        try {
-            return command.get(30, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            return false;
-        } catch (ExecutionException e) {
-            return false;
-        } catch (TimeoutException e) {
-            return false;
+            
+            return countDown == 0;
         }
     }
 }
