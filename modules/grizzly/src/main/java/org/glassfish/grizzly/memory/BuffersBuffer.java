@@ -1126,11 +1126,23 @@ public final class BuffersBuffer extends CompositeBuffer {
             final int bytesToProcess = Math.min(
                     buffer.limit() - bufferPosition, length);
             
-            final int findPos = buffer.bulk(operation, bufferPosition,
-                    bufferPosition + bytesToProcess);
-            if (findPos != -1) {
-                return offset + (findPos - bufferPosition);
+            if (buffer.isComposite()) {
+                final int findPos = ((CompositeBuffer) buffer).bulk(operation,
+                        bufferPosition, bufferPosition + bytesToProcess);
+                
+                if (findPos != -1) {
+                    return offset + (findPos - bufferPosition);
+                }
+            } else {
+                setter.buffer = buffer;
+                for (int i = bufferPosition; i < bufferPosition + bytesToProcess; i++) {
+                    setter.position = i;
+                    if (operation.processByte(buffer.get(i), setter)) {
+                        return offset + (i - bufferPosition);
+                    }
+                }
             }
+            
             
             length -= bytesToProcess;
 
@@ -1143,7 +1155,19 @@ public final class BuffersBuffer extends CompositeBuffer {
             bufferPosition = buffer.position();
         }
     }
-       
+    
+    private final SetterImpl setter = new SetterImpl();
+    private final class SetterImpl implements Setter {
+        private Buffer buffer;
+        private int position;
+                
+        @Override
+        public void set(final byte value) {
+            buffer.put(position, value);
+        }
+        
+    }
+    
     @Override
     public int compareTo(Buffer that) {
         checkDispose();

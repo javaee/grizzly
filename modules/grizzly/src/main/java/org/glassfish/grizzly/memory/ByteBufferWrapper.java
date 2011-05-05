@@ -552,52 +552,6 @@ public class ByteBufferWrapper implements Buffer {
         visible.putDouble(index, value);
         return this;
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int bulk(final BulkOperation operation) {
-        return bulk(operation, visible.position(), visible.limit());
-    }
-
-    private final class BulkContextImpl implements BulkContext {
-        int idx;
-        
-        @Override
-        public byte get() {
-            return visible.get(idx);
-        }
-
-        @Override
-        public void set(final byte value) {
-            visible.put(idx, value);
-        }
-    }
-    
-    private final BulkContextImpl bulkContext = new BulkContextImpl();
-    
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int bulk(final BulkOperation operation,
-            int position, final int limit) {
-        
-        checkDispose();
-
-        while (position < limit) {
-            bulkContext.idx = position;
-
-            if (operation.processByte(bulkContext)) {
-                return position;
-            }
-
-            position++;
-        }
-        
-        return -1;
-    }    
     
     @Override
     public int hashCode() {

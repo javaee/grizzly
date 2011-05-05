@@ -717,53 +717,6 @@ public class HeapBuffer implements Buffer {
         Bits.putDouble(heap, offset + index, value, bigEndian);
         return this;
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int bulk(final BulkOperation operation) {
-        return bulk(operation, pos, lim);
-    }
-
-    private final class BulkContextImpl implements BulkContext {
-        int idx;
-        
-        @Override
-        public byte get() {
-            return heap[idx];
-        }
-
-        @Override
-        public void set(final byte value) {
-            heap[idx] = value;
-        }
-    }
-    
-    private final BulkContextImpl bulkContext = new BulkContextImpl();
-    
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int bulk(final BulkOperation operation,
-            final int position, final int limit) {
-        
-        checkDispose();
-        final int size = limit - position;
-        int idx = offset + position;
-        for (int i = 0; i < size; i++) {
-            bulkContext.idx = idx;
-            
-            if (operation.processByte(bulkContext)) {
-                return idx - offset;
-            }
-            
-            idx++;
-        }
-        
-        return -1;
-    }
     
     @Override
     public int hashCode() {

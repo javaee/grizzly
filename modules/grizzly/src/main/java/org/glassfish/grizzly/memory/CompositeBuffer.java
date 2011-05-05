@@ -83,4 +83,48 @@ public abstract class CompositeBuffer implements Buffer, Appendable<Buffer> {
     public abstract void allowInternalBuffersDispose(boolean allow);
 
     public abstract boolean allowInternalBuffersDispose();
+    
+    /**
+     * Iterates over {@link Buffer} bytes from {@link #position()} to {@link #limit()}
+     * and lets {@link BulkOperation} examine/change the buffer content;
+     * 
+     * @param operation {@link BulkOperation}
+     * @return <tt>Buffer</tt> position the processing was stopped on, or <tt>-1</tt>,
+     * if processing reached the limit.
+     */
+    public abstract int bulk(BulkOperation operation);
+    
+    /**
+     * Iterates over {@link Buffer} bytes from position to limit
+     * and lets {@link BulkOperation} examine/change the buffer content;
+     * 
+     * @param operation {@link BulkOperation}
+     * @return <tt>Buffer</tt> position the processing was stopped on, or <tt>-1</tt>,
+     * if processing reached the limit.
+     */
+    public abstract int bulk(BulkOperation operation, int position, int limit);  
+    
+    /**
+     * Bulk Buffer operation, responsible for byte-by-byte Buffer processing.
+     */
+    public interface BulkOperation {
+        /**
+         * Method is responsible to examine/change one single Buffer's byte.
+         * @param setter {@link Setter}
+         * @return <tt>true</tt>, if we want bulk processing stop, or <tt>false</tt>
+         *          to continue processing.
+         */
+        boolean processByte(byte value, Setter setter);
+    }
+    
+    /**
+     * Setter.
+     */
+    public interface Setter {
+        /**
+         * Set the current byte value.
+         * @param value value
+         */
+        void set(byte value);
+    }    
 }

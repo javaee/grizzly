@@ -1401,27 +1401,7 @@ public interface Buffer extends Comparable<Buffer> {
      *
      * @return {@link String} representation of part of this {@link Buffer}.
      */
-    String toStringContent(Charset charset, int position, int limit);
-    
-    /**
-     * Iterates over {@link Buffer} bytes from {@link #position()} to {@link #limit()}
-     * and lets {@link BulkOperation} examine/change the buffer content;
-     * 
-     * @param operation {@link BulkOperation}
-     * @return <tt>Buffer</tt> position the processing was stopped on, or <tt>-1</tt>,
-     * if processing reached the limit.
-     */
-    int bulk(BulkOperation operation);
-    
-    /**
-     * Iterates over {@link Buffer} bytes from position to limit
-     * and lets {@link BulkOperation} examine/change the buffer content;
-     * 
-     * @param operation {@link BulkOperation}
-     * @return <tt>Buffer</tt> position the processing was stopped on, or <tt>-1</tt>,
-     * if processing reached the limit.
-     */
-    int bulk(BulkOperation operation, int position, int limit);    
+    String toStringContent(Charset charset, int position, int limit);      
 
     ByteBuffer toByteBuffer();
 
@@ -1442,34 +1422,4 @@ public interface Buffer extends Comparable<Buffer> {
     BufferArray toBufferArray(int position, int limit);
 
     BufferArray toBufferArray(BufferArray array, int position, int limit);
-
-    /**
-     * Bulk Buffer operation, responsible for byte-by-byte Buffer processing.
-     */
-    public interface BulkOperation {
-        /**
-         * Method is responsible to examine/change one single Buffer's byte.
-         * @param context {@link BulkContext}
-         * @return <tt>true</tt>, if we want bulk processing stop, or <tt>false</tt>
-         *          to continue processing.
-         */
-        boolean processByte(BulkContext context);
-    }
-    
-    /**
-     * Bulk processing context.
-     */
-    public interface BulkContext {
-        /**
-         * Get the current byte value
-         * @return the current byte value.
-         */
-        byte get();
-
-        /**
-         * Set the current byte value.
-         * @param value value
-         */
-        void set(byte value);
-    }
 }
