@@ -984,6 +984,7 @@ public final class BuffersBuffer extends CompositeBuffer {
     }
 
 
+    @Override
     public BuffersBuffer putInt(int index, final int value) {
         checkDispose();
         checkReadOnly();
@@ -1096,22 +1097,24 @@ public final class BuffersBuffer extends CompositeBuffer {
      * {@inheritDoc}
      */
     @Override
-    public void bulkTransform(final BulkTransformer transformer) {
-        bulkTransform(transformer, position, limit);
+    public int bulk(final BulkOperation operation) {
+        return bulk(operation, position, limit);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void bulkTransform(final BulkTransformer transformer,
+    public int bulk(final BulkOperation operation,
             final int position, final int limit) {
         
         checkDispose();
 
         int length = limit - position;
-        if (length == 0) return;
+        if (length == 0) return -1;
 
+        int offset = position;
+        
         checkIndex(position);
 
         int bufferIdx = lastSegmentIndex;
@@ -1123,19 +1126,24 @@ public final class BuffersBuffer extends CompositeBuffer {
             final int bytesToProcess = Math.min(
                     buffer.limit() - bufferPosition, length);
             
-            buffer.bulkTransform(transformer, bufferPosition,
+            final int findPos = buffer.bulk(operation, bufferPosition,
                     bufferPosition + bytesToProcess);
+            if (findPos != -1) {
+                return offset + (findPos - bufferPosition);
+            }
             
             length -= bytesToProcess;
 
-            if (length == 0) break;
+            if (length == 0) return -1;
 
+            offset += bytesToProcess;
+            
             bufferIdx++;
             buffer = buffers[bufferIdx];
             bufferPosition = buffer.position();
         }
     }
-    
+       
     @Override
     public int compareTo(Buffer that) {
         checkDispose();

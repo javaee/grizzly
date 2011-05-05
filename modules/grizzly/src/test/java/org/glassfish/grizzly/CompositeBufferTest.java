@@ -42,6 +42,7 @@ package org.glassfish.grizzly;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import org.glassfish.grizzly.Buffer.BulkContext;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.ByteBufferManager;
 import org.glassfish.grizzly.memory.CompositeBuffer;
@@ -513,11 +514,12 @@ public class CompositeBufferTest extends GrizzlyTestCase {
                 manager, Buffers.wrap(manager, "hello", ascii),
                 Buffers.wrap(manager, " world", ascii));
 
-        composite.bulkTransform(new Buffer.BulkTransformer() {
+        composite.bulk(new Buffer.BulkOperation() {
 
             @Override
-            public byte transform(final byte src) {
-                return (byte) Character.toUpperCase(src);
+            public boolean processByte(final BulkContext context) {
+                context.set((byte) Character.toUpperCase(context.get()));
+                return false;
             }
         });
         
