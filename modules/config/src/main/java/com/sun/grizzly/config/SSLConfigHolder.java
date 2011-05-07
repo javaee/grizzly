@@ -50,8 +50,10 @@ import com.sun.grizzly.util.net.ServerSocketFactory;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -259,9 +261,7 @@ public class SSLConfigHolder {
                     logEmptyWarning(ssl, "WEB0307: All SSL protocol variants disabled for network-listener {0},"
                             + " using SSL implementation specific defaults");
                 } else {
-                    final String[] protocols = new String[tmpSSLArtifactsList.size()];
-                    tmpSSLArtifactsList.toArray(protocols);
-                    enabledProtocols = protocols;
+                    enabledProtocols = filterSupportedProtocols(tmpSSLArtifactsList);
                 }
                 String auth = ssl.getClientAuth();
                 if (auth != null) {
@@ -443,8 +443,43 @@ public class SSLConfigHolder {
         return null;
     }
 
+
     /*
-     * Evalutates the given List of cipher suite names, converts each cipher
+     * Iterates through the provided protocols.  If any of these protocols are
+     * not supported by the current SSL implemenation, they will be pruned from
+     * the list before configuring the SSL runtime.
+     *
+     * @param protocols the desired protocols.
+     *
+     * @return a String array of the protocols that may be safely passed to
+     *  the SSL implementation.
+     */
+    private String[] filterSupportedProtocols(final List<String> protocols) {
+
+        if (protocols.isEmpty()) {
+            //noinspection ToArrayCallWithZeroLengthArrayArgument
+            return protocols.toArray(new String[0]);
+        }
+        final SSLEngine engine = sslContext.createSSLEngine();
+        final String[] supportedProtocols = engine.getSupportedProtocols();
+        Arrays.sort(supportedProtocols);
+        for (Iterator<String> i = protocols.iterator(); i.hasNext(); ) {
+            final String protocol = i.next();
+            if (Arrays.binarySearch(supportedProtocols, protocol) < 0) {
+                i.remove();
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE,
+                               "Protocol {0}, not supported by current SSL implementation; ignoring.",
+                               protocol);
+                }
+            }
+        }
+        return protocols.toArray(new String[protocols.size()]);
+
+    }
+
+    /*
+     * Evaluates the given List of cipher suite names, converts each cipher
      * suite that is enabled (i.e., not preceded by a '-') to the corresponding
      * JSSE cipher suite name, and returns a String[] of enabled cipher suites.
      *
