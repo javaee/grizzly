@@ -92,8 +92,8 @@ parse $*
 verify BRANCH "Missing --tag option (e.g., 1_2_3)"
 verify RELEASE_VER "Missing --release_ver option (e.g., 1.2.3)"
 verify DEV_VER "Missing --dev_ver option (e.g., 1.2.4-SNAPSHOT)"
-verify JN_USER "Missing --user option for your svn user name"
-verify JN_PWD "Missing --password option for your svn password"
+verify JN_USER "Missing --user option for your java.net user name"
+verify JN_PWD "Missing --password option for your java.net password"
 [ "${MISSING}" ] && exit
 
 if [ -z "${PREPARE}" ]
