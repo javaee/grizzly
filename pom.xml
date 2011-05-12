@@ -46,7 +46,7 @@
     <artifactId>grizzly-project</artifactId>
     <packaging>pom</packaging>
     <name>grizzly-project</name>
-    <version>1.9.36-SNAPSHOT</version>
+    <version>1.9.35</version>
     <url>https://grizzly.dev.java.net</url>
     <issueManagement>
         <system>JIRA</system>
