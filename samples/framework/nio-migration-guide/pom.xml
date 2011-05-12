@@ -45,14 +45,14 @@
     <parent>
         <groupId>com.sun.grizzly.samples</groupId>
         <artifactId>grizzly-samples</artifactId>
-        <version>1.9.35-SNAPSHOT</version>
+        <version>1.9.35</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.sun.grizzly.samples</groupId>
     <artifactId>grizzly-nio-migration-guide</artifactId>
     <packaging>pom</packaging>
-    <version>1.9.35-SNAPSHOT</version>
+    <version>1.9.35</version>
     <name>grizzly-nio-migration-guide</name>
     <url>https://grizzly.dev.java.net</url>
     <modules>
