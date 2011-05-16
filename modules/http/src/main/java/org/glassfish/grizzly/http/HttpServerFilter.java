@@ -64,6 +64,8 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.filterchain.FilterChainEvent;
+import sun.tools.tree.MethodExpression;
+
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 
 /**
@@ -622,7 +624,10 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         final Method method = request.getMethod();
 
-        if (Method.GET.equals(method)) {
+        if (Method.GET.equals(method)
+                || Method.HEAD.equals(method)
+                || (request.getHeader("transfer-encoding") == null
+                        && request.getContentLength() == -1)) {
             request.setExpectContent(false);
         }
 
