@@ -64,7 +64,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.filterchain.FilterChainEvent;
-import sun.tools.tree.MethodExpression;
 
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 
