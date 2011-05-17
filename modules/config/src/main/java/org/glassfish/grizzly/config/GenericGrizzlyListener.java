@@ -384,7 +384,14 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         final SSLEngineConfigurator serverConfig = new SSLConfigurator(habitat, ssl);
         final SSLEngineConfigurator clientConfig = new SSLConfigurator(habitat, ssl);
         clientConfig.setClientMode(true);
-        filterChainBuilder.add(new SSLFilter(serverConfig, clientConfig));
+
+        filterChainBuilder.add(new SSLFilter(serverConfig,
+                                             clientConfig,
+                                             isRenegotiateOnClientAuthWant(ssl)));
+    }
+
+    private static boolean isRenegotiateOnClientAuthWant(final Ssl ssl) {
+        return ((ssl == null) || Boolean.parseBoolean(ssl.getRenegotiateOnClientAuthWant()));
     }
 
     @SuppressWarnings({"unchecked"})

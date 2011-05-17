@@ -88,6 +88,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     private final Attribute<FilterChainContext> initiatingContextAttr;
     private final SSLEngineConfigurator serverSSLEngineConfigurator;
     private final SSLEngineConfigurator clientSSLEngineConfigurator;
+    private final boolean renegotiateOnClientAuthWant;
 
     private final ConnectionCloseListener closeListener = new ConnectionCloseListener();
     
@@ -110,8 +111,21 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
      */
     public SSLFilter(SSLEngineConfigurator serverSSLEngineConfigurator,
                      SSLEngineConfigurator clientSSLEngineConfigurator) {
-        super(new SSLDecoderTransformer(), new SSLEncoderTransformer());
+        this(serverSSLEngineConfigurator, clientSSLEngineConfigurator, true);
+    }
 
+
+    /**
+     * Build <tt>SSLFilter</tt> with the given {@link SSLEngineConfigurator}.
+     *
+     * @param serverSSLEngineConfigurator SSLEngine configurator for server side connections
+     * @param clientSSLEngineConfigurator SSLEngine configurator for client side connections
+     */
+    public SSLFilter(SSLEngineConfigurator serverSSLEngineConfigurator,
+                     SSLEngineConfigurator clientSSLEngineConfigurator,
+                     boolean renegotiateOnClientAuthWant) {
+        super(new SSLDecoderTransformer(), new SSLEncoderTransformer());
+        this.renegotiateOnClientAuthWant = renegotiateOnClientAuthWant;
         if (serverSSLEngineConfigurator == null) {
             this.serverSSLEngineConfigurator = new SSLEngineConfigurator(
                     SSLContextConfigurator.DEFAULT_CONFIG.createSSLContext(),
@@ -403,6 +417,9 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                                final FilterChainContext context)
                                throws IOException {
 
+        if (sslEngine.getWantClientAuth() && !renegotiateOnClientAuthWant) {
+            return;
+        }
         final boolean authConfigured =
                 (sslEngine.getWantClientAuth()
                         || sslEngine.getNeedClientAuth());

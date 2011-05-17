@@ -59,6 +59,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
     boolean SSL3_ENABLED = true;
     boolean TLS_ENABLED = true;
     boolean TLS_ROLLBACK_ENABLED = true;
+    boolean RENEGOTIATE_ON_CLIENT_AUTH_WANT = true;
     int MAX_CERT_LENGTH = 5;
     int DEFAULT_SSL_INACTIVITY_TIMEOUT = 30;
     String CLIENT_AUTH_PATTERN = "(|need|want)";
@@ -251,4 +252,27 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
     String getSSLInactivityTimeout();
 
     void setSSLInactivityTimeout(int handshakeTimeout);
+
+
+    /**
+     * <p>
+     * Determines whether or not ssl session renegotiation will occur if
+     * client-auth is set to want.  This may be set to <code>false</code> under
+     * the assumption that if a certificate wasn't available during the initial
+     * handshake, it won't be available during a renegotiation.
+     * </p>
+     *
+     * <p>
+     * This configuration option defaults to <code>true</code>.
+     * </p>
+     * @return <code>true</code> if ssl session renegotiation will occur if
+     *  client-auth is want.
+     *
+     * @since 2.1.1
+     */
+    @Attribute(defaultValue = "" + RENEGOTIATE_ON_CLIENT_AUTH_WANT, dataType = Boolean.class)
+    String getRenegotiateOnClientAuthWant();
+
+    void setRenegotiateOnClientAuthWant(boolean renegotiateClientAuthWant);
+
 }
