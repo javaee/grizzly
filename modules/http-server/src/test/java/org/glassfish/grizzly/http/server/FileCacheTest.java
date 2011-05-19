@@ -127,7 +127,6 @@ public class FileCacheTest {
         }
     }
 
-//    @Ignore
     @Test
     public void testSimpleFile() throws Exception {
         final String fileName = "./pom.xml";
@@ -146,6 +145,7 @@ public class FileCacheTest {
                 try {
                     String error = null;
                     try {
+                        res.setHeader("Content-Type", "text/xml");
                         addToFileCache(req, new File(fileName));
                     } catch (Exception exception) {
                         error = exception.getMessage();
@@ -195,6 +195,7 @@ public class FileCacheTest {
 
             final Future<HttpContent> responseFuture2 = send("localhost", PORT, request2);
             final HttpContent response2 = responseFuture2.get(10, TimeUnit.SECONDS);
+            assertEquals("ContentType is wrong " + response2.getHttpHeader().getContentType(), "text/xml", response2.getHttpHeader().getContentType());
             assertEquals("Cached data mismatch\n" + cacheProbe, pattern, response2.getContent().toStringContent());
             isOk = true;
         } finally {
@@ -205,8 +206,7 @@ public class FileCacheTest {
             }
         }
     }
-
-//    @Ignore
+    
     @Test
     public void testGZip() throws Exception {
         final String fileName = "./pom.xml";

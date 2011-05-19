@@ -202,7 +202,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
         String lastModified = headers.getHeader("Last-Modified");
         entry.lastModified = (lastModified == null
                 ? String.valueOf(cacheFile.lastModified()) : lastModified);
-        entry.contentType = headers.getHeader("Content-type");
+        entry.contentType = response.getContentType();
         entry.xPoweredBy = headers.getHeader("X-Powered-By");
         entry.date = headers.getHeader("Date");
         entry.Etag = headers.getHeader("Etag");
