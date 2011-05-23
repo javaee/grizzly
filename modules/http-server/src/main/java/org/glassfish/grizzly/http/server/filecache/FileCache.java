@@ -224,6 +224,8 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
      * Send the cache.
      */
     public HttpPacket get(final HttpRequestPacket request) {
+        // It should be faster than calculating the key hash code
+        if (fileCacheMap.isEmpty()) return null;
 
         final FileCacheKey key = new LazyFileCacheKey(request);
         final FileCacheEntry entry = fileCacheMap.get(key);
