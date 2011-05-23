@@ -55,7 +55,8 @@ public class SuspendStatus {
         this.isSuspended = true;
     }
 
-    public void reset() {
+    public SuspendStatus reset() {
         isSuspended = false;
+        return this;
     }
 }

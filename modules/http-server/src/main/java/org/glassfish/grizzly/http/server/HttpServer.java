@@ -77,7 +77,7 @@ import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
 import org.glassfish.grizzly.threadpool.ThreadPoolProbe;
 import org.glassfish.grizzly.utils.DelayedExecutor;
-import org.glassfish.grizzly.utils.IdleTimeoutFilter;
+import org.glassfish.grizzly.utils.ActivityCheckFilter;
 
 
 /**
@@ -478,7 +478,7 @@ public class HttpServer {
         if (chain == null) {
             final FilterChainBuilder builder = FilterChainBuilder.stateless();
             builder.add(new TransportFilter());
-            builder.add(new IdleTimeoutFilter(delayedExecutor,
+            builder.add(new ActivityCheckFilter(delayedExecutor,
                     listener.getKeepAlive().getIdleTimeoutInSeconds(),
                     TimeUnit.SECONDS));
             if (listener.isSecure()) {

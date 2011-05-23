@@ -52,50 +52,41 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.attributes.NullaryFunction;
 
 /**
  * The Filter is responsible for tracking {@link Connection} activity and closing
  * {@link Connection} ones it becomes idle for certain amount of time.
- * Unlike {@link ActivityCheckFilter}, this Filter assumes {@link Connection}
- * is idle, when no event is being executed on it. But if some event processing
- * was suspended - this Filter still assumes {@link Connection} is active.
+ * Unlike {@link IdleTimeoutFilter}, this Filter assumes {@link Connection}
+ * is idle, even if some event is being executed on it, so it really requires
+ * some action to be executed on {@link Connection} to reset the timeout.
  * 
- * @see ActivityCheckFilter
+ * @see IdleTimeoutFilter
  * 
  * @author Alexey Stashok
  */
-public class IdleTimeoutFilter extends BaseFilter {
-    private static final Logger LOGGER = Grizzly.logger(IdleTimeoutFilter.class);
+public class ActivityCheckFilter extends BaseFilter {
+    private static final Logger LOGGER = Grizzly.logger(ActivityCheckFilter.class);
     
-    public static final Long FOREVER = Long.MAX_VALUE;
-    public static final Long FOREVER_SPECIAL = FOREVER - 1;
-    
-    public static final String IDLE_ATTRIBUTE_NAME = "connection-idle-attribute";
-    private static final Attribute<IdleRecord> IDLE_ATTR =
+    public static final String ACTIVE_ATTRIBUTE_NAME = "connection-active-attribute";
+    private static final Attribute<ActiveRecord> IDLE_ATTR =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-            IDLE_ATTRIBUTE_NAME, new NullaryFunction<IdleRecord>() {
+            ACTIVE_ATTRIBUTE_NAME, new NullaryFunction<ActiveRecord>() {
 
         @Override
-        public IdleRecord evaluate() {
-            return new IdleRecord();
+        public ActiveRecord evaluate() {
+            return new ActiveRecord();
         }
     });
     
     private final long timeoutMillis;
     private final DelayedExecutor.DelayQueue<Connection> queue;
 
-    private final FilterChainContext.CompletionListener contextCompletionListener =
-            new ContextCompletionListener();
-
-
     // ------------------------------------------------------------ Constructors
 
 
-    public IdleTimeoutFilter(final DelayedExecutor executor,
+    public ActivityCheckFilter(final DelayedExecutor executor,
                              final long timeout,
                              final TimeUnit timeoutUnit) {
 
@@ -104,7 +95,7 @@ public class IdleTimeoutFilter extends BaseFilter {
     }
 
 
-    public IdleTimeoutFilter(final DelayedExecutor executor,
+    public ActivityCheckFilter(final DelayedExecutor executor,
                              final long timeout,
                              final TimeUnit timeoutUnit,
                              final TimeoutHandler handler) {
@@ -114,7 +105,7 @@ public class IdleTimeoutFilter extends BaseFilter {
     }
 
 
-    protected IdleTimeoutFilter(final DelayedExecutor executor,
+    protected ActivityCheckFilter(final DelayedExecutor executor,
                                 final DelayedExecutor.Worker<Connection> worker,
                                 final long timeout,
                                 final TimeUnit timeoutUnit) {
@@ -136,29 +127,29 @@ public class IdleTimeoutFilter extends BaseFilter {
 
     @Override
     public NextAction handleAccept(final FilterChainContext ctx) throws IOException {
-        queue.add(ctx.getConnection(), FOREVER, TimeUnit.MILLISECONDS);
+        queue.add(ctx.getConnection(), timeoutMillis, TimeUnit.MILLISECONDS);
 
-        queueAction(ctx);
+//        queueAction(ctx);
         return ctx.getInvokeAction();
     }
 
     @Override
     public NextAction handleConnect(final FilterChainContext ctx) throws IOException {
-        queue.add(ctx.getConnection(), FOREVER, TimeUnit.MILLISECONDS);
+        queue.add(ctx.getConnection(), timeoutMillis, TimeUnit.MILLISECONDS);
 
-        queueAction(ctx);
+//        queueAction(ctx);
         return ctx.getInvokeAction();
     }
     
     @Override
     public NextAction handleRead(final FilterChainContext ctx) throws IOException {
-        queueAction(ctx);
+        IDLE_ATTR.get(ctx.getConnection()).timeoutMillis = System.currentTimeMillis() + timeoutMillis;
         return ctx.getInvokeAction();
     }
 
     @Override
     public NextAction handleWrite(final FilterChainContext ctx) throws IOException {
-        queueAction(ctx);
+        IDLE_ATTR.get(ctx.getConnection()).timeoutMillis = System.currentTimeMillis() + timeoutMillis;
         return ctx.getInvokeAction();
     }
 
@@ -187,7 +178,7 @@ public class IdleTimeoutFilter extends BaseFilter {
             @Override
             public Thread newThread(Runnable r) {
                 final Thread newThread = new Thread(r);
-                newThread.setName("Grizzly-IdleTimeoutFilter-IdleCheck");
+                newThread.setName("Grizzly-ActiveTimeoutFilter-IdleCheck");
                 newThread.setDaemon(true);
                 return newThread;
             }
@@ -208,20 +199,6 @@ public class IdleTimeoutFilter extends BaseFilter {
     }
 
 
-    // ------------------------------------------------------- Protected Methods
-
-
-    protected void queueAction(final FilterChainContext ctx) {
-        final Connection connection = ctx.getConnection();
-        final IdleRecord idleRecord = IDLE_ATTR.get(connection);
-        if (idleRecord.counter.getAndIncrement() == 0) {
-            idleRecord.timeoutMillis.set(FOREVER);
-        }
-
-        ctx.addCompletionListener(contextCompletionListener);
-    }
-
-
     // ----------------------------------------------------------- Inner Classes
 
 
@@ -232,24 +209,6 @@ public class IdleTimeoutFilter extends BaseFilter {
     }
 
 
-    private final class ContextCompletionListener
-            implements FilterChainContext.CompletionListener {
-
-        @Override
-        public void onComplete(final FilterChainContext ctx) {
-            final Connection connection = ctx.getConnection();
-            final IdleRecord idleRecord = IDLE_ATTR.get(connection);
-            // Small trick to not synchronize this block and queueAction();
-            idleRecord.timeoutMillis.set(FOREVER_SPECIAL);
-            if (idleRecord.counter.decrementAndGet() == 0) {
-                idleRecord.timeoutMillis.compareAndSet(FOREVER_SPECIAL,
-                        System.currentTimeMillis() + timeoutMillis);
-            }
-        }
-
-    } // END ContextCompletionListener
-
-
     // ---------------------------------------------------------- Nested Classes
 
 
@@ -257,32 +216,26 @@ public class IdleTimeoutFilter extends BaseFilter {
 
         @Override
         public boolean removeTimeout(final Connection connection) {
-            IDLE_ATTR.get(connection).timeoutMillis.set(0);
+            IDLE_ATTR.get(connection).timeoutMillis = 0;
             return true;
         }
 
         @Override
         public Long getTimeoutMillis(final Connection connection) {
-            return IDLE_ATTR.get(connection).timeoutMillis.get();
+            return IDLE_ATTR.get(connection).timeoutMillis;
         }
 
         @Override
         public void setTimeoutMillis(final Connection connection,
                 final long timeoutMillis) {
-            IDLE_ATTR.get(connection).timeoutMillis.set(timeoutMillis);
+            IDLE_ATTR.get(connection).timeoutMillis = timeoutMillis;
         }
 
     } // END Resolver
 
-    private static final class IdleRecord {
+    private static final class ActiveRecord {
 
-        private final AtomicLong timeoutMillis;
-        private final AtomicInteger counter;
-
-        public IdleRecord() {
-            counter = new AtomicInteger();
-            timeoutMillis = new AtomicLong();
-        }
+        private volatile long timeoutMillis;
 
     } // END IdleRecord
 

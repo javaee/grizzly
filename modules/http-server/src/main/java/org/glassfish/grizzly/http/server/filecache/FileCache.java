@@ -64,6 +64,7 @@ import java.nio.channels.FileChannel;
 import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -82,6 +83,11 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
     }
 
     private static final Logger logger = Grizzly.logger(FileCache.class);
+    
+    /**
+     * Cache size.
+     */
+    private final AtomicInteger cacheSize = new AtomicInteger();
     
     /**
      * A {@link ByteBuffer} cache of static pages.
@@ -180,8 +186,10 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
             return;
         }
 
+        final int size = cacheSize.incrementAndGet();
         // cache is full.
-        if (fileCacheMap.size() > getMaxCacheEntries()) {
+        if (size > getMaxCacheEntries()) {
+            cacheSize.decrementAndGet();
             fileCacheMap.remove(key);
             //@TODO return key and entry to the thread cache object pool
             return;
@@ -225,7 +233,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
      */
     public HttpPacket get(final HttpRequestPacket request) {
         // It should be faster than calculating the key hash code
-        if (fileCacheMap.isEmpty()) return null;
+        if (cacheSize.get() == 0) return null;
 
         final FileCacheKey key = new LazyFileCacheKey(request);
         final FileCacheEntry entry = fileCacheMap.get(key);
@@ -251,8 +259,10 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
         return fileCacheMap;
     }
 
-    protected void remove(FileCacheEntry entry) {
-        fileCacheMap.remove(entry.key);
+    protected void remove(final FileCacheEntry entry) {
+        if (fileCacheMap.remove(entry.key) != null) {
+            cacheSize.decrementAndGet();
+        }
 
         if (entry.type == FileCache.CacheType.MAPPED) {
             subMappedMemorySize(entry.bb.remaining());

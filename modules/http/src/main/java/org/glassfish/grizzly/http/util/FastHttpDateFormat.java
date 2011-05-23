@@ -189,7 +189,7 @@ public final class FastHttpDateFormat {
         // truncating to second precision
         // this way we optimally use the cache to only store needed http values
         value = (value/1000)*1000;
-        Long longValue =  value;
+        final Long longValue =  value;
         String cachedDate = formatCache.get(longValue);
         if (cachedDate != null){
             return cachedDate;

@@ -144,10 +144,8 @@ public class HttpServerFilter extends BaseFilter
                 final Response handlerResponse = Response.create();
 
                 handlerRequest.initialize(handlerResponse, request, ctx, this);
-                final SuspendStatus suspendStatus = new SuspendStatus();
-
-                handlerResponse.initialize(handlerRequest, response, ctx,
-                        suspendedResponseQueue, suspendStatus);
+                final SuspendStatus suspendStatus = handlerResponse.initialize(
+                        handlerRequest, response, ctx, suspendedResponseQueue);
 
                 HttpServerProbeNotifier.notifyRequestReceive(this, connection,
                         handlerRequest);

@@ -263,22 +263,21 @@ public class Response {
     private final SuspendedContextImpl suspendedContext = new SuspendedContextImpl();
 //    private final Object suspendSync = new Object();
 
-    private SuspendStatus suspendStatus;
+    private final SuspendStatus suspendStatus = new SuspendStatus();
     
     // --------------------------------------------------------- Public Methods
 
-    public void initialize(Request request,
+    public SuspendStatus initialize(Request request,
                            HttpResponsePacket response,
                            FilterChainContext ctx,
-                           DelayedExecutor.DelayQueue<Response> delayQueue,
-                           SuspendStatus suspendStatus) {
+                           DelayedExecutor.DelayQueue<Response> delayQueue) {
         this.request = request;
         this.response = response;
         outputBuffer.initialize(response, ctx);
         this.ctx = ctx;
         this.delayQueue = delayQueue;
-        this.suspendStatus = suspendStatus;
-
+        
+        return suspendStatus.reset();
     }
 
     /**
@@ -302,7 +301,6 @@ public class Response {
      * preparation for reuse of this object.
      */
     protected final void recycle() {
-        suspendStatus = null;
         delayQueue = null;
         suspendedContext.reset();
         outputBuffer.recycle();
