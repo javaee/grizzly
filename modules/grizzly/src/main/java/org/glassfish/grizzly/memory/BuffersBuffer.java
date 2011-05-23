@@ -758,6 +758,20 @@ public final class BuffersBuffer extends CompositeBuffer {
     }
 
     @Override
+    public BuffersBuffer put8BitString(final String s) {
+        final int len = s.length();
+        if (remaining() < len) {
+            throw new BufferOverflowException();
+        }
+
+        for (int i = 0; i < len; i++) {
+            put((byte) s.charAt(i));
+        }
+        
+        return this;
+    }
+
+    @Override
     public BuffersBuffer get(final ByteBuffer dst) {
         get(dst, 0, dst.remaining());
         dst.position(dst.limit());
@@ -1157,6 +1171,7 @@ public final class BuffersBuffer extends CompositeBuffer {
     }
     
     private final SetterImpl setter = new SetterImpl();
+
     private final class SetterImpl implements Setter {
         private Buffer buffer;
         private int position;

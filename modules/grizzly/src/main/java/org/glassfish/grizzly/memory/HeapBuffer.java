@@ -475,6 +475,20 @@ public class HeapBuffer implements Buffer {
         return this;
     }
 
+    @SuppressWarnings("deprecation")
+    @Override
+    public HeapBuffer put8BitString(final String s) {
+        final int len = s.length();
+        if (remaining() < len) {
+            throw new BufferOverflowException();
+        }
+
+        s.getBytes(0, len, heap, offset + pos);
+        pos += len;
+
+        return this;
+    }
+
     @Override
     public HeapBuffer compact() {
         final int length = remaining();

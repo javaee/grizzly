@@ -357,7 +357,7 @@ public interface Buffer extends Comparable<Buffer> {
      * @return  The new, read-only <code>Buffer</code>
      */
     Buffer asReadOnlyBuffer();
-
+    
     // -- Singleton get/put methods --
     /**
      * Relative <i>get</i> method.  Reads the byte at this buffer's
@@ -829,6 +829,43 @@ public interface Buffer extends Comparable<Buffer> {
      */
     Buffer put(byte[] src, int offset, int length);
 
+    /**
+     * Relative bulk <i>put</i> method&nbsp;&nbsp;<i>(optional operation)</i>.
+     *
+     * <p> This method transfers bytes into this buffer from the given
+     * 8-bit source {@link String}.  If the source {@link String#length()} is
+     * bigger than this buffer's remaining, that is, if
+     * <tt>length()</tt>&nbsp;<tt>&gt;</tt>&nbsp;<tt>remaining()</tt>, then no
+     * bytes are transferred and a {@link BufferOverflowException} is
+     * thrown.
+     *
+     * <p> Otherwise, this method copies <tt>length</tt> bytes from the
+     * given {@link String} into this buffer.
+     *
+     * <p> In other words, an invocation of this method of the form
+     * <tt>dst.put(src)</tt> has exactly the same effect as
+     * the loop
+     *
+     * <pre>
+     *     for (int i = 0; i < s.length(); i++)
+     *         dst.put((byte) s.charAt(i)); </pre>
+     *
+     * except that it first checks that there is sufficient space in this
+     * buffer and it is potentially much more efficient. </p>
+     *
+     * @param  src
+     *         The {@link String} from which bytes are to be read
+     *
+     * @return  This buffer
+     *
+     * @throws BufferOverflowException
+     *          If there is insufficient space in this buffer
+     *
+     * @throws ReadOnlyBufferException
+     *          If this buffer is read-only
+     */
+    Buffer put8BitString(String s);
+    
     /**
      * Compacts this buffer&nbsp;&nbsp;<i>(optional operation)</i>.
      *

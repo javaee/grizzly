@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.memory;
 
+import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
@@ -401,6 +402,21 @@ public class ByteBufferWrapper implements Buffer {
     @Override
     public ByteBufferWrapper put(byte[] src, int offset, int length) {
         Buffers.put(src, offset, length, visible);
+        return this;
+    }
+
+    @SuppressWarnings("deprecation")
+    @Override
+    public Buffer put8BitString(final String s) {
+        final int len = s.length();
+        if (remaining() < len) {
+            throw new BufferOverflowException();
+        }
+
+        for (int i = 0; i < len; i++) {
+            visible.put((byte) s.charAt(i));
+        }
+        
         return this;
     }
 
