@@ -248,6 +248,14 @@ public class BufferChunk implements Chunk {
         return -1;
     }
 
+    public int hash() {
+        int code=0;
+        for (int i = start; i < end; i++) {
+            code = code * 31 + buffer.get(i);
+        }
+        return code;
+    }
+
     public boolean equals(CharSequence s) {
         if (getLength() != s.length()) {
             return false;

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -46,29 +46,45 @@ package org.glassfish.grizzly.http.server.filecache;
  * @author Alexey Stashok
  */
 public class FileCacheKey {
-    private final String host;
-    private final String uri;
+    protected String host;
+    protected String uri;
 
-    public FileCacheKey(String host, String uri) {
+    protected FileCacheKey() {
+    }
+    
+    public FileCacheKey(final String host, final String uri) {
         this.host = host;
         this.uri = uri;
     }
 
+    protected String getHost() {
+        return host;
+    }
+
+    protected String getUri() {
+        return uri;
+    }
+    
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(final Object obj) {
         if (obj == null) {
             return false;
         }
         if (getClass() != obj.getClass()) {
             return false;
-        }
+        }        
         final FileCacheKey other = (FileCacheKey) obj;
-        if ((this.host == null) ? (other.host != null) : !this.host.equals(other.host)) {
+        
+        final String otherHost = other.host;
+        if ((this.host == null) ? (otherHost != null) : !this.host.equals(otherHost)) {
             return false;
         }
-        if ((this.uri == null) ? (other.uri != null) : !this.uri.equals(other.uri)) {
+
+        final String otherUri = other.uri;
+        if ((this.uri == null) ? (otherUri != null) : !this.uri.equals(otherUri)) {
             return false;
         }
+        
         return true;
     }
 

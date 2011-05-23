@@ -625,7 +625,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                                              httpHeader,
                                              httpContent);
 
-            encodedBuffer = memoryManager.allocate(8192);
+            encodedBuffer = memoryManager.allocateAtLeast(2048);
 
             encodedBuffer = encodeInitialLine(httpHeader, encodedBuffer, memoryManager);
             encodedBuffer = put(memoryManager, encodedBuffer, Constants.CRLF_BYTES);
@@ -732,7 +732,8 @@ public abstract class HttpCodecFilter extends BaseFilter
         boolean needComma = !value.isNull();
         
         buffer = encodeMimeHeader(memoryManager, buffer, name, value, false);
-        for (ContentEncoding encoding : packetContentEncodings) {
+        for (int i = 0; i < packetContentEncodings.size(); i++) {
+            final ContentEncoding encoding = packetContentEncodings.get(i);
             if (needComma) {
                 buffer = put(memoryManager, buffer, Constants.COMMA);
             }

@@ -326,7 +326,7 @@ public class DataChunk {
      * @param s the String to compare
      * @return true if the comparison succeeded, false otherwise
      */
-    public boolean equals(String s) {
+    public boolean equals(final String s) {
         switch (type) {
             case Buffer:
                 return bufferChunk.equals(s);
@@ -339,6 +339,25 @@ public class DataChunk {
                 return false;
         }
     }
+
+    /**
+     * Returns DataChunk hash code.
+     * @return DataChunk hash code.
+     */
+    @Override
+    public int hashCode() {
+        switch (type) {
+            case Buffer:
+                return bufferChunk.hash();
+            case String:
+                return stringValue.hashCode();
+            case Chars:
+                return charChunk.hash();
+            default:
+                return 0;
+        }
+    }
+
 
     /**
      * Compares the message bytes to the specified String object.

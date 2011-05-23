@@ -694,12 +694,12 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
 
 
     // -------------------- Hash code  --------------------
-
+    
     // normal hash.
     public int hash() {
         int code=0;
-        for (int i = start; i < start + end-start; i++) {
-            code = code * 37 + buff[i];
+        for (int i = start; i < end; i++) {
+            code = code * 31 + buff[i];
         }
         return code;
     }
@@ -708,7 +708,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
     public int hashIgnoreCase() {
         int code=0;
         for (int i = start; i < end; i++) {
-            code = code * 37 + Ascii.toLower(buff[i]);
+            code = code * 31 + Ascii.toLower(buff[i]);
         }
         return code;
     }

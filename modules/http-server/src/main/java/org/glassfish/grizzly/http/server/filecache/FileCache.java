@@ -225,10 +225,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
      */
     public HttpPacket get(final HttpRequestPacket request) {
 
-        final String requestURI = request.getRequestURI();
-        final String host = request.getHeader("Host");
-
-        final FileCacheKey key = new FileCacheKey(host, requestURI);
+        final FileCacheKey key = new LazyFileCacheKey(request);
         final FileCacheEntry entry = fileCacheMap.get(key);
 
         try {
@@ -236,7 +233,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
                 notifyProbesEntryHit(this, entry);
                 return makeResponse(entry, request);
             } else {
-                notifyProbesEntryMissed(this, host, requestURI);
+                notifyProbesEntryMissed(this, request);
             }
         } catch (Exception e) {
             notifyProbesError(this, e);
@@ -801,17 +798,17 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
      * Notify registered {@link FileCacheProbe}s about the "entry missed" event.
      *
      * @param fileCache the <tt>FileCache</tt> event occurred on.
-     * @param host requested HTTP "Host" parameter.
-     * @param requestURI requested HTTP request URL.
+     * @param request HTTP request.
      */
     protected static void notifyProbesEntryMissed(final FileCache fileCache,
-            final String host, final String requestURI) {
+            final HttpRequestPacket request) {
         
         final FileCacheProbe[] probes =
                 fileCache.monitoringConfig.getProbesUnsafe();
-        if (probes != null) {
+        if (probes != null && probes.length > 0) {
             for (FileCacheProbe probe : probes) {
-                probe.onEntryMissedEvent(fileCache, host, requestURI);
+                probe.onEntryMissedEvent(fileCache, request.getHeader("host"),
+                        request.getRequestURI());
             }
         }
     }
