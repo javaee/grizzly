@@ -315,10 +315,11 @@ public class MimeHeaders {
         return mhf.getValue();
     }
 
-    /** Allow "set" operations - 
-    return a DataChunk container for the
-    header value ( existing header or new
-    if this .
+    /** 
+     * Allow "set" operations - 
+     * return a DataChunk container for the
+     * header value ( existing header or new
+     * if this .
      */
     public DataChunk setValue(String name) {
         for (int i = 0; i < count; i++) {

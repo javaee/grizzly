@@ -54,8 +54,9 @@ import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.http.util.ContentType;
 import org.glassfish.grizzly.http.util.DataChunk;
-import org.glassfish.grizzly.http.util.HttpCodecUtils;
+import org.glassfish.grizzly.http.util.HttpUtils;
 import org.glassfish.grizzly.http.util.MimeHeaders;
+import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
  * {@link HttpPacket}, which represents HTTP message header. There are 2 subtypes
@@ -76,6 +77,8 @@ public abstract class HttpHeader extends HttpPacket
     protected Protocol parsedProtocol;
 
     protected boolean isChunked;
+    private final Buffer tmpContentLengthBuffer =
+            MemoryManager.DEFAULT_MEMORY_MANAGER.allocate(20);
     protected long contentLength = -1;
 
     protected String characterEncoding;
@@ -277,17 +280,21 @@ public abstract class HttpHeader extends HttpPacket
     protected void makeContentLengthHeader(final Connection c,
             final long defaultLength) {
         if (contentLength != -1) {
-            final Buffer b = HttpCodecUtils.getLongAsBuffer(
-                    c.getTransport().getMemoryManager(), contentLength);
-            headers.setValue(Constants.CONTENT_LENGTH_HEADER).setBuffer(b, b.position(), b.limit());
+            HttpUtils.longToBuffer(contentLength, tmpContentLengthBuffer.clear());
+            headers.setValue(Constants.CONTENT_LENGTH_HEADER).setBuffer(
+                    tmpContentLengthBuffer, tmpContentLengthBuffer.position(),
+                    tmpContentLengthBuffer.limit());
         } else if (defaultLength != -1) {
-            Buffer b = HttpCodecUtils.getLongAsBuffer(
-                    c.getTransport().getMemoryManager(), defaultLength);
+            HttpUtils.longToBuffer(defaultLength, tmpContentLengthBuffer.clear());
             final int idx = headers.indexOf(Constants.CONTENT_LENGTH_HEADER, 0);
             if (idx == -1) {
-                headers.addValue(Constants.CONTENT_LENGTH_HEADER).setBuffer(b, b.position(), b.limit());
+                headers.addValue(Constants.CONTENT_LENGTH_HEADER).setBuffer(
+                    tmpContentLengthBuffer, tmpContentLengthBuffer.position(),
+                    tmpContentLengthBuffer.limit());
             } else if (headers.getValue(idx).isNull()) {
-                headers.getValue(idx).setBuffer(b, b.position(), b.limit());
+                headers.getValue(idx).setBuffer(
+                    tmpContentLengthBuffer, tmpContentLengthBuffer.position(),
+                    tmpContentLengthBuffer.limit());
             }
         }
     }

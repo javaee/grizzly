@@ -315,7 +315,7 @@ public class BufferChunk implements Chunk {
     }
     
     protected final void reset() {
-        buffer = null;
+        buffer = null;        
         start = -1;
         end = -1;
         limit = -1;

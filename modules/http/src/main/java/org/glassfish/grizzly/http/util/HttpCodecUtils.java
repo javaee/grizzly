@@ -70,9 +70,8 @@ public class HttpCodecUtils {
                 dstBuffer = resizeBuffer(memoryManager, dstBuffer, length);
             }
 
-            dstBuffer.put(bc.getBuffer(), bc.getStart(),
-                    length);
-
+            dstBuffer.put(bc.getBuffer(), bc.getStart(), length);
+            
             return dstBuffer;
         } else {
             return put(memoryManager, dstBuffer, chunk.toString());
