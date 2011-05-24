@@ -124,6 +124,8 @@ public class Request {
 
     private static final Logger LOGGER = Grizzly.logger(Request.class);
 
+    private static final Cookie[] EMPTY_COOKIES = new Cookie[0];
+
     private static final ThreadCache.CachedTypeIndex<Request> CACHE_IDX =
             ThreadCache.obtainIndex(Request.class, 16);
     private static final ThreadLocal<Connection> connection = new ThreadLocal<Connection>();
@@ -200,7 +202,7 @@ public class Request {
             }
         }, 5, 5, TimeUnit.SECONDS);
     }
-    
+
     final MappingData obtainMappingData() {
         if (cachedMappingData == null) {
             cachedMappingData = new MappingData();
@@ -250,7 +252,7 @@ public class Request {
     private String contextPath = "";
 
     private MappingData cachedMappingData;
-    
+
     /**
      * The string manager for this package.
      */
@@ -455,7 +457,7 @@ public class Request {
 
         parameters.setHeaders(request.getHeaders());
         parameters.setQuery(request.getQueryStringDC());
-        
+
         final DataChunk remoteUser = request.remoteUser();
         if (!remoteUser.isNull()) {
             setUserPrincipal(new GrizzlyPrincipal(remoteUser.toString()));
@@ -536,7 +538,7 @@ public class Request {
         if (rawCookies != null) {
             rawCookies.recycle();
         }
-        
+
         locales.clear();
         localesParsed = false;
         secure = false;
@@ -561,7 +563,7 @@ public class Request {
         parameters.recycle();
 
         afterServicesList.clear();
-        
+
         // Notes holder shouldn't be recycled.
         //        notesHolder.recycle();
 
@@ -631,7 +633,7 @@ public class Request {
     public static <E> Note<E> createNote(final String name) {
         return HttpRequestPacket.createNote(name);
     }
-    
+
     /**
      * Return the {@link Note} value associated with this <tt>Request</tt>,
      * or <code>null</code> if no such binding exists.
@@ -716,7 +718,7 @@ public class Request {
     protected void setContextPath(final String contextPath) {
         this.contextPath = contextPath;
     }
-    
+
     // ------------------------------------------------- ServletRequest Methods
 
     /**
@@ -740,10 +742,10 @@ public class Request {
             }
         } else if (isSSLAttribute(name)) {
             RequestUtils.populateSSLAttributes(this);
-            
+
             attribute = request.getAttribute(name);
         }
-        
+
         return attribute;
     }
 
@@ -830,7 +832,7 @@ public class Request {
     public boolean asyncInput() {
 
         return inputBuffer.isAsyncEnabled();
-        
+
     }
 
 
@@ -972,7 +974,7 @@ public class Request {
      *
      * @param blocking if <code>true</code>, the <code>NIOInputStream</code>
      *  will only be usable in blocking mode.
-     * 
+     *
      * @exception IllegalStateException if {@link #getInputStream(boolean)}
      *  has already been called for this request
      */
@@ -1070,7 +1072,7 @@ public class Request {
     public boolean isSecure() {
         return request.isSecure();
     }
-    
+
 
     /**
      * Remove the specified request attribute if it exists.
@@ -1085,7 +1087,7 @@ public class Request {
         if (readOnlyAttributes.containsKey(name)) {
             return;
         }
-        
+
         request.removeAttribute(name);
     }
 
@@ -1459,7 +1461,7 @@ public class Request {
     public void setQueryString(String queryString) {
         request.setQueryString(queryString);
     }
-    
+
     /**
      * Return the name of the remote user that has been authenticated
      * for this Request.
@@ -1539,7 +1541,7 @@ public class Request {
      */
     public static StringBuilder appendRequestURL(final Request request,
             final StringBuilder buffer) {
-        
+
         final String scheme = request.getScheme();
         int port = request.getServerPort();
         if (port < 0)
@@ -1557,7 +1559,7 @@ public class Request {
         return buffer;
 
     }
-    
+
     /**
      * Appends the reconstructed URL the client used to make the request.
      * The appended URL contains a protocol, server name, port
@@ -1655,7 +1657,9 @@ public class Request {
 
         final Cookies serverCookies = getRawCookies();
         final Collection<Cookie> parsedCookies = serverCookies.get();
-        cookies = parsedCookies.toArray(new Cookie[parsedCookies.size()]);
+        cookies = ((parsedCookies.isEmpty())
+                      ? EMPTY_COOKIES
+                      : parsedCookies.toArray(new Cookie[parsedCookies.size()]));
     }
 
 
