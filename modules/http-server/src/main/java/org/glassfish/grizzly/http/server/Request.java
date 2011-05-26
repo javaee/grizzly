@@ -65,10 +65,8 @@ import java.nio.charset.Charset;
 import java.security.Principal;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -245,8 +243,8 @@ public class Request {
 
     protected HttpServerFilter httpServerFilter;
 
-    protected final Deque<AfterServiceListener> afterServicesList =
-            new ArrayDeque<AfterServiceListener>();
+    protected final List<AfterServiceListener> afterServicesList =
+            new ArrayList<AfterServiceListener>(4);
 
     private Session session;
 
@@ -505,7 +503,8 @@ public class Request {
         }
 
         if (!afterServicesList.isEmpty()) {
-            for (AfterServiceListener anAfterServicesList : afterServicesList) {
+            for (int i = 0; i < afterServicesList.size(); i++) {
+                final AfterServiceListener anAfterServicesList = afterServicesList.get(i);
                 try {
                     anAfterServicesList.onAfterService(this);
                 } catch (Exception e) {
