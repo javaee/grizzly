@@ -112,6 +112,8 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
 
     private boolean optimizedWrite=true;
 
+    private String cachedString;
+    
     /**
      * Creates a new, uninitialized CharChunk object.
      */
@@ -148,6 +150,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
 
     public void reset() {
         buff=null;
+        cachedString = null;
     }
 
     // -------------------- Setup --------------------
@@ -162,6 +165,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
         end=0;
         output =true;
         isSet=true;
+        cachedString = null;
     }
 
     public void ensureCapacity(final int size) {
@@ -172,6 +176,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
 
         start=0;
         end=0;
+        cachedString = null;
     }
 
     public void setOptimizedWrite(boolean optimizedWrite) {
@@ -183,6 +188,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
         start=off;
         end=start + len;
         isSet=true;
+        cachedString = null;
     }
 
     /** Maximum amount of data in this buffer.
@@ -271,6 +277,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
             flushBuffer();
         }
         buff[end++]=b;
+        cachedString = null;
     }
 
     public void append( CharChunk src ) throws IOException {
@@ -341,7 +348,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
             flushBuffer();
 
             out.realWriteChars( src, off, len );
-        }
+        }        
     }
 
 
@@ -528,6 +535,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
         System.arraycopy(buff, start, tmp, start, end-start);
         buff = tmp;
         tmp = null;
+        cachedString = null;        
     }
 
     /**
@@ -545,13 +553,19 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
             return null;
         } else if (end-start == 0) {
             return "";
+        } else if (cachedString != null) {
+            return cachedString;
         }
-        return StringCache.toString(this);
+//        return StringCache.toString(this);
+        cachedString = toStringInternal();
+        return cachedString;
     }
 
     @Override
     public String toString(int start, int end) {
-        if (null == buff) {
+        if (start == this.start && end == this.end) {
+            return toString();
+        } else if (null == buff) {
             return null;
         } else if (end - start == 0) {
             return "";
