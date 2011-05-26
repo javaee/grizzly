@@ -251,6 +251,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         }
         transport.setSelectorRunnersCount(Integer.parseInt(transportConfig.getAcceptorThreads()));
         transport.setReadBufferSize(Integer.parseInt(transportConfig.getBufferSizeBytes()));
+        transport.getKernelThreadPoolConfig().setPoolName(networkListener.getName() + "-kernel");
         filterChainBuilder.add(new TransportFilter());
     }
 
