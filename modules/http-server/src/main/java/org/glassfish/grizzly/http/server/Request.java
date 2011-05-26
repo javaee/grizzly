@@ -503,7 +503,7 @@ public class Request {
         }
 
         if (!afterServicesList.isEmpty()) {
-            for (int i = 0; i < afterServicesList.size(); i++) {
+            for (int i = 0, size = afterServicesList.size(); i < size; i++) {
                 final AfterServiceListener anAfterServicesList = afterServicesList.get(i);
                 try {
                     anAfterServicesList.onAfterService(this);
