@@ -48,6 +48,7 @@ import org.glassfish.grizzly.http.server.io.NIOInputStream;
 import org.glassfish.grizzly.http.server.io.ReadHandler;
 import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.Constants;
+import org.glassfish.grizzly.http.util.Header;
 
 /**
  * {@link ReadHandler}, which implements the miltipart message parsing logic
@@ -344,12 +345,12 @@ public class MultipartReadHandler implements ReadHandler {
             multipartEntry.initialize(request.getInputStream(false));
         }
         
-        final String contentType = multipartEntry.getHeader("content-type");
+        final String contentType = multipartEntry.getHeader(Header.ContentType);
         if (contentType != null) {
             multipartEntry.setContentType(contentType);
         }
 
-        final String contentDisposition = multipartEntry.getHeader("content-disposition");
+        final String contentDisposition = multipartEntry.getHeader(Header.ContentDisposition);
         if (contentDisposition != null) {
             multipartEntry.setContentDisposition(
                     new ContentDisposition(contentDisposition));

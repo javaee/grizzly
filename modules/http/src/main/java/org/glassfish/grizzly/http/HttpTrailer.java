@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.http;
 
 import org.glassfish.grizzly.ThreadCache;
+import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 
 /**
@@ -137,8 +138,29 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
      * {@inheritDoc}
      */
     @Override
+    public String getHeader(final Header header) {
+        return headers.getHeader(header);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void setHeader(String name, String value) {
-        headers.setValue(name).setString(value);
+        final Header h = Header.find(name);
+        if (h != null) {
+            setHeader(h, value);
+        } else {
+            headers.setValue(name).setString(value);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setHeader(final Header header, final String value) {
+        headers.setValue(header).setString(value);
     }
 
     /**
@@ -146,7 +168,20 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
      */
     @Override
     public void addHeader(String name, String value) {
-        headers.addValue(name).setString(value);
+        final Header h = Header.find(name);
+        if (h != null) {
+            addHeader(h, value);
+        } else {
+            headers.addValue(name).setString(value);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void addHeader(final Header header, final String value) {
+        headers.addValue(header).setString(value);
     }
 
     /**
@@ -155,6 +190,14 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
     @Override
     public boolean containsHeader(String name) {
         return headers.getHeader(name) != null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean containsHeader(final Header header) {
+        return (headers.getHeader(header) != null);
     }
 
     /**

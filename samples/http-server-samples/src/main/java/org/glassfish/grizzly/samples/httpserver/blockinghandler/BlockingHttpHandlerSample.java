@@ -55,6 +55,7 @@ import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
+import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.MemoryManager;
@@ -225,7 +226,7 @@ public class BlockingHttpHandlerSample {
 
                 HttpRequestPacket.Builder builder = createRequest();
                 HttpRequestPacket request = builder.build();
-                request.addHeader("Host", HOST + ':' + PORT);
+                request.addHeader(Header.Host, HOST + ':' + PORT);
                 System.out.println("Writing request:\n");
                 System.out.println(request.toString());
                 ctx.write(request); // write the request

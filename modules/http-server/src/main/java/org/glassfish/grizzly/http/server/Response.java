@@ -91,6 +91,7 @@ import org.glassfish.grizzly.http.util.CharChunk;
 import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.http.util.CookieSerializerUtils;
 import org.glassfish.grizzly.http.util.FastHttpDateFormat;
+import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpRequestURIDecoder;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MessageBytes;
@@ -952,7 +953,7 @@ public class Response {
         // the header name is Set-Cookie for both "old" and v.1 ( RFC2109 )
         // RFC2965 is not supported by browsers and the Servlet spec
         // asks for 2109.
-        addHeader("Set-Cookie", sb.toString());
+        addHeader(Header.SetCookie, sb.toString());
 
         cookies.add(cookie);
     }
@@ -962,7 +963,7 @@ public class Response {
      * string "JSESSIONID=" or "JSESSIONIDSSO="
      */
     public void removeSessionCookies() {
-        response.getHeaders().removeHeaderMatches("Set-Cookie",
+        response.getHeaders().removeHeaderMatches(Header.SetCookie,
                 Constants.SESSION_COOKIE_PATTERN);
     }
     
@@ -987,6 +988,29 @@ public class Response {
 
     }
 
+    /**
+     * Add the specified date header to the specified value.
+     *
+     * @param header the {@link Header} to set
+     * @param value Date value to be set
+     *
+     * @since 2.1.2
+     */
+    public void addDateHeader(final Header header, long value) {
+
+        if (isCommitted())
+            return;
+
+        if (format == null) {
+            format = new SimpleDateFormat(HTTP_RESPONSE_DATE_HEADER,
+                                          Locale.US);
+            format.setTimeZone(TimeZone.getTimeZone("GMT"));
+        }
+
+        addHeader(header, FastHttpDateFormat.formatDate(value, format));
+
+    }
+
 
     /**
      * Add the specified header to the specified value.
@@ -1000,6 +1024,23 @@ public class Response {
             return;
 
         response.addHeader(name, value);
+
+    }
+
+    /**
+     * Add the specified header to the specified value.
+     *
+     * @param header the {@link Header} to set
+     * @param value Value to be set
+     *
+     * @since 2.1.2
+     */
+    public void addHeader(final Header header, final String value) {
+        checkResponse();
+        if (isCommitted())
+            return;
+
+        response.addHeader(header, value);
 
     }
 
@@ -1019,6 +1060,23 @@ public class Response {
 
     }
 
+    /**
+     * Add the specified integer header to the specified value.
+     *
+     * @param header the {@link Header} to set
+     * @param value Integer value to be set
+     *
+     * @since 2.1.2
+     */
+    public void addIntHeader(final Header header, int value) {
+
+        if (isCommitted())
+            return;
+
+        addHeader(header, Integer.toString(value));
+
+    }
+
 
     /**
      * Has the specified header been set already in this response?
@@ -1028,6 +1086,18 @@ public class Response {
     public boolean containsHeader(String name) {
         checkResponse();
         return response.containsHeader(name);
+    }
+
+    /**
+     * Has the specified header been set already in this response?
+     *
+     * @param header the {@link Header} to check
+     *
+     * @since 2.1.2
+     */
+    public boolean containsHeader(final Header header) {
+        checkResponse();
+        return response.containsHeader(header);
     }
 
 
@@ -1120,7 +1190,7 @@ public class Response {
             String absolute = toAbsolute(location, true);
             // END RIMOD 4642650
             setStatus(HttpStatus.FOUND_302);
-            setHeader("Location", absolute);
+            setHeader(Header.Location, absolute);
 
             // According to RFC2616 section 10.3.3 302 Found,
             // the response SHOULD contain a short hypertext note with
@@ -1183,6 +1253,29 @@ public class Response {
 
     }
 
+    /**
+     * Set the specified date header to the specified value.
+     *
+     * @param header the {@link Header} to set
+     * @param value Date value to be set
+     *
+     * @since 2.1.2
+     */
+    public void setDateHeader(final Header header, long value) {
+
+        if (isCommitted())
+            return;
+
+        if (format == null) {
+            format = new SimpleDateFormat(HTTP_RESPONSE_DATE_HEADER,
+                                          Locale.US);
+            format.setTimeZone(TimeZone.getTimeZone("GMT"));
+        }
+
+        setHeader(header, FastHttpDateFormat.formatDate(value, format));
+
+    }
+
 
     /**
      * Set the specified header to the specified value.
@@ -1199,6 +1292,23 @@ public class Response {
 
     }
 
+    /**
+     * Set the specified header to the specified value.
+     *
+     * @param header the {@link Header} to set
+     * @param value Value to be set
+     *
+     * @since 2.1.2
+     */
+    public void setHeader(final Header header, final String value) {
+        checkResponse();
+        if (isCommitted())
+            return;
+
+        response.setHeader(header, value);
+
+    }
+
 
     /**
      * Set the specified integer header to the specified value.
@@ -1212,6 +1322,24 @@ public class Response {
             return;
 
         setHeader(name, "" + value);
+
+    }
+
+
+    /**
+     * Set the specified integer header to the specified value.
+     *
+     * @param header the {@link Header} to set
+     * @param value Integer value to be set
+     *
+     * @since 2.1.2
+     */
+    public void setIntHeader(final Header header, final int value) {
+
+        if (isCommitted())
+            return;
+
+        setHeader(header, Integer.toString(value));
 
     }
 

@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.http;
 
-import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.http.util.BufferChunk;
 import org.glassfish.grizzly.Buffer;
@@ -53,6 +52,7 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.FastHttpDateFormat;
+import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HexUtils;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MimeHeaders;
@@ -105,7 +105,6 @@ public class HttpServerFilter extends HttpCodecFilter {
     private boolean authPassthroughEnabled;
     private boolean traceEnabled;
     private String defaultResponseContentType;
-    private byte[] defaultResponseContentTypeBytes;
 
     /**
      * Constructor, which creates <tt>HttpServerFilter</tt> instance
@@ -170,10 +169,8 @@ public class HttpServerFilter extends HttpCodecFilter {
         this.keepAlive = keepAlive;
         this.processKeepAlive = keepAlive != null;
 
-        if (defaultResponseContentType != null) {
+        if (defaultResponseContentType != null && !defaultResponseContentType.isEmpty()) {
             this.defaultResponseContentType = defaultResponseContentType;
-            defaultResponseContentTypeBytes =
-                    defaultResponseContentType.getBytes(Charsets.ASCII_CHARSET);
         }
     }
 
@@ -574,8 +571,8 @@ public class HttpServerFilter extends HttpCodecFilter {
             if (contentLanguage != null) {
                 headers.setValue("Content-Language").setString(contentLanguage);
             }
-            if (!response.isContentTypeSet() && defaultResponseContentTypeBytes != null) {
-                response.setDefaultContentType(defaultResponseContentTypeBytes);
+            if (!response.isContentTypeSet() && defaultResponseContentType != null) {
+                response.setDefaultContentType(defaultResponseContentType);
             }
         }
 
@@ -625,7 +622,7 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         if (Method.GET.equals(method)
                 || Method.HEAD.equals(method)
-                || (request.getHeader("transfer-encoding") == null
+                || (!request.containsHeader(Header.TransferEncoding)
                         && request.getContentLength() == -1)) {
             request.setExpectContent(false);
         }

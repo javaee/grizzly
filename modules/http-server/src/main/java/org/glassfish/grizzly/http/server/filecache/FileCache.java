@@ -46,6 +46,7 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
+import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.MemoryManager;
@@ -176,7 +177,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
     public void add(final HttpRequestPacket request, File cacheFile) {
 
         final String requestURI = request.getRequestURI();
-        final String host = request.getHeader("Host");
+        final String host = request.getHeader(Header.Host);
         final HttpResponsePacket response = request.getResponse();
         final MimeHeaders headers = response.getHeaders();
 
@@ -207,13 +208,13 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
         entry.key = key;
         entry.requestURI = requestURI;
 
-        String lastModified = headers.getHeader("Last-Modified");
+        String lastModified = headers.getHeader(Header.LastModified);
         entry.lastModified = (lastModified == null
                 ? String.valueOf(cacheFile.lastModified()) : lastModified);
         entry.contentType = response.getContentType();
-        entry.xPoweredBy = headers.getHeader("X-Powered-By");
-        entry.date = headers.getHeader("Date");
-        entry.Etag = headers.getHeader("Etag");
+        entry.xPoweredBy = headers.getHeader(Header.XPoweredBy);
+        entry.date = headers.getHeader(Header.Date);
+        entry.Etag = headers.getHeader(Header.ETag);
         entry.contentLength = response.getContentLength();
         entry.host = host;
 
@@ -576,18 +577,18 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
             final HttpRequestPacket request) throws IOException {
         try {
             HttpResponsePacket response = request.getResponse();
-            String h = request.getHeader("If-Modified-Since");
+            String h = request.getHeader(Header.IfModifiedSince);
             long headerValue = (h == null ? -1 : Long.parseLong(h));
             if (headerValue != -1) {
                 long lastModified = Long.parseLong(entry.lastModified);
                 // If an If-None-Match header has been specified,
                 // If-Modified-Since is ignored.
-                if ((request.getHeader("If-None-Match") == null)
+                if ((request.getHeader(Header.IfNoneMatch) == null)
                         && (lastModified < headerValue + 1000)) {
                     // The entity has not been modified since the date
                     // specified by the client. This is not an error case.
                     HttpStatus.NOT_MODIFIED_304.setValues(response);
-                    response.setHeader("ETag", getETag(entry));
+                    response.setHeader(Header.ETag, getETag(entry));
                     return false;
                 }
             }
@@ -610,7 +611,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
             final HttpRequestPacket request) throws IOException {
 
         final HttpResponsePacket response = request.getResponse();
-        String headerValue = request.getHeader("If-None-Match");
+        String headerValue = request.getHeader(Header.IfNoneMatch);
         if (headerValue != null) {
             String eTag = getETag(entry);
 
@@ -641,7 +642,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
                 final Method method = request.getMethod();
                 if (Method.GET.equals(method) || Method.HEAD.equals(method)) {
                     HttpStatus.NOT_MODIFIED_304.setValues(response);
-                    response.setHeader("ETag", eTag);
+                    response.setHeader(Header.ETag, eTag);
                     return false;
                 } else {
                     HttpStatus.PRECONDITION_FAILED_412.setValues(response);
@@ -667,7 +668,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
             final HttpResponsePacket response = request.getResponse();
 
             long lastModified = Long.parseLong(entry.lastModified);
-            String h = request.getHeader("If-Unmodified-Since");
+            String h = request.getHeader(Header.IfUnmodifiedSince);
             long headerValue = (h == null ? -1 : Long.parseLong(h));
             if (headerValue != -1) {
                 if (lastModified >= (headerValue + 1000)) {
@@ -720,7 +721,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
             final HttpRequestPacket request) throws IOException {
         
         HttpResponsePacket response = request.getResponse();
-        String headerValue = request.getHeader("If-Match");
+        String headerValue = request.getHeader(Header.IfMatch);
         if (headerValue != null) {
             if (headerValue.indexOf('*') == -1) {
                 String eTag = getETag(entry);
@@ -819,7 +820,7 @@ public class FileCache implements JmxMonitoringAware<FileCacheProbe> {
                 fileCache.monitoringConfig.getProbesUnsafe();
         if (probes != null && probes.length > 0) {
             for (FileCacheProbe probe : probes) {
-                probe.onEntryMissedEvent(fileCache, request.getHeader("host"),
+                probe.onEntryMissedEvent(fileCache, request.getHeader(Header.Host),
                         request.getRequestURI());
             }
         }

@@ -41,6 +41,7 @@ package org.glassfish.grizzly.http.server.filecache;
 
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.util.DataChunk;
+import org.glassfish.grizzly.http.util.Header;
 
 /**
  * Lazy {@link FileCacheKey} object.
@@ -109,12 +110,12 @@ public class LazyFileCacheKey extends FileCacheKey {
     }
     
     private void initialize() {
-        host = request.getHeader("host");
+        host = request.getHeader(Header.Host);
         uri = request.getRequestURI();
     }
     
     private DataChunk getHostLazy() {
-        return request.getHeaders().getValue("host");
+        return request.getHeaders().getValue(Header.Host);
     }
     
     private DataChunk getUriLazy() {

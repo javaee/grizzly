@@ -61,6 +61,7 @@ public class BufferChunk implements Chunk {
     private static final UTF8Decoder UTF8_DECODER = new UTF8Decoder();
 
     private Buffer buffer;
+    private boolean disposeOnRecycle;
 
     private int start;
     private int end;
@@ -71,13 +72,32 @@ public class BufferChunk implements Chunk {
     String cachedString;
     Charset cachedStringCharset;
 
-    public void setBufferChunk(final Buffer buffer, final int start,
-            final int end) {
-        setBufferChunk(buffer, start, end, end);
+    public void setBufferChunk(final Buffer buffer,
+                               final int start,
+                               final int end,
+                               final boolean disposeOnRecycle) {
+        setBufferChunk(buffer, start, end, end, disposeOnRecycle);
     }
 
-    public void setBufferChunk(final Buffer buffer, final int start,
-            final int end, final int limit) {
+    public void setBufferChunk(final Buffer buffer,
+                               final int start,
+                               final int end) {
+        setBufferChunk(buffer, start, end, end, false);
+    }
+
+    public void setBufferChunk(final Buffer buffer,
+                               final int start,
+                               final int end,
+                               final int limit) {
+        setBufferChunk(buffer, start, end, limit, false);
+    }
+
+    public void setBufferChunk(final Buffer buffer,
+                               final int start,
+                               final int end,
+                               final int limit,
+                               final boolean disposeOnRecycle) {
+        this.disposeOnRecycle = disposeOnRecycle;
         this.buffer = buffer;
         this.start = start;
         this.end = end;
@@ -284,6 +304,20 @@ public class BufferChunk implements Chunk {
         return true;
     }
 
+    public boolean equalsIgnoreCase(byte[] b) {
+        if (getLength() != b.length) {
+            return false;
+        }
+
+        for (int i = start; i < end; i++) {
+            if (Ascii.toLower(buffer.get(i)) != Ascii.toLower(b[(i - start)])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     @Override
     public String toString() {
         return toString(null);
@@ -315,6 +349,10 @@ public class BufferChunk implements Chunk {
     }
     
     protected final void reset() {
+        if (disposeOnRecycle) {
+            disposeOnRecycle = false;
+            buffer.tryDispose();
+        }
         buffer = null;        
         start = -1;
         end = -1;

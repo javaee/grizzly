@@ -54,6 +54,7 @@ import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.http.util.ContentType;
 import org.glassfish.grizzly.http.util.DataChunk;
+import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpUtils;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.MemoryManager;
@@ -93,7 +94,7 @@ public abstract class HttpHeader extends HttpPacket
      */
     private boolean charEncodingParsed = false;
 
-    private byte[] defaultContentType;
+    private String defaultContentType;
 
     protected boolean contentTypeParsed;
     protected String contentType;
@@ -250,7 +251,7 @@ public abstract class HttpHeader extends HttpPacket
             return upgrade.toString();
         }
 
-        final String upgradeStr = headers.getHeader(Constants.UPGRADE_HEADER);
+        final String upgradeStr = headers.getHeader(Header.Upgrade);
         if (upgradeStr != null) {
             upgrade.setString(upgradeStr);
         }
@@ -268,7 +269,7 @@ public abstract class HttpHeader extends HttpPacket
 
     protected void makeUpgradeHeader() {
         if (!upgrade.isNull()) {
-            headers.setValue(Constants.UPGRADE_HEADER).set(upgrade);
+            headers.setValue(Header.Upgrade).set(upgrade);
         }
     }
 
@@ -281,14 +282,14 @@ public abstract class HttpHeader extends HttpPacket
             final long defaultLength) {
         if (contentLength != -1) {
             HttpUtils.longToBuffer(contentLength, tmpContentLengthBuffer.clear());
-            headers.setValue(Constants.CONTENT_LENGTH_HEADER).setBuffer(
+            headers.setValue(Header.ContentLength).setBuffer(
                     tmpContentLengthBuffer, tmpContentLengthBuffer.position(),
                     tmpContentLengthBuffer.limit());
         } else if (defaultLength != -1) {
             HttpUtils.longToBuffer(defaultLength, tmpContentLengthBuffer.clear());
-            final int idx = headers.indexOf(Constants.CONTENT_LENGTH_HEADER, 0);
+            final int idx = headers.indexOf(Header.ContentLength, 0);
             if (idx == -1) {
-                headers.addValue(Constants.CONTENT_LENGTH_HEADER).setBuffer(
+                headers.addValue(Header.ContentLength).setBuffer(
                     tmpContentLengthBuffer, tmpContentLengthBuffer.position(),
                     tmpContentLengthBuffer.limit());
             } else if (headers.getValue(idx).isNull()) {
@@ -309,7 +310,7 @@ public abstract class HttpHeader extends HttpPacket
     public long getContentLength() {
         if (contentLength == -1) {
             final DataChunk contentLengthChunk =
-                    headers.getValue(Constants.CONTENT_LENGTH_HEADER);
+                    headers.getValue(Header.ContentLength);
             if (contentLengthChunk != null) {
                 contentLength = Ascii.parseLong(contentLengthChunk);
             }
@@ -374,10 +375,10 @@ public abstract class HttpHeader extends HttpPacket
      * @param defaultValue default transfer-encoding value.
      */
     protected void makeTransferEncodingHeader(String defaultValue) {
-        final int idx = headers.indexOf(Constants.TRANSFER_ENCODING_HEADER, 0);
+        final int idx = headers.indexOf(Header.TransferEncoding, 0);
         
         if (idx == -1) {
-            headers.addValue(Constants.TRANSFER_ENCODING_HEADER).setString(
+            headers.addValue(Header.TransferEncoding).setString(
                     Constants.CHUNKED_ENCODING);
         }
     }
@@ -388,7 +389,7 @@ public abstract class HttpHeader extends HttpPacket
      * @param value container for the content-type value.
      */
     protected void extractContentEncoding(DataChunk value) {
-        final int idx = headers.indexOf(Constants.CONTENT_ENCODING_HEADER, 0);
+        final int idx = headers.indexOf(Header.ContentEncoding, 0);
 
         if (idx != -1) {
             headers.getAndSetSerialized(idx, true);
@@ -441,7 +442,7 @@ public abstract class HttpHeader extends HttpPacket
             contentTypeParsed = true;
 
             if (contentType == null) {
-                final int idx = headers.indexOf(Constants.CONTENT_TYPE_HEADER, 0);
+                final int idx = headers.indexOf(Header.ContentType, 0);
                 final DataChunk value;
                 if (idx != -1 && !((value = headers.getValue(idx)).isNull())) {
                     contentType = value.toString();
@@ -592,8 +593,29 @@ public abstract class HttpHeader extends HttpPacket
      * {@inheritDoc}
      */
     @Override
+    public String getHeader(final Header header) {
+        return headers.getHeader(header);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void setHeader(String name, String value) {
-        headers.setValue(name).setString(value);
+        final Header h = Header.find(name);
+        if (h != null) {
+            setHeader(h, value);
+        } else {
+            headers.setValue(name).setString(value);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setHeader(Header header, String value) {
+        headers.setValue(header).setString(value);
     }
 
     /**
@@ -601,7 +623,20 @@ public abstract class HttpHeader extends HttpPacket
      */
     @Override
     public void addHeader(String name, String value) {
-        headers.addValue(name).setString(value);
+        final Header h = Header.find(name);
+        if (h != null) {
+            addHeader(h, value);
+        } else {
+            headers.addValue(name).setString(value);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void addHeader(Header header, String value) {
+        headers.addValue(header).setString(value);
     }
 
     /**
@@ -610,6 +645,14 @@ public abstract class HttpHeader extends HttpPacket
     @Override
     public boolean containsHeader(String name) {
         return headers.getHeader(name) != null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean containsHeader(final Header header) {
+        return (headers.getHeader(header) != null);
     }
 
     /**
@@ -728,11 +771,11 @@ public abstract class HttpHeader extends HttpPacket
         reset();
     }
 
-    protected byte[] getDefaultContentType() {
+    protected String getDefaultContentType() {
         return defaultContentType;
     }
 
-    protected void setDefaultContentType(byte[] defaultContentType) {
+    protected void setDefaultContentType(String defaultContentType) {
         this.defaultContentType = defaultContentType;
     }
 
@@ -821,6 +864,18 @@ public abstract class HttpHeader extends HttpPacket
         @SuppressWarnings({"unchecked"})
         public final T header(String name, String value) {
             packet.addHeader(name, value);
+            return (T) this;
+        }
+
+        /**
+         * Add the HTTP mime header.
+         *
+         * @param header the mime {@link Header}.
+         * @param value the mime header value.
+         */
+        @SuppressWarnings({"unchecked"})
+        public final T header(Header header, String value) {
+            packet.addHeader(header, value);
             return (T) this;
         }
     }

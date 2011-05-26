@@ -44,6 +44,7 @@ import java.net.URI;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
+import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.util.Constants;
 
 /**
@@ -99,7 +100,7 @@ public class ClientHandshake {
         final HttpRequestPacket.Builder builder = HttpRequestPacket.builder()
             .method("GET")
             .uri(path)
-            .protocol(Constants.HTTP_11)
+            .protocol(Protocol.HTTP_1_1)
             .header("Host", host)
             .header("Connection", "Upgrade")
             .upgrade("WebSocket")

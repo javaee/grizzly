@@ -109,6 +109,7 @@ import org.glassfish.grizzly.http.util.Chunk;
 import static org.glassfish.grizzly.http.util.Constants.FORM_POST_CONTENT_TYPE;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.FastHttpDateFormat;
+import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.Parameters;
 import org.glassfish.grizzly.http.util.StringManager;
 
@@ -1373,6 +1374,37 @@ public class Request {
         }
     }
 
+    /**
+     * Return the value of the specified date header, if any; otherwise
+     * return -1.
+     *
+     * @param header the requested date {@link Header}
+     *
+     * @exception IllegalArgumentException if the specified header value
+     *  cannot be converted to a date
+     *
+     *  @since 2.1.2
+     */
+    public long getDateHeader(Header header) {
+
+        String value = getHeader(header);
+        if (value == null)
+            return (-1L);
+
+        final SimpleDateFormats formats = SimpleDateFormats.create();
+
+        try {
+            // Attempt to convert the date header in a variety of formats
+            long result = FastHttpDateFormat.parseDate(value, formats.getFormats());
+            if (result != (-1L)) {
+                return result;
+            }
+            throw new IllegalArgumentException(value);
+        } finally {
+            formats.recycle();
+        }
+    }
+
 
     /**
      * Return the first value of the specified header, if any; otherwise,
@@ -1384,6 +1416,18 @@ public class Request {
         return request.getHeader(name);
     }
 
+     /**
+     * Return the first value of the specified header, if any; otherwise,
+     * return <code>null</code>
+     *
+     * @param header the requested {@link Header}
+      *
+      * @since 2.1.2
+     */
+    public String getHeader(final Header header) {
+        return request.getHeader(header);
+    }
+
 
     /**
      * Return all of the values of the specified header, if any; otherwise,
@@ -1393,6 +1437,18 @@ public class Request {
      */
     public Iterable<String> getHeaders(String name) {
         return request.getHeaders().values(name);
+    }
+
+    /**
+     * Return all of the values of the specified header, if any; otherwise,
+     * return an empty enumeration.
+     *
+     * @param header the requested {@link Header}
+     *
+     * @since 2.1.2
+     */
+    public Iterable<String> getHeaders(final Header header) {
+        return request.getHeaders().values(header);
     }
 
 
@@ -1416,6 +1472,28 @@ public class Request {
     public int getIntHeader(String name) {
 
         String value = getHeader(name);
+        if (value == null) {
+            return -1;
+        } else {
+            return Integer.parseInt(value);
+        }
+
+    }
+
+    /**
+     * Return the value of the specified header as an integer, or -1 if there
+     * is no such header for this request.
+     *
+     * @param header the requested {@link Header}
+     *
+     * @exception IllegalArgumentException if the specified header value
+     *  cannot be converted to an integer
+     *
+     *  @since 2.1.2
+     */
+    public int getIntHeader(final Header header) {
+
+        String value = getHeader(header);
         if (value == null) {
             return -1;
         } else {

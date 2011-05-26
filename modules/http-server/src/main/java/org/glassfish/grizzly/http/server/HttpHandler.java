@@ -44,6 +44,7 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.server.io.OutputBuffer;
 import org.glassfish.grizzly.http.server.util.HtmlHelper;
+import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpStatus;
 
 import java.io.CharConversionException;
@@ -311,7 +312,7 @@ public abstract class HttpHandler {
             final Response response)
             throws IOException {
 
-        if ("100-continue".equalsIgnoreCase(request.getHeader("Expect"))) {
+        if ("100-continue".equalsIgnoreCase(request.getHeader(Header.Expect))) {
             response.setStatus(HttpStatus.CONINTUE_100);
             response.sendAcknowledgement();
             return true;

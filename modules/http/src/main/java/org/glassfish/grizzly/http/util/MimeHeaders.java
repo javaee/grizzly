@@ -59,6 +59,9 @@
 package org.glassfish.grizzly.http.util;
 
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.MemoryManager;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Iterator;
@@ -142,6 +145,8 @@ public class MimeHeaders {
      */
     private int count;
 
+    private final MemoryManager mm;
+
     /**
      * The header names {@link Iterable}.
      */
@@ -157,6 +162,7 @@ public class MimeHeaders {
      * Creates a new MimeHeaders object using a default buffer size.
      */
     public MimeHeaders() {
+        mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
     }
 
     /**
@@ -255,6 +261,26 @@ public class MimeHeaders {
         return -1;
     }
 
+    /**
+     * Find the index of a header with the given name.
+     */
+    public int indexOf(final Header header, final int fromIndex) {
+        // We can use a hash - but it's not clear how much
+        // benefit you can get - there is an  overhead
+        // and the number of headers is small (4-5 ?)
+        // Another problem is that we'll pay the overhead
+        // of constructing the hashtable
+
+        // A custom search tree may be better
+        final byte[] bytes = header.getBytes();
+        for (int i = fromIndex; i < count; i++) {
+            if (headers[i].getName().equalsIgnoreCase(bytes)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     // -------------------- --------------------
     /**
      * Returns an enumeration of strings representing the header field names.
@@ -271,6 +297,16 @@ public class MimeHeaders {
             @Override
             public Iterator<String> iterator() {
                 return new ValuesIterator(MimeHeaders.this, name);
+            }
+        };
+    }
+
+    public Iterable<String> values(final Header name) {
+        return new Iterable<String>() {
+
+            @Override
+            public Iterator<String> iterator() {
+                return new ValuesIterator(MimeHeaders.this, name.toString());
             }
         };
     }
@@ -302,6 +338,15 @@ public class MimeHeaders {
     public DataChunk addValue(String name) {
         MimeHeaderField mh = createHeader();
         mh.getName().setString(name);
+        return mh.getValue();
+    }
+
+    /** Create a new named header , return the MessageBytes
+    container for the new value
+     */
+    public DataChunk addValue(final Header header) {
+        MimeHeaderField mh = createHeader();
+        mh.getName().setBuffer(header.toBuffer(), true);
         return mh.getValue();
     }
 
@@ -337,6 +382,29 @@ public class MimeHeaders {
         return mh.getValue();
     }
 
+    /**
+     * Allow "set" operations -
+     * return a DataChunk container for the
+     * header value ( existing header or new
+     * if this .
+     */
+    public DataChunk setValue(final Header header) {
+        final byte[] bytes = header.getBytes();
+        for (int i = 0; i < count; i++) {
+            if (headers[i].getName().equalsIgnoreCase(bytes)) {
+                for (int j = i + 1; j < count; j++) {
+                    if (headers[j].getName().equalsIgnoreCase(bytes)) {
+                        removeHeader(j--);
+                    }
+                }
+                return headers[i].getValue();
+            }
+        }
+        MimeHeaderField mh = createHeader();
+        mh.getName().setBuffer(header.toBuffer(), true);
+        return mh.getValue();
+    }
+
     //-------------------- Getting headers --------------------
     /**
      * Finds and returns a header field with the given name.  If no such
@@ -352,10 +420,30 @@ public class MimeHeaders {
         return null;
     }
 
+    /**
+     * Finds and returns a header field with the given name.  If no such
+     * field exists, null is returned.  If more than one such field is
+     * in the header, an arbitrary one is returned.
+     */
+    public DataChunk getValue(final Header header) {
+        final byte[] bytes = header.getBytes();
+        for (int i = 0; i < count; i++) {
+            if (headers[i].getName().equalsIgnoreCase(bytes)) {
+                return headers[i].getValue();
+            }
+        }
+        return null;
+    }
+
     // bad shortcut - it'll convert to string ( too early probably,
     // encoding is guessed very late )
     public String getHeader(String name) {
         DataChunk mh = getValue(name);
+        return mh != null ? mh.toString() : null;
+    }
+
+    public String getHeader(final Header header) {
+        DataChunk mh = getValue(header);
         return mh != null ? mh.toString() : null;
     }
 
@@ -394,7 +482,7 @@ public class MimeHeaders {
         }
     }
 
-        /**
+    /**
      * Removes the headers with the given name whose values contain the
      * given string.
      *
@@ -404,6 +492,24 @@ public class MimeHeaders {
     public void removeHeaderMatches(final String name, final String regex) {
         for (int i = 0; i < count; i++) {
             if (headers[i].getName().equalsIgnoreCase(name)
+                    && getValue(i) != null
+                    && getValue(i).toString() != null
+                    && getValue(i).toString().matches(regex)) {
+                removeHeader(i--);
+            }
+        }
+    }
+
+    /**
+     * Removes the headers with the given name whose values contain the
+     * given string.
+     *
+     * @param header The name of the {@link Header}s to be removed
+     * @param regex The regex string to check the header values against
+     */
+    public void removeHeaderMatches(final Header header, final String regex) {
+        for (int i = 0; i < count; i++) {
+            if (headers[i].getName().equalsIgnoreCase(header.getBytes())
                     && getValue(i) != null
                     && getValue(i).toString() != null
                     && getValue(i).toString().matches(regex)) {

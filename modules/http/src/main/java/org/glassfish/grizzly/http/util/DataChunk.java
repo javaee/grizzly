@@ -137,6 +137,18 @@ public class DataChunk {
         setBufferInternal(buffer, position, limit);
     }
 
+    public void setBuffer(final Buffer buffer) {
+        setBufferInternal(buffer, buffer.position(), buffer.limit());
+    }
+
+    public void setBuffer(final Buffer buffer, final boolean disposeOnRecycle) {
+        setBufferInternal(buffer,
+                          buffer.position(),
+                          buffer.limit(),
+                          disposeOnRecycle);
+    }
+
+
     public CharChunk getCharChunk() {
         return charChunk;
     }
@@ -379,6 +391,29 @@ public class DataChunk {
     }
 
     /**
+     * Compares the message bytes to the specified String object.
+     *
+     * @param b the <code>byte[]</code> to compare
+     *
+     * @return true if the comparison succeeded, false otherwise
+     *
+     * @since 2.1.2
+     */
+    public boolean equalsIgnoreCase(byte[] b) {
+        switch (type) {
+            case Buffer:
+                return bufferChunk.equalsIgnoreCase(b);
+            case String:
+                return equalsIgnoreCase(stringValue, b);
+            case Chars:
+                return charChunk.equalsIgnoreCase(b);
+
+            default:
+                return false;
+        }
+    }
+
+    /**
      * Returns <code>true</code> if the <code>DataChunk</code> starts with
      * the specified string.
      * @param s the string
@@ -475,9 +510,32 @@ public class DataChunk {
         reset();
     }
 
-    private void setBufferInternal(final Buffer buffer, final int position,
-            final int limit) {
-        bufferChunk.setBufferChunk(buffer, position, limit);
+    private static boolean equalsIgnoreCase(String s, byte[] b) {
+        final int len = b.length;
+        if (s.length() != len) {
+            return false;
+        }
+
+        for (int i = 0; i < len; i++) {
+            if (Ascii.toLower(s.charAt(i)) != Ascii.toLower(b[i])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private void setBufferInternal(final Buffer buffer,
+                                   final int position,
+                                   final int limit) {
+        setBufferInternal(buffer, position, limit, false);
+    }
+
+    private void setBufferInternal(final Buffer buffer,
+                                   final int position,
+                                   final int limit,
+                                   final boolean disposeOnRecycle) {
+        bufferChunk.setBufferChunk(buffer, position, limit, disposeOnRecycle);
         switchToBufferChunk();
     }
 

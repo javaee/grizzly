@@ -48,6 +48,7 @@ import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.CacheableDataChunk;
+import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.Buffers;
@@ -680,7 +681,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         final CacheableDataChunk name = CacheableDataChunk.create();
         final CacheableDataChunk value = CacheableDataChunk.create();
 
-        name.setString(Constants.CONTENT_TYPE_HEADER);
+        name.setBuffer(Header.ContentType.toBuffer(), true);
         updateContentType(memoryManager, httpHeader, value);
 
         if (!value.isNull()) {
@@ -711,11 +712,9 @@ public abstract class HttpCodecFilter extends BaseFilter
         if (httpHeader.isContentTypeSet()) {
             httpHeader.extractContentType(value);
         } else {
-            final byte[] defaultType = httpHeader.getDefaultContentType();
+            final String defaultType = httpHeader.getDefaultContentType();
             if (defaultType != null) {
-                final Buffer b = Buffers.wrap(memoryManager, defaultType);
-                b.allowBufferDispose(true);
-                value.setBuffer(b, 0, b.limit());
+                value.setString(defaultType);
             }
         }
     }
@@ -727,7 +726,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         final List<ContentEncoding> packetContentEncodings =
                 httpHeader.getContentEncodings(true);
 
-        name.setString(Constants.CONTENT_ENCODING_HEADER);
+        name.setBuffer(Header.ContentEncoding.toBuffer(), true);
         httpHeader.extractContentEncoding(value);
         boolean needComma = !value.isNull();
         
@@ -954,29 +953,33 @@ public abstract class HttpCodecFilter extends BaseFilter
     private static void checkKnownHeaderNames(final HeaderParsingState parsingState,
             final byte b, final int idx) {
         if (parsingState.isContentLengthHeader) {
+            final byte[] bytes = Header.ContentLength.getBytes();
             parsingState.isContentLengthHeader =
-                    (idx < Constants.CONTENT_LENGTH_HEADER_BYTES.length)
-                    && b == Constants.CONTENT_LENGTH_HEADER_BYTES[idx];
+                    (idx < bytes.length)
+                    && Ascii.toLower(b) == Ascii.toLower(bytes[idx]);
 
         }
 
         if (parsingState.isTransferEncodingHeader) {
+            final byte[] bytes = Header.TransferEncoding.getBytes();
             parsingState.isTransferEncodingHeader =
-                    (idx < Constants.TRANSFER_ENCODING_HEADER_BYTES.length)
-                    && b == Constants.TRANSFER_ENCODING_HEADER_BYTES[idx];
+                    (idx < bytes.length)
+                    && Ascii.toLower(b) == Ascii.toLower(bytes[idx]);
         }
 
         if (parsingState.isUpgradeHeader) {
+            final byte[] bytes = Header.Upgrade.getBytes();
             parsingState.isUpgradeHeader =
-                    (idx < Constants.UPGRADE_HEADER_BYTES.length)
-                    && b == Constants.UPGRADE_HEADER_BYTES[idx];
+                    (idx < bytes.length)
+                    && Ascii.toLower(b) == Ascii.toLower(bytes[idx]);
 
         }
 
         if (parsingState.isExpect100Header) {
+            final byte[] bytes = Header.Expect.getBytes();
             parsingState.isExpect100Header =
-                    (idx < Constants.EXPECT_100_CONTINUE_NAME_BYTES.length)
-                    && b == Constants.EXPECT_100_CONTINUE_NAME_BYTES[idx];
+                    (idx < bytes.length)
+                    && Ascii.toLower(b) == Ascii.toLower(bytes[idx]);
         }
     }
 
@@ -985,7 +988,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         
         if (parsingState.isContentLengthHeader) {
             parsingState.isContentLengthHeader =
-                    (size == Constants.CONTENT_LENGTH_HEADER_BYTES.length);
+                    (size == Header.ContentLength.getBytes().length);
             if (parsingState.isContentLengthHeader &&
                     parsingState.hasContentLength) {
                 throw new IllegalStateException("Two content-length headers are not allowed");
@@ -994,12 +997,12 @@ public abstract class HttpCodecFilter extends BaseFilter
             parsingState.hasContentLength = true;
         } else if (parsingState.isTransferEncodingHeader) {
             parsingState.isTransferEncodingHeader =
-                    (size == Constants.TRANSFER_ENCODING_HEADER_BYTES.length);
+                    (size == Header.TransferEncoding.getBytes().length);
         } else if (parsingState.isUpgradeHeader) {
             parsingState.isUpgradeHeader =
-                    (size == Constants.UPGRADE_HEADER_BYTES.length);
+                    (size == Header.Upgrade.getBytes().length);
         } else if (parsingState.isExpect100Header) {
-            if (size == Constants.EXPECT_100_CONTINUE_NAME_BYTES.length) {
+            if (size == Header.Expect.getBytes().length) {
                 ((HttpRequestPacket) httpHeader).requiresAcknowledgement(true);
             }
 
@@ -1259,7 +1262,7 @@ public abstract class HttpCodecFilter extends BaseFilter
     
     final void setContentEncodingsOnParsing(final HttpHeader httpHeader) {
         final DataChunk bc =
-                httpHeader.getHeaders().getValue(Constants.CONTENT_ENCODING_HEADER);
+                httpHeader.getHeaders().getValue(Header.ContentEncoding);
         
         if (bc != null) {
             final List<ContentEncoding> encodings = httpHeader.getContentEncodings(true);
@@ -1285,7 +1288,7 @@ public abstract class HttpCodecFilter extends BaseFilter
     final void setContentEncodingsOnSerializing(final HttpHeader httpHeader) {
 
         final DataChunk bc =
-                httpHeader.getHeaders().getValue(Constants.CONTENT_ENCODING_HEADER);
+                httpHeader.getHeaders().getValue(Header.ContentEncoding);
 
         final boolean isSomeEncodingApplied = bc != null && bc.getLength() > 0;
 

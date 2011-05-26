@@ -55,6 +55,7 @@ import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.http.Protocol;
+import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.MemoryManager;
@@ -82,7 +83,7 @@ public class ContentTest extends TestCase {
     @SuppressWarnings({"unchecked"})
     public void testExplicitContentLength() throws Exception {
         HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("POST").protocol(Protocol.HTTP_1_1).uri("/default").contentLength(10).build();
-        httpRequest.addHeader("Host", "localhost:" + PORT);
+        httpRequest.addHeader(Header.Host, "localhost:" + PORT);
         HttpContent content = httpRequest.httpContentBuilder().content(Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, "1234567890")).build();
 
         doHttpRequestTest(content);

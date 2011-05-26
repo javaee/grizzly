@@ -44,6 +44,8 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.util.DataChunk;
 
 import java.util.Locale;
+
+import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.Buffers;
@@ -331,11 +333,19 @@ public abstract class HttpResponsePacket extends HttpHeader {
      * @inheritDoc
      */
     @Override public void setHeader(final String name, final String value) {
-        char c = name.charAt(0);
-        if((c=='C' || c=='c') && checkSpecialHeader(name, value)) {
+        if (handleSpecialHeaders(name, value)) return;
+        super.setHeader(name, value);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    @Override public void setHeader(final Header header, final String value) {
+        final String name = header.toString();
+        if (handleSpecialHeaders(name, value)) {
             return;
         }
-        super.setHeader(name, value);
+        super.setHeader(header, value);
     }
 
     
@@ -343,8 +353,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
      * @inheritDoc
      */
     @Override public void addHeader(final String name, final String value) {
-        char c = name.charAt(0);
-        if((c=='C' || c=='c') && checkSpecialHeader(name, value)) {
+        if (handleSpecialHeaders(name, value)) {
             return;
         }
         super.addHeader(name, value);
@@ -447,6 +456,11 @@ public abstract class HttpResponsePacket extends HttpHeader {
             // TODO XXX XXX Need to construct Locale or something else
         }
         return false;
+    }
+
+    private boolean handleSpecialHeaders(String name, String value) {
+        char c = name.charAt(0);
+        return (c == 'C' || c == 'c') && checkSpecialHeader(name, value);
     }
 
 

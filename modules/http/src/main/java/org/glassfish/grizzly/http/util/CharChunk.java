@@ -610,6 +610,30 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
         return true;
     }
 
+    /**
+     * Compares the message bytes to the specified String object.
+
+     * @param b the <code>byte[]</code> to compare
+     *
+     * @return true if the comparison succeeded, false otherwise
+     *
+     * @since 2.1.2
+     */
+    public boolean equalsIgnoreCase(byte[] b) {
+        char[] c = buff;
+        int len = end-start;
+        if (c == null || len != b.length) {
+            return false;
+        }
+        int off = start;
+        for (int i = 0; i < len; i++) {
+            if (Ascii.toLower(c[off++]) != Ascii.toLower(b[i])) {
+            return false;
+            }
+        }
+        return true;
+    }
+
     public boolean equals(CharChunk cc) {
         return equals( cc.getChars(), cc.getStart(), cc.getLength());
     }

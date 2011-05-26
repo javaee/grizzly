@@ -41,13 +41,15 @@
 package org.glassfish.grizzly.http.multipart;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
+
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
 import org.glassfish.grizzly.http.server.io.NIOReader;
 import org.glassfish.grizzly.http.util.ContentType;
+import org.glassfish.grizzly.http.util.Header;
 
 /**
  * Abstraction represents single multipart entry, its functionality is pretty
@@ -72,7 +74,7 @@ public class MultipartEntry {
     private final MultipartEntryNIOInputStream inputStream;
     private final MultipartEntryNIOReader reader;
 
-    private final Map<String, String> headers = new HashMap<String, String>();
+    private final Map<String, String> headers = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
 
     private String contentType = DEFAULT_CONTENT_TYPE;
     private ContentDisposition contentDisposition;
@@ -195,7 +197,7 @@ public class MultipartEntry {
     /**
      * Get the multipart entry header value.
      * 
-     * @param multipart entry header name.
+     * @param name multipart entry header name.
      * @return the multipart entry header value.
      */
     public String getHeader(final String name) {
@@ -204,6 +206,29 @@ public class MultipartEntry {
 
     void setHeader(final String name, final String value) {
         headers.put(name, value);
+    }
+
+    /**
+     * Get the multipart entry header value.
+     *
+     * @param header entry header.
+     * @return the multipart entry header value.
+     *
+     * @since 2.1.2
+     */
+    public String getHeader(final Header header) {
+        return headers.get(header.toString());
+    }
+
+    /**
+     *
+     * @param header
+     * @param value
+     *
+     * @since 2.1.2
+     */
+    void setHeader(final Header header, final String value) {
+        headers.put(header.toString(), value);
     }
 
     /**

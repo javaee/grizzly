@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -58,7 +58,6 @@
 
 package org.glassfish.grizzly.http.util;
 
-import java.util.Locale;
 import static org.glassfish.grizzly.http.util.Charsets.*;
 
 /**
@@ -142,18 +141,6 @@ public final class Constants {
 
 
     /**
-     * Default HTTP header buffer size.
-     */
-    public static final int DEFAULT_HTTP_HEADER_BUFFER_SIZE = 48 * 1024;
-
-
-    /**
-     * CRLF.
-     */
-    public static final String CRLF = "\r\n";
-
-
-    /**
      * CRLF bytes.
      */
     public static final byte[] CRLF_BYTES = {(byte) '\r', (byte) '\n'};
@@ -193,91 +180,6 @@ public final class Constants {
         (byte) 'e'
     };
 
-    /**
-     * HTTP/1.0.
-     */
-    public static final String HTTP_10 = "HTTP/1.0";
-
-
-    /**
-     * HTTP/1.1.
-     */
-    public static final String HTTP_11 = "HTTP/1.1";
-
-
-    /**
-     * GET.
-     */
-    public static final String GET = "GET";
-
-
-    /**
-     * HEAD.
-     */
-    public static final String HEAD = "HEAD";
-
-
-    /**
-     * POST.
-     */
-    public static final String POST = "POST";
-
-
-    /**
-     * Ack string when pipelining HTTP requests.
-     */
-    public static final byte[] ACK_BYTES = {
-        (byte) 'H',
-        (byte) 'T',
-        (byte) 'T',
-        (byte) 'P',
-        (byte) '/',
-        (byte) '1',
-        (byte) '.',
-        (byte) '1',
-        (byte) ' ',
-        (byte) '1',
-        (byte) '0',
-        (byte) '0',
-        (byte) ' ',
-        (byte) 'C',
-        (byte) 'o',
-        (byte) 'n',
-        (byte) 't',
-        (byte) 'i',
-        (byte) 'n',
-        (byte) 'u',
-        (byte) 'e',
-        (byte) '\r',
-        (byte) '\n',
-        (byte) '\r',
-        (byte) '\n'
-    };
-
-    public static final int PROCESSOR_IDLE = 0;
-    public static final int PROCESSOR_ACTIVE = 1;
-
-    /**
-     * Default header names.
-     */
-    public static final String AUTHORIZATION_HEADER = "authorization";
-
-    /**
-     * SSL Certificate Request Attributite.
-     */
-    public static final String SSL_CERTIFICATE_ATTR = "org.apache.coyote.request.X509Certificate";
-
-    /**
-     * Security flag.
-     */
-    public static final boolean SECURITY =
-        (System.getSecurityManager() != null);
-
-
-    // S1AS 4703023
-    public static final int DEFAULT_MAX_DISPATCH_DEPTH = 20;
-
-
     // START SJSAS 6328909
     /**
      * The default response-type
@@ -285,88 +187,19 @@ public final class Constants {
     public final static String DEFAULT_RESPONSE_TYPE =
             "text/html; charset=iso-8859-1";
 
-
-    /**
-     * The forced response-type
-     */
-    public final static String FORCED_RESPONSE_TYPE =
-           "text/html; charset=iso-8859-1";
-    // END SJSAS 6328909
-
-
-    // START SJSAS 6337561
-    public final static String PROXY_JROUTE = "proxy-jroute";
-    // END SJSAS 6337561
-
-    // START SJSAS 6346226
-    public final static String JROUTE_COOKIE = "JROUTE";
-    // END SJSAS 6346226
-
-    public final static String CONTENT_LENGTH_HEADER = "content-length";
-
-    public final static byte[] CONTENT_LENGTH_HEADER_BYTES = CONTENT_LENGTH_HEADER.getBytes(ASCII_CHARSET);
-
-    public final static String CONTENT_TYPE_HEADER = "content-type";
-
-    public final static String TRANSFER_ENCODING_HEADER = "transfer-encoding";
-
-    public final static byte[] TRANSFER_ENCODING_HEADER_BYTES = TRANSFER_ENCODING_HEADER.getBytes(ASCII_CHARSET);
-
     public final static String CHUNKED_ENCODING = "chunked";
 
     public final static byte[] CHUNKED_ENCODING_BYTES = CHUNKED_ENCODING.getBytes(ASCII_CHARSET);
 
-    public final static String UPGRADE_HEADER = "upgrade";
-
-    public final static byte[] UPGRADE_HEADER_BYTES = UPGRADE_HEADER.getBytes(ASCII_CHARSET);
-
     public final static byte[] LAST_CHUNK_CRLF_BYTES = "0\r\n".getBytes(ASCII_CHARSET);
 
-    public final static String CONTENT_ENCODING_HEADER = "content-encoding";
-
-    public static final String EXPECT_100_CONTINUE_NAME = "expect";
-
-    public static final byte[] EXPECT_100_CONTINUE_NAME_BYTES = EXPECT_100_CONTINUE_NAME.getBytes(ASCII_CHARSET);
-
-    public static final String EXPECT_100_CONTINUE_VALUE = "100-Continue";
-
-    public static final byte[] EXPECT_100_CONTINUE_VALUE_BYTES = EXPECT_100_CONTINUE_VALUE.getBytes(ASCII_CHARSET);
-
     public static final String FORM_POST_CONTENT_TYPE = "application/x-www-form-urlencoded";
-
-    public static final byte[] FORM_POST_CONTENT_TYPE_BYTES = FORM_POST_CONTENT_TYPE.getBytes(ASCII_CHARSET);
 
     public static final int KEEP_ALIVE_TIMEOUT_IN_SECONDS = 30;
     /**
      * Default max keep-alive count.
      */
     public static final int DEFAULT_MAX_KEEP_ALIVE = 256;
-
-    public static final int MAX_AGE_IN_SECONDS = 30;
-
-    public static final int MAX_LARGE_FILE_CACHE_SIZE = 10485760;
-
-    public static final int MAX_CACHE_ENTRIES = 1024;
-
-
-    public static final String LOCALE_DEFAULT = "en";
-
-
-    public static final Locale DEFAULT_LOCALE = new Locale(LOCALE_DEFAULT, "");
-
-
-    public static final int MAX_NOTES = 32;
-
-
-    // Request states
-    public static final int STAGE_NEW = 0;
-    public static final int STAGE_PARSE = 1;
-    public static final int STAGE_PREPARE = 2;
-    public static final int STAGE_SERVICE = 3;
-    public static final int STAGE_ENDINPUT = 4;
-    public static final int STAGE_ENDOUTPUT = 5;
-    public static final int STAGE_KEEPALIVE = 6;
-    public static final int STAGE_ENDED = 7;
 
 
 }
