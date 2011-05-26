@@ -82,8 +82,7 @@ public final class FixedLengthTransferEncoding implements TransferEncoding {
         final int defaultContentLength = httpContent != null ?
             httpContent.getContent().remaining() : -1;
         
-        httpHeader.makeContentLengthHeader(ctx.getConnection(),
-                                           defaultContentLength);
+        httpHeader.makeContentLengthHeader(defaultContentLength);
     }
 
 

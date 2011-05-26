@@ -278,8 +278,7 @@ public abstract class HttpHeader extends HttpPacket
      * 
      * @param defaultLength default content-length value.
      */
-    protected void makeContentLengthHeader(final Connection c,
-            final long defaultLength) {
+    protected void makeContentLengthHeader(final long defaultLength) {
         if (contentLength != -1) {
             HttpUtils.longToBuffer(contentLength, tmpContentLengthBuffer.clear());
             headers.setValue(Header.ContentLength).setBuffer(
