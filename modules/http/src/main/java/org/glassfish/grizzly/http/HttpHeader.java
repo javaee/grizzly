@@ -321,7 +321,7 @@ public abstract class HttpHeader extends HttpPacket
 
 
     /**
-     * Set the lenth of this HTTP message.
+     * Set the length of this HTTP message.
      *
      * @param len the length of this HTTP message.
      */
