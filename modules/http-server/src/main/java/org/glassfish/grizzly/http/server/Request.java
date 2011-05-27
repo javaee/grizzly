@@ -84,7 +84,6 @@ import java.util.logging.Logger;
 import javax.security.auth.Subject;
 
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -127,7 +126,6 @@ public class Request {
 
     private static final ThreadCache.CachedTypeIndex<Request> CACHE_IDX =
             ThreadCache.obtainIndex(Request.class, 16);
-    private static final ThreadLocal<Connection> connection = new ThreadLocal<Connection>();
 
     public static Request create() {
         final Request request =
@@ -208,14 +206,6 @@ public class Request {
         }
 
         return cachedMappingData;
-    }
-
-    public static Connection getConnection() {
-        return connection.get();
-    }
-
-    public static void setConnection(final Connection conn) {
-        connection.set(conn);
     }
 
     /**
@@ -520,7 +510,6 @@ public class Request {
      */
     protected final void recycle() {
         contextPath = "";
-        connection.set(null);
         dispatcherType = null;
         requestDispatcherPath = null;
 

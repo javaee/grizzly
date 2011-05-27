@@ -104,6 +104,8 @@ public class CometContext<E> {
         + " invoking that method is the same as the Servlet.service() thread.";
     protected final static Logger logger = Logger.getLogger(CometContext.class.getName());
     private final Map<Object,Object> attributes;
+    
+    protected final static ThreadLocal<Connection> connection = new ThreadLocal<Connection>();
     /**
      * The context path associated with this instance.
      */
@@ -221,7 +223,7 @@ public class CometContext<E> {
         handlers.add(handler);
         Attribute<Request> httpRequestInProcessAttr = Grizzly.DEFAULT_ATTRIBUTE_BUILDER
             .createAttribute("HttpServerFilter.Request");
-        final Connection c = Request.getConnection();
+        final Connection c = connection.get();
         final Response response = httpRequestInProcessAttr.get(c).getResponse();
         handler.setResponse(response);
         handler.setCometContext(this);

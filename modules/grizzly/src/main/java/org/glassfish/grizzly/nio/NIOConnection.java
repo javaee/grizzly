@@ -286,9 +286,8 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
     @Override
     public void setProcessorSelector(
-        ProcessorSelector preferableProcessorSelector) {
-        this.processorSelector =
-            preferableProcessorSelector;
+            final ProcessorSelector preferableProcessorSelector) {
+        this.processorSelector = preferableProcessorSelector;
     }
 
     public TaskQueue<AsyncReadQueueRecord> getAsyncReadQueue() {
