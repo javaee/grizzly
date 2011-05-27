@@ -915,10 +915,10 @@ public final class TCPNIOTransport extends NIOTransport implements
             } else {
                 buffer.dispose();
                 buffer = null;
-                
+
                 if (read < 0) {
                     throw new EOFException();
-                }
+                }                
             }
         } else {
             if (buffer.hasRemaining()) {
@@ -1054,7 +1054,7 @@ public final class TCPNIOTransport extends NIOTransport implements
     public int write(Connection connection, Buffer buffer) throws IOException {
         return write(connection, buffer, null);
     }
-
+    
     @SuppressWarnings("unchecked")
     public int write(Connection connection, Buffer buffer,
             WriteResult currentResult) throws IOException {
@@ -1168,7 +1168,7 @@ public final class TCPNIOTransport extends NIOTransport implements
         }
 
     }
-
+    
     private static int writeGathered(final TCPNIOConnection tcpConnection,
             final BufferArray bufferArray)
             throws IOException {
@@ -1190,7 +1190,7 @@ public final class TCPNIOTransport extends NIOTransport implements
             next = findNextAvailBuffer(buffers, i, length);
 
             final boolean isFlush = next == length || buffers[next].isDirect();
-            
+
             // If Buffer is not direct - copy it to the direct buffer and write
             if (!buffer.isDirect()) {
                 if (record == null) {
@@ -1271,7 +1271,7 @@ public final class TCPNIOTransport extends NIOTransport implements
     throws IOException {
         
         directByteBuffer.flip();
-
+        
         return channel.write(directByteBuffer);
     }
 
@@ -1279,7 +1279,7 @@ public final class TCPNIOTransport extends NIOTransport implements
             ThreadCache.obtainIndex("direct-buffer-cache", DirectByteBufferRecord.class, 1);
     
     private static DirectByteBufferRecord obtainDirectByteBuffer(final int size) {
-        DirectByteBufferRecord record = ThreadCache.takeFromCache(CACHE_IDX);
+        DirectByteBufferRecord record = ThreadCache.getFromCache(CACHE_IDX);
         final ByteBuffer byteBuffer;
         if (record != null) {
             if ((byteBuffer = record.switchToStrong()) != null) {
@@ -1289,6 +1289,7 @@ public final class TCPNIOTransport extends NIOTransport implements
             }
         } else {
             record = new DirectByteBufferRecord();
+            ThreadCache.putToCache(CACHE_IDX, record);
         }
 
         record.reset(ByteBuffer.allocateDirect(size));
@@ -1298,7 +1299,6 @@ public final class TCPNIOTransport extends NIOTransport implements
     private static void releaseDirectByteBuffer(
             final DirectByteBufferRecord directByteBufferRecord) {
         directByteBufferRecord.switchToSoft();
-        ThreadCache.putToCache(CACHE_IDX, directByteBufferRecord);
     }
 
     static final class DirectByteBufferRecord {
