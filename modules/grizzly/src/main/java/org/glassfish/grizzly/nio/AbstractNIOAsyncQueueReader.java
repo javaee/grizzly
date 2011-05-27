@@ -298,13 +298,12 @@ public abstract class AbstractNIOAsyncQueueReader
         final TaskQueue<AsyncReadQueueRecord> readQueue =
                 nioConnection.getAsyncReadQueue();
 
-        if (readQueue != null) {
+        if (!readQueue.isEmpty()) {
             EOFException error = cachedEOFException;
             if (error == null) {
                 error = new EOFException("Connection closed");
                 cachedEOFException = error;
             }
-
             AsyncReadQueueRecord record;
             while ((record = readQueue.obtainCurrentElementAndReserve()) != null) {
                 failReadRecord(record, error);

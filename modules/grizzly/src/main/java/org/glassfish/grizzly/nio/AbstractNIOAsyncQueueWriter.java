@@ -424,7 +424,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                 (NIOConnection) connection;
         final TaskQueue<AsyncWriteQueueRecord> writeQueue =
                 nioConnection.getAsyncWriteQueue();
-        if (writeQueue != null) {
+        if (!writeQueue.isEmpty()) {
             IOException error = cachedIOException;
             if (error == null) {
                 error = new IOException("Connection closed");
