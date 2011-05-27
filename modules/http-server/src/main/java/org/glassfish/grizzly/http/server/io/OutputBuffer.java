@@ -129,7 +129,6 @@ public class OutputBuffer {
         this.response = response;
         this.ctx = ctx;
         memoryManager = ctx.getMemoryManager();
-        compositeBuffer = createCompositeBuffer();
         final Connection c = ctx.getConnection();
         asyncWriter = ((AsyncQueueWriter) c.getTransport().getWriter(c));
         if (asyncWriter.getMaxPendingBytesPerConnection() <= 0) {
@@ -338,12 +337,12 @@ public class OutputBuffer {
     }
 
 
-    public void write(byte b[]) throws IOException {
+    public void write(final byte b[]) throws IOException {
         write(b, 0, b.length);
     }
 
 
-    public void write(byte b[], int off, int len) throws IOException {
+    public void write(final byte b[], int off, int len) throws IOException {
 
         handleAsyncErrors();
         if (closed || len == 0) {
@@ -399,6 +398,7 @@ public class OutputBuffer {
      * @throws java.io.IOException an underlying I/O error occurred
      */
     public void flush() throws IOException {
+        handleAsyncErrors();
 
         final boolean isJustCommitted = doCommit();
         if (!writeContentChunk(!isJustCommitted, false) && isJustCommitted) {
@@ -441,6 +441,7 @@ public class OutputBuffer {
     public void writeBuffer(final Buffer buffer) throws IOException {
         handleAsyncErrors();
         finishCurrentBuffer();
+        checkCompositeBuffer();
         compositeBuffer.append(buffer);
     }
 
@@ -543,14 +544,13 @@ public class OutputBuffer {
     
     private boolean writeContentChunk(final boolean areHeadersCommitted,
                                       final boolean isLast) throws IOException {
-        handleAsyncErrors();
-
         final Buffer bufferToFlush;
         final boolean isFlushComposite = compositeBuffer != null && compositeBuffer.hasRemaining();
 
         if (isFlushComposite) {
             finishCurrentBuffer();
             bufferToFlush = compositeBuffer;
+            compositeBuffer = null;
         } else if (currentBuffer != null && currentBuffer.position() > 0) {
             currentBuffer.trim();
             bufferToFlush = currentBuffer;
@@ -570,14 +570,6 @@ public class OutputBuffer {
             builder.content(bufferToFlush).last(isLast);
             ctx.write(builder.build(), asyncCompletionHandler);
 
-            if (isFlushComposite) { // recreate composite if needed
-                if (!isLast) {
-                    compositeBuffer = createCompositeBuffer();
-                } else {
-                    compositeBuffer = null;
-                }
-            }
-
             return true;
         }
         
@@ -594,6 +586,7 @@ public class OutputBuffer {
     private void finishCurrentBuffer() {
         if (currentBuffer != null && currentBuffer.position() > 0) {
             currentBuffer.trim();
+            checkCompositeBuffer();
             compositeBuffer.append(currentBuffer);
             currentBuffer = null;
         }
@@ -639,12 +632,13 @@ public class OutputBuffer {
         }
     }
 
-    private CompositeBuffer createCompositeBuffer() {
-        final CompositeBuffer buffer = CompositeBuffer.newBuffer(memoryManager);
-        buffer.allowBufferDispose(true);
-        buffer.allowInternalBuffersDispose(true);
-
-        return buffer;
+    private void checkCompositeBuffer() {
+        if (compositeBuffer == null) {
+            final CompositeBuffer buffer = CompositeBuffer.newBuffer(memoryManager);
+            buffer.allowBufferDispose(true);
+            buffer.allowInternalBuffersDispose(true);
+            compositeBuffer = buffer;
+        }
     }
 
     private void flushCharsToBuf(final CharBuffer charBuf) throws IOException {
