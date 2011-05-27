@@ -93,7 +93,6 @@ public final class SelectorRunner implements Runnable {
     private SelectionKey key = null;
     private int keyReadyOps;
 
-//    private final CountDownLatch shutdownLatch = new CountDownLatch(1);
     private final AtomicBoolean selectorWakeupFlag = new AtomicBoolean();
     private final AtomicInteger runnerThreadActivityCounter = new AtomicInteger();
 
