@@ -601,12 +601,7 @@ public abstract class HttpHeader extends HttpPacket
      */
     @Override
     public void setHeader(String name, String value) {
-        final Header h = Header.find(name);
-        if (h != null) {
-            setHeader(h, value);
-        } else {
-            headers.setValue(name).setString(value);
-        }
+        headers.setValue(name).setString(value);
     }
 
     /**
@@ -622,12 +617,7 @@ public abstract class HttpHeader extends HttpPacket
      */
     @Override
     public void addHeader(String name, String value) {
-        final Header h = Header.find(name);
-        if (h != null) {
-            addHeader(h, value);
-        } else {
-            headers.addValue(name).setString(value);
-        }
+        headers.addValue(name).setString(value);
     }
 
     /**
