@@ -552,23 +552,33 @@ public class DataChunk {
     }
 
     private void switchToBufferChunk() {
-        type = Type.Buffer;
+        if (type == Type.Chars) {
+            resetCharChunk();
+        }
         resetString();
-        resetCharChunk();
+        
+        type = Type.Buffer;
         onContentChanged();
     }
 
     private void switchToCharChunk() {
-        type = Type.Chars;
+        if (type == Type.Buffer) {
+            resetBuffer();
+        }
+        
         resetString();
-        resetBuffer();
+        type = Type.Chars;
         onContentChanged();
     }
 
     private void switchToString() {
+        if (type == Type.Chars) {
+            resetCharChunk();
+        } else if (type == Type.Buffer) {
+            resetBuffer();
+        }
+
         type = Type.String;
-        resetBuffer();
-        resetCharChunk();
         onContentChanged();
     }
 

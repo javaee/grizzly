@@ -70,8 +70,6 @@ public final class IndexedAttributeHolder implements AttributeHolder {
     protected final DefaultAttributeBuilder attributeBuilder;
     protected final IndexedAttributeAccessor indexedAttributeAccessor;
 
-//    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-
     public IndexedAttributeHolder(AttributeBuilder attributeBuilder) {
         this.attributeBuilder = (DefaultAttributeBuilder) attributeBuilder;
         attributeValues = new Object[4];

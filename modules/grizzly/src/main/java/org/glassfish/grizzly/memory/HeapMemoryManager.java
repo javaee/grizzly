@@ -240,7 +240,7 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
     }
 
 
-    protected void releaseHeapBuffer(final HeapBuffer heapBuffer) {
+    protected final void releaseHeapBuffer(final HeapBuffer heapBuffer) {
         final ThreadLocalPool<HeapBuffer> memoryPool = getHeapBufferThreadLocalPool();
         if (memoryPool != null) {
 
@@ -419,8 +419,7 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
 
         @Override
         public boolean wantReset(final int size) {
-            return !hasRemaining() ||
-                    remaining() < size;
+            return size > 1024 && remaining() < size;
         }
 
         @Override
