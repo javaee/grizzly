@@ -1,14 +1,14 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
  * may not use this file except in compliance with the License.  You can
  * obtain a copy of the License at
- * https://glassfish.dev.java.net/public/CDDL+GPL_1_1.html
+ * http://glassfish.java.net/public/CDDL+GPL_1_1.html
  * or packager/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
  *
@@ -40,51 +40,20 @@
 
 package com.sun.grizzly.websockets;
 
-import com.sun.grizzly.tcp.OutputBuffer;
-import com.sun.grizzly.tcp.Response;
-import com.sun.grizzly.tcp.http11.OutputFilter;
-import com.sun.grizzly.util.buf.ByteChunk;
+import com.sun.grizzly.util.http.MimeHeaders;
+import com.sun.grizzly.websockets.draft06.Draft06Handler;
 
-import java.io.IOException;
+public class WebSocketFactory {
+    public static WebSocketHandler loadHandler(MimeHeaders headers) {
+        try {
+            if(headers.getHeader(WebSocketEngine.SEC_WS_VERSION).equals(WebSocketEngine.WS_VERSION+"")) {
+                return new Draft06Handler();
+            }
+        } catch (NullPointerException e) {
+            System.out.println(headers);
+            throw new RuntimeException(e.getMessage(), e);
+        }
 
-public class WebSocketOutputFilter implements OutputFilter {
-    private Response response;
-    private static final byte[] ENCODING_NAME = "UTF-8".getBytes();
-    private static final ByteChunk ENCODING = new ByteChunk();
-    private OutputBuffer buffer;
-
-    static {
-        ENCODING.setBytes(ENCODING_NAME, 0, ENCODING_NAME.length);
-    }
-
-    public int doWrite(ByteChunk chunk, Response unused) throws IOException {
-        String text = new String(chunk.getBytes(), chunk.getStart(), chunk.getLength());
-        DataFrame frame = new DataFrame(text);
-        final byte[] bytes = frame.frame();
-        ByteChunk framed = new ByteChunk(bytes.length);
-        framed.setBytes(bytes, 0, bytes.length);
-        buffer.doWrite(framed, response);
-        return bytes.length;
-    }
-
-    public void setResponse(Response response) {
-        this.response = response;
-    }
-
-    public void recycle() {
-        response = null;
-        buffer = null;
-    }
-
-    public ByteChunk getEncodingName() {
-        return ENCODING;
-    }
-
-    public void setBuffer(OutputBuffer buffer) {
-        this.buffer = buffer;
-    }
-
-    public long end() throws IOException {
-        return 0;
+        throw new HandshakeException("Unknown specification version");
     }
 }

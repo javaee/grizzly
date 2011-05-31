@@ -1,14 +1,14 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
  * may not use this file except in compliance with the License.  You can
  * obtain a copy of the License at
- * https://glassfish.dev.java.net/public/CDDL+GPL_1_1.html
+ * http://glassfish.java.net/public/CDDL+GPL_1_1.html
  * or packager/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
  *
@@ -40,55 +40,23 @@
 
 package com.sun.grizzly.websockets;
 
-import com.sun.grizzly.util.net.URL;
-
 import java.io.IOException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Logger;
+import java.nio.channels.SelectionKey;
 
-public class ClientWebSocket extends BaseWebSocket {
-    private static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
+public class KeyWebSocketListener extends WebSocketAdapter {
+    private final SelectionKey key;
 
-    private final AtomicBoolean connecting = new AtomicBoolean(true);
-    private final AtomicBoolean running = new AtomicBoolean(true);
-
-    private final URL address;
-    private final ExecutorService executorService = Executors.newFixedThreadPool(2);
-
-    public ClientWebSocket(final String url, final WebSocketListener... listeners) throws IOException {
-        this(url, WebSocketEngine.DEFAULT_TIMEOUT, listeners);
+    public KeyWebSocketListener(SelectionKey key) {
+        this.key = key;
     }
 
-    public ClientWebSocket(final String url, final long timeout, final WebSocketListener... listeners)
-            throws IOException {
-        super(listeners);
-        address = new URL(url);
-        final Future<?> future = executorService.submit(new Runnable() {
-            public void run() {
-                networkHandler = createNetworkHandler();
-            }
-        });
+    @Override
+    public void onClose(WebSocket socket) {
+        key.cancel();
         try {
-            future.get(timeout, TimeUnit.SECONDS);
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new IOException(e.getMessage());
+            key.channel().close();
+        } catch (IOException e) {
+            throw new WebSocketException(e.getMessage(), e);
         }
-    }
-
-    public URL getAddress() {
-        return address;
-    }
-
-    public void execute(Runnable runnable) {
-        executorService.submit(runnable);
-    }
-
-    protected ClientNetworkHandler createNetworkHandler() {
-        return new ClientNetworkHandler(this);
     }
 }

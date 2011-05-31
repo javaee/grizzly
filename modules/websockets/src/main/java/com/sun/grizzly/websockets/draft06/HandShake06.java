@@ -38,44 +38,47 @@
  * holder.
  */
 
-package com.sun.grizzly.websockets;
+package com.sun.grizzly.websockets.draft06;
 
-import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
-import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.buf.MessageBytes;
 import com.sun.grizzly.util.http.MimeHeaders;
+import com.sun.grizzly.websockets.HandShake;
+import com.sun.grizzly.websockets.HandshakeException;
+import com.sun.grizzly.websockets.SecKey;
+import com.sun.grizzly.websockets.WebSocketEngine;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
-public class ServerHandShake extends HandShake {
+public class HandShake06 extends HandShake {
 
-    private SecKey serverSecKey;
-    private String enabledExtensions;
-    private String enabledProtocols;
+    private final SecKey serverSecKey;
+    private List<String> enabledExtensions;
+    private List<String> enabledProtocols;
 
-    public ServerHandShake(Request request, boolean secure, ByteChunk chunk) {
-        super(secure, request.requestURI().toString());
+    public HandShake06(boolean secure, MimeHeaders mimeHeaders, final String path) {
+        super(secure, path);
 
-        final MimeHeaders headers = request.getMimeHeaders();
-        determineHostAndPort(headers);
+        determineHostAndPort(mimeHeaders);
 
-        checkForHeader(headers, "Upgrade", "WebSocket");
-        checkForHeader(headers, "Connection", "Upgrade");
+        checkForHeader(mimeHeaders, "Upgrade", "WebSocket");
+        checkForHeader(mimeHeaders, "Connection", "Upgrade");
         
-        setSubProtocol(split(headers.getHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER)));
-        setExtensions(split(headers.getHeader(WebSocketEngine.SEC_WS_EXTENSIONS_HEADER)));
-        serverSecKey = SecKey.generateServerKey(new SecKey(headers.getHeader(WebSocketEngine.SEC_WS_KEY_HEADER)));
+        setSubProtocol(split(mimeHeaders.getHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER)));
+        setExtensions(split(mimeHeaders.getHeader(WebSocketEngine.SEC_WS_EXTENSIONS_HEADER)));
+        serverSecKey = SecKey.generateServerKey(new SecKey(mimeHeaders.getHeader(WebSocketEngine.SEC_WS_KEY_HEADER)));
 
-        setOrigin(readHeader(headers, WebSocketEngine.SEC_WS_ORIGIN_HEADER));
-        setLocation(buildLocation(secure));
+        setOrigin(readHeader(mimeHeaders, WebSocketEngine.SEC_WS_ORIGIN_HEADER));
+        buildLocation(secure);
         if (getServerHostName() == null || getOrigin() == null) {
             throw new HandshakeException("Missing required headers for WebSocket negotiation");
         }
     }
 
-    private String[] split(final String header) {
-        return header == null ? null : header.split(";");
+    private List<String> split(final String header) {
+        return header == null ? null : Arrays.asList(header.split(";"));
     }
 
     private void checkForHeader(MimeHeaders headers, final String header, final String validValue) {
@@ -131,19 +134,19 @@ public class ServerHandShake extends HandShake {
         }
     }
 
-    public String getEnabledExtensions() {
+    public List<String> getEnabledExtensions() {
         return enabledExtensions;
     }
 
-    public void setEnabledExtensions(String[] enabledExtensions) {
-        this.enabledExtensions = enabledExtensions != null ? join(enabledExtensions) : null;
+    public void setEnabledExtensions(List<String> enabledExtensions) {
+        this.enabledExtensions = enabledExtensions;
     }
 
-    public String getEnabledProtocols() {
+    public List<String> getEnabledProtocols() {
         return enabledProtocols;
     }
 
-    public void setEnabledProtocols(String[] enabledProtocols) {
-        this.enabledProtocols = enabledProtocols != null ? join(enabledProtocols) : null;
+    public void setEnabledProtocols(List<String> enabledProtocols) {
+        this.enabledProtocols = enabledProtocols;
     }
 }

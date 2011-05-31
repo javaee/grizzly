@@ -40,8 +40,6 @@
 
 package com.sun.grizzly.websockets;
 
-import com.sun.grizzly.arp.AsyncProcessorTask;
-import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.http.servlet.HttpServletRequestImpl;
 import com.sun.grizzly.http.servlet.HttpServletResponseImpl;
 import com.sun.grizzly.http.servlet.ServletContextImpl;
@@ -51,7 +49,6 @@ import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 import com.sun.grizzly.tcp.http11.InternalInputBuffer;
 import com.sun.grizzly.tcp.http11.InternalOutputBuffer;
-import com.sun.grizzly.util.SelectedKeyAttachmentLogic;
 import com.sun.grizzly.util.buf.ByteChunk;
 
 import javax.servlet.http.HttpServletRequest;
@@ -63,11 +60,6 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
     private final Response response;
     private final InternalInputBuffer inputBuffer;
     private final InternalOutputBuffer outputBuffer;
-    private final ByteChunk chunk = new ByteChunk();
-    private WebSocket socket;
-    private WebSocketSelectionKeyAttachment attachment;
-    private byte[] mask;
-    private int maskIndex = 0;
 
     public ServerNetworkHandler(Request req, Response resp) {
         request = req;
@@ -76,103 +68,42 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
         outputBuffer = (InternalOutputBuffer) resp.getOutputBuffer();
     }
 
-    public ServerNetworkHandler(final ProcessorTask task, final AsyncProcessorTask async, Request req, Response resp) {
-        this(req, resp);
-        attachment = new WebSocketSelectionKeyAttachment(this, task, async);
-    }
-
-    public WebSocket getWebSocket() {
-        return socket;
-    }
-
-    public void setWebSocket(BaseWebSocket webSocket) {
-        socket = webSocket;
-    }
-
-    protected void handshake(final boolean sslSupport) throws HandshakeException {
-        final boolean secure = "https".equalsIgnoreCase(request.scheme().toString()) || sslSupport;
-
-        final ServerHandShake server = new ServerHandShake(request, secure, chunk);
-        server.respond(response);
-        socket.onConnect();
-        if (chunk.getLength() > 0) {
-            readFrame();
-        }
-    }
-
-    protected void readFrame() {
-        fill();
-        while (socket.isConnected() && chunk.getLength() != 0) {
-            try {
-                setMask(getUnmasked(WebSocketEngine.MASK_SIZE));
-                unframe().respond(getWebSocket());
-            } catch(FramingException fe) {
-                fe.printStackTrace();
-                socket.close();
-            }
-        }
-    }
-
-    private void setMask(byte[] mask) {
-        maskIndex = 0;
-        this.mask = mask;
-    }
-
-    protected void read() {
+    @Override
+    protected int read() {
+        int read = 0;
         try {
             ByteChunk bytes = new ByteChunk(WebSocketEngine.INITIAL_BUFFER_SIZE);
             int count = WebSocketEngine.INITIAL_BUFFER_SIZE;
             while (count == WebSocketEngine.INITIAL_BUFFER_SIZE) {
                 count = inputBuffer.doRead(bytes, request);
                 chunk.append(bytes);
+                read += count;
             }
         } catch (IOException e) {
             throw new WebSocketException(e.getMessage(), e);
         }
+
+        return read;
     }
 
-    @Override
     public byte get() {
         synchronized (chunk) {
             fill();
             try {
-                return (byte) (chunk.substract() ^ mask[maskIndex++ % WebSocketEngine.MASK_SIZE]);
+                return (byte) chunk.substract();
             } catch (IOException e) {
                 throw new WebSocketException(e.getMessage(), e);
             }
         }
     }
 
-    @Override
-    public byte[] get(int count)  {
+    public byte[] get(int count) {
         synchronized (chunk) {
             try {
                 byte[] bytes = new byte[count];
                 int total = 0;
-                while(total < count) {
-                    if(chunk.getLength() < count) {
-                        read();
-                    }
-                    total += chunk.substract(bytes, total, count - total);
-                }
-                for (int i = 0; i < bytes.length; i++) {
-                    bytes[i] = (byte) (bytes[i] ^ mask[maskIndex++ % WebSocketEngine.MASK_SIZE]);
-                }
-                return bytes;
-            } catch (IOException e) {
-                throw new WebSocketException(e.getMessage(), e);
-            }
-        }
-    }
-    
-    private byte[] getUnmasked(int count) {
-        synchronized (chunk) {
-            try {
-                byte[] bytes = new byte[count];
-                fill();
-                int total = 0;
-                while(total < count) {
-                    if(chunk.getLength() < count) {
+                while (total < count) {
+                    if (chunk.getLength() < count) {
                         read();
                     }
                     total += chunk.substract(bytes, total, count - total);
@@ -190,7 +121,7 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
         }
     }
 
-    private void write(byte[] bytes) {
+    public void write(byte[] bytes) {
         synchronized (outputBuffer) {
             try {
                 ByteChunk buffer = new ByteChunk();
@@ -198,19 +129,13 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
                 outputBuffer.doWrite(buffer, response);
                 outputBuffer.flush();
             } catch (IOException e) {
-                if(getWebSocket().isConnected()) {
-                    throw new WebSocketException(e.getMessage(), e);
-                }
+                throw new WebSocketException(e.getMessage(), e);
             }
         }
     }
 
-    public void send(DataFrame frame) {
-        write(frame.frame());
-    }
-
-    public void setWebSocket(WebSocket webSocket) {
-        socket = webSocket;
+    public boolean ready() {
+        return chunk.getLength() != 0;
     }
 
     public HttpServletRequest getRequest() throws IOException {
@@ -223,10 +148,6 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
         GrizzlyResponse r = new GrizzlyResponse();
         r.setResponse(response);
         return new HttpServletResponseImpl(r);
-    }
-
-    public SelectedKeyAttachmentLogic getAttachment() {
-        return attachment;
     }
 
     private static class WSServletRequestImpl extends HttpServletRequestImpl {

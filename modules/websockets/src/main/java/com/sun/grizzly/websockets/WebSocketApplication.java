@@ -42,6 +42,8 @@ package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.tcp.Request;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -66,10 +68,6 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
         return sockets.remove(socket) != null;
     }
 
-    public WebSocket createSocket(WebSocketListener... listeners) {
-        return new BaseServerWebSocket(listeners);
-    }
-
     @Override
     public void onClose(WebSocket socket) {
         remove(socket);
@@ -82,17 +80,6 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
     }
 
     /**
-     * Checks protocol specific information and queries #isApplicationRequest(Request) to see if the Request should
-     * be upgraded.
-     *
-     * @return true if the request should be upgraded to a WebSocket connection
-     */
-    public final boolean upgrade(Request request) {
-        final String s = request.getHeader("Upgrade");
-        return "WebSocket".equalsIgnoreCase(s) && isApplicationRequest(request);
-    }
-
-    /**
      * Checks application specific criteria to determine if this application can process the Request as a WebSocket
      * connection.
      *
@@ -100,4 +87,12 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
      * @return true if this application can service this Request
      */
     public abstract boolean isApplicationRequest(Request request);
+
+    public List<String> getSupportedExtensions() {
+        return Collections.emptyList();
+    }
+
+    public List<String> getSupportedProtocols() {
+        return Collections.emptyList();
+    }
 }

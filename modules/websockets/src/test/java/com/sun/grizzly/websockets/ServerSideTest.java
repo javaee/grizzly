@@ -66,8 +66,9 @@ public class ServerSideTest extends BaseWebSocketTest {
         try {
             int count = 0;
             final Date start = new Date();
+            final int marker = ITERATIONS / 5;
             while (count++ < ITERATIONS) {
-                if (count % (ITERATIONS / 5) == 0) {
+                if (count % marker == 0) {
                     System.out.printf("Running iteration %s of %s\n", count, ITERATIONS);
                 }
                 socket.send("test message: " + count);
@@ -79,6 +80,25 @@ public class ServerSideTest extends BaseWebSocketTest {
 
             Assert.assertTrue(socket.waitOnMessages(), "All messages should come back: " + socket.getReceived());
             time("ServerSideTest.steadyFlow", start, new Date());
+
+        } finally {
+            if (socket != null) {
+                socket.close();
+            }
+            thread.stopEndpoint();
+        }
+    }
+
+    public void single() throws IOException, InstantiationException, ExecutionException, InterruptedException {
+        final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
+        TrackingWebSocket socket = new TrackingWebSocket(String.format("ws://localhost:%s/echo", PORT), 1);
+        try {
+            int count = 0;
+            final Date start = new Date();
+            socket.send("test message: " + count);
+
+            Assert.assertTrue(socket.waitOnMessages(), "All messages should come back: " + socket.getReceived());
+            time("ServerSideTest.single", start, new Date());
 
         } finally {
             if (socket != null) {
@@ -152,9 +172,9 @@ public class ServerSideTest extends BaseWebSocketTest {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
         final int count = 5;
         final CountDownLatch received = new CountDownLatch(count);
-        ClientWebSocket socket = new ClientWebSocket(String.format("ws://localhost:%s/echo", PORT)) {
+        WebSocketClient socket = new WebSocketClient(String.format("ws://localhost:%s/echo", PORT)) {
             @Override
-            public void onMessage(String frame) {
+            public void onMessage(WebSocket webSocket, String frame) {
                 received.countDown();
             }
         };

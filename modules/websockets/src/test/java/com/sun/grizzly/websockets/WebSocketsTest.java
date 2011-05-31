@@ -122,9 +122,9 @@ public class WebSocketsTest {
         final CountDownLatch connected = new CountDownLatch(1);
         final CountDownLatch received = new CountDownLatch(MESSAGE_COUNT);
 
-        WebSocket client = null;
+        WebSocketClient client = null;
         try {
-            client = new ClientWebSocket(String.format("ws://localhost:%s/echo", PORT), new WebSocketAdapter() {
+            client = new WebSocketClient(String.format("ws://localhost:%s/echo", PORT), new WebSocketAdapter() {
                 @Override
                 public void onMessage(WebSocket socket, String data) {
                     sent.remove(data);
@@ -159,14 +159,14 @@ public class WebSocketsTest {
 
     public void timeouts() throws Exception {
         SelectorThread thread = null;
-        WebSocket client = null;
+        WebSocketClient client = null;
         final EchoWebSocketApplication app = new EchoWebSocketApplication();
         try {
             WebSocketEngine.getEngine().register(app);
             thread = createSelectorThread(PORT, new StaticResourcesAdapter());
             final Map<String, Object> messages = new ConcurrentHashMap<String, Object>();
             final CountDownLatch received = new CountDownLatch(MESSAGE_COUNT);
-            client = new ClientWebSocket(String.format("ws://localhost:%s/echo", PORT), new WebSocketAdapter() {
+            client = new WebSocketClient(String.format("ws://localhost:%s/echo", PORT), new WebSocketAdapter() {
                 @Override
                 public void onMessage(WebSocket socket, String data) {
                     messages.remove(data);
@@ -208,7 +208,9 @@ public class WebSocketsTest {
             SSLSocketFactory sslsocketfactory = getSSLSocketFactory();
 
             socket = (SSLSocket) sslsocketfactory.createSocket("localhost", PORT);
-            handshake(socket, headers, true);
+            WebSocketClient client = new WebSocketClient(String.format("wss://localhost:%s/echo", PORT));
+            Assert.assertTrue(client.isConnected());
+//            handshake(socket, headers, true);
         } finally {
             if (thread != null) {
                 thread.stopEndpoint();
@@ -278,7 +280,7 @@ public class WebSocketsTest {
         }
     }
 
-    private void send(WebSocket client, Map<String, Object> messages, final String message) {
+    private void send(WebSocketClient client, Map<String, Object> messages, final String message) {
         messages.put(message, SLUG);
         client.send(message);
     }

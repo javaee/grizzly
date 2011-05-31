@@ -69,7 +69,7 @@ public class ClosingFrame extends DataFrame {
     @Override
     public void setPayload(byte[] bytes) {
         if (bytes.length > 0) {
-            code = (int) convert(bytes, 0, 2);
+            code = (int) WebSocketEngine.toLong(bytes, 0, 2);
             if (bytes.length > 2) {
                 try {
                     reason = new String(bytes, 2, bytes.length - 2, "UTF-8");
@@ -81,13 +81,13 @@ public class ClosingFrame extends DataFrame {
     }
 
     @Override
-    public byte[] getBinaryPayload() {
+    public byte[] getBytes() {
         try {
             if (code == -1) {
                 return EMPTY_BYTES;
             }
 
-            final byte[] bytes = toArray(code);
+            final byte[] bytes = WebSocketEngine.toArray(code);
             final byte[] reasonBytes = reason == null ? EMPTY_BYTES : reason.getBytes("UTF-8");
             final byte[] frameBytes = new byte[2 + reasonBytes.length];
             System.arraycopy(bytes, bytes.length - 2, frameBytes, 0, 2);

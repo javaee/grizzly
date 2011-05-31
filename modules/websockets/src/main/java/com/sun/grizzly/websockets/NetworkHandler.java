@@ -40,15 +40,17 @@
 
 package com.sun.grizzly.websockets;
 
-public interface NetworkHandler {
-    void send(DataFrame frame);
+import java.io.IOException;
 
-    void setWebSocket(WebSocket webSocket);
+public interface NetworkHandler {
 
     byte get();
 
     byte[] get(int count);
 
+    void write(byte[] frame);
 
-    DataFrame unframe();
+    boolean ready();
+
+    byte[] readLine() throws IOException;
 }

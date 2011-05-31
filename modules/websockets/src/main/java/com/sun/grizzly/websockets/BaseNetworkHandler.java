@@ -40,32 +40,40 @@
 
 package com.sun.grizzly.websockets;
 
+import com.sun.grizzly.util.buf.ByteChunk;
+
+import java.io.IOException;
+
 public abstract class BaseNetworkHandler implements NetworkHandler {
-    public DataFrame unframe() {
-        byte opcodes = get();
-        boolean fin = (opcodes & 0x80) == 0x80;
-        byte lengthCode = get();
-        long length;
-        if (lengthCode <= 125) {
-            length = lengthCode;
-        } else {
-            length = DataFrame.convert(get(lengthCode == 126 ? 2 : 8));
+    protected final ByteChunk chunk = new ByteChunk();
+
+    protected abstract int read();
+
+    public byte[] readLine() throws IOException {
+        if (chunk.getLength() <= 0) {
+            read();
         }
-        FrameType type = FrameType.valueOf(opcodes);
-        final byte[] data = get((int) length);
-        if (data.length != length) {
-            final FramingException e = new FramingException(String.format("Data read (%s) is not the expected" +
-                    " size (%s)", data.length, length));
-            e.printStackTrace();
-            throw e;
+
+        int idx = chunk.indexOf('\n', 0);
+        if (idx != -1) {
+            int eolBytes = 1;
+            final int offset = chunk.getOffset();
+            idx += offset;
+
+            if (idx > offset && chunk.getBuffer()[idx - 1] == '\r') {
+                idx--;
+                eolBytes = 2;
+            }
+
+            final int size = idx - offset;
+
+            final byte[] result = new byte[size];
+            chunk.substract(result, 0, size);
+
+            chunk.setOffset(chunk.getOffset() + eolBytes); // Skip \r\n or \n
+            return result;
         }
-        final DataFrame frame = type.create();
-        frame.setLast(fin);
-        type.unframe(frame, data);
-        return frame;
+
+        return null;
     }
-
-    public abstract byte get();
-
-    public abstract byte[] get(int count);
 }

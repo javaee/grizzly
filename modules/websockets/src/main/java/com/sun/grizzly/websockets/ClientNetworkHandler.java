@@ -40,139 +40,44 @@
 
 package com.sun.grizzly.websockets;
 
-import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.net.URL;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
-import java.util.Comparator;
-import java.util.Map;
-import java.util.TreeMap;
 
 public class ClientNetworkHandler extends BaseNetworkHandler {
     private Socket socket;
-    private URL url;
-    private ClientWebSocket webSocket;
-    private final ByteChunk chunk = new ByteChunk();
-    private final SecureRandom random = new SecureRandom();
 
-    private boolean isHeaderParsed = false;
     private OutputStream outputStream;
     private InputStream inputStream;
 
-    public ClientNetworkHandler(ClientWebSocket webSocket) {
-        url = webSocket.getAddress();
-        this.webSocket = webSocket;
+    public ClientNetworkHandler(WebSocketClient webSocket) {
+        URL url = webSocket.getAddress();
 
         try {
-            connect();
-            handshake();
+            if ("ws".equals(url.getProtocol())) {
+                socket = new Socket(url.getHost(), url.getPort());
+            } else if ("wss".equals(url.getProtocol())) {
+                socket = getSSLSocketFactory().createSocket(url.getHost(), url.getPort());
+            } else {
+                throw new IOException("Unknown schema: " + url.getProtocol());
+            }
+            inputStream = socket.getInputStream();
+            outputStream = socket.getOutputStream();
         } catch (IOException e) {
             throw new RuntimeException(e.getMessage(), e);
         }
-        webSocket.add(new WebSocketAdapter() {
-            public void onClose(WebSocket socket) {
-                socket.close();
-            }
-        });
-        queueRead();
     }
 
-    private void queueRead() {
-        webSocket.execute(new Runnable() {
-            public void run() {
-                try {
-                    int lastRead;
-                    if ((lastRead = read()) > 0) {
-                        readFrame();
-                    } else if (lastRead == -1) {
-                        throw new EOFException();
-                    }
-                    if (webSocket.isConnected()) {
-                        queueRead();
-                    }
-                } catch (IOException e) {
-                    throw new RuntimeException(e.getMessage(), e);
-                }
-            }
-        });
-    }
-
-    protected void connect() throws IOException {
-        if ("ws".equals(url.getProtocol())) {
-            socket = new Socket(url.getHost(), url.getPort());
-        } else if ("wss".equals(url.getProtocol())) {
-            socket = getSSLSocketFactory().createSocket(url.getHost(), url.getPort());
-        } else {
-            throw new IOException("Unknown schema: " + url.getProtocol());
-        }
-        inputStream = socket.getInputStream();
-        outputStream = socket.getOutputStream();
-    }
-
-    public void send(DataFrame frame) {
-        final byte[] bytes = frame.frame();
-        byte[] masked = new byte[bytes.length + 4];
-        final byte[] mask = generateMask();
-        System.arraycopy(mask, 0, masked, 0, WebSocketEngine.MASK_SIZE);
-        for (int i = 0; i < bytes.length; i++) {
-            masked[i + WebSocketEngine.MASK_SIZE] = (byte) (bytes[i] ^ mask[i % WebSocketEngine.MASK_SIZE]);
-        }
-        write(masked);
-    }
-
-    public byte[] generateMask() {
-        byte[] bytes = new byte[WebSocketEngine.MASK_SIZE];
-        synchronized (random) {
-            random.nextBytes(bytes);
-        }
-        return bytes;
-    }
-
-
-    protected void handshake() throws IOException {
-        final boolean isSecure = "wss".equals(url.getProtocol());
-
-        final StringBuilder origin = new StringBuilder();
-        origin.append(isSecure ? "https://" : "http://");
-        origin.append(url.getHost());
-        if (!isSecure && url.getPort() != 80 || isSecure && url.getPort() != 443) {
-            origin.append(":")
-                    .append(url.getPort());
-        }
-        String path = url.getPath();
-        if ("".equals(path)) {
-            path = "/";
-        }
-
-        ClientHandShake clientHS = new ClientHandShake(isSecure, origin.toString(), url.getHost(),
-                String.valueOf(url.getPort()), path);
-        write(clientHS.getBytes());
-        final Map<String, String> headers = readResponse();
-
-        if (headers.isEmpty()) {
-            throw new HandshakeException("No response headers received");
-        }  // not enough data
-
-        try {
-            clientHS.validateServerResponse(headers);
-        } catch (HandshakeException e) {
-            throw new IOException(e.getMessage());
-        }
-        webSocket.onConnect();
-
-    }
-
-    protected void write(byte[] bytes) {
+    public void write(byte[] bytes) {
         try {
             outputStream.write(bytes);
             outputStream.flush();
@@ -181,31 +86,8 @@ public class ClientNetworkHandler extends BaseNetworkHandler {
         }
     }
 
-    private Map<String, String> readResponse() throws IOException {
-        Map<String, String> headers = new TreeMap<String, String>(new Comparator<String>() {
-            public int compare(String o, String o1) {
-                return o.compareToIgnoreCase(o1);
-            }
-        });
-        if (!isHeaderParsed) {
-            String line = new String(readLine(), "ASCII").trim();
-            headers.put(WebSocketEngine.RESPONSE_CODE_HEADER, line.split(" ")[1]);
-            while (!isHeaderParsed) {
-                line = new String(readLine(), "ASCII").trim();
-
-                if (line.length() == 0) {
-                    isHeaderParsed = true;
-                } else {
-                    String[] parts = line.split(":");
-                    headers.put(parts[0].trim(), parts[1].trim());
-                }
-            }
-        }
-
-        return headers;
-    }
-
-    private byte[] readLine() throws IOException {
+/*
+    public byte[] readLine() throws IOException {
         if (chunk.getLength() <= 0) {
             read();
         }
@@ -232,27 +114,14 @@ public class ClientNetworkHandler extends BaseNetworkHandler {
 
         return null;
     }
+*/
 
     public void shutdown() throws IOException {
         socket.close();
     }
 
-    public ClientWebSocket getWebSocket() {
-        return webSocket;
-    }
-
-    public void setWebSocket(WebSocket webSocket) {
-        this.webSocket = (ClientWebSocket) webSocket;
-    }
-
-    protected void readFrame() throws IOException {
-        try {
-            while (read() > 0) {
-                unframe().respond(webSocket);
-            }
-        } catch (FramingException e) {
-            webSocket.close();
-        }
+    public boolean ready() {
+        return read() > 0;
     }
 
     /**
@@ -261,7 +130,7 @@ public class ClientNetworkHandler extends BaseNetworkHandler {
      * @return any number > -1 means bytes were read
      * @throws IOException
      */
-    private int read() {
+    protected int read() {
         try {
             int count = chunk.getLength();
             if (count < 1) {

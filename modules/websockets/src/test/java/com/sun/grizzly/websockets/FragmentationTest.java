@@ -74,7 +74,7 @@ public class FragmentationTest extends BaseWebSocketTest {
             WebSocketEngine.getEngine().register(app);
 
             final CountDownLatch latch = new CountDownLatch(1);
-            ClientWebSocket client = new ClientWebSocket(String.format("ws://localhost:%s/echo", PORT), new WebSocketAdapter() {
+            WebSocketClient client = new WebSocketClient(String.format("ws://localhost:%s/echo", PORT), new WebSocketAdapter() {
                 @Override
                 public void onFragment(WebSocket socket, boolean last, byte[] bytes) {
                     try {

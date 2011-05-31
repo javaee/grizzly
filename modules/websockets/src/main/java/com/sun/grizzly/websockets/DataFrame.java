@@ -40,6 +40,7 @@
 
 package com.sun.grizzly.websockets;
 
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 
 /**
@@ -62,10 +63,12 @@ public class DataFrame {
 
     public DataFrame(String data) {
         setPayload(data);
+        type = FrameType.TEXT;
     }
 
     public DataFrame(byte[] data) {
         setPayload(data);
+        type = FrameType.BINARY;
     }
 
     public DataFrame(FrameType type, byte[] bytes) {
@@ -88,85 +91,19 @@ public class DataFrame {
     public void setPayload(String payload) {
         type = FrameType.TEXT;
         this.payload = payload;
+        try {
+            bytes = payload != null ? payload.getBytes("UTF-8") : null;
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
     }
 
     public void setPayload(byte[] bytes) {
         this.bytes = bytes;
     }
 
-    public byte[] getBinaryPayload() {
+    public byte[] getBytes() {
         return bytes;
-    }
-
-    public byte[] frame() {
-        byte[] payloadBytes = type.frame(this);
-        final byte[] lengthBytes = convert(payloadBytes.length);
-        int packetLength = 1 + lengthBytes.length;
-
-        byte[] packet = new byte[packetLength + payloadBytes.length];
-        packet[0] = type.setOpcode(last ? (byte) 0x80 : 0);
-        System.arraycopy(lengthBytes, 0, packet, 1, lengthBytes.length);
-        System.arraycopy(payloadBytes, 0, packet, packetLength, payloadBytes.length);
-        return packet;
-    }
-
-
-    /**
-     * Converts the length given to the appropriate framing data:
-     * <ol>
-     * <li>0-125 one element that is the payload length.
-     * <li>up to 0xFFFF, 3 element array starting with 126 with the following 2 bytes interpreted as
-     * a 16 bit unsigned integer showing the payload length.
-     * <li>else 9 element array starting with 127 with the following 8 bytes interpreted as a 64-bit
-     * unsigned integer (the high bit must be 0) showing the payload length.
-     * </ol>
-     *
-     * @param length the payload size
-     * @return the array
-     */
-    public byte[] convert(final long length) {
-        byte[] lengthBytes;
-        if (length <= 125) {
-            lengthBytes = new byte[1];
-            lengthBytes[0] = (byte) length;
-        } else {
-            byte[] b = toArray(length);
-            if (length <= 0xFFFF) {
-                lengthBytes = new byte[3];
-                lengthBytes[0] = 126;
-                System.arraycopy(b, 6, lengthBytes, 1, 2);
-            } else {
-                lengthBytes = new byte[9];
-                lengthBytes[0] = 127;
-                System.arraycopy(b, 0, lengthBytes, 1, 8);
-            }
-        }
-
-        return lengthBytes;
-    }
-
-    public static byte[] toArray(long length) {
-        byte[] b = new byte[8];
-        for (int i = 0; i < 8; i++) {
-            b[7 - i] = (byte) (length >>> i * 8);
-        }
-        return b;
-    }
-
-    public static long convert(byte[] bytes, int start, int end) {
-        long value = 0;
-        for (int i = start; i < end; i++) {
-            value <<= 8;
-            value ^= (long) bytes[i] & 0xFF;
-        }
-        return value;
-    }
-
-    /**
-     * Convert a byte[] to a long.  Used for rebuilding payload length.
-     */
-    public static long convert(byte[] bytes) {
-        return convert(bytes, 0, bytes.length);
     }
 
     public void respond(WebSocket socket) {

@@ -74,7 +74,7 @@ public class SecKey {
         return Base64Utils.encodeToString(bytes, false);
     }
 
-    SecKey(String base64) {
+    public SecKey(String base64) {
         if(base64 == null) {
             throw new HandshakeException("Null keys are not allowed.");
         }

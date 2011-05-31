@@ -48,7 +48,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class CountDownWebSocket extends ClientWebSocket {
+public class CountDownWebSocket extends WebSocketClient {
     private final AtomicInteger countDown = new AtomicInteger(0);
 
     public CountDownWebSocket(String url, WebSocketListener... listeners) throws IOException {
@@ -62,7 +62,7 @@ public class CountDownWebSocket extends ClientWebSocket {
     }
 
     @Override
-    public void onMessage(String frame) {
+    public void onMessage(WebSocket socket, String frame) {
         countDown.decrementAndGet();
     }
 

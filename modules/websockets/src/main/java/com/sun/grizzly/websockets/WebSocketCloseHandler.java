@@ -43,7 +43,6 @@ package com.sun.grizzly.websockets;
 import com.sun.grizzly.util.ConnectionCloseHandler;
 
 import java.nio.channels.SelectionKey;
-import java.util.Date;
 
 public class WebSocketCloseHandler implements ConnectionCloseHandler {
 
@@ -51,7 +50,7 @@ public class WebSocketCloseHandler implements ConnectionCloseHandler {
         final Object o = key.attachment();
         if (o instanceof WebSocketSelectionKeyAttachment) {
             final WebSocketSelectionKeyAttachment attachment = (WebSocketSelectionKeyAttachment) key.attachment();
-            final ServerNetworkHandler handler = attachment.getHandler();
+            final WebSocketHandler handler = attachment.getHandler();
             if (!handler.getWebSocket().isConnected()) {
                 key.cancel();
             }

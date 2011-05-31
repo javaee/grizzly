@@ -40,7 +40,6 @@
 
 package com.sun.grizzly.websockets;
 
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -53,22 +52,21 @@ public class BaseWebSocket implements WebSocket {
     protected static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     private final List<WebSocketListener> listeners = new ArrayList<WebSocketListener>();
     private final AtomicBoolean connected = new AtomicBoolean(false);
-    private OutputStream outputStream;
     private boolean midstream = false;
+    private final WebSocketHandler webSocketHandler;
 
-    public BaseWebSocket(WebSocketListener... listeners) {
+    public BaseWebSocket(WebSocketHandler webSocketHandler, NetworkHandler networkHandler,
+            WebSocketListener... listeners) {
+        this.webSocketHandler = webSocketHandler;
+        this.networkHandler = networkHandler;
         for (WebSocketListener listener : listeners) {
             add(listener);
         }
+        webSocketHandler.setWebSocket(this);
     }
 
     public NetworkHandler getNetworkHandler() {
         return networkHandler;
-    }
-
-    public void setNetworkHandler(NetworkHandler handler) {
-        networkHandler = handler;
-        handler.setWebSocket(this);
     }
 
     public List<WebSocketListener> getListeners() {
@@ -93,7 +91,7 @@ public class BaseWebSocket implements WebSocket {
 
     public void close(int code, String reason) {
         if (connected.compareAndSet(true, false)) {
-            networkHandler.send(new ClosingFrame(code, reason));
+            webSocketHandler.send(new ClosingFrame(code, reason));
         }
     }
 
@@ -113,7 +111,7 @@ public class BaseWebSocket implements WebSocket {
 
     public void onPing(DataFrame frame) {
         if (connected.get()) {
-            networkHandler.send(new DataFrame(FrameType.PONG, frame.getBinaryPayload()));
+            webSocketHandler.send(new DataFrame(FrameType.PONG, frame.getBytes()));
         } else {
             throw new RuntimeException("Socket is already closed.");
         }
@@ -134,16 +132,16 @@ public class BaseWebSocket implements WebSocket {
     }
 
     public void send(String data) {
-        if (connected.get()) {
-            networkHandler.send(new DataFrame(data));
-        } else {
-            throw new RuntimeException("Socket is already closed.");
-        }
+        send(new DataFrame(data));
     }
 
     public void send(final byte[] data) {
+        send(new DataFrame(data));
+    }
+
+    public void send(DataFrame frame) {
         if (connected.get()) {
-            networkHandler.send(new DataFrame(data));
+            webSocketHandler.send(frame);
         } else {
             throw new RuntimeException("Socket is already closed.");
         }
@@ -176,7 +174,7 @@ public class BaseWebSocket implements WebSocket {
             byte[] data = new byte[len];
             System.arraycopy(bytes, off, data, 0, len);
             frame.setPayload(data);
-            networkHandler.send(frame);
+            webSocketHandler.send(frame);
         } else {
             throw new RuntimeException("Socket is already closed.");
         }

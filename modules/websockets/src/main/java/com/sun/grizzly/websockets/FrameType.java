@@ -46,7 +46,7 @@ public enum FrameType {
     CONTINUATION {
         @Override
         public void respond(WebSocket socket, DataFrame frame) {
-            socket.onFragment(frame.isLast(), frame.getBinaryPayload());
+            socket.onFragment(frame.isLast(), frame.getBytes());
         }
     },
     CLOSING {
@@ -100,9 +100,9 @@ public enum FrameType {
         @Override
         public void respond(WebSocket socket, DataFrame frame) {
             if(!frame.isLast()) {
-                socket.onFragment(frame.isLast(), frame.getBinaryPayload());
+                socket.onFragment(frame.isLast(), frame.getBytes());
             } else {
-                socket.onMessage(frame.getBinaryPayload());
+                socket.onMessage(frame.getBytes());
             }
         }
     };
@@ -113,7 +113,7 @@ public enum FrameType {
     }
 
     public byte[] frame(DataFrame dataFrame) {
-        return dataFrame.getBinaryPayload();
+        return dataFrame.getBytes();
     }
 
     public abstract void respond(WebSocket socket, DataFrame frame);

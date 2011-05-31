@@ -40,6 +40,7 @@
 
 package com.sun.grizzly.websockets;
 
+import com.sun.grizzly.websockets.draft06.Draft06Handler;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -49,64 +50,57 @@ import java.util.Random;
 @Test
 public class FrameTest {
     public void textFrame() throws IOException {
-        DataFrame frame = new DataFrame();
-        frame.setPayload("Hello");
-        final byte[] data = frame.frame();
-        byte[] sample = {(byte) 0x84, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f};
-        Assert.assertEquals(data, sample);
+        Draft06Handler handler = new Draft06Handler();
+        final byte[] data = handler.frame(new DataFrame("Hello"));
+        Assert.assertEquals(data, new byte[]{(byte) 0x84, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f});
 
-        final ArrayNetworkHandler handler = new ArrayNetworkHandler(data);
-        frame = handler.unframe();
-        Assert.assertEquals(frame.getTextPayload(), "Hello");
+        handler = new Draft06Handler(true);
+        handler.setNetworkHandler(new ArrayNetworkHandler(data));
+        Assert.assertEquals(handler.unframe().getTextPayload(), "Hello");
     }
 
     public void binaryFrame() throws IOException {
+        Draft06Handler handler = new Draft06Handler();
+
         byte bytes[] = new byte[256];
         new Random().nextBytes(bytes);
         byte[] sample = new byte[260];
         System.arraycopy(new byte[]{(byte) 0x85, 0x7E, 0x01, 0x00}, 0, sample, 0, 4);
         System.arraycopy(bytes, 0, sample, 4, 256);
 
-        DataFrame frame = new DataFrame();
-        frame.setPayload(bytes);
-        frame.setType(FrameType.BINARY);
-        final byte[] data = frame.frame();
+        final byte[] data = handler.frame(new DataFrame(bytes));
         Assert.assertEquals(data, sample);
 
-        final ArrayNetworkHandler handler = new ArrayNetworkHandler(data);
-        frame = handler.unframe();
-        Assert.assertEquals(frame.getBinaryPayload(), bytes);
+        handler = new Draft06Handler(true);
+        handler.setNetworkHandler(new ArrayNetworkHandler(data));
+        Assert.assertEquals(handler.unframe().getBytes(), bytes);
     }
 
     public void largeBinaryFrame() throws IOException {
+        Draft06Handler handler = new Draft06Handler();
         byte bytes[] = new byte[65536];
         new Random().nextBytes(bytes);
         final byte[] prelude = {(byte) 0x85, 0x7F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00};
         byte[] sample = new byte[bytes.length + prelude.length];
         System.arraycopy(prelude, 0, sample, 0, prelude.length);
         System.arraycopy(bytes, 0, sample, prelude.length, 65536);
-
-        DataFrame frame = new DataFrame();
-        frame.setPayload(bytes);
-        frame.setType(FrameType.BINARY);
-        final byte[] data = frame.frame();
+        final byte[] data = handler.frame(new DataFrame(bytes));
         Assert.assertEquals(data, sample);
 
-        final ArrayNetworkHandler handler = new ArrayNetworkHandler(data);
-        frame = handler.unframe();
-        Assert.assertEquals(frame.getBinaryPayload(), bytes);
+        handler = new Draft06Handler(true);
+        handler.setNetworkHandler(new ArrayNetworkHandler(data));
+        Assert.assertEquals(handler.unframe().getBytes(), bytes);
     }
 
     public void ping() throws IOException {
-        DataFrame frame = new DataFrame();
-        frame.setPayload("Hello");
-        final byte[] data = frame.frame();
-        byte[] sample = {(byte) 0x84, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f};
-        Assert.assertEquals(data, sample);
+        Draft06Handler handler = new Draft06Handler();
+        DataFrame frame = new DataFrame("Hello");
+        final byte[] data = handler.frame(frame);
+        handler = new Draft06Handler(true);
+        handler.setNetworkHandler(new ArrayNetworkHandler(data));
 
-        final ArrayNetworkHandler handler = new ArrayNetworkHandler(data);
-        frame = handler.unframe();
-        Assert.assertEquals(frame.getTextPayload(), "Hello");
+        Assert.assertEquals(data, new byte[]{(byte) 0x84, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f});
+        Assert.assertEquals(handler.unframe().getTextPayload(), "Hello");
     }
 
     public void convertToBytes() {
@@ -116,12 +110,6 @@ public class FrameTest {
         compare(10130);
         compare(Integer.MAX_VALUE);
         compare(Long.MAX_VALUE);
-    }
-
-    public void masking() {
-        final String message = "This is a masked payload.";
-        DataFrame masked = new DataFrame(message);
-        masked.frame();
     }
 
     public void mapTypes() {
@@ -137,17 +125,18 @@ public class FrameTest {
     }
 
     private void compare(final long length) {
-        DataFrame frame = new DataFrame();
-        byte[] bytes = frame.convert(length);
-        long value = bytes.length == 1 ? bytes[0] : DataFrame.convert(bytes, 1, bytes.length);
-        Assert.assertEquals(value, length);
+        byte[] bytes = WebSocketEngine.toArray(length);
+        Assert.assertEquals(WebSocketEngine.toLong(bytes, 0, bytes.length), length);
     }
 
     public void close() throws IOException {
+        Draft06Handler handler = new Draft06Handler();
         ClosingFrame frame = new ClosingFrame(1001, "test message");
-        final byte[] bytes = frame.frame();
+        final byte[] bytes = handler.frame(frame);
 
-        final ArrayNetworkHandler handler = new ArrayNetworkHandler(bytes);
+        handler = new Draft06Handler(true);
+        handler.setNetworkHandler(new ArrayNetworkHandler(bytes));
+        
         ClosingFrame after = (ClosingFrame) handler.unframe();
 
         Assert.assertEquals(after.getReason(), "test message");
@@ -162,14 +151,15 @@ public class FrameTest {
             this.data = data;
         }
 
-        public void send(DataFrame frame) {
-        }
-
-        public void setWebSocket(WebSocket webSocket) {
+        public void write(byte[] frame) {
         }
 
         public byte get() {
-            return (byte) (index < data.length ? data[index++] & 0xFF : -1);
+            return (byte) (ready() ? data[index++] & 0xFF : -1);
+        }
+
+        public boolean ready() {
+            return index < data.length;
         }
 
         public byte[] get(int count) {
@@ -177,6 +167,11 @@ public class FrameTest {
             System.arraycopy(data, index, bytes, 0, count);
             index += count;
             return bytes;
+        }
+
+        @Override
+        protected int read() {
+            return 0;
         }
     }
 }

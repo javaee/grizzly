@@ -118,7 +118,7 @@ public class SimpleWebSocketServlet extends HttpServlet {
         createSelectorThread(8051, new ServletAdapter(new SimpleWebSocketServlet()));
 
         final CountDownLatch latch = new CountDownLatch(1);
-        ClientWebSocket ws = new ClientWebSocket("ws://localhost:8051/simple", new WebSocketAdapter() {
+        WebSocketClient ws = new WebSocketClient("ws://localhost:8051/simple", new WebSocketAdapter() {
             @Override
             public void onConnect(WebSocket ws) {
                 super.onConnect(ws);

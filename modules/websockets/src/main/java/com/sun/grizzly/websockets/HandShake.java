@@ -40,13 +40,17 @@
 
 package com.sun.grizzly.websockets;
 
+import com.sun.grizzly.tcp.Response;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
 
 /**
  * @author Justin Lee
  */
 public abstract class HandShake {
-    static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
+    private static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
 
     private boolean secure;
     private String origin;
@@ -54,8 +58,8 @@ public abstract class HandShake {
     private String port = "80";
     private String resourcePath;
     private String location;
-    private String[] subProtocol;
-    private String[] extensions;
+    private List<String> subProtocol = new ArrayList<String>();
+    private List<String> extensions = new ArrayList<String>();
 
     public HandShake(boolean isSecure, String path) {
         secure = isSecure;
@@ -69,10 +73,10 @@ public abstract class HandShake {
         port = portNumber;
         this.resourcePath = resourcePath;
         subProtocol = null;
-        location = buildLocation(isSecure);
+        buildLocation(isSecure);
     }
 
-    String buildLocation(boolean isSecure) {
+    protected final void buildLocation(boolean isSecure) {
         StringBuilder builder = new StringBuilder((isSecure ? "wss" : "ws") + "://" + serverHostName);
         if (!"80".equals(port)) {
             builder.append(":" + port);
@@ -81,9 +85,8 @@ public abstract class HandShake {
             builder.append("/");
         }
         builder.append(resourcePath);
-        return builder.toString();
+        location =  builder.toString();
     }
-
 
     public String getLocation() {
         return location;
@@ -133,34 +136,33 @@ public abstract class HandShake {
         this.serverHostName = serverHostName;
     }
 
-    public String[] getSubProtocol() {
+    public List<String> getSubProtocol() {
         return subProtocol;
     }
 
-    public void setSubProtocol(String[] subProtocol) {
+    public void setSubProtocol(List<String> subProtocol) {
         sanitize(subProtocol);
         this.subProtocol = subProtocol;
     }
 
-    private void sanitize(String[] strings) {
+    private void sanitize(List<String> strings) {
         if(strings != null) {
-            for (int i = 0; i < strings.length; i++) {
-                strings[i] = strings[i] == null ? null : strings[i].trim();
-
+            for (int i = 0; i < strings.size(); i++) {
+                strings.set(i, strings.get(i) == null ? null : strings.get(i).trim());
             }
         }
     }
 
-    public String[] getExtensions() {
+    public List<String> getExtensions() {
         return extensions;
     }
 
-    public void setExtensions(String[] extensions) {
+    public void setExtensions(List<String> extensions) {
         sanitize(extensions);
         this.extensions = extensions;
     }
 
-    protected String join(String[] values) {
+    protected String join(List<String> values) {
         StringBuilder builder = new StringBuilder();
         for (String s : values) {
             if(builder.length() != 0) {

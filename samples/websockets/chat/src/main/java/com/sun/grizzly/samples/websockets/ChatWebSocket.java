@@ -47,7 +47,7 @@ public class ChatWebSocket extends BaseServerWebSocket {
     private String user;
 
     public ChatWebSocket(WebSocketListener[] listeners) {
-        super(listeners);
+        super(handler, listeners);
     }
 
     public String getUser() {

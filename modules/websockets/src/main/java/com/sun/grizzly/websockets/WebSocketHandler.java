@@ -1,14 +1,14 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
  * may not use this file except in compliance with the License.  You can
  * obtain a copy of the License at
- * https://glassfish.dev.java.net/public/CDDL+GPL_1_1.html
+ * http://glassfish.java.net/public/CDDL+GPL_1_1.html
  * or packager/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
  *
@@ -40,56 +40,25 @@
 
 package com.sun.grizzly.websockets;
 
+import com.sun.grizzly.tcp.Request;
+import com.sun.grizzly.util.net.URL;
+
 import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
-public class TrackingWebSocket extends WebSocketClient {
-    private final Map<String, Object> sent = new ConcurrentHashMap<String, Object>();
-    private final CountDownLatch received;
-    private String name;
+public interface WebSocketHandler {
+    HandShake handshake(WebSocketApplication app, Request request);
 
-    public TrackingWebSocket(String address, final int count, WebSocketListener... listeners) throws IOException {
-        super(address, listeners);
-        received = new CountDownLatch(count);
-    }
+    void handshake(URL address) throws IOException;
 
-    public TrackingWebSocket(String address, String name, final int count, WebSocketListener... listeners) throws IOException {
-        super(address, listeners);
-        this.name = name;
-        received = new CountDownLatch(count);
-    }
+    void send(DataFrame frame);
 
-    @Override
-    public void send(String data) {
-        sent.put(data, Boolean.FALSE);
-        super.send(data);
-    }
+    byte[] frame(DataFrame frame);
 
-    @Override
-    public void onMessage(WebSocket socket, String frame) {
-        super.onMessage(socket, frame);
-        if(sent.remove(frame) != null) {
-            received.countDown();
-        }
-    }
+    void setNetworkHandler(NetworkHandler handler);
 
-    @Override
-    public void onConnect(WebSocket socket) {
-        super.onConnect(socket);
-    }
+    void readFrame();
 
-    public boolean waitOnMessages() throws InterruptedException {
-        return received.await(WebSocketEngine.DEFAULT_TIMEOUT*10, TimeUnit.SECONDS);
-    }
+    WebSocket getWebSocket();
 
-    public String getName() {
-        return name;
-    }
-
-    public CountDownLatch getReceived() {
-        return received;
-    }
+    void setWebSocket(WebSocket webSocket);
 }

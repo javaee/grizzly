@@ -45,11 +45,10 @@ import com.sun.grizzly.arp.AsyncExecutor;
 import com.sun.grizzly.arp.AsyncProcessorTask;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.util.Utils;
+import com.sun.grizzly.util.http.MimeHeaders;
 
-import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
 import java.util.List;
@@ -107,9 +106,28 @@ public class WebSocketEngine {
         return engine;
     }
 
+    public static byte[] toArray(long length) {
+        long value = length;
+        byte[] b = new byte[8];
+        for (int i = 7; i >= 0 && value > 0; i--) {
+            b[i] = (byte) (value & 0xFF);
+            value >>= 8;
+        }
+        return b;
+    }
+
+    public static long toLong(byte[] bytes, int start, int end) {
+        long value = 0;
+        for (int i = start; i < end; i++) {
+            value <<= 8;
+            value ^= (long) bytes[i] & 0xFF;
+        }
+        return value;
+    }
+
     public WebSocketApplication getApplication(Request request) {
         for (WebSocketApplication application : applications) {
-            if (application.upgrade(request)) {
+            if (application.isApplicationRequest(request)) {
                 return application;
             }
         }
@@ -117,37 +135,52 @@ public class WebSocketEngine {
     }
 
     public boolean upgrade(AsyncExecutor asyncExecutor) {
-        try {
-            Request request = asyncExecutor.getProcessorTask().getRequest();
-            final WebSocketApplication app = WebSocketEngine.getEngine().getApplication(request);
-            BaseServerWebSocket socket = null;
+        Request request = asyncExecutor.getProcessorTask().getRequest();
+        final MimeHeaders mimeHeaders = request.getMimeHeaders();
+        if (isUpgradable(request)) {
             try {
-                if (app != null) {
-                    final Response response = request.getResponse();
-                    ProcessorTask task = asyncExecutor.getProcessorTask();
-                    AsyncProcessorTask asyncTask = (AsyncProcessorTask) asyncExecutor.getAsyncTask();
-                    final SelectionKey key = task.getSelectionKey();
-                    final ServerNetworkHandler handler = new ServerNetworkHandler(task, asyncTask, request, response);
-                    ((BaseSelectionKeyHandler) task.getSelectorHandler().getSelectionKeyHandler())
-                            .setConnectionCloseHandler(closeHandler);
+                final WebSocketApplication app = WebSocketEngine.getEngine().getApplication(request);
+                WebSocket socket = null;
+                try {
+                    if (app != null) {
+                        final WebSocketHandler webSocketHandler = WebSocketFactory.loadHandler(mimeHeaders);
 
-                    socket = (BaseServerWebSocket) app.createSocket(app, new KeyWebSocketListener(key));
-                    socket.setNetworkHandler(handler);
-                    handler.handshake(task.getSSLSupport() != null);
+                        ProcessorTask task = asyncExecutor.getProcessorTask();
+                        final SelectionKey key = task.getSelectionKey();
 
-                    key.attach(handler.getAttachment());
-                    enableRead(task, key);
-                    return true;
+                        final ServerNetworkHandler handler = new ServerNetworkHandler(request, request.getResponse());
+                        webSocketHandler.setNetworkHandler(handler);
+
+                        final HandShake handshake = webSocketHandler.handshake(app, request);
+
+                        socket = new BaseServerWebSocket(webSocketHandler, handler, app, new KeyWebSocketListener(key));
+                        socket.onConnect();
+
+                        ((BaseSelectionKeyHandler) task.getSelectorHandler().getSelectionKeyHandler())
+                                .setConnectionCloseHandler(closeHandler);
+
+                        key.attach(new WebSocketSelectionKeyAttachment(webSocketHandler, handler, task,
+                                (AsyncProcessorTask) asyncExecutor.getAsyncTask()));
+                        
+                        enableRead(task, key);
+                        return true;
+                    }
+                } catch (HandshakeException e) {
+                    logger.log(Level.SEVERE, e.getMessage(), e);
+                    socket.close();
                 }
-            } catch (HandshakeException e) {
-                logger.log(Level.SEVERE, e.getMessage(), e);
-                socket.close();
+            } catch (WebSocketException e) {
+                return false;
             }
-        } catch (WebSocketException e) {
-            return false;
         }
+
         return false;
 
+    }
+
+    private boolean isUpgradable(Request request) {
+        final String s = request.getHeader("Upgrade");
+        return "WebSocket".equalsIgnoreCase(s);
     }
 
     final void enableRead(ProcessorTask task, SelectionKey key) {
@@ -171,21 +204,4 @@ public class WebSocketEngine {
         applications.remove(app);
     }
 
-    private static class KeyWebSocketListener extends WebSocketAdapter {
-        private final SelectionKey key;
-
-        public KeyWebSocketListener(SelectionKey key) {
-            this.key = key;
-        }
-
-        @Override
-        public void onClose(WebSocket socket) {
-            key.cancel();
-            try {
-                key.channel().close();
-            } catch (IOException e) {
-                throw new WebSocketException(e.getMessage(), e);
-            }
-        }
-    }
 }

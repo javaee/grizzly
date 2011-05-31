@@ -210,7 +210,7 @@ public class LifecycleTest {
         Assert.assertTrue(client.waitForMessage(), "Message should come back");
     }
 
-    private static class BadWebSocketClient extends ClientWebSocket {
+    private static class BadWebSocketClient extends WebSocketClient {
         private CountDownLatch messages;
         private final CountDownLatch closed = new CountDownLatch(1);
 
@@ -229,14 +229,14 @@ public class LifecycleTest {
         }
 
         @Override
-        public void onClose(DataFrame frame) {
-            super.onClose(frame);
+        public void onClose(WebSocket socket) {
+            super.onClose(socket);
             closed.countDown();
         }
 
         @Override
-        public void onMessage(String frame) {
-            super.onMessage(frame);
+        public void onMessage(WebSocket socket, String frame) {
+            super.onMessage(socket, frame);
             messages.countDown();
         }
 
@@ -247,6 +247,5 @@ public class LifecycleTest {
         public boolean waitForClosed() throws InterruptedException {
             return closed.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS);
         }
-
     }
 }

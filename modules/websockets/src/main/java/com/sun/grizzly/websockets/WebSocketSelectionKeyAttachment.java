@@ -48,12 +48,14 @@ import java.nio.channels.SelectionKey;
 import java.util.logging.Level;
 
 public class WebSocketSelectionKeyAttachment extends SelectedKeyAttachmentLogic implements Runnable {
-    private final ServerNetworkHandler handler;
+    private final WebSocketHandler handler;
+    private final ServerNetworkHandler networkHandler;
     private final ProcessorTask processorTask;
     private final AsyncProcessorTask asyncProcessorTask;
 
-    public WebSocketSelectionKeyAttachment(ServerNetworkHandler snh, ProcessorTask task, AsyncProcessorTask asyncTask) {
+    public WebSocketSelectionKeyAttachment(WebSocketHandler snh, ServerNetworkHandler nh, ProcessorTask task, AsyncProcessorTask asyncTask) {
         handler = snh;
+        networkHandler = nh;
         processorTask = task;
         asyncProcessorTask = asyncTask;
     }
@@ -75,6 +77,7 @@ public class WebSocketSelectionKeyAttachment extends SelectedKeyAttachmentLogic 
 
     public void run() {
         try {
+            networkHandler.read();
             handler.readFrame();
             enableRead();
         } catch (WebSocketException e) {
@@ -92,7 +95,7 @@ public class WebSocketSelectionKeyAttachment extends SelectedKeyAttachmentLogic 
         return asyncProcessorTask.getAsyncExecutor().getProcessorTask().getSelectionKey();
     }
 
-    public ServerNetworkHandler getHandler() {
+    public WebSocketHandler getHandler() {
         return handler;
     }
 }
