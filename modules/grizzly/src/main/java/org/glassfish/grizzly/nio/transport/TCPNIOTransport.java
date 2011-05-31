@@ -97,6 +97,7 @@ import java.io.EOFException;
 import java.lang.ref.SoftReference;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
+import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.memory.BufferArray;
@@ -820,8 +821,8 @@ public final class TCPNIOTransport extends NIOTransport implements
             
             final Processor conProcessor = connection.obtainProcessor(ioEvent);
 
-                if (ProcessorExecutor.execute(connection, ioEvent,
-                        conProcessor, processingHandler)) {
+                if (ProcessorExecutor.execute(Context.create(connection,
+                        conProcessor, ioEvent, processingHandler))) {
                     return IOEventReg.REGISTER;
                 } else {
                     return IOEventReg.DEREGISTER;

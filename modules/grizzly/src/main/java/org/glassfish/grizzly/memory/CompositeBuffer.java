@@ -55,17 +55,17 @@ public abstract class CompositeBuffer implements Buffer, Appendable<Buffer> {
         return BuffersBuffer.create();
     }
 
-    public static CompositeBuffer newBuffer(MemoryManager memoryManager) {
+    public static CompositeBuffer newBuffer(final MemoryManager memoryManager) {
         return BuffersBuffer.create(memoryManager);
     }
 
-    public static CompositeBuffer newBuffer(MemoryManager memoryManager,
-            Buffer... buffers) {
+    public static CompositeBuffer newBuffer(final MemoryManager memoryManager,
+            final Buffer... buffers) {
         return BuffersBuffer.create(memoryManager, buffers);
     }
 
-    public static CompositeBuffer newBuffer(MemoryManager memoryManager,
-            Buffer[] buffers, boolean isReadOnly) {
+    public static CompositeBuffer newBuffer(final MemoryManager memoryManager,
+            final Buffer[] buffers, final boolean isReadOnly) {
         return BuffersBuffer.create(memoryManager, buffers, isReadOnly);
     }
 

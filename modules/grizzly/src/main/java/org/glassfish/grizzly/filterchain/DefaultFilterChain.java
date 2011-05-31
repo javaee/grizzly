@@ -116,7 +116,6 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
 
             if (ioEvent != IOEvent.WRITE) {
                 filterChainContext.setOperation(FilterChainContext.ioEvent2Operation(ioEvent));
-//                filterChainContext.setOperation(IOEVENT_2_OPERATION[ioEvent.ordinal()]);
             } else {
                 // On OP_WRITE - call the async write queue
                 final Connection connection = context.getConnection();

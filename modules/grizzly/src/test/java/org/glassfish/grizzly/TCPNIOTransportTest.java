@@ -659,7 +659,8 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
                 final NIOConnection connection = (NIOConnection) ctx.getConnection();
 
                 connection.attachToSelectorRunner(distributor.getSelectorRunner());
-
+                connection.enableIOEvent(IOEvent.READ);
+                
                 return ctx.getInvokeAction();
             }
         });

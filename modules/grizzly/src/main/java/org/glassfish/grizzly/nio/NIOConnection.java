@@ -618,25 +618,19 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
     @Override
     public final void enableIOEvent(final IOEvent ioEvent) throws IOException {
-        final SelectionKeyHandler selectionKeyHandler =
-            transport.getSelectionKeyHandler();
-        final int interest =
-            selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent);
+        final int interest = ioEvent.getSelectionKeyInterest();
         if (interest == 0) {
             return;
         }
         notifyIOEventEnabled(this, ioEvent);
         final SelectorHandler selectorHandler = transport.getSelectorHandler();
         selectorHandler.registerKeyInterest(selectorRunner, selectionKey,
-            selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent));
+            interest);
     }
 
     @Override
     public final void disableIOEvent(final IOEvent ioEvent) throws IOException {
-        final SelectionKeyHandler selectionKeyHandler =
-            transport.getSelectionKeyHandler();
-        final int interest =
-            selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent);
+        final int interest = ioEvent.getSelectionKeyInterest();
         if (interest == 0) {
             return;
         }

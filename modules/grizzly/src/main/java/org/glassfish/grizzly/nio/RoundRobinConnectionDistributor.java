@@ -85,7 +85,7 @@ public final class RoundRobinConnectionDistributor
     
     private SelectorRunner getSelectorRunner() {
         final SelectorRunner[] runners = getTransportSelectorRunners();
-        final int index = counter.getAndIncrement() % runners.length;
+        final int index = (counter.getAndIncrement() & 0x7fffffff) % runners.length;
         
         return runners[index];
     }

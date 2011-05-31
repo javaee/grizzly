@@ -91,6 +91,7 @@ import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.AbstractThreadPool;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import java.util.concurrent.TimeUnit;
+import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.PortRange;
 import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.memory.ByteBufferArray;
@@ -658,8 +659,8 @@ public final class UDPNIOTransport extends NIOTransport implements
         try {
             final Processor conProcessor = connection.obtainProcessor(ioEvent);
 
-            if (ProcessorExecutor.execute(
-                    connection, ioEvent, conProcessor, processingHandler)) {
+            if (ProcessorExecutor.execute(Context.create(connection,
+                        conProcessor, ioEvent, processingHandler))) {
                 return IOEventReg.REGISTER;
             } else {
                 return IOEventReg.DEREGISTER;

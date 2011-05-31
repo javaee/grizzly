@@ -68,7 +68,8 @@ public class Context implements AttributeStorage, Cacheable {
     }
 
     public static Context create(final Connection connection,
-            final Processor processor, final IOEvent ioEvent) {
+            final Processor processor, final IOEvent ioEvent,
+            final IOEventProcessingHandler processingHandler) {
         final Context context;
 
         if (processor != null) {
@@ -78,6 +79,7 @@ public class Context implements AttributeStorage, Cacheable {
         }
 
         context.setIoEvent(ioEvent);
+        context.setProcessingHandler(processingHandler);
 
         return context;
     }

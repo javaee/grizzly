@@ -48,6 +48,7 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -115,16 +116,15 @@ public class DefaultSelectorHandler implements SelectorHandler {
     public Set<SelectionKey> select(final SelectorRunner selectorRunner)
             throws IOException {
         final Selector selector = selectorRunner.getSelector();
+        final boolean hasSelectedKeys;
         if (selectorRunner.getPostponedTasks().isEmpty()) {
-            selector.select(selectTimeout);
+            hasSelectedKeys = selector.select(selectTimeout) > 0;
         } else {
-            selector.selectNow();
+            hasSelectedKeys = selector.selectNow() > 0;
         }
-
-        final Set<SelectionKey> selectedKeys = selector.selectedKeys();
         
         if (IS_WORKAROUND_SELECTOR_SPIN) {
-            if (!selectedKeys.isEmpty()) {
+            if (hasSelectedKeys) {
                 resetSpinCounter();
             } else {
                 long sr = getSpinRate();
@@ -134,7 +134,8 @@ public class DefaultSelectorHandler implements SelectorHandler {
             }
         }
 
-        return selectedKeys;
+        return hasSelectedKeys ? selector.selectedKeys() :
+                Collections.<SelectionKey>emptySet();
     }
 
     @Override
@@ -147,8 +148,8 @@ public class DefaultSelectorHandler implements SelectorHandler {
         if (isSelectorRunnerThread(selectorRunner)) {
             registerKey0(key, interest);
         } else {
-            final SelectorHandlerTask task = new RegisterKeyTask(key, interest);
-            addPendingTaskOptimized(selectorRunner, task);
+            addPendingTaskOptimized(selectorRunner,
+                    new RegisterKeyTask(key, interest));
         }
     }
 
@@ -158,8 +159,8 @@ public class DefaultSelectorHandler implements SelectorHandler {
         if (isSelectorRunnerThread(selectorRunner)) {
             deregisterKey0(key, interest);
         } else {
-            final SelectorHandlerTask task = new DeRegisterKeyTask(key, interest);
-            addPendingTaskOptimized(selectorRunner, task);
+            addPendingTaskOptimized(selectorRunner,
+                    new DeRegisterKeyTask(key, interest));
         }
     }
 
@@ -192,10 +193,9 @@ public class DefaultSelectorHandler implements SelectorHandler {
             registerChannel0(selectorRunner, channel, interest, attachment,
                     completionHandler, future);
         } else {
-            final SelectorHandlerTask task = new RegisterChannelOperation(
-                    channel, interest, attachment, future, completionHandler);
-
-            addPendingTask(selectorRunner, task);
+            addPendingTask(selectorRunner,
+                    new RegisterChannelOperation(
+                    channel, interest, attachment, future, completionHandler));
         }
 
         return future;
@@ -228,10 +228,8 @@ public class DefaultSelectorHandler implements SelectorHandler {
             deregisterChannel0(selectorRunner, channel,
                     completionHandler, future);
         } else {
-            final SelectorHandlerTask task = new DeregisterChannelOperation(
-                    channel, future, completionHandler);
-
-            addPendingTask(selectorRunner, task);
+            addPendingTask(selectorRunner, new DeregisterChannelOperation(
+                    channel, future, completionHandler));
         }
 
         return future;
@@ -259,9 +257,8 @@ public class DefaultSelectorHandler implements SelectorHandler {
         } else {
             final FutureImpl<Runnable> future = SafeFutureImpl.create();
 
-            final SelectorHandlerTask task = new RunnableTask(runnableTask,
-                    future, completionHandler);
-            addPendingTask(selectorRunner, task);
+            addPendingTask(selectorRunner, new RunnableTask(runnableTask,
+                    future, completionHandler));
             return future;
         }
     }
@@ -310,7 +307,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
 
     private void registerKey0(final SelectionKey selectionKey, final int interest) {
         if (selectionKey.isValid()) {
-            int currentOps = selectionKey.interestOps();
+            final int currentOps = selectionKey.interestOps();
             if ((currentOps & interest) != interest) {
                 selectionKey.interestOps(currentOps | interest);
             }
@@ -319,7 +316,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
 
     private void deregisterKey0(final SelectionKey selectionKey, final int interest) {
         if (selectionKey.isValid()) {
-            int currentOps = selectionKey.interestOps();
+            final int currentOps = selectionKey.interestOps();
             if ((currentOps & interest) != 0) {
                 selectionKey.interestOps(currentOps & (~interest));
             }

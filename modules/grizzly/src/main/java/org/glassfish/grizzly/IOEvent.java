@@ -39,6 +39,8 @@
  */
 package org.glassfish.grizzly;
 
+import java.nio.channels.SelectionKey;
+
 /**
  * Enumeration represents the I/O events, occurred on a {@link Connection}.
  *
@@ -51,17 +53,17 @@ public enum IOEvent {
     /**
      * no event
      */
-    NONE,
+    NONE(0),
 
     /**
      * Event occurs on a {@link Connection}, once it gets available for read.
      */
-    READ,
+    READ(SelectionKey.OP_READ),
 
     /**
      * Event occurs on a {@link Connection}, once it  gets available for write.
      */
-    WRITE,
+    WRITE(SelectionKey.OP_WRITE),
 
     /**
      * Event occurs on a server {@link Connection}, when it becomes ready
@@ -69,7 +71,7 @@ public enum IOEvent {
      *
      * Note, this event occurs on server code for server {@link Connection}.
      */
-    SERVER_ACCEPT,
+    SERVER_ACCEPT(SelectionKey.OP_ACCEPT),
 
     /**
      * Event occurs on a client {@link Connection}, just after it was accepted
@@ -77,22 +79,32 @@ public enum IOEvent {
      *
      * Note, this event occurs on server code for client {@link Connection}.
      */
-    ACCEPTED,
+    ACCEPTED(0),
 
     /**
      * Event occurs on a {@link Connection}, once it was connected to server.
      * 
      * (this is service IOEvent, which is not getting propagated to a {@link Processor}
      */
-    CLIENT_CONNECTED,
+    CLIENT_CONNECTED(SelectionKey.OP_CONNECT),
 
     /**
      * Event occurs on a {@link Connection}, once it was connected to server.
      */
-    CONNECTED,
+    CONNECTED(0),
     
     /**
      * Event occurs on a {@link Connection}, once it gets closed.
      */
-    CLOSED
+    CLOSED(0);
+    
+    private final int selectionKeyInterest;
+
+    private IOEvent(int selectionKeyInterest) {
+        this.selectionKeyInterest = selectionKeyInterest;
+    }
+    
+    public int getSelectionKeyInterest() {
+        return selectionKeyInterest;
+    }
 }

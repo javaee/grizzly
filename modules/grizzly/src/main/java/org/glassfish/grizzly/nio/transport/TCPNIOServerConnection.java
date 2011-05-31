@@ -51,17 +51,14 @@ import java.util.concurrent.Future;
 import java.util.logging.Level;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.IOEventProcessingHandler;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
 import org.glassfish.grizzly.nio.SelectionKeyHandler;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.EmptyIOEventProcessingHandler;
 
 /**
  *
@@ -147,7 +144,9 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
             final SocketChannel acceptedChannel = doAccept();
             if (acceptedChannel != null) {
                 configureAcceptedChannel(acceptedChannel);
-                registerAcceptedChannel(acceptedChannel, future);
+                registerAcceptedChannel(acceptedChannel,
+                        new RegisterAcceptedChannelCompletionHandler(future),
+                        0);
             } else {
                 acceptListener = future;
                 enableIOEvent(IOEvent.SERVER_ACCEPT);
@@ -170,16 +169,13 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
     }
 
     private void registerAcceptedChannel(final SocketChannel acceptedChannel,
-            final FutureImpl<Connection> listener) throws IOException {
+            final CompletionHandler<RegisterChannelResult> completionHandler,
+            final int initialSelectionKeyInterest)
+            throws IOException {
 
         final TCPNIOTransport tcpNIOTransport = (TCPNIOTransport) transport;
         final NIOConnection connection =
                 tcpNIOTransport.obtainNIOConnection(acceptedChannel);
-
-        final CompletionHandler<RegisterChannelResult> handler =
-                (listener == null) ?
-                defaultCompletionHandler
-                : new RegisterAcceptedChannelCompletionHandler(listener);
 
         if (processor != null) {
             connection.setProcessor(processor);
@@ -190,7 +186,8 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
         }
 
         tcpNIOTransport.getNIOChannelDistributor().registerChannelAsync(
-                acceptedChannel, 0, connection, handler);
+                acceptedChannel, initialSelectionKeyInterest, connection,
+                completionHandler).recycle();
     }
 
     @Override
@@ -224,7 +221,8 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
             }
 
             configureAcceptedChannel(acceptedChannel);
-            registerAcceptedChannel(acceptedChannel, acceptListener);
+            registerAcceptedChannel(acceptedChannel, defaultCompletionHandler,
+                    SelectionKey.OP_READ);
         } else {
             synchronized (acceptSync) {
                 if (acceptListener == null) {
@@ -239,7 +237,9 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
                 }
 
                 configureAcceptedChannel(acceptedChannel);
-                registerAcceptedChannel(acceptedChannel, acceptListener);
+                registerAcceptedChannel(acceptedChannel,
+                        new RegisterAcceptedChannelCompletionHandler(acceptListener),
+                        0);
                 acceptListener = null;
             }
         }
@@ -303,38 +303,11 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
                     listener.result(connection);
                 }
 
-                // if not standalone - enable OP_READ after IOEvent.ACCEPTED will be processed
-                transport.fireIOEvent(IOEvent.ACCEPTED, connection,
-                        !isStandalone() ? enableInterestProcessingHandler : null);
+                transport.fireIOEvent(IOEvent.ACCEPTED, connection, null);
             } catch (Exception e) {
                 LOGGER.log(Level.FINE, "Exception happened, when "
                         + "trying to accept the connection", e);
             }
         }
-    }
-    // COMPLETE, COMPLETE_LEAVE, REREGISTER, RERUN, ERROR, TERMINATE, NOT_RUN
-//    private final static boolean[] isRegisterMap = {true, false, true, false, false, false, true};
-    // PostProcessor, which supposed to enable OP_READ interest, once Processor will be notified
-    // about Connection ACCEPT
-    protected final static IOEventProcessingHandler enableInterestProcessingHandler =
-            new EnableReadHandler();
-
-    private static final class EnableReadHandler extends EmptyIOEventProcessingHandler {
-
-        @Override
-        public void onReregister(final Context context) throws IOException {
-            onComplete(context);
-        }
-
-        @Override
-        public void onNotRun(final Context context) throws IOException {
-            onComplete(context);
-        }
-
-        @Override
-        public void onComplete(final Context context) throws IOException {
-            final NIOConnection nioConnection = (NIOConnection) context.getConnection();
-            nioConnection.enableIOEvent(IOEvent.READ);
-        }
-    }
+    }        
 }

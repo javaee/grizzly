@@ -57,10 +57,8 @@ public final class ProcessorExecutor {
             final IOEventProcessingHandler processingHandler)
             throws IOException {
 
-        final Context context = Context.create(connection, processor, ioEvent);
-        context.setProcessingHandler(processingHandler);
-
-        return execute(context);
+        return execute(Context.create(connection, processor, ioEvent,
+                processingHandler));
     }
 
     @SuppressWarnings("unchecked")

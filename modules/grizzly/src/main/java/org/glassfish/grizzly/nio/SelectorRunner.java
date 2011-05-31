@@ -61,7 +61,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -89,6 +88,7 @@ public final class SelectorRunner implements Runnable {
     private boolean isResume;
 
     private int lastSelectedKeysCount;
+    private Set<SelectionKey> readyKeySet;
     private Iterator<SelectionKey> iterator;
     private SelectionKey key = null;
     private int keyReadyOps;
@@ -257,7 +257,7 @@ public final class SelectorRunner implements Runnable {
             ((WorkerThread) currentThread).setSelectorThread(true);
         }
         
-        StateHolder<State> transportStateHolder = transport.getState();
+        final StateHolder<State> transportStateHolder = transport.getState();
 
         boolean isSkipping = false;
         
@@ -267,10 +267,9 @@ public final class SelectorRunner implements Runnable {
                     isSkipping = !doSelect();
                 } else {
                     try {
-                        Future<State> future =
-                                transportStateHolder.notifyWhenStateIsNotEqual(
-                                State.PAUSE, null);
-                        future.get(5000, TimeUnit.MILLISECONDS);
+                        transportStateHolder
+                                .notifyWhenStateIsNotEqual(State.PAUSE, null)
+                                .get(5000, TimeUnit.MILLISECONDS);
                     } catch (Exception ignored) {
                     }
                 }
@@ -304,7 +303,7 @@ public final class SelectorRunner implements Runnable {
         final SelectorHandler selectorHandler = transport.getSelectorHandler();
         
         try {
-
+            
             if (isResume) {
                 // If resume SelectorRunner - finish postponed keys
                 isResume = false;
@@ -313,24 +312,27 @@ public final class SelectorRunner implements Runnable {
                 }
                 
                 if (!iterateKeys()) return false;
+                readyKeySet.clear();
             }
 
             lastSelectedKeysCount = 0;
 
             selectorHandler.preSelect(this);
 
-            final Set<SelectionKey> readyKeys = selectorHandler.select(this);
+            readyKeySet = selectorHandler.select(this);
             selectorWakeupFlag.set(false);
 
             if (stateHolder.get() == State.STOPPING) return true;
             
-            lastSelectedKeysCount = readyKeys.size();
+            lastSelectedKeysCount = readyKeySet.size();
             
             if (lastSelectedKeysCount != 0) {
-                iterator = readyKeys.iterator();
+                iterator = readyKeySet.iterator();
                 if (!iterateKeys()) return false;
+                readyKeySet.clear();
             }
 
+            readyKeySet = null;
             iterator = null;
             selectorHandler.postSelect(this);
         } catch (ClosedSelectorException e) {
@@ -359,14 +361,10 @@ public final class SelectorRunner implements Runnable {
         while (iterator.hasNext()) {
             try {
                 key = iterator.next();
-                iterator.remove();
-                if (key.isValid()) {
-                    keyReadyOps = key.readyOps();
-                    if (!iterateKeyEvents()) return false;
-                } else {
-                    transport.getSelectionKeyHandler().cancel(key);
+                keyReadyOps = key.readyOps();
+                if (!iterateKeyEvents()) {
+                    return false;
                 }
-                
             } catch (IOException e) {
                 keyReadyOps = 0;
                 notifyConnectionException(key, "Unexpected IOException. Channel " + key.channel() + " will be closed.", e, Level.WARNING, Level.FINE);
@@ -391,7 +389,7 @@ public final class SelectorRunner implements Runnable {
         for (IOEvent ioEvent : ioEvents) {
             NIOConnection.notifyIOEventReady(connection, ioEvent);
             
-            final int interest = selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent);
+            final int interest = ioEvent.getSelectionKeyInterest();
             keyReadyOps &= (~interest);
             if (selectionKeyHandler.onProcessInterest(key, interest)) {
                 if (!ioStrategy.executeIoEvent(connection, ioEvent)) {

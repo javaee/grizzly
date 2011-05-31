@@ -66,22 +66,23 @@ public final class BuffersBuffer extends CompositeBuffer {
                 null, 0, false);
     }
 
-    public static BuffersBuffer create(MemoryManager memoryManager) {
+    public static BuffersBuffer create(final MemoryManager memoryManager) {
         return create(memoryManager, null, 0, false);
     }
 
-    public static BuffersBuffer create(MemoryManager memoryManager,
-            Buffer... buffers) {
+    public static BuffersBuffer create(final MemoryManager memoryManager,
+            final Buffer... buffers) {
         return create(memoryManager, buffers, buffers.length, false);
     }
 
-    public static BuffersBuffer create(MemoryManager memoryManager,
-            Buffer[] buffers, boolean isReadOnly) {
+    public static BuffersBuffer create(final MemoryManager memoryManager,
+            final Buffer[] buffers, final boolean isReadOnly) {
         return create(memoryManager, buffers, buffers.length, isReadOnly);
     }
 
-    private static BuffersBuffer create(MemoryManager memoryManager,
-            Buffer[] buffers, int buffersSize, boolean isReadOnly) {
+    private static BuffersBuffer create(final MemoryManager memoryManager,
+            final Buffer[] buffers, final int buffersSize,
+            final boolean isReadOnly) {
         final BuffersBuffer buffer = ThreadCache.takeFromCache(CACHE_IDX);
         if (buffer != null) {
             buffer.set(memoryManager, buffers, buffersSize, isReadOnly);
@@ -129,13 +130,14 @@ public final class BuffersBuffer extends CompositeBuffer {
     private Buffer activeBuffer;
     
 
-    protected BuffersBuffer(MemoryManager memoryManager,
-            Buffer[] buffers, int buffersSize, boolean isReadOnly) {
+    protected BuffersBuffer(final MemoryManager memoryManager,
+            final Buffer[] buffers, final int buffersSize,
+            final boolean isReadOnly) {
         set(memoryManager, buffers, buffersSize, isReadOnly);
     }
 
-    private void set(MemoryManager memoryManager, Buffer[] buffers,
-            int buffersSize, boolean isReadOnly) {
+    private void set(final MemoryManager memoryManager, final Buffer[] buffers,
+            final int buffersSize, final boolean isReadOnly) {
         if (memoryManager != null) {
             this.memoryManager = memoryManager;
         } else {
