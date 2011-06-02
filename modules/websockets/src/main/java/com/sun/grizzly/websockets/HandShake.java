@@ -41,9 +41,15 @@
 package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.tcp.Response;
+import com.sun.grizzly.util.buf.MessageBytes;
+import com.sun.grizzly.util.http.MimeHeaders;
+import com.sun.grizzly.util.net.URL;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 /**
@@ -55,30 +61,31 @@ public abstract class HandShake {
     private boolean secure;
     private String origin;
     private String serverHostName;
-    private String port = "80";
+    private int port = 80;
     private String resourcePath;
     private String location;
     private List<String> subProtocol = new ArrayList<String>();
     private List<String> extensions = new ArrayList<String>();
 
-    public HandShake(boolean isSecure, String path) {
-        secure = isSecure;
-        resourcePath = path;
+    public HandShake() {
     }
 
-    public HandShake(boolean isSecure, String origin, String serverHostName, String portNumber, String resourcePath) {
-        this.origin = origin;
-        this.serverHostName = serverHostName;
-        secure = isSecure;
-        port = portNumber;
-        this.resourcePath = resourcePath;
-        subProtocol = null;
-        buildLocation(isSecure);
+    public HandShake(URL url) {
+        resourcePath = url.getPath();
+        if ("".equals(resourcePath)) {
+            resourcePath = "/";
+        }
+
+        origin = url.toString().replace("http", "ws");
+        serverHostName = url.getHost();
+        secure = "wss://".equals(url.getProtocol());
+        port = url.getPort();
+        buildLocation();
     }
 
-    protected final void buildLocation(boolean isSecure) {
-        StringBuilder builder = new StringBuilder((isSecure ? "wss" : "ws") + "://" + serverHostName);
-        if (!"80".equals(port)) {
+    protected final void buildLocation() {
+        StringBuilder builder = new StringBuilder((isSecure() ? "wss" : "ws") + "://" + serverHostName);
+        if (port != 80) {
             builder.append(":" + port);
         }
         if (resourcePath == null || !resourcePath.startsWith("/") && !"".equals(resourcePath)) {
@@ -104,11 +111,11 @@ public abstract class HandShake {
         this.origin = origin;
     }
 
-    public String getPort() {
+    public int getPort() {
         return port;
     }
 
-    public void setPort(String port) {
+    public void setPort(int port) {
         this.port = port;
     }
 
@@ -171,5 +178,54 @@ public abstract class HandShake {
             builder.append(s);
         }
         return null;
+    }
+
+    protected void checkForHeader(Map<String, String> headers, final String header, final String validValue) {
+        validate(header, validValue, headers.get(header));
+    }
+
+    protected void checkForHeader(MimeHeaders headers, final String header, final String validValue) {
+        validate(header, validValue, headers.getHeader(header));
+    }
+
+    private void validate(String header, String validValue, String value) {
+        if(!validValue.equalsIgnoreCase(value)) {
+            throw new HandshakeException(String.format("Invalid %s header returned: '%s'", header, value));
+        }
+    }
+
+    /**
+     * Reads the header value using UTF-8 encoding
+     *
+     * @param headers
+     * @param name
+     * @return
+     */
+    public final String readHeader(MimeHeaders headers, final String name) {
+        final MessageBytes value = headers.getValue(name);
+        return value == null ? null : value.toString();
+    }
+
+    protected void determineHostAndPort(MimeHeaders headers) {
+        String header;
+        header = readHeader(headers, "host");
+        final int i = header == null ? -1 : header.indexOf(":");
+        if (i == -1) {
+            setServerHostName(header);
+            setPort(80);
+        } else {
+            setServerHostName(header.substring(0, i));
+            setPort(Integer.valueOf(header.substring(i + 1)));
+        }
+    }
+
+    public abstract void initiate(NetworkHandler handler);
+
+    public abstract void validateServerResponse(Map<String, String> map);
+
+    public abstract void respond(Response response);
+
+    protected List<String> split(final String header) {
+        return header == null ? Collections.<String>emptyList() : Arrays.asList(header.split(";"));
     }
 }

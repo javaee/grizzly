@@ -42,33 +42,20 @@ package com.sun.grizzly.websockets.draft06;
 
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.util.net.URL;
-import com.sun.grizzly.websockets.ClientHandShake;
 import com.sun.grizzly.websockets.DataFrame;
 import com.sun.grizzly.websockets.FrameType;
 import com.sun.grizzly.websockets.FramingException;
 import com.sun.grizzly.websockets.HandShake;
-import com.sun.grizzly.websockets.HandshakeException;
-import com.sun.grizzly.websockets.NetworkHandler;
-import com.sun.grizzly.websockets.WebSocket;
-import com.sun.grizzly.websockets.WebSocketApplication;
 import com.sun.grizzly.websockets.WebSocketEngine;
 import com.sun.grizzly.websockets.WebSocketHandler;
 
-import java.io.IOException;
 import java.security.SecureRandom;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
-public class Draft06Handler implements WebSocketHandler {
+public class Draft06Handler extends WebSocketHandler {
     private final SecureRandom random = new SecureRandom();
     private final boolean applyMask;
-    private NetworkHandler handler;
     private byte[] mask;
     private int maskIndex;
-    private WebSocket webSocket;
-    private boolean isHeaderParsed;
 
     public Draft06Handler() {
         applyMask = false;
@@ -78,51 +65,14 @@ public class Draft06Handler implements WebSocketHandler {
         this.applyMask = applyMask;
     }
 
-    public void send(DataFrame frame) {
-        handler.write(frame(frame));
+    @Override
+    protected HandShake createHandShake(Request request) {
+        return new HandShake06(request.getMimeHeaders());
     }
 
-    public HandShake handshake(WebSocketApplication app, Request request) {
-        final boolean secure = "https".equalsIgnoreCase(request.scheme().toString());
-
-        final HandShake06 handshake = new HandShake06(secure, request.getMimeHeaders(), request.requestURI().toString());
-        List<String> protocols = app.getSupportedProtocols();
-        final List<String> subProtocol = handshake.getSubProtocol();
-
-        handshake.respond(request.getResponse());
-        return handshake;
-    }
-
-    public void handshake(URL url) throws IOException {
-        final boolean isSecure = "wss".equals(url.getProtocol());
-
-        final StringBuilder origin = new StringBuilder();
-        origin.append(isSecure ? "https://" : "http://");
-        origin.append(url.getHost());
-        if (!isSecure && url.getPort() != 80 || isSecure && url.getPort() != 443) {
-            origin.append(":")
-                    .append(url.getPort());
-        }
-        String path = url.getPath();
-        if ("".equals(path)) {
-            path = "/";
-        }
-
-        ClientHandShake clientHS = new ClientHandShake(isSecure, origin.toString(), url.getHost(),
-                String.valueOf(url.getPort()), path);
-        handler.write(clientHS.getBytes());
-        final Map<String, String> headers = readResponse();
-
-        if (headers.isEmpty()) {
-            throw new HandshakeException("No response headers received");
-        }  // not enough data
-
-        try {
-            clientHS.validateServerResponse(headers);
-        } catch (HandshakeException e) {
-            throw new IOException(e.getMessage());
-        }
-
+    @Override
+    protected HandShake createHandShake(URL url) {
+        return new HandShake06(url);
     }
 
     public byte[] frame(DataFrame frame) {
@@ -192,7 +142,6 @@ public class Draft06Handler implements WebSocketHandler {
     }
 
     public void readFrame() {
-//        fill();
         while (handler.ready()) {
             try {
                 if (!applyMask) {
@@ -205,18 +154,6 @@ public class Draft06Handler implements WebSocketHandler {
                 getWebSocket().close();
             }
         }
-    }
-
-    public WebSocket getWebSocket() {
-        return webSocket;
-    }
-
-    public void setWebSocket(WebSocket webSocket) {
-        this.webSocket = webSocket;
-    }
-
-    public void setNetworkHandler(NetworkHandler handler) {
-        this.handler = handler;
     }
 
     public void generateMask() {
@@ -268,27 +205,4 @@ public class Draft06Handler implements WebSocketHandler {
         return lengthBytes;
     }
 
-    private Map<String, String> readResponse() throws IOException {
-        Map<String, String> headers = new TreeMap<String, String>(new Comparator<String>() {
-            public int compare(String o, String o1) {
-                return o.compareToIgnoreCase(o1);
-            }
-        });
-        if (!isHeaderParsed) {
-            String line = new String(handler.readLine(), "ASCII").trim();
-            headers.put(WebSocketEngine.RESPONSE_CODE_HEADER, line.split(" ")[1]);
-            while (!isHeaderParsed) {
-                line = new String(handler.readLine(), "ASCII").trim();
-
-                if (line.length() == 0) {
-                    isHeaderParsed = true;
-                } else {
-                    String[] parts = line.split(":");
-                    headers.put(parts[0].trim(), parts[1].trim());
-                }
-            }
-        }
-
-        return headers;
-    }
 }

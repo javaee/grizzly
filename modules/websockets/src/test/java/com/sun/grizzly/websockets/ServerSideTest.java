@@ -54,15 +54,16 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings({"StringContatenationInLoop"})
-@Test
+@Test(dataProvider = "drafts", dataProviderClass = TestParameters.class)
 public class ServerSideTest extends BaseWebSocketTest {
     private static final int PORT = 1726;
 
     public static final int ITERATIONS = 10000;
 
-    public void steadyFlow() throws IOException, InstantiationException, ExecutionException, InterruptedException {
+    public void steadyFlow(Version version) throws IOException, InstantiationException, ExecutionException, InterruptedException {
+        System.out.println("version = " + version);
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
-        TrackingWebSocket socket = new TrackingWebSocket(String.format("ws://localhost:%s/echo", PORT), 5 * ITERATIONS);
+        TrackingWebSocket socket = new TrackingWebSocket(version, String.format("ws://localhost:%s/echo", PORT), 5 * ITERATIONS);
         try {
             int count = 0;
             final Date start = new Date();
@@ -89,9 +90,9 @@ public class ServerSideTest extends BaseWebSocketTest {
         }
     }
 
-    public void single() throws IOException, InstantiationException, ExecutionException, InterruptedException {
+    public void single(Version version) throws IOException, InstantiationException, ExecutionException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
-        TrackingWebSocket socket = new TrackingWebSocket(String.format("ws://localhost:%s/echo", PORT), 1);
+        TrackingWebSocket socket = new TrackingWebSocket(version, String.format("ws://localhost:%s/echo", PORT), 1);
         try {
             int count = 0;
             final Date start = new Date();
@@ -109,9 +110,9 @@ public class ServerSideTest extends BaseWebSocketTest {
     }
 
     @SuppressWarnings({"StringContatenationInLoop"})
-    public void sendAndWait() throws IOException, InstantiationException, InterruptedException, ExecutionException {
+    public void sendAndWait(Version version) throws IOException, InstantiationException, InterruptedException, ExecutionException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
-        CountDownWebSocket socket = new CountDownWebSocket(String.format("ws://localhost:%s/echo", PORT));
+        CountDownWebSocket socket = new CountDownWebSocket(version, String.format("ws://localhost:%s/echo", PORT));
 
         try {
             int count = 0;
@@ -137,14 +138,14 @@ public class ServerSideTest extends BaseWebSocketTest {
         }
     }
 
-    public void multipleClients() throws IOException, InstantiationException, ExecutionException, InterruptedException {
+    public void multipleClients(Version version) throws IOException, InstantiationException, ExecutionException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
 
         List<TrackingWebSocket> clients = new ArrayList<TrackingWebSocket>();
         try {
             final String address = String.format("ws://localhost:%s/echo", PORT);
             for (int x = 0; x < 5; x++) {
-                clients.add(new TrackingWebSocket(address, x + "", 5 * ITERATIONS));
+                clients.add(new TrackingWebSocket(version, address, x + "", 5 * ITERATIONS));
             }
             String[] messages = {
                     "test message",
@@ -168,11 +169,11 @@ public class ServerSideTest extends BaseWebSocketTest {
         }
     }
 
-    public void bigPayload() throws IOException, InstantiationException, ExecutionException, InterruptedException {
+    public void bigPayload(Version version) throws IOException, InstantiationException, ExecutionException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
         final int count = 5;
         final CountDownLatch received = new CountDownLatch(count);
-        WebSocketClient socket = new WebSocketClient(String.format("ws://localhost:%s/echo", PORT)) {
+        WebSocketClient socket = new WebSocketClient(version, String.format("ws://localhost:%s/echo", PORT)) {
             @Override
             public void onMessage(WebSocket webSocket, String frame) {
                 received.countDown();

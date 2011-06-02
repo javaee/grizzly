@@ -1,14 +1,14 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
  * may not use this file except in compliance with the License.  You can
  * obtain a copy of the License at
- * https://glassfish.dev.java.net/public/CDDL+GPL_1_1.html
+ * http://glassfish.java.net/public/CDDL+GPL_1_1.html
  * or packager/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
  *
@@ -40,22 +40,35 @@
 
 package com.sun.grizzly.websockets;
 
-import com.sun.grizzly.websockets.draft06.SecKey;
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import com.sun.grizzly.util.http.MimeHeaders;
+import com.sun.grizzly.websockets.draft06.Draft06Handler;
+import com.sun.grizzly.websockets.draft76.Draft76Handler;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+public enum Version {
+    DRAFT06 {
+        @Override
+        public WebSocketHandler createHandler(boolean mask) {
+            return new Draft06Handler(mask);
+        }
 
-@Test
-public class SecKeyTest {
-    public void hashing() throws NoSuchAlgorithmException {
-        SecKey client = new SecKey();
-        SecKey server = SecKey.generateServerKey(client);
-        final String str = client.getSecKey() + WebSocketEngine.SERVER_KEY_HASH;
-        MessageDigest instance = MessageDigest.getInstance("SHA-1");
-        instance.update(str.getBytes());
+        @Override
+        public boolean validate(MimeHeaders headers) {
+            return "6".equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
+        }
+    },
+    DRAFT76 {
+        @Override
+        public WebSocketHandler createHandler(boolean mask) {
+            return new Draft76Handler(mask);
+        }
 
-        Assert.assertEquals(server.getBytes(), instance.digest());
-    }
+        @Override
+        public boolean validate(MimeHeaders headers) {
+            return headers.getHeader(WebSocketEngine.SEC_WS_KEY1_HEADER) != null;
+        }
+    };
+
+    public abstract WebSocketHandler createHandler(boolean mask);
+
+    public abstract boolean validate(MimeHeaders headers);
 }

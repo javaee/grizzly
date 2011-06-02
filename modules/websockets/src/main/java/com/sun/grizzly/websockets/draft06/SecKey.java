@@ -38,9 +38,12 @@
  * holder.
  */
 
-package com.sun.grizzly.websockets;
+package com.sun.grizzly.websockets.draft06;
 
 import com.sun.grizzly.util.buf.Base64Utils;
+import com.sun.grizzly.websockets.HandshakeException;
+import com.sun.grizzly.websockets.WebSocket;
+import com.sun.grizzly.websockets.WebSocketEngine;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

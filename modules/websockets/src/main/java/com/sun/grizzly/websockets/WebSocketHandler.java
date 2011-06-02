@@ -44,21 +44,82 @@ import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.util.net.URL;
 
 import java.io.IOException;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
-public interface WebSocketHandler {
-    HandShake handshake(WebSocketApplication app, Request request);
+public abstract class WebSocketHandler {
+    protected NetworkHandler handler;
+    private boolean isHeaderParsed;
+    private WebSocket webSocket;
 
-    void handshake(URL address) throws IOException;
+    public HandShake handshake(WebSocketApplication app, Request request) {
+        final HandShake handshake = createHandShake(request);
+        handshake.respond(request.getResponse());
 
-    void send(DataFrame frame);
+        List<String> protocols = app.getSupportedProtocols();
+        final List<String> subProtocol = handshake.getSubProtocol();
+        return handshake;
+    }
 
-    byte[] frame(DataFrame frame);
+    public HandShake handshake(URL url) throws IOException {
+        HandShake handshake = createHandShake(url);
+        handshake.initiate(handler);
+        handshake.validateServerResponse(readResponse());
 
-    void setNetworkHandler(NetworkHandler handler);
+        return handshake;
+    }
 
-    void readFrame();
+    public void send(DataFrame frame) {
+        handler.write(frame(frame));
+    }
 
-    WebSocket getWebSocket();
+    public NetworkHandler getNetworkHandler() {
+        return handler;
+    }
 
-    void setWebSocket(WebSocket webSocket);
+    public void setNetworkHandler(NetworkHandler handler) {
+        this.handler = handler;
+    }
+
+    public WebSocket getWebSocket() {
+        return webSocket;
+    }
+
+    public void setWebSocket(WebSocket webSocket) {
+        this.webSocket = webSocket;
+    }
+
+    private Map<String, String> readResponse() throws IOException {
+        Map<String, String> headers = new TreeMap<String, String>(new Comparator<String>() {
+            public int compare(String o, String o1) {
+                return o.compareToIgnoreCase(o1);
+            }
+        });
+        if (!isHeaderParsed) {
+            String line = new String(handler.readLine(), "ASCII").trim();
+            headers.put(WebSocketEngine.RESPONSE_CODE_HEADER, line.split(" ")[1]);
+            while (!isHeaderParsed) {
+                line = new String(handler.readLine(), "ASCII").trim();
+
+                if (line.length() == 0) {
+                    isHeaderParsed = true;
+                } else {
+                    String[] parts = line.split(":");
+                    headers.put(parts[0].trim(), parts[1].trim());
+                }
+            }
+        }
+
+        return headers;
+    }
+
+    public abstract byte[] frame(DataFrame frame);
+
+    public abstract void readFrame();
+
+    protected abstract HandShake createHandShake(Request request);
+
+    protected abstract HandShake createHandShake(URL url);
 }

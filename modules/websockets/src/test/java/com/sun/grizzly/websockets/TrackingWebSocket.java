@@ -51,13 +51,13 @@ public class TrackingWebSocket extends WebSocketClient {
     private final CountDownLatch received;
     private String name;
 
-    public TrackingWebSocket(String address, final int count, WebSocketListener... listeners) throws IOException {
-        super(address, listeners);
+    public TrackingWebSocket(Version version, String address, final int count, WebSocketListener... listeners) throws IOException {
+        super(version, address, listeners);
         received = new CountDownLatch(count);
     }
 
-    public TrackingWebSocket(String address, String name, final int count, WebSocketListener... listeners) throws IOException {
-        super(address, listeners);
+    public TrackingWebSocket(Version version, String address, String name, final int count, WebSocketListener... listeners) throws IOException {
+        super(version, address, listeners);
         this.name = name;
         received = new CountDownLatch(count);
     }

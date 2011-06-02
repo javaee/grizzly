@@ -41,18 +41,14 @@
 package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.util.net.URL;
-import com.sun.grizzly.websockets.draft06.Draft06Handler;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 
 public class WebSocketClient extends WebSocketAdapter {
-    private static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
-
     private final URL address;
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
     private WebSocketHandler webSocketHandler;
@@ -60,14 +56,18 @@ public class WebSocketClient extends WebSocketAdapter {
     private NetworkHandler networkHandler;
 
     public WebSocketClient(final String url, final WebSocketListener... listeners) throws IOException {
-        this(url, WebSocketEngine.DEFAULT_TIMEOUT, listeners);
+        this(WebSocketEngine.DEFAULT_VERSION, url, listeners);
     }
 
-    public WebSocketClient(final String url, final long timeout, final WebSocketListener... listeners)
+    public WebSocketClient(Version version, final String url, final WebSocketListener... listeners) throws IOException {
+        this(version, url, WebSocketEngine.DEFAULT_TIMEOUT, listeners);
+    }
+
+    public WebSocketClient(Version version, final String url, final long timeout, final WebSocketListener... listeners)
             throws IOException {
         address = new URL(url);
-        networkHandler = createNetworkHandler();
-        webSocketHandler = new Draft06Handler(true);
+        networkHandler = new ClientNetworkHandler(this);
+        webSocketHandler = version.createHandler(true);
         final Future<?> future = executorService.submit(new Runnable() {
             public void run() {
                 try {
@@ -122,10 +122,6 @@ public class WebSocketClient extends WebSocketAdapter {
 
     protected void execute(Runnable runnable) {
         executorService.submit(runnable);
-    }
-
-    protected ClientNetworkHandler createNetworkHandler() {
-        return new ClientNetworkHandler(this);
     }
 
     public void send(String s) {

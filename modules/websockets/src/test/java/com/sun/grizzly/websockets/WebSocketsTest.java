@@ -50,6 +50,7 @@ import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.net.jsse.JSSEImplementation;
+import com.sun.grizzly.websockets.draft06.SecKey;
 import org.testng.Assert;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;

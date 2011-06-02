@@ -41,63 +41,44 @@
 package com.sun.grizzly.websockets.draft06;
 
 import com.sun.grizzly.tcp.Response;
-import com.sun.grizzly.util.buf.MessageBytes;
 import com.sun.grizzly.util.http.MimeHeaders;
+import com.sun.grizzly.util.net.URL;
 import com.sun.grizzly.websockets.HandShake;
 import com.sun.grizzly.websockets.HandshakeException;
-import com.sun.grizzly.websockets.SecKey;
+import com.sun.grizzly.websockets.NetworkHandler;
 import com.sun.grizzly.websockets.WebSocketEngine;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 public class HandShake06 extends HandShake {
 
-    private final SecKey serverSecKey;
+    private final SecKey secKey;
     private List<String> enabledExtensions;
     private List<String> enabledProtocols;
 
-    public HandShake06(boolean secure, MimeHeaders mimeHeaders, final String path) {
-        super(secure, path);
+    public HandShake06(URL url) {
+        super(url);
+        secKey = new SecKey();
+    }
 
+    public HandShake06(MimeHeaders mimeHeaders) {
         determineHostAndPort(mimeHeaders);
 
         checkForHeader(mimeHeaders, "Upgrade", "WebSocket");
         checkForHeader(mimeHeaders, "Connection", "Upgrade");
-        
+
         setSubProtocol(split(mimeHeaders.getHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER)));
         setExtensions(split(mimeHeaders.getHeader(WebSocketEngine.SEC_WS_EXTENSIONS_HEADER)));
-        serverSecKey = SecKey.generateServerKey(new SecKey(mimeHeaders.getHeader(WebSocketEngine.SEC_WS_KEY_HEADER)));
+        secKey = SecKey.generateServerKey(new SecKey(mimeHeaders.getHeader(WebSocketEngine.SEC_WS_KEY_HEADER)));
 
         setOrigin(readHeader(mimeHeaders, WebSocketEngine.SEC_WS_ORIGIN_HEADER));
-        buildLocation(secure);
+        buildLocation();
         if (getServerHostName() == null || getOrigin() == null) {
             throw new HandshakeException("Missing required headers for WebSocket negotiation");
         }
-    }
-
-    private List<String> split(final String header) {
-        return header == null ? null : Arrays.asList(header.split(";"));
-    }
-
-    private void checkForHeader(MimeHeaders headers, final String header, final String validValue) {
-        final String value = headers.getHeader(header);
-        if(!validValue.equalsIgnoreCase(value)) {
-            throw new HandshakeException(String.format("Invalid %s header returned: '%s'", header, value));
-        }
-    }
-
-    /**
-     * Reads the header value using UTF-8 encoding
-     *
-     * @param headers
-     * @param name
-     * @return
-     */
-    final String readHeader(MimeHeaders headers, final String name) {
-        final MessageBytes value = headers.getValue(name);
-        return value == null ? null : value.toString();
     }
 
     public void respond(Response response) {
@@ -105,7 +86,7 @@ public class HandShake06 extends HandShake {
         response.setMessage(WebSocketEngine.RESPONSE_CODE_MESSAGE);
         response.setHeader("Upgrade", "WebSocket");
         response.setHeader("Connection", "Upgrade");
-        response.setHeader(WebSocketEngine.SEC_WS_ACCEPT, serverSecKey.getSecKey());
+        response.setHeader(WebSocketEngine.SEC_WS_ACCEPT, secKey.getSecKey());
         if (getEnabledProtocols() != null) {
             response.setHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER, join(getSubProtocol()));
         }
@@ -121,32 +102,52 @@ public class HandShake06 extends HandShake {
         }
     }
 
-    private void determineHostAndPort(MimeHeaders headers) {
-        String header;
-        header = readHeader(headers, "host");
-        final int i = header == null ? -1 : header.indexOf(":");
-        if (i == -1) {
-            setServerHostName(header);
-            setPort("80");
-        } else {
-            setServerHostName(header.substring(0, i));
-            setPort(header.substring(i + 1));
+    public void initiate(NetworkHandler handler) {
+        try {
+            ByteArrayOutputStream chunk = new ByteArrayOutputStream();
+            chunk.write(String.format("GET %s HTTP/1.1\r\n", getResourcePath()).getBytes());
+            chunk.write(String.format("Host: %s\r\n", getServerHostName()).getBytes());
+            chunk.write(String.format("Connection: Upgrade\r\n").getBytes());
+            chunk.write(String.format("Upgrade: WebSocket\r\n").getBytes());
+            chunk.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_KEY_HEADER, secKey).getBytes());
+            chunk.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_ORIGIN_HEADER, getOrigin()).getBytes());
+            chunk.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_VERSION, WebSocketEngine.WS_VERSION).getBytes());
+            if (!getSubProtocol().isEmpty()) {
+                chunk.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_PROTOCOL_HEADER,
+                        join(getSubProtocol())).getBytes());
+            }
+            if (!getExtensions().isEmpty()) {
+                chunk.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_EXTENSIONS_HEADER,
+                        join(getExtensions())).getBytes());
+            }
+            chunk.write("\r\n".getBytes());
+
+            handler.write(chunk.toByteArray());
+        } catch (IOException e) {
+            throw new HandshakeException(e.getMessage(), e);
         }
+    }
+
+    public void validateServerResponse(final Map<String, String> headers) throws HandshakeException {
+        if (headers.isEmpty()) {
+            throw new HandshakeException("No response headers received");
+        }  // not enough data
+
+        if(!WebSocketEngine.RESPONSE_CODE_VALUE.equals(headers.get(WebSocketEngine.RESPONSE_CODE_HEADER))) {
+            throw new HandshakeException(String.format("Response code was not %s: %s",
+                    WebSocketEngine.RESPONSE_CODE_VALUE,
+                    headers.get(WebSocketEngine.RESPONSE_CODE_HEADER)));
+        }
+        checkForHeader(headers, WebSocketEngine.UPGRADE, WebSocketEngine.WEBSOCKET);
+        checkForHeader(headers, WebSocketEngine.CONNECTION, WebSocketEngine.UPGRADE);
+        secKey.validateServerKey(headers.get(WebSocketEngine.SEC_WS_ACCEPT));
     }
 
     public List<String> getEnabledExtensions() {
         return enabledExtensions;
     }
 
-    public void setEnabledExtensions(List<String> enabledExtensions) {
-        this.enabledExtensions = enabledExtensions;
-    }
-
     public List<String> getEnabledProtocols() {
         return enabledProtocols;
-    }
-
-    public void setEnabledProtocols(List<String> enabledProtocols) {
-        this.enabledProtocols = enabledProtocols;
     }
 }

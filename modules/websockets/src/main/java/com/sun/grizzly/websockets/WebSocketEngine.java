@@ -68,10 +68,19 @@ public class WebSocketEngine {
     public static final String RESPONSE_CODE_VALUE = "101";
     public static final String UPGRADE = "upgrade";
     public static final String CONNECTION = "connection";
-
+    public static final Version DEFAULT_VERSION = Version.DRAFT06;
     public static final int WS_VERSION = 6;
     public static final int INITIAL_BUFFER_SIZE = 8192;
     public static final int DEFAULT_TIMEOUT;
+
+    // Draft 76 headers
+    public static final String SEC_WS_KEY1_HEADER = "Sec-WebSocket-Key1";
+    public static final String SEC_WS_KEY2_HEADER = "Sec-WebSocket-Key2";
+    public static final String CLIENT_WS_ORIGIN_HEADER = "Origin";
+    public static final String SERVER_SEC_WS_ORIGIN_HEADER = "Sec-WebSocket-Origin";
+    public static final String SERVER_SEC_WS_LOCATION_HEADER = "Sec-WebSocket-Location";
+
+
     private static final WebSocketEngine engine = new WebSocketEngine();
     private static volatile boolean isWebSocketEnabled = true;
     static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);

@@ -1,14 +1,14 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
  * may not use this file except in compliance with the License.  You can
  * obtain a copy of the License at
- * https://glassfish.dev.java.net/public/CDDL+GPL_1_1.html
+ * http://glassfish.java.net/public/CDDL+GPL_1_1.html
  * or packager/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
  *
@@ -40,22 +40,18 @@
 
 package com.sun.grizzly.websockets;
 
-import com.sun.grizzly.websockets.draft06.SecKey;
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import org.testng.annotations.DataProvider;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+public class TestParameters {
+    public TestParameters() {
+        System.out.println("TestParameters.TestParameters");
+    }
 
-@Test
-public class SecKeyTest {
-    public void hashing() throws NoSuchAlgorithmException {
-        SecKey client = new SecKey();
-        SecKey server = SecKey.generateServerKey(client);
-        final String str = client.getSecKey() + WebSocketEngine.SERVER_KEY_HASH;
-        MessageDigest instance = MessageDigest.getInstance("SHA-1");
-        instance.update(str.getBytes());
-
-        Assert.assertEquals(server.getBytes(), instance.digest());
+    @DataProvider(name = "drafts")
+    public static Object[][] drafts() {
+        return new Object[][]{
+                {Version.DRAFT76},
+                {Version.DRAFT06},
+        };
     }
 }

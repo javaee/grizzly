@@ -41,17 +41,13 @@
 package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.util.http.MimeHeaders;
-import com.sun.grizzly.websockets.draft06.Draft06Handler;
 
 public class WebSocketFactory {
     public static WebSocketHandler loadHandler(MimeHeaders headers) {
-        try {
-            if(headers.getHeader(WebSocketEngine.SEC_WS_VERSION).equals(WebSocketEngine.WS_VERSION+"")) {
-                return new Draft06Handler();
+        for (Version version : Version.values()) {
+            if(version.validate(headers)) {
+                return version.createHandler(false);
             }
-        } catch (NullPointerException e) {
-            System.out.println(headers);
-            throw new RuntimeException(e.getMessage(), e);
         }
 
         throw new HandshakeException("Unknown specification version");

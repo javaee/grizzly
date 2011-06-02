@@ -51,8 +51,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class CountDownWebSocket extends WebSocketClient {
     private final AtomicInteger countDown = new AtomicInteger(0);
 
-    public CountDownWebSocket(String url, WebSocketListener... listeners) throws IOException {
-        super(url, listeners);
+    public CountDownWebSocket(Version version, String url, WebSocketListener... listeners) throws IOException {
+        super(version, url, listeners);
     }
 
     @Override
