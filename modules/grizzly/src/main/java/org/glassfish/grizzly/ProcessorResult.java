@@ -50,7 +50,7 @@ public class ProcessorResult {
     private static final ProcessorResult COMPLETE_RESULT = new ProcessorResult(Status.COMPLETE, null, false);
     private static final ProcessorResult LEAVE_RESULT = new ProcessorResult(Status.LEAVE, null, false);
     private static final ProcessorResult REREGISTER_RESULT = new ProcessorResult(Status.REREGISTER, null, false);
-    private static final ProcessorResult ERROR_RESULT = new ProcessorResult(Status.ERROR);
+    private static final ProcessorResult ERROR_RESULT = new ProcessorResult(Status.ERROR, null, false);
     private static final ProcessorResult TERMINATE_RESULT = new ProcessorResult(Status.TERMINATE, null, false);
     
     private static final ThreadCache.CachedTypeIndex<ProcessorResult> CACHE_IDX =
