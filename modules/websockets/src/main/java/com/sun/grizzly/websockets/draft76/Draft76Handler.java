@@ -86,7 +86,7 @@ public class Draft76Handler extends WebSocketHandler {
                 getWebSocket().onMessage(frame.getTextPayload());
                 break;
             case CLOSING:
-                getWebSocket().close();
+                getWebSocket().onClose(frame);
                 break;
         }
     }
