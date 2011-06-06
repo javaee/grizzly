@@ -85,6 +85,7 @@ public class SecKey {
         for (int i = 0x3A; i <= 0x7E; i++) {
             CHARS[idx++] = (char) i;
         }
+        init();
     }
 
     private SecKey(String secKey, long secKeyValue) {

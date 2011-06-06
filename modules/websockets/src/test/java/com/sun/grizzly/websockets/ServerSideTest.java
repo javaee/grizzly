@@ -61,17 +61,19 @@ public class ServerSideTest extends BaseWebSocketTest {
     public static final int ITERATIONS = 10000;
 
     public void steadyFlow(Version version) throws IOException, InstantiationException, ExecutionException, InterruptedException {
-        System.out.println("version = " + version);
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
-        TrackingWebSocket socket = new TrackingWebSocket(version, String.format("ws://localhost:%s/echo", PORT), 5 * ITERATIONS);
+        TrackingWebSocket socket = null;
         try {
+            socket = new TrackingWebSocket(version, String.format("ws://localhost:%s/echo", PORT), 5 * ITERATIONS);
             int count = 0;
             final Date start = new Date();
             final int marker = ITERATIONS / 5;
             while (count++ < ITERATIONS) {
+/*
                 if (count % marker == 0) {
                     System.out.printf("Running iteration %s of %s\n", count, ITERATIONS);
                 }
+*/
                 socket.send("test message: " + count);
                 socket.send("let's try again: " + count);
                 socket.send("3rd time's the charm!: " + count);
@@ -80,7 +82,7 @@ public class ServerSideTest extends BaseWebSocketTest {
             }
 
             Assert.assertTrue(socket.waitOnMessages(), "All messages should come back: " + socket.getReceived());
-            time("ServerSideTest.steadyFlow", start, new Date());
+            time("ServerSideTest.steadyFlow (" + version + ")", start, new Date());
 
         } finally {
             if (socket != null) {
@@ -99,8 +101,6 @@ public class ServerSideTest extends BaseWebSocketTest {
             socket.send("test message: " + count);
 
             Assert.assertTrue(socket.waitOnMessages(), "All messages should come back: " + socket.getReceived());
-            time("ServerSideTest.single", start, new Date());
-
         } finally {
             if (socket != null) {
                 socket.close();
@@ -118,9 +118,11 @@ public class ServerSideTest extends BaseWebSocketTest {
             int count = 0;
             final Date start = new Date();
             while (count++ < ITERATIONS) {
+/*
                 if (count % ITERATIONS / 5 == 0) {
                     System.out.printf("Running iteration %s of %s\n", count, ITERATIONS);
                 }
+*/
                 socket.send("test message " + count);
                 socket.send("let's try again: " + count);
                 socket.send("3rd time's the charm!: " + count);
@@ -129,7 +131,7 @@ public class ServerSideTest extends BaseWebSocketTest {
                 socket.send("now, we're done: " + count);
                 Assert.assertTrue(socket.countDown(), "Everything should come back");
             }
-            time("ServerSideTest.sendAndWait", start, new Date());
+            time("ServerSideTest.sendAndWait (" + version + ")", start, new Date());
         } finally {
             if (socket != null) {
                 socket.close();

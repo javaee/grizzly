@@ -59,7 +59,7 @@ public enum Version {
     DRAFT76 {
         @Override
         public WebSocketHandler createHandler(boolean mask) {
-            return new Draft76Handler(mask);
+            return new Draft76Handler();
         }
 
         @Override

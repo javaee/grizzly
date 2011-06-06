@@ -46,21 +46,25 @@ import com.sun.grizzly.websockets.DataFrame;
 import com.sun.grizzly.websockets.FrameType;
 import com.sun.grizzly.websockets.FramingException;
 import com.sun.grizzly.websockets.HandShake;
-import com.sun.grizzly.websockets.NetworkHandler;
 import com.sun.grizzly.websockets.WebSocketHandler;
 
 import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
 
 public class Draft76Handler extends WebSocketHandler {
-    private final boolean applyMask;
-    private NetworkHandler handler;
-
-    public Draft76Handler(boolean mask) {
-        applyMask = mask;
-    }
-
     public byte[] frame(DataFrame frame) {
+        switch(frame.getType()) {
+            case TEXT:
+                final byte[] data = frame.getBytes();
+                ByteArrayOutputStream out = new ByteArrayOutputStream(data.length + 2);
+                out.write((byte) 0x00);
+                out.write(data, 0, data.length);
+                out.write((byte) 0xFF);
+                return out.toByteArray();
+            case CLOSING:
+                return new byte[]{(byte) 0xFF, 0x00};
+        }
+
         return new byte[0];
     }
 

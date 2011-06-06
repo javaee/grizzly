@@ -55,7 +55,6 @@ import java.util.Map;
 import java.util.Random;
 
 public class HandShake76 extends HandShake {
-    private SecKey secKey;
     private final SecKey key1;
     private final SecKey key2;
     private final byte[] key3;
@@ -140,7 +139,7 @@ public class HandShake76 extends HandShake {
         response.setHeader("Connection", "Upgrade");
         response.setHeader(WebSocketEngine.SERVER_SEC_WS_ORIGIN_HEADER, getOrigin());
         response.setHeader(WebSocketEngine.SERVER_SEC_WS_LOCATION_HEADER, getLocation());
-        if (getSubProtocol() != null) {
+        if (!getSubProtocol().isEmpty()) {
             response.setHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER, join(getSubProtocol()));
         }
 
