@@ -76,7 +76,7 @@ public abstract class HandShake {
             resourcePath = "/";
         }
 
-        origin = url.toString().replace("http", "ws");
+        origin = url.getHost();
         serverHostName = url.getHost();
         secure = "wss://".equals(url.getProtocol());
         port = url.getPort();

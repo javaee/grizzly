@@ -40,6 +40,7 @@
 
 package com.sun.grizzly.websockets.draft76;
 
+import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.util.http.MimeHeaders;
 import com.sun.grizzly.util.net.URL;
@@ -71,10 +72,12 @@ public class HandShake76 extends HandShake {
         random.nextBytes(key3);
     }
 
-    public HandShake76(NetworkHandler handler, MimeHeaders headers) {
+    public HandShake76(NetworkHandler handler, Request request) {
+        MimeHeaders headers = request.getMimeHeaders();
         this.handler = handler;
         checkForHeader(headers, "Upgrade", "WebSocket");
         checkForHeader(headers, "Connection", "Upgrade");
+        setResourcePath(request.requestURI().toString());
 
         setSubProtocol(split(headers.getHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER)));
         key1 = SecKey.create(headers.getHeader(WebSocketEngine.SEC_WS_KEY1_HEADER));

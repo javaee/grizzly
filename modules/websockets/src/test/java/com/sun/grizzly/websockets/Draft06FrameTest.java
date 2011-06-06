@@ -48,7 +48,7 @@ import java.io.IOException;
 import java.util.Random;
 
 @Test
-public class FrameTest {
+public class Draft06FrameTest {
     public void textFrame() throws IOException {
         Draft06Handler handler = new Draft06Handler();
         final byte[] data = handler.frame(new DataFrame("Hello"));
@@ -66,7 +66,7 @@ public class FrameTest {
         new Random().nextBytes(bytes);
         byte[] sample = new byte[260];
         System.arraycopy(new byte[]{(byte) 0x85, 0x7E, 0x01, 0x00}, 0, sample, 0, 4);
-        System.arraycopy(bytes, 0, sample, 4, 256);
+        System.arraycopy(bytes, 0, sample, 4, bytes.length);
 
         final byte[] data = handler.frame(new DataFrame(bytes));
         Assert.assertEquals(data, sample);

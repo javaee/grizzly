@@ -49,20 +49,20 @@ import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-@Test
+@Test(dataProvider = "drafts", dataProviderClass = TestParameters.class)
 public class ServletBasedTest {
     /**
      * This tests the up front registration of applications from places such as Servlet.init().  This is likely
      * the common case
      */
-    public void declarative() throws IOException, InstantiationException, InterruptedException {
+    public void declarative(Version version) throws IOException, InstantiationException, InterruptedException {
         final CountDownLatch latch = new CountDownLatch(1);
         final EchoWebSocketApplication app = new EchoWebSocketApplication();
         WebSocketEngine.getEngine().register(app);
         final SelectorThread
                         thread = WebSocketsTest.createSelectorThread(WebSocketsTest.PORT, new StaticResourcesAdapter());
         try {
-            WebSocketClient socket = new WebSocketClient(String.format("ws://localhost:%s/echo", WebSocketsTest.PORT), new WebSocketAdapter() {
+            WebSocketClient socket = new WebSocketClient(version, String.format("ws://localhost:%s/echo", WebSocketsTest.PORT), new WebSocketAdapter() {
                 @Override
                 public void onMessage(WebSocket socket, String frame) {
                     latch.countDown();

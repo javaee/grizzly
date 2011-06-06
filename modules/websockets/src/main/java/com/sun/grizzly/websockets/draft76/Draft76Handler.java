@@ -119,7 +119,7 @@ public class Draft76Handler extends WebSocketHandler {
 
     @Override
     protected HandShake createHandShake(Request request) {
-        return new HandShake76(getNetworkHandler(), request.getMimeHeaders());
+        return new HandShake76(getNetworkHandler(), request);
     }
 
     @Override
