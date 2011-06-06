@@ -247,5 +247,15 @@ public class TCPNIOConnection extends NIOConnection {
     void setMonitoringProbes(final ConnectionProbe[] monitoringProbes) {
         this.monitoringConfig.addProbes(monitoringProbes);
     }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder();
+        sb.append("TCPNIOConnection");
+        sb.append("{localSocketAddress=").append(localSocketAddress);
+        sb.append(", peerSocketAddress=").append(peerSocketAddress);
+        sb.append('}');
+        return sb.toString();
+    }
 }
     
