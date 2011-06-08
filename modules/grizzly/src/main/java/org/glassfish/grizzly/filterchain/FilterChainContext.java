@@ -84,7 +84,7 @@ public final class FilterChainContext implements AttributeStorage {
     private static final ThreadCache.CachedTypeIndex<FilterChainContext> CACHE_IDX =
             ThreadCache.obtainIndex(FilterChainContext.class, 8);
 
-    public static FilterChainContext create(Connection connection) {
+    public static FilterChainContext create(final Connection connection) {
         FilterChainContext context = ThreadCache.takeFromCache(CACHE_IDX);
         if (context == null) {
             context = new FilterChainContext();
@@ -669,7 +669,6 @@ public final class FilterChainContext implements AttributeStorage {
         operationCompletionHandler = null;
         customAttributes = null;
         operation = Operation.NONE;
-        completionListeners.clear();
         internalContext.reset();
         transportFilterContext.reset();
     }
@@ -742,8 +741,8 @@ public final class FilterChainContext implements AttributeStorage {
 
     void notifyComplete() {
         final int size = completionListeners.size();
-        for (int i = 0; i < size; i++) {
-            completionListeners.get(i).onComplete(this);
+        for (int i = size - 1; i >= 0; i--) {
+            completionListeners.remove(i).onComplete(this);
         }
     }
     /**

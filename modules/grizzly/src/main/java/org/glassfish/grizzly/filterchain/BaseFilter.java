@@ -152,7 +152,7 @@ public class BaseFilter implements Filter {
     }
 
     public FilterChainContext createContext(final Connection connection,
-            Operation operation) {
+            final Operation operation) {
         final FilterChainContext ctx =
                 getFilterChain().obtainFilterChainContext(connection);
 

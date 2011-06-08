@@ -60,7 +60,7 @@ public final class ProcessorExecutor {
         return execute(Context.create(connection, processor, ioEvent,
                 processingHandler));
     }
-
+   
     @SuppressWarnings("unchecked")
     public static boolean execute(Context context) throws IOException {
         if (LOGGER.isLoggable(Level.FINEST)) {
@@ -70,43 +70,47 @@ public final class ProcessorExecutor {
                     context.getProcessor()});
         }
 
-        while (true) {
-            final ProcessorResult result = context.getProcessor().process(context);
-            final ProcessorResult.Status status = result.getStatus();
-            final Object resultContext = result.getContext();
-
-            result.recycle();
-
-            switch (status) {
-                case COMPLETE:
-                    complete(context);
-                    return true;
-
-                case LEAVE:
-                    leave(context);
-                    return false;
-
-                case TERMINATE:
-                    terminate(context);
-                    return false;
-
-                case REREGISTER:
-                    reregister(context);
-                    return true;
-
-                case RERUN:
-                    rerun(context);
-                    context = (Context) resultContext;
-                    continue;
-
-                case ERROR:
-                    error(context);
-                    return false;
-
-                case NOT_RUN:
-                    notRun(context);
-                    return false;                    
+        boolean isRerun;
+        ProcessorResult result;
+        ProcessorResult.Status status;
+        
+        do {
+            result = context.getProcessor().process(context);
+            status = result.getStatus();
+            isRerun = (status == ProcessorResult.Status.RERUN);
+            if (isRerun) {
+                final Object resultContext = result.getContext();
+                rerun(context);
+                context = (Context) resultContext;
             }
+        } while (isRerun);
+        
+        switch (status) {
+            case COMPLETE:
+                complete(context);
+                return true;
+
+            case LEAVE:
+                leave(context);
+                return false;
+
+            case TERMINATE:
+                terminate(context);
+                return false;
+
+            case REREGISTER:
+                reregister(context);
+                return true;
+
+            case ERROR:
+                error(context);
+                return false;
+
+            case NOT_RUN:
+                notRun(context);
+                return false;
+                
+            default: throw new IllegalStateException();
         }
     }
 

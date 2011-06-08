@@ -543,7 +543,8 @@ public final class BuffersBuffer extends CompositeBuffer {
             newList[index] = limitBuffer.slice(limitBuffer.position(),
                     limitBufferPosition);
 
-            return BuffersBuffer.create(memoryManager, newList, newList.length, isReadOnly);
+            return BuffersBuffer.create(memoryManager, newList, newList.length,
+                    isReadOnly);
         }
     }
 

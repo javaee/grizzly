@@ -47,81 +47,100 @@ import java.io.IOException;
  * @author oleksiys
  */
 public abstract class ExecutorResolver {
-    public static final FilterExecutor UPSTREAM_EXECUTOR_SAMPLE = new UpstreamExecutor();
-    public static final FilterExecutor DOWNSTREAM_EXECUTOR_SAMPLE = new DownstreamExecutor();
-
-    protected abstract FilterExecutor doResolve(FilterChainContext context);
-
-    public static FilterExecutor resolve(final FilterChainContext context) {
-        return filterExecutors[context.getOperation().ordinal()].doResolve(context);
-    }
+    public static final FilterExecutor UPSTREAM_EXECUTOR_SAMPLE = new UpstreamExecutor() {
+        @Override
+        public NextAction execute(Filter filter, FilterChainContext context) throws IOException {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+    };
     
-    /**
-     * NONE,
-     * ACCEPT,
-     * CONNECT,
-     * READ,
-     * WRITE,
-     * EVENT,
-     * CLOSE;
-     *
-     * Filter executors array
-     */
-    private static final ExecutorResolver[] filterExecutors = {
-        null,
-        new StaticResolver(
-                new UpstreamExecutor() {
-                    @Override
-                    public NextAction execute(Filter filter, FilterChainContext context)
-                            throws IOException {
-                        return filter.handleAccept(context);
-                    }
-                }
-        ),
-        new StaticResolver(
-                new UpstreamExecutor() {
-                    @Override
-                    public NextAction execute(Filter filter, FilterChainContext context)
-                            throws IOException {
-                        return filter.handleConnect(context);
-                    }
-                }
-        ),
-        new StaticResolver(
-                new UpstreamExecutor() {
-                    @Override
-                    public NextAction execute(Filter filter, FilterChainContext context)
-                            throws IOException {
-                        return filter.handleRead(context);
-                    }
-                }
-        ),
-        new StaticResolver(
-                new DownstreamExecutor() {
-                    @Override
-                    public NextAction execute(Filter filter, FilterChainContext context)
-                            throws IOException {
-                        return filter.handleWrite(context);
-                    }
-                }
-        ),
-        new EventResolver(),
-        new StaticResolver(
-                new UpstreamExecutor() {
-                    @Override
-                    public NextAction execute(Filter filter, FilterChainContext context)
-                            throws IOException {
-                        return filter.handleClose(context);
-                    }
-                }
-        ),
+    public static final FilterExecutor DOWNSTREAM_EXECUTOR_SAMPLE = new DownstreamExecutor() {
+        @Override
+        public NextAction execute(Filter filter, FilterChainContext context) throws IOException {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
     };
 
+    private static final FilterExecutor CONNECT_EXECUTOR = new UpstreamExecutor() {
+        @Override
+        public NextAction execute(final Filter filter, final FilterChainContext context)
+                throws IOException {
+            return filter.handleConnect(context);
+        }
+    };
+    
+    private static final FilterExecutor CLOSE_EXECUTOR = new UpstreamExecutor() {
+        @Override
+        public NextAction execute(final Filter filter, final FilterChainContext context)
+                throws IOException {
+            return filter.handleClose(context);
+        }
+    };
+
+    private static final FilterExecutor EVENT_UPSTREAM_EXECUTOR = new UpstreamExecutor() {
+
+        @Override
+        public NextAction execute(final Filter filter,
+                final FilterChainContext context) throws IOException {
+            return filter.handleEvent(context, context.event);
+        }
+    };
+    
+    private static final FilterExecutor EVENT_DOWNSTREAM_EXECUTOR = new DownstreamExecutor() {
+
+        @Override
+        public NextAction execute(final Filter filter,
+                final FilterChainContext context) throws IOException {
+            return filter.handleEvent(context, context.event);
+        }
+    };
+    
+    private static final FilterExecutor ACCEPT_EXECUTOR = new UpstreamExecutor() {
+
+        @Override
+        public NextAction execute(final Filter filter, final FilterChainContext context)
+                throws IOException {
+            return filter.handleAccept(context);
+        }
+    };
+
+    private static final FilterExecutor WRITE_EXECUTOR = new DownstreamExecutor() {
+        @Override
+        public NextAction execute(final Filter filter, final FilterChainContext context)
+                throws IOException {
+            return filter.handleWrite(context);
+        }
+    };
+    
+    private static final FilterExecutor READ_EXECUTOR = new UpstreamExecutor() {
+        @Override
+        public NextAction execute(final Filter filter, final FilterChainContext context)
+                throws IOException {
+            return filter.handleRead(context);
+        }
+    };
+    
+    
+    public static FilterExecutor resolve(final FilterChainContext context) {
+        switch(context.getOperation()) {
+            case READ: return READ_EXECUTOR;
+            case WRITE: return WRITE_EXECUTOR;
+            case ACCEPT: return ACCEPT_EXECUTOR;
+            case CLOSE: return CLOSE_EXECUTOR;
+            case CONNECT: return CONNECT_EXECUTOR;
+            case EVENT: return (context.getFilterIdx() == FilterChainContext.NO_FILTER_INDEX ||
+                        context.getStartIdx() <= context.getEndIdx()) ?
+                    EVENT_UPSTREAM_EXECUTOR:
+                    EVENT_DOWNSTREAM_EXECUTOR;
+            default: return null;
+        }
+    }
+    
     /**
      * Executes appropriate {@link Filter} processing method to process occurred
      * {@link org.glassfish.grizzly.IOEvent}.
      */
-    public static class UpstreamExecutor implements FilterExecutor {
+    public static abstract class UpstreamExecutor implements FilterExecutor {
 
         @Override
         public final int defaultStartIdx(FilterChainContext context) {
@@ -175,19 +194,13 @@ public abstract class ExecutorResolver {
         public final  boolean isDownstream() {
             return false;
         }
-
-        @Override
-        public NextAction execute(Filter filter, FilterChainContext context)
-                throws IOException {
-            throw new UnsupportedOperationException("Subclasses should implement this");
-        }
     }
 
     /**
      * Executes appropriate {@link Filter} processing method to process occurred
      * {@link org.glassfish.grizzly.IOEvent}.
      */
-    public static class DownstreamExecutor implements FilterExecutor {
+    public static abstract class DownstreamExecutor implements FilterExecutor {
         @Override
         public final int defaultStartIdx(FilterChainContext context) {
             if (context.getFilterIdx() != FilterChainContext.NO_FILTER_INDEX) {
@@ -241,62 +254,5 @@ public abstract class ExecutorResolver {
         public final  boolean isDownstream() {
             return true;
         }
-
-        @Override
-        public NextAction execute(Filter filter, FilterChainContext context)
-                throws IOException {
-            throw new UnsupportedOperationException("Subclasses should implement this");
-        }
     }
-
-    public static final class StaticResolver extends ExecutorResolver {
-        private final FilterExecutor executor;
-
-        public StaticResolver(FilterExecutor executor) {
-            this.executor = executor;
-        }
-        
-        @Override
-        protected FilterExecutor doResolve(FilterChainContext context) {
-            return executor;
-        }
-    }
-
-    public static final class EventResolver extends ExecutorResolver {
-        private final FilterExecutor upExecutor;
-        private final FilterExecutor downExecutor;
-
-        public EventResolver() {
-            upExecutor = new UpstreamExecutor() {
-                @Override
-                public NextAction execute(final Filter filter,
-                        final FilterChainContext context) throws IOException {
-                    return filter.handleEvent(context, context.event);
-                }
-            };
-
-            downExecutor = new DownstreamExecutor() {
-                @Override
-                public NextAction execute(final Filter filter,
-                        final FilterChainContext context) throws IOException {
-                    return filter.handleEvent(context, context.event);
-                }
-            };
-        }
-
-        @Override
-        protected FilterExecutor doResolve(FilterChainContext context) {
-            final int startIdx = context.getStartIdx();
-            final int endIdx = context.getEndIdx();
-            final int currentIdx = context.getFilterIdx();
-
-            if (currentIdx == FilterChainContext.NO_FILTER_INDEX ||
-                    startIdx <= endIdx) {
-                return upExecutor;
-            }
-
-            return downExecutor;
-        }
-    }
-
 }

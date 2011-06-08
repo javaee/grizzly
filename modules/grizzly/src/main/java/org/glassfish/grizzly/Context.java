@@ -57,7 +57,7 @@ public class Context implements AttributeStorage, Cacheable {
     private static final ThreadCache.CachedTypeIndex<Context> CACHE_IDX =
             ThreadCache.obtainIndex(Context.class, 4);
 
-    public static Context create(Connection connection) {
+    public static Context create(final Connection connection) {
         Context context = ThreadCache.takeFromCache(CACHE_IDX);
         if (context == null) {
             context = new Context();

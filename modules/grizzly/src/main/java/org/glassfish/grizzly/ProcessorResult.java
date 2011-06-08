@@ -46,22 +46,14 @@ package org.glassfish.grizzly;
  */
 public class ProcessorResult {
 
-    private static final ProcessorResult NOT_RUN_RESULT = new ProcessorResult(Status.NOT_RUN, null, false);
-    private static final ProcessorResult COMPLETE_RESULT = new ProcessorResult(Status.COMPLETE, null, false);
-    private static final ProcessorResult LEAVE_RESULT = new ProcessorResult(Status.LEAVE, null, false);
-    private static final ProcessorResult REREGISTER_RESULT = new ProcessorResult(Status.REREGISTER, null, false);
-    private static final ProcessorResult ERROR_RESULT = new ProcessorResult(Status.ERROR, null, false);
-    private static final ProcessorResult TERMINATE_RESULT = new ProcessorResult(Status.TERMINATE, null, false);
+    private static final ProcessorResult NOT_RUN_RESULT = new ProcessorResult(Status.NOT_RUN, null);
+    private static final ProcessorResult COMPLETE_RESULT = new ProcessorResult(Status.COMPLETE, null);
+    private static final ProcessorResult LEAVE_RESULT = new ProcessorResult(Status.LEAVE, null);
+    private static final ProcessorResult REREGISTER_RESULT = new ProcessorResult(Status.REREGISTER, null);
+    private static final ProcessorResult ERROR_RESULT = new ProcessorResult(Status.ERROR, null);
+    private static final ProcessorResult TERMINATE_RESULT = new ProcessorResult(Status.TERMINATE, null);
     
-    private static final ThreadCache.CachedTypeIndex<ProcessorResult> CACHE_IDX =
-            ThreadCache.obtainIndex(ProcessorResult.class, 1);
-
     private static ProcessorResult create() {
-        final ProcessorResult result = ThreadCache.takeFromCache(CACHE_IDX);
-        if (result != null) {
-            return result;
-        }
-
         return new ProcessorResult();
     }
 
@@ -72,7 +64,6 @@ public class ProcessorResult {
         COMPLETE, LEAVE, REREGISTER, RERUN, ERROR, TERMINATE, NOT_RUN
     }
     
-    private final boolean canRecycle;
     /**
      * Result status
      */
@@ -118,18 +109,13 @@ public class ProcessorResult {
         this(null, null);
     }
 
-    private ProcessorResult(Status status) {
+    private ProcessorResult(final Status status) {
         this(status, null);
     }
 
-    private ProcessorResult(Status status, Object context) {
-        this(status, context, true);
-    }
-
-    private ProcessorResult(Status status, Object context, boolean canRecycle) {
+    private ProcessorResult(final Status status, final Object context) {
         this.status = status;
         this.context = context;
-        this.canRecycle = canRecycle;
     }
 
     /**
@@ -158,12 +144,5 @@ public class ProcessorResult {
     protected ProcessorResult setContext(Object context) {
         this.context = context;
         return this;
-    }
-
-    public void recycle() {
-        if (canRecycle) {
-            status = null;
-            context = null;
-        }
     }
 }

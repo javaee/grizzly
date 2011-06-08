@@ -120,7 +120,7 @@ public class HeapBuffer implements Buffer {
         checkDispose() ;
         flip();
     }
-
+    
     @Override
     public void shrink() {
         checkDispose();
@@ -145,7 +145,6 @@ public class HeapBuffer implements Buffer {
 
         return false;
     }
-
 
     @Override
     public void dispose() {

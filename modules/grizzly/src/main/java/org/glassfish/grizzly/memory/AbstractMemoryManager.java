@@ -59,7 +59,7 @@ public abstract class AbstractMemoryManager<E extends Buffer> implements MemoryM
      * The maximum size of the memory pool that is to be maintained by
      * either the MemoryManager itself or any {@link ThreadLocalPool}s.
      */
-    public static final int DEFAULT_MAX_BUFFER_SIZE = 1024 * 128;
+    public static final int DEFAULT_MAX_BUFFER_SIZE = 1024 * 64;
 
 
     /**

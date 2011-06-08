@@ -79,7 +79,7 @@ public final class ThreadCache {
         return typeIndex;
     }
 
-    public static <E> boolean putToCache(CachedTypeIndex<E> index, E o) {
+    public static <E> boolean putToCache(final CachedTypeIndex<E> index, final E o) {
         final Thread currentThread = Thread.currentThread();
         if (currentThread instanceof DefaultWorkerThread) {
             return ((DefaultWorkerThread) currentThread).putToCache(index, o);
@@ -93,7 +93,7 @@ public final class ThreadCache {
             return genericCache.put(index, o);
         }
     }
-
+    
     /**
      * Get the cached object with the given type index from cache.
      * Unlike {@link #takeFromCache(org.glassfish.grizzly.ThreadCache.CachedTypeIndex)}, the

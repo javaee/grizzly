@@ -48,7 +48,6 @@ import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
-import org.glassfish.grizzly.Buffer;
 
 /**
  * The simple Buffer manager implementation, which works as wrapper above
@@ -135,7 +134,7 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
             int newSize) {
         return wrap(reallocateByteBuffer(oldBuffer.underlying(), newSize));
     }
-
+    
     /**
      * Lets JVM Garbage collector to release buffer.
      */
@@ -212,7 +211,7 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
      * {@inheritDoc}
      */
     @Override
-    public ByteBufferWrapper wrap(ByteBuffer byteBuffer) {
+    public ByteBufferWrapper wrap(final ByteBuffer byteBuffer) {
         return createTrimAwareBuffer(byteBuffer);
     }
 
@@ -351,7 +350,7 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
 
 
     private TrimAwareWrapper createTrimAwareBuffer(
-            ByteBuffer underlyingByteBuffer) {
+            final ByteBuffer underlyingByteBuffer) {
 
         final TrimAwareWrapper buffer = ThreadCache.takeFromCache(CACHE_IDX);
         if (buffer != null) {
@@ -430,18 +429,8 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
                 allocationHistory[--lastAllocatedIndex] = null;
 
                 return true;
-            } else if (tryReset(underlyingBuffer)) {
-                return true;
-            }
-
-            return false;
-        }
-
-        @Override
-        public boolean tryReset(ByteBuffer byteBuffer) {
-            if (wantReset(byteBuffer.remaining())) {
-                reset(byteBuffer);
-
+            } else if (wantReset(underlyingBuffer.capacity())) {
+                reset(underlyingBuffer);
                 return true;
             }
 
@@ -541,7 +530,7 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
                         originalByteBuffer.position(originalByteBuffer.limit());
                         originalByteBuffer.limit(originalByteBuffer.capacity());
 
-                        threadLocalCache.tryReset(originalByteBuffer);
+                        threadLocalCache.reset(originalByteBuffer);
                         return;
                     }
                 }
@@ -607,7 +596,7 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
         }
 
         @Override
-        protected ByteBufferWrapper wrapByteBuffer(ByteBuffer byteBuffer) {
+        protected ByteBufferWrapper wrapByteBuffer(final ByteBuffer byteBuffer) {
             return ByteBufferManager.this.wrap(byteBuffer);
         }
 

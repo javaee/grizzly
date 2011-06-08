@@ -108,6 +108,8 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
 
     @Override
     public ProcessorResult process(final Context context) throws IOException {
+        if (isEmpty()) return ProcessorResult.createComplete();
+        
         final InternalContextImpl internalContext = (InternalContextImpl) context;
         final FilterChainContext filterChainContext = internalContext.filterChainContext;
 
@@ -131,10 +133,210 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
 
         return execute(filterChainContext);
     }
-
+    
+    /**
+     * Execute this FilterChain.
+     * @param ctx {@link FilterChainContext} processing context
+     * @throws java.lang.Exception
+     */
     @Override
-    public GrizzlyFuture<ReadResult> read(Connection connection,
-            CompletionHandler completionHandler) throws IOException {
+    public ProcessorResult execute(FilterChainContext ctx) {
+        final FilterExecutor executor = ExecutorResolver.resolve(ctx);
+
+        if (ctx.getFilterIdx() == FilterChainContext.NO_FILTER_INDEX) {
+            executor.initIndexes(ctx);
+        }
+
+        final Connection connection = ctx.getConnection();
+        final int end = ctx.getEndIdx();
+
+        try {
+            do {
+                switch (executeChainPart(ctx, executor, ctx.getFilterIdx(), end)) {
+                    case TERMINATE:
+                        return ProcessorResult.createTerminate();
+                    case REEXECUTE:
+                        final int idx = indexOfRemainder(
+                                FILTERS_STATE_ATTR.get(connection),
+                                ctx.getOperation(), ctx.getStartIdx(), end);
+                        if (idx != -1) {
+                            // if there is a remainder associated with the connection
+                            // rerun the filter chain with the new context right away
+                            ctx = cloneContext(ctx);
+                            ctx.setMessage(null);
+                            ctx.setFilterIdx(idx);
+                            return ProcessorResult.createRerun(ctx.internalContext);
+                        }
+
+                        // reregister to listen for next operation
+                        return ProcessorResult.createReregister();
+                }
+            } while (prepareRemainder(ctx, FILTERS_STATE_ATTR.get(connection), ctx.getStartIdx(), end));
+        } catch (Exception e) {
+            try {
+                LOGGER.log(e instanceof IOException ? Level.FINE : Level.WARNING,
+                        "Exception during FilterChain execution", e);
+                throwChain(ctx, executor, e);
+                ctx.getConnection().close().markForRecycle(true);
+            } catch (IOException ioe) {
+                LOGGER.log(Level.FINE, "Exception during reporting the failure", ioe);
+            }
+
+            return ProcessorResult.createLeave();
+        }
+
+        return ProcessorResult.createComplete();
+    }
+
+    /**
+     * Sequentially lets each {@link Filter} in chain to process {@link IOEvent}.
+     * 
+     * @param ctx {@link FilterChainContext} processing context
+     * @param executor {@link FilterExecutor}, which will call appropriate
+     *          filter operation to process {@link IOEvent}.
+     * @return TODO: Update
+     */
+    @SuppressWarnings("unchecked")
+    protected final FilterExecution executeChainPart(FilterChainContext ctx,
+            final FilterExecutor executor,
+            final int start,
+            final int end)
+            throws IOException {
+
+        final Connection connection = ctx.getConnection();
+
+        FiltersState filtersState = FILTERS_STATE_ATTR.get(connection);
+
+        int i = start;
+
+        int lastNextActionType = InvokeAction.TYPE;
+        NextAction lastNextAction = null;
+        
+        while (i != end) {
+            // current Filter to be executed
+            final Filter currentFilter = get(i);
+
+            // Checks if there was a remainder message stored from the last filter execution
+            checkStoredMessage(ctx, filtersState, i);
+
+            // execute the task
+            lastNextAction = executeFilter(executor, currentFilter, ctx);
+
+            lastNextActionType = lastNextAction.type();
+            if (lastNextActionType != InvokeAction.TYPE) { // if we don't need to execute next filter
+                break;
+            }
+            
+            // Store the remainder if any
+            filtersState = storeMessage(ctx,
+                    filtersState, FILTER_STATE_TYPE.REMAINDER, i,
+                    ((InvokeAction) lastNextAction).getRemainder(), null);
+
+            i = executor.getNextFilter(ctx);
+            ctx.setFilterIdx(i);
+        }
+
+        switch (lastNextActionType) {
+            case InvokeAction.TYPE:
+                notifyComplete(ctx);
+                break;
+            case StopAction.TYPE:
+                // If the next action is StopAction and there is some data to store for the processed Filter - store it
+                filtersState = storeMessage(ctx,
+                        filtersState, FILTER_STATE_TYPE.INCOMPLETE, i,
+                        ((StopAction) lastNextAction).getRemainder(),
+                        ((StopAction) lastNextAction).getAppender());
+                break;
+            case SuspendingStopAction.TYPE:
+                ctx.suspend();
+                return FilterExecution.REEXECUTE;
+            case SuspendAction.TYPE: // on suspend - return immediatelly
+                return FilterExecution.TERMINATE;
+        }
+
+        return FilterExecution.CONTINUE;
+    }
+    
+    /**
+     * Execute the {@link Filter}, using specific {@link FilterExecutor} and
+     * {@link FilterChainContext}.
+     * 
+     * @param executor
+     * @param currentFilter
+     * @param ctx
+     *
+     * @return {@link NextAction}.
+     * 
+     * @throws IOException
+     */
+    protected NextAction executeFilter(final FilterExecutor executor,
+            final Filter currentFilter, final FilterChainContext ctx)
+            throws IOException {
+
+        NextAction nextNextAction;
+        do {
+            if (LOGGER.isLoggable(Level.FINEST)) {
+                LOGGER.log(Level.FINE, "Execute filter. filter={0} context={1}",
+                        new Object[]{currentFilter, ctx});
+            }
+            // execute the task
+            nextNextAction = executor.execute(currentFilter, ctx);
+
+            if (LOGGER.isLoggable(Level.FINEST)) {
+                LOGGER.log(Level.FINE, "after execute filter. filter={0} context={1} nextAction={2}",
+                        new Object[]{currentFilter, ctx, nextNextAction});
+            }
+        } while (nextNextAction.type() == RerunFilterAction.TYPE);
+
+        return nextNextAction;
+    }
+    
+    /**
+     * Locates a message remainder in the {@link FilterChain}, associated with the
+     * {@link Connection} and prepares the {@link Context} for remainder processing.
+     */
+    protected static boolean prepareRemainder(final FilterChainContext ctx,
+            final FiltersState filtersState, final int start, final int end) {
+
+        final int idx = indexOfRemainder(filtersState, ctx.getOperation(),
+                start, end);
+        
+        if (idx != -1) {
+            ctx.setFilterIdx(idx);
+            ctx.setMessage(null);
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Locates a message remainder in the {@link FilterChain}, associated with the
+     * {@link Connection}.
+     */
+    protected static int indexOfRemainder(final FiltersState filtersState,
+            final Operation operation, final int start, final int end) {
+
+        if (filtersState == null) {
+            return -1;
+        }
+        
+        final int add = (end - start > 0) ? 1 : -1;
+        
+        for (int i = end - add; i != start - add; i -= add) {
+            final FilterStateElement element = filtersState.getState(operation, i);
+            if (element != null
+                    && element.getType() == FILTER_STATE_TYPE.REMAINDER) {
+                return i;
+            }
+        }
+        
+        return -1;
+    }
+    
+    @Override
+    public GrizzlyFuture<ReadResult> read(final Connection connection,
+            final CompletionHandler completionHandler) throws IOException {
         final FilterChainContext context = obtainFilterChainContext(connection);
         context.setOperation(FilterChainContext.Operation.READ);
         context.getTransportContext().configureBlocking(true);
@@ -156,7 +358,8 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             final FilterExecutor executor = ExecutorResolver.resolve(context);
 
             do {
-                if (!checkRemainder(context, executor, 0, context.getEndIdx())) {
+                if (!prepareRemainder(context, FILTERS_STATE_ATTR.get(connection),
+                        0, context.getEndIdx())) {
                     context.setFilterIdx(0);
                     context.setMessage(null);
                 }
@@ -264,232 +467,6 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     }
 
     /**
-     * Execute this FilterChain.
-     * @param ctx {@link FilterChainContext} processing context
-     * @throws java.lang.Exception
-     */
-    @Override
-    public ProcessorResult execute(FilterChainContext ctx) {
-        final FilterExecutor executor = ExecutorResolver.resolve(ctx);
-
-        if (isEmpty()) {
-            ProcessorResult.createComplete();
-        }
-
-        if (ctx.getFilterIdx() == FilterChainContext.NO_FILTER_INDEX) {
-            executor.initIndexes(ctx);
-        }
-
-        final int end = ctx.getEndIdx();
-
-        try {
-
-            FilterExecution status;
-            do {
-                status = executeChainPart(ctx, executor, ctx.getFilterIdx(), end);
-                if (status == FilterExecution.TERMINATE) {
-                    return ProcessorResult.createTerminate();
-                } else if (status == FilterExecution.REEXECUTE) {
-                    ctx = cloneContext(ctx);
-                    if (checkRemainder(ctx, executor, ctx.getStartIdx(), end)) {
-                        // if there is a remainder associated with the connection
-                        // rerun the filter chain with the new context right away
-                        return ProcessorResult.createRerun(ctx.internalContext);
-                    }
-
-                    // recycle cloned context
-                    ctx.completeAndRecycle();
-                    // reregister to listen for next operation
-                    return ProcessorResult.createReregister();
-                }
-            } while (checkRemainder(ctx, executor, ctx.getStartIdx(), end));
-        } catch (IOException e) {
-            try {
-                LOGGER.log(Level.FINE, "Exception during FilterChain execution", e);
-                throwChain(ctx, executor, e);
-                ctx.getConnection().close().markForRecycle(true);
-            } catch (IOException ioe) {
-                LOGGER.log(Level.FINE, "Exception during reporting the failure", ioe);
-            }
-
-            return ProcessorResult.createLeave();
-        } catch (Exception e) {
-            try {
-                LOGGER.log(Level.WARNING, "Exception during FilterChain execution", e);
-                throwChain(ctx, executor, e);
-                ctx.getConnection().close().markForRecycle(true);
-            } catch (IOException ioe) {
-                LOGGER.log(Level.FINE, "Exception during reporting the failure", ioe);
-            }
-
-            return ProcessorResult.createLeave();
-        }
-
-        return ProcessorResult.createComplete();
-    }
-
-    /**
-     * Sequentially lets each {@link Filter} in chain to process {@link IOEvent}.
-     * 
-     * @param ctx {@link FilterChainContext} processing context
-     * @param executor {@link FilterExecutor}, which will call appropriate
-     *          filter operation to process {@link IOEvent}.
-     * @return TODO: Update
-     */
-    @SuppressWarnings("unchecked")
-    protected final FilterExecution executeChainPart(FilterChainContext ctx,
-            FilterExecutor executor,
-            int start,
-            int end)
-            throws IOException {
-
-        final Connection connection = ctx.getConnection();
-
-        FiltersState filtersState = FILTERS_STATE_ATTR.get(connection);
-
-        int i = start;
-
-        while (i != end) {
-            // current Filter to be executed
-            final Filter currentFilter = get(i);
-
-            // Checks if there was a remainder message stored from the last filter execution
-            checkStoredMessage(ctx, filtersState, i);
-
-            // Save initial inputMessage
-            final Object inputMessage = ctx.getMessage();
-
-            // execute the task
-            final NextAction nextNextAction = executeFilter(executor,
-                    currentFilter, ctx);
-
-            final int nextNextActionType = nextNextAction.type();
-
-            if (nextNextActionType == SuspendAction.TYPE) { // on suspend - return immediatelly
-                return FilterExecution.TERMINATE;
-            }
-
-            if (nextNextActionType == InvokeAction.TYPE) { // if we need to execute next filter
-                // Take the remainder, if any?
-                final Object remainder = ((InvokeAction) nextNextAction).getRemainder();
-                if (remainder != null) {
-                    boolean isStoreRemainder = true;
-
-                    if (remainder == inputMessage && remainder instanceof Buffer) {
-                        final Buffer bufferToStore = (Buffer) remainder;
-                        bufferToStore.shrink();
-                        isStoreRemainder = bufferToStore.hasRemaining();
-                    }
-
-                    if (isStoreRemainder) {
-                        filtersState = storeMessage(ctx,
-                                filtersState, FILTER_STATE_TYPE.REMAINDER, i,
-                                remainder, null);
-                    } else {
-                        ((Buffer) remainder).tryDispose();
-                    }
-                }
-            } else if (nextNextActionType == SuspendingStopAction.TYPE) {
-                ctx.suspend();
-                return FilterExecution.REEXECUTE;
-            } else {
-                // If the next action is StopAction and there is some data to store for the processed Filter - store it
-                Object messageToStore;
-                if (nextNextActionType == StopAction.TYPE
-                        && (messageToStore =
-                        ((StopAction) nextNextAction).getRemainder()) != null) {
-
-                    storeMessage(ctx,
-                            filtersState, FILTER_STATE_TYPE.INCOMPLETE, i,
-                            messageToStore, ((StopAction) nextNextAction).getAppender());
-                    return FilterExecution.CONTINUE;
-                }
-
-                return FilterExecution.CONTINUE;
-            }
-
-            i = executor.getNextFilter(ctx);
-            ctx.setFilterIdx(i);
-        }
-
-        notifyComplete(ctx);
-
-        return FilterExecution.CONTINUE;
-    }
-
-    /**
-     * Execute the {@link Filter}, using specific {@link FilterExecutor} and
-     * {@link FilterChainContext}.
-     * 
-     * @param executor
-     * @param currentFilter
-     * @param ctx
-     *
-     * @return {@link NextAction}.
-     * 
-     * @throws IOException
-     */
-    protected NextAction executeFilter(final FilterExecutor executor,
-            final Filter currentFilter, final FilterChainContext ctx)
-            throws IOException {
-
-        NextAction nextNextAction;
-        do {
-            if (LOGGER.isLoggable(Level.FINEST)) {
-                LOGGER.log(Level.FINE, "Execute filter. filter={0} context={1}",
-                        new Object[]{currentFilter, ctx});
-            }
-            // execute the task
-            nextNextAction = executor.execute(currentFilter, ctx);
-
-            if (LOGGER.isLoggable(Level.FINEST)) {
-                LOGGER.log(Level.FINE, "after execute filter. filter={0} context={1} nextAction={2}",
-                        new Object[]{currentFilter, ctx, nextNextAction});
-            }
-        } while (nextNextAction.type() == RerunFilterAction.TYPE);
-
-        return nextNextAction;
-    }
-
-    /**
-     * Sequentially lets each executed {@link Filter} to post process
-     * {@link IOEvent}. The {@link Filter}s will be called in opposite order
-     * they were called on processing phase.
-     *
-     * @param ctx {@link FilterChainContext} processing context
-     * @param executor {@link FilterExecutor}, which will call appropriate
-     *          filter operation to post process {@link IOEvent}.
-     * @return <tt>false</tt> to terminate execution, or <tt>true</tt> for
-     *         normal execution process
-     */
-    protected boolean checkRemainder(FilterChainContext ctx,
-            FilterExecutor executor, int start, int end) {
-
-        final Connection connection = ctx.getConnection();
-
-        // Take the last added remaining data info
-        final FiltersState filtersState = FILTERS_STATE_ATTR.get(connection);
-
-        if (filtersState == null) {
-            return false;
-        }
-        final int add = (end - start > 0) ? 1 : -1;
-        final Operation operation = ctx.getOperation();
-
-        for (int i = end - add; i != start - add; i -= add) {
-            final FilterStateElement element = filtersState.getState(operation, i);
-            if (element != null
-                    && element.getType() == FILTER_STATE_TYPE.REMAINDER) {
-                ctx.setFilterIdx(i);
-                ctx.setMessage(null);
-                return true;
-            }
-        }
-        
-        return false;
-    }
-
-    /**
      * Notify the filters about error.
      * @param ctx {@link FilterChainContext}
      * @return position of the last executed {@link Filter}
@@ -567,19 +544,22 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
      * @return
      */
     private <M> FiltersState storeMessage(final FilterChainContext ctx,
-            FiltersState filtersState, FILTER_STATE_TYPE type, final int filterIdx,
-            final M messageToStore, final Appender<M> appender) {
+            FiltersState filtersState, final FILTER_STATE_TYPE type,
+            final int filterIdx, final M messageToStore,
+            final Appender<M> appender) {
 
-        if (filtersState == null) {
-            final Connection connection = ctx.getConnection();
-            filtersState = new FiltersState(size());
-            FILTERS_STATE_ATTR.set(connection, filtersState);
+        if (messageToStore != null) {
+            if (filtersState == null) {
+                final Connection connection = ctx.getConnection();
+                filtersState = new FiltersState(size());
+                FILTERS_STATE_ATTR.set(connection, filtersState);
+            }
+
+            final Operation operation = ctx.getOperation();
+
+            filtersState.setState(operation, filterIdx,
+                    FilterStateElement.create(type, messageToStore, appender));
         }
-
-        final Operation operation = ctx.getOperation();
-
-        filtersState.setState(operation, filterIdx,
-                FilterStateElement.create(type, messageToStore, appender));
 
         return filtersState;
     }

@@ -76,7 +76,7 @@ public interface Buffer extends Comparable<Buffer> {
      * like reset().
      */
     void trim();
-
+    
     /**
      * Disposes the buffer part, outside [position, limit] interval if possible.
      * May return without changing capacity.
@@ -120,7 +120,7 @@ public interface Buffer extends Comparable<Buffer> {
      * will fail after a call to dispose().
      */
     void dispose();
-
+    
     /**
      * Return the underlying buffer
      * 

@@ -55,8 +55,6 @@ public interface ThreadLocalPool<E> {
 
     boolean release(E underlyingBuffer);
 
-    boolean tryReset(E buffer);
-
     boolean isLastAllocated(E oldBuffer);
 
     E reduceLastAllocated(E buffer);

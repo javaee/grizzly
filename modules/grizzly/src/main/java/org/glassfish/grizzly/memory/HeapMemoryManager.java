@@ -75,7 +75,7 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
     public HeapBuffer allocate(final int size) {
         return allocateHeapBuffer(size);
     }
-
+    
     /**
      * {@inheritDoc}
      */
@@ -91,7 +91,7 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
     public HeapBuffer reallocate(final HeapBuffer oldBuffer, final int newSize) {
         return reallocateHeapBuffer(oldBuffer, newSize);
     }
-
+    
     /**
      * {@inheritDoc}
      */
@@ -99,7 +99,7 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
     public void release(final HeapBuffer buffer) {
         releaseHeapBuffer(buffer);
     }
-
+    
     /**
      * {@inheritDoc}
      */
@@ -316,7 +316,7 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
         private final ByteBuffer[] byteBufferCache;
         private int byteBufferCacheSize = 0;
         private final HeapMemoryManager mm;
-
+        
         public HeapBufferThreadLocalPool(final HeapMemoryManager mm) {
             this(mm, 16);
         }
@@ -368,7 +368,8 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
                 pos -= heapBuffer.cap;
 
                 result = true;
-            } else if (tryReset(heapBuffer)) {
+            } else if (wantReset(heapBuffer.cap)) {
+                reset(heapBuffer);
                 
                 result = true;
             } else {
@@ -388,9 +389,9 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
             final byte[] heap = heapBuffer.array();
             if (pool != heap) {
                 clearByteBufferCache();
+                pool = heap;
             }
 
-            pool = heap;
             pos = heapBuffer.offset;
             lim = pos + heapBuffer.cap;
         }
@@ -406,20 +407,8 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
         }
 
         @Override
-        public boolean tryReset(final HeapBuffer heapBuffer) {
-            if (wantReset(heapBuffer.remaining())) {
-                if (heapBuffer.array() != pool) {
-                    reset(heapBuffer);
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        @Override
         public boolean wantReset(final int size) {
-            return size > 1024 && remaining() < size;
+            return size - remaining() > 1024;
         }
 
         @Override

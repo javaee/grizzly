@@ -86,7 +86,7 @@ public interface MemoryManager<E extends Buffer>
      * @return allocated {@link Buffer}.
      */
     public E allocateAtLeast(int size);
-    
+
     /**
      * Reallocate {@link Buffer} to a required size.
      * Implementation may choose the way, how reallocation could be done, either
