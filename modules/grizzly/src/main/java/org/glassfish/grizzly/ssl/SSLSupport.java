@@ -84,7 +84,7 @@ public interface SSLSupport {
      * The Request attribute key for the session id.
      * This one is a Tomcat extension to the Servlet spec.
      */
-    public static final String SESSION_ID_KEY = "javax.servlet.request.ssl_session";
+    public static final String SESSION_ID_KEY = "javax.servlet.request.ssl_session_id";
     /**
      * A mapping table to determine the number of effective bits in the key
      * when using a cipher suite containing the specified cipher name.  The
