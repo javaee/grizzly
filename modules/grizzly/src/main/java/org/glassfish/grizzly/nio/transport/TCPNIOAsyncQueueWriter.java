@@ -81,13 +81,48 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             final Interceptor<WriteResult<Buffer, SocketAddress>> interceptor,
             final SocketAddress dstAddress,
             final Buffer outputBuffer,
-            final boolean isCloned,
             final boolean isEmptyRecord) {
         return TCPNIOQueueRecord.create(connection, message, future,
                 currentResult, completionHandler, interceptor, dstAddress,
-                outputBuffer, isCloned, isEmptyRecord);
+                outputBuffer, isEmptyRecord);
     }
 
+    @Override
+    protected int writeSimple0(final NIOConnection connection,
+            final SocketAddress dstAddress, final Buffer buffer,
+            final WriteResult<Buffer, SocketAddress> currentResult)
+            throws IOException {
+
+        final int written;
+        
+        final int oldPos = buffer.position();
+        if (buffer.isComposite()) {
+            final BufferArray array = buffer.toBufferArray();
+
+            written = ((TCPNIOTransport) transport).write0(connection, array);
+
+            array.restore();
+            array.recycle();
+        } else {
+            written = ((TCPNIOTransport) transport).write0(connection, buffer);
+        }
+
+        if (written > 0) {
+            buffer.position(oldPos + written);
+        }
+
+        ((TCPNIOConnection) connection).onWrite(buffer, written);
+
+        if (currentResult != null) {
+            currentResult.setMessage(buffer);
+            currentResult.setWrittenSize(currentResult.getWrittenSize()
+                    + written);
+            currentResult.setDstAddress(
+                    connection.getPeerAddress());
+        }
+
+        return written;
+    }
 
 
     @Override
@@ -158,7 +193,6 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
                 final Interceptor interceptor,
                 final Object dstAddress,
                 final Buffer outputBuffer,
-                final boolean isCloned,
                 final boolean isEmptyRecord) {
 
             final TCPNIOQueueRecord asyncWriteQueueRecord =
@@ -168,14 +202,14 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
                 asyncWriteQueueRecord.isRecycled = false;
                 asyncWriteQueueRecord.set(connection, message, future,
                         currentResult, completionHandler, interceptor,
-                        dstAddress, outputBuffer, isCloned, isEmptyRecord);
+                        dstAddress, outputBuffer, isEmptyRecord);
 
                 return asyncWriteQueueRecord;
 }
 
             return new TCPNIOQueueRecord(connection, message, future,
                     currentResult, completionHandler, interceptor, dstAddress,
-                    outputBuffer, isCloned, isEmptyRecord);
+                    outputBuffer, isEmptyRecord);
         }
 
         private BufferArray bufferArray;
@@ -188,10 +222,9 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
                 final Interceptor interceptor,
                 final Object dstAddress,
                 final Buffer outputBuffer,
-                final boolean isCloned,
                 final boolean isEmptyRecord) {
             super(connection, message, future, currentResult, completionHandler,
-                    interceptor, dstAddress, outputBuffer, isCloned, isEmptyRecord);
+                    interceptor, dstAddress, outputBuffer, isEmptyRecord);
         }
 
         @Override

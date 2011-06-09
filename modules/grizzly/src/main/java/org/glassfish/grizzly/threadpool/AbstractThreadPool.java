@@ -41,7 +41,6 @@
 package org.glassfish.grizzly.threadpool;
 
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.memory.AbstractMemoryManager;
 import org.glassfish.grizzly.monitoring.jmx.AbstractJmxMonitoringConfig;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringAware;
 import org.glassfish.grizzly.monitoring.jmx.JmxMonitoringConfig;
@@ -61,6 +60,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.memory.ThreadLocalPoolProvider;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 
 /**
@@ -455,7 +455,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
         return new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
-                final AbstractMemoryManager mm = (AbstractMemoryManager) config.getMemoryManager();
+                final ThreadLocalPoolProvider mm = (ThreadLocalPoolProvider) config.getMemoryManager();
                 return new DefaultWorkerThread(Grizzly.DEFAULT_ATTRIBUTE_BUILDER,
                                                config.getPoolName()
                                                        + "-WorkerThread("

@@ -96,7 +96,7 @@ public class TCPNIOConnection extends NIOConnection {
     @Override
     protected void preClose() {
         try {
-            onConnectFailed(null);
+            checkConnectFailed(null);
             transport.fireIOEvent(IOEvent.CLOSED, this, null);
         } catch (IOException e) {
             LOGGER.log(Level.FINE, "Unexpected IOExcption occurred, " +
@@ -207,10 +207,11 @@ public class TCPNIOConnection extends NIOConnection {
     }
 
     /**
-     * Method will be called, when the connect fails .
+     * Method will be called in order to check if failure happened before
+     * {@link Connection} was reported as connected.
      * @throws IOException
      */
-    protected final void onConnectFailed(Throwable failure) {
+    protected final void checkConnectFailed(Throwable failure) {
         final CompletionHandler<Connection> localConnectHandler =
                 connectHandlerRef.getAndSet(null);
 

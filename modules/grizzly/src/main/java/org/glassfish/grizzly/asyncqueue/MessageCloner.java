@@ -63,10 +63,10 @@ public interface MessageCloner<E> {
      *
      * @param connection {@link Connection}, where the {@link org.glassfish.grizzly.Buffer} will
      * be written.
-     * @param originalByteBuffer {@link org.glassfish.grizzly.Buffer} to be written.
+     * @param originalMessage {@link org.glassfish.grizzly.Buffer} to be written.
      *
      * @return original {@link org.glassfish.grizzly.Buffer} or its clone to be added to asynchronous
      * queue.
      */
-    public E clone(Connection connection, E originalByteBuffer);
+    public E clone(Connection connection, E originalMessage);
 }

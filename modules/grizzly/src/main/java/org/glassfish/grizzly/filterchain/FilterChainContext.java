@@ -60,6 +60,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
@@ -530,6 +531,13 @@ public final class FilterChainContext implements AttributeStorage {
     public void write(final Object address, final Object message,
             final CompletionHandler<WriteResult> completionHandler)
             throws IOException {
+        write(address, message, completionHandler, null);
+    }
+        
+    public void write(final Object address, final Object message,
+            final CompletionHandler<WriteResult> completionHandler,
+            final MessageCloner cloner)
+            throws IOException {
         
         final FilterChainContext newContext =
                 getFilterChain().obtainFilterChainContext(getConnection());
@@ -539,6 +547,7 @@ public final class FilterChainContext implements AttributeStorage {
         newContext.setMessage(message);
         newContext.setAddress(address);
         newContext.transportFilterContext.completionHandler = completionHandler;
+        newContext.transportFilterContext.cloner = cloner;
         newContext.setStartIdx(filterIdx - 1);
         newContext.setFilterIdx(filterIdx - 1);
         newContext.setEndIdx(-1);
@@ -706,6 +715,7 @@ public final class FilterChainContext implements AttributeStorage {
     public static final class TransportContext {
         private boolean isBlocking;
         CompletionHandler completionHandler;
+        MessageCloner cloner;
         FutureImpl future;
 
         public void configureBlocking(boolean isBlocking) {
@@ -724,6 +734,14 @@ public final class FilterChainContext implements AttributeStorage {
             this.completionHandler = completionHandler;
         }
 
+        public MessageCloner getMessageCloner() {
+            return cloner;
+        }
+
+        public void setMessageCloner(final MessageCloner cloner) {
+            this.cloner = cloner;
+        }
+
         public FutureImpl getFuture() {
             return future;
         }
@@ -735,6 +753,7 @@ public final class FilterChainContext implements AttributeStorage {
         void reset() {
             isBlocking = false;
             completionHandler = null;
+            cloner = null;
             future = null;
         }
     }

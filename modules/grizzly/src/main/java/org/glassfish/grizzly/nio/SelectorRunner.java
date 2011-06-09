@@ -175,11 +175,6 @@ public final class SelectorRunner implements Runnable {
         stateHolder.set(State.STOPPING);
         wakeupSelector();
 
-//        try {
-//            shutdownLatch.await(5, TimeUnit.SECONDS);
-//        } catch (InterruptedException ignored) {
-//        }
-
         // we prefer Selector thread shutdown selector
         // but if it's not running - do that ourselves.
         if (runnerThreadActivityCounter.compareAndSet(0, -1)) {

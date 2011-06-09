@@ -59,7 +59,7 @@ public class ThreadPoolConfig {
             null, AbstractThreadPool.DEFAULT_MAX_TASKS_QUEUED,
             AbstractThreadPool.DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT,
             TimeUnit.MILLISECONDS,
-            null, Thread.MAX_PRIORITY, null, null, -1);
+            null, Thread.NORM_PRIORITY, null, null, -1);
 
     public static ThreadPoolConfig defaultConfig() {
         return DEFAULT.copy();

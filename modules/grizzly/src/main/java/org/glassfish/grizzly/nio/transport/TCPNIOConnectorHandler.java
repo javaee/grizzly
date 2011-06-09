@@ -321,7 +321,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
         @Override
         public void failed(final Throwable throwable) {
-            connection.onConnectFailed(throwable);
+            connection.checkConnectFailed(throwable);
         }
     }
     

@@ -56,6 +56,7 @@ import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
 import java.util.concurrent.ExecutionException;
+import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.filterchain.FilterChainEvent;
 
 /**
@@ -124,7 +125,8 @@ public final class TCPNIOTransportFilter extends BaseFilter {
 
             final FutureImpl contextFuture = transportContext.getFuture();
             final CompletionHandler completionHandler = transportContext.getCompletionHandler();
-
+            final MessageCloner cloner = transportContext.getMessageCloner();
+            
             CompletionHandler writeCompletionHandler = null;
 
             final boolean hasFuture = (contextFuture != null);
@@ -137,10 +139,19 @@ public final class TCPNIOTransportFilter extends BaseFilter {
 
             transportContext.setFuture(null);
             transportContext.setCompletionHandler(null);
+            transportContext.setMessageCloner(null);
 
-            transport.getWriter(transportContext.isBlocking()).write(connection,
-                    message, writeCompletionHandler).markForRecycle(
-                    !hasFuture);
+            if (!transportContext.isBlocking()) {
+                final TCPNIOAsyncQueueWriter writer =
+                        (TCPNIOAsyncQueueWriter) transport.getAsyncQueueIO().getWriter();
+                writer.write(connection, null, message, writeCompletionHandler,
+                        null, cloner)
+                        .markForRecycle(!hasFuture);
+            } else {
+                transport.getTemporarySelectorIO().getWriter().write(connection,
+                        null, message, writeCompletionHandler)
+                        .markForRecycle(!hasFuture);
+            }
         }
 
 

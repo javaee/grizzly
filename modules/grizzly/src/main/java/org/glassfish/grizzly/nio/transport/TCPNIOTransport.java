@@ -971,37 +971,10 @@ public final class TCPNIOTransport extends NIOTransport implements
         final SocketChannel socketChannel = (SocketChannel) tcpConnection.getChannel();
 
         final int read;
-        if (!buffer.isDirect()) {
-            final DirectByteBufferRecord record = obtainDirectByteBuffer(
-                    tcpConnection.getReadBufferSize());
-            final ByteBuffer directByteBuffer = record.strongRef;
-            final int length = Math.min(buffer.remaining(), directByteBuffer.remaining());
-
-            try {
-                // make sure we won't read more than buffer allows
-                directByteBuffer.limit(directByteBuffer.position() + length);
-
-                if (!isSelectorThread) {
-                    read = doReadInLoop(socketChannel, directByteBuffer);
-                } else {
-                    read = socketChannel.read(directByteBuffer);
-                }
-
-                if (read > 0) {
-                    directByteBuffer.flip();
-                    buffer.put(directByteBuffer);
-                }
-            } finally {
-                directByteBuffer.clear();
-                releaseDirectByteBuffer(record);
-            }
-
+        if (!isSelectorThread) {
+            read = doReadInLoop(socketChannel, buffer.toByteBuffer());
         } else {
-            if (!isSelectorThread) {
-                read = doReadInLoop(socketChannel, buffer.toByteBuffer());
-            } else {
-                read = socketChannel.read(buffer.toByteBuffer());
-            }
+            read = socketChannel.read(buffer.toByteBuffer());
         }
 
         return read;
@@ -1137,37 +1110,11 @@ public final class TCPNIOTransport extends NIOTransport implements
             final Buffer buffer) throws IOException {
         final SocketChannel socketChannel = (SocketChannel) tcpConnection.getChannel();
 
-        if (!buffer.hasRemaining()) return 0;
-
-        if (!buffer.isDirect()) {
-            final int length = buffer.remaining();
-            final DirectByteBufferRecord record = obtainDirectByteBuffer(length);
-            final ByteBuffer directByteBuffer = record.strongRef;
-
-            try {
-
-                if (length < directByteBuffer.remaining()) {
-                    directByteBuffer.limit(directByteBuffer.position() + length);
-                }
-
-                buffer.get(directByteBuffer);
-
-                final int written = flushDirectByteBuffer(socketChannel, directByteBuffer);
-                final int remaining = directByteBuffer.remaining();
-                if (remaining > 0) {
-                    buffer.position(buffer.position() - remaining);
-                }
-
-                return written;
-            } finally {
-                directByteBuffer.clear();
-                releaseDirectByteBuffer(record);
-            }
-
-        } else {
-            return socketChannel.write(buffer.toByteBuffer());
+        if (!buffer.hasRemaining()) {
+            return 0;
         }
 
+        return socketChannel.write(buffer.toByteBuffer());
     }
     
     private static int writeGathered(final TCPNIOConnection tcpConnection,
@@ -1216,7 +1163,7 @@ public final class TCPNIOTransport extends NIOTransport implements
                 }
 
                 if (!directByteBuffer.hasRemaining() || isFlush) {
-                    written += flushDirectByteBuffer(socketChannel, directByteBuffer);
+                    written += flushByteBuffer(socketChannel, directByteBuffer);
                     int remaining = directByteBuffer.remaining();
                     if (remaining > 0) {
                         while (remaining > 0) {
@@ -1267,7 +1214,7 @@ public final class TCPNIOTransport extends NIOTransport implements
     }
 
 
-    private static int flushDirectByteBuffer(final SocketChannel channel,
+    private static int flushByteBuffer(final SocketChannel channel,
                                              final ByteBuffer directByteBuffer)
     throws IOException {
         

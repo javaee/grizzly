@@ -91,13 +91,8 @@ public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
         }
 
         if (isExecuteInWorkerThread(ioEvent)) {
-            getWorkerThreadPool(connection).execute(new Runnable() {
-
-                @Override
-                public void run() {
-                    run0(connection, ioEvent, pp);
-                }
-            });
+            getWorkerThreadPool(connection).execute(
+                    new WorkerThreadRunnable(connection, ioEvent, pp));
         } else {
             run0(connection, ioEvent, pp);
         }
@@ -115,6 +110,26 @@ public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
 
         fireIOEvent(connection, ioEvent, processingHandler, logger);
 
+    }
+    
+    private static final class WorkerThreadRunnable implements Runnable {
+        final Connection connection;
+        final IOEvent ioEvent;
+        final IOEventProcessingHandler processingHandler;
+        
+        private WorkerThreadRunnable(final Connection connection,
+                final IOEvent ioEvent,
+                final IOEventProcessingHandler processingHandler) {
+            this.connection = connection;
+            this.ioEvent = ioEvent;
+            this.processingHandler = processingHandler;
+            
+        }
+
+        @Override
+        public void run() {
+            run0(connection, ioEvent, processingHandler);
+        }        
     }
 
 }

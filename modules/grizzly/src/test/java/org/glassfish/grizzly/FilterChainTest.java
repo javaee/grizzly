@@ -57,13 +57,17 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.EchoFilter;
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.Arrays;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import junit.framework.TestCase;
+import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.filterchain.FilterChainEvent;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 
 /**
  * Test general {@link FilterChain} functionality.
@@ -212,10 +216,18 @@ public class FilterChainTest extends TestCase {
                     msgSize, resultEcho));
             final FilterChain clientChain = clientFilterChainBuilder.build();
 
-            Future<Connection> connectFuture = transport.connect("localhost", PORT);
+            Future<Connection> connectFuture = transport.connect(
+                    new InetSocketAddress("localhost", PORT),
+                    new EmptyCompletionHandler<Connection>() {
+
+                        @Override
+                        public void completed(final Connection connection) {
+                            connection.setProcessor(clientChain);
+                        }
+                    });
+            
             connection = connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
-            connection.setProcessor(clientChain);
 
             connection.write(msg);
 
@@ -240,6 +252,49 @@ public class FilterChainTest extends TestCase {
         }
     }
 
+    public void testWriteCloner() throws Exception {
+        final TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+        final MemoryManager mm = transport.getMemoryManager();
+
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new EchoFilter());
+
+        transport.setProcessor(filterChainBuilder.build());
+
+        Connection connection = null;
+        
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            final FutureImpl<Boolean> resultEcho = SafeFutureImpl.create();
+
+            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+            clientFilterChainBuilder.add(new TransportFilter());
+            clientFilterChainBuilder.add(new ClonerTestEchoResultFilter(resultEcho));
+            final FilterChain clientChain = clientFilterChainBuilder.build();
+
+            final SocketConnectorHandler connectorHandler =
+                    TCPNIOConnectorHandler.builder(transport)
+                    .processor(clientChain).build();
+            
+            Future<Connection> connectFuture = connectorHandler.connect(
+                    new InetSocketAddress("localhost", PORT));
+            connection = connectFuture.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
+
+            assertTrue(resultEcho.get(10, TimeUnit.SECONDS));
+
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+
+            transport.stop();
+        }
+    }
+    
     private static class BufferWriteFilter extends BaseFilter {
         @Override
         public NextAction handleWrite(FilterChainContext ctx) throws IOException {
@@ -307,6 +362,89 @@ public class FilterChainTest extends TestCase {
 
     }
 
+    private static class ClonerTestEchoResultFilter extends BaseFilter {
+        private final int msgSize = 8192;
+        private volatile int size;
+        private final FutureImpl<Boolean> future;
+
+        public ClonerTestEchoResultFilter(final FutureImpl<Boolean> future) {
+            this.future = future;
+        }
+
+        @Override
+        public NextAction handleConnect(final FilterChainContext ctx)
+                throws IOException {
+            
+            final Connection connection = ctx.getConnection();
+            final Transport transport = connection.getTransport();
+            
+            transport.pause();
+            
+            final byte[] bytesData = new byte[msgSize];
+            
+            final AtomicInteger doneFlag = new AtomicInteger(2);
+            int counter = 0;
+            
+            while(doneFlag.get() != 0) {
+                Arrays.fill(bytesData, (byte) (counter++ % 10));
+                final Buffer b = Buffers.wrap(transport.getMemoryManager(), bytesData);
+                
+                ctx.write(null, b, null, new MessageCloner() {
+
+                    @Override
+                    public Object clone(final Connection connection,
+                            final Object originalMessage) {
+                        final Buffer originalBuffer = (Buffer) originalMessage;
+                        final int remaining = originalBuffer.remaining();
+
+                        final Buffer cloneBuffer = connection.getTransport()
+                                .getMemoryManager().allocate(remaining);
+                        cloneBuffer.put(originalBuffer);
+                        cloneBuffer.flip();
+                        cloneBuffer.allowBufferDispose();
+                        
+                        doneFlag.decrementAndGet();
+                        return cloneBuffer;
+                    }
+                });
+                
+                size += bytesData.length;
+            }
+            transport.resume();
+            
+            return ctx.getInvokeAction();
+        }
+        
+        @Override
+        public NextAction handleRead(final FilterChainContext ctx)
+                throws IOException {
+            final Buffer msg = ctx.getMessage();
+            if (msg.remaining() < size) {
+                return ctx.getStopAction(msg);
+            }
+            
+            if (msg.remaining() > size) {
+                future.failure(new IllegalStateException("Echoed more bytes than expected"));
+            }
+            
+            int count = -1;
+            
+            for (int i = 0; i < size; i++) {
+                if (i % msgSize == 0) {
+                    count = (count + 1) % 10;
+                }
+                
+                if (msg.get(i) != count) {
+                    future.failure(new IllegalStateException("Offset " + i + " expected=" + count + " was=" + msg.get(i)));
+                }
+            }
+            
+            future.result(Boolean.TRUE);
+            
+            return ctx.getStopAction();
+        }
+    }
+    
     private static class EventCounterFilter extends BaseFilter {
         private final int checkValue;
 
