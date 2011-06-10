@@ -44,9 +44,13 @@ import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.websockets.WebSocket;
 import com.sun.grizzly.websockets.WebSocketApplication;
 import com.sun.grizzly.websockets.WebSocketException;
-import com.sun.grizzly.websockets.WebSocketListener;
+
+import java.util.Map;
+import java.util.WeakHashMap;
 
 public class ChatApplication extends WebSocketApplication {
+    private final Map<WebSocket, String> users = new WeakHashMap<WebSocket, String>();
+
     @Override
     public boolean isApplicationRequest(Request request) {
         final String uri = request.requestURI().toString();
@@ -54,16 +58,11 @@ public class ChatApplication extends WebSocketApplication {
     }
 
     @Override
-    public WebSocket createSocket(WebSocketListener[] listeners) {
-        return new ChatWebSocket(listeners);
-    }
-
-    @Override
-    public void onMessage(WebSocket socket, String frame) {
-        if (frame.startsWith("login:")) {
-            login((ChatWebSocket) socket, frame);
+    public void onMessage(WebSocket socket, String text) {
+        if (text.startsWith("login:")) {
+            login(socket, text);
         } else {
-            broadcast(((ChatWebSocket) socket).getUser() + " : " + frame);
+            broadcast(getUser(socket) + " : " + text);
         }
     }
 
@@ -71,7 +70,7 @@ public class ChatApplication extends WebSocketApplication {
         WebSocketsServlet.logger.info("Broadcasting : " + text);
         for (WebSocket webSocket : getWebSockets()) {
             try {
-                webSocket.send(text);
+                send(webSocket, text);
             } catch (WebSocketException e) {
                 e.printStackTrace();
                 WebSocketsServlet.logger.info("Removing chat client: " + e.getMessage());
@@ -81,11 +80,75 @@ public class ChatApplication extends WebSocketApplication {
 
     }
 
-    private void login(ChatWebSocket socket, String frame) {
-        if (socket.getUser() == null) {
+    private void login(WebSocket socket, String frame) {
+        if (getUser(socket) == null) {
             WebSocketsServlet.logger.info("ChatApplication.login");
-            socket.setUser(frame.split(":")[1].trim());
-            broadcast(socket.getUser() + " has joined the chat.");
+            final String user = frame.split(":")[1].trim();
+            setUser(socket, user);
+            broadcast(user + " has joined the chat.");
         }
+    }
+
+    public void send(WebSocket webSocket, String data) {
+        webSocket.send(toJsonp(getUser(webSocket), data));
+    }
+
+    private String getUser(WebSocket webSocket) {
+        return users.get(webSocket);
+    }
+
+    private void setUser(WebSocket socket, String user) {
+        users.put(socket, user);
+    }
+
+    private String toJsonp(String name, String message) {
+        return "window.parent.app.update({ name: \"" + escape(name) + "\", message: \"" + escape(message) + "\" });\n";
+    }
+
+    private String escape(String orig) {
+        StringBuilder buffer = new StringBuilder(orig.length());
+
+        for (int i = 0; i < orig.length(); i++) {
+            char c = orig.charAt(i);
+            switch (c) {
+                case '\b':
+                    buffer.append("\\b");
+                    break;
+                case '\f':
+                    buffer.append("\\f");
+                    break;
+                case '\n':
+                    buffer.append("<br />");
+                    break;
+                case '\r':
+                    // ignore
+                    break;
+                case '\t':
+                    buffer.append("\\t");
+                    break;
+                case '\'':
+                    buffer.append("\\'");
+                    break;
+                case '\"':
+                    buffer.append("\\\"");
+                    break;
+                case '\\':
+                    buffer.append("\\\\");
+                    break;
+                case '<':
+                    buffer.append("&lt;");
+                    break;
+                case '>':
+                    buffer.append("&gt;");
+                    break;
+                case '&':
+                    buffer.append("&amp;");
+                    break;
+                default:
+                    buffer.append(c);
+            }
+        }
+
+        return buffer.toString();
     }
 }
