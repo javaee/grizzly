@@ -41,24 +41,25 @@
 package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.websockets.draft06.Draft06Handler;
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Random;
 
-@Test
 public class Draft06FrameTest {
+    @Test
     public void textFrame() throws IOException {
         Draft06Handler handler = new Draft06Handler();
         final byte[] data = handler.frame(new DataFrame("Hello"));
-        Assert.assertEquals(data, new byte[]{(byte) 0x84, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f});
+        Assert.assertArrayEquals(new byte[]{(byte) 0x84, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f}, data);
 
         handler = new Draft06Handler(true);
         handler.setNetworkHandler(new ArrayNetworkHandler(data));
-        Assert.assertEquals(handler.unframe().getTextPayload(), "Hello");
+        Assert.assertEquals("Hello", handler.unframe().getTextPayload());
     }
 
+    @Test
     public void binaryFrame() throws IOException {
         Draft06Handler handler = new Draft06Handler();
 
@@ -69,13 +70,14 @@ public class Draft06FrameTest {
         System.arraycopy(bytes, 0, sample, 4, bytes.length);
 
         final byte[] data = handler.frame(new DataFrame(bytes));
-        Assert.assertEquals(data, sample);
+        Assert.assertArrayEquals(sample, data);
 
         handler = new Draft06Handler(true);
         handler.setNetworkHandler(new ArrayNetworkHandler(data));
-        Assert.assertEquals(handler.unframe().getBytes(), bytes);
+        Assert.assertArrayEquals(bytes, handler.unframe().getBytes());
     }
 
+    @Test
     public void largeBinaryFrame() throws IOException {
         Draft06Handler handler = new Draft06Handler();
         byte bytes[] = new byte[65536];
@@ -85,13 +87,14 @@ public class Draft06FrameTest {
         System.arraycopy(prelude, 0, sample, 0, prelude.length);
         System.arraycopy(bytes, 0, sample, prelude.length, 65536);
         final byte[] data = handler.frame(new DataFrame(bytes));
-        Assert.assertEquals(data, sample);
+        Assert.assertArrayEquals(sample, data);
 
         handler = new Draft06Handler(true);
         handler.setNetworkHandler(new ArrayNetworkHandler(data));
-        Assert.assertEquals(handler.unframe().getBytes(), bytes);
+        Assert.assertArrayEquals(bytes, handler.unframe().getBytes());
     }
 
+    @Test
     public void ping() throws IOException {
         Draft06Handler handler = new Draft06Handler();
         DataFrame frame = new DataFrame("Hello");
@@ -99,10 +102,11 @@ public class Draft06FrameTest {
         handler = new Draft06Handler(true);
         handler.setNetworkHandler(new ArrayNetworkHandler(data));
 
-        Assert.assertEquals(data, new byte[]{(byte) 0x84, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f});
-        Assert.assertEquals(handler.unframe().getTextPayload(), "Hello");
+        Assert.assertArrayEquals(new byte[]{(byte) 0x84, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f}, data);
+        Assert.assertEquals("Hello", handler.unframe().getTextPayload());
     }
 
+    @Test
     public void convertToBytes() {
         compare(112);
         compare(1004);
@@ -112,6 +116,7 @@ public class Draft06FrameTest {
         compare(Long.MAX_VALUE);
     }
 
+    @Test
     public void mapTypes() {
         for (int i = 0; i < 6; i++) {
             check((byte) i, FrameType.values()[i]);
@@ -120,8 +125,8 @@ public class Draft06FrameTest {
     }
 
     private void check(final byte opcodes, final FrameType type) {
-        Assert.assertEquals(FrameType.valueOf(opcodes), type,
-                String.format("Opcode %s returned the wrong type", opcodes));
+        Assert.assertEquals(String.format("Opcode %s returned the wrong type", opcodes), type,
+                FrameType.valueOf(opcodes));
     }
 
     private void compare(final long length) {
@@ -129,6 +134,7 @@ public class Draft06FrameTest {
         Assert.assertEquals(WebSocketEngine.toLong(bytes, 0, bytes.length), length);
     }
 
+    @Test
     public void close() throws IOException {
         Draft06Handler handler = new Draft06Handler();
         ClosingFrame frame = new ClosingFrame(1001, "test message");
@@ -139,8 +145,8 @@ public class Draft06FrameTest {
         
         ClosingFrame after = (ClosingFrame) handler.unframe();
 
-        Assert.assertEquals(after.getReason(), "test message");
-        Assert.assertEquals(after.getCode(), 1001);
+        Assert.assertEquals("test message", after.getReason());
+        Assert.assertEquals(1001, after.getCode());
     }
 
     private static class ArrayNetworkHandler extends BaseNetworkHandler {

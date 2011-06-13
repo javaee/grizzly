@@ -42,20 +42,29 @@ package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-@Test(dataProvider = "drafts", dataProviderClass = TestParameters.class)
-public class ServletBasedTest {
+@RunWith(Parameterized.class)
+public class ServletBasedTest extends BaseWebSocketTest {
+    private Version version;
+
+    public ServletBasedTest(Version version) {
+        this.version = version;
+    }
+
     /**
      * This tests the up front registration of applications from places such as Servlet.init().  This is likely
      * the common case
      */
-    public void declarative(Version version) throws IOException, InstantiationException, InterruptedException {
+    @Test
+    public void declarative() throws IOException, InstantiationException, InterruptedException {
         final CountDownLatch latch = new CountDownLatch(1);
         final EchoWebSocketApplication app = new EchoWebSocketApplication();
         WebSocketEngine.getEngine().register(app);

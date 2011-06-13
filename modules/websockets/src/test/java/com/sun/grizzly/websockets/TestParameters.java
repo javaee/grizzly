@@ -40,14 +40,14 @@
 
 package com.sun.grizzly.websockets;
 
-import org.testng.annotations.DataProvider;
+import org.junit.runners.Parameterized;
 
 public class TestParameters {
     public TestParameters() {
         System.out.println("TestParameters.TestParameters");
     }
 
-    @DataProvider(name = "drafts")
+    @Parameterized.Parameters
     public static Object[][] drafts() {
         return new Object[][]{
                 {Version.DRAFT76},

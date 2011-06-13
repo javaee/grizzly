@@ -42,8 +42,10 @@ package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.servlet.ServletAdapter;
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -54,13 +56,19 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings({"StringContatenationInLoop"})
-@Test(dataProvider = "drafts", dataProviderClass = TestParameters.class)
+@RunWith(Parameterized.class)
 public class ServerSideTest extends BaseWebSocketTest {
     private static final int PORT = 1726;
 
     public static final int ITERATIONS = 10000;
+    private final Version version;
 
-    public void steadyFlow(Version version) throws IOException, InstantiationException, ExecutionException, InterruptedException {
+    public ServerSideTest(Version version) {
+        this.version = version;
+    }
+
+    @Test
+    public void steadyFlow() throws IOException, InstantiationException, ExecutionException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
         TrackingWebSocket socket = null;
         try {
@@ -81,7 +89,7 @@ public class ServerSideTest extends BaseWebSocketTest {
                 socket.send("now, we're done: " + count);
             }
 
-            Assert.assertTrue(socket.waitOnMessages(), "All messages should come back: " + socket.getReceived());
+            Assert.assertTrue("All messages should come back: " + socket.getReceived(), socket.waitOnMessages());
             time("ServerSideTest.steadyFlow (" + version + ")", start, new Date());
 
         } finally {
@@ -92,7 +100,8 @@ public class ServerSideTest extends BaseWebSocketTest {
         }
     }
 
-    public void single(Version version) throws IOException, InstantiationException, ExecutionException, InterruptedException {
+    @Test
+    public void single() throws IOException, InstantiationException, ExecutionException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
         TrackingWebSocket socket = new TrackingWebSocket(version, String.format("ws://localhost:%s/echo", PORT), 1);
         try {
@@ -100,7 +109,7 @@ public class ServerSideTest extends BaseWebSocketTest {
             final Date start = new Date();
             socket.send("test message: " + count);
 
-            Assert.assertTrue(socket.waitOnMessages(), "All messages should come back: " + socket.getReceived());
+            Assert.assertTrue("All messages should come back: " + socket.getReceived(), socket.waitOnMessages());
         } finally {
             if (socket != null) {
                 socket.close();
@@ -110,7 +119,8 @@ public class ServerSideTest extends BaseWebSocketTest {
     }
 
     @SuppressWarnings({"StringContatenationInLoop"})
-    public void sendAndWait(Version version) throws IOException, InstantiationException, InterruptedException, ExecutionException {
+    @Test
+    public void sendAndWait() throws IOException, InstantiationException, InterruptedException, ExecutionException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
         CountDownWebSocket socket = new CountDownWebSocket(version, String.format("ws://localhost:%s/echo", PORT));
 
@@ -126,10 +136,10 @@ public class ServerSideTest extends BaseWebSocketTest {
                 socket.send("test message " + count);
                 socket.send("let's try again: " + count);
                 socket.send("3rd time's the charm!: " + count);
-                Assert.assertTrue(socket.countDown(), "Everything should come back");
+                Assert.assertTrue("Everything should come back", socket.countDown());
                 socket.send("ok.  just one more: " + count);
                 socket.send("now, we're done: " + count);
-                Assert.assertTrue(socket.countDown(), "Everything should come back");
+                Assert.assertTrue("Everything should come back", socket.countDown());
             }
             time("ServerSideTest.sendAndWait (" + version + ")", start, new Date());
         } finally {
@@ -140,7 +150,8 @@ public class ServerSideTest extends BaseWebSocketTest {
         }
     }
 
-    public void multipleClients(Version version) throws IOException, InstantiationException, ExecutionException, InterruptedException {
+    @Test
+    public void multipleClients() throws IOException, InstantiationException, ExecutionException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
 
         List<TrackingWebSocket> clients = new ArrayList<TrackingWebSocket>();
@@ -164,14 +175,15 @@ public class ServerSideTest extends BaseWebSocketTest {
                 }
             }
             for (TrackingWebSocket socket : clients) {
-                Assert.assertTrue(socket.waitOnMessages(), "All messages should come back: " + socket.getReceived());
+                Assert.assertTrue("All messages should come back: " + socket.getReceived(), socket.waitOnMessages());
             }
         } finally {
             thread.stopEndpoint();
         }
     }
 
-    public void bigPayload(Version version) throws IOException, InstantiationException, ExecutionException, InterruptedException {
+    @Test
+    public void bigPayload() throws IOException, InstantiationException, ExecutionException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
         final int count = 5;
         final CountDownLatch received = new CountDownLatch(count);
@@ -201,7 +213,7 @@ public class ServerSideTest extends BaseWebSocketTest {
             for (int x = 0; x < count; x++) {
                 socket.send(data);
             }
-            Assert.assertTrue(received.await(60, TimeUnit.SECONDS), "Message should come back");
+            Assert.assertTrue("Message should come back", received.await(60, TimeUnit.SECONDS));
         } finally {
             if (socket != null) {
                 socket.close();

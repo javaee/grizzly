@@ -51,9 +51,9 @@ import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.net.jsse.JSSEImplementation;
 import com.sun.grizzly.websockets.draft06.SecKey;
-import org.testng.Assert;
-import org.testng.annotations.BeforeSuite;
-import org.testng.annotations.Test;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
@@ -83,15 +83,14 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings({"StringContatenationInLoop"})
-@Test
 public class WebSocketsTest {
     private static final Object SLUG = new Object();
     private static final int MESSAGE_COUNT = 10;
     private static SSLConfig sslConfig;
     public static final int PORT = 1725;
 
-    @BeforeSuite
-    public void enable() {
+    @BeforeClass
+    public static void enable() {
         WebSocketEngine.setWebSocketEnabled(true);
     }
 
@@ -101,7 +100,7 @@ public class WebSocketsTest {
     }
 
 
-    @Test(expectedExceptions = {IllegalStateException.class})
+    @Test(expected = IllegalStateException.class)
     public void websocketsNotEnabled() {
         WebSocketEngine.setWebSocketEnabled(false);
         final WebSocketApplication app = new WebSocketApplication() {
@@ -142,11 +141,12 @@ public class WebSocketsTest {
                 send(client, sent, "message " + count);
             }
 
-            Assert.assertTrue(received.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS),
-                    String.format("Waited %ss for the messages to echo back", WebSocketEngine.DEFAULT_TIMEOUT));
+            Assert.assertTrue(
+                    String.format("Waited %ss for the messages to echo back", WebSocketEngine.DEFAULT_TIMEOUT),
+                    received.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS));
 
-            Assert.assertEquals(0, sent.size(), String.format("Should have received all %s messages back.",
-                    MESSAGE_COUNT));
+            Assert.assertEquals(String.format("Should have received all %s messages back.",
+                    MESSAGE_COUNT), 0, sent.size());
         } catch (InterruptedException e) {
             e.printStackTrace();
             throw new RuntimeException(e.getMessage(), e);
@@ -158,6 +158,7 @@ public class WebSocketsTest {
         }
     }
 
+    @Test
     public void timeouts() throws Exception {
         SelectorThread thread = null;
         WebSocketClient client = null;
@@ -180,9 +181,9 @@ public class WebSocketsTest {
                 Thread.sleep(5000);
             }
 
-            Assert.assertTrue(received.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS),
-                    String.format("Waited %ss for everything to come back", WebSocketEngine.DEFAULT_TIMEOUT));
-            Assert.assertTrue(messages.isEmpty(), "All messages should have been echoed back: " + messages);
+            Assert.assertTrue(String.format("Waited %ss for everything to come back", WebSocketEngine.DEFAULT_TIMEOUT),
+                    received.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS));
+            Assert.assertTrue("All messages should have been echoed back: " + messages, messages.isEmpty());
         } finally {
             WebSocketEngine.getEngine().unregister(app);
             if (client != null) {
@@ -194,6 +195,7 @@ public class WebSocketsTest {
         }
     }
 
+    @Test
     public void ssl() throws Exception {
         final ArrayList<String> headers = new ArrayList<String>(Arrays.asList(
                 WebSocketEngine.UPGRADE,
@@ -317,7 +319,8 @@ public class WebSocketsTest {
         }
 
         for (String header : headers) {
-            Assert.assertTrue(receivedHeaders.containsKey(header.toLowerCase()), String.format("Looking for '%s'", header));
+            Assert.assertTrue(String.format("Looking for '%s'", header),
+                    receivedHeaders.containsKey(header.toLowerCase()));
         }
     }
 
@@ -325,6 +328,7 @@ public class WebSocketsTest {
         os.write((text + "\r\n").getBytes("UTF-8"));
     }
 
+    @Test
     public void testGetOnWebSocketApplication() throws IOException, InstantiationException, InterruptedException {
         final WebSocketApplication app = new WebSocketApplication() {
             public void onMessage(WebSocket socket, String data) {

@@ -43,8 +43,8 @@ package com.sun.grizzly.websockets;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.servlet.ServletAdapter;
 import com.sun.grizzly.tcp.Request;
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -52,10 +52,10 @@ import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-@Test
 public class FragmentationTest extends BaseWebSocketTest {
     private static final int PORT = 1726;
 
+    @Test
     public void fragment() throws IOException, InstantiationException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter());
         final WebSocketApplication app = new WebSocketApplication() {
@@ -114,7 +114,7 @@ public class FragmentationTest extends BaseWebSocketTest {
 
             Assert.assertTrue(latch.await(60, TimeUnit.SECONDS));
 
-            Assert.assertEquals(new String(baos.toByteArray()), text);
+            Assert.assertEquals(text, new String(baos.toByteArray()));
         } finally {
             thread.stopEndpoint();
             WebSocketEngine.getEngine().unregister(app);

@@ -44,10 +44,22 @@ import com.sun.grizzly.arp.DefaultAsyncHandler;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.util.Utils;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 public class BaseWebSocketTest {
+    @Parameterized.Parameters
+    public static List<Object[]> drafts() {
+        return Arrays.asList(new Object[][]{
+                {Version.DRAFT76},
+                {Version.DRAFT06},
+        });
+    }
+
     protected static SelectorThread createSelectorThread(final int port, final Adapter adapter)
             throws IOException, InstantiationException {
         SelectorThread st = new SelectorThread();
