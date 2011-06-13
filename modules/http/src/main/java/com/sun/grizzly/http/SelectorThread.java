@@ -383,6 +383,10 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      */
     protected HashMap<String,Object> properties = new HashMap<String,Object>();
     
+    /**
+     * SelectorThread {@link ErrorHandler}.
+     */
+    protected ErrorHandler errorHandler;
     
     // ---------------------------------------------------- Object pools --//
 
@@ -2474,7 +2478,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     }
     
     /**
-     * Force keep-alive no mather what the client support.
+     * Force keep-alive no matter what the client support.
      */
     public void setForceKeepAlive(boolean forceKeepAlive){
         this.forceKeepAlive = forceKeepAlive;
@@ -2518,6 +2522,22 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         this.sendBufferSize = sendBufferSize;
     }
 
+    /**
+     * Returns the {@link ErrorHandler}.
+     * @return the {@link ErrorHandler}
+     */
+    public ErrorHandler getErrorHandler() {
+        return errorHandler;
+    }
+
+    /**
+     * Sets the {@link ErrorHandler}.
+     * @param errorHandler {@link ErrorHandler}.
+     */
+    public void setErrorHandler(ErrorHandler errorHandler) {
+        this.errorHandler = errorHandler;
+    }
+    
     /**
      * Get {@link ProcessorTaskFactory}.
      *
