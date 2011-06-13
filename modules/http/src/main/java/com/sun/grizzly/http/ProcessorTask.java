@@ -479,7 +479,7 @@ public class ProcessorTask extends TaskBase implements Processor,
 
     // ProcessorTask post processor
     private PostProcessor externalPostProcessor;
-
+    
     // ----------------------------------------------------- Constructor ---- //
 
     public ProcessorTask(){
@@ -703,6 +703,12 @@ public class ProcessorTask extends TaskBase implements Processor,
                         serverName);
                 response.setContentLength(bb.limit());
                 response.setContentType("text/html");
+
+                final ErrorHandler errorHandler = getErrorHandler();
+                if (errorHandler != null) {
+                    errorHandler.onParsingError(response);
+                }
+                
                 response.flushHeaders();
                 if (response.getChannel() != null) {
                     response.getChannel().write(bb);
@@ -2676,6 +2682,10 @@ public class ProcessorTask extends TaskBase implements Processor,
         this.externalPostProcessor = postProcessor;
     }
 
+    public ErrorHandler getErrorHandler() {
+        return selectorThread.getErrorHandler();
+    }
+   
     public void prepareForNextRequest() {
         isProcessingCompleted = false;
     }
