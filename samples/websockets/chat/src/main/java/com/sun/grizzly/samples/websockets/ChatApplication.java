@@ -77,7 +77,6 @@ public class ChatApplication extends WebSocketApplication {
                 webSocket.close();
             }
         }
-
     }
 
     private void login(WebSocket socket, String frame) {
