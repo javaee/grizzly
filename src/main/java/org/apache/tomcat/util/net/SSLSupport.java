@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 1997-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -88,7 +88,7 @@ public interface SSLSupport {
      * The Request attribute key for the session id.
      * This one is a Tomcat extension to the Servlet spec.
      */
-    public static final String SESSION_ID_KEY = "javax.servlet.request.ssl_session";
+    public static final String SESSION_ID_KEY = "javax.servlet.request.ssl_session_id";
 
     /**
      * A mapping table to determine the number of effective bits in the key
