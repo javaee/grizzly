@@ -80,7 +80,6 @@ public class Main {
         st.setTcpNoDelay(true);
         st.listen();
 
-        WebSocketEngine.setWebSocketEnabled(true);
         WebSocketEngine.getEngine().register(new StickiesApplication());
 
         return st;

@@ -8,7 +8,7 @@
  * and Distribution License("CDDL") (collectively, the "License").  You
  * may not use this file except in compliance with the License.  You can
  * obtain a copy of the License at
- * http://glassfish.java.net/public/CDDL+GPL_1_1.html
+ * https://glassfish.dev.java.net/public/CDDL+GPL_1_1.html
  * or packager/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
  *
@@ -40,18 +40,42 @@
 
 package com.sun.grizzly.websockets;
 
+import com.sun.grizzly.arp.DefaultAsyncHandler;
+import com.sun.grizzly.http.SelectorThread;
+import com.sun.grizzly.tcp.Adapter;
+import com.sun.grizzly.util.Utils;
 import org.junit.runners.Parameterized;
 
-public class TestParameters {
-    public TestParameters() {
-        System.out.println("TestParameters.TestParameters");
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+public class BaseWebSocketTestUtiltiies {
+    @Parameterized.Parameters
+    public static List<Version[]> versions() {
+        final List<Version[]> versions = new ArrayList<Version[]>();
+        for (Version version : Version.values()) {
+            versions.add(new Version[]{version});
+        }
+        return versions;
     }
 
-    @Parameterized.Parameters
-    public static Object[][] drafts() {
-        return new Object[][]{
-                {Version.DRAFT76},
-                {Version.DRAFT06},
-        };
+    protected static SelectorThread createSelectorThread(final int port, final Adapter adapter)
+            throws IOException, InstantiationException {
+        SelectorThread st = new SelectorThread();
+
+        st.setSsBackLog(8192);
+        st.setCoreThreads(2);
+        st.setMaxThreads(2);
+        st.setPort(port);
+        st.setDisplayConfiguration(Utils.VERBOSE_TESTS);
+        st.setAdapter(adapter);
+        st.setAsyncHandler(new DefaultAsyncHandler());
+        st.setEnableAsyncExecution(true);
+        st.getAsyncHandler().addAsyncFilter(new WebSocketAsyncFilter());
+        st.setTcpNoDelay(true);
+        st.listen();
+
+        return st;
     }
 }

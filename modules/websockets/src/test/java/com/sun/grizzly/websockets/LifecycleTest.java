@@ -54,7 +54,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 @RunWith(value = Parameterized.class)
-public class LifecycleTest extends BaseWebSocketTest {
+public class LifecycleTest extends BaseWebSocketTestUtiltiies {
     protected static final String BASE_URL = "ws://localhost:" + WebSocketsTest.PORT;
     private static final String ADDRESS = BASE_URL + "/echo";
     private CountDownLatch closeLatch;

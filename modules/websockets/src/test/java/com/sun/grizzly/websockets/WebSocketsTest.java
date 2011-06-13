@@ -52,7 +52,6 @@ import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.net.jsse.JSSEImplementation;
 import com.sun.grizzly.websockets.draft06.SecKey;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import javax.net.ssl.SSLContext;
@@ -89,33 +88,12 @@ public class WebSocketsTest {
     private static SSLConfig sslConfig;
     public static final int PORT = 1725;
 
-    @BeforeClass
-    public static void enable() {
-        WebSocketEngine.setWebSocketEnabled(true);
-    }
-
     @Test
     public void simpleConversationWithApplication() throws Exception {
         run(new EchoServlet());
     }
 
 
-    @Test(expected = IllegalStateException.class)
-    public void websocketsNotEnabled() {
-        WebSocketEngine.setWebSocketEnabled(false);
-        final WebSocketApplication app = new WebSocketApplication() {
-            @Override
-            public boolean isApplicationRequest(Request request) {
-                return false;
-            }
-        };
-        try {
-            WebSocketEngine.getEngine().register(app);
-        } finally {
-            WebSocketEngine.getEngine().unregister(app);
-            WebSocketEngine.setWebSocketEnabled(true);
-        }
-    }
     private void run(final Servlet servlet) throws Exception {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(servlet));
         final Map<String, Object> sent = new ConcurrentHashMap<String, Object>();

@@ -52,7 +52,7 @@ import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-public class FragmentationTest extends BaseWebSocketTest {
+public class FragmentationTest extends BaseWebSocketTestUtiltiies {
     private static final int PORT = 1726;
 
     @Test

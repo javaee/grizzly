@@ -45,7 +45,6 @@ import com.sun.grizzly.arp.AsyncExecutor;
 import com.sun.grizzly.arp.AsyncProcessorTask;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.http.MimeHeaders;
 
@@ -82,7 +81,6 @@ public class WebSocketEngine {
 
 
     private static final WebSocketEngine engine = new WebSocketEngine();
-    private static volatile boolean isWebSocketEnabled = true;
     static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     public static final String SERVER_KEY_HASH = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     public static final int MASK_SIZE = 4;
@@ -98,17 +96,6 @@ public class WebSocketEngine {
     }
 
     private WebSocketEngine() {
-    }
-
-    /**
-     * @return true is WebSockets are enabled.
-     */
-    public static boolean isWebSocketEnabled() {
-        return isWebSocketEnabled;
-    }
-
-    public static void setWebSocketEnabled(boolean webSocketEnabled) {
-        isWebSocketEnabled = webSocketEnabled;
     }
 
     public static WebSocketEngine getEngine() {
@@ -202,10 +189,6 @@ public class WebSocketEngine {
     }
 
     public void register(WebSocketApplication app) {
-        if (!isWebSocketEnabled()) {
-            throw new IllegalStateException(LogMessages.SEVERE_GRIZZLY_WS_NOT_ENABLED());
-        }
-
         applications.add(app);
     }
 
