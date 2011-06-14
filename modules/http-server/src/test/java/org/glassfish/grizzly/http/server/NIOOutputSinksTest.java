@@ -85,11 +85,9 @@ public class NIOOutputSinksTest extends TestCase {
                 new NetworkListener("Grizzly",
                                     NetworkListener.DEFAULT_NETWORK_HOST,
                                     PORT);
-        final AsyncQueueWriter asyncQueueWriter =
-                listener.getTransport().getAsyncQueueIO().getWriter();
         final int LENGTH = 256000;
         final int MAX_LENGTH = LENGTH * 2;
-        asyncQueueWriter.setMaxPendingBytesPerConnection(MAX_LENGTH);
+        listener.setMaxPendingBytes(MAX_LENGTH);
         server.addListener(listener);
         final FutureImpl<Integer> parseResult = SafeFutureImpl.create();
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
