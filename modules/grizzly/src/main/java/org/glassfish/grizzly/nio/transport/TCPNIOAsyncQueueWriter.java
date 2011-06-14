@@ -42,12 +42,13 @@ package org.glassfish.grizzly.nio.transport;
 
 import java.util.concurrent.Future;
 import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.Interceptor;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import org.glassfish.grizzly.nio.AbstractNIOAsyncQueueWriter;
 import org.glassfish.grizzly.nio.NIOTransport;
 import java.io.IOException;
 import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
@@ -55,8 +56,8 @@ import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
-import org.glassfish.grizzly.memory.BufferArray;
 import org.glassfish.grizzly.nio.NIOConnection;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport.DirectByteBufferRecord;
 import org.glassfish.grizzly.utils.DebugPoint;
 
 /**
@@ -78,52 +79,11 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             final Future<WriteResult<Buffer, SocketAddress>> future,
             final WriteResult<Buffer, SocketAddress> currentResult,
             final CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler,
-            final Interceptor<WriteResult<Buffer, SocketAddress>> interceptor,
             final SocketAddress dstAddress,
-            final Buffer outputBuffer,
             final boolean isEmptyRecord) {
         return TCPNIOQueueRecord.create(connection, message, future,
-                currentResult, completionHandler, interceptor, dstAddress,
-                outputBuffer, isEmptyRecord);
+                currentResult, completionHandler, dstAddress, isEmptyRecord);
     }
-
-    @Override
-    protected int writeSimple0(final NIOConnection connection,
-            final SocketAddress dstAddress, final Buffer buffer,
-            final WriteResult<Buffer, SocketAddress> currentResult)
-            throws IOException {
-
-        final int written;
-        
-        final int oldPos = buffer.position();
-        if (buffer.isComposite()) {
-            final BufferArray array = buffer.toBufferArray();
-
-            written = ((TCPNIOTransport) transport).write0(connection, array);
-
-            array.restore();
-            array.recycle();
-        } else {
-            written = ((TCPNIOTransport) transport).write0(connection, buffer);
-        }
-
-        if (written > 0) {
-            buffer.position(oldPos + written);
-        }
-
-        ((TCPNIOConnection) connection).onWrite(buffer, written);
-
-        if (currentResult != null) {
-            currentResult.setMessage(buffer);
-            currentResult.setWrittenSize(currentResult.getWrittenSize()
-                    + written);
-            currentResult.setDstAddress(
-                    connection.getPeerAddress());
-        }
-
-        return written;
-    }
-
 
     @Override
     @SuppressWarnings("unchecked")
@@ -132,24 +92,29 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
                 
         final WriteResult<Buffer, SocketAddress> currentResult =
                 queueRecord.getCurrentResult();
-        final Buffer buffer = queueRecord.getOutputBuffer();
+        final Buffer buffer = queueRecord.getMessage();
         final TCPNIOQueueRecord record = (TCPNIOQueueRecord) queueRecord;
 
         final int written;
         
         final int oldPos = buffer.position();
-        if (buffer.isComposite()) {
-            BufferArray array = record.bufferArray;
-            if (array == null) {
-                array = buffer.toBufferArray();
-                record.bufferArray = array;
+        if (!buffer.hasRemaining()) {
+            written = 0;
+        } else if (buffer.isComposite()) {
+            DirectByteBufferRecord directByteBufferRecord = record.directByteBufferRecord;
+            if (directByteBufferRecord == null) {
+                directByteBufferRecord = obtainDirectByteBuffer(buffer);
+                record.directByteBufferRecord = directByteBufferRecord;
             }
+            
+            final ByteBuffer directByteBuffer = directByteBufferRecord.strongRef;
 
-            written = ((TCPNIOTransport) transport).write0(connection, array);
+            written = TCPNIOTransport.flushByteBuffer(
+                    (SocketChannel) connection.getChannel(), directByteBuffer);
 
 
-            if (!buffer.hasRemaining()) {
-                array.restore();
+            if (!directByteBuffer.hasRemaining()) {
+                returnDirectByteBuffer(directByteBufferRecord);
             }
 
         } else {
@@ -179,6 +144,25 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
         nioConnection.enableIOEvent(IOEvent.WRITE);
     }
 
+    private static DirectByteBufferRecord obtainDirectByteBuffer(final Buffer buffer) {
+        final int size = buffer.remaining();
+        final int pos = buffer.position();
+
+        final DirectByteBufferRecord record =
+                TCPNIOTransport.obtainDirectByteBuffer(size);
+        final ByteBuffer directByteBuffer = record.strongRef;
+        buffer.get(directByteBuffer, 0, size);
+        buffer.position(pos);
+        directByteBuffer.limit(size);
+        
+        return record;
+    }
+
+    private static void returnDirectByteBuffer(
+            final DirectByteBufferRecord directByteBufferRecord) {
+        TCPNIOTransport.releaseDirectByteBuffer(directByteBufferRecord);
+    }
+    
     private static class TCPNIOQueueRecord extends AsyncWriteQueueRecord {
 
         private static final ThreadCache.CachedTypeIndex<TCPNIOQueueRecord> CACHE_IDX =
@@ -186,13 +170,11 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
 
         public static AsyncWriteQueueRecord create(
                 final Connection connection,
-                final Object message,
+                final Buffer message,
                 final Future future,
                 final WriteResult currentResult,
                 final CompletionHandler completionHandler,
-                final Interceptor interceptor,
                 final Object dstAddress,
-                final Buffer outputBuffer,
                 final boolean isEmptyRecord) {
 
             final TCPNIOQueueRecord asyncWriteQueueRecord =
@@ -201,30 +183,27 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             if (asyncWriteQueueRecord != null) {
                 asyncWriteQueueRecord.isRecycled = false;
                 asyncWriteQueueRecord.set(connection, message, future,
-                        currentResult, completionHandler, interceptor,
-                        dstAddress, outputBuffer, isEmptyRecord);
+                        currentResult, completionHandler,
+                        dstAddress, isEmptyRecord);
 
                 return asyncWriteQueueRecord;
 }
 
             return new TCPNIOQueueRecord(connection, message, future,
-                    currentResult, completionHandler, interceptor, dstAddress,
-                    outputBuffer, isEmptyRecord);
+                    currentResult, completionHandler, dstAddress, isEmptyRecord);
         }
 
-        private BufferArray bufferArray;
+        private DirectByteBufferRecord directByteBufferRecord;
         
         public TCPNIOQueueRecord(final Connection connection,
-                final Object message,
+                final Buffer message,
                 final Future future,
                 final WriteResult currentResult,
                 final CompletionHandler completionHandler,
-                final Interceptor interceptor,
                 final Object dstAddress,
-                final Buffer outputBuffer,
                 final boolean isEmptyRecord) {
             super(connection, message, future, currentResult, completionHandler,
-                    interceptor, dstAddress, outputBuffer, isEmptyRecord);
+                    dstAddress, isEmptyRecord);
         }
 
         @Override
@@ -236,11 +215,8 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
                 recycleTrack = new DebugPoint(new Exception(),
                         Thread.currentThread().getName());
             }
-
-            if (bufferArray != null) {
-                bufferArray.recycle();
-                bufferArray = null;
-            }
+            
+            directByteBufferRecord = null;
             
             ThreadCache.putToCache(CACHE_IDX, this);
         }

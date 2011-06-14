@@ -60,7 +60,7 @@ public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult> {
             ThreadCache.obtainIndex(AsyncReadQueueRecord.class, 2);
     
     public static AsyncReadQueueRecord create(final Connection connection,
-            final Object message, final Future future,
+            final Buffer message, final Future future,
             final ReadResult currentResult, CompletionHandler completionHandler,
             final Interceptor<ReadResult> interceptor) {
 
@@ -69,8 +69,10 @@ public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult> {
         
         if (asyncReadQueueRecord != null) {
             asyncReadQueueRecord.isRecycled = false;
+            asyncReadQueueRecord.originalMessage = message;
+            asyncReadQueueRecord.interceptor = interceptor;
             asyncReadQueueRecord.set(connection, message, future, currentResult,
-                    completionHandler, interceptor);
+                    completionHandler);
             return asyncReadQueueRecord;
         }
 
@@ -78,16 +80,20 @@ public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult> {
                 currentResult, completionHandler, interceptor);
     }
 
+    protected Object originalMessage;
+    protected Interceptor interceptor;
     private Buffer remainderBuffer;
     
+    
     private AsyncReadQueueRecord(final Connection connection,
-            final Object message, final Future future,
+            final Buffer message, final Future future,
             final ReadResult currentResult,
             final CompletionHandler completionHandler,
             final Interceptor<ReadResult> interceptor) {
         
-        super(connection, message, future, currentResult, completionHandler,
-                interceptor);
+        super(connection, message, future, currentResult, completionHandler);
+        this.originalMessage = message;
+        this.interceptor = interceptor;
     }
 
     public Buffer getRemainderBuffer() {
@@ -95,14 +101,26 @@ public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult> {
         return remainderBuffer;
     }
 
-    public void setRemainderBuffer(Buffer remainderBuffer) {
+    public void setRemainderBuffer(final Buffer remainderBuffer) {
         checkRecycled();
         this.remainderBuffer = remainderBuffer;
     }
 
+    public Object getOriginalMessage() {
+        checkRecycled();
+        return originalMessage;
+    }
+    
+    public final Interceptor getInterceptor() {
+        checkRecycled();
+        return interceptor;
+    }
+
     protected final void reset() {
-        set(null, null, null, null, null, null);
+        set(null, null, null, null, null);
         remainderBuffer = null;
+        originalMessage = null;
+        interceptor = null;
     }
 
     @Override

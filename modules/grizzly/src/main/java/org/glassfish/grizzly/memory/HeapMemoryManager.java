@@ -270,8 +270,7 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
     }
 
     TrimmableHeapBuffer createTrimAwareBuffer(final byte[] heap,
-                                                      final int offset,
-                                                      final int length) {
+            final int offset, final int length) {
 
         final TrimmableHeapBuffer buffer = ThreadCache.takeFromCache(CACHE_IDX);
         if (buffer != null) {
@@ -318,7 +317,7 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
         private final HeapMemoryManager mm;
         
         public HeapBufferThreadLocalPool(final HeapMemoryManager mm) {
-            this(mm, 16);
+            this(mm, 8);
         }
 
         public HeapBufferThreadLocalPool(final HeapMemoryManager mm,
@@ -460,7 +459,7 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
             implements TrimAware {
 
         private HeapMemoryManager mm;
-
+        
         private TrimmableHeapBuffer(final HeapMemoryManager mm,
                                     byte[] heap,
                                     int offset,

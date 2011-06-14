@@ -94,6 +94,8 @@ public class HeapBuffer implements Buffer {
 
     // ------------------------------------------------------------ Constructors
 
+    protected HeapBuffer() {
+    }
 
     protected HeapBuffer(final byte[] heap,
                          final int offset,

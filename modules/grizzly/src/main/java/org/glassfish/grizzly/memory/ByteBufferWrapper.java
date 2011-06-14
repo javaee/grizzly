@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.memory;
 
 import java.nio.BufferOverflowException;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
@@ -348,24 +349,42 @@ public class ByteBufferWrapper implements Buffer {
 
     @Override
     public Buffer get(final ByteBuffer dst) {
-        if (visible.remaining() <= dst.remaining()) {
-            dst.put(visible);
-        } else {
-            get(dst, dst.position(), dst.remaining());
+        final int length = dst.remaining();
+        
+        if (visible.remaining() < length) {
+            throw new BufferUnderflowException();
         }
-
+        
+        final int srcPos = visible.position();
+        final int oldSrcLim = visible.limit();
+        try {
+            visible.limit(srcPos + length);
+            dst.put(visible);
+        } finally {
+            visible.limit(oldSrcLim);
+        }
+        
         return this;
     }
 
     @Override
     public Buffer get(final ByteBuffer dst, final int position, final int length) {
-        final int oldLim = visible.limit();
-
+        if (visible.remaining() < length) {
+            throw new BufferUnderflowException();
+        }
+        
+        final int srcPos = visible.position();
+        final int oldSrcLim = visible.limit();
+        final int oldDstPos = dst.position();
+        final int oldDstLim = dst.limit();
+        
+        Buffers.setPositionLimit(dst, position, position + length);
         try {
-            visible.limit(length);
+            visible.limit(srcPos + length);
             dst.put(visible);
         } finally {
-            Buffers.setPositionLimit(visible, length, oldLim);
+            visible.limit(oldSrcLim);
+            Buffers.setPositionLimit(dst, oldDstPos, oldDstLim);
         }
 
         return this;

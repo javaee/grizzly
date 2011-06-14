@@ -50,7 +50,7 @@ import org.glassfish.grizzly.monitoring.MonitoringConfigImpl;
 public abstract class AbstractJmxMonitoringConfig<E> extends MonitoringConfigImpl<E>
         implements JmxMonitoringConfig<E> {
 
-    public AbstractJmxMonitoringConfig(Class<E> clazz) {
+    public AbstractJmxMonitoringConfig(final Class<E> clazz) {
         super(clazz);
     }
 }

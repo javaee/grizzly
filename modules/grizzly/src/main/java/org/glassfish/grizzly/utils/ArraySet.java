@@ -54,12 +54,15 @@ import java.util.Set;
  */
 public class ArraySet<T> implements Set<T> {
 
+    private final T[] emptyArray;
     private volatile T[] array;
     private final Object sync = new Object();
     private final Class<T> clazz;
 
-    public ArraySet(Class<T> clazz) {
+    @SuppressWarnings("unchecked")
+    public ArraySet(final Class<T> clazz) {
         this.clazz = clazz;
+        emptyArray = (T[]) Array.newInstance(clazz, 0);
     }
     
     /**
@@ -234,7 +237,7 @@ public class ArraySet<T> implements Set<T> {
     @SuppressWarnings("unchecked")
     public final T[] obtainArrayCopy() {
         final T[] localArray = array;
-        if (localArray == null) return (T[]) Array.newInstance(clazz, 0);
+        if (localArray == null) return emptyArray;
 
         return Arrays.copyOf(localArray, localArray.length);
     }

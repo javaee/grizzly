@@ -41,8 +41,8 @@
 package org.glassfish.grizzly.asyncqueue;
 
 import org.glassfish.grizzly.Cacheable;
-import org.glassfish.grizzly.Interceptor;
 import java.util.concurrent.Future;
+import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
@@ -55,55 +55,43 @@ import org.glassfish.grizzly.utils.DebugPoint;
  */
 public abstract class AsyncQueueRecord<R> implements Cacheable {
     protected Connection connection;
-    protected Object originalMessage;
-    protected Object message;
+    protected Buffer message;
     protected Future future;
     protected R currentResult;
     protected CompletionHandler completionHandler;
-    protected Interceptor interceptor;
 
     protected boolean isRecycled = false;
     protected DebugPoint recycleTrack;
     
     public AsyncQueueRecord(final Connection connection,
-            final Object originalMessage, final Future future,
-            final R currentResult, final CompletionHandler completionHandler,
-            final Interceptor interceptor) {
+            final Buffer message, final Future future,
+            final R currentResult, final CompletionHandler completionHandler) {
 
-        set(connection, originalMessage, future, currentResult,
-                completionHandler, interceptor);
+        set(connection, message, future, currentResult, completionHandler);
     }
 
     protected final void set(final Connection connection,
-            final Object originalMessage, final Future future,
-            final R currentResult, final CompletionHandler completionHandler,
-            final Interceptor interceptor) {
+            final Buffer message, final Future future,
+            final R currentResult, final CompletionHandler completionHandler) {
 
         checkRecycled();
         this.connection = connection;
-        this.originalMessage = originalMessage;
-        this.message = originalMessage;
+        this.message = message;
         this.future = future;
         this.currentResult = currentResult;
         this.completionHandler = completionHandler;
-        this.interceptor = interceptor;
     }
 
     public Connection getConnection() {
         return connection;
     }
   
-    public Object getOriginalMessage() {
-        checkRecycled();
-        return originalMessage;
-    }
-
-    public final Object getMessage() {
+    public final Buffer getMessage() {
         checkRecycled();
         return message;
     }
 
-    public final void setMessage(Object message) {
+    public final void setMessage(final Buffer message) {
         checkRecycled();
         this.message = message;
     }
@@ -113,7 +101,7 @@ public abstract class AsyncQueueRecord<R> implements Cacheable {
         return future;
     }
 
-    public void setFuture(Future future) {
+    public void setFuture(final Future future) {
         checkRecycled();
         this.future = future;
     }
@@ -126,11 +114,6 @@ public abstract class AsyncQueueRecord<R> implements Cacheable {
     public final CompletionHandler getCompletionHandler() {
         checkRecycled();
         return completionHandler;
-    }
-
-    public final Interceptor getInterceptor() {
-        checkRecycled();
-        return interceptor;
     }
 
     protected final void checkRecycled() {

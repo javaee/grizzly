@@ -51,7 +51,7 @@ public class MonitoringConfigImpl<E> implements MonitoringConfig<E> {
 
     private final ArraySet<E> monitoringProbes;
 
-    public MonitoringConfigImpl(Class<E> clazz) {
+    public MonitoringConfigImpl(final Class<E> clazz) {
         monitoringProbes = new ArraySet<E>(clazz);
     }
 
@@ -59,7 +59,7 @@ public class MonitoringConfigImpl<E> implements MonitoringConfig<E> {
      * {@inheritDoc}
      */
     @Override
-    public void addProbes(E... probes) {
+    public final void addProbes(final E... probes) {
         monitoringProbes.addAll(probes);
     }
 
@@ -67,7 +67,7 @@ public class MonitoringConfigImpl<E> implements MonitoringConfig<E> {
      * {@inheritDoc}
      */
     @Override
-    public boolean removeProbes(E... probes) {
+    public final boolean removeProbes(final E... probes) {
         return monitoringProbes.removeAll(probes);
     }
 
@@ -75,7 +75,7 @@ public class MonitoringConfigImpl<E> implements MonitoringConfig<E> {
      * {@inheritDoc}
      */
     @Override
-    public E[] getProbes() {
+    public final E[] getProbes() {
         return monitoringProbes.obtainArrayCopy();
     }
 
@@ -84,7 +84,7 @@ public class MonitoringConfigImpl<E> implements MonitoringConfig<E> {
      *
      * @return the monitoring probes array (direct).
      */
-    public E[] getProbesUnsafe() {
+    public final E[] getProbesUnsafe() {
         return monitoringProbes.getArray();
     }
 
@@ -92,7 +92,7 @@ public class MonitoringConfigImpl<E> implements MonitoringConfig<E> {
      * {@inheritDoc}
      */
     @Override
-    public void clearProbes() {
+    public final void clearProbes() {
         monitoringProbes.clear();
     }
 }

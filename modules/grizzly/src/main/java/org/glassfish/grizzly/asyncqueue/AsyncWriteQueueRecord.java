@@ -41,7 +41,6 @@
 package org.glassfish.grizzly.asyncqueue;
 
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.Interceptor;
 import java.util.concurrent.Future;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
@@ -61,13 +60,11 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
 
     public static AsyncWriteQueueRecord create(
             final Connection connection,
-            final Object message,
+            final Buffer message,
             final Future future,
             final WriteResult currentResult,
             final CompletionHandler completionHandler,
-            final Interceptor interceptor,
             final Object dstAddress,
-            final Buffer outputBuffer,
             final boolean isEmptyRecord) {
 
         final AsyncWriteQueueRecord asyncWriteQueueRecord =
@@ -76,63 +73,44 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
         if (asyncWriteQueueRecord != null) {
             asyncWriteQueueRecord.isRecycled = false;
             asyncWriteQueueRecord.set(connection, message, future, currentResult,
-                    completionHandler, interceptor, dstAddress,
-                    outputBuffer, isEmptyRecord);
+                    completionHandler, dstAddress, isEmptyRecord);
             
             return asyncWriteQueueRecord;
         }
 
         return new AsyncWriteQueueRecord(connection, message, future,
-                currentResult, completionHandler, interceptor, dstAddress,
-                outputBuffer, isEmptyRecord);
+                currentResult, completionHandler, dstAddress, isEmptyRecord);
     }
     
     private boolean isEmptyRecord;
     private Object dstAddress;
-    private Buffer outputBuffer;
 
     protected AsyncWriteQueueRecord(final Connection connection,
-            final Object message, final Future future,
+            final Buffer message, final Future future,
             final WriteResult currentResult,
             final CompletionHandler completionHandler,
-            final Interceptor interceptor, final Object dstAddress,
-            final Buffer outputBuffer,
+            final Object dstAddress,
             final boolean isEmptyRecord) {
 
-        super(connection, message, future, currentResult, completionHandler,
-                interceptor);
+        super(connection, message, future, currentResult, completionHandler);
         this.dstAddress = dstAddress;
-        this.outputBuffer = outputBuffer;
         this.isEmptyRecord = isEmptyRecord;
     }
 
-    protected void set(final Connection connection, final Object message,
+    protected void set(final Connection connection, final Buffer message,
             final Future future, final WriteResult currentResult,
             final CompletionHandler completionHandler,
-            final Interceptor interceptor, final Object dstAddress,
-            final Buffer outputBuffer,
+            final Object dstAddress,
             final boolean isEmptyRecord) {
-        super.set(connection, message, future, currentResult,
-                completionHandler, interceptor);
+        super.set(connection, message, future, currentResult, completionHandler);
 
         this.dstAddress = dstAddress;
-        this.outputBuffer = outputBuffer;
         this.isEmptyRecord = isEmptyRecord;
     }
 
     public final Object getDstAddress() {
         checkRecycled();
         return dstAddress;
-    }
-
-    public Buffer getOutputBuffer() {
-        checkRecycled();
-        return outputBuffer;
-    }
-
-    public void setOutputBuffer(Buffer outputBuffer) {
-        checkRecycled();
-        this.outputBuffer = outputBuffer;
     }
 
     public boolean isEmptyRecord() {
@@ -144,7 +122,7 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     }
 
     protected final void reset() {
-        set(null, null, null, null, null, null, null, null, false);
+        set(null, null, null, null, null, null, false);
     }
 
     @Override
