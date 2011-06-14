@@ -54,16 +54,17 @@ public enum Protocol {
     HTTP_1_1 (1, 1);
 
     public static Protocol parseDataChunk(final DataChunk protocolC) {
-        if (protocolC.isNull() || protocolC.getLength() == 0
-            || protocolC.equals(Protocol.HTTP_0_9.getProtocolString())) {
+        if (protocolC.getLength() == 0) {
             return Protocol.HTTP_0_9;
         } else if (protocolC.equals(Protocol.HTTP_1_1.getProtocolString())) {
             return Protocol.HTTP_1_1;
         } else if (protocolC.equals(Protocol.HTTP_1_0.getProtocolString())) {
             return Protocol.HTTP_1_0;
-        } else {
-            throw new IllegalStateException("Unknown protocol " + protocolC.toString());
+        } else if (protocolC.equals(Protocol.HTTP_0_9.getProtocolString())) {
+            return Protocol.HTTP_0_9;
         }
+        
+        throw new IllegalStateException("Unknown protocol " + protocolC.toString());
     }
 
     private final String protocolString;

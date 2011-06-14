@@ -625,7 +625,8 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
     }
 
     /**
-     * Compares the message bytes to the specified String object.
+     * Compares the message bytes to the specified byte array representing
+     * ASCII characters.
 
      * @param b the <code>byte[]</code> to compare
      *
@@ -642,6 +643,31 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
         int off = start;
         for (int i = 0; i < len; i++) {
             if (Ascii.toLower(c[off++]) != Ascii.toLower(b[i])) {
+            return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Compares the char chunk to the specified byte array representing
+     * lower-case ASCII characters.
+     *
+     * @param b the <code>byte[]</code> to compare
+     *
+     * @return true if the comparison succeeded, false otherwise
+     *
+     * @since 2.1.2
+     */
+    public boolean equalsIgnoreCaseLowerCase(final byte[] b) {
+        char[] c = buff;
+        int len = end-start;
+        if (c == null || len != b.length) {
+            return false;
+        }
+        int off = start;
+        for (int i = 0; i < len; i++) {
+            if (Ascii.toLower(c[off++]) != b[i]) {
             return false;
             }
         }

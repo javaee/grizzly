@@ -104,8 +104,8 @@ class HttpRequestPacketImpl extends HttpRequestPacket implements HttpPacketParsi
     }
 
     @Override
-    public void setHeaderParsed(boolean isHeaderParsed) {
-        if (isHeaderParsed && !isChunked) {
+    public void setHeaderParsed(final boolean isHeaderParsed) {
+        if (isHeaderParsed && isExpectContent() && !isChunked) {
             contentParsingState.chunkRemainder = getContentLength();
         }
         

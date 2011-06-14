@@ -91,36 +91,49 @@ public class HttpCodecUtils {
     }
 
     public static Buffer put(final MemoryManager memoryManager,
-            Buffer headerBuffer, final byte[] array) {
+            Buffer dstBuffer, final byte[] array) {
 
-        if (headerBuffer.remaining() < array.length) {
-            headerBuffer =
-                    resizeBuffer(memoryManager, headerBuffer, array.length);
+        if (dstBuffer.remaining() < array.length) {
+            dstBuffer = resizeBuffer(memoryManager, dstBuffer, array.length);
         }
 
-        headerBuffer.put(array);
+        dstBuffer.put(array);
 
-        return headerBuffer;
+        return dstBuffer;
     }
 
     public static Buffer put(final MemoryManager memoryManager,
-            Buffer headerBuffer, final byte value) {
+            Buffer dstBuffer, final Buffer buffer) {
+        
+        final int addSize = buffer.remaining();
 
-        if (!headerBuffer.hasRemaining()) {
-            headerBuffer = resizeBuffer(memoryManager, headerBuffer, 1);
+        if (dstBuffer.remaining() < addSize) {
+            dstBuffer = resizeBuffer(memoryManager, dstBuffer, addSize);
         }
 
-        headerBuffer.put(value);
+        dstBuffer.put(buffer);
 
-        return headerBuffer;
+        return dstBuffer;
+    }
+    
+    public static Buffer put(final MemoryManager memoryManager,
+            Buffer dstBuffer, final byte value) {
+
+        if (!dstBuffer.hasRemaining()) {
+            dstBuffer = resizeBuffer(memoryManager, dstBuffer, 1);
+        }
+
+        dstBuffer.put(value);
+
+        return dstBuffer;
     }
 
     @SuppressWarnings({"unchecked"})
     public static Buffer resizeBuffer(final MemoryManager memoryManager,
-            final Buffer headerBuffer, final int grow) {
+            final Buffer buffer, final int grow) {
 
-        return memoryManager.reallocate(headerBuffer, Math.max(
-                headerBuffer.capacity() + grow,
-                (headerBuffer.capacity() * 3) / 2 + 1));
+        return memoryManager.reallocate(buffer, Math.max(
+                buffer.capacity() + grow,
+                (buffer.capacity() * 3) / 2 + 1));
     }
 }

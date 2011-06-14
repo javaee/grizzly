@@ -197,7 +197,7 @@ public class LZMAEncodingTest {
 
             HttpContent reqHttpContent = HttpContent.builder(request)
                     .last(true)
-                    .content(LZMApedContent)
+                    .content(LZMApedContent.duplicate())
                     .build();
 
             ExpectedResult result = new ExpectedResult();
@@ -267,7 +267,7 @@ public class LZMAEncodingTest {
 
             HttpContent reqHttpContent = HttpContent.builder(request)
                     .last(true)
-                    .content(LZMApedContent)
+                    .content(LZMApedContent.duplicate())
                     .build();
 
             ExpectedResult result = new ExpectedResult();
@@ -337,7 +337,7 @@ public class LZMAEncodingTest {
 
             HttpContent reqHttpContent = HttpContent.builder(request)
                     .last(true)
-                    .content(LZMApedContent)
+                    .content(LZMApedContent.duplicate())
                     .build();
 
             ExpectedResult result = new ExpectedResult();

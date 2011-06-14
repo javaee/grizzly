@@ -57,6 +57,7 @@ import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpUtils;
 import org.glassfish.grizzly.http.util.MimeHeaders;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
@@ -79,7 +80,8 @@ public abstract class HttpHeader extends HttpPacket
 
     protected boolean isChunked;
     private final Buffer tmpContentLengthBuffer =
-            MemoryManager.DEFAULT_MEMORY_MANAGER.allocate(20);
+            Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, new byte[20]);
+    
     protected long contentLength = -1;
 
     protected String characterEncoding;
@@ -112,6 +114,12 @@ public abstract class HttpHeader extends HttpPacket
 
     private final AttributeHolder attributes =
             new IndexedAttributeHolder(Grizzly.DEFAULT_ATTRIBUTE_BUILDER);
+
+    Buffer headerBuffer;
+    
+    void setHeaderBuffer(final Buffer headerBuffer) {
+        this.headerBuffer = headerBuffer;
+    }
 
     /**
      * {@inheritDoc}
@@ -750,6 +758,10 @@ public abstract class HttpHeader extends HttpPacket
         transferEncoding = null;
         isExpectContent = true;
         upgrade.recycle();
+        if (headerBuffer != null) {
+            headerBuffer.dispose();
+            headerBuffer = null;
+        }
     }
     
     /**

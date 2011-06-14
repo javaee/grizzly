@@ -317,6 +317,20 @@ public class BufferChunk implements Chunk {
 
         return true;
     }
+    
+    /**
+     * Compares the buffer chunk to the specified byte array representing
+     * lower-case ASCII characters.
+     *
+     * @param b the <code>byte[]</code> to compare
+     *
+     * @return true if the comparison succeeded, false otherwise
+     *
+     * @since 2.1.2
+     */
+    public boolean equalsIgnoreCaseLowerCase(final byte[] b) {
+        return equalsIgnoreCaseLowerCase(buffer, start, end, b);
+    }
 
     @Override
     public String toString() {
@@ -523,4 +537,47 @@ public class BufferChunk implements Chunk {
         return cc;
 //        uri.setChars(cbuf, 0, bc.getLength());
     }
+    
+    /**
+     * Compares the buffer chunk to the specified byte array representing
+     * lower-case ASCII characters.
+     *
+     * @param b the <code>byte[]</code> to compare
+     *
+     * @return true if the comparison succeeded, false otherwise
+     *
+     * @since 2.1.2
+     */
+    public static boolean equalsIgnoreCaseLowerCase(final Buffer buffer,
+            final int start, final int end, final byte[] cmpTo) {
+        final int len = end - start;
+        if (len != cmpTo.length) {
+            return false;
+        }
+
+        for (int i = 0; i < len; i++) {
+            if (Ascii.toLower(buffer.get(i + start)) != cmpTo[i]) {
+                return false;
+            }
+        }
+
+        return true;        
+    }
+    
+    public static boolean startsWith(final Buffer buffer, final int start,
+            final int end, final byte[] cmpTo) {
+        final int len = end - start;
+        
+        if (len < cmpTo.length) {
+            return false;
+        }
+
+        for (int i = 0; i < cmpTo.length; i++) {
+            if (buffer.get(start + i) != cmpTo[i]) {
+                return false;
+            }
+        }
+
+        return true;
+    }    
 }

@@ -569,16 +569,16 @@ public class HttpServerFilter extends HttpCodecFilter {
         } else {
             String contentLanguage = response.getContentLanguage();
             if (contentLanguage != null) {
-                headers.setValue("Content-Language").setString(contentLanguage);
+                headers.setValue(Header.ContentLanguage).setString(contentLanguage);
             }
             if (!response.isContentTypeSet() && defaultResponseContentType != null) {
                 response.setDefaultContentType(defaultResponseContentType);
             }
         }
 
-        if (!response.containsHeader("Date")) {
+        if (!response.containsHeader(Header.Date)) {
             final String date = FastHttpDateFormat.getCurrentDate();
-            response.addHeader("Date", date);
+            response.addHeader(Header.Date, date);
         }
 
         if ((entityBody) && (!state.contentDelimitation)) {
@@ -604,9 +604,9 @@ public class HttpServerFilter extends HttpCodecFilter {
                 !statusDropsConnection(response.getStatus()));
 
         if (!state.keepAlive) {
-            headers.setValue("Connection").setString("close");
+            headers.setValue(Header.Connection).setString("close");
         } else if (!isHttp11 && !state.error) {
-            headers.setValue("Connection").setString("Keep-Alive");
+            headers.setValue(Header.Connection).setString("Keep-Alive");
         }
 
     }
@@ -676,14 +676,14 @@ public class HttpServerFilter extends HttpCodecFilter {
         final boolean isHttp11 = protocol == Protocol.HTTP_1_1;
 
         // ------ Set keep-alive flag
-        final DataChunk connectionValueDC = headers.getValue("connection");
+        final DataChunk connectionValueDC = headers.getValue(Header.Connection);
         final boolean isConnectionClose = (connectionValueDC != null &&
-                connectionValueDC.getBufferChunk().findBytesAscii(Constants.CLOSE_BYTES) != -1);
+                connectionValueDC.getBufferChunk().equalsIgnoreCaseLowerCase(Constants.CLOSE_BYTES));
 
         if (!isConnectionClose) {
             state.keepAlive = isHttp11 ||
                     (connectionValueDC != null &&
-                    connectionValueDC.getBufferChunk().findBytesAscii(Constants.KEEPALIVE_BYTES) != -1);
+                    connectionValueDC.getBufferChunk().equalsIgnoreCaseLowerCase(Constants.KEEPALIVE_BYTES));
         }
         // --------------------------
 
@@ -693,7 +693,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
 
         if (hostDC == null) {
-            hostDC = headers.getValue("host");
+            hostDC = headers.getValue(Header.Host);
         }
 
         // Check host header
@@ -727,7 +727,7 @@ public class HttpServerFilter extends HttpCodecFilter {
 
     /**
      * Determine if we must drop the connection because of the HTTP status
-     * code.  Use the same list of codes as Apache/httpd.
+     * code. Use the same list of codes as Apache/httpd.
      */
     private static boolean statusDropsConnection(int status) {
         return status == 400 /* SC_BAD_REQUEST */ ||

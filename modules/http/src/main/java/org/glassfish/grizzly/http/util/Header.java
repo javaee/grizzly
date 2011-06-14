@@ -39,6 +39,7 @@
  */
 package org.glassfish.grizzly.http.util;
 
+import java.util.Arrays;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Cacheable;
 import org.glassfish.grizzly.ThreadCache;
@@ -119,6 +120,7 @@ public enum Header {
 
 
     private final byte[] headerNameBytes;
+    private final byte[] headerNameLowerCaseBytes;
     private final String headerName;
 
 
@@ -128,6 +130,9 @@ public enum Header {
     private Header(final String headerName) {
         this.headerName = headerName;
         headerNameBytes = headerName.getBytes(Charsets.ASCII_CHARSET);
+        
+        headerNameLowerCaseBytes = Arrays.copyOf(headerNameBytes, headerNameBytes.length);
+        Ascii.toLower(headerNameLowerCaseBytes);
     }
 
 
@@ -145,6 +150,19 @@ public enum Header {
      */
     public final byte[] getBytes() {
         return headerNameBytes;
+    }
+
+    /**
+     * <p>
+     * Returns the lower-case byte representation of this header encoded using
+     * <code>ISO-8859-1</code>.
+     * </p>
+     *
+     * @return the lower-case byte representation of this header encoded using
+     *  <code>ISO-8859-1</code>.
+     */
+    public final byte[] getLowerCaseBytes() {
+        return headerNameLowerCaseBytes;
     }
 
     /**

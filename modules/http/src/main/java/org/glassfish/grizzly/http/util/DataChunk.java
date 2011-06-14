@@ -286,7 +286,7 @@ public class DataChunk {
      * @param c the character
      * @param fromIndex The start position
      */
-    public int indexOf(char c, int fromIndex) {
+    public final int indexOf(final char c, final int fromIndex) {
         switch (type) {
             case Buffer:
                 return bufferChunk.indexOf(c, fromIndex);
@@ -305,7 +305,7 @@ public class DataChunk {
      * @param s the string
      * @param fromIndex The start position
      */
-    public int indexOf(String s, int fromIndex) {
+    public final int indexOf(final String s, final int fromIndex) {
         switch (type) {
             case Buffer:
                 return bufferChunk.indexOf(s, fromIndex);
@@ -319,7 +319,7 @@ public class DataChunk {
         }
     }
 
-    public void delete(final int from, final int to) {
+    public final void delete(final int from, final int to) {
         switch (type) {
             case Buffer:
                 bufferChunk.delete(from, to);
@@ -376,7 +376,7 @@ public class DataChunk {
      * @param s the String to compare
      * @return true if the comparison succeeded, false otherwise
      */
-    public boolean equalsIgnoreCase(String s) {
+    public boolean equalsIgnoreCase(final String s) {
         switch (type) {
             case Buffer:
                 return bufferChunk.equalsIgnoreCase(s);
@@ -399,7 +399,7 @@ public class DataChunk {
      *
      * @since 2.1.2
      */
-    public boolean equalsIgnoreCase(byte[] b) {
+    public final boolean equalsIgnoreCase(final byte[] b) {
         switch (type) {
             case Buffer:
                 return bufferChunk.equalsIgnoreCase(b);
@@ -414,6 +414,30 @@ public class DataChunk {
     }
 
     /**
+     * Compares the data chunk to the specified byte array representing
+     * lower-case ASCII characters.
+     *
+     * @param b the <code>byte[]</code> to compare
+     *
+     * @return true if the comparison succeeded, false otherwise
+     *
+     * @since 2.1.2
+     */
+    public final boolean equalsIgnoreCaseLowerCase(final byte[] b) {
+        switch (type) {
+            case Buffer:
+                return bufferChunk.equalsIgnoreCaseLowerCase(b);
+            case String:
+                return equalsIgnoreCaseLowerCase(stringValue, b);
+            case Chars:
+                return charChunk.equalsIgnoreCaseLowerCase(b);
+
+            default:
+                return false;
+        }
+    }
+    
+    /**
      * Returns <code>true</code> if the <code>DataChunk</code> starts with
      * the specified string.
      * @param s the string
@@ -422,7 +446,7 @@ public class DataChunk {
      * @return <code>true</code> if the <code>DataChunk</code> starts with
      *  the specified string.
      */
-    public boolean startsWith(String s, int pos) {
+    public final boolean startsWith(final String s, final int pos) {
         switch (type) {
             case Buffer:
                 return bufferChunk.startsWith(s, pos);
@@ -455,7 +479,7 @@ public class DataChunk {
      * @return <code>true</code> if the </code>DataChunk</code> starts with
      *  the specified string.
      */
-    public boolean startsWithIgnoreCase(String s, int pos) {
+    public final boolean startsWithIgnoreCase(final String s, final int pos) {
         switch (type) {
             case Buffer:
                 return bufferChunk.startsWithIgnoreCase(s, pos);
@@ -518,6 +542,31 @@ public class DataChunk {
 
         for (int i = 0; i < len; i++) {
             if (Ascii.toLower(s.charAt(i)) != Ascii.toLower(b[i])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Compares the String to the specified byte array representing
+     * lower-case ASCII characters.
+     *
+     * @param b the <code>byte[]</code> to compare
+     *
+     * @return true if the comparison succeeded, false otherwise
+     *
+     * @since 2.1.2
+     */
+    private static boolean equalsIgnoreCaseLowerCase(final String s, final byte[] b) {
+        final int len = b.length;
+        if (s.length() != len) {
+            return false;
+        }
+
+        for (int i = 0; i < len; i++) {
+            if (Ascii.toLower(s.charAt(i)) != b[i]) {
                 return false;
             }
         }

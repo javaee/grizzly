@@ -72,15 +72,15 @@ public class HttpContent extends HttpPacket
      * @param httpPacket
      * @return <tt>true</tt> if passed {@link HttpPacket} is a <tt>HttpContent</tt>.
      */
-    public static boolean isContent(HttpPacket httpPacket) {
-        return HttpContent.class.isAssignableFrom(httpPacket.getClass());
+    public static boolean isContent(final HttpPacket httpPacket) {
+        return httpPacket instanceof HttpContent;
     }
 
     public static HttpContent create() {
         return create(null);
     }
 
-    public static HttpContent create(HttpHeader httpHeader) {
+    public static HttpContent create(final HttpHeader httpHeader) {
         final HttpContent httpContent =
                 ThreadCache.takeFromCache(CACHE_IDX);
         if (httpContent != null) {
@@ -91,7 +91,7 @@ public class HttpContent extends HttpPacket
         return new HttpContent(httpHeader);
     }
 
-    private static Builder createBuilder(HttpHeader httpHeader) {
+    private static Builder createBuilder(final HttpHeader httpHeader) {
         final Builder builder = ThreadCache.takeFromCache(BUILDER_CACHE_IDX);
         if (builder != null) {
             builder.packet = create(httpHeader);
@@ -106,7 +106,7 @@ public class HttpContent extends HttpPacket
      * @param httpHeader related HTTP message header
      * @return {@link Builder}.
      */
-    public static Builder builder(HttpHeader httpHeader) {
+    public static Builder builder(final HttpHeader httpHeader) {
         return createBuilder(httpHeader);
     }
 

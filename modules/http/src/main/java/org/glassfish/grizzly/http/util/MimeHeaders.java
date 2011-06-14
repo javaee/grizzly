@@ -145,8 +145,6 @@ public class MimeHeaders {
      */
     private int count;
 
-    private final MemoryManager mm;
-
     /**
      * The header names {@link Iterable}.
      */
@@ -162,7 +160,6 @@ public class MimeHeaders {
      * Creates a new MimeHeaders object using a default buffer size.
      */
     public MimeHeaders() {
-        mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
     }
 
     /**
@@ -272,9 +269,9 @@ public class MimeHeaders {
         // of constructing the hashtable
 
         // A custom search tree may be better
-        final byte[] bytes = header.getBytes();
+        final byte[] bytes = header.getLowerCaseBytes();
         for (int i = fromIndex; i < count; i++) {
-            if (headers[i].getName().equalsIgnoreCase(bytes)) {
+            if (headers[i].getName().equalsIgnoreCaseLowerCase(bytes)) {
                 return i;
             }
         }
@@ -389,11 +386,11 @@ public class MimeHeaders {
      * if this .
      */
     public DataChunk setValue(final Header header) {
-        final byte[] bytes = header.getBytes();
+        final byte[] bytes = header.getLowerCaseBytes();
         for (int i = 0; i < count; i++) {
-            if (headers[i].getName().equalsIgnoreCase(bytes)) {
+            if (headers[i].getName().equalsIgnoreCaseLowerCase(bytes)) {
                 for (int j = i + 1; j < count; j++) {
-                    if (headers[j].getName().equalsIgnoreCase(bytes)) {
+                    if (headers[j].getName().equalsIgnoreCaseLowerCase(bytes)) {
                         removeHeader(j--);
                     }
                 }
@@ -426,9 +423,9 @@ public class MimeHeaders {
      * in the header, an arbitrary one is returned.
      */
     public DataChunk getValue(final Header header) {
-        final byte[] bytes = header.getBytes();
+        final byte[] bytes = header.getLowerCaseBytes();
         for (int i = 0; i < count; i++) {
-            if (headers[i].getName().equalsIgnoreCase(bytes)) {
+            if (headers[i].getName().equalsIgnoreCaseLowerCase(bytes)) {
                 return headers[i].getValue();
             }
         }
@@ -509,7 +506,7 @@ public class MimeHeaders {
      */
     public void removeHeaderMatches(final Header header, final String regex) {
         for (int i = 0; i < count; i++) {
-            if (headers[i].getName().equalsIgnoreCase(header.getBytes())
+            if (headers[i].getName().equalsIgnoreCaseLowerCase(header.getLowerCaseBytes())
                     && getValue(i) != null
                     && getValue(i).toString() != null
                     && getValue(i).toString().matches(regex)) {

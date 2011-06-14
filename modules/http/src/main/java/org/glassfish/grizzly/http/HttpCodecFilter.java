@@ -60,6 +60,7 @@ import org.glassfish.grizzly.utils.ArraySet;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import org.glassfish.grizzly.http.util.BufferChunk;
 import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.ssl.SSLUtils;
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
@@ -348,7 +349,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                     return ctx.getStopAction(input);
                 } else {
                     final int headerSizeInBytes = input.position();
-                    
+
                     // if headers get parsed - set the flag
                     httpPacket.setHeaderParsed(true);
                     // recycle header parsing state
@@ -358,23 +359,29 @@ public abstract class HttpCodecFilter extends BaseFilter
                         throw new IllegalStateException("Bad HTTP headers");
                     }
 
-                    input = input.hasRemaining() ? input.slice() : Buffers.EMPTY_BUFFER;
-
-                    setTransferEncodingOnParsing(httpHeader);
-                    setContentEncodingsOnParsing(httpHeader);
+                    final Buffer remainder = input.hasRemaining() ?
+                            input.split(input.position()) : Buffers.EMPTY_BUFFER;
+                    httpHeader.setHeaderBuffer(input);
+                    input = remainder;
+                    
+                    if (httpHeader.isExpectContent()) {
+                        setTransferEncodingOnParsing(httpHeader);
+                        setContentEncodingsOnParsing(httpHeader);
+                    }
 
                     HttpProbeNotifier.notifyHeaderParse(this, connection,
-                            (HttpHeader) httpPacket, headerSizeInBytes);
+                            httpHeader, headerSizeInBytes);
                 }
             }
 
+            if (httpHeader.isExpectContent()) {
+                final TransferEncoding transferEncoding = httpHeader.getTransferEncoding();
 
-            final TransferEncoding transferEncoding = httpHeader.getTransferEncoding();
-
-            // Check if appropriate HTTP transfer encoder was found
-            if (transferEncoding != null) {
-                return decodeWithTransferEncoding(ctx, httpHeader, input, wasHeaderParsed);
-            } else if (!httpHeader.isChunked() && httpHeader.getContentLength() < 0) {
+                // Check if appropriate HTTP transfer encoder was found
+                if (transferEncoding != null) {
+                    return decodeWithTransferEncoding(ctx, httpHeader, input, wasHeaderParsed);
+                }
+                
                 if (input.hasRemaining()) {
                     // Transfer-encoding is unknown and there is no content-length header
 
@@ -397,16 +404,12 @@ public abstract class HttpCodecFilter extends BaseFilter
                         return ctx.getInvokeAction();
                     }
                 }
-                
+
+                // We expect more content
                 if (!wasHeaderParsed) { // If HTTP header was just parsed
-
-                    // check if we expect any content
-                    final boolean isLast = !httpHeader.isExpectContent();
-                    if (isLast) { // if not - call onHttpPacketParsed
-                        onHttpPacketParsed(httpHeader, ctx);
-                    }
-
-                    final HttpContent emptyContent = HttpContent.builder(httpHeader).last(isLast).build();
+                    // create empty message, which contains headers
+                    final HttpContent emptyContent =
+                            HttpContent.builder(httpHeader).last(false).build();
 
                     HttpProbeNotifier.notifyContentChunkParse(this,
                             connection, emptyContent);
@@ -416,10 +419,17 @@ public abstract class HttpCodecFilter extends BaseFilter
                 } else {
                     return ctx.getStopAction();
                 }
-            }
+            } else { // We don't expect content
+                // process headers
+                onHttpPacketParsed(httpHeader, ctx);
+                final HttpContent emptyContent = HttpContent.builder(httpHeader).last(true).build();
 
-            throw new IllegalStateException(
-                    "Error parsing HTTP packet: " + httpHeader);
+                HttpProbeNotifier.notifyContentChunkParse(this,
+                        connection, emptyContent);
+
+                ctx.setMessage(emptyContent);
+                return ctx.getInvokeAction();
+            }
 
         } catch (RuntimeException re) {
             HttpProbeNotifier.notifyProbesError(this, connection, re);
@@ -646,7 +656,7 @@ public abstract class HttpCodecFilter extends BaseFilter
             HttpProbeNotifier.notifyHeaderSerialize(this, connection, httpHeader,
                     encodedBuffer);
         }
-
+        
         
         if (!isHeader && httpHeader.isExpectContent()) {
             final HttpContent encodedHttpContent;
@@ -673,7 +683,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         }
 
         return encodedBuffer;
-    }
+    }    
 
     protected static Buffer encodeKnownHeaders(final MemoryManager memoryManager,
             Buffer buffer, final HttpHeader httpHeader) {
@@ -687,9 +697,6 @@ public abstract class HttpCodecFilter extends BaseFilter
         if (!value.isNull()) {
             buffer = encodeMimeHeader(memoryManager, buffer, name, value, true);
         }
-
-        name.reset();
-        value.reset();
 
         final List<ContentEncoding> packetContentEncodings =
                 httpHeader.getContentEncodings(true);
@@ -727,6 +734,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                 httpHeader.getContentEncodings(true);
 
         name.setBuffer(Header.ContentEncoding.toBuffer(), true);
+        value.reset();
         httpHeader.extractContentEncoding(value);
         boolean needComma = !value.isNull();
         
@@ -790,12 +798,6 @@ public abstract class HttpCodecFilter extends BaseFilter
                 } else if (eol == -2) { // not enough data
                     return false;
                 }
-
-                final boolean parseKnownHeaders = (httpHeader != null);
-                parsingState.isTransferEncodingHeader = parseKnownHeaders;
-                parsingState.isContentLengthHeader = parseKnownHeaders;
-                parsingState.isUpgradeHeader = parseKnownHeaders && httpHeader.isRequest();
-                parsingState.isExpect100Header = parseKnownHeaders && httpHeader.isRequest();
             }
 
             if (!parseHeader(httpHeader, mimeHeaders, parsingState, input)) {
@@ -879,15 +881,14 @@ public abstract class HttpCodecFilter extends BaseFilter
                 parsingState.headerValueStorage =
                         mimeHeaders.addValue(input, parsingState.start, offset);
                 parsingState.offset = offset + 1;
-                finalizeKnownHeaderNames(httpHeader, parsingState, offset - start);
+                finalizeKnownHeaderNames(httpHeader, parsingState, input,
+                        start, offset);
 
                 return true;
             } else if ((b >= Constants.A) && (b <= Constants.Z)) {
                 b -= Constants.LC_OFFSET;
                 input.put(offset, b);
             }
-
-            checkKnownHeaderNames(parsingState, b, offset-start);
 
             offset++;
         }
@@ -918,7 +919,8 @@ public abstract class HttpCodecFilter extends BaseFilter
                         return -2;
                     } else {
                         parsingState.offset = offset + 1;
-                        finalizeKnownHeaderValues(httpHeader, parsingState, input);
+                        finalizeKnownHeaderValues(httpHeader, parsingState, input,
+                                parsingState.start, parsingState.checkpoint2);
                         parsingState.headerValueStorage.setBuffer(input,
                                 parsingState.start, parsingState.checkpoint2);
                         return 0;
@@ -934,8 +936,6 @@ public abstract class HttpCodecFilter extends BaseFilter
                     parsingState.checkpoint++;
                 }
             } else {
-                checkKnownHeaderValues(httpHeader, parsingState, b);
-                
                 if (hasShift) {
                     input.put(parsingState.checkpoint++, b);
                 } else {
@@ -950,97 +950,56 @@ public abstract class HttpCodecFilter extends BaseFilter
         return -1;
     }
 
-    private static void checkKnownHeaderNames(final HeaderParsingState parsingState,
-            final byte b, final int idx) {
-        if (parsingState.isContentLengthHeader) {
-            final byte[] bytes = Header.ContentLength.getBytes();
-            parsingState.isContentLengthHeader =
-                    (idx < bytes.length)
-                    && Ascii.toLower(b) == Ascii.toLower(bytes[idx]);
-
-        }
-
-        if (parsingState.isTransferEncodingHeader) {
-            final byte[] bytes = Header.TransferEncoding.getBytes();
-            parsingState.isTransferEncodingHeader =
-                    (idx < bytes.length)
-                    && Ascii.toLower(b) == Ascii.toLower(bytes[idx]);
-        }
-
-        if (parsingState.isUpgradeHeader) {
-            final byte[] bytes = Header.Upgrade.getBytes();
-            parsingState.isUpgradeHeader =
-                    (idx < bytes.length)
-                    && Ascii.toLower(b) == Ascii.toLower(bytes[idx]);
-
-        }
-
-        if (parsingState.isExpect100Header) {
-            final byte[] bytes = Header.Expect.getBytes();
-            parsingState.isExpect100Header =
-                    (idx < bytes.length)
-                    && Ascii.toLower(b) == Ascii.toLower(bytes[idx]);
-        }
-    }
-
     private static void finalizeKnownHeaderNames(final HttpHeader httpHeader,
-            final HeaderParsingState parsingState, final int size) {
+            final HeaderParsingState parsingState, final Buffer input,
+            final int start, final int end) {
         
-        if (parsingState.isContentLengthHeader) {
-            parsingState.isContentLengthHeader =
-                    (size == Header.ContentLength.getBytes().length);
-            if (parsingState.isContentLengthHeader &&
-                    parsingState.hasContentLength) {
-                throw new IllegalStateException("Two content-length headers are not allowed");
-            }
-            
-            parsingState.hasContentLength = true;
-        } else if (parsingState.isTransferEncodingHeader) {
-            parsingState.isTransferEncodingHeader =
-                    (size == Header.TransferEncoding.getBytes().length);
-        } else if (parsingState.isUpgradeHeader) {
-            parsingState.isUpgradeHeader =
-                    (size == Header.Upgrade.getBytes().length);
-        } else if (parsingState.isExpect100Header) {
-            if (size == Header.Expect.getBytes().length) {
-                ((HttpRequestPacket) httpHeader).requiresAcknowledgement(true);
-            }
-
-            parsingState.isExpect100Header = false;
-        }
-    }
-
-    private static void checkKnownHeaderValues(final HttpHeader httpHeader,
-            final HeaderParsingState parsingState, final byte b) {
-        if (parsingState.isContentLengthHeader) {
-            if (Ascii.isDigit(b)) {
-                parsingState.parsingNumericValue =
-                        parsingState.parsingNumericValue * 10 + (b - '0');
-                httpHeader.setContentLengthLong(parsingState.parsingNumericValue);
-            } else {
-                throw new IllegalStateException("Content-length value is not digital");
-            }
-        } else if (parsingState.isTransferEncodingHeader) {
-            final int idx = parsingState.checkpoint - parsingState.start;
-            if (idx < Constants.CHUNKED_ENCODING_BYTES.length) {
-                parsingState.isTransferEncodingHeader = (b == Constants.CHUNKED_ENCODING_BYTES[idx]);
-                if (idx == Constants.CHUNKED_ENCODING_BYTES.length - 1
-                        && parsingState.isTransferEncodingHeader) {
-                    httpHeader.setChunked(true);
-                    parsingState.isTransferEncodingHeader = false;
+        final int size = end - start;
+        if (size == Header.ContentLength.getLowerCaseBytes().length) {
+            if (BufferChunk.equalsIgnoreCaseLowerCase(input, start, end,
+                    Header.ContentLength.getLowerCaseBytes())) {
+                parsingState.isContentLengthHeader = true;
+                if (parsingState.hasContentLength) {
+                    throw new IllegalStateException("Two content-length headers are not allowed");
                 }
+
+                parsingState.hasContentLength = true;
+            }
+        } else if (size == Header.TransferEncoding.getLowerCaseBytes().length) {
+            if (BufferChunk.equalsIgnoreCaseLowerCase(input, start, end,
+                    Header.TransferEncoding.getLowerCaseBytes())) {
+                parsingState.isTransferEncodingHeader = true;
+            }
+        } else if (size == Header.Upgrade.getLowerCaseBytes().length) {
+            if (BufferChunk.equalsIgnoreCaseLowerCase(input, start, end,
+                    Header.Upgrade.getLowerCaseBytes())) {
+                parsingState.isUpgradeHeader = true;
+            }
+        } else if (size == Header.Expect.getLowerCaseBytes().length) {
+            if (BufferChunk.equalsIgnoreCaseLowerCase(input, start, end,
+                    Header.Expect.getLowerCaseBytes())) {
+                ((HttpRequestPacket) httpHeader).requiresAcknowledgement(true);
             }
         }
     }
 
     private static void finalizeKnownHeaderValues(final HttpHeader httpHeader,
-            final HeaderParsingState parsingState, final Buffer input) {
+            final HeaderParsingState parsingState, final Buffer input,
+            final int start, final int end) {
 
-        parsingState.isTransferEncodingHeader = false;
-
-        if (parsingState.isUpgradeHeader) {
-            httpHeader.getUpgradeDC().setBuffer(input, parsingState.start,
-                    parsingState.checkpoint2);
+        if (parsingState.isContentLengthHeader) {
+            httpHeader.setContentLengthLong(
+                    Ascii.parseLong(input, start, end - start));
+            
+            parsingState.isContentLengthHeader = false;
+        } else if (parsingState.isTransferEncodingHeader) {
+            if (BufferChunk.startsWith(input, start, end,
+                    Constants.CHUNKED_ENCODING_BYTES)) {
+                httpHeader.setChunked(true);
+            }
+            parsingState.isTransferEncodingHeader = false;            
+        } else if (parsingState.isUpgradeHeader) {
+            httpHeader.getUpgradeDC().setBuffer(input, start, end);
             parsingState.isUpgradeHeader = false;
         }
     }
@@ -1408,7 +1367,6 @@ public abstract class HttpCodecFilter extends BaseFilter
         public boolean hasContentLength;
         public boolean isTransferEncodingHeader;
         public boolean isUpgradeHeader;
-        public boolean isExpect100Header;
 
         public void initialize(final HttpCodecFilter codecFilter,
                                final int initialOffset,
@@ -1434,10 +1392,6 @@ public abstract class HttpCodecFilter extends BaseFilter
             checkpoint2 = -1;
             headerValueStorage = null;
             parsingNumericValue = 0;
-            isTransferEncodingHeader = false;
-            isContentLengthHeader = false;
-            isUpgradeHeader = false;
-            isExpect100Header = false;
             hasContentLength = false;
         }
 

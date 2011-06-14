@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -135,10 +135,30 @@ public final class Ascii {
     }
 
     /**
+     * Converts passed bytes (representing ASCII characters) to the upper case
+     * equivalent.
+     */
+    public static void toUpper(final byte[] bytes) {
+        for (int i = 0; i < bytes.length; i++) {
+            bytes[i] = toUpper[bytes[i] & 0xff];
+        }
+    }
+
+    /**
      * Returns the lower case equivalent of the specified ASCII character.
      */
     public static int toLower(int c) {
         return toLower[c & 0xff] & 0xff;
+    }
+
+    /**
+     * Converts passed bytes (representing ASCII characters) to the lower case
+     * equivalent.
+     */
+    public static void toLower(final byte[] bytes) {
+        for (int i = 0; i < bytes.length; i++) {
+            bytes[i] = toLower[bytes[i] & 0xff];
+        }
     }
 
     /**
