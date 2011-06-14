@@ -47,6 +47,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.glassfish.grizzly.Buffer;
@@ -55,6 +56,7 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
+import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
@@ -84,6 +86,10 @@ public class OutputBuffer {
 
     private Buffer currentBuffer;
 
+    // Buffer, which is used for write(byte[] ...) scenarious to try to avoid
+    // byte arrays copying
+    private MutableHeapBuffer mutableHeapBuffer;
+    
     private boolean committed;
 
     private boolean finished;
@@ -191,6 +197,8 @@ public class OutputBuffer {
             currentBuffer = null;
         }
 
+        mutableHeapBuffer = null;
+        
         charBuf.position(0);
         
         encoder = null;
@@ -289,17 +297,17 @@ public class OutputBuffer {
     }
 
 
-    public void write(char cbuf[]) throws IOException {
+    public void write(final char cbuf[]) throws IOException {
         write(cbuf, 0, cbuf.length);
     }
 
 
-    public void write(String str) throws IOException {
+    public void write(final String str) throws IOException {
         write(str, 0, str.length());
     }
 
 
-    public void write(String str, int off, int len) throws IOException {
+    public void write(final String str, final int off, final int len) throws IOException {
 
         if (!processingChars) {
             throw new IllegalStateException();
@@ -317,7 +325,7 @@ public class OutputBuffer {
 
     // ---------------------------------------------- OutputStream-Based Methods
 
-    public void writeByte(int b) throws IOException {
+    public void writeByte(final int b) throws IOException {
 
         handleAsyncErrors();
         if (closed) {
@@ -341,29 +349,49 @@ public class OutputBuffer {
         write(b, 0, b.length);
     }
 
-
-    public void write(final byte b[], int off, int len) throws IOException {
+    
+    public void write(final byte b[], final int off, final int len) throws IOException {
 
         handleAsyncErrors();
         if (closed || len == 0) {
             return;
         }
         
-        int total = len;
-        do {
+        // Copy the content of the b[] to the currentBuffer, if it's possible
+        if (bufferSize >= len &&
+                (currentBuffer == null || currentBuffer.remaining() >= len)) {
             checkCurrentBuffer();
 
-            final int writeLen = Math.min(currentBuffer.remaining(), total);
-            currentBuffer.put(b, off, writeLen);
-            off += writeLen;
-            total -= writeLen;
-
-            if (currentBuffer.hasRemaining()) { // complete
-                return;
+            currentBuffer.put(b, off, len);
+        } else {  // If b[] is too big - try to send it to wire right away.
+            
+            // wrap byte[] with a thread local buffer
+            checkMutableHeapBuffer();
+            mutableHeapBuffer.reset(b, off, len);
+            
+            // if there is data in the currentBuffer - complete it
+            finishCurrentBuffer();
+            
+            // create a cloner, which will be responsible for cloning mutableBuffer,
+            // if it's not possible to write its content in this thread
+            final ByteArrayCloner cloner = new ByteArrayCloner(b, off, len, mutableHeapBuffer);
+            
+            // mark headers as commited
+            doCommit();
+            if (compositeBuffer != null) { // if we write a composite buffer
+                compositeBuffer.append(mutableHeapBuffer);
+                writeContentBuffer0(compositeBuffer, false, cloner);
+                compositeBuffer = null;
+            } else { // we write just mutableHeapBuffer content
+                writeContentBuffer0(mutableHeapBuffer, false, cloner);
             }
-
-            flush();
-        } while (total > 0);
+            
+            // if cloner was called - it means we were not able to write mutable
+            // buffer in this thread.            
+            if (cloner.wasCalled()) { // MutableHeapBuffer was added to async write queue
+                mutableHeapBuffer = null;
+            }
+        }
     }
 
 
@@ -564,11 +592,8 @@ public class OutputBuffer {
                     response.getContentLength() == -1 && !response.isChunked()) {
                 response.setContentLength(bufferToFlush.remaining());
             }
-
-            final HttpContent.Builder builder = response.httpContentBuilder();
-
-            builder.content(bufferToFlush).last(isLast);
-            ctx.write(builder.build(), asyncCompletionHandler);
+            
+            writeContentBuffer0(bufferToFlush, isLast, null);
 
             return true;
         }
@@ -576,13 +601,30 @@ public class OutputBuffer {
         return false;
     }
 
+    private void writeContentBuffer0(final Buffer bufferToFlush,
+            final boolean isLast, final MessageCloner<Buffer> messageCloner)
+            throws IOException {
+        
+        final HttpContent.Builder builder = response.httpContentBuilder();
+
+        builder.content(bufferToFlush).last(isLast);
+        ctx.write(null, builder.build(), asyncCompletionHandler, messageCloner);
+    }
+
     private void checkCurrentBuffer() {
         if (currentBuffer == null) {
-            currentBuffer = memoryManager.allocate(DEFAULT_BUFFER_SIZE);
+            currentBuffer = memoryManager.allocate(bufferSize);
             currentBuffer.allowBufferDispose(true);
         }
     }
 
+    private void checkMutableHeapBuffer() {
+        if (mutableHeapBuffer == null) {
+            mutableHeapBuffer = new MutableHeapBuffer();
+            mutableHeapBuffer.allowBufferDispose(true);
+        }
+    }
+    
     private void finishCurrentBuffer() {
         if (currentBuffer != null && currentBuffer.position() > 0) {
             currentBuffer.trim();
@@ -674,5 +716,63 @@ public class OutputBuffer {
             throw new IOException("Encoding error");
         }
 
+    }
+    
+    /**
+     * The {@link MessageCloner}, responsible for cloning Buffer content, if it
+     * wasn't possible to write it in the current Thread (it was added to async
+     * write queue).
+     * We do this, because {@link #write(byte[], int, int)} method is not aware
+     * of async write queues, and content of the passed byte[] might be changed
+     * by user application once in gets control back.
+     */
+    private static final class ByteArrayCloner implements MessageCloner<Buffer> {
+        private final byte[] srcArray;
+        private final int off;
+        private final int len;
+
+        private final MutableHeapBuffer mutableHeapBuffer;
+
+        private boolean wasCalled;
+        
+        public ByteArrayCloner(final byte[] srcArray,
+                final int off, final int len,
+                final MutableHeapBuffer mutableHeapBuffer) {
+            this.srcArray = srcArray;
+            this.off = off;
+            this.len = len;
+            this.mutableHeapBuffer = mutableHeapBuffer;
+        }
+                
+        @Override
+        public Buffer clone(final Connection connection,
+                final Buffer originalMessage) {
+            
+            // Buffer was disposed somewhere on the way to async write queue -
+            // just return the original message
+            if (mutableHeapBuffer.isDisposed()) {
+                return originalMessage;
+            }
+            
+            // set the flag
+            wasCalled = true;
+            
+            // we suppose the mutableHeapBuffer is located at the tail of
+            // original buffer. Considering this, we calculate the number of
+            // bytes to be cloned
+            final int remaining = originalMessage.remaining();
+            final int bytesToClone = remaining > len ? len : remaining;
+            final byte[] clonedBytes = Arrays.copyOfRange(srcArray,
+                    off + len - bytesToClone, off + len);
+            
+            // reset the mutable buffer content with the cloned array
+            mutableHeapBuffer.reset(clonedBytes, 0, bytesToClone);
+            return originalMessage;
+        }
+
+        public boolean wasCalled() {
+            return wasCalled;
+        }
+        
     }
 }

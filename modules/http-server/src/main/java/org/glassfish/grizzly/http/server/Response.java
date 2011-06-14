@@ -268,10 +268,10 @@ public class Response {
     
     // --------------------------------------------------------- Public Methods
 
-    public SuspendStatus initialize(Request request,
-                           HttpResponsePacket response,
-                           FilterChainContext ctx,
-                           DelayedExecutor.DelayQueue<Response> delayQueue) {
+    public SuspendStatus initialize(final Request request,
+                           final HttpResponsePacket response,
+                           final FilterChainContext ctx,
+                           final DelayedExecutor.DelayQueue<Response> delayQueue) {
         this.request = request;
         this.response = response;
         outputBuffer.initialize(response, ctx);
