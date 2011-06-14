@@ -46,4 +46,8 @@ public class WebSocketException extends RuntimeException {
     public WebSocketException(String message, IOException e) {
         super(message, e);
     }
+
+    public WebSocketException(String message) {
+        super(message);
+    }
 }

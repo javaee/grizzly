@@ -60,6 +60,7 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
     private final Response response;
     private final InternalInputBuffer inputBuffer;
     private final InternalOutputBuffer outputBuffer;
+    private final Object LOCK = new Object();
 
     public ServerNetworkHandler(Request req, Response resp) {
         request = req;
@@ -71,23 +72,31 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
     @Override
     protected int read() {
         int read = 0;
+        ByteChunk newChunk = new ByteChunk(WebSocketEngine.INITIAL_BUFFER_SIZE);
         try {
             ByteChunk bytes = new ByteChunk(WebSocketEngine.INITIAL_BUFFER_SIZE);
+            if (chunk.getLength() > 0) {
+                newChunk.append(chunk);
+            }
             int count = WebSocketEngine.INITIAL_BUFFER_SIZE;
             while (count == WebSocketEngine.INITIAL_BUFFER_SIZE) {
                 count = inputBuffer.doRead(bytes, request);
-                chunk.append(bytes);
+                newChunk.append(bytes);
                 read += count;
             }
         } catch (IOException e) {
             throw new WebSocketException(e.getMessage(), e);
         }
 
+        if(read == -1) {
+            throw new WebSocketException("Read -1 bytes.  Connection closed?");
+        }
+        chunk.setBytes(newChunk.getBytes(), 0, newChunk.getEnd());
         return read;
     }
 
     public byte get() {
-        synchronized (chunk) {
+        synchronized (LOCK) {
             fill();
             try {
                 return (byte) chunk.substract();
@@ -98,7 +107,7 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
     }
 
     public byte[] get(int count) {
-        synchronized (chunk) {
+        synchronized (LOCK) {
             try {
                 byte[] bytes = new byte[count];
                 int total = 0;
@@ -116,8 +125,10 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
     }
 
     private void fill() {
-        if (chunk.getLength() == 0) {
-            read();
+        synchronized (LOCK) {
+            if (chunk.getLength() == 0) {
+                read();
+            }
         }
     }
 
@@ -135,7 +146,9 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
     }
 
     public boolean ready() {
-        return chunk.getLength() != 0;
+        synchronized (LOCK) {
+            return chunk.getLength() != 0;
+        }
     }
 
     public HttpServletRequest getRequest() throws IOException {

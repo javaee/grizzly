@@ -92,7 +92,7 @@ public class LifecycleTest extends BaseWebSocketTestUtiltiies {
         }
     }
 
-//    @Test
+    @Test
     public void dirtyClose() throws Exception {
         final String name = "/dirty";
         final SelectorThread thread =
@@ -161,8 +161,8 @@ public class LifecycleTest extends BaseWebSocketTestUtiltiies {
                 WebSocketsTest.createSelectorThread(WebSocketsTest.PORT, new StaticResourcesAdapter());
 
         try {
-            cleanDisconnect(app, version);
-//            dirtyDisconnect(app, version);
+            cleanDisconnect(app);
+            dirtyDisconnect(app);
         } finally {
             thread.stopEndpoint();
             WebSocketEngine.getEngine().unregister(app);
@@ -170,7 +170,7 @@ public class LifecycleTest extends BaseWebSocketTestUtiltiies {
 
     }
 
-    private void dirtyDisconnect(EchoWebSocketApplication app, Version version) throws Exception {
+    private void dirtyDisconnect(EchoWebSocketApplication app) throws Exception {
 
         Assert.assertEquals("There should be 0 clients connected", 0, app.getWebSockets().size());
 
@@ -188,7 +188,7 @@ public class LifecycleTest extends BaseWebSocketTestUtiltiies {
         Assert.assertEquals("There should be 0 clients connected", 0, app.getWebSockets().size());
     }
 
-    private void cleanDisconnect(WebSocketApplication app, final Version version) throws Exception {
+    private void cleanDisconnect(WebSocketApplication app) throws Exception {
         Assert.assertEquals("There should be 0 clients connected", 0, app.getWebSockets().size());
 
         BadWebSocketClient client = newClient(version);

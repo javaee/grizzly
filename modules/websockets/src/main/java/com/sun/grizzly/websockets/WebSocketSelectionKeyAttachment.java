@@ -44,6 +44,7 @@ import com.sun.grizzly.arp.AsyncProcessorTask;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.util.SelectedKeyAttachmentLogic;
 
+import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.util.logging.Level;
 
@@ -52,6 +53,7 @@ public class WebSocketSelectionKeyAttachment extends SelectedKeyAttachmentLogic 
     private final ServerNetworkHandler networkHandler;
     private final ProcessorTask processorTask;
     private final AsyncProcessorTask asyncProcessorTask;
+    private SelectionKey key;
 
     public WebSocketSelectionKeyAttachment(WebSocketHandler snh, ServerNetworkHandler nh, ProcessorTask task, AsyncProcessorTask asyncTask) {
         handler = snh;
@@ -68,6 +70,7 @@ public class WebSocketSelectionKeyAttachment extends SelectedKeyAttachmentLogic 
     @Override
     public boolean handleSelectedKey(SelectionKey key) {
         if (key.isReadable()) {
+            this.key = key;
             key.interestOps(key.interestOps() & ~SelectionKey.OP_READ);
             asyncProcessorTask.getThreadPool().execute(this);
         }
@@ -81,9 +84,11 @@ public class WebSocketSelectionKeyAttachment extends SelectedKeyAttachmentLogic 
             handler.readFrame();
             enableRead();
         } catch (WebSocketException e) {
+            handler.getWebSocket().onClose(null);
+//            key.cancel();
             processorTask.setAptCancelKey(true);
             processorTask.terminateProcess();
-            WebSocketEngine.logger.log(Level.INFO, e.getMessage(), e);
+            WebSocketEngine.logger.log(Level.FINEST, e.getMessage(), e);
         }
     }
 

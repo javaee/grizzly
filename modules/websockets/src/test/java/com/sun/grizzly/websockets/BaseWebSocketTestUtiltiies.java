@@ -55,7 +55,7 @@ public class BaseWebSocketTestUtiltiies {
     public static List<Version[]> versions() {
         final List<Version[]> versions = new ArrayList<Version[]>();
         for (Version version : Version.values()) {
-            versions.add(new Version[]{version});
+            versions.add(0, new Version[]{version});
         }
         return versions;
     }
