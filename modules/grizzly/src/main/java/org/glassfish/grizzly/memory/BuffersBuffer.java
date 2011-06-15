@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.memory;
 
+import java.io.UnsupportedEncodingException;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ThreadCache;
 import java.nio.BufferOverflowException;
@@ -1242,7 +1243,13 @@ public final class BuffersBuffer extends CompositeBuffer {
         setPosLim(position, limit);
         get(tmpBuffer);
         setPosLim(oldPosition, oldLimit);
-        return new String(tmpBuffer, charset);
+
+        try {
+            return new String(tmpBuffer, charset.name());
+        } catch (UnsupportedEncodingException e) {
+            // Should never get here
+            throw new IllegalStateException("We took charset name from Charset, why it's not unsupported?", e);
+        }
     }
         
     @Override

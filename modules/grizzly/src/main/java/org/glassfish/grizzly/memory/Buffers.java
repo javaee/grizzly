@@ -51,7 +51,6 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.Appender;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.NIOTransportBuilder;
 
 /**
  * Class has useful methods to simplify the work with {@link Buffer}s.
@@ -250,7 +249,7 @@ public class Buffers {
                         position + byteBuffer.arrayOffset(),
                         limit - position, charset.name());
             } catch (UnsupportedEncodingException e) {
-                throw new IllegalStateException(e);
+                throw new IllegalStateException("We took charset name from Charset, why it's not unsupported?", e);
             }
 //            Uncomment, when StringDecoder will not create copy of byte[]
 //            return new String(byteBuffer.array(),
