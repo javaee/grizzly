@@ -713,8 +713,7 @@ public class OutputBuffer {
         currentBuffer.position(bufferPos + (currentByteBuffer.position() - byteBufferPos));
         
         while (res == CoderResult.OVERFLOW) {
-            final boolean isJustCommitted = doCommit();
-            writeContentChunk(!isJustCommitted, false);
+            finishCurrentBuffer();
             checkCurrentBuffer();
             currentByteBuffer = currentBuffer.toByteBuffer();
             bufferPos = currentBuffer.position();
@@ -728,7 +727,10 @@ public class OutputBuffer {
         if (res != CoderResult.UNDERFLOW) {
             throw new IOException("Encoding error");
         }
-
+        
+        if (compositeBuffer != null) {
+            writeContentChunk(!doCommit(), false);
+        }        
     }
     
     /**
