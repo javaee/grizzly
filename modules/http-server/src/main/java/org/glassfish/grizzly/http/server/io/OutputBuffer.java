@@ -48,6 +48,8 @@ import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.glassfish.grizzly.Buffer;
@@ -100,6 +102,9 @@ public class OutputBuffer {
 
     private CharsetEncoder encoder;
 
+    private final Map<String, CharsetEncoder> encoders =
+            new HashMap<String, CharsetEncoder>();
+    
     private final CharBuffer charBuf = CharBuffer.allocate(1);
 
     private MemoryManager memoryManager;
@@ -113,7 +118,7 @@ public class OutputBuffer {
     private AsyncQueueWriter asyncWriter;
 
     private int bufferSize = DEFAULT_BUFFER_SIZE;
-
+    
     private final CompletionHandler<WriteResult> asyncCompletionHandler =
             new EmptyCompletionHandler<WriteResult>() {
 
@@ -481,7 +486,7 @@ public class OutputBuffer {
         if (length <= 0 || asyncWriter == null) {
             return true;
         }
-        CharsetEncoder e = getEncoder();
+        final CharsetEncoder e = getEncoder();
         final int len = Float.valueOf(length * e.averageBytesPerChar()).intValue();
         return canWrite(len);
     }
@@ -641,10 +646,18 @@ public class OutputBuffer {
             if (encoding == null) {
                 encoding = Constants.DEFAULT_CHARACTER_ENCODING;
             }
-            final Charset cs = Charsets.lookupCharset(encoding);
-            encoder = cs.newEncoder();
-            encoder.onMalformedInput(CodingErrorAction.REPLACE);
-            encoder.onUnmappableCharacter(CodingErrorAction.REPLACE);
+            
+            encoder = encoders.get(encoding);
+            if (encoder == null) {
+                final Charset cs = Charsets.lookupCharset(encoding);
+                encoder = cs.newEncoder();
+                encoder.onMalformedInput(CodingErrorAction.REPLACE);
+                encoder.onUnmappableCharacter(CodingErrorAction.REPLACE);
+                
+                encoders.put(encoding, encoder);
+            } else {
+                encoder.reset();
+            }
         }
 
         return encoder;

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,48 +37,40 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+package org.glassfish.grizzly.http.server.io;
 
-package org.glassfish.grizzly.http.util;
-
-import java.nio.charset.Charset;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CharsetEncoder;
-import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import org.glassfish.grizzly.ThreadCache;
+import org.glassfish.grizzly.memory.HeapBuffer;
 
 /**
- * Charset utility class.
- *
+ * {@link HeapBuffer} implementation, which might be reset to reference another
+ * byte[] at any moment.
+ * 
  * @author Alexey Stashok
  */
-public final class Charsets {
-    public static final String DEFAULT_CHARACTER_ENCODING = "ISO-8859-1";
+final class MutableHeapBuffer extends HeapBuffer {
 
-    private static final ConcurrentHashMap<String, Charset> charsetAliasMap =
-            new ConcurrentHashMap<String, Charset>();
-
-    public static final Charset ASCII_CHARSET = lookupCharset("ASCII");
-    public static final Charset UTF8_CHARSET = lookupCharset("UTF-8");
-    public static final Charset DEFAULT_CHARSET = lookupCharset(DEFAULT_CHARACTER_ENCODING);
-
+    boolean isDisposed;
+    
     /**
-     * Lookup a {@link Charset} by name.
-     * Fixes Charset concurrency issue (http://paul.vox.com/library/post/the-mysteries-of-java-character-set-performance.html)
-     *
-     * @param charsetName
-     * @return {@link Charset}
+     * Reset the byte[] this Buffer wraps.
      */
-    public static Charset lookupCharset(final String charsetName) {
-        Charset charset = charsetAliasMap.get(charsetName);
-        if (charset == null) {
-            final Charset newCharset = Charset.forName(charsetName);
-            final Charset prevCharset = charsetAliasMap.putIfAbsent(charsetName, newCharset);
-            
-            charset = prevCharset == null ? newCharset : prevCharset;
-        }
+    void reset(final byte[] heap, final int offset, final int len) {
+        this.heap = heap;
+        this.offset = offset;
+        this.cap = len;
+        this.lim = len;
+        this.pos = 0;
+        byteBuffer = null;
+        isDisposed = false;
+    }
 
-        return charset;
+    @Override
+    public void dispose() {
+        isDisposed = true;
+        super.dispose();
+    }
+    
+    boolean isDisposed() {
+        return isDisposed;
     }
 }

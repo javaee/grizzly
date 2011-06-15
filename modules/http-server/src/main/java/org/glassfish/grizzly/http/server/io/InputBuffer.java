@@ -56,6 +56,8 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CancellationException;
 import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.memory.CompositeBuffer;
@@ -131,6 +133,12 @@ public class InputBuffer {
      * The {@link CharsetDecoder} used to convert binary to character data.
      */
     private CharsetDecoder decoder;
+
+    /**
+     * CharsetDecoders cache
+     */
+    private final Map<String, CharsetDecoder> decoders =
+            new HashMap<String, CharsetDecoder>();
 
     /**
      * Flag indicating all request content has been read.
@@ -286,7 +294,7 @@ public class InputBuffer {
     /**
      * @see java.io.InputStream#read(byte[], int, int)
      */
-    public int read(byte b[], int off, int len) throws IOException {
+    public int read(final byte b[], final int off, final int len) throws IOException {
 
         if (closed) {
             throw new IOException();
@@ -348,7 +356,7 @@ public class InputBuffer {
     /**
      * @see java.io.Reader#read(java.nio.CharBuffer)
      */
-    public int read(CharBuffer target) throws IOException {
+    public int read(final CharBuffer target) throws IOException {
 
         if (closed) {
             throw new IOException();
@@ -393,7 +401,7 @@ public class InputBuffer {
     /**
      * @see java.io.Reader#read(char[], int, int)
      */
-    public int read(char cbuf[], int off, int len)
+    public int read(final char cbuf[], final int off, final int len)
     throws IOException {
 
         if (closed) {
@@ -460,7 +468,7 @@ public class InputBuffer {
      *
      * @see java.io.InputStream#mark(int)
      */
-    public void mark(int readAheadLimit) {
+    public void mark(final int readAheadLimit) {
 
         if (processingChars) {
             throw new IllegalStateException();
@@ -952,12 +960,19 @@ public class InputBuffer {
      *  content from binary to character
      */
     private CharsetDecoder getDecoder() {
-
         if (decoder == null) {
-            Charset cs = Charsets.lookupCharset(encoding);
-            decoder = cs.newDecoder();
-            decoder.onMalformedInput(CodingErrorAction.REPLACE);
-            decoder.onUnmappableCharacter(CodingErrorAction.REPLACE);
+            decoder = decoders.get(encoding);
+            
+            if (decoder == null) {
+                final Charset cs = Charsets.lookupCharset(encoding);
+                decoder = cs.newDecoder();
+                decoder.onMalformedInput(CodingErrorAction.REPLACE);
+                decoder.onUnmappableCharacter(CodingErrorAction.REPLACE);
+                
+                decoders.put(encoding, decoder);
+            } else {
+                decoder.reset();
+            }
         }
 
         return decoder;
