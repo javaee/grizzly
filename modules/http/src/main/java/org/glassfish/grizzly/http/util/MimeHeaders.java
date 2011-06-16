@@ -278,6 +278,15 @@ public class MimeHeaders {
         return -1;
     }
 
+
+    public boolean contains(final Header header) {
+        return (indexOf(header, 0) >= 0);
+    }
+
+    public boolean contains(final String header) {
+        return (indexOf(header, 0) >= 0);
+    }
+
     // -------------------- --------------------
     /**
      * Returns an enumeration of strings representing the header field names.
@@ -460,6 +469,17 @@ public class MimeHeaders {
             }
         }
     }
+
+    public void removeHeader(final Header header) {
+
+        for (int i = 0; i < count; i++) {
+            if (headers[i].getName().equalsIgnoreCase(header.getBytes())) {
+                removeHeader(i--);
+            }
+        }
+
+    }
+
 
     /**
      * Removes the headers with the given name whose values contain the

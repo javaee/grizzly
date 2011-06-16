@@ -90,6 +90,7 @@ public enum Header {
     Pragma("Pragma"),
     ProxyAuthenticate("Proxy-Authenticate"),
     ProxyAuthorization("Proxy-Authorization"),
+    ProxyConnection("Proxy-Connection"),
     Range("Range"),
     Referer("Referer"),
     RetryAfter("Retry-After"),

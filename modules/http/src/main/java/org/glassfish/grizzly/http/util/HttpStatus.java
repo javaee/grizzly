@@ -138,6 +138,13 @@ public class HttpStatus {
 
     // ---------------------------------------------------------- Public Methods
 
+    /**
+     * @return <code>true</code> if the specified int status code matches
+     *  the status of this <code>HttpStatus</code>.
+     */
+    public boolean statusMatches(final int status) {
+        return (status == this.status);
+    }
 
     /**
      * @return the <code>int</code> status code.

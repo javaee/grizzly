@@ -108,4 +108,8 @@ public final class Method {
     public String toString() {
         return methodString;
     }
+
+    public boolean matchesMethod(final String method) {
+        return (this.methodString.equals(method));
+    }
 }
