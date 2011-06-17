@@ -51,7 +51,7 @@ import java.util.concurrent.TimeUnit;
 public class WebSocketClient extends WebSocketAdapter {
     private final URL address;
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
-    private WebSocketHandler webSocketHandler;
+    private ProtocolHandler protocolHandler;
     private WebSocket webSocket;
     private NetworkHandler networkHandler;
 
@@ -59,21 +59,27 @@ public class WebSocketClient extends WebSocketAdapter {
         this(WebSocketEngine.DEFAULT_VERSION, url, listeners);
     }
 
-    public WebSocketClient(Version version, final String url, final WebSocketListener... listeners) throws IOException {
-        this(version, url, WebSocketEngine.DEFAULT_TIMEOUT, listeners);
+    public WebSocketClient(final String url, final long timeout, final TimeUnit unit,
+            final WebSocketListener... listeners) throws IOException {
+        this(WebSocketEngine.DEFAULT_VERSION, url, timeout, unit, listeners);
     }
 
-    public WebSocketClient(Version version, final String url, final long timeout, final WebSocketListener... listeners)
+    public WebSocketClient(Version version, final String url, final WebSocketListener... listeners) throws IOException {
+        this(version, url, WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS, listeners);
+    }
+
+    public WebSocketClient(Version version, final String url, final long timeout, final TimeUnit unit,
+            final WebSocketListener... listeners)
             throws IOException {
         address = new URL(url);
         networkHandler = new ClientNetworkHandler(this);
-        webSocketHandler = version.createHandler(true);
+        protocolHandler = version.createHandler(true);
         final Future<?> future = executorService.submit(new Runnable() {
             public void run() {
                 try {
-                    webSocketHandler.setNetworkHandler(networkHandler);
-                    webSocketHandler.handshake(address);
-                    webSocket = new BaseWebSocket(webSocketHandler, networkHandler, WebSocketClient.this);
+                    protocolHandler.setNetworkHandler(networkHandler);
+                    final HandShake handshake = protocolHandler.handshake(address);
+                    webSocket = new BaseWebSocket(protocolHandler, WebSocketClient.this);
                     for (WebSocketListener listener : listeners) {
                         webSocket.add(listener);
                     }
@@ -90,7 +96,7 @@ public class WebSocketClient extends WebSocketAdapter {
             }
         });
         try {
-            future.get(timeout, TimeUnit.SECONDS);
+            future.get(timeout, unit);
         } catch (Exception e) {
             e.printStackTrace();
             throw new IOException(e.getMessage());
@@ -100,7 +106,7 @@ public class WebSocketClient extends WebSocketAdapter {
     private void queueRead() {
         execute(new Runnable() {
             public void run() {
-                webSocketHandler.readFrame();
+                protocolHandler.readFrame();
                 if (webSocket.isConnected()) {
                     queueRead();
                 }

@@ -69,14 +69,44 @@ public class ServletBasedTest extends BaseWebSocketTestUtiltiies {
         final EchoWebSocketApplication app = new EchoWebSocketApplication();
         WebSocketEngine.getEngine().register(app);
         final SelectorThread
-                        thread = WebSocketsTest.createSelectorThread(WebSocketsTest.PORT, new StaticResourcesAdapter());
+                thread = WebSocketsTest.createSelectorThread(WebSocketsTest.PORT, new StaticResourcesAdapter());
         try {
-            WebSocketClient socket = new WebSocketClient(version, String.format("ws://localhost:%s/echo", WebSocketsTest.PORT), new WebSocketAdapter() {
-                @Override
-                public void onMessage(WebSocket socket, String frame) {
-                    latch.countDown();
-                }
-            });
+            WebSocketClient socket =
+                    new WebSocketClient(version, String.format("ws://localhost:%s/echo", WebSocketsTest.PORT),
+                            new WebSocketAdapter() {
+                                @Override
+                                public void onMessage(WebSocket socket, String frame) {
+                                    latch.countDown();
+                                }
+                            });
+            socket.send("echo me back");
+            Assert.assertTrue(latch.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS));
+        } finally {
+            WebSocketEngine.getEngine().unregister(app);
+            thread.stopEndpoint();
+        }
+    }
+
+    /**
+     * This tests the up front registration of applications from places such as Servlet.init().  This is likely
+     * the common case
+     */
+    @Test
+    public void queryParams() throws IOException, InstantiationException, InterruptedException {
+        final CountDownLatch latch = new CountDownLatch(1);
+        final EchoWebSocketApplication app = new EchoWebSocketApplication();
+        WebSocketEngine.getEngine().register(app);
+        final SelectorThread
+                thread = WebSocketsTest.createSelectorThread(WebSocketsTest.PORT, new StaticResourcesAdapter());
+        try {
+            WebSocketClient socket = new WebSocketClient(version,
+                    String.format("ws://localhost:%s/echo?query=test&param2=bob", WebSocketsTest.PORT),
+                    new WebSocketAdapter() {
+                        @Override
+                        public void onMessage(WebSocket socket, String frame) {
+                            latch.countDown();
+                        }
+                    });
             socket.send("echo me back");
             Assert.assertTrue(latch.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS));
         } finally {

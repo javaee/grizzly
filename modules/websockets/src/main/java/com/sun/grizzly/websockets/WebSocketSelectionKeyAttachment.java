@@ -44,18 +44,17 @@ import com.sun.grizzly.arp.AsyncProcessorTask;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.util.SelectedKeyAttachmentLogic;
 
-import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.util.logging.Level;
 
 public class WebSocketSelectionKeyAttachment extends SelectedKeyAttachmentLogic implements Runnable {
-    private final WebSocketHandler handler;
+    private final ProtocolHandler handler;
     private final ServerNetworkHandler networkHandler;
     private final ProcessorTask processorTask;
     private final AsyncProcessorTask asyncProcessorTask;
     private SelectionKey key;
 
-    public WebSocketSelectionKeyAttachment(WebSocketHandler snh, ServerNetworkHandler nh, ProcessorTask task, AsyncProcessorTask asyncTask) {
+    public WebSocketSelectionKeyAttachment(ProtocolHandler snh, ServerNetworkHandler nh, ProcessorTask task, AsyncProcessorTask asyncTask) {
         handler = snh;
         networkHandler = nh;
         processorTask = task;
@@ -100,7 +99,7 @@ public class WebSocketSelectionKeyAttachment extends SelectedKeyAttachmentLogic 
         return asyncProcessorTask.getAsyncExecutor().getProcessorTask().getSelectionKey();
     }
 
-    public WebSocketHandler getHandler() {
+    public ProtocolHandler getHandler() {
         return handler;
     }
 }

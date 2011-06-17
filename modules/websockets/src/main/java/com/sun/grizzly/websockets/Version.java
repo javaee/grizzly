@@ -47,7 +47,7 @@ import com.sun.grizzly.websockets.draft76.Draft76Handler;
 public enum Version {
     DRAFT06 {
         @Override
-        public WebSocketHandler createHandler(boolean mask) {
+        public ProtocolHandler createHandler(boolean mask) {
             return new Draft06Handler(mask);
         }
 
@@ -58,7 +58,7 @@ public enum Version {
     },
     DRAFT76 {
         @Override
-        public WebSocketHandler createHandler(boolean mask) {
+        public ProtocolHandler createHandler(boolean mask) {
             return new Draft76Handler();
         }
 
@@ -68,7 +68,7 @@ public enum Version {
         }
     };
 
-    public abstract WebSocketHandler createHandler(boolean mask);
+    public abstract ProtocolHandler createHandler(boolean mask);
 
     public abstract boolean validate(MimeHeaders headers);
 }

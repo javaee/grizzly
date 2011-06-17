@@ -50,6 +50,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public abstract class WebSocketApplication extends WebSocketAdapter {
     private final ConcurrentHashMap<WebSocket, Boolean> sockets = new ConcurrentHashMap<WebSocket, Boolean>();
 
+    public WebSocket createWebSocket(ProtocolHandler protocolHandler, final WebSocketListener... listeners) {
+        return new BaseWebSocket(protocolHandler, listeners);
+    }
+
     /**
      * Returns a set of {@link WebSocket}s, registered with the application.
      * The returned set is unmodifiable, the possible modifications may cause exceptions.

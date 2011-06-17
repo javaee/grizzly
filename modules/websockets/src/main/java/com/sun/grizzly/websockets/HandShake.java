@@ -40,16 +40,21 @@
 
 package com.sun.grizzly.websockets;
 
+import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.util.buf.MessageBytes;
 import com.sun.grizzly.util.http.MimeHeaders;
+import com.sun.grizzly.util.http.Parameters;
 import com.sun.grizzly.util.net.URL;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.logging.Logger;
 
 /**
@@ -64,6 +69,7 @@ public abstract class HandShake {
     private int port = 80;
     private String resourcePath;
     private String location;
+    private final Map<String, String[]> queryParams = new TreeMap<String, String[]>();
     private List<String> subProtocol = new ArrayList<String>();
     private List<String> extensions = new ArrayList<String>();
 
@@ -75,12 +81,39 @@ public abstract class HandShake {
         if ("".equals(resourcePath)) {
             resourcePath = "/";
         }
+        if(url.getQuery() != null) {
+            resourcePath += "?" + url.getQuery();
+        }
 
         origin = url.getHost();
         serverHostName = url.getHost();
         secure = "wss://".equals(url.getProtocol());
         port = url.getPort();
         buildLocation();
+    }
+
+    public HandShake(Request request) {
+        MimeHeaders headers = request.getMimeHeaders();
+        checkForHeader(headers, "Upgrade", "WebSocket");
+        checkForHeader(headers, "Connection", "Upgrade");
+        resourcePath = request.requestURI().toString();
+        final MessageBytes messageBytes = request.queryString();
+        String queryString;
+        if(messageBytes != null) {
+            queryString = messageBytes.toString().trim();
+            if(!queryString.isEmpty()) {
+                resourcePath += "?" + request.queryString();
+            }
+            Parameters queryParameters = new Parameters();
+            queryParameters.processParameters(messageBytes);
+            final Enumeration<String> names = queryParameters.getParameterNames();
+            while(names.hasMoreElements()) {
+                final String name = names.nextElement();
+                queryParams.put(name, queryParameters.getParameterValues(name));
+            }
+        }
+
+        setSubProtocol(split(headers.getHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER)));
     }
 
     protected final void buildLocation() {
@@ -184,7 +217,7 @@ public abstract class HandShake {
         validate(header, validValue, headers.get(header));
     }
 
-    protected void checkForHeader(MimeHeaders headers, final String header, final String validValue) {
+    protected final void checkForHeader(MimeHeaders headers, final String header, final String validValue) {
         validate(header, validValue, headers.getHeader(header));
     }
 
@@ -221,9 +254,45 @@ public abstract class HandShake {
 
     public abstract void initiate(NetworkHandler handler);
 
-    public abstract void validateServerResponse(Map<String, String> map);
+    public void validateServerResponse(Map<String, String> map) {
+        if (map.isEmpty()) {
+            throw new HandshakeException("No response headers received");
+        }  // not enough data
 
-    public abstract void respond(Response response);
+        if(!WebSocketEngine.RESPONSE_CODE_VALUE.equals(map.get(WebSocketEngine.RESPONSE_CODE_HEADER))) {
+            throw new HandshakeException(String.format("Response code was not %s: %s",
+                    WebSocketEngine.RESPONSE_CODE_VALUE,
+                    map.get(WebSocketEngine.RESPONSE_CODE_HEADER)));
+        }
+        checkForHeader(map, WebSocketEngine.UPGRADE, WebSocketEngine.WEBSOCKET);
+        checkForHeader(map, WebSocketEngine.CONNECTION, WebSocketEngine.UPGRADE);
+
+        if(!getSubProtocol().isEmpty() && map.get(WebSocketEngine.SEC_WS_PROTOCOL_HEADER) == null) {
+            
+        }
+    }
+
+    public void respond(Response response) {
+        response.setStatus(101);
+        response.setMessage("Web Socket Protocol Handshake");
+        response.setHeader("Upgrade", "WebSocket");
+        response.setHeader("Connection", "Upgrade");
+        if (!getSubProtocol().isEmpty()) {
+            response.setHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER, join(getSubProtocol()));
+        }
+
+        setHeaders(response);
+
+        try {
+            response.sendHeaders();
+            response.flush();
+        } catch (IOException e) {
+            throw new HandshakeException(e.getMessage(), e);
+        }
+
+    }
+
+    protected abstract void setHeaders(Response response);
 
     protected List<String> split(final String header) {
         return header == null ? Collections.<String>emptyList() : Arrays.asList(header.split(";"));

@@ -81,24 +81,11 @@ public class HandShake06 extends HandShake {
         }
     }
 
-    public void respond(Response response) {
-        response.setStatus(101);
+    public void setHeaders(Response response) {
         response.setMessage(WebSocketEngine.RESPONSE_CODE_MESSAGE);
-        response.setHeader("Upgrade", "WebSocket");
-        response.setHeader("Connection", "Upgrade");
         response.setHeader(WebSocketEngine.SEC_WS_ACCEPT, secKey.getSecKey());
-        if (getEnabledProtocols() != null) {
-            response.setHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER, join(getSubProtocol()));
-        }
         if (getEnabledExtensions() != null) {
             response.setHeader(WebSocketEngine.SEC_WS_EXTENSIONS_HEADER, join(getSubProtocol()));
-        }
-
-        try {
-            response.sendHeaders();
-            response.flush();
-        } catch (IOException e) {
-            throw new HandshakeException(e.getMessage(), e);
         }
     }
 
@@ -129,17 +116,7 @@ public class HandShake06 extends HandShake {
     }
 
     public void validateServerResponse(final Map<String, String> headers) throws HandshakeException {
-        if (headers.isEmpty()) {
-            throw new HandshakeException("No response headers received");
-        }  // not enough data
-
-        if(!WebSocketEngine.RESPONSE_CODE_VALUE.equals(headers.get(WebSocketEngine.RESPONSE_CODE_HEADER))) {
-            throw new HandshakeException(String.format("Response code was not %s: %s",
-                    WebSocketEngine.RESPONSE_CODE_VALUE,
-                    headers.get(WebSocketEngine.RESPONSE_CODE_HEADER)));
-        }
-        checkForHeader(headers, WebSocketEngine.UPGRADE, WebSocketEngine.WEBSOCKET);
-        checkForHeader(headers, WebSocketEngine.CONNECTION, WebSocketEngine.UPGRADE);
+        super.validateServerResponse(headers);
         secKey.validateServerKey(headers.get(WebSocketEngine.SEC_WS_ACCEPT));
     }
 

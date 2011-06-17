@@ -93,7 +93,6 @@ public class WebSocketsTest {
         run(new EchoServlet());
     }
 
-
     private void run(final Servlet servlet) throws Exception {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(servlet));
         final Map<String, Object> sent = new ConcurrentHashMap<String, Object>();

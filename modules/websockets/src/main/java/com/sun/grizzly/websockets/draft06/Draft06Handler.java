@@ -46,12 +46,12 @@ import com.sun.grizzly.websockets.DataFrame;
 import com.sun.grizzly.websockets.FrameType;
 import com.sun.grizzly.websockets.FramingException;
 import com.sun.grizzly.websockets.HandShake;
+import com.sun.grizzly.websockets.ProtocolHandler;
 import com.sun.grizzly.websockets.WebSocketEngine;
-import com.sun.grizzly.websockets.WebSocketHandler;
 
 import java.security.SecureRandom;
 
-public class Draft06Handler extends WebSocketHandler {
+public class Draft06Handler extends ProtocolHandler {
     private final SecureRandom random = new SecureRandom();
     private final boolean applyMask;
     private byte[] mask;

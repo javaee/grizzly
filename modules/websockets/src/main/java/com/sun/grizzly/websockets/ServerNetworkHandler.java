@@ -60,7 +60,6 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
     private final Response response;
     private final InternalInputBuffer inputBuffer;
     private final InternalOutputBuffer outputBuffer;
-    private final Object LOCK = new Object();
 
     public ServerNetworkHandler(Request req, Response resp) {
         request = req;
@@ -96,7 +95,7 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
     }
 
     public byte get() {
-        synchronized (LOCK) {
+        synchronized (chunk) {
             fill();
             try {
                 return (byte) chunk.substract();
@@ -107,7 +106,7 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
     }
 
     public byte[] get(int count) {
-        synchronized (LOCK) {
+        synchronized (chunk) {
             try {
                 byte[] bytes = new byte[count];
                 int total = 0;
@@ -125,7 +124,7 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
     }
 
     private void fill() {
-        synchronized (LOCK) {
+        synchronized (chunk) {
             if (chunk.getLength() == 0) {
                 read();
             }
@@ -146,7 +145,7 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
     }
 
     public boolean ready() {
-        synchronized (LOCK) {
+        synchronized (chunk) {
             return chunk.getLength() != 0;
         }
     }

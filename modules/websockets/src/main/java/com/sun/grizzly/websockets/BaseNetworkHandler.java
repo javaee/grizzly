@@ -45,7 +45,7 @@ import com.sun.grizzly.util.buf.ByteChunk;
 import java.io.IOException;
 
 public abstract class BaseNetworkHandler implements NetworkHandler {
-    protected volatile ByteChunk chunk = new ByteChunk();
+    protected final ByteChunk chunk = new ByteChunk();
 
     protected abstract int read();
 

@@ -60,8 +60,8 @@ public class HandShake76 extends HandShake {
     private final SecKey key2;
     private final byte[] key3;
     private byte[] serverSecKey;
-    private final NetworkHandler handler;
     private static final Random random = new Random();
+    private final NetworkHandler handler;
 
     public HandShake76(NetworkHandler handler, URL url) {
         super(url);
@@ -73,15 +73,11 @@ public class HandShake76 extends HandShake {
     }
 
     public HandShake76(NetworkHandler handler, Request request) {
-        MimeHeaders headers = request.getMimeHeaders();
+        super(request);
         this.handler = handler;
-        checkForHeader(headers, "Upgrade", "WebSocket");
-        checkForHeader(headers, "Connection", "Upgrade");
-        setResourcePath(request.requestURI().toString());
-
-        setSubProtocol(split(headers.getHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER)));
-        key1 = SecKey.create(headers.getHeader(WebSocketEngine.SEC_WS_KEY1_HEADER));
-        key2 = SecKey.create(headers.getHeader(WebSocketEngine.SEC_WS_KEY2_HEADER));
+        final MimeHeaders headers = request.getMimeHeaders();
+        key1 = SecKey.parse(headers.getHeader(WebSocketEngine.SEC_WS_KEY1_HEADER));
+        key2 = SecKey.parse(headers.getHeader(WebSocketEngine.SEC_WS_KEY2_HEADER));
         key3 = handler.get(8);
 
         String header = readHeader(headers, WebSocketEngine.CLIENT_WS_ORIGIN_HEADER);
@@ -99,7 +95,11 @@ public class HandShake76 extends HandShake {
         try {
             ByteArrayOutputStream chunk = new ByteArrayOutputStream();
             chunk.write(String.format("GET %s HTTP/1.1\r\n", getResourcePath()).getBytes());
-            chunk.write(String.format("Host: %s\r\n", getServerHostName()).getBytes());
+            String host = getServerHostName();
+            if(!isSecure() && getPort() != 80 || isSecure() &&getPort() != 443) {
+                host += ":" + getPort();
+            }
+            chunk.write(String.format("Host: %s\r\n", host).getBytes());
             chunk.write(String.format("Connection: Upgrade\r\n").getBytes());
             chunk.write(String.format("Upgrade: WebSocket\r\n").getBytes());
             chunk.write(String.format("%s: %s\r\n", WebSocketEngine.CLIENT_WS_ORIGIN_HEADER, getOrigin()).getBytes());
@@ -121,38 +121,30 @@ public class HandShake76 extends HandShake {
 
     @Override
     public void validateServerResponse(Map<String, String> headers) {
-        if (headers.isEmpty()) {
-            throw new HandshakeException("No response headers received");
-        }  // not enough data
+        super.validateServerResponse(headers);
 
+        final String serverLocation = headers.get(WebSocketEngine.SERVER_SEC_WS_LOCATION_HEADER);
+        if(!getLocation().equals(serverLocation)) {
+            throw new HandshakeException(String.format("Location field from server doesn't match: client '%s' vs. server '%s'",
+                    getLocation(), serverLocation));
+        }
         final byte[] clientKey = SecKey.generateServerKey(key1, key2, key3);
         byte[] serverKey = handler.get(16);
         if (!Arrays.equals(clientKey, serverKey)) {
             throw new HandshakeException(String.format("Security keys do not match: client '%s' vs. server '%s'",
                     Arrays.toString(clientKey), Arrays.toString(serverKey)));
         }
-
     }
 
     @Override
     public void respond(Response response) {
-        response.setStatus(101);
-        response.setMessage("Web Socket Protocol Handshake");
-        response.setHeader("Upgrade", "WebSocket");
-        response.setHeader("Connection", "Upgrade");
-        response.setHeader(WebSocketEngine.SERVER_SEC_WS_ORIGIN_HEADER, getOrigin());
-        response.setHeader(WebSocketEngine.SERVER_SEC_WS_LOCATION_HEADER, getLocation());
-        if (!getSubProtocol().isEmpty()) {
-            response.setHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER, join(getSubProtocol()));
-        }
-
-        try {
-            response.sendHeaders();
-            response.flush();
-        } catch (IOException e) {
-            throw new HandshakeException(e.getMessage(), e);
-        }
-
+        super.respond(response);
         handler.write(serverSecKey);
+    }
+
+    @Override
+    public void setHeaders(Response response) {
+        response.setHeader(WebSocketEngine.SERVER_SEC_WS_LOCATION_HEADER, getLocation());
+        response.setHeader(WebSocketEngine.SERVER_SEC_WS_ORIGIN_HEADER, getOrigin());
     }
 }

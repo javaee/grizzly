@@ -43,7 +43,7 @@ package com.sun.grizzly.websockets;
 import com.sun.grizzly.util.http.MimeHeaders;
 
 public class WebSocketFactory {
-    public static WebSocketHandler loadHandler(MimeHeaders headers) {
+    public static ProtocolHandler loadHandler(MimeHeaders headers) {
         for (Version version : Version.values()) {
             if(version.validate(headers)) {
                 return version.createHandler(false);

@@ -49,7 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-public abstract class WebSocketHandler {
+public abstract class ProtocolHandler {
     protected NetworkHandler handler;
     private boolean isHeaderParsed;
     private WebSocket webSocket;
@@ -107,8 +107,8 @@ public abstract class WebSocketHandler {
                 if (line.length() == 0) {
                     isHeaderParsed = true;
                 } else {
-                    String[] parts = line.split(":");
-                    headers.put(parts[0].trim(), parts[1].trim());
+                    final int index = line.indexOf(":");
+                    headers.put(line.substring(0, index).trim(), line.substring(index+1).trim());
                 }
             }
         }

@@ -40,6 +40,9 @@
 
 package com.sun.grizzly.websockets;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -48,24 +51,21 @@ import java.util.logging.Logger;
 
 @SuppressWarnings({"StringContatenationInLoop"})
 public class BaseWebSocket implements WebSocket {
-    NetworkHandler networkHandler;
     protected static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     private final List<WebSocketListener> listeners = new ArrayList<WebSocketListener>();
     private final AtomicBoolean connected = new AtomicBoolean(false);
-    private final WebSocketHandler webSocketHandler;
+    private final ProtocolHandler protocolHandler;
 
-    public BaseWebSocket(WebSocketHandler webSocketHandler, NetworkHandler networkHandler,
-            WebSocketListener... listeners) {
-        this.webSocketHandler = webSocketHandler;
-        this.networkHandler = networkHandler;
+    public BaseWebSocket(ProtocolHandler protocolHandler, WebSocketListener... listeners) {
+        this.protocolHandler = protocolHandler;
         for (WebSocketListener listener : listeners) {
             add(listener);
         }
-        webSocketHandler.setWebSocket(this);
+        protocolHandler.setWebSocket(this);
     }
 
     public NetworkHandler getNetworkHandler() {
-        return networkHandler;
+        return protocolHandler.getNetworkHandler();
     }
 
     public List<WebSocketListener> getListeners() {
@@ -90,7 +90,7 @@ public class BaseWebSocket implements WebSocket {
 
     public void close(int code, String reason) {
         if (connected.compareAndSet(true, false)) {
-            webSocketHandler.close(code, reason);
+            protocolHandler.close(code, reason);
             onClose(null);
         }
     }
@@ -129,7 +129,7 @@ public class BaseWebSocket implements WebSocket {
 
     public void send(String data) {
         if (connected.get()) {
-            webSocketHandler.send(data);
+            protocolHandler.send(data);
         } else {
             throw new RuntimeException("Socket is already closed.");
         }
@@ -137,7 +137,7 @@ public class BaseWebSocket implements WebSocket {
 
     public void send(final byte[] data) {
         if (connected.get()) {
-            webSocketHandler.send(data);
+            protocolHandler.send(data);
         } else {
             throw new RuntimeException("Socket is already closed.");
         }
@@ -145,7 +145,7 @@ public class BaseWebSocket implements WebSocket {
 
     public void send(DataFrame frame) {
         if (connected.get()) {
-            webSocketHandler.send(frame);
+            protocolHandler.send(frame);
         } else {
             throw new RuntimeException("Socket is already closed.");
         }
@@ -172,9 +172,27 @@ public class BaseWebSocket implements WebSocket {
 
     public void stream(boolean last, byte[] bytes, int off, int len) {
         if (connected.get()) {
-            webSocketHandler.stream(last, bytes, off, len);
+            protocolHandler.stream(last, bytes, off, len);
         } else {
             throw new RuntimeException("Socket is already closed.");
+        }
+    }
+
+    public final HttpServletRequest getRequest() {
+        final NetworkHandler handler = getNetworkHandler();
+        try {
+            return handler instanceof ServerNetworkHandler ? ((ServerNetworkHandler) handler).getRequest() : null;
+        } catch (IOException e) {
+            throw new WebSocketException(e.getMessage(), e);
+        }
+    }
+
+    public final HttpServletResponse getResponse() {
+        final NetworkHandler handler = getNetworkHandler();
+        try {
+            return handler instanceof ServerNetworkHandler ? ((ServerNetworkHandler) handler).getResponse() : null;
+        } catch (IOException e) {
+            throw new WebSocketException(e.getMessage(), e);
         }
     }
 }

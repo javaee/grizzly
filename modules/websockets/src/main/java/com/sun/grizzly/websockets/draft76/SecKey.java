@@ -100,7 +100,7 @@ public class SecKey {
      * @param secKey security key string representation with spaces and chars included.
      * @return <tt>SecKey</tt>
      */
-    public static SecKey create(String secKey) {
+    public static SecKey parse(String secKey) {
         return validateSecKey(secKey);
     }
 

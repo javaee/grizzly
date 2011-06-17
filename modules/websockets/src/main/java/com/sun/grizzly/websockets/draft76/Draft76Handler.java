@@ -45,13 +45,13 @@ import com.sun.grizzly.util.net.URL;
 import com.sun.grizzly.websockets.DataFrame;
 import com.sun.grizzly.websockets.FramingException;
 import com.sun.grizzly.websockets.HandShake;
+import com.sun.grizzly.websockets.ProtocolHandler;
 import com.sun.grizzly.websockets.WebSocketException;
-import com.sun.grizzly.websockets.WebSocketHandler;
 
 import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
 
-public class Draft76Handler extends WebSocketHandler {
+public class Draft76Handler extends ProtocolHandler {
     public byte[] frame(DataFrame frame) {
         return frame.getType().frame(frame);
     }

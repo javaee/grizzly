@@ -1,14 +1,14 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
  * may not use this file except in compliance with the License.  You can
  * obtain a copy of the License at
- * https://glassfish.dev.java.net/public/CDDL+GPL_1_1.html
+ * http://glassfish.java.net/public/CDDL+GPL_1_1.html
  * or packager/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
  *
@@ -40,63 +40,28 @@
 
 package com.sun.grizzly.samples.websockets;
 
-import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.websockets.WebSocket;
-import com.sun.grizzly.websockets.WebSocketApplication;
-import com.sun.grizzly.websockets.WebSocketException;
+import com.sun.grizzly.websockets.BaseWebSocket;
+import com.sun.grizzly.websockets.ProtocolHandler;
+import com.sun.grizzly.websockets.WebSocketListener;
 
-import java.util.Map;
-import java.util.WeakHashMap;
+public class ChatWebSocket extends BaseWebSocket {
+    private String user;
 
-public class ChatApplication extends WebSocketApplication {
-    private final Map<WebSocket, String> users = new WeakHashMap<WebSocket, String>();
+    public ChatWebSocket(ProtocolHandler handler, WebSocketListener[] listeners) {
+        super(handler, listeners);
+    }
 
-    @Override
-    public boolean isApplicationRequest(Request request) {
-        final String uri = request.requestURI().toString();
-        return uri.endsWith("/chat");
+    public String getUser() {
+        return user;
+    }
+
+    public void setUser(String user) {
+        this.user = user;
     }
 
     @Override
-    public void onMessage(WebSocket socket, String text) {
-        if (text.startsWith("login:")) {
-            login((ChatWebSocket) socket, text);
-        } else {
-            broadcast(((ChatWebSocket) socket).getUser() + " : " + text);
-        }
-    }
-
-    private void broadcast(String text) {
-        WebSocketsServlet.logger.info("Broadcasting : " + text);
-        for (WebSocket webSocket : getWebSockets()) {
-            try {
-                send(webSocket, text);
-            } catch (WebSocketException e) {
-                e.printStackTrace();
-                WebSocketsServlet.logger.info("Removing chat client: " + e.getMessage());
-                webSocket.close();
-            }
-        }
-    }
-
-    private void login(ChatWebSocket socket, String frame) {
-        if (socket.getUser() == null) {
-            WebSocketsServlet.logger.info("ChatApplication.login");
-            socket.setUser(frame.split(":")[1].trim());
-            broadcast(socket.getUser() + " has joined the chat.");
-        }
-    }
-
-    public void send(WebSocket webSocket, String data) {
-        webSocket.send(toJsonp(getUser(webSocket), data));
-    }
-
-    private String getUser(WebSocket webSocket) {
-        return users.get(webSocket);
-    }
-
-    private void setUser(WebSocket socket, String user) {
-        users.put(socket, user);
+    public void send(String data) {
+        super.send( toJsonp(getUser(), data) );
     }
 
     private String toJsonp(String name, String message) {

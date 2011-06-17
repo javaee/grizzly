@@ -44,7 +44,7 @@ var websocket = null;
 var name  = null;
 
 var app = {
-    url: 'ws://' + document.location.host + document.location.pathname + 'chat',
+    url: 'ws://' + document.location.host + document.location.pathname + 'chat?query=test',
     initialize: function() {
         if ("WebSocket" in window) {
             $('login-name').focus();

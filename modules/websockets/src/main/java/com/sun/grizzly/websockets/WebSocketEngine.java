@@ -139,25 +139,25 @@ public class WebSocketEngine {
                 WebSocket socket = null;
                 try {
                     if (app != null) {
-                        final WebSocketHandler webSocketHandler = WebSocketFactory.loadHandler(mimeHeaders);
 
                         ProcessorTask task = asyncExecutor.getProcessorTask();
                         final SelectionKey key = task.getSelectionKey();
 
+                        final ProtocolHandler protocolHandler = WebSocketFactory.loadHandler(mimeHeaders);
                         final ServerNetworkHandler handler = new ServerNetworkHandler(request, request.getResponse());
-                        webSocketHandler.setNetworkHandler(handler);
+                        protocolHandler.setNetworkHandler(handler);
 
-                        final HandShake handshake = webSocketHandler.handshake(app, request);
+                        final HandShake handshake = protocolHandler.handshake(app, request);
 
-                        socket = new BaseServerWebSocket(webSocketHandler, handler, app, new KeyWebSocketListener(key));
-                        socket.onConnect();
+                        socket = app.createWebSocket(protocolHandler, app, new KeyWebSocketListener(key));
 
                         ((BaseSelectionKeyHandler) task.getSelectorHandler().getSelectionKeyHandler())
                                 .setConnectionCloseHandler(closeHandler);
 
-                        key.attach(new WebSocketSelectionKeyAttachment(webSocketHandler, handler, task,
+                        key.attach(new WebSocketSelectionKeyAttachment(protocolHandler, handler, task,
                                 (AsyncProcessorTask) asyncExecutor.getAsyncTask()));
                         
+                        socket.onConnect();
                         enableRead(task, key);
                         return true;
                     }
