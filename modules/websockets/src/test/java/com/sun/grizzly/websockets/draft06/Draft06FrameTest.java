@@ -38,9 +38,12 @@
  * holder.
  */
 
-package com.sun.grizzly.websockets;
+package com.sun.grizzly.websockets.draft06;
 
-import com.sun.grizzly.websockets.draft06.Draft06Handler;
+import com.sun.grizzly.websockets.BaseNetworkHandler;
+import com.sun.grizzly.websockets.DataFrame;
+import com.sun.grizzly.websockets.FrameType;
+import com.sun.grizzly.websockets.WebSocketEngine;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -51,7 +54,7 @@ public class Draft06FrameTest {
     @Test
     public void textFrame() throws IOException {
         Draft06Handler handler = new Draft06Handler();
-        final byte[] data = handler.frame(new DataFrame("Hello"));
+        final byte[] data = handler.frame(new DataFrame("Hello", Draft06FrameType.TEXT));
         Assert.assertArrayEquals(new byte[]{(byte) 0x84, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f}, data);
 
         handler = new Draft06Handler(true);
@@ -69,7 +72,7 @@ public class Draft06FrameTest {
         System.arraycopy(new byte[]{(byte) 0x85, 0x7E, 0x01, 0x00}, 0, sample, 0, 4);
         System.arraycopy(bytes, 0, sample, 4, bytes.length);
 
-        final byte[] data = handler.frame(new DataFrame(bytes));
+        final byte[] data = handler.frame(new DataFrame(bytes, Draft06FrameType.TEXT));
         Assert.assertArrayEquals(sample, data);
 
         handler = new Draft06Handler(true);
@@ -86,7 +89,7 @@ public class Draft06FrameTest {
         byte[] sample = new byte[bytes.length + prelude.length];
         System.arraycopy(prelude, 0, sample, 0, prelude.length);
         System.arraycopy(bytes, 0, sample, prelude.length, 65536);
-        final byte[] data = handler.frame(new DataFrame(bytes));
+        final byte[] data = handler.frame(new DataFrame(bytes, Draft06FrameType.BINARY));
         Assert.assertArrayEquals(sample, data);
 
         handler = new Draft06Handler(true);
@@ -97,7 +100,7 @@ public class Draft06FrameTest {
     @Test
     public void ping() throws IOException {
         Draft06Handler handler = new Draft06Handler();
-        DataFrame frame = new DataFrame("Hello");
+        DataFrame frame = new DataFrame("Hello", Draft06FrameType.TEXT);
         final byte[] data = handler.frame(frame);
         handler = new Draft06Handler(true);
         handler.setNetworkHandler(new ArrayNetworkHandler(data));
@@ -119,14 +122,14 @@ public class Draft06FrameTest {
     @Test
     public void mapTypes() {
         for (int i = 0; i < 6; i++) {
-            check((byte) i, FrameType.values()[i]);
-            check((byte) (0x80 | i), FrameType.values()[i]);
+            check((byte) i, Draft06FrameType.values()[i]);
+            check((byte) (0x80 | i), Draft06FrameType.values()[i]);
         }
     }
 
     private void check(final byte opcodes, final FrameType type) {
         Assert.assertEquals(String.format("Opcode %s returned the wrong type", opcodes), type,
-                FrameType.valueOf(opcodes));
+                Draft06FrameType.valueOf(opcodes));
     }
 
     private void compare(final long length) {

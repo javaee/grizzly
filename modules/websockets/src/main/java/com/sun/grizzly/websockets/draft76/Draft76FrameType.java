@@ -8,7 +8,7 @@
  * and Distribution License("CDDL") (collectively, the "License").  You
  * may not use this file except in compliance with the License.  You can
  * obtain a copy of the License at
- * https://glassfish.dev.java.net/public/CDDL+GPL_1_1.html
+ * http://glassfish.java.net/public/CDDL+GPL_1_1.html
  * or packager/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
  *
@@ -38,64 +38,62 @@
  * holder.
  */
 
-package com.sun.grizzly.websockets;
+package com.sun.grizzly.websockets.draft76;
 
+import com.sun.grizzly.websockets.DataFrame;
+import com.sun.grizzly.websockets.FrameType;
+import com.sun.grizzly.websockets.FramingException;
+import com.sun.grizzly.websockets.WebSocket;
+
+import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
 
-public class ClosingFrame extends DataFrame {
-    public static final byte[] EMPTY_BYTES = new byte[0];
-    private int code;
-    private String reason;
-
-    public ClosingFrame() {
-        code = -1;
-        setType(FrameType.CLOSING);
-    }
-
-    public ClosingFrame(int code, String reason) {
-        this.code = code;
-        this.reason = reason;
-        setType(FrameType.CLOSING);
-    }
-
-    public int getCode() {
-        return code;
-    }
-
-    public String getReason() {
-        return reason;
-    }
-
-    @Override
-    public void setPayload(byte[] bytes) {
-        if (bytes.length > 0) {
-            code = (int) WebSocketEngine.toLong(bytes, 0, 2);
-            if (bytes.length > 2) {
-                try {
-                    reason = new String(bytes, 2, bytes.length - 2, "UTF-8");
-                } catch (UnsupportedEncodingException e) {
-                    throw new FramingException(e.getMessage(), e);
-                }
+enum Draft76FrameType implements FrameType {
+    TEXT {
+        public void unframe(DataFrame frame, byte[] data) {
+            try {
+                frame.setType(this);
+                frame.setPayload(new String(data, "UTF-8"));
+            } catch (UnsupportedEncodingException e) {
+                throw new FramingException(e.getMessage(), e);
             }
         }
-    }
 
-    @Override
-    public byte[] getBytes() {
-        try {
-            if (code == -1) {
-                return EMPTY_BYTES;
-            }
-
-            final byte[] bytes = WebSocketEngine.toArray(code);
-            final byte[] reasonBytes = reason == null ? EMPTY_BYTES : reason.getBytes("UTF-8");
-            final byte[] frameBytes = new byte[2 + reasonBytes.length];
-            System.arraycopy(bytes, bytes.length - 2, frameBytes, 0, 2);
-            System.arraycopy(reasonBytes, 0, frameBytes, 2, reasonBytes.length);
-
-            return frameBytes;
-        } catch (UnsupportedEncodingException e) {
-            throw new FramingException(e.getMessage(), e);
+        public byte[] frame(DataFrame frame) {
+            final byte[] data = frame.getBytes();
+            ByteArrayOutputStream out = new ByteArrayOutputStream(data.length + 2);
+            out.write((byte) 0x00);
+            out.write(data, 0, data.length);
+            out.write((byte) 0xFF);
+            return out.toByteArray();
         }
+
+        public void respond(WebSocket socket, DataFrame frame) {
+            socket.onMessage(frame.getTextPayload());
+        }
+    },
+
+    CLOSING {
+        public void unframe(DataFrame frame, byte[] data) {
+            frame.setType(this);
+            frame.setPayload(data);
+        }
+
+        public byte[] frame(DataFrame frame) {
+            return new byte[]{(byte) 0xFF, 0x00};
+        }
+
+        public void respond(WebSocket socket, DataFrame frame) {
+            socket.close();
+        }
+    };
+
+    public DataFrame create() {
+        return new DataFrame(this);
     }
+
+    public final byte getOpCode() {
+        throw new UnsupportedOperationException("Draft -76 doesn't support opcode flags");
+    }
+
 }

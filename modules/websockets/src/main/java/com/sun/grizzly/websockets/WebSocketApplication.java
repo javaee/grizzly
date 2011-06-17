@@ -69,7 +69,7 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
     }
 
     @Override
-    public void onClose(WebSocket socket) {
+    public void onClose(WebSocket socket, DataFrame frame) {
         remove(socket);
         socket.close();
     }

@@ -79,7 +79,7 @@ public class WebSocketClient extends WebSocketAdapter {
                     }
                     webSocket.onConnect();
                     webSocket.add(new WebSocketAdapter() {
-                        public void onClose(WebSocket socket) {
+                        public void onClose(WebSocket socket, DataFrame frame) {
                             socket.close();
                         }
                     });

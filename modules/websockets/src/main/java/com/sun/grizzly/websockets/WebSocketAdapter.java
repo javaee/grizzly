@@ -41,7 +41,7 @@
 package com.sun.grizzly.websockets;
 
 public class WebSocketAdapter implements WebSocketListener {
-    public void onClose(WebSocket socket) {
+    public void onClose(WebSocket socket, DataFrame frame) {
     }
 
     public void onConnect(WebSocket socket) {

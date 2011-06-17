@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,52 +38,68 @@
  * holder.
  */
 
-package com.sun.grizzly.websockets;
+package com.sun.grizzly.websockets.draft06;
 
-import com.sun.grizzly.tcp.Request;
+import com.sun.grizzly.websockets.DataFrame;
+import com.sun.grizzly.websockets.FramingException;
+import com.sun.grizzly.websockets.WebSocketEngine;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.logging.Logger;
+import java.io.UnsupportedEncodingException;
 
-public class EchoServlet extends HttpServlet {
-    private static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
-    public static final String RESPONSE_TEXT = "Nothing to see";
-    private WebSocketApplication app;
+class ClosingFrame extends DataFrame {
+    public static final byte[] EMPTY_BYTES = new byte[0];
+    private int code;
+    private String reason;
 
-    public EchoServlet() {
-        app = new WebSocketApplication() {
-            @Override
-            public boolean isApplicationRequest(Request request) {
-                return request.requestURI().equals("/echo");
-            }
+    public ClosingFrame() {
+        code = -1;
+        setType(Draft06FrameType.CLOSING);
+    }
 
-            public void onMessage(WebSocket socket, String data) {
-                socket.send(data);
-            }
+    public ClosingFrame(int code, String reason) {
+        this.code = code;
+        this.reason = reason;
+        setType(Draft06FrameType.CLOSING);
+    }
 
-            public void onConnect(WebSocket socket) {
-            }
+    public int getCode() {
+        return code;
+    }
 
-            public void onClose(WebSocket socket, DataFrame frame) {
-            }
-        };
-        WebSocketEngine.getEngine().register(app);
+    public String getReason() {
+        return reason;
     }
 
     @Override
-    public void destroy() {
-        WebSocketEngine.getEngine().unregister(app);
-        super.destroy();
+    public void setPayload(byte[] bytes) {
+        if (bytes.length > 0) {
+            code = (int) WebSocketEngine.toLong(bytes, 0, 2);
+            if (bytes.length > 2) {
+                try {
+                    reason = new String(bytes, 2, bytes.length - 2, "UTF-8");
+                } catch (UnsupportedEncodingException e) {
+                    throw new FramingException(e.getMessage(), e);
+                }
+            }
+        }
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        resp.setContentType("text/plain; charset=iso-8859-1");
-        resp.getWriter().write(RESPONSE_TEXT);
-        resp.getWriter().flush();
+    public byte[] getBytes() {
+        try {
+            if (code == -1) {
+                return EMPTY_BYTES;
+            }
+
+            final byte[] bytes = WebSocketEngine.toArray(code);
+            final byte[] reasonBytes = reason == null ? EMPTY_BYTES : reason.getBytes("UTF-8");
+            final byte[] frameBytes = new byte[2 + reasonBytes.length];
+            System.arraycopy(bytes, bytes.length - 2, frameBytes, 0, 2);
+            System.arraycopy(reasonBytes, 0, frameBytes, 2, reasonBytes.length);
+
+            return frameBytes;
+        } catch (UnsupportedEncodingException e) {
+            throw new FramingException(e.getMessage(), e);
+        }
     }
 }

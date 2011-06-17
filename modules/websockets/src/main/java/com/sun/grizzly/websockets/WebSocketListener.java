@@ -41,7 +41,7 @@
 package com.sun.grizzly.websockets;
 
 public interface WebSocketListener {
-    void onClose(WebSocket socket);
+    void onClose(WebSocket socket, DataFrame frame);
 
     void onConnect(WebSocket socket);
 

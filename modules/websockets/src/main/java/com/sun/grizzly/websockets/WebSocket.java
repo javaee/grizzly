@@ -81,6 +81,8 @@ public interface WebSocket {
 
     void send(byte[] data);
 
+    void send(DataFrame frame);
+
     void close();
 
     void close(int code);

@@ -53,6 +53,7 @@ public abstract class WebSocketHandler {
     protected NetworkHandler handler;
     private boolean isHeaderParsed;
     private WebSocket webSocket;
+    protected boolean midstream = false;
 
     public HandShake handshake(WebSocketApplication app, Request request) {
         final HandShake handshake = createHandShake(request);
@@ -117,9 +118,28 @@ public abstract class WebSocketHandler {
 
     public abstract byte[] frame(DataFrame frame);
 
-    public abstract void readFrame();
+    public void readFrame() {
+        while (handler.ready()) {
+            try {
+                unframe().respond(getWebSocket());
+            } catch (FramingException fe) {
+                fe.printStackTrace();
+                getWebSocket().close();
+            }
+        }
+    }
 
     protected abstract HandShake createHandShake(Request request);
 
     protected abstract HandShake createHandShake(URL url);
+
+    public abstract void send(byte[] data);
+
+    public abstract void send(String data);
+
+    public abstract void stream(boolean last, byte[] bytes, int off, int len);
+
+    public abstract void close(int code, String reason);
+
+    public abstract DataFrame unframe();
 }

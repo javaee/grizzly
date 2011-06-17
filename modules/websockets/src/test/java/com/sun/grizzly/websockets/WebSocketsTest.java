@@ -321,7 +321,7 @@ public class WebSocketsTest {
             public void onConnect(WebSocket socket) {
             }
 
-            public void onClose(WebSocket socket) {
+            public void onClose(WebSocket socket, DataFrame frame) {
             }
         };
         WebSocketEngine.getEngine().register(app);

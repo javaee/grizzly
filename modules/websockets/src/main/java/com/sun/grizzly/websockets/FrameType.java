@@ -40,95 +40,14 @@
 
 package com.sun.grizzly.websockets;
 
-import java.io.UnsupportedEncodingException;
+public interface FrameType {
+    void respond(WebSocket socket, DataFrame frame);
 
-public enum FrameType {
-    CONTINUATION {
-        @Override
-        public void respond(WebSocket socket, DataFrame frame) {
-            socket.onFragment(frame.isLast(), frame.getBytes());
-        }
-    },
-    CLOSING {
-        @Override
-        public DataFrame create() {
-            return new ClosingFrame();
-        }
+    void unframe(DataFrame frame, byte[] data);
 
-        @Override
-        public void respond(WebSocket socket, DataFrame frame) {
-            socket.onClose(frame);
-        }
-    },
-    PING {
-        @Override
-        public void respond(WebSocket socket, DataFrame frame) {
-            socket.onPing(frame);
-        }
-    },
-    PONG {
-        @Override
-        public void respond(WebSocket socket, DataFrame frame) {
-            socket.onPong(frame);
-        }
-    },
-    TEXT {
-        @Override
-        public void unframe(DataFrame frame, byte[] data) {
-            try {
-                frame.setPayload(new String(data, "UTF-8"));
-            } catch (UnsupportedEncodingException e) {
-                throw new FramingException(e.getMessage(), e);
-            }
-        }
+    byte[] frame(DataFrame dataFrame);
 
-        @Override
-        public byte[] frame(DataFrame dataFrame) {
-            try {
-                return dataFrame.getTextPayload().getBytes("UTF-8");
-            } catch (UnsupportedEncodingException e) {
-                throw new FramingException(e.getMessage(), e);
-            }
-        }
+    byte getOpCode();
 
-        @Override
-        public void respond(WebSocket socket, DataFrame frame) {
-            socket.onMessage(frame.getTextPayload());
-        }
-    },
-    BINARY {
-        @Override
-        public void respond(WebSocket socket, DataFrame frame) {
-            if(!frame.isLast()) {
-                socket.onFragment(frame.isLast(), frame.getBytes());
-            } else {
-                socket.onMessage(frame.getBytes());
-            }
-        }
-    };
-
-    public void unframe(DataFrame frame, byte[] data) {
-        frame.setPayload(data);
-        frame.setType(this);
-    }
-
-    public byte[] frame(DataFrame dataFrame) {
-        return dataFrame.getBytes();
-    }
-
-    public abstract void respond(WebSocket socket, DataFrame frame);
-
-    public final byte setOpcode(byte b) {
-        return (byte) (b | ordinal());
-    }
-
-    public static FrameType valueOf(byte opcodes) {
-        return values()[(opcodes & 0xF)];
-    }
-
-    public DataFrame create() {
-        final DataFrame frame = new DataFrame();
-        frame.setType(this);
-        return frame;
-    }
+    DataFrame create();
 }

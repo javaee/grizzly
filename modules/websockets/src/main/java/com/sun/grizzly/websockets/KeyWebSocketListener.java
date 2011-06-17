@@ -51,7 +51,7 @@ public class KeyWebSocketListener extends WebSocketAdapter {
     }
 
     @Override
-    public void onClose(WebSocket socket) {
+    public void onClose(WebSocket socket, DataFrame frame) {
         key.cancel();
         try {
             key.channel().close();

@@ -52,7 +52,6 @@ public class BaseWebSocket implements WebSocket {
     protected static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     private final List<WebSocketListener> listeners = new ArrayList<WebSocketListener>();
     private final AtomicBoolean connected = new AtomicBoolean(false);
-    private boolean midstream = false;
     private final WebSocketHandler webSocketHandler;
 
     public BaseWebSocket(WebSocketHandler webSocketHandler, NetworkHandler networkHandler,
@@ -91,33 +90,30 @@ public class BaseWebSocket implements WebSocket {
 
     public void close(int code, String reason) {
         if (connected.compareAndSet(true, false)) {
-            webSocketHandler.send(new ClosingFrame(code, reason));
+            webSocketHandler.close(code, reason);
+            onClose(null);
         }
     }
 
     public void onClose(DataFrame frame) {
-        close(NORMAL_CLOSURE);
-        onClose();
-    }
-
-    private void onClose() {
         final Iterator<WebSocketListener> it = listeners.iterator();
         while (it.hasNext()) {
             final WebSocketListener listener = it.next();
             it.remove();
-            listener.onClose(this);
+            listener.onClose(this, frame);
         }
     }
 
     public void onPing(DataFrame frame) {
-        if (connected.get()) {
-            webSocketHandler.send(new DataFrame(FrameType.PONG, frame.getBytes()));
-        } else {
-            throw new RuntimeException("Socket is already closed.");
+        for (WebSocketListener listener : listeners) {
+            listener.onPing(this, frame.getBytes());
         }
     }
 
     public void onPong(DataFrame frame) {
+        for (WebSocketListener listener : listeners) {
+            listener.onPong(this, frame.getBytes());
+        }
     }
 
     public void onFragment(boolean last, byte[] binaryPayload) {
@@ -132,11 +128,19 @@ public class BaseWebSocket implements WebSocket {
     }
 
     public void send(String data) {
-        send(new DataFrame(data));
+        if (connected.get()) {
+            webSocketHandler.send(data);
+        } else {
+            throw new RuntimeException("Socket is already closed.");
+        }
     }
 
     public void send(final byte[] data) {
-        send(new DataFrame(data));
+        if (connected.get()) {
+            webSocketHandler.send(data);
+        } else {
+            throw new RuntimeException("Socket is already closed.");
+        }
     }
 
     public void send(DataFrame frame) {
@@ -168,13 +172,7 @@ public class BaseWebSocket implements WebSocket {
 
     public void stream(boolean last, byte[] bytes, int off, int len) {
         if (connected.get()) {
-            DataFrame frame = new DataFrame(midstream ? FrameType.CONTINUATION : FrameType.BINARY);
-            midstream = !last;
-            frame.setLast(last);
-            byte[] data = new byte[len];
-            System.arraycopy(bytes, off, data, 0, len);
-            frame.setPayload(data);
-            webSocketHandler.send(frame);
+            webSocketHandler.stream(last, bytes, off, len);
         } else {
             throw new RuntimeException("Socket is already closed.");
         }

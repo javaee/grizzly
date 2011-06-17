@@ -61,14 +61,14 @@ public class DataFrame {
         this.type = type;
     }
 
-    public DataFrame(String data) {
+    public DataFrame(String data, FrameType type) {
         setPayload(data);
-        type = FrameType.TEXT;
+        this.type = type;
     }
 
-    public DataFrame(byte[] data) {
+    public DataFrame(byte[] data, FrameType type) {
         setPayload(data);
-        type = FrameType.BINARY;
+        this.type = type;
     }
 
     public DataFrame(FrameType type, byte[] bytes) {
@@ -89,7 +89,6 @@ public class DataFrame {
     }
 
     public void setPayload(String payload) {
-        type = FrameType.TEXT;
         this.payload = payload;
         try {
             bytes = payload != null ? payload.getBytes("UTF-8") : null;

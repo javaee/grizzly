@@ -136,8 +136,8 @@ public class LifecycleTest extends BaseWebSocketTestUtiltiies {
             }
 
             @Override
-            public void onClose(WebSocket socket) {
-                super.onClose(socket);
+            public void onClose(WebSocket socket, DataFrame frame) {
+                super.onClose(socket, frame);
                 closeLatch.countDown();
             }
         };
@@ -150,8 +150,8 @@ public class LifecycleTest extends BaseWebSocketTestUtiltiies {
         final CountDownLatch close = new CountDownLatch(1);
         final EchoWebSocketApplication app = new EchoWebSocketApplication() {
             @Override
-            public void onClose(WebSocket socket) {
-                super.onClose(socket);
+            public void onClose(WebSocket socket, DataFrame frame) {
+                super.onClose(socket, frame);
                 close.countDown();
             }
         };
@@ -237,8 +237,8 @@ public class LifecycleTest extends BaseWebSocketTestUtiltiies {
         }
 
         @Override
-        public void onClose(WebSocket socket) {
-            super.onClose(socket);
+        public void onClose(WebSocket socket, DataFrame frame) {
+            super.onClose(socket, frame);
             closed.countDown();
         }
 

@@ -82,7 +82,8 @@ public class Draft06Handler extends WebSocketHandler {
         int packetLength = 1 + lengthBytes.length;
 
         byte[] packet = new byte[packetLength + payloadBytes.length];
-        packet[0] = frame.getType().setOpcode(frame.isLast() ? (byte) 0x80 : 0);
+        final byte opcode = frame.getType().getOpCode();
+        packet[0] = (byte) (opcode | (frame.isLast() ? (byte) 0x80 : 0));
         System.arraycopy(lengthBytes, 0, packet, 1, lengthBytes.length);
         System.arraycopy(payloadBytes, 0, packet, packetLength, payloadBytes.length);
 
@@ -99,7 +100,12 @@ public class Draft06Handler extends WebSocketHandler {
         return packet;
     }
 
+    @Override
     public DataFrame unframe() {
+        if (!applyMask) {
+            mask = handler.get(WebSocketEngine.MASK_SIZE);
+            maskIndex = 0;
+        }
         byte opcodes = get();
         boolean fin = (opcodes & 0x80) == 0x80;
         byte lengthCode = get();
@@ -109,7 +115,7 @@ public class Draft06Handler extends WebSocketHandler {
         } else {
             length = decodeLength(get(lengthCode == 126 ? 2 : 8));
         }
-        FrameType type = FrameType.valueOf(opcodes);
+        FrameType type = Draft06FrameType.valueOf(opcodes);
         final byte[] data = get((int) length);
         if (data.length != length) {
             final FramingException e = new FramingException(String.format("Data read (%s) is not the expected" +
@@ -135,25 +141,10 @@ public class Draft06Handler extends WebSocketHandler {
 
     private byte get() {
         byte b = handler.get();
-        if(!applyMask) {
+        if (!applyMask) {
             b ^= mask[maskIndex++ % WebSocketEngine.MASK_SIZE];
         }
         return b;
-    }
-
-    public void readFrame() {
-        while (handler.ready()) {
-            try {
-                if (!applyMask) {
-                    mask = handler.get(WebSocketEngine.MASK_SIZE);
-                    maskIndex = 0;
-                }
-                unframe().respond(getWebSocket());
-            } catch(FramingException fe) {
-                fe.printStackTrace();
-                getWebSocket().close();
-            }
-        }
     }
 
     public void generateMask() {
@@ -204,5 +195,29 @@ public class Draft06Handler extends WebSocketHandler {
 
         return lengthBytes;
     }
+    @Override
+    public void send(byte[] data) {
+        send(new DataFrame(data, Draft06FrameType.BINARY));
+    }
 
+    @Override
+    public void send(String data) {
+        send(new DataFrame(data, Draft06FrameType.TEXT));
+    }
+
+    @Override
+    public void stream(boolean last, byte[] bytes, int off, int len) {
+        DataFrame frame = new DataFrame(midstream ? Draft06FrameType.CONTINUATION : Draft06FrameType.BINARY);
+        midstream = !last;
+        frame.setLast(last);
+        byte[] data = new byte[len];
+        System.arraycopy(bytes, off, data, 0, len);
+        frame.setPayload(data);
+        send(frame);
+    }
+
+    @Override
+    public void close(int code, String reason) {
+        send(new ClosingFrame(code, reason));
+    }
 }

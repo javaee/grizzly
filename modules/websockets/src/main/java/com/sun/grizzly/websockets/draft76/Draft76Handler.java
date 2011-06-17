@@ -43,9 +43,9 @@ package com.sun.grizzly.websockets.draft76;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.util.net.URL;
 import com.sun.grizzly.websockets.DataFrame;
-import com.sun.grizzly.websockets.FrameType;
 import com.sun.grizzly.websockets.FramingException;
 import com.sun.grizzly.websockets.HandShake;
+import com.sun.grizzly.websockets.WebSocketException;
 import com.sun.grizzly.websockets.WebSocketHandler;
 
 import java.io.ByteArrayOutputStream;
@@ -53,50 +53,15 @@ import java.io.UnsupportedEncodingException;
 
 public class Draft76Handler extends WebSocketHandler {
     public byte[] frame(DataFrame frame) {
-        switch(frame.getType()) {
-            case TEXT:
-                final byte[] data = frame.getBytes();
-                ByteArrayOutputStream out = new ByteArrayOutputStream(data.length + 2);
-                out.write((byte) 0x00);
-                out.write(data, 0, data.length);
-                out.write((byte) 0xFF);
-                return out.toByteArray();
-            case CLOSING:
-                return new byte[]{(byte) 0xFF, 0x00};
-        }
-
-        return new byte[0];
+        return frame.getType().frame(frame);
     }
 
-    public void readFrame() {
-        while (handler.ready()) {
-            try {
-                respond(unframe());
-            } catch(FramingException fe) {
-                fe.printStackTrace();
-                getWebSocket().close();
-            }
-        }
-
-    }
-
-    private void respond(DataFrame frame) {
-        switch(frame.getType()) {
-            case TEXT:
-                getWebSocket().onMessage(frame.getTextPayload());
-                break;
-            case CLOSING:
-                getWebSocket().onClose(frame);
-                break;
-        }
-    }
-
-    private DataFrame unframe() {
+    public DataFrame unframe() {
         byte b = handler.get();
         DataFrame frame;
         switch (b) {
             case 0x00:
-                frame = new DataFrame(FrameType.TEXT);
+                frame = new DataFrame(Draft76FrameType.TEXT);
                 ByteArrayOutputStream raw = new ByteArrayOutputStream();
                 while ((b = handler.get()) != (byte) 0xFF) {
                     raw.write(b);
@@ -108,7 +73,7 @@ public class Draft76Handler extends WebSocketHandler {
                 }
                 break;
             case (byte) 0xFF:
-                frame = new DataFrame(FrameType.CLOSING, new byte[]{b, handler.get()});
+                frame = new DataFrame(Draft76FrameType.CLOSING, new byte[]{b, handler.get()});
                 break;
             default:
                 throw new FramingException("Unknown frame type: " + b);
@@ -125,5 +90,25 @@ public class Draft76Handler extends WebSocketHandler {
     @Override
     protected HandShake createHandShake(URL url) {
         return new HandShake76(getNetworkHandler(), url);
+    }
+
+    @Override
+    public void send(String data) {
+        send(new DataFrame(data, Draft76FrameType.TEXT));
+    }
+
+    @Override
+    public void close(int code, String reason) {
+        send(new DataFrame(Draft76FrameType.CLOSING));
+    }
+
+    @Override
+    public void send(byte[] data) {
+        throw new WebSocketException("Binary data not supported in draft -76");
+    }
+
+    @Override
+    public void stream(boolean last, byte[] bytes, int off, int len) {
+        throw new WebSocketException("Streaming not supported in draft -76");
     }
 }
