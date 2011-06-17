@@ -72,7 +72,7 @@ public class Draft06FrameTest {
         System.arraycopy(new byte[]{(byte) 0x85, 0x7E, 0x01, 0x00}, 0, sample, 0, 4);
         System.arraycopy(bytes, 0, sample, 4, bytes.length);
 
-        final byte[] data = handler.frame(new DataFrame(bytes, Draft06FrameType.TEXT));
+        final byte[] data = handler.frame(new DataFrame(bytes, Draft06FrameType.BINARY));
         Assert.assertArrayEquals(sample, data);
 
         handler = new Draft06Handler(true);
