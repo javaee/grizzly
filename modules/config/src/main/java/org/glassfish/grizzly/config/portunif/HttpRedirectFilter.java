@@ -45,7 +45,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import javax.net.ssl.SSLEngine;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.config.ConfigAwareElement;
 import org.glassfish.grizzly.config.dom.HttpRedirect;
 import org.glassfish.grizzly.config.dom.NetworkListener;
@@ -102,7 +101,10 @@ public class HttpRedirectFilter extends BaseFilter implements
         final HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
         final URI requestURI;
         try {
-            requestURI = new URI(request.getRequestURI());
+            final String uri = request.getQueryString() == null ?
+                    request.getRequestURI() :
+                    request.getRequestURI() + "?" + request.getQueryString();
+            requestURI = new URI(uri);
         } catch (URISyntaxException ignored) {
             return ctx.getStopAction();
         }
@@ -154,7 +156,7 @@ public class HttpRedirectFilter extends BaseFilter implements
         }
 
         if (hostPort.length() > 0) {
-            String path = requestURI.getRawPath();
+            String path = requestURI.toString();
             if (path == null) {
                 path = "/";
             }
@@ -164,22 +166,13 @@ public class HttpRedirectFilter extends BaseFilter implements
                     .append(hostPort)
                     .append(path);
 
+            request.setSkipRemainder(true);
             final HttpResponsePacket response = HttpResponsePacket.builder(request)
                     .status(302)
                     .header("Location", sb.toString())
                     .contentLength(0)
                     .build();
             ctx.write(response);
-            ctx.flush(new EmptyCompletionHandler() {
-
-                @Override
-                public void completed(Object result) {
-                    try {
-                        connection.close();
-                    } catch (IOException ignored) {
-                    }
-                }
-            });
         } else {
             connection.close();
         }

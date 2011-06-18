@@ -61,6 +61,7 @@ public class HttpRedirectTest extends BaseTestGrizzlyConfig {
     public void legacyHttpToHttpsRedirect() throws IOException {
         doTest(SocketFactory.getDefault(),
                "legacy-http-https-redirect.xml",
+                "/",
                 "localhost",
                 48480,
                 "location: https://localhost:48480/");
@@ -70,6 +71,7 @@ public class HttpRedirectTest extends BaseTestGrizzlyConfig {
     public void legacyHttpsToHttpRedirect() throws IOException {
         doTest(getSSLSocketFactory(),
                "legacy-https-http-redirect.xml",
+                "/",
                 "localhost",
                 48480,
                 "location: http://localhost:48480/");
@@ -79,6 +81,7 @@ public class HttpRedirectTest extends BaseTestGrizzlyConfig {
     public void httpToHttpsSamePortRedirect() throws IOException {
         doTest(SocketFactory.getDefault(),
                "http-https-redirect-same-port.xml",
+                "/",
                 "localhost",
                 48480,
                 "location: https://localhost:48480/");
@@ -88,6 +91,7 @@ public class HttpRedirectTest extends BaseTestGrizzlyConfig {
     public void httpsToHttpSamePortRedirect() throws IOException {
         doTest(getSSLSocketFactory(),
                "https-http-redirect-same-port.xml",
+                "/",
                 "localhost",
                 48480,
                 "location: http://localhost:48480/");
@@ -97,15 +101,27 @@ public class HttpRedirectTest extends BaseTestGrizzlyConfig {
     public void httpToHttpsDifferentPortRedirect() throws IOException {
         doTest(getSSLSocketFactory(),
                "http-https-redirect-different-port.xml",
+                "/",
                 "localhost",
                 48480,
                 "location: https://localhost:48481/");
     }
 
     @Test
+    public void httpToHttpsWithAttributesRedirect() throws IOException {
+        doTest(getSSLSocketFactory(),
+                "http-https-redirect-different-port.xml",
+                "/index.html?DEFAULT=D:%5Cprojects%5Ceclipse%5CSimpleWAR.war&name=SimpleWAR&contextroot=SimpleWAR&force=true&keepstate=true",
+                "localhost",
+                48480,
+                "location: https://localhost:48481/index.html?DEFAULT=D:%5Cprojects%5Ceclipse%5CSimpleWAR.war&name=SimpleWAR&contextroot=SimpleWAR&force=true&keepstate=true");
+    }
+
+    @Test
     public void httpsToHttpDifferentPortRedirect() throws IOException {
         doTest(SocketFactory.getDefault(),
                "https-http-redirect-different-port.xml",
+                "/",
                 "localhost",
                 48480,
                 "location: http://localhost:48481/");
@@ -116,6 +132,7 @@ public class HttpRedirectTest extends BaseTestGrizzlyConfig {
 
     private void doTest(SocketFactory socketFactory,
                         String configFile,
+                        String resourceURL,
                         String host,
                         int port,
                         String expectedLocation) throws IOException {
@@ -129,7 +146,7 @@ public class HttpRedirectTest extends BaseTestGrizzlyConfig {
         try {
             Socket s = socketFactory.createSocket("localhost", 48480);
             OutputStream out = s.getOutputStream();
-            out.write("GET / HTTP/1.1\n".getBytes());
+            out.write(("GET " + resourceURL + " HTTP/1.1\n").getBytes());
             out.write(("Host: " + host + ':' + Integer.toString(port) + '\n').getBytes());
             out.write("\n".getBytes());
             out.flush();
