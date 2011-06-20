@@ -56,6 +56,13 @@ import java.util.Map;
 import java.util.Random;
 
 public class HandShake76 extends HandShake {
+    // Draft 76 headers
+    public static final String SEC_WS_KEY1_HEADER = "Sec-WebSocket-Key1";
+    public static final String SEC_WS_KEY2_HEADER = "Sec-WebSocket-Key2";
+    public static final String CLIENT_WS_ORIGIN_HEADER = "Origin";
+    public static final String SERVER_SEC_WS_ORIGIN_HEADER = "Sec-WebSocket-Origin";
+    public static final String SERVER_SEC_WS_LOCATION_HEADER = "Sec-WebSocket-Location";
+    
     private final SecKey key1;
     private final SecKey key2;
     private final byte[] key3;
@@ -76,11 +83,11 @@ public class HandShake76 extends HandShake {
         super(request);
         this.handler = handler;
         final MimeHeaders headers = request.getMimeHeaders();
-        key1 = SecKey.parse(headers.getHeader(WebSocketEngine.SEC_WS_KEY1_HEADER));
-        key2 = SecKey.parse(headers.getHeader(WebSocketEngine.SEC_WS_KEY2_HEADER));
+        key1 = SecKey.parse(headers.getHeader(SEC_WS_KEY1_HEADER));
+        key2 = SecKey.parse(headers.getHeader(SEC_WS_KEY2_HEADER));
         key3 = handler.get(8);
 
-        String header = readHeader(headers, WebSocketEngine.CLIENT_WS_ORIGIN_HEADER);
+        String header = readHeader(headers, CLIENT_WS_ORIGIN_HEADER);
         setOrigin(header != null ? header : "http://localhost");
         determineHostAndPort(headers);
         buildLocation();
@@ -102,14 +109,14 @@ public class HandShake76 extends HandShake {
             chunk.write(String.format("Host: %s\r\n", host).getBytes());
             chunk.write(String.format("Connection: Upgrade\r\n").getBytes());
             chunk.write(String.format("Upgrade: WebSocket\r\n").getBytes());
-            chunk.write(String.format("%s: %s\r\n", WebSocketEngine.CLIENT_WS_ORIGIN_HEADER, getOrigin()).getBytes());
+            chunk.write(String.format("%s: %s\r\n", CLIENT_WS_ORIGIN_HEADER, getOrigin()).getBytes());
             if (!getSubProtocol().isEmpty()) {
                 chunk.write(
                         String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_PROTOCOL_HEADER, join(getSubProtocol()))
                                 .getBytes());
             }
-            chunk.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_KEY1_HEADER, key1.getSecKey()).getBytes());
-            chunk.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_KEY2_HEADER, key2.getSecKey()).getBytes());
+            chunk.write(String.format("%s: %s\r\n", SEC_WS_KEY1_HEADER, key1.getSecKey()).getBytes());
+            chunk.write(String.format("%s: %s\r\n", SEC_WS_KEY2_HEADER, key2.getSecKey()).getBytes());
             chunk.write("\r\n".getBytes());
             chunk.write(key3);
 
@@ -123,7 +130,7 @@ public class HandShake76 extends HandShake {
     public void validateServerResponse(Map<String, String> headers) {
         super.validateServerResponse(headers);
 
-        final String serverLocation = headers.get(WebSocketEngine.SERVER_SEC_WS_LOCATION_HEADER);
+        final String serverLocation = headers.get(SERVER_SEC_WS_LOCATION_HEADER);
         if(!getLocation().equals(serverLocation)) {
             throw new HandshakeException(String.format("Location field from server doesn't match: client '%s' vs. server '%s'",
                     getLocation(), serverLocation));
@@ -144,7 +151,7 @@ public class HandShake76 extends HandShake {
 
     @Override
     public void setHeaders(Response response) {
-        response.setHeader(WebSocketEngine.SERVER_SEC_WS_LOCATION_HEADER, getLocation());
-        response.setHeader(WebSocketEngine.SERVER_SEC_WS_ORIGIN_HEADER, getOrigin());
+        response.setHeader(SERVER_SEC_WS_LOCATION_HEADER, getLocation());
+        response.setHeader(SERVER_SEC_WS_ORIGIN_HEADER, getOrigin());
     }
 }

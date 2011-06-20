@@ -72,14 +72,6 @@ public class WebSocketEngine {
     public static final int INITIAL_BUFFER_SIZE = 8192;
     public static final int DEFAULT_TIMEOUT;
 
-    // Draft 76 headers
-    public static final String SEC_WS_KEY1_HEADER = "Sec-WebSocket-Key1";
-    public static final String SEC_WS_KEY2_HEADER = "Sec-WebSocket-Key2";
-    public static final String CLIENT_WS_ORIGIN_HEADER = "Origin";
-    public static final String SERVER_SEC_WS_ORIGIN_HEADER = "Sec-WebSocket-Origin";
-    public static final String SERVER_SEC_WS_LOCATION_HEADER = "Sec-WebSocket-Location";
-
-
     private static final WebSocketEngine engine = new WebSocketEngine();
     static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     public static final String SERVER_KEY_HASH = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";

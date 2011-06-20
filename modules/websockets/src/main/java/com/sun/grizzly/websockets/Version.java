@@ -43,6 +43,7 @@ package com.sun.grizzly.websockets;
 import com.sun.grizzly.util.http.MimeHeaders;
 import com.sun.grizzly.websockets.draft06.Draft06Handler;
 import com.sun.grizzly.websockets.draft76.Draft76Handler;
+import com.sun.grizzly.websockets.draft76.HandShake76;
 
 public enum Version {
     DRAFT06 {
@@ -64,7 +65,7 @@ public enum Version {
 
         @Override
         public boolean validate(MimeHeaders headers) {
-            return headers.getHeader(WebSocketEngine.SEC_WS_KEY1_HEADER) != null;
+            return headers.getHeader(HandShake76.SEC_WS_KEY1_HEADER) != null;
         }
     };
 
