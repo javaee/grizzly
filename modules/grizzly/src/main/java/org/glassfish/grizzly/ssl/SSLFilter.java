@@ -80,7 +80,7 @@ import static org.glassfish.grizzly.ssl.SSLUtils.*;
  *
  * @author Alexey Stashok
  */
-public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
+public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     private static final Logger LOGGER = Grizzly.logger(SSLFilter.class);
 
     private final Attribute<CompletionHandler<SSLEngine>> handshakeCompletionHandlerAttr;
