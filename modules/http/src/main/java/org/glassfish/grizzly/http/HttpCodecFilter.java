@@ -179,7 +179,18 @@ public abstract class HttpCodecFilter extends BaseFilter
                                                 final FilterChainContext ctx);
 
 
-    protected abstract void onInitialLineEncoded(final HttpHeader header,
+     /**
+     * <p>
+     * Invoked when the intial response line has been  encoded in preparation
+     * to being transmitted to the user-agent.
+     * </p>
+     *
+     * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
+     * @param ctx processing context.
+     *
+     * @since 2.1.2
+     */
+    protected abstract void onInitialLineEncoded(final HttpHeader httpHeader,
                                                  final FilterChainContext ctx);
 
 
@@ -196,6 +207,18 @@ public abstract class HttpCodecFilter extends BaseFilter
     protected abstract void onHttpHeadersParsed(final HttpHeader httpHeader,
                                                 final FilterChainContext ctx);
 
+
+    /**
+     * <p>
+     *  Invoked when HTTP headers have been encoded in preparation to being
+     *  transmitted to the user-agent.
+     * </p>
+     *
+     * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
+     * @param ctx processing context.
+     *
+     * @since 2.1.2
+     */
     protected abstract void onHttpHeadersEncoded(final HttpHeader httpHeader,
                                                  final FilterChainContext ctx);
 
@@ -212,6 +235,17 @@ public abstract class HttpCodecFilter extends BaseFilter
     protected abstract void onHttpContentParsed(final HttpContent content,
                                                 final FilterChainContext ctx);
 
+    /**
+     * <p>
+     *  Invoked when a HTTP body chunk has been encoded in preparation to being
+     *  transmitted to the user-agent.
+     * </p>
+     *
+     * @param content {@link HttpContent}, which represents HTTP packet header
+     * @param ctx processing context.
+     *
+     * @since 2.1.2
+     */
     protected abstract void onHttpContentEncoded(final HttpContent content,
                                                  final FilterChainContext ctx);
 
