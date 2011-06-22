@@ -179,6 +179,10 @@ public abstract class HttpCodecFilter extends BaseFilter
                                                 final FilterChainContext ctx);
 
 
+    protected abstract void onInitialLineEncoded(final HttpHeader header,
+                                                 final FilterChainContext ctx);
+
+
     /**
      * <p>
      * Invoked when all headers of the packet have been parsed.  Depending on the
@@ -192,6 +196,9 @@ public abstract class HttpCodecFilter extends BaseFilter
     protected abstract void onHttpHeadersParsed(final HttpHeader httpHeader,
                                                 final FilterChainContext ctx);
 
+    protected abstract void onHttpHeadersEncoded(final HttpHeader httpHeader,
+                                                 final FilterChainContext ctx);
+
 
     /**
      * <p>
@@ -204,6 +211,9 @@ public abstract class HttpCodecFilter extends BaseFilter
      */
     protected abstract void onHttpContentParsed(final HttpContent content,
                                                 final FilterChainContext ctx);
+
+    protected abstract void onHttpContentEncoded(final HttpContent content,
+                                                 final FilterChainContext ctx);
 
 
     /**
@@ -621,6 +631,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                     encodedBuffer = put(memoryManager,
                                         encodedBuffer,
                                         Constants.CRLF_BYTES);
+                    onInitialLineEncoded(httpHeader, ctx);
                     encodedBuffer.trim();
                     encodedBuffer.allowBufferDispose(true);
 
@@ -640,13 +651,14 @@ public abstract class HttpCodecFilter extends BaseFilter
 
             encodedBuffer = encodeInitialLine(httpHeader, encodedBuffer, memoryManager);
             encodedBuffer = put(memoryManager, encodedBuffer, Constants.CRLF_BYTES);
+            onInitialLineEncoded(httpHeader, ctx);
 
             encodedBuffer = encodeKnownHeaders(memoryManager, encodedBuffer,
                     httpHeader);
             
             final MimeHeaders mimeHeaders = httpHeader.getHeaders();
             encodedBuffer = encodeMimeHeaders(memoryManager, encodedBuffer, mimeHeaders);
-
+            onHttpHeadersEncoded(httpHeader, ctx);
             encodedBuffer = put(memoryManager, encodedBuffer, Constants.CRLF_BYTES);
             encodedBuffer.trim();
             encodedBuffer.allowBufferDispose(true);
@@ -672,6 +684,7 @@ public abstract class HttpCodecFilter extends BaseFilter
             final Buffer content = serializeWithTransferEncoding(ctx,
                                                    encodedHttpContent,
                                                    contentEncoder);
+            onHttpContentEncoded(encodedHttpContent, ctx);
             encodedBuffer = Buffers.appendBuffers(memoryManager,
                     encodedBuffer, content);
 

@@ -151,6 +151,8 @@ public class HttpClientFilter extends HttpCodecFilter {
 
         return handleRead(ctx, httpResponse);
     }
+
+
     
     @Override
     protected boolean onHttpPacketParsed(HttpHeader httpHeader, FilterChainContext ctx) {
@@ -190,13 +192,34 @@ public class HttpClientFilter extends HttpCodecFilter {
     }
 
     @Override
+    protected void onInitialLineEncoded(HttpHeader header, FilterChainContext ctx) {
+
+        // no-op
+
+    }
+
+    @Override
     protected void onHttpHeadersParsed(final HttpHeader httpHeader,
                                        final FilterChainContext ctx) {
         // no-op
     }
 
     @Override
+    protected void onHttpHeadersEncoded(HttpHeader httpHeader, FilterChainContext ctx) {
+
+        // no-op
+
+    }
+
+    @Override
     protected void onHttpContentParsed(HttpContent content, FilterChainContext ctx) {
+
+        // no-op
+
+    }
+
+    @Override
+    protected void onHttpContentEncoded(HttpContent content, FilterChainContext ctx) {
 
         // no-op
 

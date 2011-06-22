@@ -313,6 +313,13 @@ public class HttpServerFilter extends HttpCodecFilter {
     }
 
     @Override
+    protected void onInitialLineEncoded(HttpHeader header, FilterChainContext ctx) {
+
+        // no-op
+
+    }
+
+    @Override
     protected void onHttpHeadersParsed(final HttpHeader httpHeader,
                                        final FilterChainContext ctx) {
         // no-op
@@ -320,7 +327,21 @@ public class HttpServerFilter extends HttpCodecFilter {
     }
 
     @Override
+    protected void onHttpHeadersEncoded(HttpHeader httpHeader, FilterChainContext ctx) {
+
+        // no-op
+
+    }
+
+    @Override
     protected void onHttpContentParsed(HttpContent content, FilterChainContext ctx) {
+
+        // no-op
+
+    }
+
+    @Override
+    protected void onHttpContentEncoded(HttpContent content, FilterChainContext ctx) {
 
         // no-op
 
