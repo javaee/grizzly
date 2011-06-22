@@ -59,6 +59,7 @@ import org.glassfish.grizzly.http.util.HttpUtils;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
+import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 
 /**
  * {@link HttpPacket}, which represents HTTP message header. There are 2 subtypes
@@ -440,25 +441,43 @@ public abstract class HttpHeader extends HttpPacket
     }
 
     /**
-     * Obtain content-type value and mark it as serialized.
-     *
-     * @param dc container for the content-type value.
+     * Serializes Content-Type header into passed Buffer
      */
-    protected void extractContentType(final DataChunk dc) {
-        if (!contentTypeParsed) {
-            contentTypeParsed = true;
-
+    protected final Buffer serializeContentType(final MemoryManager memoryManager,
+            Buffer buffer) {
+        
+        final int idx = headers.indexOf(Header.ContentType, 0);
+        final DataChunk value;
+        if (idx != -1 && !((value = headers.getValue(idx)).isNull())) {
             if (contentType == null) {
-                final int idx = headers.indexOf(Header.ContentType, 0);
-                final DataChunk value;
-                if (idx != -1 && !((value = headers.getValue(idx)).isNull())) {
-                    contentType = value.toString();
-                    headers.getAndSetSerialized(idx, true);
-                }
+                contentType = value.toString();
             }
+            
+            headers.getAndSetSerialized(idx, true);
         }
 
-        dc.setString(getContentType());
+        if (contentType != null) {
+            buffer = put(memoryManager, buffer, Header.ContentType.getBytes());
+            buffer = put(memoryManager, buffer, Constants.COLON_BYTES);
+            buffer = put(memoryManager, buffer, contentType);
+
+            if (quotedCharsetValue != null && charsetSet) {
+                buffer = put(memoryManager, buffer, ";charset=");
+                buffer = put(memoryManager, buffer, quotedCharsetValue);
+            }
+            
+            buffer = put(memoryManager, buffer, Constants.CRLF_BYTES);
+        } else {
+            final String defaultType = getDefaultContentType();
+            if (defaultType != null) {
+                buffer = put(memoryManager, buffer, Header.ContentType.getBytes());
+                buffer = put(memoryManager, buffer, Constants.COLON_BYTES);
+                buffer = put(memoryManager, buffer, defaultType);
+                buffer = put(memoryManager, buffer, Constants.CRLF_BYTES);
+            }
+        }
+        
+        return buffer;
     }
 
 

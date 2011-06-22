@@ -687,16 +687,11 @@ public abstract class HttpCodecFilter extends BaseFilter
 
     protected static Buffer encodeKnownHeaders(final MemoryManager memoryManager,
             Buffer buffer, final HttpHeader httpHeader) {
+
+        buffer = httpHeader.serializeContentType(memoryManager, buffer);
         
         final CacheableDataChunk name = CacheableDataChunk.create();
         final CacheableDataChunk value = CacheableDataChunk.create();
-
-        name.setBuffer(Header.ContentType.toBuffer(), true);
-        updateContentType(memoryManager, httpHeader, value);
-
-        if (!value.isNull()) {
-            buffer = encodeMimeHeader(memoryManager, buffer, name, value, true);
-        }
 
         final List<ContentEncoding> packetContentEncodings =
                 httpHeader.getContentEncodings(true);
@@ -713,17 +708,6 @@ public abstract class HttpCodecFilter extends BaseFilter
         httpHeader.makeUpgradeHeader();
 
         return buffer;
-    }
-
-    private static void updateContentType(MemoryManager memoryManager, HttpHeader httpHeader, CacheableDataChunk value) {
-        if (httpHeader.isContentTypeSet()) {
-            httpHeader.extractContentType(value);
-        } else {
-            final String defaultType = httpHeader.getDefaultContentType();
-            if (defaultType != null) {
-                value.setString(defaultType);
-            }
-        }
     }
 
     private static Buffer encodeContentEncodingHeader(final MemoryManager memoryManager,
