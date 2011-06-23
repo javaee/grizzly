@@ -663,6 +663,20 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         final MimeHeaders headers = request.getHeaders();
 
+        if (request.getContentLength() != -1) {
+            String last = null;
+            for (String value : headers.values(Header.ContentLength)) {
+                if (last == null) {
+                    last = value;
+                } else {
+                    if (!last.equals(value)) {
+                        state.error = true;
+                        return;
+                    }
+                }
+            }
+        }
+
         DataChunk hostDC = null;
         
         // Check for a full URI (including protocol://host:port/)

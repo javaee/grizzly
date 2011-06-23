@@ -990,10 +990,6 @@ public abstract class HttpCodecFilter extends BaseFilter
             if (BufferChunk.equalsIgnoreCaseLowerCase(input, start, end,
                     Header.ContentLength.getLowerCaseBytes())) {
                 parsingState.isContentLengthHeader = true;
-                if (parsingState.hasContentLength) {
-                    throw new IllegalStateException("Two content-length headers are not allowed");
-                }
-
                 parsingState.hasContentLength = true;
             }
         } else if (size == Header.TransferEncoding.getLowerCaseBytes().length) {
@@ -1019,8 +1015,12 @@ public abstract class HttpCodecFilter extends BaseFilter
             final int start, final int end) {
 
         if (parsingState.isContentLengthHeader) {
-            httpHeader.setContentLengthLong(
-                    Ascii.parseLong(input, start, end - start));
+            if (!parsingState.hasContentLength) {
+                // There may be multiple content lengths.  Only use the
+                // first value.
+                httpHeader.setContentLengthLong(
+                        Ascii.parseLong(input, start, end - start));
+            }
             
             parsingState.isContentLengthHeader = false;
         } else if (parsingState.isTransferEncodingHeader) {
