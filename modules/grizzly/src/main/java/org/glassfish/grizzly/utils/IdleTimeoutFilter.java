@@ -85,8 +85,9 @@ public class IdleTimeoutFilter extends BaseFilter {
         }
     });
     
-    private final long timeoutMillis;
+    private final TimeoutResolver timeoutResolver;
     private final DelayedExecutor.DelayQueue<Connection> queue;
+    private final DelayedExecutor.Resolver<Connection> resolver;
 
     private final FilterChainContext.CompletionListener contextCompletionListener =
             new ContextCompletionListener();
@@ -105,27 +106,43 @@ public class IdleTimeoutFilter extends BaseFilter {
 
 
     public IdleTimeoutFilter(final DelayedExecutor executor,
+                             final TimeoutResolver timeoutResolver) {
+        this(executor, timeoutResolver, null);
+    }
+
+
+    public IdleTimeoutFilter(final DelayedExecutor executor,
                              final long timeout,
                              final TimeUnit timeoutUnit,
                              final TimeoutHandler handler) {
 
-        this(executor, new DefaultWorker(handler), timeout,  timeoutUnit);
+        this(executor,
+             new DefaultWorker(handler),
+             new DefaultTimeoutResolver(
+                     TimeUnit.MILLISECONDS.convert(timeout, timeoutUnit)));
 
+    }
+
+
+    public IdleTimeoutFilter(final DelayedExecutor executor,
+                             final TimeoutResolver timeoutResolver,
+                             final TimeoutHandler handler) {
+
+        this(executor, new DefaultWorker(handler), timeoutResolver);
     }
 
 
     protected IdleTimeoutFilter(final DelayedExecutor executor,
                                 final DelayedExecutor.Worker<Connection> worker,
-                                final long timeout,
-                                final TimeUnit timeoutUnit) {
+                                final TimeoutResolver timeoutResolver) {
 
         if (executor == null) {
             throw new IllegalArgumentException("executor cannot be null");
         }
 
-        this.timeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeoutUnit);
-
-        queue = executor.createDelayQueue(worker, new Resolver());
+        this.timeoutResolver = timeoutResolver;
+        resolver = new Resolver();
+        queue = executor.createDelayQueue(worker, resolver);
 
     }
 
@@ -171,6 +188,11 @@ public class IdleTimeoutFilter extends BaseFilter {
 
     // ---------------------------------------------------------- Public Methods
 
+
+    public DelayedExecutor.Resolver<Connection> getResolver() {
+        return resolver;
+    }
+
     @SuppressWarnings({"UnusedDeclaration"})
     public static DelayedExecutor createDefaultIdleDelayedExecutor() {
 
@@ -202,11 +224,6 @@ public class IdleTimeoutFilter extends BaseFilter {
 
     }
 
-    @SuppressWarnings({"UnusedDeclaration"})
-    public long getTimeout(TimeUnit timeunit) {
-        return timeunit.convert(timeoutMillis, TimeUnit.MILLISECONDS);
-    }
-
 
     // ------------------------------------------------------- Protected Methods
 
@@ -231,6 +248,12 @@ public class IdleTimeoutFilter extends BaseFilter {
 
     }
 
+    public interface TimeoutResolver {
+
+        long getTimeout(FilterChainContext ctx);
+
+    }
+
 
     private final class ContextCompletionListener
             implements FilterChainContext.CompletionListener {
@@ -243,7 +266,7 @@ public class IdleTimeoutFilter extends BaseFilter {
             idleRecord.timeoutMillis.set(FOREVER_SPECIAL);
             if (idleRecord.counter.decrementAndGet() == 0) {
                 idleRecord.timeoutMillis.compareAndSet(FOREVER_SPECIAL,
-                        System.currentTimeMillis() + timeoutMillis);
+                        System.currentTimeMillis() + timeoutResolver.getTimeout(ctx));
             }
         }
 
@@ -251,6 +274,26 @@ public class IdleTimeoutFilter extends BaseFilter {
 
 
     // ---------------------------------------------------------- Nested Classes
+
+    private static final class DefaultTimeoutResolver implements TimeoutResolver {
+
+        private final long timeout;
+        // -------------------------------------------------------- Constructors
+
+
+        DefaultTimeoutResolver(final long timeout) {
+            this.timeout = timeout;
+        }
+
+
+        // ---------------------------------------- Methods from TimeoutResolver
+
+
+        @Override
+        public long getTimeout(FilterChainContext ctx) {
+            return timeout;
+        }
+    }
 
 
     private static final class Resolver implements DelayedExecutor.Resolver<Connection> {
