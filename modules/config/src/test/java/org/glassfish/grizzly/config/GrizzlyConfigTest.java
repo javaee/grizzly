@@ -47,6 +47,8 @@ import java.util.List;
 
 import org.glassfish.grizzly.config.dom.NetworkListener;
 import org.glassfish.grizzly.config.dom.ThreadPool;
+import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
+import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -174,5 +176,38 @@ public class GrizzlyConfigTest extends BaseTestGrizzlyConfig {
         } finally {
             grizzlyConfig.shutdown();
         }
+    }
+    
+    @Test
+    public void ioStrategySet() throws IOException, InstantiationException {
+        GrizzlyConfig grizzlyConfig = null;
+        try {
+            grizzlyConfig = new GrizzlyConfig("grizzly-config-io-strategies.xml");
+            grizzlyConfig.setupNetwork();
+            GenericGrizzlyListener genericGrizzlyListener1 =
+                    (GenericGrizzlyListener) getListener(grizzlyConfig, "http-listener-1");
+            
+            Assert.assertEquals(SameThreadIOStrategy.class, genericGrizzlyListener1.getTransport().getIOStrategy().getClass());
+
+            GenericGrizzlyListener genericGrizzlyListener2 =
+                    (GenericGrizzlyListener) getListener(grizzlyConfig, "http-listener-2");
+            
+            Assert.assertEquals(WorkerThreadIOStrategy.class, genericGrizzlyListener2.getTransport().getIOStrategy().getClass());
+            
+        } finally {
+            grizzlyConfig.shutdown();
+        }
+    }
+    
+    private static GrizzlyListener getListener(GrizzlyConfig grizzlyConfig,
+            String listenerName) {
+        for (GrizzlyListener listener : grizzlyConfig.getListeners()) {
+            GenericGrizzlyListener genericGrizzlyListener = (GenericGrizzlyListener) listener;
+            if (listenerName.equals(genericGrizzlyListener.getName())) {
+                return listener;
+            }
+        }
+        
+        return null;
     }
 }

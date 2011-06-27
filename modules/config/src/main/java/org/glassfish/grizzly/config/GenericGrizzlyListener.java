@@ -41,6 +41,7 @@ package org.glassfish.grizzly.config;
 
 import java.beans.PropertyChangeEvent;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.text.MessageFormat;
@@ -56,9 +57,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.IOStrategy;
 
 import org.glassfish.grizzly.SocketBinder;
-//import org.glassfish.grizzly.comet.CometEngine;
 import org.glassfish.grizzly.config.dom.Http;
 import org.glassfish.grizzly.config.dom.NetworkListener;
 import org.glassfish.grizzly.config.dom.PortUnification;
@@ -93,6 +94,7 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransportBuilder;
 import org.glassfish.grizzly.portunif.PUFilter;
 import org.glassfish.grizzly.portunif.PUProtocol;
@@ -101,6 +103,7 @@ import org.glassfish.grizzly.portunif.finders.SSLProtocolFinder;
 import org.glassfish.grizzly.rcm.ResourceAllocationFilter;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.ssl.SSLFilter;
+import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
@@ -189,6 +192,10 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         return getFilters(clazz, rootFilterChain, new ArrayList<E>(2));
     }
 
+    public org.glassfish.grizzly.Transport getTransport() {
+        return transport;
+    }
+    
     @SuppressWarnings({"unchecked"})
     public static <E> List<E> getFilters(Class<E> clazz,
         FilterChain filterChain, List<E> filters) {
@@ -241,10 +248,10 @@ public class GenericGrizzlyListener implements GrizzlyListener {
             final Transport transportConfig,
             final FilterChainBuilder filterChainBuilder) {
         
-        final String transportName = transportConfig.getName();
-        if ("tcp".equalsIgnoreCase(transportName)) {
+        final String transportClassName = transportConfig.getClassname();
+        if (TCPNIOTransport.class.getName().equals(transportClassName)) {
             transport = configureTCPTransport(habitat, networkListener, transportConfig);
-        } else if ("udp".equalsIgnoreCase(transportName)) {
+        } else if (UDPNIOTransport.class.getName().equals(transportClassName)) {
             transport = configureUDPTransport(habitat, networkListener, transportConfig);
         } else {
             throw new GrizzlyConfigException("Unsupported transport type " + transportConfig.getName());
@@ -252,6 +259,8 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         transport.setSelectorRunnersCount(Integer.parseInt(transportConfig.getAcceptorThreads()));
         transport.setReadBufferSize(Integer.parseInt(transportConfig.getBufferSizeBytes()));
         transport.getKernelThreadPoolConfig().setPoolName(networkListener.getName() + "-kernel");
+        transport.setIOStrategy(loadIOStrategy(transportConfig.getIOStrategy()));
+        
         filterChainBuilder.add(new TransportFilter());
     }
 
@@ -690,6 +699,27 @@ public class GenericGrizzlyListener implements GrizzlyListener {
         set.add(gzipContentEncoding);
         set.add(lzmaEncoding);
         return set;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static IOStrategy loadIOStrategy(final String classname) {
+        Class<? extends IOStrategy> strategy;
+        if (classname == null) {
+            strategy = WorkerThreadIOStrategy.class;
+        } else {
+            try {
+                strategy = Utils.loadClass(classname);
+            } catch (Exception e) {
+                strategy = WorkerThreadIOStrategy.class;
+            }
+        }
+        
+        try {
+            final Method m = strategy.getMethod("getInstance");
+            return (IOStrategy) m.invoke(null);
+        } catch (Exception e) {
+            throw new IllegalStateException("Can not initialize IOStrategy: " + strategy + ". Error: " + e);
+        }
     }
 
     private String[] split(String s, String delim) {

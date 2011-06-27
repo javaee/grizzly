@@ -46,6 +46,7 @@ import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.DuckTyped;
 import org.jvnet.hk2.config.types.PropertyBag;
+import org.glassfish.grizzly.IOStrategy;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -66,7 +67,7 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
     int READ_TIMEOUT = 30000;
     int SELECTOR_POLL_TIMEOUT = 1000;
     String BYTE_BUFFER_TYPE = "HEAP";
-    String CLASSNAME = "org.glassfish.grizzly.TCPSelectorHandler";
+    String CLASSNAME = "org.glassfish.grizzly.nio.transport.TCPNIOTransport";
 
     /**
      * The number of acceptor threads listening for the transport's events
@@ -97,6 +98,14 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setClassname(String value);
 
+    /**
+     * {@link IOStrategy} to be used by {@link Transport}.
+     */
+    @Attribute(dataType = String.class)
+    String getIOStrategy();
+
+    void setIOStrategy(String ioStrategy);
+    
     /**
      * Flush Grizzly's internal configuration to the server logs (like number of threads created, how many polled
      * objects, etc.)
