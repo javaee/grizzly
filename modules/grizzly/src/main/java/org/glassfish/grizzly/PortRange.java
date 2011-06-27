@@ -59,11 +59,11 @@ public class PortRange {
      * Creates a port range with the given bounds (both inclusive).
      *
      * @throws IllegalArgumentException is either bound is not between
-     *         0 and 65535, or if <code>high</code> is lower than
+     *         1 and 65535, or if <code>high</code> is lower than
      *         <code>low</code>.
      */
     public PortRange(final int low, final int high) {
-        if (low < 0 || high < low || 65535 < high) {
+        if (low < 1 || high < low || 65535 < high) {
             throw new IllegalArgumentException("Invalid range");
         }
         lower = low;
@@ -82,28 +82,29 @@ public class PortRange {
      * integer, or two integers separated by either a comma or a
      * colon.
      *
-     * The bounds must be between 0 and 65535, both inclusive.
+     * The bounds must be between 1 and 65535, both inclusive.
      *
-     * @return The port range represented by <code>s</code>. Returns
-     * the range [0,0] if <code>s</code> is null or empty.
+     * @return The port range represented by <code>s</code>.
      */
     public static PortRange valueOf(String s)
             throws IllegalArgumentException {
-        try {
-            Matcher m = FORMAT.matcher(s);
+        Matcher m = FORMAT.matcher(s);
 
-            if (!m.matches()) {
-                throw new IllegalArgumentException("Invalid range: " + s);
-            }
-
-            int low = Integer.parseInt(m.group(1));
-            int high =
-                    (m.groupCount() == 1) ? low : Integer.parseInt(m.group(2));
-
-            return new PortRange(low, high);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid range: " + s);
+        if (!m.matches()) {
+            throw new IllegalArgumentException("Invalid string format: " + s);
         }
+        
+        int low;
+        int high;
+        
+        try {
+            low = Integer.parseInt(m.group(1));
+            high = (m.groupCount() == 1) ? low : Integer.parseInt(m.group(2));
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid string format: " + s);
+        }
+
+        return new PortRange(low, high);
     }
 
     public int getLower() {
