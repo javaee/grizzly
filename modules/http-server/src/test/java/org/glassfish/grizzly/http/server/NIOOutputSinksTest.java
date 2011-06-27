@@ -502,7 +502,7 @@ public class NIOOutputSinksTest extends TestCase {
                 new NetworkListener("Grizzly",
                                     NetworkListener.DEFAULT_NETWORK_HOST,
                                     PORT);
-        final int LENGTH = 8192;
+        final int LENGTH = 65536;
         final int MAX_LENGTH = LENGTH * 10;
         listener.setMaxPendingBytes(MAX_LENGTH);
         server.addListener(listener);
@@ -561,7 +561,7 @@ public class NIOOutputSinksTest extends TestCase {
                 final NIOOutputStream out = response.getOutputStream();
                 
                 // in order to enable direct writes - set the buffer size less than byte[] length
-                response.setBufferSize(LENGTH -1);
+                response.setBufferSize(LENGTH / 8);
 
                 final byte[] b = new byte[LENGTH];
                 

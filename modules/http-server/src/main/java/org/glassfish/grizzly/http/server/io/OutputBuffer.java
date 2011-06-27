@@ -47,7 +47,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -90,7 +89,11 @@ public class OutputBuffer {
 
     // Buffer, which is used for write(byte[] ...) scenarious to try to avoid
     // byte arrays copying
-    private MutableHeapBuffer mutableHeapBuffer;
+    private final TemporaryHeapBuffer temporaryWriteBuffer =
+            new TemporaryHeapBuffer();
+    // The cloner, which will be responsible for cloning temporaryWriteBuffer,
+    // if it's not possible to write its content in this thread
+    private final ByteArrayCloner cloner = new ByteArrayCloner();
     
     private boolean committed;
 
@@ -202,8 +205,6 @@ public class OutputBuffer {
             currentBuffer = null;
         }
 
-        mutableHeapBuffer = null;
-        
         charBuf.position(0);
         
         encoder = null;
@@ -371,31 +372,20 @@ public class OutputBuffer {
         } else {  // If b[] is too big - try to send it to wire right away.
             
             // wrap byte[] with a thread local buffer
-            checkMutableHeapBuffer();
-            mutableHeapBuffer.reset(b, off, len);
+            temporaryWriteBuffer.reset(b, off, len);
             
             // if there is data in the currentBuffer - complete it
             finishCurrentBuffer();
             
-            // create a cloner, which will be responsible for cloning mutableBuffer,
-            // if it's not possible to write its content in this thread
-            final ByteArrayCloner cloner = new ByteArrayCloner(b, off, len, mutableHeapBuffer);
-            
             // mark headers as commited
             doCommit();
             if (compositeBuffer != null) { // if we write a composite buffer
-                compositeBuffer.append(mutableHeapBuffer);
+                compositeBuffer.append(temporaryWriteBuffer);
                 writeContentBuffer0(compositeBuffer, false, cloner);
                 compositeBuffer = null;
             } else { // we write just mutableHeapBuffer content
-                writeContentBuffer0(mutableHeapBuffer, false, cloner);
-            }
-            
-            // if cloner was called - it means we were not able to write mutable
-            // buffer in this thread.            
-            if (cloner.wasCalled()) { // MutableHeapBuffer was added to async write queue
-                mutableHeapBuffer = null;
-            }
+                writeContentBuffer0(temporaryWriteBuffer, false, cloner);
+            }            
         }
     }
 
@@ -623,13 +613,6 @@ public class OutputBuffer {
         }
     }
 
-    private void checkMutableHeapBuffer() {
-        if (mutableHeapBuffer == null) {
-            mutableHeapBuffer = new MutableHeapBuffer();
-            mutableHeapBuffer.allowBufferDispose(true);
-        }
-    }
-    
     private void finishCurrentBuffer() {
         if (currentBuffer != null && currentBuffer.position() > 0) {
             currentBuffer.trim();
@@ -741,53 +724,36 @@ public class OutputBuffer {
      * of async write queues, and content of the passed byte[] might be changed
      * by user application once in gets control back.
      */
-    private static final class ByteArrayCloner implements MessageCloner<Buffer> {
-        private final byte[] srcArray;
-        private final int off;
-        private final int len;
-
-        private final MutableHeapBuffer mutableHeapBuffer;
-
-        private boolean wasCalled;
-        
-        public ByteArrayCloner(final byte[] srcArray,
-                final int off, final int len,
-                final MutableHeapBuffer mutableHeapBuffer) {
-            this.srcArray = srcArray;
-            this.off = off;
-            this.len = len;
-            this.mutableHeapBuffer = mutableHeapBuffer;
-        }
-                
+    private final class ByteArrayCloner implements MessageCloner<Buffer> {
         @Override
         public Buffer clone(final Connection connection,
                 final Buffer originalMessage) {
             
             // Buffer was disposed somewhere on the way to async write queue -
             // just return the original message
-            if (mutableHeapBuffer.isDisposed()) {
+            if (temporaryWriteBuffer.isDisposed()) {
                 return originalMessage;
             }
             
-            // set the flag
-            wasCalled = true;
-            
-            // we suppose the mutableHeapBuffer is located at the tail of
-            // original buffer. Considering this, we calculate the number of
-            // bytes to be cloned
-            final int remaining = originalMessage.remaining();
-            final int bytesToClone = remaining > len ? len : remaining;
-            final byte[] clonedBytes = Arrays.copyOfRange(srcArray,
-                    off + len - bytesToClone, off + len);
-            
-            // reset the mutable buffer content with the cloned array
-            mutableHeapBuffer.reset(clonedBytes, 0, bytesToClone);
-            return originalMessage;
-        }
+            if (originalMessage.isComposite()) {
+                final CompositeBuffer compositeBuffer = (CompositeBuffer) originalMessage;
+                compositeBuffer.shrink();
 
-        public boolean wasCalled() {
-            return wasCalled;
+                if (!temporaryWriteBuffer.isDisposed()) {
+                    if (compositeBuffer.remaining() == temporaryWriteBuffer.remaining()) {
+                        compositeBuffer.allowInternalBuffersDispose(false);
+                        compositeBuffer.tryDispose();
+                        return temporaryWriteBuffer.cloneContent();
+                    } else {
+                        compositeBuffer.replace(temporaryWriteBuffer,
+                                temporaryWriteBuffer.cloneContent());
+                    }
+                }
+                
+                return originalMessage;
+            }
+                
+            return temporaryWriteBuffer.cloneContent();
         }
-        
     }
 }

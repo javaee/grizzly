@@ -39,7 +39,9 @@
  */
 package org.glassfish.grizzly.http.server.io;
 
+import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.memory.HeapBuffer;
+import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
  * {@link HeapBuffer} implementation, which might be reset to reference another
@@ -47,7 +49,7 @@ import org.glassfish.grizzly.memory.HeapBuffer;
  * 
  * @author Alexey Stashok
  */
-final class MutableHeapBuffer extends HeapBuffer {
+final class TemporaryHeapBuffer extends HeapBuffer {
 
     boolean isDisposed;
     
@@ -64,9 +66,28 @@ final class MutableHeapBuffer extends HeapBuffer {
         isDisposed = false;
     }
 
+    Buffer cloneContent() {
+//        final byte[] clonedBytes = Arrays.copyOfRange(heap,
+//                offset + pos, offset + lim);
+        final int length = remaining();
+        
+        final Buffer buffer = MemoryManager.DEFAULT_MEMORY_MANAGER.allocate(length);
+        buffer.allowBufferDispose(true);
+        buffer.put(heap, offset + pos, length);
+        buffer.flip();
+
+        // reset the mutable buffer content with the cloned array
+//        reset(clonedBytes, 0, clonedBytes.length);
+        
+        dispose();
+        
+        return buffer;
+    }
+
     @Override
     public void dispose() {
         isDisposed = true;
+        
         super.dispose();
     }
     
