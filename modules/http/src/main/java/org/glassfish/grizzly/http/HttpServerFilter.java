@@ -288,7 +288,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         // If it's upgraded HTTP - don't check semantics
         if (!request.getUpgradeDC().isNull()) return false;
 
-        
+
         prepareRequest(request, buffer.hasRemaining());
         return request.getProcessingState().error;
     }
@@ -658,6 +658,11 @@ public class HttpServerFilter extends HttpCodecFilter {
             protocol = Protocol.HTTP_1_1;
             request.setProtocol(protocol);
             
+            return;
+        }
+
+        if (request.getHeaderParsingState().contentLengthsDiffer) {
+            request.getProcessingState().error = true;
             return;
         }
 

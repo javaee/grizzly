@@ -48,6 +48,9 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.memory.MemoryManager;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.Constants;
 
@@ -66,6 +69,8 @@ import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
  * @author Alexey Stashok
  */
 public class HttpClientFilter extends HttpCodecFilter {
+
+    private static final Logger LOGGER = Grizzly.logger(HttpClientFilter.class);
 
     private final Attribute<HttpRequestPacketImpl> httpRequestInProcessAttr;
     private final Attribute<HttpResponsePacketImpl> httpResponseInProcessAttr;

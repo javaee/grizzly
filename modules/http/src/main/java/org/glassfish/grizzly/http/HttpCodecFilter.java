@@ -1021,7 +1021,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                 // first value.
                 httpHeader.setContentLengthLong(contentLengthLong);
             } else if (httpHeader.getContentLength() != contentLengthLong) {
-                throw new IllegalStateException("Two content-length headers with different values are not allowed");
+                parsingState.contentLengthsDiffer = true;
             }
             
             parsingState.isContentLengthHeader = false;
@@ -1398,6 +1398,7 @@ public abstract class HttpCodecFilter extends BaseFilter
 
         public boolean isContentLengthHeader;
         public int contentLengthHeadersCount;   // number of Content-Length headers in the HTTP header
+        public boolean contentLengthsDiffer;
         public boolean isTransferEncodingHeader;
         public boolean isUpgradeHeader;
 
@@ -1426,6 +1427,7 @@ public abstract class HttpCodecFilter extends BaseFilter
             headerValueStorage = null;
             parsingNumericValue = 0;
             contentLengthHeadersCount = 0;
+            contentLengthsDiffer = false;
         }
 
         public final void checkOverflow() {
