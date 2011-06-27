@@ -344,36 +344,32 @@ public class HttpSemanticsTest extends TestCase {
 
     public void testContentLengthDuplicationSame() throws Throwable {
 
-        HttpRequestPacket request = HttpRequestPacket.builder()
-                .method("POST")
-                .uri("/path")
-                .protocol("HTTP/1.1")
-                .header("Host", "localhost:" + PORT)
-                .header("Connection", "close")
-                .header("Content-Length", "10")
-                .header("Content-Length", "10")
-                .build();
+        String requestString = "POST /path HTTP/1.1\r\n"
+                + "Host: localhost:" + PORT + "\r\n"
+                + "Connection: close\r\n"
+                + "Content-Length: 10\r\n"
+                + "Content-Length: 10\r\n"
+                + "\r\n"
+                + "0123456789";
 
-        HttpContent httpContent = HttpContent.builder(request)
-                .content(Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, new byte[10]))
-                .build();
+        Buffer request = Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, requestString);
         
         ExpectedResult result = new ExpectedResult();
         result.setProtocol("HTTP/1.1");
         result.setStatusCode(200);
         result.addHeader("Connection", "close");
         result.setStatusMessage("ok");
-        doTest(httpContent, result);
+        doTest(request, result);
 
     }
     
     public void testContentLengthDuplicationDifferent() throws Throwable {
 
         String requestString = "POST /path HTTP/1.1\r\n"
-                + "Host: localhost: " + PORT + "\r\n"
+                + "Host: localhost:" + PORT + "\r\n"
                 + "Connection: close\r\n"
                 + "Content-Length: 10\r\n"
-                + "Content-Length: 10\r\n"
+                + "Content-Length: 20\r\n"
                 + "\r\n"
                 + "0123456789";
 
@@ -428,8 +424,8 @@ public class HttpSemanticsTest extends TestCase {
             Future<Connection> connectFuture = ctransport.connect("localhost", PORT);
             Connection connection = null;
             try {
-                connection = connectFuture.get(10000, TimeUnit.SECONDS);
-                testResult.get(10000, TimeUnit.SECONDS);
+                connection = connectFuture.get(10, TimeUnit.SECONDS);
+                testResult.get(10, TimeUnit.SECONDS);
             } finally {
                 // Close the client connection
                 if (connection != null) {
