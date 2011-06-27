@@ -94,8 +94,8 @@ public class SSLStreamWriter extends TransformerStreamWriter {
         final boolean isLoggingFinest = logger.isLoggable(Level.FINEST);
 
         if (isLoggingFinest) {
-            logger.finest("connection=" + connection + " engine=" + sslEngine
-                    + " handshakeStatus=" + sslEngine.getHandshakeStatus());
+            logger.log(Level.FINEST, "connection={0} engine={1} handshakeStatus={2}",
+                    new Object[]{connection, sslEngine, sslEngine.getHandshakeStatus()});
         }
 
         HandshakeStatus handshakeStatus = sslEngine.getHandshakeStatus();
@@ -174,15 +174,16 @@ public class SSLStreamWriter extends TransformerStreamWriter {
             while (true) {
 
                 if (isLoggingFinest) {
-                    logger.finest("Loop Engine: " + sslEngine
-                            + " handshakeStatus=" + sslEngine.getHandshakeStatus());
+                    logger.log(Level.FINEST, "Loop Engine: {0} handshakeStatus={1}",
+                            new Object[]{sslEngine, sslEngine.getHandshakeStatus()});
                 }
 
                 switch (handshakeStatus) {
                     case NEED_UNWRAP: {
 
                         if (isLoggingFinest) {
-                            logger.finest("NEED_UNWRAP Engine: " + sslEngine);
+                            logger.log(Level.FINEST, "NEED_UNWRAP Engine: {0}",
+                                    sslEngine);
                         }
 
                         return false;
@@ -190,7 +191,8 @@ public class SSLStreamWriter extends TransformerStreamWriter {
 
                     case NEED_WRAP: {
                         if (isLoggingFinest) {
-                            logger.finest("NEED_WRAP Engine: " + sslEngine);
+                            logger.log(Level.FINEST, "NEED_WRAP Engine: {0}",
+                                    sslEngine);
                         }
 
                         streamWriter.writeBuffer(Buffers.EMPTY_BUFFER);
@@ -202,7 +204,8 @@ public class SSLStreamWriter extends TransformerStreamWriter {
 
                     case NEED_TASK: {
                         if (isLoggingFinest) {
-                            logger.finest("NEED_TASK Engine: " + sslEngine);
+                            logger.log(Level.FINEST, "NEED_TASK Engine: {0}",
+                                    sslEngine);
                         }
                         SSLUtils.executeDelegatedTask(sslEngine);
                         handshakeStatus = sslEngine.getHandshakeStatus();

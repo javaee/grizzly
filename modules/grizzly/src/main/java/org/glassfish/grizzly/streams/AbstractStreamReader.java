@@ -43,6 +43,7 @@ package org.glassfish.grizzly.streams;
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.BufferUnderflowException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
@@ -86,7 +87,7 @@ public abstract class AbstractStreamReader implements StreamReader {
     protected final AtomicBoolean isClosed = new AtomicBoolean(false);
     
     private static void msg(final String msg) {
-        LOGGER.info("READERSTREAM:DEBUG:" + msg);
+        LOGGER.log(Level.INFO, "READERSTREAM:DEBUG:{0}", msg);
     }
 
     private static void displayBuffer(final String str,

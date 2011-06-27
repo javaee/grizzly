@@ -791,14 +791,14 @@ public class HeapBuffer implements Buffer {
     protected final void checkDispose() {
         if (heap == null) {
             throw new IllegalStateException(
-                    "BufferWrapper has already been disposed",
-                    disposeStackTrace) ;
+                    "HeapBuffer has already been disposed",
+                    disposeStackTrace);
         }
     }
 
     @Override
     public String toString() {
-        final StringBuilder sb = new StringBuilder("GrizzlyHeapBuffer (" +
+        final StringBuilder sb = new StringBuilder("HeapBuffer (" +
                 System.identityHashCode(this) + ") ");
         sb.append("[pos=");
         sb.append(pos);

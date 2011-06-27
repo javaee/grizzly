@@ -68,7 +68,7 @@ import org.glassfish.grizzly.utils.DebugPoint;
  */
 public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
 
-    public TCPNIOAsyncQueueWriter(NIOTransport transport) {
+    public TCPNIOAsyncQueueWriter(final NIOTransport transport) {
         super(transport);
     }
 
@@ -93,32 +93,28 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
         final WriteResult<Buffer, SocketAddress> currentResult =
                 queueRecord.getCurrentResult();
         final Buffer buffer = queueRecord.getMessage();
-        final TCPNIOQueueRecord record = (TCPNIOQueueRecord) queueRecord;
 
         final int written;
         
         final int oldPos = buffer.position();
-        if (!buffer.hasRemaining()) {
+        final int bufferSize = buffer.remaining();
+        
+        if (bufferSize == 0) {
             written = 0;
-        } else if (buffer.isComposite()) {
-            DirectByteBufferRecord directByteBufferRecord = record.directByteBufferRecord;
-            if (directByteBufferRecord == null) {
-                directByteBufferRecord = obtainDirectByteBuffer(buffer);
-                record.directByteBufferRecord = directByteBufferRecord;
-            }
-            
-            final ByteBuffer directByteBuffer = directByteBufferRecord.strongRef;
-
-            written = TCPNIOTransport.flushByteBuffer(
-                    (SocketChannel) connection.getChannel(), directByteBuffer);
-
-
-            if (!directByteBuffer.hasRemaining()) {
-                returnDirectByteBuffer(directByteBufferRecord);
-            }
-
+//        } else if (buffer.isComposite()) {
         } else {
-            written = ((TCPNIOTransport) transport).write0(connection, buffer);
+            final DirectByteBufferRecord directByteBufferRecord =
+                    TCPNIOTransport.obtainDirectByteBuffer(bufferSize);
+                                    
+            final ByteBuffer directByteBuffer = directByteBufferRecord.strongRef;
+            final SocketChannel socketChannel = (SocketChannel) connection.getChannel();
+                        
+            fillByteBuffer(buffer, 0, bufferSize, directByteBuffer);
+            written = TCPNIOTransport.flushByteBuffer(
+                    socketChannel, directByteBuffer);
+            
+            TCPNIOTransport.releaseDirectByteBuffer(directByteBufferRecord);
+
         }
 
         if (written > 0) {
@@ -138,32 +134,26 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
         return written;
     }
 
+    private static void fillByteBuffer(final Buffer src, final int offset,
+            final int size, final ByteBuffer dstByteBuffer) {
+        
+        dstByteBuffer.limit(size);
+        final int oldPos = src.position();
+        src.position(oldPos + offset);
+        
+        src.get(dstByteBuffer);
+        
+        dstByteBuffer.position(0);
+        src.position(oldPos);
+    }
+
     @Override
     protected final void onReadyToWrite(Connection connection) throws IOException {
         final NIOConnection nioConnection = (NIOConnection) connection;
         nioConnection.enableIOEvent(IOEvent.WRITE);
     }
 
-    private static DirectByteBufferRecord obtainDirectByteBuffer(final Buffer buffer) {
-        final int size = buffer.remaining();
-        final int pos = buffer.position();
-
-        final DirectByteBufferRecord record =
-                TCPNIOTransport.obtainDirectByteBuffer(size);
-        final ByteBuffer directByteBuffer = record.strongRef;
-        buffer.get(directByteBuffer, 0, size);
-        buffer.position(pos);
-        directByteBuffer.limit(size);
-        
-        return record;
-    }
-
-    private static void returnDirectByteBuffer(
-            final DirectByteBufferRecord directByteBufferRecord) {
-        TCPNIOTransport.releaseDirectByteBuffer(directByteBufferRecord);
-    }
-    
-    private static class TCPNIOQueueRecord extends AsyncWriteQueueRecord {
+    private static final class TCPNIOQueueRecord extends AsyncWriteQueueRecord {
 
         private static final ThreadCache.CachedTypeIndex<TCPNIOQueueRecord> CACHE_IDX =
                 ThreadCache.obtainIndex(TCPNIOQueueRecord.class, 2);
@@ -187,14 +177,12 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
                         dstAddress, isEmptyRecord);
 
                 return asyncWriteQueueRecord;
-}
+            }
 
             return new TCPNIOQueueRecord(connection, message, future,
                     currentResult, completionHandler, dstAddress, isEmptyRecord);
         }
 
-        private DirectByteBufferRecord directByteBufferRecord;
-        
         public TCPNIOQueueRecord(final Connection connection,
                 final Buffer message,
                 final Future future,
@@ -215,8 +203,6 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
                 recycleTrack = new DebugPoint(new Exception(),
                         Thread.currentThread().getName());
             }
-            
-            directByteBufferRecord = null;
             
             ThreadCache.putToCache(CACHE_IDX, this);
         }

@@ -235,6 +235,28 @@ public final class BuffersBuffer extends CompositeBuffer {
         return this;
     }
 
+    @Override
+    public boolean replace(final Buffer oldBuffer, final Buffer newBuffer) {
+        for (int i = 0; i < buffersSize; i++) {
+            if (buffers[i] == oldBuffer) {
+                buffers[i] = newBuffer;
+                calcCapacity();
+                limit = capacity;
+
+                if (position > limit) {
+                    position = limit;
+                }
+                
+                resetLastLocation();
+                
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+
     private void ensureBuffersCapacity(final int newElementsNum) {
         final int newSize = buffersSize + newElementsNum;
 
@@ -430,6 +452,7 @@ public final class BuffersBuffer extends CompositeBuffer {
 
         checkIndex(position);
         final int posBufferIndex = lastSegmentIndex;
+        final int posBufferPosition = toActiveBufferPos(position);
 
         checkIndex(limit - 1);
         final int limitBufferIndex = lastSegmentIndex;
@@ -438,6 +461,7 @@ public final class BuffersBuffer extends CompositeBuffer {
 
         int shift = 0;
 
+        // Shift buffers left to position
         for (int i = 0; i < posBufferIndex; i++) {
             final Buffer buffer = buffers[i];
             shift += buffer.remaining();
@@ -447,6 +471,15 @@ public final class BuffersBuffer extends CompositeBuffer {
             }
         }
 
+        // Shift the position buffer
+        final Buffer posBuffer = buffers[posBufferIndex];        
+        final int diff = posBufferPosition - posBuffer.position();
+        if (diff > 0) {
+            posBuffer.position(posBufferPosition);
+            posBuffer.shrink();
+            shift += diff;
+        }       
+        
         setPosLim(position - shift, limit - shift);
 
         for (int i = 0; i < rightTrim; i++) {
@@ -799,7 +832,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         while(true) {
             int oldPos = buffer.position();
             buffer.position(bufferPosition);
-            int bytesToCopy = Math.min(buffer.remaining(), length);
+            final int bytesToCopy = Math.min(buffer.remaining(), length);
             buffer.get(dst, offset, bytesToCopy);
             buffer.position(oldPos);
             bufferPosition += (bytesToCopy - 1);

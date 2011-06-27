@@ -116,8 +116,8 @@ public final class TCPNIOTransport extends NIOTransport implements
 
     private static final Logger LOGGER = Grizzly.logger(TCPNIOTransport.class);
 
-    private static final int DEFAULT_READ_BUFFER_SIZE = 8192;
-    private static final int DEFAULT_WRITE_BUFFER_SIZE = 8192;
+    private static final int DEFAULT_READ_BUFFER_SIZE = -1;
+    private static final int DEFAULT_WRITE_BUFFER_SIZE = -1;
     
     private static final String DEFAULT_TRANSPORT_NAME = "TCPNIOTransport";
     /**
@@ -893,11 +893,21 @@ public final class TCPNIOTransport extends NIOTransport implements
 
         final boolean isAllocate = (buffer == null);
         if (isAllocate) {
-            buffer = memoryManager.allocateAtLeast(connection.getReadBufferSize());
 
             try {
-                read = readSimple(tcpConnection, buffer, isSelectorThread);
-
+                final DirectByteBufferRecord directByteBufferRecord =
+                        obtainDirectByteBuffer(connection.getReadBufferSize());
+                final ByteBuffer directByteBuffer = directByteBufferRecord.strongRef;
+                read = doReadInLoop((SocketChannel) tcpConnection.getChannel(),
+                        directByteBuffer);
+                
+                directByteBuffer.flip();
+                
+                buffer = memoryManager.allocate(read);
+                buffer.put(directByteBuffer);
+                
+                releaseDirectByteBuffer(directByteBufferRecord);
+                
                 tcpConnection.onRead(buffer, read);
             } catch (Exception e) {
                 if (LOGGER.isLoggable(Level.FINE)) {
@@ -914,8 +924,10 @@ public final class TCPNIOTransport extends NIOTransport implements
             if (read > 0) {
                 buffer.position(read);
             } else {
-                buffer.dispose();
-                buffer = null;
+                if (buffer != null) {
+                    buffer.dispose();
+                    buffer = null;
+                }
 
                 if (read < 0) {
                     throw new EOFException();
@@ -1252,7 +1264,7 @@ public final class TCPNIOTransport extends NIOTransport implements
         ByteBuffer strongRef;
         private SoftReference<ByteBuffer> softRef;
 
-        void reset(ByteBuffer byteBuffer) {
+        void reset(final ByteBuffer byteBuffer) {
             strongRef = byteBuffer;
             softRef = null;
         }

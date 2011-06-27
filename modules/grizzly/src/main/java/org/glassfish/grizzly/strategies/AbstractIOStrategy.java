@@ -60,16 +60,6 @@ import org.glassfish.grizzly.Transport;
  */
 public abstract class AbstractIOStrategy implements IOStrategy {
 
-//    protected final static boolean[] isRegisterMap = {
-//            true,   // COMPLETE
-//            false,  // COMPLETE_LEAVE
-//            true,   // RE-REGISTER
-//            false,  // RERUN
-//            false,  // ERROR
-//            false,  // TERMINATE
-//            false   // NOT_RUN
-//    };
-
     protected final static IOEventProcessingHandler enableInterestProcessingHandler =
             new EnableInterestProcessingHandler();
 

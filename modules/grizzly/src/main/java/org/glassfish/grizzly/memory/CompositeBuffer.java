@@ -102,7 +102,16 @@ public abstract class CompositeBuffer implements Buffer, Appendable<Buffer> {
      * @return <tt>Buffer</tt> position the processing was stopped on, or <tt>-1</tt>,
      * if processing reached the limit.
      */
-    public abstract int bulk(BulkOperation operation, int position, int limit);  
+    public abstract int bulk(BulkOperation operation, int position, int limit);
+
+    /**
+     * Replace one internal {@link Buffer} with another one.
+     * @param oldBuffer the {@link Buffer} to replace.
+     * @param newBuffer the new {@link Buffer}.
+     * @return <tt>true</tt>, if the oldBuffer was found and replaced, or
+     * <tt>false</tt> otherwise.
+     */
+    public abstract boolean replace(Buffer oldBuffer, Buffer newBuffer);
     
     /**
      * Bulk Buffer operation, responsible for byte-by-byte Buffer processing.

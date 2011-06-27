@@ -252,7 +252,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                         "Max queued data limit exceeded: " +
                         pendingBytes + '>' + maxPendingBytes);
             }
-                        
+
             final SafeFutureImpl<WriteResult<Buffer,SocketAddress>> future = 
                     SafeFutureImpl.<WriteResult<Buffer,SocketAddress>>create();
 

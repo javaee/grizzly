@@ -46,7 +46,7 @@ import java.io.IOException;
  *
  * @author oleksiys
  */
-public abstract class ExecutorResolver {
+abstract class ExecutorResolver {
     public static final FilterExecutor UPSTREAM_EXECUTOR_SAMPLE = new UpstreamExecutor() {
         @Override
         public NextAction execute(Filter filter, FilterChainContext context) throws IOException {
