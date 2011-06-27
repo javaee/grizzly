@@ -990,7 +990,6 @@ public abstract class HttpCodecFilter extends BaseFilter
             if (BufferChunk.equalsIgnoreCaseLowerCase(input, start, end,
                     Header.ContentLength.getLowerCaseBytes())) {
                 parsingState.isContentLengthHeader = true;
-                parsingState.hasContentLength = true;
             }
         } else if (size == Header.TransferEncoding.getLowerCaseBytes().length) {
             if (BufferChunk.equalsIgnoreCaseLowerCase(input, start, end,
@@ -1015,11 +1014,14 @@ public abstract class HttpCodecFilter extends BaseFilter
             final int start, final int end) {
 
         if (parsingState.isContentLengthHeader) {
-            if (!parsingState.hasContentLength) {
+            final long contentLengthLong = Ascii.parseLong(input, start, end - start);
+            
+            if (parsingState.contentLengthHeadersCount++ == 0) {
                 // There may be multiple content lengths.  Only use the
                 // first value.
-                httpHeader.setContentLengthLong(
-                        Ascii.parseLong(input, start, end - start));
+                httpHeader.setContentLengthLong(contentLengthLong);
+            } else if (httpHeader.getContentLength() != contentLengthLong) {
+                throw new IllegalStateException("Two content-length headers with different values are not allowed");
             }
             
             parsingState.isContentLengthHeader = false;
@@ -1395,7 +1397,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         public long parsingNumericValue;
 
         public boolean isContentLengthHeader;
-        public boolean hasContentLength;
+        public int contentLengthHeadersCount;   // number of Content-Length headers in the HTTP header
         public boolean isTransferEncodingHeader;
         public boolean isUpgradeHeader;
 
@@ -1423,7 +1425,7 @@ public abstract class HttpCodecFilter extends BaseFilter
             checkpoint2 = -1;
             headerValueStorage = null;
             parsingNumericValue = 0;
-            hasContentLength = false;
+            contentLengthHeadersCount = 0;
         }
 
         public final void checkOverflow() {

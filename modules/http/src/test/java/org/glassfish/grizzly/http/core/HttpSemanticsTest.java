@@ -77,6 +77,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.memory.Buffers;
 
 
@@ -340,6 +342,51 @@ public class HttpSemanticsTest extends TestCase {
         });
     }
 
+    public void testContentLengthDuplicationSame() throws Throwable {
+
+        HttpRequestPacket request = HttpRequestPacket.builder()
+                .method("POST")
+                .uri("/path")
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost:" + PORT)
+                .header("Connection", "close")
+                .header("Content-Length", "10")
+                .header("Content-Length", "10")
+                .build();
+
+        HttpContent httpContent = HttpContent.builder(request)
+                .content(Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, new byte[10]))
+                .build();
+        
+        ExpectedResult result = new ExpectedResult();
+        result.setProtocol("HTTP/1.1");
+        result.setStatusCode(200);
+        result.addHeader("Connection", "close");
+        result.setStatusMessage("ok");
+        doTest(httpContent, result);
+
+    }
+    
+    public void testContentLengthDuplicationDifferent() throws Throwable {
+
+        String requestString = "POST /path HTTP/1.1\r\n"
+                + "Host: localhost: " + PORT + "\r\n"
+                + "Connection: close\r\n"
+                + "Content-Length: 10\r\n"
+                + "Content-Length: 10\r\n"
+                + "\r\n"
+                + "0123456789";
+
+        Buffer request = Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, requestString);
+        
+        ExpectedResult result = new ExpectedResult();
+        result.setProtocol("HTTP/1.1");
+        result.setStatusCode(400);
+        result.addHeader("Connection", "close");
+        result.setStatusMessage("bad request");
+        doTest(request, result);
+
+    }    
     // --------------------------------------------------------- Private Methods
 
     
@@ -350,7 +397,7 @@ public class HttpSemanticsTest extends TestCase {
         }
     }
 
-    private void doTest(HttpPacket request, ExpectedResult expectedResults, Filter serverFilter)
+    private void doTest(Object request, ExpectedResult expectedResults, Filter serverFilter)
     throws Throwable {
         final FutureImpl<Boolean> testResult = SafeFutureImpl.create();
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
@@ -381,8 +428,8 @@ public class HttpSemanticsTest extends TestCase {
             Future<Connection> connectFuture = ctransport.connect("localhost", PORT);
             Connection connection = null;
             try {
-                connection = connectFuture.get(10, TimeUnit.SECONDS);
-                testResult.get(10, TimeUnit.SECONDS);
+                connection = connectFuture.get(10000, TimeUnit.SECONDS);
+                testResult.get(10000, TimeUnit.SECONDS);
             } finally {
                 // Close the client connection
                 if (connection != null) {
@@ -396,7 +443,7 @@ public class HttpSemanticsTest extends TestCase {
         }
     }
 
-    private void doTest(HttpPacket request, ExpectedResult expectedResults)
+    private void doTest(Object request, ExpectedResult expectedResults)
     throws Throwable {
 
         doTest(request, expectedResults, new SimpleResponseFilter());
@@ -407,7 +454,7 @@ public class HttpSemanticsTest extends TestCase {
     private class ClientFilter extends BaseFilter {
         private final Logger logger = Grizzly.logger(ClientFilter.class);
 
-        private HttpPacket request;
+        private Object request;
         private FutureImpl<Boolean> testResult;
         private ExpectedResult expectedResult;
         private boolean validated;
@@ -417,7 +464,7 @@ public class HttpSemanticsTest extends TestCase {
         // -------------------------------------------------------- Constructors
 
 
-        public ClientFilter(HttpPacket request,
+        public ClientFilter(Object request,
                             FutureImpl<Boolean> testResult,
                             ExpectedResult expectedResults) {
 
@@ -518,10 +565,14 @@ public class HttpSemanticsTest extends TestCase {
     private static final class SimpleResponseFilter extends BaseFilter {
         @Override
         public NextAction handleRead(FilterChainContext ctx) throws IOException {
+            final HttpContent httpContent = ctx.getMessage();
 
+            if (!httpContent.isLast()) {
+                return ctx.getStopAction(httpContent);
+            }
+            
             HttpRequestPacket request =
-                    (HttpRequestPacket)
-                            ((HttpContent) ctx.getMessage()).getHttpHeader();
+                    (HttpRequestPacket) httpContent.getHttpHeader();
             HttpResponsePacket response = request.getResponse();
             HttpStatus.OK_200.setValues(response);
             response.setContentLength(0);
