@@ -396,12 +396,13 @@ public abstract class HttpCodecFilter extends BaseFilter
 
                     // if headers get parsed - set the flag
                     httpPacket.setHeaderParsed(true);
-                    // recycle header parsing state
-                    httpPacket.getHeaderParsingState().recycle();
 
                     if (onHttpHeaderParsed(httpHeader, input, ctx)) {
                         throw new IllegalStateException("Bad HTTP headers");
                     }
+
+                    // recycle header parsing state
+                    httpPacket.getHeaderParsingState().recycle();
 
                     final Buffer remainder = input.hasRemaining() ?
                             input.split(input.position()) : Buffers.EMPTY_BUFFER;
