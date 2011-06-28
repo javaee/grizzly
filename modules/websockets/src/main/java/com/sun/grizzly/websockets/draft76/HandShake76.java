@@ -47,6 +47,7 @@ import com.sun.grizzly.util.net.URL;
 import com.sun.grizzly.websockets.HandShake;
 import com.sun.grizzly.websockets.HandshakeException;
 import com.sun.grizzly.websockets.NetworkHandler;
+import com.sun.grizzly.websockets.WebSocketApplication;
 import com.sun.grizzly.websockets.WebSocketEngine;
 
 import java.io.ByteArrayOutputStream;
@@ -144,8 +145,8 @@ public class HandShake76 extends HandShake {
     }
 
     @Override
-    public void respond(Response response) {
-        super.respond(response);
+    public void respond(WebSocketApplication app, Response response) {
+        super.respond(app, response);
         handler.write(serverSecKey);
     }
 
