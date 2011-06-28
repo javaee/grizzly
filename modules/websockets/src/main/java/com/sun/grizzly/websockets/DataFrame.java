@@ -41,7 +41,6 @@
 package com.sun.grizzly.websockets;
 
 import java.io.UnsupportedEncodingException;
-import java.util.Arrays;
 
 /**
  * In memory representation of a websocket frame.
@@ -51,44 +50,42 @@ import java.util.Arrays;
 public class DataFrame {
     private String payload;
     private byte[] bytes;
-    private FrameType type;
+    private final FrameType type;
     private boolean last = true;
-
-    public DataFrame() {
-    }
 
     public DataFrame(FrameType type) {
         this.type = type;
     }
 
-    public DataFrame(String data, FrameType type) {
-        setPayload(data);
-        this.type = type;
+    public DataFrame(FrameType type, String data) {
+        this(type, data, true);
     }
 
-    public DataFrame(byte[] data, FrameType type) {
-        setPayload(data);
+    public DataFrame(FrameType type, String data, boolean fin) {
         this.type = type;
+        setPayload(data);
+        last = fin;
     }
 
-    public DataFrame(FrameType type, byte[] bytes) {
-        this.bytes = bytes;
+    public DataFrame(FrameType type, byte[] data) {
+        this(type, data, true);
+    }
+
+    public DataFrame(FrameType type, byte[] data, boolean fin) {
         this.type = type;
+        type.setPayload(this, data);
+        last = fin;
     }
 
     public FrameType getType() {
         return type;
     }
 
-    public void setType(FrameType type) {
-        this.type = type;
-    }
-
     public String getTextPayload() {
         return payload;
     }
 
-    public void setPayload(String payload) {
+    public final void setPayload(String payload) {
         this.payload = payload;
         try {
             bytes = payload != null ? payload.getBytes("UTF-8") : null;
@@ -113,9 +110,9 @@ public class DataFrame {
     public String toString() {
         return new StringBuilder("DataFrame")
                 .append("{")
-                .append("type=").append(type)
+                .append("type=").append(type.getClass().getSimpleName())
                 .append(", payload='").append(getTextPayload()).append('\'')
-                .append(", bytes=").append(Arrays.toString(bytes))
+//                .append(", bytes=").append(Arrays.toString(bytes))
                 .append('}')
                 .toString();
     }

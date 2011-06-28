@@ -81,6 +81,7 @@ public class LifecycleTest extends BaseWebSocketTestUtiltiies {
             connectedLatch.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS);
             Assert.assertEquals("There should be 1 client connected", 1, serverApp.getWebSockets().size());
 
+            checkSend(client);
             client.close();
             Assert.assertTrue(client.waitForClosed());
             closeLatch.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS);
@@ -99,7 +100,6 @@ public class LifecycleTest extends BaseWebSocketTestUtiltiies {
                 WebSocketsTest.createSelectorThread(WebSocketsTest.PORT, new StaticResourcesAdapter());
 
         final WebSocketApplication app = createServerApp(name);
-
 
         try {
             Assert.assertEquals("There should be no clients connected", 0, app.getWebSockets().size());
@@ -139,6 +139,11 @@ public class LifecycleTest extends BaseWebSocketTestUtiltiies {
             public void onClose(WebSocket socket, DataFrame frame) {
                 super.onClose(socket, frame);
                 closeLatch.countDown();
+            }
+
+            public void onMessage(WebSocket socket, String data) {
+                super.onMessage(socket, data);
+                socket.send(data);
             }
         };
         WebSocketEngine.getEngine().register(serverApp);
@@ -208,13 +213,11 @@ public class LifecycleTest extends BaseWebSocketTestUtiltiies {
     }
 
     private BadWebSocketClient newClient(Version version) throws Exception {
-        BadWebSocketClient client = new BadWebSocketClient(version, ADDRESS);
-        checkSend(client);
-        return client;
+        return new BadWebSocketClient(version, ADDRESS);
     }
 
     private void checkSend(BadWebSocketClient client) throws InterruptedException {
-        client.send("message");
+        client.send("are you alive?");
         Assert.assertTrue("Message should come back", client.waitForMessage());
     }
 

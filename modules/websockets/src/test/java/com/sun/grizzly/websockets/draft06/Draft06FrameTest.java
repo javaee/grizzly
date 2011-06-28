@@ -40,10 +40,13 @@
 
 package com.sun.grizzly.websockets.draft06;
 
-import com.sun.grizzly.websockets.BaseNetworkHandler;
+import com.sun.grizzly.websockets.LocalNetworkHandler;
 import com.sun.grizzly.websockets.DataFrame;
-import com.sun.grizzly.websockets.FrameType;
 import com.sun.grizzly.websockets.WebSocketEngine;
+import com.sun.grizzly.websockets.frametypes.BinaryFrameType;
+import com.sun.grizzly.websockets.frametypes.PingFrameType;
+import com.sun.grizzly.websockets.frametypes.PongFrameType;
+import com.sun.grizzly.websockets.frametypes.TextFrameType;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -54,11 +57,11 @@ public class Draft06FrameTest {
     @Test
     public void textFrame() throws IOException {
         Draft06Handler handler = new Draft06Handler();
-        final byte[] data = handler.frame(new DataFrame("Hello", Draft06FrameType.TEXT));
+        final byte[] data = handler.frame(new DataFrame(new TextFrameType(), "Hello"));
         Assert.assertArrayEquals(new byte[]{(byte) 0x84, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f}, data);
 
         handler = new Draft06Handler(true);
-        handler.setNetworkHandler(new ArrayNetworkHandler(data));
+        handler.setNetworkHandler(new LocalNetworkHandler(data));
         Assert.assertEquals("Hello", handler.unframe().getTextPayload());
     }
 
@@ -72,12 +75,17 @@ public class Draft06FrameTest {
         System.arraycopy(new byte[]{(byte) 0x85, 0x7E, 0x01, 0x00}, 0, sample, 0, 4);
         System.arraycopy(bytes, 0, sample, 4, bytes.length);
 
-        final byte[] data = handler.frame(new DataFrame(bytes, Draft06FrameType.BINARY));
+        final byte[] data = handler.frame(new DataFrame(new BinaryFrameType(), bytes));
         Assert.assertArrayEquals(sample, data);
 
         handler = new Draft06Handler(true);
-        handler.setNetworkHandler(new ArrayNetworkHandler(data));
+        handler.setNetworkHandler(new LocalNetworkHandler(data));
         Assert.assertArrayEquals(bytes, handler.unframe().getBytes());
+    }
+
+    @Test
+    public void unmaskedBinaryFrame() {
+        checkArrays(256, new byte[]{(byte) 0x85, 0x7E, (byte) 0x01, 0x00});
     }
 
     @Test
@@ -89,24 +97,37 @@ public class Draft06FrameTest {
         byte[] sample = new byte[bytes.length + prelude.length];
         System.arraycopy(prelude, 0, sample, 0, prelude.length);
         System.arraycopy(bytes, 0, sample, prelude.length, 65536);
-        final byte[] data = handler.frame(new DataFrame(bytes, Draft06FrameType.BINARY));
+        final byte[] data = handler.frame(new DataFrame(new BinaryFrameType(), bytes));
         Assert.assertArrayEquals(sample, data);
 
         handler = new Draft06Handler(true);
-        handler.setNetworkHandler(new ArrayNetworkHandler(data));
+        handler.setNetworkHandler(new LocalNetworkHandler(data));
         Assert.assertArrayEquals(bytes, handler.unframe().getBytes());
     }
 
     @Test
     public void ping() throws IOException {
         Draft06Handler handler = new Draft06Handler();
-        DataFrame frame = new DataFrame("Hello", Draft06FrameType.TEXT);
+        DataFrame frame = new DataFrame(new TextFrameType(), "Hello");
         final byte[] data = handler.frame(frame);
         handler = new Draft06Handler(true);
-        handler.setNetworkHandler(new ArrayNetworkHandler(data));
+        handler.setNetworkHandler(new LocalNetworkHandler(data));
 
         Assert.assertArrayEquals(new byte[]{(byte) 0x84, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f}, data);
         Assert.assertEquals("Hello", handler.unframe().getTextPayload());
+    }
+
+    @Test
+    public void pingPong() {
+        final LocalNetworkHandler localHandler = new LocalNetworkHandler();
+        Draft06Handler clientHandler = new Draft06Handler(false);
+        clientHandler.setNetworkHandler(localHandler);
+
+        clientHandler.send(new DataFrame(new PingFrameType(), "Hello"));
+        Assert.assertArrayEquals(new byte[]{(byte) 0x82, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f}, localHandler.getArray());
+
+        clientHandler.send(new DataFrame(new PongFrameType(), "Hello"));
+        Assert.assertArrayEquals(new byte[]{(byte) 0x83, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f}, localHandler.getArray());
     }
 
     @Test
@@ -117,19 +138,6 @@ public class Draft06FrameTest {
         compare(10130);
         compare(Integer.MAX_VALUE);
         compare(Long.MAX_VALUE);
-    }
-
-    @Test
-    public void mapTypes() {
-        for (int i = 0; i < 6; i++) {
-            check((byte) i, Draft06FrameType.values()[i]);
-            check((byte) (0x80 | i), Draft06FrameType.values()[i]);
-        }
-    }
-
-    private void check(final byte opcodes, final FrameType type) {
-        Assert.assertEquals(String.format("Opcode %s returned the wrong type", opcodes), type,
-                Draft06FrameType.valueOf(opcodes));
     }
 
     private void compare(final long length) {
@@ -144,43 +152,33 @@ public class Draft06FrameTest {
         final byte[] bytes = handler.frame(frame);
 
         handler = new Draft06Handler(true);
-        handler.setNetworkHandler(new ArrayNetworkHandler(bytes));
-        
+        handler.setNetworkHandler(new LocalNetworkHandler(bytes));
+
         ClosingFrame after = (ClosingFrame) handler.unframe();
 
         Assert.assertEquals("test message", after.getReason());
         Assert.assertEquals(1001, after.getCode());
     }
 
-    private static class ArrayNetworkHandler extends BaseNetworkHandler {
-        private final byte[] data;
-        int index = 0;
-
-        public ArrayNetworkHandler(byte[] data) {
-            this.data = data;
-        }
-
-        public void write(byte[] frame) {
-        }
-
-        public byte get() {
-            return (byte) (ready() ? data[index++] & 0xFF : -1);
-        }
-
-        public boolean ready() {
-            return index < data.length;
-        }
-
-        public byte[] get(int count) {
-            final byte[] bytes = new byte[count];
-            System.arraycopy(data, index, bytes, 0, count);
-            index += count;
-            return bytes;
-        }
-
-        @Override
-        protected int read() {
-            return 0;
-        }
+    @Test
+    public void unmaskedLargeBinaryFrame() {
+        checkArrays(65536, new byte[]{(byte) 0x85, 0x7F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00});
     }
+
+    private void checkArrays(final int size, final byte[] expected) {
+        Draft06Handler handler = new Draft06Handler(false);
+        final LocalNetworkHandler localHandler = new LocalNetworkHandler();
+        handler.setNetworkHandler(localHandler);
+        final byte[] data = new byte[size];
+        new Random().nextBytes(data);
+        handler.send(data);
+        final byte[] array = localHandler.getArray();
+        byte[] header = new byte[expected.length];
+        System.arraycopy(array, 0, header, 0, expected.length);
+        Assert.assertArrayEquals(expected, header);
+        Draft06Handler clientHandler = new Draft06Handler(true);
+        clientHandler.setNetworkHandler(localHandler);
+        Assert.assertArrayEquals(data, clientHandler.unframe().getBytes());
+    }
+
 }

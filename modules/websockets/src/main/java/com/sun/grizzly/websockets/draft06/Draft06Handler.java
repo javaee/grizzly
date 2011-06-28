@@ -46,23 +46,24 @@ import com.sun.grizzly.websockets.DataFrame;
 import com.sun.grizzly.websockets.FrameType;
 import com.sun.grizzly.websockets.FramingException;
 import com.sun.grizzly.websockets.HandShake;
+import com.sun.grizzly.websockets.Masker;
 import com.sun.grizzly.websockets.ProtocolHandler;
 import com.sun.grizzly.websockets.WebSocketEngine;
-
-import java.security.SecureRandom;
+import com.sun.grizzly.websockets.frametypes.BinaryFrameType;
+import com.sun.grizzly.websockets.frametypes.ClosingFrameType;
+import com.sun.grizzly.websockets.frametypes.ContinuationFrameType;
+import com.sun.grizzly.websockets.frametypes.PingFrameType;
+import com.sun.grizzly.websockets.frametypes.PongFrameType;
+import com.sun.grizzly.websockets.frametypes.TextFrameType;
 
 public class Draft06Handler extends ProtocolHandler {
-    private final SecureRandom random = new SecureRandom();
-    private final boolean applyMask;
-    private byte[] mask;
-    private int maskIndex;
 
     public Draft06Handler() {
-        applyMask = false;
+        super(false);
     }
 
-    public Draft06Handler(boolean applyMask) {
-        this.applyMask = applyMask;
+    public Draft06Handler(boolean maskData) {
+        super(maskData);
     }
 
     @Override
@@ -82,19 +83,15 @@ public class Draft06Handler extends ProtocolHandler {
         int packetLength = 1 + lengthBytes.length;
 
         byte[] packet = new byte[packetLength + payloadBytes.length];
-        final byte opcode = frame.getType().getOpCode();
+        final byte opcode = getOpcode(frame.getType());
         packet[0] = (byte) (opcode | (frame.isLast() ? (byte) 0x80 : 0));
         System.arraycopy(lengthBytes, 0, packet, 1, lengthBytes.length);
         System.arraycopy(payloadBytes, 0, packet, packetLength, payloadBytes.length);
 
-        if (applyMask) {
-            byte[] masked = new byte[packet.length + 4];
-            generateMask();
-            System.arraycopy(mask, 0, masked, 0, WebSocketEngine.MASK_SIZE);
-            for (int i = 0; i < packet.length; i++) {
-                masked[i + WebSocketEngine.MASK_SIZE] = (byte) (packet[i] ^ mask[i % WebSocketEngine.MASK_SIZE]);
-            }
-            packet = masked;
+        if (maskData) {
+            Masker masker = new Masker(handler);
+            masker.generateMask();
+            packet = masker.maskAndPrepend(packet, masker);
         }
 
         return packet;
@@ -102,122 +99,65 @@ public class Draft06Handler extends ProtocolHandler {
 
     @Override
     public DataFrame unframe() {
-        if (!applyMask) {
-            mask = handler.get(WebSocketEngine.MASK_SIZE);
-            maskIndex = 0;
+        Masker masker = new Masker(handler);
+        if (!maskData) {
+            masker.setMask(handler.get(WebSocketEngine.MASK_SIZE)) ;
         }
-        byte opcodes = get();
+        byte opcodes = masker.unmask();
         boolean fin = (opcodes & 0x80) == 0x80;
-        byte lengthCode = get();
+        byte lengthCode = masker.unmask();
         long length;
         if (lengthCode <= 125) {
             length = lengthCode;
         } else {
-            length = decodeLength(get(lengthCode == 126 ? 2 : 8));
+            length = decodeLength(masker.unmask(lengthCode == 126 ? 2 : 8));
         }
-        FrameType type = Draft06FrameType.valueOf(opcodes);
-        final byte[] data = get((int) length);
+        FrameType type = valueOf(opcodes);
+        final byte[] data = masker.unmask((int) length);
         if (data.length != length) {
             final FramingException e = new FramingException(String.format("Data read (%s) is not the expected" +
                     " size (%s)", data.length, length));
             e.printStackTrace();
             throw e;
         }
-        final DataFrame frame = type.create();
-        frame.setLast(fin);
-        type.unframe(frame, data);
-        return frame;
+        return type.create(fin, data);
     }
 
-    private byte[] get(final int count) {
-        final byte[] bytes = handler.get(count);
-        if (!applyMask) {
-            for (int i = 0; i < bytes.length; i++) {
-                bytes[i] ^= mask[maskIndex++ % WebSocketEngine.MASK_SIZE];
-            }
+    private byte getOpcode(FrameType type) {
+        if (type instanceof ClosingFrameType) {
+            return 0x01;
+        } else if (type instanceof PingFrameType) {
+            return 0x02;
+        } else if (type instanceof PongFrameType) {
+            return 0x03;
+        } else if (type instanceof TextFrameType) {
+            return 0x04;
+        } else if (type instanceof BinaryFrameType) {
+            return 0x05;
         }
-        return bytes;
+
+        throw new FramingException("Unknown frame type: " + type.getClass().getName());
     }
 
-    private byte get() {
-        byte b = handler.get();
-        if (!applyMask) {
-            b ^= mask[maskIndex++ % WebSocketEngine.MASK_SIZE];
-        }
-        return b;
-    }
-
-    public void generateMask() {
-        mask = new byte[WebSocketEngine.MASK_SIZE];
-        synchronized (random) {
-            random.nextBytes(mask);
-        }
-    }
-
-    /**
-     * Convert a byte[] to a long.  Used for rebuilding payload length.
-     */
-    public long decodeLength(byte[] bytes) {
-        return WebSocketEngine.toLong(bytes, 0, bytes.length);
-    }
-
-
-    /**
-     * Converts the length given to the appropriate framing data:
-     * <ol>
-     * <li>0-125 one element that is the payload length.
-     * <li>up to 0xFFFF, 3 element array starting with 126 with the following 2 bytes interpreted as
-     * a 16 bit unsigned integer showing the payload length.
-     * <li>else 9 element array starting with 127 with the following 8 bytes interpreted as a 64-bit
-     * unsigned integer (the high bit must be 0) showing the payload length.
-     * </ol>
-     *
-     * @param length the payload size
-     * @return the array
-     */
-    public byte[] encodeLength(final long length) {
-        byte[] lengthBytes;
-        if (length <= 125) {
-            lengthBytes = new byte[1];
-            lengthBytes[0] = (byte) length;
+    private FrameType valueOf(byte value) {
+        final int opcode = value & 0xF;
+        if (midstream) {
+            return new ContinuationFrameType((fragmentedType & 0x04) == 0x04);
         } else {
-            byte[] b = WebSocketEngine.toArray(length);
-            if (length <= 0xFFFF) {
-                lengthBytes = new byte[3];
-                lengthBytes[0] = 126;
-                System.arraycopy(b, 6, lengthBytes, 1, 2);
-            } else {
-                lengthBytes = new byte[9];
-                lengthBytes[0] = 127;
-                System.arraycopy(b, 0, lengthBytes, 1, 8);
+            switch (opcode & 0xF) {
+                case 1:
+                    return new ClosingFrameType();
+                case 2:
+                    return new PingFrameType();
+                case 3:
+                    return new PongFrameType();
+                case 4:
+                    return new TextFrameType();
+                case 5:
+                    return new BinaryFrameType();
+                default:
+                    throw new FramingException("Unknown frame type: " + value);
             }
         }
-
-        return lengthBytes;
-    }
-    @Override
-    public void send(byte[] data) {
-        send(new DataFrame(data, Draft06FrameType.BINARY));
-    }
-
-    @Override
-    public void send(String data) {
-        send(new DataFrame(data, Draft06FrameType.TEXT));
-    }
-
-    @Override
-    public void stream(boolean last, byte[] bytes, int off, int len) {
-        DataFrame frame = new DataFrame(midstream ? Draft06FrameType.CONTINUATION : Draft06FrameType.BINARY);
-        midstream = !last;
-        frame.setLast(last);
-        byte[] data = new byte[len];
-        System.arraycopy(bytes, off, data, 0, len);
-        frame.setPayload(data);
-        send(frame);
-    }
-
-    @Override
-    public void close(int code, String reason) {
-        send(new ClosingFrame(code, reason));
     }
 }

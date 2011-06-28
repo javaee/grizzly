@@ -79,7 +79,7 @@ public class WebSocketClient extends WebSocketAdapter {
                 try {
                     protocolHandler.setNetworkHandler(networkHandler);
                     final HandShake handshake = protocolHandler.handshake(address);
-                    webSocket = new BaseWebSocket(protocolHandler, WebSocketClient.this);
+                    webSocket = new DefaultWebSocket(protocolHandler, WebSocketClient.this);
                     for (WebSocketListener listener : listeners) {
                         webSocket.add(listener);
                     }
@@ -140,6 +140,10 @@ public class WebSocketClient extends WebSocketAdapter {
 
     public void close() {
         webSocket.close();
+    }
+
+    public void stream(boolean last, String fragment) {
+        webSocket.stream(last, fragment);
     }
 
     public void stream(boolean last, byte[] bytes, int start, int length) {

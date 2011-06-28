@@ -1,14 +1,14 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
  * may not use this file except in compliance with the License.  You can
  * obtain a copy of the License at
- * https://glassfish.dev.java.net/public/CDDL+GPL_1_1.html
+ * http://glassfish.java.net/public/CDDL+GPL_1_1.html
  * or packager/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
  *
@@ -38,22 +38,16 @@
  * holder.
  */
 
-package com.sun.grizzly.websockets;
+package com.sun.grizzly.websockets.frametypes;
 
-public interface WebSocketListener {
-    void onClose(WebSocket socket, DataFrame frame);
+import com.sun.grizzly.websockets.BaseFrameType;
+import com.sun.grizzly.websockets.DataFrame;
+import com.sun.grizzly.websockets.WebSocket;
 
-    void onConnect(WebSocket socket);
+public class PingFrameType extends BaseFrameType {
+    public void respond(WebSocket socket, DataFrame frame) {
+        socket.send(new DataFrame(new PongFrameType(), frame.getBytes()));
+        socket.onPing(frame);
+    }
 
-    void onMessage(WebSocket socket, String text);
-
-    void onMessage(WebSocket socket, byte[] bytes);
-
-    void onPing(WebSocket socket, byte[] bytes);
-
-    void onPong(WebSocket socket, byte[] bytes);
-
-    void onFragment(WebSocket socket, String fragment, boolean last);
-
-    void onFragment(WebSocket socket, byte[] fragment, boolean last);
 }

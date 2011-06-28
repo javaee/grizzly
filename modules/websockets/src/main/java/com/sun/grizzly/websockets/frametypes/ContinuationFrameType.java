@@ -1,14 +1,14 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
  * may not use this file except in compliance with the License.  You can
  * obtain a copy of the License at
- * https://glassfish.dev.java.net/public/CDDL+GPL_1_1.html
+ * http://glassfish.java.net/public/CDDL+GPL_1_1.html
  * or packager/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
  *
@@ -38,22 +38,33 @@
  * holder.
  */
 
-package com.sun.grizzly.websockets;
+package com.sun.grizzly.websockets.frametypes;
 
-public interface WebSocketListener {
-    void onClose(WebSocket socket, DataFrame frame);
+import com.sun.grizzly.websockets.BaseFrameType;
+import com.sun.grizzly.websockets.DataFrame;
+import com.sun.grizzly.websockets.FrameType;
+import com.sun.grizzly.websockets.WebSocket;
 
-    void onConnect(WebSocket socket);
+public class ContinuationFrameType extends BaseFrameType {
+    private boolean text;
+    private FrameType wrappedType;
 
-    void onMessage(WebSocket socket, String text);
+    public ContinuationFrameType(boolean text) {
+        this.text = text;
+        wrappedType = text ? new TextFrameType() : new BinaryFrameType();
+    }
 
-    void onMessage(WebSocket socket, byte[] bytes);
+    public void respond(WebSocket socket, DataFrame frame) {
+        if (text) {
+            socket.onFragment(frame.isLast(), frame.getTextPayload());
+        } else {
+            socket.onFragment(frame.isLast(), frame.getBytes());
+        }
+    }
 
-    void onPing(WebSocket socket, byte[] bytes);
+    @Override
+    public void setPayload(DataFrame frame, byte[] data) {
+        wrappedType.setPayload(frame, data);
+    }
 
-    void onPong(WebSocket socket, byte[] bytes);
-
-    void onFragment(WebSocket socket, String fragment, boolean last);
-
-    void onFragment(WebSocket socket, byte[] fragment, boolean last);
 }

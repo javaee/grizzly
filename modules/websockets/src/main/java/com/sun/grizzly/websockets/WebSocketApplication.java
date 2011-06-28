@@ -51,7 +51,7 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
     private final ConcurrentHashMap<WebSocket, Boolean> sockets = new ConcurrentHashMap<WebSocket, Boolean>();
 
     public WebSocket createWebSocket(ProtocolHandler protocolHandler, final WebSocketListener... listeners) {
-        return new BaseWebSocket(protocolHandler, listeners);
+        return new DefaultWebSocket(protocolHandler, listeners);
     }
 
     /**

@@ -50,16 +50,15 @@ import java.io.UnsupportedEncodingException;
 
 enum Draft76FrameType implements FrameType {
     TEXT {
-        public void unframe(DataFrame frame, byte[] data) {
+        public void setPayload(DataFrame frame, byte[] data) {
             try {
-                frame.setType(this);
                 frame.setPayload(new String(data, "UTF-8"));
             } catch (UnsupportedEncodingException e) {
                 throw new FramingException(e.getMessage(), e);
             }
         }
 
-        public byte[] frame(DataFrame frame) {
+        public byte[] getBytes(DataFrame frame) {
             final byte[] data = frame.getBytes();
             ByteArrayOutputStream out = new ByteArrayOutputStream(data.length + 2);
             out.write((byte) 0x00);
@@ -74,12 +73,11 @@ enum Draft76FrameType implements FrameType {
     },
 
     CLOSING {
-        public void unframe(DataFrame frame, byte[] data) {
-            frame.setType(this);
+        public void setPayload(DataFrame frame, byte[] data) {
             frame.setPayload(data);
         }
 
-        public byte[] frame(DataFrame frame) {
+        public byte[] getBytes(DataFrame frame) {
             return new byte[]{(byte) 0xFF, 0x00};
         }
 
@@ -88,12 +86,8 @@ enum Draft76FrameType implements FrameType {
         }
     };
 
-    public DataFrame create() {
-        return new DataFrame(this);
-    }
-
-    public final byte getOpCode() {
-        throw new UnsupportedOperationException("Draft -76 doesn't support opcode flags");
+    public DataFrame create(boolean fin, byte[] data) {
+        return new DataFrame(this, data);
     }
 
 }

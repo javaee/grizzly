@@ -50,7 +50,6 @@ import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.net.jsse.JSSEImplementation;
-import com.sun.grizzly.websockets.draft06.SecKey;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -60,13 +59,10 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import javax.servlet.Servlet;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.net.Socket;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
@@ -74,9 +70,7 @@ import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -263,42 +257,6 @@ public class WebSocketsTest {
     private void send(WebSocketClient client, Map<String, Object> messages, final String message) {
         messages.put(message, SLUG);
         client.send(message);
-    }
-
-    @SuppressWarnings({"IOResourceOpenedButNotSafelyClosed"})
-    private void handshake(Socket socket, final List<String> headers, boolean secure) throws IOException {
-        final OutputStream os = socket.getOutputStream();
-        write(os, "GET /echo HTTP/1.1");
-        write(os, "Host: localhost:" + PORT);
-        write(os, "Connection: Upgrade");
-        write(os, "Upgrade: WebSocket");
-        final String origin = WebSocketEngine.SEC_WS_ORIGIN_HEADER + (secure ? ": https://localhost:" : ": http://localhost:");
-        final String host = "Host" + (secure ? ": https://localhost:" : ": http://localhost:");
-        write(os, origin + PORT);
-        write(os, host + PORT);
-        write(os, WebSocketEngine.SEC_WS_KEY_HEADER + ": " + new SecKey().getSecKey());
-        write(os, "");
-        os.flush();
-
-        final BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        Map<String, String> receivedHeaders = new TreeMap<String, String>();
-        String line;
-        String response = null;
-        while (!"".equals(line = reader.readLine())) {
-            if(response == null) {
-                response = line;
-                Assert.assertEquals(line, String.format("HTTP/1.1 %s %s", WebSocketEngine.RESPONSE_CODE_VALUE,
-                        WebSocketEngine.RESPONSE_CODE_MESSAGE));
-            } else {
-                String[] parts = line.split(":");
-                receivedHeaders.put(parts[0].toLowerCase(), parts[1].trim());
-            }
-        }
-
-        for (String header : headers) {
-            Assert.assertTrue(String.format("Looking for '%s'", header),
-                    receivedHeaders.containsKey(header.toLowerCase()));
-        }
     }
 
     private void write(OutputStream os, String text) throws IOException {

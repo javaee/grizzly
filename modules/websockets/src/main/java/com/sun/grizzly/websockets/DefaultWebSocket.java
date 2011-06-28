@@ -50,13 +50,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 @SuppressWarnings({"StringContatenationInLoop"})
-public class BaseWebSocket implements WebSocket {
+public class DefaultWebSocket implements WebSocket {
     protected static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     private final List<WebSocketListener> listeners = new ArrayList<WebSocketListener>();
     private final AtomicBoolean connected = new AtomicBoolean(false);
     private final ProtocolHandler protocolHandler;
 
-    public BaseWebSocket(ProtocolHandler protocolHandler, WebSocketListener... listeners) {
+    public DefaultWebSocket(ProtocolHandler protocolHandler, WebSocketListener... listeners) {
         this.protocolHandler = protocolHandler;
         for (WebSocketListener listener : listeners) {
             add(listener);
@@ -116,11 +116,16 @@ public class BaseWebSocket implements WebSocket {
         }
     }
 
-    public void onFragment(boolean last, byte[] binaryPayload) {
+    public void onFragment(boolean last, String fragment) {
         for (WebSocketListener listener : listeners) {
-            listener.onFragment(this, last, binaryPayload);
+            listener.onFragment(this, fragment, last);
         }
+    }
 
+    public void onFragment(boolean last, byte[] fragment) {
+        for (WebSocketListener listener : listeners) {
+            listener.onFragment(this, fragment, last);
+        }
     }
 
     public final boolean remove(WebSocketListener listener) {
@@ -167,6 +172,14 @@ public class BaseWebSocket implements WebSocket {
     public void onMessage(byte[] data) {
         for (WebSocketListener listener : listeners) {
             listener.onMessage(this, data);
+        }
+    }
+
+    public void stream(boolean last, String fragment) {
+        if (connected.get()) {
+            protocolHandler.stream(last, fragment);
+        } else {
+            throw new RuntimeException("Socket is already closed.");
         }
     }
 

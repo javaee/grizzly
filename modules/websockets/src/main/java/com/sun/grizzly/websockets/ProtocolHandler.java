@@ -42,6 +42,9 @@ package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.util.net.URL;
+import com.sun.grizzly.websockets.draft06.ClosingFrame;
+import com.sun.grizzly.websockets.frametypes.BinaryFrameType;
+import com.sun.grizzly.websockets.frametypes.TextFrameType;
 
 import java.io.IOException;
 import java.util.Comparator;
@@ -54,6 +57,12 @@ public abstract class ProtocolHandler {
     private boolean isHeaderParsed;
     private WebSocket webSocket;
     protected boolean midstream = false;
+    protected byte fragmentedType;
+    protected final boolean maskData;
+
+    public ProtocolHandler(boolean maskData) {
+        this.maskData = maskData;
+    }
 
     public HandShake handshake(WebSocketApplication app, Request request) {
         final HandShake handshake = createHandShake(request);
@@ -124,6 +133,7 @@ public abstract class ProtocolHandler {
                 unframe().respond(getWebSocket());
             } catch (FramingException fe) {
                 fe.printStackTrace();
+                System.out.println("handler = " + handler);
                 getWebSocket().close();
             }
         }
@@ -133,13 +143,66 @@ public abstract class ProtocolHandler {
 
     protected abstract HandShake createHandShake(URL url);
 
-    public abstract void send(byte[] data);
+    public void send(byte[] data) {
+        send(new DataFrame(new BinaryFrameType(), data));
+    }
 
-    public abstract void send(String data);
+    public void send(String data) {
+        send(new DataFrame(new TextFrameType(), data));
+    }
 
-    public abstract void stream(boolean last, byte[] bytes, int off, int len);
+    public void stream(boolean last, byte[] bytes, int off, int len) {
+        send(new DataFrame(new BinaryFrameType(), bytes, last));
+    }
 
-    public abstract void close(int code, String reason);
+    public void stream(boolean last, String fragment) {
+        send(new DataFrame(new TextFrameType(), fragment, last));
+    }
+
+    public void close(int code, String reason) {
+        send(new ClosingFrame(code, reason));
+    }
 
     public abstract DataFrame unframe();
+
+    /**
+     * Convert a byte[] to a long.  Used for rebuilding payload length.
+     */
+    public long decodeLength(byte[] bytes) {
+        return WebSocketEngine.toLong(bytes, 0, bytes.length);
+    }
+
+    /**
+     * Converts the length given to the appropriate framing data:
+     * <ol>
+     * <li>0-125 one element that is the payload length.
+     * <li>up to 0xFFFF, 3 element array starting with 126 with the following 2 bytes interpreted as
+     * a 16 bit unsigned integer showing the payload length.
+     * <li>else 9 element array starting with 127 with the following 8 bytes interpreted as a 64-bit
+     * unsigned integer (the high bit must be 0) showing the payload length.
+     * </ol>
+     *
+     * @param length the payload size
+     * @return the array
+     */
+    public byte[] encodeLength(final long length) {
+        byte[] lengthBytes;
+        if (length <= 125) {
+            lengthBytes = new byte[1];
+            lengthBytes[0] = (byte) length;
+        } else {
+            byte[] b = WebSocketEngine.toArray(length);
+            if (length <= 0xFFFF) {
+                lengthBytes = new byte[3];
+                lengthBytes[0] = 126;
+                System.arraycopy(b, 6, lengthBytes, 1, 2);
+            } else {
+                lengthBytes = new byte[9];
+                lengthBytes[0] = 127;
+                System.arraycopy(b, 0, lengthBytes, 1, 8);
+            }
+        }
+
+        return lengthBytes;
+    }
 }

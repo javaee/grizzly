@@ -84,7 +84,7 @@ public class InputReader extends InputStream {
     /**
      * The {@link SelectionKey} used by this stream.
      */
-    protected SelectionKey key = null;
+    public SelectionKey key = null;
     
     
     /**

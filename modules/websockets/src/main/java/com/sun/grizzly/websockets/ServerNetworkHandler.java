@@ -49,11 +49,13 @@ import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 import com.sun.grizzly.tcp.http11.InternalInputBuffer;
 import com.sun.grizzly.tcp.http11.InternalOutputBuffer;
+import com.sun.grizzly.util.InputReader;
 import com.sun.grizzly.util.buf.ByteChunk;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.nio.channels.SocketChannel;
 
 public class ServerNetworkHandler extends BaseNetworkHandler {
     private final Request request;
@@ -169,4 +171,16 @@ public class ServerNetworkHandler extends BaseNetworkHandler {
         }
     }
 
+    @Override
+    public String toString() {
+        final InputReader inputStream = (InputReader) inputBuffer.getInputStream();
+        final int remoteSocketAddress =
+                ((SocketChannel) inputStream.key.channel()).socket().getPort();
+        final StringBuilder sb = new StringBuilder();
+        sb.append("SNH[");
+        sb.append(remoteSocketAddress);
+        sb.append(",").append(super.toString());
+        sb.append(']');
+        return sb.toString();
+    }
 }

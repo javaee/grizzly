@@ -42,10 +42,22 @@ package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.util.http.MimeHeaders;
 import com.sun.grizzly.websockets.draft06.Draft06Handler;
+import com.sun.grizzly.websockets.draft07.Draft07Handler;
 import com.sun.grizzly.websockets.draft76.Draft76Handler;
 import com.sun.grizzly.websockets.draft76.HandShake76;
 
 public enum Version {
+    DRAFT07 {
+        @Override
+        public ProtocolHandler createHandler(boolean mask) {
+            return new Draft07Handler(mask);
+        }
+
+        @Override
+        public boolean validate(MimeHeaders headers) {
+            return "7".equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
+        }
+    },
     DRAFT06 {
         @Override
         public ProtocolHandler createHandler(boolean mask) {
@@ -67,9 +79,24 @@ public enum Version {
         public boolean validate(MimeHeaders headers) {
             return headers.getHeader(HandShake76.SEC_WS_KEY1_HEADER) != null;
         }
+
+        @Override
+        public boolean isFragmentationSupported() {
+            return false;
+        }
     };
 
     public abstract ProtocolHandler createHandler(boolean mask);
 
     public abstract boolean validate(MimeHeaders headers);
+
+
+    @Override
+    public String toString() {
+        return name();
+    }
+
+    public boolean isFragmentationSupported() {
+        return true;
+    }
 }

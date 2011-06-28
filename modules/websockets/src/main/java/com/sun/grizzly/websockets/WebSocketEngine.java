@@ -67,8 +67,7 @@ public class WebSocketEngine {
     public static final String RESPONSE_CODE_VALUE = "101";
     public static final String UPGRADE = "upgrade";
     public static final String CONNECTION = "connection";
-    public static final Version DEFAULT_VERSION = Version.DRAFT06;
-    public static final int WS_VERSION = 6;
+    public static final Version DEFAULT_VERSION = Version.values()[Version.values().length-1];
     public static final int INITIAL_BUFFER_SIZE = 8192;
     public static final int DEFAULT_TIMEOUT;
 
@@ -111,6 +110,14 @@ public class WebSocketEngine {
             value ^= (long) bytes[i] & 0xFF;
         }
         return value;
+    }
+
+    public static List<String> toString(byte[] bytes, int start, int end) {
+        List<String> list = new ArrayList<String>();
+        for (int i = start; i < end; i++) {
+            list.add(Integer.toString(bytes[i] & 0xFF, 16).toUpperCase());
+        }
+        return list;
     }
 
     public WebSocketApplication getApplication(Request request) {

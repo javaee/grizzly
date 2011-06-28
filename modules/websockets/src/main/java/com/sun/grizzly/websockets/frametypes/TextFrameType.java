@@ -1,14 +1,14 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
  * may not use this file except in compliance with the License.  You can
  * obtain a copy of the License at
- * https://glassfish.dev.java.net/public/CDDL+GPL_1_1.html
+ * http://glassfish.java.net/public/CDDL+GPL_1_1.html
  * or packager/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
  *
@@ -38,22 +38,39 @@
  * holder.
  */
 
-package com.sun.grizzly.websockets;
+package com.sun.grizzly.websockets.frametypes;
 
-public interface WebSocketListener {
-    void onClose(WebSocket socket, DataFrame frame);
+import com.sun.grizzly.websockets.BaseFrameType;
+import com.sun.grizzly.websockets.DataFrame;
+import com.sun.grizzly.websockets.FramingException;
+import com.sun.grizzly.websockets.WebSocket;
 
-    void onConnect(WebSocket socket);
+import java.io.UnsupportedEncodingException;
 
-    void onMessage(WebSocket socket, String text);
+public class TextFrameType extends BaseFrameType {
+    @Override
+    public void setPayload(DataFrame frame, byte[] data) {
+        try {
+            frame.setPayload(new String(data, "UTF-8"));
+        } catch (UnsupportedEncodingException e) {
+            throw new FramingException(e.getMessage(), e);
+        }
+    }
 
-    void onMessage(WebSocket socket, byte[] bytes);
+    @Override
+    public byte[] getBytes(DataFrame dataFrame) {
+        try {
+            return dataFrame.getTextPayload().getBytes("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new FramingException(e.getMessage(), e);
+        }
+    }
 
-    void onPing(WebSocket socket, byte[] bytes);
-
-    void onPong(WebSocket socket, byte[] bytes);
-
-    void onFragment(WebSocket socket, String fragment, boolean last);
-
-    void onFragment(WebSocket socket, byte[] fragment, boolean last);
+    public void respond(WebSocket socket, DataFrame frame) {
+        if(frame.isLast()) {
+            socket.onMessage(frame.getTextPayload());
+        } else {
+            socket.onFragment(frame.isLast(), frame.getTextPayload());
+        }
+    }
 }

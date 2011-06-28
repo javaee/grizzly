@@ -49,11 +49,14 @@ import com.sun.grizzly.websockets.ProtocolHandler;
 import com.sun.grizzly.websockets.WebSocketException;
 
 import java.io.ByteArrayOutputStream;
-import java.io.UnsupportedEncodingException;
 
 public class Draft76Handler extends ProtocolHandler {
+    public Draft76Handler() {
+        super(false);
+    }
+
     public byte[] frame(DataFrame frame) {
-        return frame.getType().frame(frame);
+        return frame.getType().getBytes(frame);
     }
 
     public DataFrame unframe() {
@@ -61,16 +64,11 @@ public class Draft76Handler extends ProtocolHandler {
         DataFrame frame;
         switch (b) {
             case 0x00:
-                frame = new DataFrame(Draft76FrameType.TEXT);
                 ByteArrayOutputStream raw = new ByteArrayOutputStream();
                 while ((b = handler.get()) != (byte) 0xFF) {
                     raw.write(b);
                 }
-                try {
-                    frame.setPayload(new String(raw.toByteArray(), "UTF-8"));
-                } catch (UnsupportedEncodingException e) {
-                    throw new FramingException(e.getMessage(), e);
-                }
+                frame = new DataFrame(Draft76FrameType.TEXT, raw.toByteArray());
                 break;
             case (byte) 0xFF:
                 frame = new DataFrame(Draft76FrameType.CLOSING, new byte[]{b, handler.get()});
@@ -94,7 +92,7 @@ public class Draft76Handler extends ProtocolHandler {
 
     @Override
     public void send(String data) {
-        send(new DataFrame(data, Draft76FrameType.TEXT));
+        send(new DataFrame(Draft76FrameType.TEXT, data));
     }
 
     @Override

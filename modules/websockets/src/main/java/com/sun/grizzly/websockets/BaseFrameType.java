@@ -1,14 +1,14 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
  * may not use this file except in compliance with the License.  You can
  * obtain a copy of the License at
- * https://glassfish.dev.java.net/public/CDDL+GPL_1_1.html
+ * http://glassfish.java.net/public/CDDL+GPL_1_1.html
  * or packager/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
  *
@@ -40,20 +40,18 @@
 
 package com.sun.grizzly.websockets;
 
-public interface WebSocketListener {
-    void onClose(WebSocket socket, DataFrame frame);
+public abstract class BaseFrameType implements FrameType {
 
-    void onConnect(WebSocket socket);
+    public void setPayload(DataFrame frame, byte[] data) {
+        frame.setPayload(data);
+    }
 
-    void onMessage(WebSocket socket, String text);
+    public byte[] getBytes(DataFrame dataFrame) {
+        return dataFrame.getBytes();
+    }
 
-    void onMessage(WebSocket socket, byte[] bytes);
+    public DataFrame create(boolean fin, byte[] data) {
+        return new DataFrame(this, data, fin);
+    }
 
-    void onPing(WebSocket socket, byte[] bytes);
-
-    void onPong(WebSocket socket, byte[] bytes);
-
-    void onFragment(WebSocket socket, String fragment, boolean last);
-
-    void onFragment(WebSocket socket, byte[] fragment, boolean last);
 }

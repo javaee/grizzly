@@ -46,6 +46,7 @@ public class WebSocketFactory {
     public static ProtocolHandler loadHandler(MimeHeaders headers) {
         for (Version version : Version.values()) {
             if(version.validate(headers)) {
+                System.out.println("processing request using = " + version);
                 return version.createHandler(false);
             }
         }

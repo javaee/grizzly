@@ -59,6 +59,9 @@ public class WebSocketAdapter implements WebSocketListener {
     public void onPong(WebSocket socket, byte[] bytes) {
     }
 
-    public void onFragment(WebSocket socket, boolean last, byte[] bytes) {
+    public void onFragment(WebSocket socket, String fragment, boolean last) {
+    }
+
+    public void onFragment(WebSocket socket, byte[] fragment, boolean last) {
     }
 }

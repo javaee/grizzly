@@ -59,6 +59,9 @@ public class ClientNetworkHandler extends BaseNetworkHandler {
     private OutputStream outputStream;
     private InputStream inputStream;
 
+    protected ClientNetworkHandler() {
+    }
+
     public ClientNetworkHandler(WebSocketClient webSocket) {
         URL url = webSocket.getAddress();
 
@@ -85,36 +88,6 @@ public class ClientNetworkHandler extends BaseNetworkHandler {
             throw new WebSocketException(e.getMessage(), e);
         }
     }
-
-/*
-    public byte[] readLine() throws IOException {
-        if (chunk.getLength() <= 0) {
-            read();
-        }
-
-        int idx = chunk.indexOf('\n', 0);
-        if (idx != -1) {
-            int eolBytes = 1;
-            final int offset = chunk.getOffset();
-            idx += offset;
-
-            if (idx > offset && chunk.getBuffer()[idx - 1] == '\r') {
-                idx--;
-                eolBytes = 2;
-            }
-
-            final int size = idx - offset;
-
-            final byte[] result = new byte[size];
-            chunk.substract(result, 0, size);
-
-            chunk.setOffset(chunk.getOffset() + eolBytes); // Skip \r\n or \n
-            return result;
-        }
-
-        return null;
-    }
-*/
 
     public void shutdown() throws IOException {
         socket.close();
@@ -217,5 +190,15 @@ public class ClientNetworkHandler extends BaseNetworkHandler {
             e.printStackTrace();
             throw new IOException(e.getMessage());
         }
+    }
+
+    public String toString() {
+        final StringBuilder sb = new StringBuilder()
+                .append("CNH[")
+                .append(socket == null ? "unconnected" : socket.getLocalPort())
+                .append("] {")
+                .append(super.toString())
+                .append('}');
+        return sb.toString();
     }
 }

@@ -43,23 +43,28 @@ package com.sun.grizzly.websockets.draft06;
 import com.sun.grizzly.websockets.DataFrame;
 import com.sun.grizzly.websockets.FramingException;
 import com.sun.grizzly.websockets.WebSocketEngine;
+import com.sun.grizzly.websockets.frametypes.ClosingFrameType;
 
 import java.io.UnsupportedEncodingException;
 
-class ClosingFrame extends DataFrame {
+public class ClosingFrame extends DataFrame {
     public static final byte[] EMPTY_BYTES = new byte[0];
     private int code;
     private String reason;
 
     public ClosingFrame() {
+        super(new ClosingFrameType());
         code = -1;
-        setType(Draft06FrameType.CLOSING);
     }
 
     public ClosingFrame(int code, String reason) {
+        super(new ClosingFrameType());
         this.code = code;
         this.reason = reason;
-        setType(Draft06FrameType.CLOSING);
+    }
+
+    public ClosingFrame(boolean fin, byte[] data) {
+        super(new ClosingFrameType(), data, fin);
     }
 
     public int getCode() {
@@ -101,5 +106,15 @@ class ClosingFrame extends DataFrame {
         } catch (UnsupportedEncodingException e) {
             throw new FramingException(e.getMessage(), e);
         }
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder();
+        sb.append("ClosingFrame");
+        sb.append("{code=").append(code);
+        sb.append(", reason=").append(reason == null ? null : "'" + reason + "'");
+        sb.append('}');
+        return sb.toString();
     }
 }

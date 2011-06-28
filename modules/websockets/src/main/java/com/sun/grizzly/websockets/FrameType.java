@@ -43,11 +43,9 @@ package com.sun.grizzly.websockets;
 public interface FrameType {
     void respond(WebSocket socket, DataFrame frame);
 
-    void unframe(DataFrame frame, byte[] data);
+    void setPayload(DataFrame frame, byte[] data);
 
-    byte[] frame(DataFrame dataFrame);
+    byte[] getBytes(DataFrame dataFrame);
 
-    byte getOpCode();
-
-    DataFrame create();
+    DataFrame create(boolean fin, byte[] data);
 }

@@ -43,6 +43,7 @@ package com.sun.grizzly.websockets;
 import com.sun.grizzly.util.buf.ByteChunk;
 
 import java.io.IOException;
+import java.util.List;
 
 public abstract class BaseNetworkHandler implements NetworkHandler {
     protected final ByteChunk chunk = new ByteChunk();
@@ -75,5 +76,18 @@ public abstract class BaseNetworkHandler implements NetworkHandler {
         }
 
         return null;
+    }
+
+    public List<String> getBytes() {
+        return getByteList(chunk.getStart(), chunk.getEnd());
+    }
+
+    private List<String> getByteList(final int start, final int end) {
+        return WebSocketEngine.toString(chunk.getBytes(), start, end);
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Active: %s" /*+ ", Full: %s"*/, getBytes().toString()/*, getByteList(0, chunk.getEnd())*/);
     }
 }

@@ -8,7 +8,7 @@
  * and Distribution License("CDDL") (collectively, the "License").  You
  * may not use this file except in compliance with the License.  You can
  * obtain a copy of the License at
- * https://glassfish.dev.java.net/public/CDDL+GPL_1_1.html
+ * http://glassfish.java.net/public/CDDL+GPL_1_1.html
  * or packager/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
  *
@@ -40,44 +40,65 @@
 
 package com.sun.grizzly.websockets;
 
-import com.sun.grizzly.arp.DefaultAsyncHandler;
-import com.sun.grizzly.http.SelectorThread;
-import com.sun.grizzly.tcp.Adapter;
-import com.sun.grizzly.util.Utils;
-import org.junit.runners.Parameterized;
+import java.security.SecureRandom;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+public class Masker {
+    private final NetworkHandler handler;
+    private byte[] mask;
+    private int index = 0;
 
-public class BaseWebSocketTestUtiltiies {
-    @Parameterized.Parameters
-    public static List<Version[]> versions() {
-        final List<Version[]> versions = new ArrayList<Version[]>();
-//        for (Version version : Version.values()) {
-//            versions.add(new Version[]{version});
-//        }
-//        versions.add(new Version[]{Version.DRAFT06});
-        versions.add(new Version[]{Version.DRAFT07});
-        return versions;
+    public Masker(NetworkHandler handler) {
+        this.handler = handler;
     }
 
-    protected static SelectorThread createSelectorThread(final int port, final Adapter adapter)
-            throws IOException, InstantiationException {
-        SelectorThread st = new SelectorThread();
+    public byte unmask() {
+        final byte b = handler.get();
+        return mask == null ? b : (byte) (b ^ mask[index++ % WebSocketEngine.MASK_SIZE]);
+    }
 
-        st.setSsBackLog(8192);
-        st.setCoreThreads(2);
-        st.setMaxThreads(2);
-        st.setPort(port);
-        st.setDisplayConfiguration(Utils.VERBOSE_TESTS);
-        st.setAdapter(adapter);
-        st.setAsyncHandler(new DefaultAsyncHandler());
-        st.setEnableAsyncExecution(true);
-        st.getAsyncHandler().addAsyncFilter(new WebSocketAsyncFilter());
-        st.setTcpNoDelay(true);
-        st.listen();
+    public byte[] unmask(int count) {
+        byte[] bytes = handler.get(count);
+        if (mask != null) {
+            for (int i = 0; i < bytes.length; i++) {
+                bytes[i] ^= mask[index++ % WebSocketEngine.MASK_SIZE];
+            }
+        }
 
-        return st;
+        return bytes;
+    }
+
+    public void generateMask() {
+        mask = new byte[WebSocketEngine.MASK_SIZE];
+        new SecureRandom().nextBytes(mask);
+    }
+
+    public void mask(byte[] bytes, int location, byte b) {
+        bytes[location] = mask == null ? b : (byte) (b ^ mask[index++ % WebSocketEngine.MASK_SIZE]);
+    }
+
+    public void mask(byte[] target, int location, byte[] bytes) {
+        if(bytes != null && target != null) {
+            for (int i = 0; i < bytes.length; i++) {
+                target[location + i] = mask == null
+                        ? bytes[i]
+                        : (byte) (bytes[i] ^ mask[index++ % WebSocketEngine.MASK_SIZE]);
+            }
+        }
+    }
+
+    public byte[] maskAndPrepend(byte[] packet, Masker masker) {
+        byte[] masked = new byte[packet.length + WebSocketEngine.MASK_SIZE];
+        System.arraycopy(masker.getMask(), 0, masked, 0, WebSocketEngine.MASK_SIZE);
+        masker.mask(masked, WebSocketEngine.MASK_SIZE, packet);
+        return packet;
+    }
+
+
+    public byte[] getMask() {
+        return mask;
+    }
+
+    public void setMask(byte[] mask) {
+        this.mask = mask;
     }
 }

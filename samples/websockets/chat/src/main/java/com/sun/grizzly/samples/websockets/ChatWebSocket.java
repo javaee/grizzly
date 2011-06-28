@@ -40,11 +40,11 @@
 
 package com.sun.grizzly.samples.websockets;
 
-import com.sun.grizzly.websockets.BaseWebSocket;
+import com.sun.grizzly.websockets.DefaultWebSocket;
 import com.sun.grizzly.websockets.ProtocolHandler;
 import com.sun.grizzly.websockets.WebSocketListener;
 
-public class ChatWebSocket extends BaseWebSocket {
+public class ChatWebSocket extends DefaultWebSocket {
     private String user;
 
     public ChatWebSocket(ProtocolHandler handler, WebSocketListener[] listeners) {

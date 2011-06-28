@@ -98,7 +98,7 @@ public class HandShake06 extends HandShake {
             chunk.write(String.format("Upgrade: WebSocket\r\n").getBytes());
             chunk.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_KEY_HEADER, secKey).getBytes());
             chunk.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_ORIGIN_HEADER, getOrigin()).getBytes());
-            chunk.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_VERSION, WebSocketEngine.WS_VERSION).getBytes());
+            chunk.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_VERSION, getVersion()).getBytes());
             if (!getSubProtocol().isEmpty()) {
                 chunk.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_PROTOCOL_HEADER,
                         join(getSubProtocol())).getBytes());
@@ -113,6 +113,10 @@ public class HandShake06 extends HandShake {
         } catch (IOException e) {
             throw new HandshakeException(e.getMessage(), e);
         }
+    }
+
+    protected int getVersion() {
+        return 6;
     }
 
     public void validateServerResponse(final Map<String, String> headers) throws HandshakeException {
