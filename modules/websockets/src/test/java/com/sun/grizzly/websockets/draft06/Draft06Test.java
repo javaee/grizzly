@@ -53,7 +53,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Random;
 
-public class Draft06FrameTest {
+public class Draft06Test {
     @Test
     public void textFrame() throws IOException {
         Draft06Handler handler = new Draft06Handler();
@@ -84,7 +84,7 @@ public class Draft06FrameTest {
     }
 
     @Test
-    public void unmaskedBinaryFrame() {
+    public void binaryFrameUnmasked() {
         checkArrays(256, new byte[]{(byte) 0x85, 0x7E, (byte) 0x01, 0x00});
     }
 
@@ -161,7 +161,7 @@ public class Draft06FrameTest {
     }
 
     @Test
-    public void unmaskedLargeBinaryFrame() {
+    public void largeBinaryFrameUnmasked() {
         checkArrays(65536, new byte[]{(byte) 0x85, 0x7F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00});
     }
 

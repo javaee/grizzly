@@ -90,7 +90,7 @@ public class Masker {
         byte[] masked = new byte[packet.length + WebSocketEngine.MASK_SIZE];
         System.arraycopy(masker.getMask(), 0, masked, 0, WebSocketEngine.MASK_SIZE);
         masker.mask(masked, WebSocketEngine.MASK_SIZE, packet);
-        return packet;
+        return masked;
     }
 
 

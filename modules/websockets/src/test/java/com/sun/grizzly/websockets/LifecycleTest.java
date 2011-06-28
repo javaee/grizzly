@@ -109,7 +109,6 @@ public class LifecycleTest extends BaseWebSocketTestUtiltiies {
             connectedLatch.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS);
             Assert.assertEquals("There should be 1 client connected", 1, app.getWebSockets().size());
 
-            System.out.println(new Date() + ": killing connection");
             client.killConnection();
             Assert.assertTrue("Should get the close event", closeLatch.await(60, TimeUnit.SECONDS));
             Assert.assertEquals("There should be 0 clients connected", 0, app.getWebSockets().size());

@@ -109,4 +109,9 @@ public class Draft76Handler extends ProtocolHandler {
     public void stream(boolean last, byte[] bytes, int off, int len) {
         throw new WebSocketException("Streaming not supported in draft -76");
     }
+
+    @Override
+    protected boolean isControlFrame(byte opcode) {
+        return false;
+    }
 }

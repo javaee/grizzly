@@ -67,4 +67,8 @@ public class ContinuationFrameType extends BaseFrameType {
         wrappedType.setPayload(frame, data);
     }
 
+    @Override
+    public byte[] getBytes(DataFrame dataFrame) {
+        return wrappedType.getBytes(dataFrame);
+    }
 }

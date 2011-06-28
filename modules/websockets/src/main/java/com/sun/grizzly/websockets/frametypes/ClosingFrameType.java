@@ -49,7 +49,7 @@ public class ClosingFrameType extends BaseFrameType {
 
     @Override
     public DataFrame create(boolean fin, byte[] data) {
-        return new ClosingFrame(fin, data);
+        return new ClosingFrame(data);
     }
 
     public void respond(WebSocket socket, DataFrame frame) {

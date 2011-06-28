@@ -77,14 +77,15 @@ public class Draft06Handler extends ProtocolHandler {
     }
 
     public byte[] frame(DataFrame frame) {
+        byte opcode = checkForLastFrame(frame, getOpcode(frame.getType()));
         byte[] payloadBytes = frame.getBytes();
+
 //        ByteBuffer buffer = ByteBuffer.allocateDirect(payloadBytes + 8);
         final byte[] lengthBytes = encodeLength(payloadBytes.length);
         int packetLength = 1 + lengthBytes.length;
 
         byte[] packet = new byte[packetLength + payloadBytes.length];
-        final byte opcode = getOpcode(frame.getType());
-        packet[0] = (byte) (opcode | (frame.isLast() ? (byte) 0x80 : 0));
+        packet[0] = opcode;
         System.arraycopy(lengthBytes, 0, packet, 1, lengthBytes.length);
         System.arraycopy(payloadBytes, 0, packet, packetLength, payloadBytes.length);
 
@@ -101,10 +102,20 @@ public class Draft06Handler extends ProtocolHandler {
     public DataFrame unframe() {
         Masker masker = new Masker(handler);
         if (!maskData) {
-            masker.setMask(handler.get(WebSocketEngine.MASK_SIZE)) ;
+            masker.setMask(handler.get(WebSocketEngine.MASK_SIZE));
         }
-        byte opcodes = masker.unmask();
-        boolean fin = (opcodes & 0x80) == 0x80;
+        byte opcode = masker.unmask();
+        boolean finalFragment = (opcode & 0x80) == 0x80;
+        opcode &= 0x7F;
+        FrameType type = valueOf(inFragmentedType, opcode);
+        if (!finalFragment) {
+            if(inFragmentedType == 0) {
+                inFragmentedType = opcode;
+            }
+        } else {
+            inFragmentedType = 0;
+        }
+
         byte lengthCode = masker.unmask();
         long length;
         if (lengthCode <= 125) {
@@ -112,7 +123,6 @@ public class Draft06Handler extends ProtocolHandler {
         } else {
             length = decodeLength(masker.unmask(lengthCode == 126 ? 2 : 8));
         }
-        FrameType type = valueOf(opcodes);
         final byte[] data = masker.unmask((int) length);
         if (data.length != length) {
             final FramingException e = new FramingException(String.format("Data read (%s) is not the expected" +
@@ -120,7 +130,14 @@ public class Draft06Handler extends ProtocolHandler {
             e.printStackTrace();
             throw e;
         }
-        return type.create(fin, data);
+        return type.create(finalFragment, data);
+    }
+
+    @Override
+    protected boolean isControlFrame(byte opcode) {
+        return opcode == 0x01
+                || opcode == 0x02
+                || opcode == 0x03;
     }
 
     private byte getOpcode(FrameType type) {
@@ -139,25 +156,23 @@ public class Draft06Handler extends ProtocolHandler {
         throw new FramingException("Unknown frame type: " + type.getClass().getName());
     }
 
-    private FrameType valueOf(byte value) {
+    private FrameType valueOf(byte fragmentType, byte value) {
         final int opcode = value & 0xF;
-        if (midstream) {
-            return new ContinuationFrameType((fragmentedType & 0x04) == 0x04);
-        } else {
-            switch (opcode & 0xF) {
-                case 1:
-                    return new ClosingFrameType();
-                case 2:
-                    return new PingFrameType();
-                case 3:
-                    return new PongFrameType();
-                case 4:
-                    return new TextFrameType();
-                case 5:
-                    return new BinaryFrameType();
-                default:
-                    throw new FramingException("Unknown frame type: " + value);
-            }
+        switch (opcode & 0xF) {
+            case 0x00:
+                return new ContinuationFrameType((fragmentType & 0x04) == 0x04);
+            case 0x01:
+                return new ClosingFrameType();
+            case 0x02:
+                return new PingFrameType();
+            case 0x03:
+                return new PongFrameType();
+            case 0x04:
+                return new TextFrameType();
+            case 0x05:
+                return new BinaryFrameType();
+            default:
+                throw new FramingException("Unknown frame type: " + value);
         }
     }
 }

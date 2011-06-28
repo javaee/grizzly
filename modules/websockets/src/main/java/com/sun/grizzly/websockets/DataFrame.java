@@ -110,7 +110,8 @@ public class DataFrame {
     public String toString() {
         return new StringBuilder("DataFrame")
                 .append("{")
-                .append("type=").append(type.getClass().getSimpleName())
+                .append("last=").append(last)
+                .append(", type=").append(type.getClass().getSimpleName())
                 .append(", payload='").append(getTextPayload()).append('\'')
 //                .append(", bytes=").append(Arrays.toString(bytes))
                 .append('}')

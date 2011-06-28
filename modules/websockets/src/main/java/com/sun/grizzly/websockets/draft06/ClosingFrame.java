@@ -42,6 +42,7 @@ package com.sun.grizzly.websockets.draft06;
 
 import com.sun.grizzly.websockets.DataFrame;
 import com.sun.grizzly.websockets.FramingException;
+import com.sun.grizzly.websockets.WebSocket;
 import com.sun.grizzly.websockets.WebSocketEngine;
 import com.sun.grizzly.websockets.frametypes.ClosingFrameType;
 
@@ -54,7 +55,7 @@ public class ClosingFrame extends DataFrame {
 
     public ClosingFrame() {
         super(new ClosingFrameType());
-        code = -1;
+        code = WebSocket.NORMAL_CLOSURE;
     }
 
     public ClosingFrame(int code, String reason) {
@@ -63,8 +64,8 @@ public class ClosingFrame extends DataFrame {
         this.reason = reason;
     }
 
-    public ClosingFrame(boolean fin, byte[] data) {
-        super(new ClosingFrameType(), data, fin);
+    public ClosingFrame(byte[] data) {
+        super(new ClosingFrameType(), data);
     }
 
     public int getCode() {

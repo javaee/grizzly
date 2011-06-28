@@ -43,10 +43,7 @@ package com.sun.grizzly.websockets;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.servlet.ServletAdapter;
 import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.websockets.draft07.Draft07Handler;
-import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -58,25 +55,14 @@ import java.util.concurrent.TimeUnit;
 @RunWith(Parameterized.class)
 public class FragmentationTest extends BaseWebSocketTestUtiltiies {
     private static final int PORT = 1726;
-    private Version version;
+    private final Version version;
 
     public FragmentationTest(Version version) {
         this.version = version;
     }
 
-    @BeforeClass
-    public static void turnOnDebug() {
-        Draft07Handler.DEBUG = true;
-    }
-
-    @AfterClass
-    public static void turnOffDebug() {
-        Draft07Handler.DEBUG = false;
-    }
-
     @Test
     public void fragment() throws IOException, InstantiationException, InterruptedException {
-        System.out.println("version = " + version);
         if (version.isFragmentationSupported()) {
             final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter());
             final WebSocketApplication app = new FragmentedApplication();
@@ -96,29 +82,11 @@ public class FragmentationTest extends BaseWebSocketTestUtiltiies {
                             }
                         });
 
-                StringBuilder sb = new StringBuilder();
-                while (sb.length() < 1000) {
-                    sb.append("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus quis lectus odio, et" +
-                            " dictum purus. Suspendisse id ante ac tortor facilisis porta. Nullam aliquet dapibus dui, ut" +
-                            " scelerisque diam luctus sit amet. Donec faucibus aliquet massa, eget iaculis velit ullamcorper" +
-                            " eu. Fusce quis condimentum magna. Vivamus eu feugiat mi. Cras varius convallis gravida. Vivamus" +
-                            " et elit lectus. Aliquam egestas, erat sed dapibus dictum, sem ligula suscipit mauris, a" +
-                            " consectetur massa augue vel est. Nam bibendum varius lobortis. In tincidunt, sapien quis" +
-                            " hendrerit vestibulum, lorem turpis faucibus enim, non rhoncus nisi diam non neque. Aliquam eu" +
-                            " urna urna, molestie aliquam sapien. Nullam volutpat, erat condimentum interdum viverra, tortor" +
-                            " lacus venenatis neque, vitae mattis sem felis pellentesque quam. Nullam sodales vestibulum" +
-                            " ligula vitae porta. Aenean ultrices, ligula quis dapibus sodales, nulla risus sagittis sapien," +
-                            " id posuere turpis lectus ac sapien. Pellentesque sed ante nisi. Quisque eget posuere sapien.");
-                }
-                final String text = sb.toString();
+                final String text = "abc";
                 int size = text.length();
 
-                int index  = 0;
-                while (index < size) {
-                    int endIndex = Math.min(index + 500, size);
-                    String fragment = text.substring(index, endIndex);
-                    index = endIndex;
-                    client.stream(index == size, fragment);
+                for (int index = 0; index < text.length(); index++) {
+                    client.stream(index == size - 1, text.substring(index, index + 1));
                 }
 
                 Assert.assertTrue(latch.await(60, TimeUnit.MINUTES));
@@ -132,7 +100,6 @@ public class FragmentationTest extends BaseWebSocketTestUtiltiies {
     }
 
     private static class FragmentedApplication extends WebSocketApplication {
-        private StringBuilder builder = new StringBuilder();
         @Override
         public boolean isApplicationRequest(Request request) {
             return true;
@@ -140,11 +107,7 @@ public class FragmentationTest extends BaseWebSocketTestUtiltiies {
 
         @Override
         public void onFragment(WebSocket socket, String fragment, boolean last) {
-            builder.append(fragment);
-            if (last) {
-                socket.send(builder.toString());
-            }
+            socket.stream(last, fragment);
         }
-
     }
 }

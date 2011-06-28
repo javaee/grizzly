@@ -40,22 +40,21 @@
 
 package com.sun.grizzly.websockets.draft07;
 
-import com.sun.grizzly.websockets.LocalNetworkHandler;
 import com.sun.grizzly.websockets.DataFrame;
+import com.sun.grizzly.websockets.LocalNetworkHandler;
 import com.sun.grizzly.websockets.WebSocket;
 import com.sun.grizzly.websockets.draft06.ClosingFrame;
 import com.sun.grizzly.websockets.frametypes.ClosingFrameType;
 import com.sun.grizzly.websockets.frametypes.PingFrameType;
 import com.sun.grizzly.websockets.frametypes.PongFrameType;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.Random;
 
 public class Draft07Test {
     @Test
-    public void unmaskedTextFrame() {
+    public void textFrameUnmasked() {
         Draft07Handler handler = new Draft07Handler(false);
         final LocalNetworkHandler localHandler = new LocalNetworkHandler();
         handler.setNetworkHandler(localHandler);
@@ -66,7 +65,7 @@ public class Draft07Test {
     }
 
     @Test
-    public void maskedTextFrame() {
+    public void textFrameMasked() {
         Draft07Handler handler = new Draft07Handler(true);
         final LocalNetworkHandler localHandler = new LocalNetworkHandler();
         handler.setNetworkHandler(localHandler);
@@ -75,7 +74,7 @@ public class Draft07Test {
     }
 
     @Test
-    public void unmaskedFragmentedText() {
+    public void fragmentedTextUnmasked() {
         final LocalNetworkHandler localHandler = new LocalNetworkHandler();
 
         Draft07Handler clientHandler = new Draft07Handler(false);
@@ -108,7 +107,7 @@ public class Draft07Test {
     }
 
     @Test
-    public void maskedClose() {
+    public void closeMasked() {
         final LocalNetworkHandler localHandler = new LocalNetworkHandler();
 
         Draft07Handler clientHandler = new Draft07Handler(true);
@@ -123,22 +122,21 @@ public class Draft07Test {
         Assert.assertArrayEquals(new byte[]{(byte) 0x88, (byte) 0x8E}, bytes);
 
         final DataFrame frame = serverHandler.unframe();
-        System.out.println("localHandler = " + localHandler);
         Assert.assertTrue(frame.getType() instanceof ClosingFrameType);
-        
+
         final ClosingFrame close = (ClosingFrame) frame;
         Assert.assertEquals("Test Message", close.getReason());
 
-        
+
     }
 
     @Test
-    public void unmaskedBinaryFrame() {
+    public void binaryFrameUnmasked() {
         checkArrays(256, new byte[]{(byte) 0x82, 0x7E, (byte) 0x01, 0x00});
     }
 
     @Test
-    public void unmaskedLargeBinaryFrame() {
+    public void largeBinaryFrameUnmasked() {
         checkArrays(65536, new byte[]{(byte) 0x82, 0x7F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00});
     }
 

@@ -56,8 +56,8 @@ public abstract class ProtocolHandler {
     protected NetworkHandler handler;
     private boolean isHeaderParsed;
     private WebSocket webSocket;
-    protected boolean midstream = false;
-    protected byte fragmentedType;
+    protected byte inFragmentedType;
+    protected byte outFragmentedType;
     protected final boolean maskData;
 
     public ProtocolHandler(boolean maskData) {
@@ -204,5 +204,32 @@ public abstract class ProtocolHandler {
         }
 
         return lengthBytes;
+    }
+
+    protected void validate(final byte fragmentType, byte opcode) {
+        if (fragmentType != 0 && opcode != fragmentType && !isControlFrame(opcode)) {
+            throw new WebSocketException("Attempting to send a message while sending fragments of another");
+        }
+    }
+
+    protected abstract boolean isControlFrame(byte opcode);
+
+    protected byte checkForLastFrame(DataFrame frame, byte opcode) {
+        byte local = opcode;
+        if (!frame.isLast()) {
+            validate(outFragmentedType, local);
+            if (outFragmentedType != 0) {
+                local = 0x00;
+            } else {
+                outFragmentedType = local;
+                local &= 0x7F;
+            }
+        } else if (outFragmentedType != 0) {
+            local = (byte) 0x80;
+            outFragmentedType = 0;
+        } else {
+            local |= 0x80;
+        }
+        return local;
     }
 }
