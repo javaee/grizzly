@@ -58,7 +58,6 @@ import java.util.concurrent.TimeUnit;
 @SuppressWarnings({"StringContatenationInLoop"})
 @RunWith(Parameterized.class)
 public class ServerSideTest extends BaseWebSocketTestUtiltiies {
-    private static final int PORT = 1726;
 
     public static final int ITERATIONS = 10000;
     private final Version version;

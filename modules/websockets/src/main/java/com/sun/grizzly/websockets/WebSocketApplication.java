@@ -96,7 +96,7 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
         return Collections.emptyList();
     }
 
-    public List<String> getSupportedProtocols() {
+    public List<String> getSupportedProtocols(List<String> subProtocol) {
         return Collections.emptyList();
     }
 }

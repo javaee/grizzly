@@ -51,6 +51,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BaseWebSocketTestUtiltiies {
+    protected static final int PORT = 1726;
+
     @Parameterized.Parameters
     public static List<Version[]> versions() {
         final List<Version[]> versions = new ArrayList<Version[]>();

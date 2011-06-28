@@ -54,7 +54,6 @@ import java.util.concurrent.TimeUnit;
 
 @RunWith(Parameterized.class)
 public class FragmentationTest extends BaseWebSocketTestUtiltiies {
-    private static final int PORT = 1726;
     private final Version version;
 
     public FragmentationTest(Version version) {

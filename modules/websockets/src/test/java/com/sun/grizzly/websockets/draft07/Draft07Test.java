@@ -40,9 +40,16 @@
 
 package com.sun.grizzly.websockets.draft07;
 
+import com.sun.grizzly.http.SelectorThread;
+import com.sun.grizzly.http.servlet.ServletAdapter;
+import com.sun.grizzly.tcp.Request;
+import com.sun.grizzly.websockets.BaseWebSocketTestUtiltiies;
 import com.sun.grizzly.websockets.DataFrame;
+import com.sun.grizzly.websockets.EchoServlet;
 import com.sun.grizzly.websockets.LocalNetworkHandler;
 import com.sun.grizzly.websockets.WebSocket;
+import com.sun.grizzly.websockets.WebSocketApplication;
+import com.sun.grizzly.websockets.WebSocketEngine;
 import com.sun.grizzly.websockets.draft06.ClosingFrame;
 import com.sun.grizzly.websockets.frametypes.ClosingFrameType;
 import com.sun.grizzly.websockets.frametypes.PingFrameType;
@@ -50,9 +57,17 @@ import com.sun.grizzly.websockets.frametypes.PongFrameType;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
-public class Draft07Test {
+public class Draft07Test extends BaseWebSocketTestUtiltiies {
     @Test
     public void textFrameUnmasked() {
         Draft07Handler handler = new Draft07Handler(false);
@@ -152,5 +167,57 @@ public class Draft07Test {
         System.arraycopy(array, 0, header, 0, expected.length);
         Assert.assertArrayEquals(expected, header);
         Assert.assertArrayEquals(data, handler.unframe().getBytes());
+    }
+
+    @Test
+    public void sampleHandShake() throws IOException, InstantiationException, InterruptedException {
+        final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
+        final WebSocketApplication app = new WebSocketApplication() {
+            @Override
+            public boolean isApplicationRequest(Request request) {
+                return request.requestURI().equals("/chat");
+            }
+
+            @Override
+            public List<String> getSupportedProtocols(List<String> subProtocols) {
+                final List<String> list = new ArrayList<String>();
+                if (subProtocols.contains("chat")) {
+                    list.add("chat");
+                }
+                return list;
+            }
+        };
+        WebSocketEngine.getEngine().register(app);
+        Socket socket = new Socket("localhost", PORT);
+        try {
+            final OutputStream outputStream = socket.getOutputStream();
+            PrintWriter writer = new PrintWriter(outputStream);
+            writer.write("GET /chat HTTP/1.1\n" +
+                    "Host: server.example.com\n" +
+                    "Upgrade: websocket\n" +
+                    "Connection: Upgrade\n" +
+                    "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\n" +
+                    "Sec-WebSocket-Origin: http://example.com\n" +
+                    "Sec-WebSocket-Protocol: chat, superchat\n" +
+                    "Sec-WebSocket-Version: 7\n\n");
+            writer.flush();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            StringBuilder builder = new StringBuilder();
+            String line;
+            while (!(line = reader.readLine()).isEmpty()) {
+                builder.append(line + "\n");
+            }
+            Assert.assertEquals("HTTP/1.1 101 Switching Protocols\n" +
+                    "Upgrade: websocket\n" +
+                    "Connection: Upgrade\n" +
+                    "Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\n" +
+                    "Sec-WebSocket-Protocol: chat", builder.toString().trim());
+        } finally {
+            if (socket != null) {
+                socket.close();
+            }
+            thread.stopEndpoint();
+            WebSocketEngine.getEngine().unregister(app);
+        }
     }
 }

@@ -48,7 +48,6 @@ import com.sun.grizzly.websockets.frametypes.TextFrameType;
 
 import java.io.IOException;
 import java.util.Comparator;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -66,10 +65,7 @@ public abstract class ProtocolHandler {
 
     public HandShake handshake(WebSocketApplication app, Request request) {
         final HandShake handshake = createHandShake(request);
-        handshake.respond(request.getResponse());
-
-        List<String> protocols = app.getSupportedProtocols();
-        final List<String> subProtocol = handshake.getSubProtocol();
+        handshake.respond(app, request.getResponse());
         return handshake;
     }
 

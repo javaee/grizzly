@@ -206,11 +206,11 @@ public abstract class HandShake {
         StringBuilder builder = new StringBuilder();
         for (String s : values) {
             if(builder.length() != 0) {
-                builder.append("; ");
+                builder.append(", ");
             }
             builder.append(s);
         }
-        return null;
+        return builder.toString();
     }
 
     protected void checkForHeader(Map<String, String> headers, final String header, final String validValue) {
@@ -272,17 +272,19 @@ public abstract class HandShake {
         }
     }
 
-    public void respond(Response response) {
+    public void respond(WebSocketApplication application, Response response) {
         response.setStatus(101);
         response.setMessage("Web Socket Protocol Handshake");
-        response.setHeader("Upgrade", "WebSocket");
+        response.setHeader("Upgrade", "websocket");
         response.setHeader("Connection", "Upgrade");
-        if (!getSubProtocol().isEmpty()) {
-            response.setHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER, join(getSubProtocol()));
-        }
 
         setHeaders(response);
 
+        if (!getSubProtocol().isEmpty()) {
+            response.setHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER,
+                    join(application.getSupportedProtocols(getSubProtocol())));
+        }
+        
         try {
             response.sendHeaders();
             response.flush();
@@ -295,6 +297,6 @@ public abstract class HandShake {
     protected abstract void setHeaders(Response response);
 
     protected List<String> split(final String header) {
-        return header == null ? Collections.<String>emptyList() : Arrays.asList(header.split(";"));
+        return header == null ? Collections.<String>emptyList() : Arrays.asList(header.split(","));
     }
 }
