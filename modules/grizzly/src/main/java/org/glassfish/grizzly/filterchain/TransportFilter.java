@@ -72,7 +72,7 @@ import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
  * 
  * @author Alexey Stashok
  */
-public final class TransportFilter extends BaseFilter {
+public class TransportFilter extends BaseFilter {
 
     public static FilterChainEvent createFlushEvent() {
         return FLUSH_EVENT;
