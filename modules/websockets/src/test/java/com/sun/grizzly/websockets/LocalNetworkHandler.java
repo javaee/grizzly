@@ -48,8 +48,8 @@ public class LocalNetworkHandler extends ClientNetworkHandler {
         chunk.setBytes(data, 0, data.length);
     }
 
-    public void write(byte[] data) {
-        chunk.setBytes(data, 0, data.length);
+    public void write(byte[] bytes) {
+        chunk.setBytes(bytes, 0, bytes.length);
     }
 
     @Override

@@ -125,9 +125,7 @@ public class Draft07Handler extends ProtocolHandler {
 
     @Override
     protected boolean isControlFrame(byte opcode) {
-        return opcode == 0x08
-                || opcode == 0x09
-                || opcode == 0x0A;
+        return (opcode & 0x08) == 0x08;
     }
 
     private byte getOpcode(FrameType type) {
@@ -169,7 +167,7 @@ public class Draft07Handler extends ProtocolHandler {
 
     @Override
     protected HandShake createHandShake(Request request) {
-        return new HandShake07(request.getMimeHeaders());
+        return new HandShake07(request);
     }
 
     @Override

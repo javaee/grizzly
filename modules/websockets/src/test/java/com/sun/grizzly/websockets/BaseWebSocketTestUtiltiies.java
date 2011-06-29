@@ -51,16 +51,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BaseWebSocketTestUtiltiies {
-    protected static final int PORT = 1726;
+    protected static final int PORT = 1725;
 
     @Parameterized.Parameters
     public static List<Version[]> versions() {
         final List<Version[]> versions = new ArrayList<Version[]>();
-        for (Version version : Version.values()) {
-            versions.add(new Version[]{version});
-        }
-//        versions.add(new Version[]{Version.DRAFT07});
-//        versions.add(new Version[]{Version.DRAFT06});
+//        for (Version version : Version.values()) {
+//            versions.add(new Version[]{version});
+//        }
+        versions.add(new Version[] { Version.DRAFT06 });
+        versions.add(new Version[] { Version.DRAFT76 });
         return versions;
     }
 

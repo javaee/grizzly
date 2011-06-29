@@ -68,7 +68,7 @@ public class Draft06Handler extends ProtocolHandler {
 
     @Override
     protected HandShake createHandShake(Request request) {
-        return new HandShake06(request.getMimeHeaders());
+        return new HandShake06(request);
     }
 
     @Override

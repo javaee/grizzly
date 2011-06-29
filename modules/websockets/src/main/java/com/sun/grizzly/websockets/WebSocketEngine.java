@@ -75,6 +75,7 @@ public class WebSocketEngine {
     static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     public static final String SERVER_KEY_HASH = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     public static final int MASK_SIZE = 4;
+    public static final String CLIENT_WS_ORIGIN_HEADER = "Origin";
     private final List<WebSocketApplication> applications = new ArrayList<WebSocketApplication>();
     private final WebSocketCloseHandler closeHandler = new WebSocketCloseHandler();
 

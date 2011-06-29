@@ -40,6 +40,7 @@
 
 package com.sun.grizzly.websockets.draft06;
 
+import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.util.http.MimeHeaders;
 import com.sun.grizzly.util.net.URL;
@@ -48,8 +49,6 @@ import com.sun.grizzly.websockets.HandshakeException;
 import com.sun.grizzly.websockets.NetworkHandler;
 import com.sun.grizzly.websockets.WebSocketEngine;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -64,21 +63,11 @@ public class HandShake06 extends HandShake {
         secKey = new SecKey();
     }
 
-    public HandShake06(MimeHeaders mimeHeaders) {
-        determineHostAndPort(mimeHeaders);
-
-        checkForHeader(mimeHeaders, "Upgrade", "WebSocket");
-        checkForHeader(mimeHeaders, "Connection", "Upgrade");
-
-        setSubProtocol(split(mimeHeaders.getHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER)));
+    public HandShake06(Request request) {
+        super(request);
+        final MimeHeaders mimeHeaders = request.getMimeHeaders();
         setExtensions(split(mimeHeaders.getHeader(WebSocketEngine.SEC_WS_EXTENSIONS_HEADER)));
         secKey = SecKey.generateServerKey(new SecKey(mimeHeaders.getHeader(WebSocketEngine.SEC_WS_KEY_HEADER)));
-
-        setOrigin(readHeader(mimeHeaders, WebSocketEngine.SEC_WS_ORIGIN_HEADER));
-        buildLocation();
-        if (getServerHostName() == null || getOrigin() == null) {
-            throw new HandshakeException("Missing required headers for WebSocket negotiation");
-        }
     }
 
     public void setHeaders(Response response) {
@@ -90,29 +79,15 @@ public class HandShake06 extends HandShake {
     }
 
     public void initiate(NetworkHandler handler) {
-        try {
-            ByteArrayOutputStream chunk = new ByteArrayOutputStream();
-            chunk.write(String.format("GET %s HTTP/1.1\r\n", getResourcePath()).getBytes());
-            chunk.write(String.format("Host: %s\r\n", getServerHostName()).getBytes());
-            chunk.write(String.format("Connection: Upgrade\r\n").getBytes());
-            chunk.write(String.format("Upgrade: WebSocket\r\n").getBytes());
-            chunk.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_KEY_HEADER, secKey).getBytes());
-            chunk.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_ORIGIN_HEADER, getOrigin()).getBytes());
-            chunk.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_VERSION, getVersion()).getBytes());
-            if (!getSubProtocol().isEmpty()) {
-                chunk.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_PROTOCOL_HEADER,
-                        join(getSubProtocol())).getBytes());
-            }
-            if (!getExtensions().isEmpty()) {
-                chunk.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_EXTENSIONS_HEADER,
-                        join(getExtensions())).getBytes());
-            }
-            chunk.write("\r\n".getBytes());
-
-            handler.write(chunk.toByteArray());
-        } catch (IOException e) {
-            throw new HandshakeException(e.getMessage(), e);
+        super.initiate(handler);
+        handler.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_KEY_HEADER, secKey).getBytes());
+        handler.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_ORIGIN_HEADER, getOrigin()).getBytes());
+        handler.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_VERSION, getVersion()).getBytes());
+        if (!getExtensions().isEmpty()) {
+            handler.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_EXTENSIONS_HEADER,
+                    join(getExtensions())).getBytes());
         }
+        handler.write("\r\n".getBytes());
     }
 
     protected int getVersion() {

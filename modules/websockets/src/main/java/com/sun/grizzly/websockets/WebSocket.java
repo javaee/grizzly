@@ -40,15 +40,13 @@
 
 package com.sun.grizzly.websockets;
 
-import java.io.IOException;
-
 public interface WebSocket {
 
     /**
      * Indicates a normal closure, meaning whatever purpose the connection was established for has been fulfilled.
      */
     int NORMAL_CLOSURE = 1000;
-    
+
     /**
      * Indicates that an endpoint is "going away", such as a server going down, or a browser having navigated away
      * from a page.
@@ -72,16 +70,30 @@ public interface WebSocket {
     int MESSAGE_TOO_LARGE = 1004;
 
     /**
+     * a reserved value and MUST NOT be set as a status code in a Close control frame by an endpoint.  It is designated
+     * for use in applications expecting a status code to indicate that no status code was actually present.
+     */
+    int NO_STATUS_CODE = 1005;
+
+    /**
+     * a reserved value and MUST NOT be set as a status code in a Close control frame by an endpoint.  It is designated
+     * for use in applications expecting a status code to indicate that the connection was closed abnormally,
+     * e.g. without sending or receiving a Close control frame.
+     */
+    int ABNORMAL_CLOSE = 1006;
+
+    /**
      * Write the data to the socket.  This text will be converted to a UTF-8 encoded byte[] prior to sending.
      *
      * @param data
-     * @throws IOException
      */
     void send(String data);
 
     void send(byte[] data);
 
-    void send(DataFrame frame);
+    void stream(boolean last, String fragment);
+
+    void stream(boolean last, byte[] fragment, int off, int len);
 
     void close();
 
@@ -110,8 +122,4 @@ public interface WebSocket {
     boolean add(WebSocketListener listener);
 
     boolean remove(WebSocketListener listener);
-
-    void stream(boolean last, String fragment);
-
-    void stream(boolean last, byte[] fragment, int off, int len);
 }

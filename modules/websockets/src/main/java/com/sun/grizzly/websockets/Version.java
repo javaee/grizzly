@@ -43,10 +43,21 @@ package com.sun.grizzly.websockets;
 import com.sun.grizzly.util.http.MimeHeaders;
 import com.sun.grizzly.websockets.draft06.Draft06Handler;
 import com.sun.grizzly.websockets.draft07.Draft07Handler;
-import com.sun.grizzly.websockets.draft76.Draft76Handler;
+import com.sun.grizzly.websockets.draft08.Draft08Handler;import com.sun.grizzly.websockets.draft76.Draft76Handler;
 import com.sun.grizzly.websockets.draft76.HandShake76;
 
 public enum Version {
+    DRAFT08 {
+        @Override
+        public ProtocolHandler createHandler(boolean mask) {
+            return new Draft08Handler(mask);
+        }
+
+        @Override
+        public boolean validate(MimeHeaders headers) {
+            return "8".equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
+        }
+    },
     DRAFT07 {
         @Override
         public ProtocolHandler createHandler(boolean mask) {

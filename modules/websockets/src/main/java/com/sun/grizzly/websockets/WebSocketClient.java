@@ -49,6 +49,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public class WebSocketClient extends WebSocketAdapter {
+    public static final int DEFAULT_TIMEOUT = WebSocketEngine.DEFAULT_TIMEOUT;
+    public static final TimeUnit TIMEOUT_UNIT = TimeUnit.SECONDS;
     private final URL address;
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
     private ProtocolHandler protocolHandler;
@@ -59,18 +61,7 @@ public class WebSocketClient extends WebSocketAdapter {
         this(WebSocketEngine.DEFAULT_VERSION, url, listeners);
     }
 
-    public WebSocketClient(final String url, final long timeout, final TimeUnit unit,
-            final WebSocketListener... listeners) throws IOException {
-        this(WebSocketEngine.DEFAULT_VERSION, url, timeout, unit, listeners);
-    }
-
     public WebSocketClient(Version version, final String url, final WebSocketListener... listeners) throws IOException {
-        this(version, url, WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS, listeners);
-    }
-
-    public WebSocketClient(Version version, final String url, final long timeout, final TimeUnit unit,
-            final WebSocketListener... listeners)
-            throws IOException {
         address = new URL(url);
         networkHandler = new ClientNetworkHandler(this);
         protocolHandler = version.createHandler(true);
@@ -79,16 +70,11 @@ public class WebSocketClient extends WebSocketAdapter {
                 try {
                     protocolHandler.setNetworkHandler(networkHandler);
                     final HandShake handshake = protocolHandler.handshake(address);
-                    webSocket = new DefaultWebSocket(protocolHandler, WebSocketClient.this);
+                    webSocket = new DefaultWebSocket(protocolHandler, WebSocketClient.this, new CloseAdapter());
                     for (WebSocketListener listener : listeners) {
                         webSocket.add(listener);
                     }
                     webSocket.onConnect();
-                    webSocket.add(new WebSocketAdapter() {
-                        public void onClose(WebSocket socket, DataFrame frame) {
-                            socket.close();
-                        }
-                    });
                     queueRead();
                 } catch (IOException e) {
                     throw new RuntimeException(e.getMessage(), e);
@@ -96,7 +82,7 @@ public class WebSocketClient extends WebSocketAdapter {
             }
         });
         try {
-            future.get(timeout, unit);
+            future.get(DEFAULT_TIMEOUT, TIMEOUT_UNIT);
         } catch (Exception e) {
             e.printStackTrace();
             throw new IOException(e.getMessage());
@@ -148,5 +134,11 @@ public class WebSocketClient extends WebSocketAdapter {
 
     public void stream(boolean last, byte[] bytes, int start, int length) {
         webSocket.stream(last, bytes, start, length);
+    }
+
+    private static class CloseAdapter extends WebSocketAdapter {
+        public void onClose(WebSocket socket, DataFrame frame) {
+            socket.close();
+        }
     }
 }

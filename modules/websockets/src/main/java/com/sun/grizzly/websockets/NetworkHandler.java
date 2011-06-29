@@ -49,7 +49,7 @@ public interface NetworkHandler {
 
     byte[] get(int count);
 
-    void write(byte[] frame);
+    void write(byte[] bytes);
 
     boolean ready();
 

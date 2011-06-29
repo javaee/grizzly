@@ -38,15 +38,23 @@
  * holder.
  */
 
-package com.sun.grizzly.websockets.frametypes;
+package com.sun.grizzly.websockets.draft08;
 
-import com.sun.grizzly.websockets.BaseFrameType;
-import com.sun.grizzly.websockets.DataFrame;
-import com.sun.grizzly.websockets.WebSocket;
+import com.sun.grizzly.tcp.Request;
+import com.sun.grizzly.util.net.URL;
+import com.sun.grizzly.websockets.draft07.HandShake07;
 
-public class PingFrameType extends BaseFrameType {
-    public void respond(WebSocket socket, DataFrame frame) {
-        socket.onPing(frame);
+public class HandShake08 extends HandShake07 {
+    public HandShake08(URL url) {
+        super(url);
     }
 
+    public HandShake08(Request request) {
+        super(request);
+    }
+    
+    @Override
+    protected int getVersion() {
+        return 8;
+    }
 }

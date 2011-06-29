@@ -93,9 +93,22 @@ public abstract class HandShake {
     }
 
     public HandShake(Request request) {
-        MimeHeaders headers = request.getMimeHeaders();
-        checkForHeader(headers, "Upgrade", "WebSocket");
-        checkForHeader(headers, "Connection", "Upgrade");
+        MimeHeaders mimeHeaders = request.getMimeHeaders();
+        checkForHeader(mimeHeaders, "Upgrade", "WebSocket");
+        checkForHeader(mimeHeaders, "Connection", "Upgrade");
+        origin = readHeader(mimeHeaders, WebSocketEngine.SEC_WS_ORIGIN_HEADER);
+        if(origin == null) {
+            origin = readHeader(mimeHeaders, WebSocketEngine.CLIENT_WS_ORIGIN_HEADER);
+        }
+        
+        determineHostAndPort(mimeHeaders);
+
+        subProtocol = split(mimeHeaders.getHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER));
+
+        if (serverHostName == null || origin == null) {
+            throw new HandshakeException("Missing required headers for WebSocket negotiation");
+        }
+
         resourcePath = request.requestURI().toString();
         final MessageBytes messageBytes = request.queryString();
         String queryString;
@@ -112,8 +125,7 @@ public abstract class HandShake {
                 queryParams.put(name, queryParameters.getParameterValues(name));
             }
         }
-
-        setSubProtocol(split(headers.getHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER)));
+        buildLocation();
     }
 
     protected final void buildLocation() {
@@ -181,7 +193,6 @@ public abstract class HandShake {
     }
 
     public void setSubProtocol(List<String> subProtocol) {
-        sanitize(subProtocol);
         this.subProtocol = subProtocol;
     }
 
@@ -239,7 +250,7 @@ public abstract class HandShake {
         return value == null ? null : value.toString();
     }
 
-    protected void determineHostAndPort(MimeHeaders headers) {
+    private void determineHostAndPort(MimeHeaders headers) {
         String header;
         header = readHeader(headers, "host");
         final int i = header == null ? -1 : header.indexOf(":");
@@ -252,7 +263,17 @@ public abstract class HandShake {
         }
     }
 
-    public abstract void initiate(NetworkHandler handler);
+    public void initiate(NetworkHandler handler) {
+        handler.write(String.format("GET %s HTTP/1.1\r\n", getResourcePath()).getBytes());
+        handler.write(String.format("Host: %s\r\n", getServerHostName()).getBytes());
+        handler.write(String.format("Connection: Upgrade\r\n").getBytes());
+        handler.write(String.format("Upgrade: WebSocket\r\n").getBytes());
+
+        if (!getSubProtocol().isEmpty()) {
+            handler.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_PROTOCOL_HEADER,
+                    join(getSubProtocol())).getBytes());
+        }
+    }
 
     public void validateServerResponse(Map<String, String> map) {
         if (map.isEmpty()) {
@@ -296,7 +317,13 @@ public abstract class HandShake {
 
     protected abstract void setHeaders(Response response);
 
-    protected List<String> split(final String header) {
-        return header == null ? Collections.<String>emptyList() : Arrays.asList(header.split(","));
+    protected final List<String> split(final String header) {
+        if (header == null) {
+            return Collections.<String>emptyList();
+        } else {
+            final List<String> list = Arrays.asList(header.split(","));
+            sanitize(list);
+            return list;
+        }
     }
 }

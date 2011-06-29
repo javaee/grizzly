@@ -40,6 +40,8 @@
 
 package com.sun.grizzly.websockets;
 
+import com.sun.grizzly.websockets.frametypes.PongFrameType;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -105,6 +107,7 @@ public class DefaultWebSocket implements WebSocket {
     }
 
     public void onPing(DataFrame frame) {
+        send(new DataFrame(new PongFrameType(), frame.getBytes()));
         for (WebSocketListener listener : listeners) {
             listener.onPing(this, frame.getBytes());
         }
@@ -148,7 +151,7 @@ public class DefaultWebSocket implements WebSocket {
         }
     }
 
-    public void send(DataFrame frame) {
+    private void send(DataFrame frame) {
         if (connected.get()) {
             protocolHandler.send(frame);
         } else {

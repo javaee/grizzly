@@ -40,7 +40,7 @@
 
 package com.sun.grizzly.websockets.draft07;
 
-import com.sun.grizzly.util.http.MimeHeaders;
+import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.util.net.URL;
 import com.sun.grizzly.websockets.draft06.HandShake06;
 
@@ -49,8 +49,8 @@ public class HandShake07 extends HandShake06 {
         super(url);
     }
 
-    public HandShake07(MimeHeaders mimeHeaders) {
-        super(mimeHeaders);
+    public HandShake07(Request request) {
+        super(request);
     }
 
     @Override
