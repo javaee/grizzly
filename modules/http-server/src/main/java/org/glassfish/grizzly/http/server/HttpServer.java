@@ -56,6 +56,7 @@ import java.util.logging.Logger;
 
 import org.glassfish.grizzly.ConnectionProbe;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.PortRange;
 import org.glassfish.grizzly.Processor;
 import org.glassfish.grizzly.TransportProbe;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
@@ -426,7 +427,8 @@ public class HttpServer {
      * on {@link NetworkListener#DEFAULT_NETWORK_HOST}:<code>port</code>,
      * using the specified <code>path</code> as the server's document root.
      */
-    public static HttpServer createSimpleServer(final String path, int port) {
+    public static HttpServer createSimpleServer(final String path,
+                                                final int port) {
 
         final HttpServer server = new HttpServer();
         final ServerConfiguration config = server.getServerConfiguration();
@@ -437,6 +439,32 @@ public class HttpServer {
                 new NetworkListener("grizzly",
                                     NetworkListener.DEFAULT_NETWORK_HOST,
                                     port);
+        server.addListener(listener);
+        return server;
+
+    }
+
+
+    /**
+     * @param path the document root.
+     * @param range port range to attempt to bind to.
+     *
+     * @return a <code>HttpServer</code> configured to listen to requests
+     * on {@link NetworkListener#DEFAULT_NETWORK_HOST}:<code>[port-range]</code>,
+     * using the specified <code>path</code> as the server's document root.
+     */
+    public static HttpServer createSimpleServer(final String path,
+                                                final PortRange range) {
+
+        final HttpServer server = new HttpServer();
+        final ServerConfiguration config = server.getServerConfiguration();
+        if (path != null) {
+            config.addHttpHandler(new StaticHttpHandler(path), "/");
+        }
+        final NetworkListener listener =
+                new NetworkListener("grizzly",
+                                    NetworkListener.DEFAULT_NETWORK_HOST,
+                                    range);
         server.addListener(listener);
         return server;
 
