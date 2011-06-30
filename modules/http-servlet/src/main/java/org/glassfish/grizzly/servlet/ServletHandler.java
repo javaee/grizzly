@@ -91,31 +91,39 @@ import org.glassfish.grizzly.localization.LogMessages;
  * As an example:
  * 
  * <pre><code>
- *      HttpServer hs = new HttpServer("/var/www");
-try{
-ServletHandler sa = new ServletHandler();
-sa.setRootFolder("/Path/To/Exploded/War/File");
-sa.setServlet(new MyServlet());
-
-// Set the Servlet's Name
-// Any ServletConfig.getXXX method can be configured using this call.
-// The same apply for ServletContext.getXXX.
-sa.setProperty("display-name","myServlet");
-sa.addListener("foo.bar.myHttpSessionListener");
-sa.addListener(MyOtherHttpSessionListener.class);
-sa.addServletContextListener(new FooServletContextListener());
-sa.addServletContextAttributeListener(new BarServletCtxAttListener());
-sa.addContextParameter("databaseURI","jdbc://");
-sa.addInitParameter("password","hello"); 
-sa.setServletPath("/MyServletPath");
-sa.setContextPath("/myApp");
-
-hs.getServerConfiguration().addHttpHandler(sa, "/MyServletPath);
-
-hs.start();
-} catch (IOException ex){
-// Something when wrong.
-}
+ * HttpServer hs = HttpServer.createSimpleServer("/var/www");
+ * try {
+ *     ServletHandler sa = new ServletHandler();
+ *     sa.setServlet(new MyServlet());
+ *
+ *     // Set the display-name property
+ *     sa.setProperty("display-name", "myServlet");
+ *
+ *     // All Servlet listener types are added via the
+ *     // addServletListener() method regardless of their type...
+ *     sa.addServletListener(MyHttpSessionListener.class.getName());
+ *     sa.addServletListener(MyOtherHttpSessionListener.class.getName());
+ *     sa.addServletListener(FooServletContextListener.class.getName());
+ *     sa.assServletListener(BarServletCtxAttListener.class.getName());
+ *
+ *     // adding context initialization parameter...
+ *     sa.addContextParameter("databaseURI","jdbc://");
+ *
+ *     // adding servlet initialization parameter...
+ *     sa.addInitParameter("password","hello");
+ *
+ *     // adding servlet path information...
+ *     sa.setServletPath("/MyServletPath");
+ *     sa.setContextPath("/myApp");
+ *
+ *     // register the handler with the server...
+ *     hs.getServerConfiguration().addHttpHandler(sa, "/MyServletPath");
+ *
+ *     // start the server so the handler is able to serve requests...
+ *     hs.start();
+ * } catch (IOException ex){
+ *     // Something when wrong.
+ * }
  * </code></pre>
  * 
  * @author Jeanfrancois Arcand
