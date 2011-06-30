@@ -47,7 +47,7 @@
     <packaging>pom</packaging>
     <name>grizzly-project</name>
     <version>1.9.37-SNAPSHOT</version>
-    <url>https://grizzly.dev.java.net</url>
+    <url>https://grizzly.java.net</url>
     <issueManagement>
         <system>JIRA</system>
         <url>http://java.net/jira/browse/GRIZZLY</url>
@@ -95,7 +95,7 @@
     <licenses>
         <license>
             <name>CDDL+GPL</name>
-            <url>https://glassfish.dev.java.net/public/CDDL+GPL.html</url>
+            <url>https://glassfish.java.net/public/CDDL+GPL.html</url>
         </license>
     </licenses>
     <scm>
