@@ -264,16 +264,9 @@ public class PUFilter extends BaseFilter {
                         protocol.getProtocolFinder().find(puContext, ctx);
 
                 puContext.lastResult = result;
-
-                switch (result) {
-                    case FOUND: {
-                        puContext.protocol = protocol;
-                        return;
-                    }
-
-                    case NEED_MORE_DATA: {
-                        return;
-                    }
+                if (result == ProtocolFinder.Result.FOUND) {
+                    puContext.protocol = protocol;
+                    return;
                 }
             } catch (Exception e) {
                 LOGGER.log(Level.WARNING,

@@ -47,8 +47,9 @@ import java.io.IOException;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -96,7 +97,7 @@ public class BasicPUTest {
             transport.start();
 
             for (final String protocol : protocols) {
-                final FutureImpl<Boolean> resultFuture = SafeFutureImpl.<Boolean>create();
+                final FutureImpl<Boolean> resultFuture = SafeFutureImpl.create();
                 
                 final FilterChain clientFilterChain =
                         FilterChainBuilder.stateless()
@@ -111,7 +112,7 @@ public class BasicPUTest {
                         .build();
 
                 Future<Connection> future = connectorHandler.connect("localhost", PORT);
-                connection = (TCPNIOConnection) future.get();
+                connection = future.get();
                 assertTrue(connection != null);
 
                 connection.write(protocol);
@@ -127,6 +128,69 @@ public class BasicPUTest {
             transport.stop();
         }
     }
+
+
+    @Test
+    public void testGrizzly1031() throws Exception {
+
+        final PUFilter puFilter = new PUFilter();
+        FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.stateless()
+                .add(new TransportFilter())
+                .add(new StringFilter(CHARSET))
+                .add(puFilter);
+        puFilter.register(new ProtocolFinder() {
+            @Override
+            public Result find(PUContext puContext, FilterChainContext ctx) {
+                return Result.NEED_MORE_DATA;
+            }
+        }, puFilter.getPUFilterChainBuilder().add(new SimpleResponseFilter("FAILED")).build());
+        puFilter.register(new ProtocolFinder() {
+            @Override
+            public Result find(PUContext puContext, FilterChainContext ctx) {
+                return Result.FOUND;
+            }
+        }, puFilter.getPUFilterChainBuilder().add(new SimpleResponseFilter("PASSED")).build());
+
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+        transport.setProcessor(puFilterChainBuilder.build());
+        Connection connection = null;
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            final FutureImpl<Boolean> resultFuture = SafeFutureImpl.create();
+
+            final FilterChain clientFilterChain =
+                    FilterChainBuilder.stateless()
+                            .add(new TransportFilter())
+                            .add(new StringFilter(CHARSET))
+                            .add(new ClientResultFilter("PASSED", resultFuture))
+                            .build();
+
+            final SocketConnectorHandler connectorHandler =
+                    TCPNIOConnectorHandler.builder(transport)
+                            .processor(clientFilterChain)
+                            .build();
+
+            Future<Connection> future = connectorHandler.connect("localhost", PORT);
+            connection = future.get();
+            assertTrue(connection != null);
+
+            connection.write("text");
+
+            assertTrue(resultFuture.get(1, TimeUnit.SECONDS));
+
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+
+            transport.stop();
+        }
+    }
+
+
+    // --------------------------------------------------------- Private Methods
 
     private PUProtocol createProtocol(final PUFilter puFilter, final String name) {
         final FilterChain chain = puFilter.getPUFilterChainBuilder()
@@ -169,12 +233,10 @@ public class BasicPUTest {
     }
 
     private static final class ClientResultFilter extends BaseFilter {
-        private final String name;
         private final String expectedResponse;
         private final FutureImpl<Boolean> resultFuture;
 
         public ClientResultFilter(String name, FutureImpl<Boolean> future) {
-            this.name = name;
             this.resultFuture = future;
             expectedResponse = makeResponseMessage(name);
         }
