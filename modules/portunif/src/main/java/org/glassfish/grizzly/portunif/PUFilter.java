@@ -177,9 +177,9 @@ public class PUFilter extends BaseFilter {
         final Connection connection = ctx.getConnection();
         PUContext puContext = puContextAttribute.get(connection);
         if (puContext == null) {
-            puContext = new PUContext();
+            puContext = new PUContext(this);
             puContextAttribute.set(connection, puContext);
-        } else if (puContext.lastResult == ProtocolFinder.Result.NOT_FOUND) {
+        } else if (puContext.noProtocolsFound()) {
             return ctx.getInvokeAction();
         }
 
@@ -212,10 +212,14 @@ public class PUFilter extends BaseFilter {
             return ctx.getSuspendAction();
         }
 
-        if (puContext.lastResult == ProtocolFinder.Result.NOT_FOUND) {
+        // no matching protocols within the set of known protocols were found,
+        // pass the message to the next filter in the chain
+        if (puContext.noProtocolsFound()) {
             return ctx.getInvokeAction();
         }
-        
+
+        // one or more protocols need more data, stop processing until
+        // it becomes available to check again
         return ctx.getStopAction(ctx.getMessage());
     }
 
@@ -253,20 +257,25 @@ public class PUFilter extends BaseFilter {
         return super.handleClose(ctx);
     }
 
-    private void findProtocol(final PUContext puContext,
-            final FilterChainContext ctx) {
+    protected void findProtocol(final PUContext puContext,
+                                final FilterChainContext ctx) {
         final PUProtocol[] protocolArray = protocols.getArray();
-        for (int i = puContext.lastProtocolFinderIdx; i < protocolArray.length; i++) {
-            puContext.lastProtocolFinderIdx = i;
+
+        for (int i = 0; i < protocolArray.length; i++) {
             final PUProtocol protocol = protocolArray[i];
+            if ((puContext.skippedProtocolFinders & 1 << i) != 0) {
+                continue;
+            }
             try {
                 final ProtocolFinder.Result result =
                         protocol.getProtocolFinder().find(puContext, ctx);
 
-                puContext.lastResult = result;
-                if (result == ProtocolFinder.Result.FOUND) {
-                    puContext.protocol = protocol;
-                    return;
+                switch (result) {
+                    case FOUND:
+                        puContext.protocol = protocol;
+                        return;
+                    case NOT_FOUND:
+                        puContext.skippedProtocolFinders ^= 1 << i;
                 }
             } catch (Exception e) {
                 LOGGER.log(Level.WARNING,

@@ -46,11 +46,18 @@ package org.glassfish.grizzly.portunif;
  * @author Alexey Stashok
  */
 public class PUContext {
-    int lastProtocolFinderIdx;
-    
+
+    private int protocolMissCount;
+
+    short skippedProtocolFinders;
     boolean isSticky = true;
     PUProtocol protocol;
-    ProtocolFinder.Result lastResult;
+
+    // ------------------------------------------------------------ Constructors
+
+    public PUContext(final PUFilter filter) {
+        protocolMissCount = filter.getProtocols().size();
+    }
 
     public boolean isSticky() {
         return isSticky;
@@ -60,10 +67,14 @@ public class PUContext {
         this.isSticky = isSticky;
     }
 
+    public boolean noProtocolsFound() {
+        return (Integer.bitCount(skippedProtocolFinders) == protocolMissCount);
+    }
+
     void reset() {
-        lastProtocolFinderIdx = 0;
         isSticky = true;
         protocol = null;
-        lastResult = null;
+        skippedProtocolFinders = 0;
+        protocolMissCount = 0;
     }
 }

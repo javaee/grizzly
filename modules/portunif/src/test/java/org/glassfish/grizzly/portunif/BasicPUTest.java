@@ -48,7 +48,6 @@ import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.filterchain.TransportFilter;
@@ -59,6 +58,7 @@ import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.utils.EchoFilter;
 import org.glassfish.grizzly.utils.StringFilter;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -131,66 +131,150 @@ public class BasicPUTest {
 
 
     @Test
-    public void testGrizzly1031() throws Exception {
+    public void testGrizzly1031_001() throws Exception {
 
-        final PUFilter puFilter = new PUFilter();
-        FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.stateless()
-                .add(new TransportFilter())
-                .add(new StringFilter(CHARSET))
-                .add(puFilter);
-        puFilter.register(new ProtocolFinder() {
+        final TestPUFilter puFilter = new TestPUFilter();
+        final TestFinder f1 =  new TestFinder() {
             @Override
             public Result find(PUContext puContext, FilterChainContext ctx) {
-                return Result.NEED_MORE_DATA;
+                invocationCount++;
+                if (invocationCount <= 1) {
+                    return Result.NEED_MORE_DATA;
+                } else {
+                    return Result.NOT_FOUND;
+                }
             }
-        }, puFilter.getPUFilterChainBuilder().add(new SimpleResponseFilter("FAILED")).build());
-        puFilter.register(new ProtocolFinder() {
+        };
+        final TestFinder f2 = new TestFinder() {
             @Override
             public Result find(PUContext puContext, FilterChainContext ctx) {
-                return Result.FOUND;
+                invocationCount++;
+                if (invocationCount <= 3) {
+                    return Result.NEED_MORE_DATA;
+                } else {
+                    return Result.NOT_FOUND;
+                }
             }
-        }, puFilter.getPUFilterChainBuilder().add(new SimpleResponseFilter("PASSED")).build());
-
-        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        transport.setProcessor(puFilterChainBuilder.build());
-        Connection connection = null;
-        try {
-            transport.bind(PORT);
-            transport.start();
-
-            final FutureImpl<Boolean> resultFuture = SafeFutureImpl.create();
-
-            final FilterChain clientFilterChain =
-                    FilterChainBuilder.stateless()
-                            .add(new TransportFilter())
-                            .add(new StringFilter(CHARSET))
-                            .add(new ClientResultFilter("PASSED", resultFuture))
-                            .build();
-
-            final SocketConnectorHandler connectorHandler =
-                    TCPNIOConnectorHandler.builder(transport)
-                            .processor(clientFilterChain)
-                            .build();
-
-            Future<Connection> future = connectorHandler.connect("localhost", PORT);
-            connection = future.get();
-            assertTrue(connection != null);
-
-            connection.write("text");
-
-            assertTrue(resultFuture.get(1, TimeUnit.SECONDS));
-
-        } finally {
-            if (connection != null) {
-                connection.close();
+        };
+        final TestFinder f3 = new TestFinder() {
+            @Override
+            public Result find(PUContext puContext, FilterChainContext ctx) {
+                invocationCount++;
+                if (invocationCount <= 2) {
+                    return Result.NEED_MORE_DATA;
+                } else {
+                    return Result.NOT_FOUND;
+                }
             }
+        };
+        final TestFinder f4 = new TestFinder() {
+            @Override
+            public Result find(PUContext puContext, FilterChainContext ctx) {
+                invocationCount++;
+                if (invocationCount == 5) {
+                    return Result.FOUND;
+                } else {
+                    return Result.NEED_MORE_DATA;
+                }
+            }
+        };
+        puFilter.register(f1, puFilter.getPUFilterChainBuilder().add(new EchoFilter()).build());
+        puFilter.register(f2, puFilter.getPUFilterChainBuilder().add(new EchoFilter()).build());
+        puFilter.register(f3, puFilter.getPUFilterChainBuilder().add(new EchoFilter()).build());
+        puFilter.register(f4, puFilter.getPUFilterChainBuilder().add(new EchoFilter()).build());
 
-            transport.stop();
-        }
+        final FilterChainContext ctx = new FilterChainContext();
+        final PUContext puContext = new PUContext(puFilter);
+
+        puFilter.findProtocol(puContext, ctx);
+        assertTrue(!puContext.noProtocolsFound());
+        assertEquals(1, f1.invocationCount);
+        assertEquals(1, f2.invocationCount);
+        assertEquals(1, f3.invocationCount);
+        assertEquals(1, f4.invocationCount);
+
+        puFilter.findProtocol(puContext, ctx);
+        assertTrue(!puContext.noProtocolsFound());
+        assertEquals(2, f1.invocationCount);
+        assertEquals(2, f2.invocationCount);
+        assertEquals(2, f3.invocationCount);
+        assertEquals(2, f4.invocationCount);
+
+        puFilter.findProtocol(puContext, ctx);
+        assertTrue(!puContext.noProtocolsFound());
+        assertEquals(2, f1.invocationCount);
+        assertEquals(3, f2.invocationCount);
+        assertEquals(3, f3.invocationCount);
+        assertEquals(3, f4.invocationCount);
+
+        puFilter.findProtocol(puContext, ctx);
+        assertTrue(!puContext.noProtocolsFound());
+        assertEquals(2, f1.invocationCount);
+        assertEquals(4, f2.invocationCount);
+        assertEquals(3, f3.invocationCount);
+        assertEquals(4, f4.invocationCount);
+
+        puFilter.findProtocol(puContext, ctx);
+        assertTrue(!puContext.noProtocolsFound());
+        assertEquals(2, f1.invocationCount);
+        assertEquals(4, f2.invocationCount);
+        assertEquals(3, f3.invocationCount);
+        assertEquals(5, f4.invocationCount);
+
+    }
+
+    @Test
+    public void testGrizzly1031_002() throws Exception {
+
+        final TestPUFilter puFilter = new TestPUFilter();
+        final TestFinder f1 =  new TestFinder() {
+            @Override
+            public Result find(PUContext puContext, FilterChainContext ctx) {
+                invocationCount++;
+                return Result.NOT_FOUND;
+            }
+        };
+        final TestFinder f2 = new TestFinder() {
+            @Override
+            public Result find(PUContext puContext, FilterChainContext ctx) {
+                invocationCount++;
+                return Result.NOT_FOUND;
+            }
+        };
+        final TestFinder f3 = new TestFinder() {
+            @Override
+            public Result find(PUContext puContext, FilterChainContext ctx) {
+                invocationCount++;
+                return Result.NOT_FOUND;
+            }
+        };
+        final TestFinder f4 = new TestFinder() {
+            @Override
+            public Result find(PUContext puContext, FilterChainContext ctx) {
+                invocationCount++;
+                return Result.NOT_FOUND;
+            }
+        };
+        puFilter.register(f1, puFilter.getPUFilterChainBuilder().add(new EchoFilter()).build());
+        puFilter.register(f2, puFilter.getPUFilterChainBuilder().add(new EchoFilter()).build());
+        puFilter.register(f3, puFilter.getPUFilterChainBuilder().add(new EchoFilter()).build());
+        puFilter.register(f4, puFilter.getPUFilterChainBuilder().add(new EchoFilter()).build());
+
+        final FilterChainContext ctx = new FilterChainContext();
+        final PUContext puContext = new PUContext(puFilter);
+
+        puFilter.findProtocol(puContext, ctx);
+        assertTrue(puContext.noProtocolsFound());
+        assertEquals(1, f1.invocationCount);
+        assertEquals(1, f2.invocationCount);
+        assertEquals(1, f3.invocationCount);
+        assertEquals(1, f4.invocationCount);
+
     }
 
 
     // --------------------------------------------------------- Private Methods
+
 
     private PUProtocol createProtocol(final PUFilter puFilter, final String name) {
         final FilterChain chain = puFilter.getPUFilterChainBuilder()
@@ -259,6 +343,25 @@ public class BasicPUTest {
 
     private static String makeResponseMessage(String protocolName) {
         return "Protocol-" + protocolName;
+    }
+
+
+    // ---------------------------------------------------------- Nested Classes
+
+
+    private static final class TestPUFilter extends PUFilter {
+
+        @Override
+        protected void findProtocol(PUContext puContext, FilterChainContext ctx) {
+            super.findProtocol(puContext, ctx);    //To change body of overridden methods use File | Settings | File Templates.
+        }
+
+    }
+
+    private static abstract class TestFinder implements ProtocolFinder {
+
+        int invocationCount = 0;
+
     }
 
 }
