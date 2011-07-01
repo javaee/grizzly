@@ -60,7 +60,7 @@ import junit.framework.TestCase;
 public class BaseSelectionKeyHandlerTest extends TestCase {
     private static final int NUMBER_OF_ITERATIONS = 2;
     private static final int KEEP_ALIVE_TIMEOUT = 35 * 1000;
-    private static final int PORT = 17500;
+    private static final int PORT = 17501;
     
     public void testSimplePacket() throws IOException {
         // set up server side
