@@ -67,15 +67,15 @@ public class WebSocketEngine {
     public static final String RESPONSE_CODE_VALUE = "101";
     public static final String UPGRADE = "upgrade";
     public static final String CONNECTION = "connection";
+    public static final String CLIENT_WS_ORIGIN_HEADER = "Origin";
     public static final Version DEFAULT_VERSION = Version.values()[Version.values().length-1];
     public static final int INITIAL_BUFFER_SIZE = 8192;
-    public static final int DEFAULT_TIMEOUT;
 
+    public static final int DEFAULT_TIMEOUT;
     private static final WebSocketEngine engine = new WebSocketEngine();
     static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     public static final String SERVER_KEY_HASH = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     public static final int MASK_SIZE = 4;
-    public static final String CLIENT_WS_ORIGIN_HEADER = "Origin";
     private final List<WebSocketApplication> applications = new ArrayList<WebSocketApplication>();
     private final WebSocketCloseHandler closeHandler = new WebSocketCloseHandler();
 
@@ -116,9 +116,19 @@ public class WebSocketEngine {
     public static List<String> toString(byte[] bytes, int start, int end) {
         List<String> list = new ArrayList<String>();
         for (int i = start; i < end; i++) {
-            list.add(Integer.toString(bytes[i] & 0xFF, 16).toUpperCase());
+            list.add(Integer.toHexString(bytes[i] & 0xFF).toUpperCase());
         }
         return list;
+    }
+
+    public static ProtocolHandler loadHandler(MimeHeaders headers) {
+        for (Version version : Version.values()) {
+            if(version.validate(headers)) {
+                return version.createHandler(false);
+            }
+        }
+
+        throw new HandshakeException("Unknown specification version");
     }
 
     public WebSocketApplication getApplication(Request request) {
@@ -135,7 +145,7 @@ public class WebSocketEngine {
         final MimeHeaders mimeHeaders = request.getMimeHeaders();
         if (isUpgradable(request)) {
             try {
-                final WebSocketApplication app = WebSocketEngine.getEngine().getApplication(request);
+                final WebSocketApplication app = getApplication(request);
                 WebSocket socket = null;
                 try {
                     if (app != null) {
@@ -143,7 +153,7 @@ public class WebSocketEngine {
                         ProcessorTask task = asyncExecutor.getProcessorTask();
                         final SelectionKey key = task.getSelectionKey();
 
-                        final ProtocolHandler protocolHandler = WebSocketFactory.loadHandler(mimeHeaders);
+                        final ProtocolHandler protocolHandler = loadHandler(mimeHeaders);
                         final ServerNetworkHandler handler = new ServerNetworkHandler(request, request.getResponse());
                         protocolHandler.setNetworkHandler(handler);
 
@@ -171,7 +181,6 @@ public class WebSocketEngine {
         }
 
         return false;
-
     }
 
     private boolean isUpgradable(Request request) {

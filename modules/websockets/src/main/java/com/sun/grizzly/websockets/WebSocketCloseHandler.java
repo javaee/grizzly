@@ -51,13 +51,15 @@ public class WebSocketCloseHandler implements ConnectionCloseHandler {
         if (o instanceof WebSocketSelectionKeyAttachment) {
             final WebSocketSelectionKeyAttachment attachment = (WebSocketSelectionKeyAttachment) key.attachment();
             final ProtocolHandler handler = attachment.getHandler();
-            if (!handler.getWebSocket().isConnected()) {
+            final WebSocket webSocket = handler.getWebSocket();
+            webSocket.onClose(null);
+            if (!webSocket.isConnected()) {
                 key.cancel();
             }
         }
     }
 
     public void remotlyClosed(SelectionKey key) {
-        System.out.println("WebSocketCloseHandler.remotlyClosed: key = " + key);
+//        System.out.println("WebSocketCloseHandler.remotlyClosed: key = " + key);
     }
 }

@@ -41,7 +41,6 @@
 package com.sun.grizzly.websockets;
 
 import java.io.IOException;
-import java.util.List;
 
 public interface NetworkHandler {
 
@@ -54,6 +53,4 @@ public interface NetworkHandler {
     boolean ready();
 
     byte[] readLine() throws IOException;
-
-    List<String> getBytes();
 }

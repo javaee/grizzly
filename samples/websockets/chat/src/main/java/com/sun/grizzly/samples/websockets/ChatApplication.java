@@ -41,15 +41,17 @@
 package com.sun.grizzly.samples.websockets;
 
 import com.sun.grizzly.tcp.Request;
+import com.sun.grizzly.websockets.ProtocolHandler;
 import com.sun.grizzly.websockets.WebSocket;
 import com.sun.grizzly.websockets.WebSocketApplication;
 import com.sun.grizzly.websockets.WebSocketException;
-
-import java.util.Map;
-import java.util.WeakHashMap;
+import com.sun.grizzly.websockets.WebSocketListener;
 
 public class ChatApplication extends WebSocketApplication {
-    private final Map<WebSocket, String> users = new WeakHashMap<WebSocket, String>();
+    @Override
+    public WebSocket createWebSocket(ProtocolHandler protocolHandler, WebSocketListener... listeners) {
+        return new ChatWebSocket(protocolHandler, listeners);
+    }
 
     @Override
     public boolean isApplicationRequest(Request request) {
@@ -70,7 +72,7 @@ public class ChatApplication extends WebSocketApplication {
         WebSocketsServlet.logger.info("Broadcasting : " + text);
         for (WebSocket webSocket : getWebSockets()) {
             try {
-                send(webSocket, text);
+                send((ChatWebSocket) webSocket, text);
             } catch (WebSocketException e) {
                 e.printStackTrace();
                 WebSocketsServlet.logger.info("Removing chat client: " + e.getMessage());
@@ -87,16 +89,8 @@ public class ChatApplication extends WebSocketApplication {
         }
     }
 
-    public void send(WebSocket webSocket, String data) {
-        webSocket.send(toJsonp(getUser(webSocket), data));
-    }
-
-    private String getUser(WebSocket webSocket) {
-        return users.get(webSocket);
-    }
-
-    private void setUser(WebSocket socket, String user) {
-        users.put(socket, user);
+    public void send(ChatWebSocket webSocket, String data) {
+        webSocket.send(toJsonp(webSocket.getUser(), data));
     }
 
     private String toJsonp(String name, String message) {
