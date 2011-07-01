@@ -98,7 +98,7 @@ public class Draft76Test extends BaseWebSocketTestUtiltiies {
             StringBuilder builder = new StringBuilder();
             String line;
             int count = 0;
-            while (!(line = reader.readLine()).isEmpty()) {
+            while (!"".equals(line = reader.readLine())) {
                 builder.append(line + "\n");
             }
             char[] key = new char[16];

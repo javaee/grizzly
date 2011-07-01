@@ -114,7 +114,7 @@ public abstract class HandShake {
         String queryString;
         if(messageBytes != null) {
             queryString = messageBytes.toString().trim();
-            if(!queryString.isEmpty()) {
+            if(!"".equals(queryString)) {
                 resourcePath += "?" + request.queryString();
             }
             Parameters queryParameters = new Parameters();

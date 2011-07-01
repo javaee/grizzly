@@ -204,7 +204,7 @@ public class Draft07Test extends BaseWebSocketTestUtiltiies {
             BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             StringBuilder builder = new StringBuilder();
             String line;
-            while (!(line = reader.readLine()).isEmpty()) {
+            while (!"".equals(line = reader.readLine())) {
                 builder.append(line + "\n");
             }
             Assert.assertEquals("HTTP/1.1 101 Switching Protocols\n" +
