@@ -88,7 +88,7 @@ public class FragmentationTest extends BaseWebSocketTestUtiltiies {
                     client.stream(index == size - 1, text.substring(index, index + 1));
                 }
 
-                Assert.assertTrue(latch.await(60, TimeUnit.MINUTES));
+                Assert.assertTrue(latch.await(60, TimeUnit.SECONDS));
 
                 Assert.assertEquals(text, builder.toString());
             } finally {
