@@ -65,7 +65,7 @@ public class ReusableSelectorHandlerTest extends TestCase {
     private final InetSocketAddress localInetSocketAddress;
 
     public ReusableSelectorHandlerTest() throws UnknownHostException {
-        localInetAddress = InetAddress.getLocalHost();
+        localInetAddress = InetAddress.getByName("localhost");
         localInetSocketAddress = new InetSocketAddress( localInetAddress, PORT );
     }
 
@@ -122,14 +122,6 @@ public class ReusableSelectorHandlerTest extends TestCase {
             }
         } finally {
             if( clientSocket != null ) {
-                try {
-                    clientSocket.shutdownInput();
-                } catch( IOException e ) {
-                }
-                try {
-                    clientSocket.shutdownOutput();
-                } catch( IOException e ) {
-                }
                 try {
                     clientSocket.close();
                 } catch( IOException e ) {
