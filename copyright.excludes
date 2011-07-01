@@ -3,6 +3,7 @@
 .bundle
 .class
 .gif
+.gitignore
 .ico
 .iml
 .ipr
