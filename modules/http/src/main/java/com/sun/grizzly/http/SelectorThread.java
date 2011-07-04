@@ -1077,24 +1077,6 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         }
     }
  
-    /**
-     * Return a {@link ProcessorTask} from the pool. If the pool is empty,
-     * create a new instance.
-     */
-    public ProcessorTask getProcessorTask(){
-        ProcessorTask processorTask;
-        processorTask = processorTasks.poll();
-        
-        if (processorTask == null){
-            processorTask = newProcessorTask(false);
-        } 
-        
-        if ( isMonitoringEnabled() ){
-           activeProcessorTasks.offer(processorTask); 
-        }        
-        return processorTask;
-    }
-           
     // --------------------------------------------------------- Thread run --/
     
     /**
@@ -1298,8 +1280,26 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     public void cancelKey(SelectionKey key){
         selectorHandler.getSelectionKeyHandler().cancel(key);
     }
+        
     
-    
+    /**
+     * Return a {@link ProcessorTask} from the pool. If the pool is empty,
+     * create a new instance.
+     */
+    public ProcessorTask getProcessorTask(){
+        ProcessorTask processorTask;
+        processorTask = processorTasks.poll();
+        
+        if (processorTask == null){
+            processorTask = newProcessorTask(false);
+        } 
+        
+        if ( isMonitoringEnabled() ){
+           activeProcessorTasks.offer(processorTask); 
+        }        
+        return processorTask;
+    }
+          
     /**
      * Returns the {@link Task} object to the pool.
      */

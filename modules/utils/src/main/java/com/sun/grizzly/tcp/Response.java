@@ -690,7 +690,7 @@ public class Response<A> {
     
     public void recycle() {
         
-        selectionKey = null;
+//        selectionKey = null;
         contentType = null;
         contentLanguage = null;
         locale = DEFAULT_LOCALE;

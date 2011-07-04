@@ -962,6 +962,9 @@ public class ProcessorTask extends TaskBase implements Processor,
         inputBuffer.recycle();
         outputBuffer.recycle();
 
+        response.setSelectionKey(null);
+        outputBuffer.setSelectionKey(null);
+        
         // Recycle ssl info
         sslSupport = null;
 
