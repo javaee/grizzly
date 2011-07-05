@@ -50,7 +50,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BaseWebSocketTestUtiltiies {
+public class BaseWebSocketTestUtilities {
     protected static final int PORT = 1725;
 
     @Parameterized.Parameters

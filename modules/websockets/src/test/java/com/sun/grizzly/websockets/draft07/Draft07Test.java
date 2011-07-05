@@ -43,7 +43,7 @@ package com.sun.grizzly.websockets.draft07;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.servlet.ServletAdapter;
 import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.websockets.BaseWebSocketTestUtiltiies;
+import com.sun.grizzly.websockets.BaseWebSocketTestUtilities;
 import com.sun.grizzly.websockets.DataFrame;
 import com.sun.grizzly.websockets.EchoServlet;
 import com.sun.grizzly.websockets.LocalNetworkHandler;
@@ -67,7 +67,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class Draft07Test extends BaseWebSocketTestUtiltiies {
+public class Draft07Test extends BaseWebSocketTestUtilities {
     @Test
     public void textFrameUnmasked() {
         Draft07Handler handler = new Draft07Handler(false);

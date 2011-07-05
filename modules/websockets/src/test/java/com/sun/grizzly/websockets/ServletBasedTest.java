@@ -52,7 +52,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 @RunWith(Parameterized.class)
-public class ServletBasedTest extends BaseWebSocketTestUtiltiies {
+public class ServletBasedTest extends BaseWebSocketTestUtilities {
     private Version version;
 
     public ServletBasedTest(Version version) {

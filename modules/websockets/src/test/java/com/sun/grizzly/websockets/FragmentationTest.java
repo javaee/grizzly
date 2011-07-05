@@ -53,7 +53,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 @RunWith(Parameterized.class)
-public class FragmentationTest extends BaseWebSocketTestUtiltiies {
+public class FragmentationTest extends BaseWebSocketTestUtilities {
     private final Version version;
 
     public FragmentationTest(Version version) {

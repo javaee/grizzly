@@ -43,7 +43,7 @@ package com.sun.grizzly.websockets.draft06;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.servlet.ServletAdapter;
 import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.websockets.BaseWebSocketTestUtiltiies;
+import com.sun.grizzly.websockets.BaseWebSocketTestUtilities;
 import com.sun.grizzly.websockets.EchoServlet;
 import com.sun.grizzly.websockets.LocalNetworkHandler;
 import com.sun.grizzly.websockets.DataFrame;
@@ -66,7 +66,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class Draft06Test extends BaseWebSocketTestUtiltiies {
+public class Draft06Test extends BaseWebSocketTestUtilities {
     @Test
     public void textFrame() throws IOException {
         Draft06Handler handler = new Draft06Handler();

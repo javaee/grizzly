@@ -43,7 +43,7 @@ package com.sun.grizzly.websockets.draft76;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.servlet.ServletAdapter;
 import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.websockets.BaseWebSocketTestUtiltiies;
+import com.sun.grizzly.websockets.BaseWebSocketTestUtilities;
 import com.sun.grizzly.websockets.EchoServlet;
 import com.sun.grizzly.websockets.WebSocketApplication;
 import com.sun.grizzly.websockets.WebSocketEngine;
@@ -59,7 +59,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Draft76Test extends BaseWebSocketTestUtiltiies {
+public class Draft76Test extends BaseWebSocketTestUtilities {
     @Test
     public void sampleHandShake() throws IOException, InstantiationException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));

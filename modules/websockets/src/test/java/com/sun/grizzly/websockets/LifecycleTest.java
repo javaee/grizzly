@@ -49,12 +49,11 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.io.IOException;
-import java.util.Date;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-@RunWith(value = Parameterized.class)
-public class LifecycleTest extends BaseWebSocketTestUtiltiies {
+@RunWith(Parameterized.class)
+public class LifecycleTest extends BaseWebSocketTestUtilities {
     protected static final String BASE_URL = "ws://localhost:" + WebSocketsTest.PORT;
     private static final String ADDRESS = BASE_URL + "/echo";
     private CountDownLatch closeLatch;
