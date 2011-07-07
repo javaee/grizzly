@@ -166,7 +166,7 @@ public class ServerSideTest {
         server.start();
         final int count = 5;
         final CountDownLatch received = new CountDownLatch(count);
-        ClientWebSocket socket = new ClientWebSocket(String.format("ws://localhost:%s/echo", PORT)) {
+        WebSocketClient socket = new WebSocketClient(String.format("ws://localhost:%s/echo", PORT)) {
             @Override
             public void onMessage(String frame) {
                 received.countDown();

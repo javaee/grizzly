@@ -59,7 +59,7 @@ public interface Writable<L> {
      *         result
      * @throws java.io.IOException
      */
-    public <M> GrizzlyFuture<WriteResult<M, L>> write(M message)
+    <M> GrizzlyFuture<WriteResult<M, L>> write(M message)
             throws IOException;
 
     /**
@@ -72,8 +72,8 @@ public interface Writable<L> {
      *         result
      * @throws java.io.IOException
      */
-    public <M> GrizzlyFuture<WriteResult<M, L>> write(M message,
-            CompletionHandler<WriteResult<M, L>> completionHandler)
+    <M> GrizzlyFuture<WriteResult<M, L>> write(M message,
+        CompletionHandler<WriteResult<M, L>> completionHandler)
             throws IOException;
 
     /**
@@ -88,8 +88,8 @@ public interface Writable<L> {
      *         result
      * @throws java.io.IOException
      */
-    public <M> GrizzlyFuture<WriteResult<M, L>> write(L dstAddress,
-            M message,
-            CompletionHandler<WriteResult<M, L>> completionHandler)
+    <M> GrizzlyFuture<WriteResult<M, L>> write(L dstAddress,
+        M message,
+        CompletionHandler<WriteResult<M, L>> completionHandler)
             throws IOException;
 }

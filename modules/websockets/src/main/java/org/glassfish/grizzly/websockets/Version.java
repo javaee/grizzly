@@ -37,65 +37,74 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.websockets;
 
-import java.io.UnsupportedEncodingException;
-import java.util.Arrays;
+import org.glassfish.grizzly.http.util.MimeHeaders;
+import org.glassfish.grizzly.websockets.draft06.Draft06Handler;
+import org.glassfish.grizzly.websockets.draft07.Draft07Handler;
+import org.glassfish.grizzly.websockets.draft08.Draft08Handler;
 
-public class ClosingFrame extends DataFrame {
-    public static final byte[] EMPTY_BYTES = new byte[0];
-    private int code;
-    private String reason;
-
-    public ClosingFrame() {
-        code = WebSocket.NORMAL_CLOSURE;
-        setType(FrameType.CLOSING);
-    }
-
-    public ClosingFrame(int code, String reason) {
-        this.code = code;
-        this.reason = reason;
-        setType(FrameType.CLOSING);
-    }
-
-    public int getCode() {
-        return code;
-    }
-
-    public String getReason() {
-        return reason;
-    }
-
-    public void unwrap(byte[] bytes) {
-        if (bytes.length > 0) {
-            code = (int) convert(Arrays.copyOfRange(bytes, 0, 2));
-            if (bytes.length > 2) {
-                try {
-                    reason = new String(bytes, 2, bytes.length - 2, "UTF-8");
-                } catch (UnsupportedEncodingException e) {
-                    throw new FramingException(e.getMessage(), e);
-                }
-            }
+public enum Version {
+/*    DRAFT76 {
+        @Override
+        public ProtocolHandler createHandler(boolean mask) {
+            return new Draft76Handler();
         }
-    }
+
+        @Override
+        public boolean validate(MimeHeaders headers) {
+            return headers.getHeader(HandShake76.SEC_WS_KEY1_HEADER) != null;
+        }
+
+        @Override
+        public boolean isFragmentationSupported() {
+            return false;
+        }
+    },*/
+    DRAFT06 {
+        @Override
+        public ProtocolHandler createHandler(boolean mask) {
+            return new Draft06Handler(mask);
+        }
+
+        @Override
+        public boolean validate(MimeHeaders headers) {
+            return "6".equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
+        }
+    },
+    DRAFT07 {
+        @Override
+        public ProtocolHandler createHandler(boolean mask) {
+            return new Draft07Handler(mask);
+        }
+
+        @Override
+        public boolean validate(MimeHeaders headers) {
+            return "7".equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
+        }
+    },
+    DRAFT08 {
+        @Override
+        public ProtocolHandler createHandler(boolean mask) {
+            return new Draft08Handler(mask);
+        }
+
+        @Override
+        public boolean validate(MimeHeaders headers) {
+            return "8".equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
+        }
+    };
+
+    public abstract ProtocolHandler createHandler(boolean mask);
+
+    public abstract boolean validate(MimeHeaders headers);
 
     @Override
-    public byte[] getBinaryPayload() {
-        try {
-            if (code == -1) {
-                return EMPTY_BYTES;
-            }
+    public String toString() {
+        return name();
+    }
 
-            final byte[] bytes = toArray(code);
-            final byte[] reasonBytes = reason == null ? EMPTY_BYTES : reason.getBytes("UTF-8");
-            final byte[] frameBytes = new byte[2 + reasonBytes.length];
-            System.arraycopy(bytes, bytes.length - 2, frameBytes, 0, 2);
-            System.arraycopy(reasonBytes, 0, frameBytes, 2, reasonBytes.length);
-
-            return frameBytes;
-        } catch (UnsupportedEncodingException e) {
-            throw new FramingException(e.getMessage(), e);
-        }
+    public boolean isFragmentationSupported() {
+        return true;
     }
 }

@@ -69,7 +69,7 @@ public class ServletBasedTest {
         httpServer.start();
         
         try {
-            ClientWebSocket socket = new ClientWebSocket(String.format("ws://localhost:%s/echo", WebSocketsTest.PORT),
+            WebSocketClient socket = new WebSocketClient(String.format("ws://localhost:%s/echo", WebSocketsTest.PORT),
                 new WebSocketAdapter() {
                     public void onMessage(WebSocket socket, String frame) {
                         latch.countDown();

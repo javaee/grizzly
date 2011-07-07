@@ -49,12 +49,20 @@ import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
-public class LifecycleTest {
+@RunWith(Parameterized.class)
+public class LifecycleTest extends BaseWebSocketTestUtilities {
     protected static final String BASE_URL = "ws://localhost:" + WebSocketsTest.PORT;
     private static final String ADDRESS = BASE_URL + "/echo";
     private CountDownLatch closeLatch;
     private CountDownLatch connectedLatch;
+    private Version version;
+
+    public LifecycleTest(Version version) {
+        this.version = version;
+    }
 
     @Test
     public void detectClosed() throws Exception {
@@ -118,8 +126,8 @@ public class LifecycleTest {
             }
 
             @Override
-            public void onClose(WebSocket socket) {
-                super.onClose(socket);
+            public void onClose(WebSocket socket, DataFrame frame) {
+                super.onClose(socket, frame);
                 closeLatch.countDown();
             }
         };
@@ -130,8 +138,8 @@ public class LifecycleTest {
         final CountDownLatch close = new CountDownLatch(1);
         final EchoWebSocketApplication app = new EchoWebSocketApplication() {
             @Override
-            public void onClose(WebSocket socket) {
-                super.onClose(socket);
+            public void onClose(WebSocket socket, DataFrame frame) {
+                super.onClose(socket, frame);
                 close.countDown();
             }
         };
@@ -188,7 +196,7 @@ public class LifecycleTest {
         Assert.assertTrue("Message should come back", client.waitForMessage());
     }
 
-    private static class BadWebSocketClient extends ClientWebSocket {
+    private static class BadWebSocketClient extends WebSocketClient {
         private CountDownLatch messages;
         private final CountDownLatch closed = new CountDownLatch(1);
 

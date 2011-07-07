@@ -44,7 +44,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.websockets.BaseWebSocket;
+import org.glassfish.grizzly.websockets.DefaultWebSocket;
 import org.glassfish.grizzly.websockets.WebSocket;
 import org.glassfish.grizzly.websockets.WebSocketException;
 import org.glassfish.grizzly.websockets.WebSocketListener;
@@ -56,7 +56,7 @@ import org.glassfish.grizzly.websockets.WebSocketListener;
  * @author Alexey Stashok
  * @author Justin Lee
  */
-public class ChatWebSocket extends BaseWebSocket {
+public class ChatWebSocket extends DefaultWebSocket {
     private static final Logger logger = Grizzly.logger(ChatWebSocket.class);
     
     // chat user name

@@ -40,18 +40,18 @@
 
 package org.glassfish.grizzly.websockets;
 
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.GrizzlyFuture;
+import java.io.IOException;
 
 public interface NetworkHandler {
-    GrizzlyFuture<DataFrame> send(DataFrame frame, CompletionHandler<DataFrame> completionHandler);
-
-    void setWebSocket(WebSocket webSocket);
+//    GrizzlyFuture<DataFrame> send(DataFrame frame, CompletionHandler<DataFrame> completionHandler);
 
     byte get();
 
     byte[] get(int count);
 
-    void readFrame(final Buffer content);
+    void write(byte[] bytes);
+
+    boolean ready();
+
+    String readLine(String encoding) throws IOException;
 }

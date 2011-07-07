@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,63 +38,22 @@
  * holder.
  */
 
-package org.glassfish.grizzly.websockets;
+package org.glassfish.grizzly.websockets.frametypes;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import org.glassfish.grizzly.websockets.BaseFrameType;
+import org.glassfish.grizzly.websockets.draft06.ClosingFrame;
+import org.glassfish.grizzly.websockets.DataFrame;
+import org.glassfish.grizzly.websockets.WebSocket;
 
-import org.glassfish.grizzly.GrizzlyFuture;
-
-public class TrackingWebSocket extends WebSocketClient {
-    private final Map<String, Object> sent = new ConcurrentHashMap<String, Object>();
-    private final CountDownLatch received;
-    private String name;
-
-    public TrackingWebSocket(String address, int count, WebSocketListener... listeners)
-        throws IOException, URISyntaxException {
-        super(address, listeners);
-        received = new CountDownLatch(count);
-    }
-
-    public TrackingWebSocket(String address, String name, int count, WebSocketListener... listeners)
-        throws IOException, URISyntaxException {
-        super(address, listeners);
-        this.name = name;
-        received = new CountDownLatch(count);
-    }
+public class ClosingFrameType extends BaseFrameType {
 
     @Override
-    public GrizzlyFuture<DataFrame> send(String data) {
-        sent.put(data, Boolean.FALSE);
-        return super.send(data);
+    public DataFrame create(boolean fin, byte[] data) {
+        return new ClosingFrame(data);
     }
 
-    @Override
-    public void onMessage(String message) {
-        super.onMessage(message);
-        if(sent.remove(message) != null) {
-            received.countDown();
-        }
-    }
-
-    @Override
-    public void onConnect() {
-        super.onConnect();
-    }
-
-    public boolean waitOnMessages() throws InterruptedException {
-        return received.await(WebSocketEngine.DEFAULT_TIMEOUT*10, TimeUnit.SECONDS);
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public CountDownLatch getReceived() {
-        return received;
+    public void respond(WebSocket socket, DataFrame frame) {
+        socket.onClose(frame);
+        socket.close();
     }
 }

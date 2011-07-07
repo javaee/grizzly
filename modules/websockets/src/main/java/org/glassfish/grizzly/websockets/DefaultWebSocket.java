@@ -54,28 +54,32 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
+import org.glassfish.grizzly.websockets.draft06.ClosingFrame;
+import org.glassfish.grizzly.websockets.frametypes.BinaryFrameType;
+import org.glassfish.grizzly.websockets.frametypes.PongFrameType;
+import org.glassfish.grizzly.websockets.frametypes.TextFrameType;
 
 @SuppressWarnings({"StringContatenationInLoop"})
-public class BaseWebSocket implements WebSocket {
+public class DefaultWebSocket implements WebSocket {
     enum State {
         NEW, CONNECTED, CLOSING, CLOSED
     }
 
     private EnumSet<State> connectedSet = EnumSet.range(State.CONNECTED, State.CLOSING);
 
-    private static final Logger logger = Grizzly.logger(BaseWebSocket.class);
+    private static final Logger logger = Grizzly.logger(DefaultWebSocket.class);
     Connection connection;
     private final Collection<WebSocketListener> listeners =
             new ConcurrentLinkedQueue<WebSocketListener>();
     private final AtomicReference<State> state = new AtomicReference<State>(State.NEW);
 
-    public BaseWebSocket(WebSocketListener... listeners) {
+    public DefaultWebSocket(WebSocketListener... listeners) {
         for (WebSocketListener listener : listeners) {
             add(listener);
         }
     }
 
-    public BaseWebSocket(final Connection connection, final WebSocketListener[] listeners) {
+    public DefaultWebSocket(final Connection connection, final WebSocketListener[] listeners) {
         this(listeners);
         this.connection = connection;
     }
@@ -116,38 +120,37 @@ public class BaseWebSocket implements WebSocket {
         }
     }
 
-    public void onClose(DataFrame frame) {
+    public void onClose(final DataFrame frame) {
         if (state.get() == State.CONNECTED) {
             try {
                 write(new ClosingFrame(), new EmptyCompletionHandler<Object>() {
                     @Override
                     public void completed(final Object result) {
-                        onClose();
+                        doClose(frame);
                     }
                 });
             } catch (Exception e) {
                 throw new WebSocketException(e.getMessage(), e);
             }
         } else {
-            onClose();
+            doClose(frame);
         }
     }
 
     public void onPing(DataFrame frame) {
-        final byte[] bytes = frame.getBinaryPayload();
-        send(new DataFrame(FrameType.PONG, bytes), null);
+        send(new DataFrame(new PongFrameType(), frame.getBytes()), null);
         for (WebSocketListener listener : listeners) {
-            listener.onPing(bytes);
+            listener.onPing(this, frame.getBytes());
         }
     }
 
-    private void onClose() {
+    private void doClose(DataFrame frame) {
         state.set(State.CLOSED);
         final Iterator<WebSocketListener> it = listeners.iterator();
         while (it.hasNext()) {
             final WebSocketListener listener = it.next();
             it.remove();
-            listener.onClose(this);
+            listener.onClose(this, frame);
         }
     }
 
@@ -156,7 +159,7 @@ public class BaseWebSocket implements WebSocket {
     }
 
     public GrizzlyFuture<DataFrame> send(String data) {
-        return send(new DataFrame(data), null);
+        return send(new DataFrame(new TextFrameType(), data), null);
     }
 
     private GrizzlyFuture<DataFrame> send(DataFrame frame, CompletionHandler<DataFrame> completionHandler) {
@@ -168,7 +171,7 @@ public class BaseWebSocket implements WebSocket {
     }
 
     public GrizzlyFuture<DataFrame> send(byte[] data) {
-        return send(new DataFrame(data), null);
+        return send(new DataFrame(new BinaryFrameType(), data), null);
     }
 
     public void onConnect() {
@@ -189,5 +192,23 @@ public class BaseWebSocket implements WebSocket {
         for (WebSocketListener listener : listeners) {
             listener.onMessage(this, data);
         }
+    }
+
+    @Override
+    public void onFragment(boolean last, String payload) {
+        for (WebSocketListener listener : listeners) {
+            listener.onFragment(this, payload, last);
+        }
+    }
+
+    @Override
+    public void onFragment(boolean last, byte[] payload) {
+        for (WebSocketListener listener : listeners) {
+            listener.onFragment(this, payload, last);
+        }
+    }
+
+    @Override
+    public void onPong(DataFrame frame) {
     }
 }

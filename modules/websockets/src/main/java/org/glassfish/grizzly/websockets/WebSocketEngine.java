@@ -39,7 +39,6 @@
  */
 package org.glassfish.grizzly.websockets;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -51,9 +50,12 @@ import org.glassfish.grizzly.Connection.CloseListener;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.utils.Utils;
+import org.glassfish.grizzly.websockets.draft06.ClosingFrame;
 
 /**
  * WebSockets engine implementation (singleton), which handles {@link WebSocketApplication}s registration, responsible
@@ -72,10 +74,12 @@ public class WebSocketEngine {
     public static final String SEC_WS_VERSION = "Sec-WebSocket-Version";
     public static final String WEBSOCKET = "websocket";
     public static final String RESPONSE_CODE_MESSAGE = "Switching Protocols";
+    public static final String RESPONSE_CODE_HEADER = "Response Code";
     public static final int RESPONSE_CODE_VALUE = 101;
     public static final String UPGRADE = "upgrade";
     public static final String CONNECTION = "connection";
-    public static final int WS_VERSION = 6;
+    public static final String CLIENT_WS_ORIGIN_HEADER = "Origin";
+    public static final Version DEFAULT_VERSION = Version.values()[Version.values().length - 1];
     public static final int INITIAL_BUFFER_SIZE = 8192;
     public static final int DEFAULT_TIMEOUT;
     private static final WebSocketEngine engine = new WebSocketEngine();
@@ -113,6 +117,37 @@ public class WebSocketEngine {
         return engine;
     }
 
+    public static byte[] toArray(long length) {
+        long value = length;
+        byte[] b = new byte[8];
+        for (int i = 7; i >= 0 && value > 0; i--) {
+            b[i] = (byte) (value & 0xFF);
+            value >>= 8;
+        }
+        return b;
+    }
+
+    public static long toLong(byte[] bytes, int start, int end) {
+        long value = 0;
+        for (int i = start; i < end; i++) {
+            value <<= 8;
+            value ^= (long) bytes[i] & 0xFF;
+        }
+        return value;
+    }
+
+    public static List<String> toString(byte[] bytes) {
+        return toString(bytes, 0, bytes.length);
+    }
+
+    public static List<String> toString(byte[] bytes, int start, int end) {
+        List<String> list = new ArrayList<String>();
+        for (int i = start; i < end; i++) {
+            list.add(Integer.toHexString(bytes[i] & 0xFF).toUpperCase());
+        }
+        return list;
+    }
+
     public WebSocketApplication getApplication(HttpRequestPacket request) {
         for (WebSocketApplication application : applications) {
             if (application.upgrade(request)) {
@@ -122,39 +157,46 @@ public class WebSocketEngine {
         return null;
     }
 
-    public boolean upgrade(FilterChainContext ctx, HttpRequestPacket request) {
+    public boolean upgrade(FilterChainContext ctx, HttpContent requestContent) {
+        final HttpRequestPacket request = (HttpRequestPacket) requestContent.getHttpHeader();
+        final WebSocketApplication app = WebSocketEngine.getEngine().getApplication(request);
+        WebSocket socket = null;
         try {
-            final WebSocketApplication app = WebSocketEngine.getEngine().getApplication(request);
-            WebSocket socket = null;
-            try {
-                if (app != null) {
-                    final Connection connection = ctx.getConnection();
-                    socket = app.createSocket(connection, app);
-                    final WebSocketHolder holder = new WebSocketHolder(true, socket);
-                    webSocketAttribute.set(connection, holder);
-                    ctx.write(new ServerHandshake(request).respond(request));
-                    request.getConnection().addCloseListener(new CloseListener() {
-                        @Override
-                        public void onClosed(Connection connection) {
-                            final WebSocket webSocket = getWebSocket(connection);
-                            webSocket.close();
-                            webSocket.onClose(new ClosingFrame(WebSocket.END_POINT_GOING_DOWN,
-                                "Close detected on connection"));
-                        }
-                    });
-                    socket.onConnect();
-                    return true;
-                }
-            } catch (HandshakeException e) {
-                logger.log(Level.SEVERE, e.getMessage(), e);
-                if (socket != null) {
-                    socket.close();
-                }
+            if (app != null) {
+                final ProtocolHandler protocolHandler = loadHandler(request.getHeaders());
+//                    final ServerNetworkHandler handler = new ServerNetworkHandler(request, request.getResponse());
+                final Connection connection = ctx.getConnection();
+                socket = app.createSocket(connection, app);
+                WebSocketEngine.getEngine().setWebSocketHolder(connection, protocolHandler, socket);
+                protocolHandler.handshake(ctx, app, requestContent);
+                request.getConnection().addCloseListener(new CloseListener() {
+                    @Override
+                    public void onClosed(Connection connection) {
+                        final WebSocket webSocket = getWebSocket(connection);
+                        webSocket.close();
+                        webSocket.onClose(new ClosingFrame(WebSocket.END_POINT_GOING_DOWN,
+                            "Close detected on connection"));
+                    }
+                });
+                socket.onConnect();
+                return true;
             }
-        } catch (IOException e) {
-            return false;
+        } catch (HandshakeException e) {
+            logger.log(Level.SEVERE, e.getMessage(), e);
+            if (socket != null) {
+                socket.close();
+            }
         }
         return false;
+    }
+
+    public static ProtocolHandler loadHandler(MimeHeaders headers) {
+        for (Version version : Version.values()) {
+            if (version.validate(headers)) {
+                return version.createHandler(false);
+            }
+        }
+        throw new HandshakeException("Unknown specification version");
     }
 
     public void register(String name, WebSocketApplication app) {
@@ -185,7 +227,7 @@ public class WebSocketEngine {
      * @return <tt>true</tt> if passed Grizzly {@link Connection} is associated with a {@link WebSocket}, or
      *         <tt>false</tt> otherwise.
      */
-    boolean isWebSocket(Connection connection) {
+    boolean webSocketInProgress(Connection connection) {
         return webSocketAttribute.get(connection) != null;
     }
 
@@ -207,9 +249,8 @@ public class WebSocketEngine {
         return webSocketAttribute.get(connection);
     }
 
-    WebSocketHolder setWebSocketHolder(final Connection connection, WebSocket socket) {
-        final WebSocketHolder holder = new WebSocketHolder(false, socket);
-        holder.webSocket = socket;
+    WebSocketHolder setWebSocketHolder(final Connection connection, ProtocolHandler handler, WebSocket socket) {
+        final WebSocketHolder holder = new WebSocketHolder(handler, socket);
         webSocketAttribute.set(connection, holder);
         return holder;
     }
@@ -219,13 +260,12 @@ public class WebSocketEngine {
      */
     public static class WebSocketHolder {
         public volatile WebSocket webSocket;
-        public volatile ClientHandshake handshake;
-        public volatile DataFrame frame;
-        public volatile boolean unmaskOnRead;
+        public volatile HandShake handshake;
         public volatile Buffer buffer;
+        public volatile ProtocolHandler handler;
 
-        public WebSocketHolder(final boolean unmaskOnRead, final WebSocket socket) {
-            this.unmaskOnRead = unmaskOnRead;
+        WebSocketHolder(final ProtocolHandler handler, final WebSocket socket) {
+            this.handler = handler;
             webSocket = socket;
         }
     }

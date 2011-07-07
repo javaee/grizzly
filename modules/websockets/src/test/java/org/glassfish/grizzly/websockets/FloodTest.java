@@ -59,7 +59,7 @@ public class FloodTest {
         server.register("/echo", app);
         server.start();
 
-        ClientWebSocket webSocket = null;
+        WebSocketClient webSocket = null;
         try {
             final FloodListener listener = new FloodListener();
             webSocket = new FloodingWebSocket(listener);
@@ -93,7 +93,7 @@ public class FloodTest {
         }
     }
 
-    private class FloodingWebSocket extends ClientWebSocket {
+    private class FloodingWebSocket extends WebSocketClient {
         public FloodingWebSocket(FloodListener listener) throws URISyntaxException {
             super("ws://localhost:1725/echo", listener);
         }

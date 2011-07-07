@@ -62,32 +62,22 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.websockets.WebSocketEngine.WebSocketHolder;
 
-public class ClientWebSocket extends BaseWebSocket {
+public class WebSocketClient extends DefaultWebSocket {
     private static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
+    private Version version;
     private final URI address;
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
     private TCPNIOTransport transport;
 
-    public ClientWebSocket(String uri, WebSocketListener... listeners) throws URISyntaxException {
-        this(new URI(uri), listeners);
+    public WebSocketClient(String uri, WebSocketListener... listeners) throws URISyntaxException {
+        this(WebSocketEngine.DEFAULT_VERSION, new URI(uri), listeners);
     }
 
-    public ClientWebSocket(URI uri, WebSocketListener... listeners) {
+    public WebSocketClient(Version version, URI uri, WebSocketListener... listeners) {
         super(listeners);
+        this.version = version;
         address = uri;
-        add(new WebSocketAdapter() {
-            @Override
-            public void onClose(WebSocket socket) {
-                super.onClose(socket);
-                if (transport != null) {
-                    try {
-                        transport.stop();
-                    } catch (IOException e) {
-                        logger.log(Level.INFO, e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        add(new WebSocketCloseAdapter());
     }
 
     @Override
@@ -117,11 +107,6 @@ public class ClientWebSocket extends BaseWebSocket {
      */
     public WebSocket connect(long timeout) {
         try {
-            final ClientHandshake handshake = new ClientHandshake(address);
-            if (logger.isLoggable(Level.FINE)) {
-                logger.log(Level.FINE, "connect websocket handshake={0}", handshake);
-            }
-
             final FutureImpl<Connection> future = SafeFutureImpl.create();
             transport = TCPNIOTransportBuilder.newInstance().build();
             transport.start();
@@ -129,9 +114,13 @@ public class ClientWebSocket extends BaseWebSocket {
                 @Override
                 protected void preConfigure(Connection conn) {
                     super.preConfigure(conn);
-                    final WebSocketHolder holder = WebSocketEngine.getEngine().setWebSocketHolder(conn,
-                        ClientWebSocket.this);
+                    final ProtocolHandler handler = version.createHandler(true);
+                    /*
                     holder.handshake = handshake;
+                     */
+                    final WebSocketHolder holder = WebSocketEngine.getEngine().setWebSocketHolder(conn, handler,
+                        WebSocketClient.this);
+                    holder.handshake = handler.createHandShake(address);
                     connection = conn;
                 }
             };
@@ -144,9 +133,8 @@ public class ClientWebSocket extends BaseWebSocket {
                 }
             });
             connectorHandler.setProcessor(createFilterChain());
-            final URI uri = handshake.getURI();
             // start connect
-            connectorHandler.connect(new InetSocketAddress(uri.getHost(), uri.getPort()),
+            connectorHandler.connect(new InetSocketAddress(address.getHost(), address.getPort()),
                 new WebSocketCompletionHandler(future));
 
             connection = future.get(timeout, TimeUnit.SECONDS);
@@ -166,5 +154,19 @@ public class ClientWebSocket extends BaseWebSocket {
         clientFilterChainBuilder.add(new WebSocketFilter());
 
         return clientFilterChainBuilder.build();
+    }
+
+    private class WebSocketCloseAdapter extends WebSocketAdapter {
+        @Override
+        public void onClose(WebSocket socket, DataFrame frame) {
+            super.onClose(socket, frame);
+            if (transport != null) {
+                try {
+                    transport.stop();
+                } catch (IOException e) {
+                    logger.log(Level.INFO, e.getMessage(), e);
+                }
+            }
+        }
     }
 }

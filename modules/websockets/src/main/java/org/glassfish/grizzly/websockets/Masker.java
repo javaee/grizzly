@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,61 +40,65 @@
 
 package org.glassfish.grizzly.websockets;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import java.security.SecureRandom;
 
-import org.glassfish.grizzly.GrizzlyFuture;
+public class Masker {
+    private final NetworkHandler handler;
+    private byte[] mask;
+    private int index = 0;
 
-public class TrackingWebSocket extends WebSocketClient {
-    private final Map<String, Object> sent = new ConcurrentHashMap<String, Object>();
-    private final CountDownLatch received;
-    private String name;
-
-    public TrackingWebSocket(String address, int count, WebSocketListener... listeners)
-        throws IOException, URISyntaxException {
-        super(address, listeners);
-        received = new CountDownLatch(count);
+    public Masker(NetworkHandler handler) {
+        this.handler = handler;
     }
 
-    public TrackingWebSocket(String address, String name, int count, WebSocketListener... listeners)
-        throws IOException, URISyntaxException {
-        super(address, listeners);
-        this.name = name;
-        received = new CountDownLatch(count);
+    public byte unmask() {
+        final byte b = handler.get();
+        return mask == null ? b : (byte) (b ^ mask[index++ % WebSocketEngine.MASK_SIZE]);
     }
 
-    @Override
-    public GrizzlyFuture<DataFrame> send(String data) {
-        sent.put(data, Boolean.FALSE);
-        return super.send(data);
+    public byte[] unmask(int count) {
+        byte[] bytes = handler.get(count);
+        if (mask != null) {
+            for (int i = 0; i < bytes.length; i++) {
+                bytes[i] ^= mask[index++ % WebSocketEngine.MASK_SIZE];
+            }
+        }
+
+        return bytes;
     }
 
-    @Override
-    public void onMessage(String message) {
-        super.onMessage(message);
-        if(sent.remove(message) != null) {
-            received.countDown();
+    public void generateMask() {
+        mask = new byte[WebSocketEngine.MASK_SIZE];
+        new SecureRandom().nextBytes(mask);
+    }
+
+    public void mask(byte[] bytes, int location, byte b) {
+        bytes[location] = mask == null ? b : (byte) (b ^ mask[index++ % WebSocketEngine.MASK_SIZE]);
+    }
+
+    public void mask(byte[] target, int location, byte[] bytes) {
+        if(bytes != null && target != null) {
+            for (int i = 0; i < bytes.length; i++) {
+                target[location + i] = mask == null
+                        ? bytes[i]
+                        : (byte) (bytes[i] ^ mask[index++ % WebSocketEngine.MASK_SIZE]);
+            }
         }
     }
 
-    @Override
-    public void onConnect() {
-        super.onConnect();
+    public byte[] maskAndPrepend(byte[] packet, Masker masker) {
+        byte[] masked = new byte[packet.length + WebSocketEngine.MASK_SIZE];
+        System.arraycopy(masker.getMask(), 0, masked, 0, WebSocketEngine.MASK_SIZE);
+        masker.mask(masked, WebSocketEngine.MASK_SIZE, packet);
+        return masked;
     }
 
-    public boolean waitOnMessages() throws InterruptedException {
-        return received.await(WebSocketEngine.DEFAULT_TIMEOUT*10, TimeUnit.SECONDS);
+
+    public byte[] getMask() {
+        return mask;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public CountDownLatch getReceived() {
-        return received;
+    public void setMask(byte[] mask) {
+        this.mask = mask;
     }
 }

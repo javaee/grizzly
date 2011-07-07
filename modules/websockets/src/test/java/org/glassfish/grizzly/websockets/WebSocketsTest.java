@@ -109,9 +109,9 @@ public class WebSocketsTest {
         final CountDownLatch connected = new CountDownLatch(1);
         final CountDownLatch received = new CountDownLatch(MESSAGE_COUNT);
 
-        ClientWebSocket client = null;
+        WebSocketClient client = null;
         try {
-            client = new ClientWebSocket(String.format("ws://localhost:%s/echo", PORT), new WebSocketAdapter() {
+            client = new WebSocketClient(String.format("ws://localhost:%s/echo", PORT), new WebSocketAdapter() {
                 @Override
                 public void onMessage(WebSocket socket, String data) {
                     sent.remove(data);
@@ -151,13 +151,13 @@ public class WebSocketsTest {
         server.register("/echo", new EchoApplication());
         server.start();
 
-        ClientWebSocket client = null;
+        WebSocketClient client = null;
         final EchoWebSocketApplication app = new EchoWebSocketApplication();
         try {
             WebSocketEngine.getEngine().register(app);
             final Map<String, Object> messages = new ConcurrentHashMap<String, Object>();
             final CountDownLatch received = new CountDownLatch(MESSAGE_COUNT);
-            client = new ClientWebSocket(String.format("ws://localhost:%s/echo", PORT), new WebSocketAdapter() {
+            client = new WebSocketClient(String.format("ws://localhost:%s/echo", PORT), new WebSocketAdapter() {
                 @Override
                 public void onMessage(WebSocket socket, String data) {
                     messages.remove(data);
@@ -192,10 +192,10 @@ public class WebSocketsTest {
         server.start();
 
         final EchoWebSocketApplication app = new EchoWebSocketApplication();
-        ClientWebSocket socket = null;
+        WebSocketClient socket = null;
         try {
             WebSocketEngine.getEngine().register(app);
-            socket = new ClientWebSocket("wss://localhost:" + PORT + "/echo");
+            socket = new WebSocketClient("wss://localhost:" + PORT + "/echo");
             socket.connect();
 
         } finally {

@@ -41,21 +41,27 @@
 package org.glassfish.grizzly.websockets;
 
 public class WebSocketAdapter implements WebSocketListener {
-    public void onClose(WebSocket socket) {
+    public void onClose(WebSocket socket, DataFrame frame) {
     }
 
     public void onConnect(WebSocket socket) {
     }
 
-    @Override
     public void onMessage(WebSocket socket, String text) {
     }
 
-    @Override
     public void onMessage(WebSocket socket, byte[] bytes) {
     }
 
-    @Override
-    public void onPing(byte[] bytes) {
+    public void onPing(WebSocket socket, byte[] bytes) {
+    }
+
+    public void onPong(WebSocket socket, byte[] bytes) {
+    }
+
+    public void onFragment(WebSocket socket, String fragment, boolean last) {
+    }
+
+    public void onFragment(WebSocket socket, byte[] fragment, boolean last) {
     }
 }

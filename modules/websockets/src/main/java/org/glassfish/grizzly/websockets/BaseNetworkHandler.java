@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,64 +37,65 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.websockets;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import java.nio.BufferUnderflowException;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.util.List;
 
-import org.glassfish.grizzly.GrizzlyFuture;
+import org.glassfish.grizzly.Buffer;
 
-public class TrackingWebSocket extends WebSocketClient {
-    private final Map<String, Object> sent = new ConcurrentHashMap<String, Object>();
-    private final CountDownLatch received;
-    private String name;
+public abstract class BaseNetworkHandler implements NetworkHandler {
+    protected Buffer buffer;
 
-    public TrackingWebSocket(String address, int count, WebSocketListener... listeners)
-        throws IOException, URISyntaxException {
-        super(address, listeners);
-        received = new CountDownLatch(count);
-    }
+    public String readLine(String encoding) throws IOException {
+        final int position = buffer.position();
+        try {
+            ByteBuffer chunk = ByteBuffer.allocate(buffer.remaining());
+            buffer.get(chunk);
 
-    public TrackingWebSocket(String address, String name, int count, WebSocketListener... listeners)
-        throws IOException, URISyntaxException {
-        super(address, listeners);
-        this.name = name;
-        received = new CountDownLatch(count);
-    }
-
-    @Override
-    public GrizzlyFuture<DataFrame> send(String data) {
-        sent.put(data, Boolean.FALSE);
-        return super.send(data);
-    }
-
-    @Override
-    public void onMessage(String message) {
-        super.onMessage(message);
-        if(sent.remove(message) != null) {
-            received.countDown();
+            int eolIdx = 0;
+            int index = 0;
+            while(eolIdx == 0 && index < chunk.limit()) {
+                final byte b = chunk.get(index);
+                if(b == '\n' || b == '\r') {
+                    eolIdx = index;
+                    if(index + 1 < chunk.limit()) {
+                        final byte next = chunk.get(index + 1);
+                        if(next == '\n' || next == '\r') {
+                            eolIdx++;
+                            index++;
+                        }
+                    }
+                } else {
+                    index++;
+                }
+            }
+            if (eolIdx != -1) {
+                String result = buffer.toStringContent(Charset.forName(encoding), position, eolIdx);
+                buffer.position(eolIdx+1);
+                return result;
+            }
+        } catch (BufferUnderflowException e) {
+            buffer.position(position);
+            throw e;
         }
+        return null;
+    }
+
+    public List<String> getBytes() {
+        return getByteList(buffer.position(), buffer.limit());
+    }
+
+    private List<String> getByteList(final int start, final int end) {
+        return WebSocketEngine.toString(buffer.toByteBuffer(start, end).array(), start, end);
     }
 
     @Override
-    public void onConnect() {
-        super.onConnect();
-    }
-
-    public boolean waitOnMessages() throws InterruptedException {
-        return received.await(WebSocketEngine.DEFAULT_TIMEOUT*10, TimeUnit.SECONDS);
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public CountDownLatch getReceived() {
-        return received;
+    public String toString() {
+        return String
+            .format("Active: %s" /*+ ", Full: %s"*/, getBytes().toString()/*, getByteList(0, buffer.getEnd())*/);
     }
 }

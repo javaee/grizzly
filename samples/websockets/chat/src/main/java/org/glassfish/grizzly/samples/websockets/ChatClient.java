@@ -46,7 +46,7 @@ import java.net.URI;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.glassfish.grizzly.websockets.ClientWebSocket;
+import org.glassfish.grizzly.websockets.WebSocketClient;
 import org.glassfish.grizzly.websockets.DataFrame;
 import org.glassfish.grizzly.websockets.WebSocket;
 
@@ -56,7 +56,7 @@ import org.glassfish.grizzly.websockets.WebSocket;
  *
  * @author Alexey Stashok
  */
-public class ChatClient extends ClientWebSocket {
+public class ChatClient extends WebSocketClient {
     // regexp pattern to extract user name and message
     private static final Pattern PATTERN = Pattern.compile(
         "window.parent.app.update\\(\\{ name: \"(.*)\", message: \"(.*)\" \\}\\);");

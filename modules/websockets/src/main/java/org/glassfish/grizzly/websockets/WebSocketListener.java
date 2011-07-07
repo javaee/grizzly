@@ -41,7 +41,7 @@
 package org.glassfish.grizzly.websockets;
 
 public interface WebSocketListener {
-    void onClose(WebSocket socket);
+    void onClose(WebSocket socket, DataFrame frame);
 
     void onConnect(WebSocket socket);
 
@@ -49,5 +49,11 @@ public interface WebSocketListener {
 
     void onMessage(WebSocket socket, byte[] bytes);
 
-    void onPing(byte[] bytes);
+    void onPing(WebSocket socket, byte[] bytes);
+
+    void onPong(WebSocket socket, byte[] bytes);
+
+    void onFragment(WebSocket socket, String fragment, boolean last);
+
+    void onFragment(WebSocket socket, byte[] fragment, boolean last);
 }

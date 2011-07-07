@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly.websockets;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -74,7 +76,7 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
     }
 
     public WebSocket createSocket(Connection connection, WebSocketListener... listeners) {
-        return new BaseWebSocket(connection, listeners);
+        return new DefaultWebSocket(connection, listeners);
     }
 
     /**
@@ -83,11 +85,11 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
      *
      * @throws HandshakeException error occurred during the handshake.
      */
-    protected void handshake(ServerHandshake handshake) throws HandshakeException {
+    protected void handshake(HandShake handshake) throws HandshakeException {
     }
 
     @Override
-    public void onClose(WebSocket socket) {
+    public void onClose(WebSocket socket, DataFrame frame) {
         remove(socket);
         socket.close();
     }
@@ -115,4 +117,14 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
      * @return true if this application can service this Request
      */
     public abstract boolean isApplicationRequest(HttpRequestPacket request);
+
+
+    public List<String> getSupportedExtensions() {
+        return Collections.emptyList();
+    }
+
+    public List<String> getSupportedProtocols(List<String> subProtocol) {
+        return Collections.emptyList();
+    }
+
 }

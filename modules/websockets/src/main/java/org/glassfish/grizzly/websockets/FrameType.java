@@ -37,69 +37,15 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.websockets;
 
-import java.io.UnsupportedEncodingException;
+public interface FrameType {
+    void respond(WebSocket socket, DataFrame frame);
 
-public enum FrameType {
-    CONTINUATION,
-    CLOSING {
-        @Override
-        public void respond(WebSocket socket, DataFrame frame) {
-            socket.onClose(frame);
-        }
-    },
-    PING {
-        @Override
-        public void respond(WebSocket socket, DataFrame frame) {
-            socket.onPing(frame);
-        }
-    },
-    PONG,
-    TEXT {
-        @Override
-        public void unframe(DataFrame frame, byte[] data) {
-            try {
-                frame.setPayload(new String(data, "UTF-8"));
-            } catch (UnsupportedEncodingException e) {
-                throw new FramingException(e.getMessage(), e);
-            }
-        }
+    void setPayload(DataFrame frame, byte[] data);
 
-        @Override
-        public byte[] frame(DataFrame dataFrame) {
-            try {
-                return dataFrame.getTextPayload().getBytes("UTF-8");
-            } catch (UnsupportedEncodingException e) {
-                throw new FramingException(e.getMessage(), e);
-            }
-        }
+    byte[] getBytes(DataFrame dataFrame);
 
-        @Override
-        public void respond(WebSocket socket, DataFrame frame) {
-            socket.onMessage(frame.getTextPayload());
-        }
-    },
-    BINARY;
-
-    public void unframe(DataFrame frame, byte[] data) {
-        frame.setPayload(data);
-        frame.setType(this);
-    }
-
-    public byte[] frame(DataFrame dataFrame) {
-        return dataFrame.getBinaryPayload();
-    }
-
-    public void respond(WebSocket socket, DataFrame frame) {
-        socket.onMessage(frame.getBinaryPayload());
-    }
-
-    public final byte setOpcode(byte b) {
-        return (byte) (b | ordinal());
-    }
-
-    public static FrameType valueOf(byte opcodes) {
-        return values()[(opcodes & 0xF)];
-    }
+    DataFrame create(boolean fin, byte[] data);
 }

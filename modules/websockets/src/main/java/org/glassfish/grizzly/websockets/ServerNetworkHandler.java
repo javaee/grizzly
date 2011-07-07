@@ -40,47 +40,79 @@
 
 package org.glassfish.grizzly.websockets;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
+import org.glassfish.grizzly.Buffer;
 
-import org.glassfish.grizzly.GrizzlyFuture;
+public class ServerNetworkHandler extends BaseNetworkHandler {
+//    private final Request request;
+//    private final Response response;
+//    private final NIOInputStream inputBuffer;
+//    private final OutputBuffer outputBuffer;
 
-public class CountDownWebSocket extends WebSocketClient {
-    private final Object sync = new Object();
-    private int countDown;;
+//    public ServerNetworkHandler(Request req, Response resp) {
+//        request = req;
+//        response = resp;
+//        inputBuffer = req.getInputStream(false);
+//        outputBuffer = resp.getOutputBuffer();
+//    }
 
-    public CountDownWebSocket(String url, WebSocketListener... listeners) throws IOException, URISyntaxException {
-        super(url, listeners);
+    public ServerNetworkHandler(Buffer buffer) {
+        this.buffer = buffer;
     }
 
+/*
     @Override
-    public GrizzlyFuture<DataFrame> send(String data) {
-        synchronized(sync) {
-            countDown++;
-        }
-        
-        return super.send(data);
-    }
-
-    @Override
-    public void onMessage(String data) {
-        synchronized(sync) {
-            if (--countDown == 0) {
-                sync.notify();
+    protected int read() {
+        int read = 0;
+        ByteChunk newChunk = new ByteChunk(WebSocketEngine.INITIAL_BUFFER_SIZE);
+        try {
+            ByteChunk bytes = new ByteChunk(WebSocketEngine.INITIAL_BUFFER_SIZE);
+            if (buffer.getLength() > 0) {
+                newChunk.append(buffer);
             }
+            int count = WebSocketEngine.INITIAL_BUFFER_SIZE;
+            while (count == WebSocketEngine.INITIAL_BUFFER_SIZE) {
+                count = inputBuffer.doRead(bytes, request);
+                newChunk.append(bytes);
+                read += count;
+            }
+        } catch (IOException e) {
+            throw new WebSocketException(e.getMessage(), e);
         }
+
+        if(read == -1) {
+            throw new WebSocketException("Read -1 bytes.  Connection closed?");
+        }
+        buffer.setBytes(newChunk.getBytes(), 0, newChunk.getEnd());
+        return read;
+    }
+*/
+
+    public byte get() {
+        return buffer.get();
     }
 
-    public boolean countDown() {
-        synchronized(sync) {
-            if (countDown == 0) return true;
-            
+    public byte[] get(int count) {
+        byte[] bytes = new byte[count];
+        buffer.get(bytes);
+        return bytes;
+    }
+
+    public void write(byte[] bytes) {
+/*
+        synchronized (outputBuffer) {
             try {
-                sync.wait(30000);
-            } catch (InterruptedException e) {
+                ByteChunk buffer = new ByteChunk();
+                buffer.setBytes(bytes, 0, bytes.length);
+                outputBuffer.doWrite(buffer, response);
+                outputBuffer.flush();
+            } catch (IOException e) {
+                throw new WebSocketException(e.getMessage(), e);
             }
-            
-            return countDown == 0;
         }
+*/
+    }
+
+    public boolean ready() {
+        return buffer.hasRemaining();
     }
 }

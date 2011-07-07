@@ -69,6 +69,17 @@ public interface WebSocket {
      * indicates that an endpoint is terminating the connection because it has received a message that is too large.
      */
     int MESSAGE_TOO_LARGE = 1004;
+    /**
+     * a reserved value and MUST NOT be set as a status code in a Close control frame by an endpoint.  It is designated
+     * for use in applications expecting a status code to indicate that no status code was actually present.
+     */
+    int NO_STATUS_CODE = 1005;
+    /**
+     * a reserved value and MUST NOT be set as a status code in a Close control frame by an endpoint.  It is designated
+     * for use in applications expecting a status code to indicate that the connection was closed abnormally, e.g.
+     * without sending or receiving a Close control frame.
+     */
+    int ABNORMAL_CLOSE = 1006;
 
     /**
      * Send a text frame
@@ -101,9 +112,15 @@ public interface WebSocket {
 
     void onMessage(byte[] bytes);
 
+    void onFragment(boolean last, String payload);
+
+    void onFragment(boolean last, byte[] payload);
+
     void onClose(DataFrame frame);
 
     void onPing(DataFrame frame);
+
+    void onPong(DataFrame frame);
 
     boolean add(WebSocketListener listener);
 

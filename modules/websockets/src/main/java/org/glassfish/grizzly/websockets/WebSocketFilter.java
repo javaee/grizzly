@@ -91,11 +91,12 @@ public class WebSocketFilter extends BaseFilter {
         // Get connection
         final Connection connection = ctx.getConnection();
         // check if it's websocket connection
-        if (!isWebSocketConnection(connection)) {
+        if (!webSocketInProgress(connection)) {
             // if not - pass processing to a next filter
             return ctx.getInvokeAction();
         }
-        ctx.write(WebSocketEngine.getEngine().getWebSocketHolder(connection).handshake.composeHeaders());
+
+        WebSocketEngine.getEngine().getWebSocketHolder(connection).handshake.initiate(ctx);
         ctx.flush(null);
         // call the next filter in the chain
         return ctx.getInvokeAction();
@@ -118,7 +119,7 @@ public class WebSocketFilter extends BaseFilter {
         // Get the Connection
         final Connection connection = ctx.getConnection();
         // check if Connection has associated WebSocket (is websocket)
-        if (isWebSocketConnection(connection)) {
+        if (webSocketInProgress(connection)) {
             // if yes - get websocket
             final WebSocket ws = getWebSocket(connection);
             if (ws != null) {
@@ -161,7 +162,7 @@ public class WebSocketFilter extends BaseFilter {
         }
         if (ws == null || !ws.isConnected()) {
             // If websocket is null - it means either non-websocket Connection, or websocket with incomplete handshake
-            if (!isWebSocketConnection(connection) &&
+            if (!webSocketInProgress(connection) &&
                 !WebSocketEngine.WEBSOCKET.equalsIgnoreCase(header.getUpgrade())) {
                 // if it's not a websocket connection - pass the processing to the next filter
                 return ctx.getInvokeAction();
@@ -177,27 +178,17 @@ public class WebSocketFilter extends BaseFilter {
             // check if we're currently parsing a frame
             try {
                 while (buffer != null && buffer.hasRemaining()) {
-                    DataFrame parsingFrame = holder.frame;
-                    if (parsingFrame == null) {
-                        parsingFrame = new DataFrame();
-                    } else {
-                        if (holder.buffer != null) {
-                            buffer = Buffers
-                                .appendBuffers(MemoryManager.DEFAULT_MEMORY_MANAGER, holder.buffer, buffer);
-                            holder.buffer = null;
-                            holder.frame = null;
-                        }
+                    if (holder.buffer != null) {
+                        buffer = Buffers
+                            .appendBuffers(MemoryManager.DEFAULT_MEMORY_MANAGER, holder.buffer, buffer);
+                        holder.buffer = null;
                     }
-                    final ParseResult result = parsingFrame.unframe(holder.unmaskOnRead, buffer);
-                    buffer = result.getRemainder();
-                    final boolean complete = result.isComplete();
-                    result.recycle();
-                    if (!complete) {
-                        holder.frame = parsingFrame;
+                    final DataFrame result = holder.handler.unframe(buffer);
+                    if (result == null) {
                         holder.buffer = buffer;
                         break;
                     } else {
-                        parsingFrame.respond(holder.webSocket);
+                        result.respond(holder.webSocket);
                     }
                 }
             } catch (FramingException e) {
@@ -228,32 +219,12 @@ public class WebSocketFilter extends BaseFilter {
         final WebSocket websocket = getWebSocket(ctx.getConnection());
         // if there is one
         if (websocket != null) {
-            // take a message as a websocket frame
             final DataFrame frame = (DataFrame) ctx.getMessage();
-            // serialize it into a Buffer
-            byte[] bytes = frame.frame();
-            if (!WebSocketEngine.getEngine().getWebSocketHolder(ctx.getConnection()).unmaskOnRead) {
-                byte[] masked = new byte[bytes.length + 4];
-                final byte[] mask = generateMask();
-                System.arraycopy(mask, 0, masked, 0, WebSocketEngine.MASK_SIZE);
-                for (int i = 0; i < bytes.length; i++) {
-                    masked[i + WebSocketEngine.MASK_SIZE] = (byte) (bytes[i] ^ mask[i % WebSocketEngine.MASK_SIZE]);
-                }
-                bytes = masked;
-            }
-            // set Buffer as message on the context
-            ctx.setMessage(Buffers.wrap(ctx.getMemoryManager(), bytes));
+            final WebSocketHolder holder = WebSocketEngine.getEngine().getWebSocketHolder(ctx.getConnection());
+            ctx.setMessage(Buffers.wrap(ctx.getMemoryManager(), holder.handler.frame(frame)));
         }
         // invoke next filter in the chain
         return ctx.getInvokeAction();
-    }
-
-    public static byte[] generateMask() {
-        byte[] maskBytes = new byte[WebSocketEngine.MASK_SIZE];
-        synchronized (random) {
-            random.nextBytes(maskBytes);
-        }
-        return maskBytes;
     }
 
     /**
@@ -274,16 +245,16 @@ public class WebSocketFilter extends BaseFilter {
     }
 
     private NextAction handleClientHandShake(FilterChainContext ctx, HttpContent content) {
-        final HttpResponsePacket response = (HttpResponsePacket) content.getHttpHeader();
         final WebSocketHolder holder = WebSocketEngine.getEngine().getWebSocketHolder(ctx.getConnection());
-        holder.unmaskOnRead = false;
+/*
         if (response.getStatus() != 101) {
             // if not 101 - error occurred
             throw new HandshakeException(WebSocket.PROTOCOL_ERROR,
                 String.format("Invalid response code returned (%s) with message: %s", response.getStatus(),
                     response.getReasonPhrase()));
         }
-        holder.handshake.validateServerResponse(response);
+*/
+        holder.handshake.validateServerResponse((HttpResponsePacket) content.getHttpHeader());
         holder.webSocket.onConnect();
         return ctx.getStopAction(content);
     }
@@ -296,12 +267,11 @@ public class WebSocketFilter extends BaseFilter {
      *
      * @throws {@link IOException}
      */
-    @SuppressWarnings("unchecked")
     private NextAction handleServerHandshake(FilterChainContext ctx, HttpContent requestContent) throws IOException {
         // get HTTP request headers
         final HttpRequestPacket request = (HttpRequestPacket) requestContent.getHttpHeader();
         try {
-            WebSocketEngine.getEngine().upgrade(ctx, request);
+            WebSocketEngine.getEngine().upgrade(ctx, requestContent);
         } catch (HandshakeException e) {
             ctx.write(composeHandshakeError(request, e));
         }
@@ -313,8 +283,8 @@ public class WebSocketFilter extends BaseFilter {
         return WebSocketEngine.getEngine().getWebSocket(connection);
     }
 
-    private boolean isWebSocketConnection(Connection connection) {
-        return WebSocketEngine.getEngine().isWebSocket(connection);
+    private boolean webSocketInProgress(Connection connection) {
+        return WebSocketEngine.getEngine().webSocketInProgress(connection);
     }
 
     private HttpResponsePacket composeHandshakeError(HttpRequestPacket request, HandshakeException e) {
