@@ -224,7 +224,7 @@ public class LifecycleTest extends BaseWebSocketTestUtilities {
         private final CountDownLatch closed = new CountDownLatch(1);
 
         public BadWebSocketClient(Version version, String address, WebSocketListener... listeners) throws IOException {
-            super(version, address, listeners);
+            super(address, version, listeners);
         }
 
         void killConnection() throws IOException {

@@ -72,7 +72,7 @@ public class ServletBasedTest extends BaseWebSocketTestUtilities {
                 thread = WebSocketsTest.createSelectorThread(WebSocketsTest.PORT, new StaticResourcesAdapter());
         try {
             WebSocketClient socket =
-                    new WebSocketClient(version, String.format("ws://localhost:%s/echo", WebSocketsTest.PORT),
+                    new WebSocketClient(String.format("ws://localhost:%s/echo", WebSocketsTest.PORT), version,
                             new WebSocketAdapter() {
                                 @Override
                                 public void onMessage(WebSocket socket, String frame) {
@@ -99,8 +99,8 @@ public class ServletBasedTest extends BaseWebSocketTestUtilities {
         final SelectorThread
                 thread = WebSocketsTest.createSelectorThread(WebSocketsTest.PORT, new StaticResourcesAdapter());
         try {
-            WebSocketClient socket = new WebSocketClient(version,
-                    String.format("ws://localhost:%s/echo?query=test&param2=bob", WebSocketsTest.PORT),
+            WebSocketClient socket = new WebSocketClient(
+                    String.format("ws://localhost:%s/echo?query=test&param2=bob", WebSocketsTest.PORT), version,
                     new WebSocketAdapter() {
                         @Override
                         public void onMessage(WebSocket socket, String frame) {

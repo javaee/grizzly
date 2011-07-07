@@ -52,6 +52,7 @@ public class WebSocketCloseHandler implements ConnectionCloseHandler {
             final WebSocketSelectionKeyAttachment attachment = (WebSocketSelectionKeyAttachment) key.attachment();
             final ProtocolHandler handler = attachment.getHandler();
             final WebSocket webSocket = handler.getWebSocket();
+            webSocket.setConnected(false);
             webSocket.onClose(null);
             if (!webSocket.isConnected()) {
                 key.cancel();

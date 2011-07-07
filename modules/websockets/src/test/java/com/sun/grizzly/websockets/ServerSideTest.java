@@ -59,7 +59,7 @@ import java.util.concurrent.TimeUnit;
 @RunWith(Parameterized.class)
 public class ServerSideTest extends BaseWebSocketTestUtilities {
 
-    public static final int ITERATIONS = 10000;
+    public static final int ITERATIONS = 50;
     private final Version version;
 
     public ServerSideTest(Version version) {
@@ -89,7 +89,7 @@ public class ServerSideTest extends BaseWebSocketTestUtilities {
             }
 
             Assert.assertTrue("All messages should come back: " + socket.getReceived(), socket.waitOnMessages());
-            time("ServerSideTest.steadyFlow (" + version + ")", start, new Date());
+//            time("ServerSideTest.steadyFlow (" + version + ")", start, new Date());
 
         } finally {
             if (socket != null) {
@@ -140,7 +140,7 @@ public class ServerSideTest extends BaseWebSocketTestUtilities {
                 socket.send("now, we're done: " + count);
                 Assert.assertTrue("Everything should come back", socket.countDown());
             }
-            time("ServerSideTest.sendAndWait (" + version + ")", start, new Date());
+//            time("ServerSideTest.sendAndWait (" + version + ")", start, new Date());
         } finally {
             if (socket != null) {
                 socket.close();
@@ -186,7 +186,7 @@ public class ServerSideTest extends BaseWebSocketTestUtilities {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
         final int count = 5;
         final CountDownLatch received = new CountDownLatch(count);
-        WebSocketClient socket = new WebSocketClient(version, String.format("ws://localhost:%s/echo", PORT)) {
+        WebSocketClient socket = new WebSocketClient(String.format("ws://localhost:%s/echo", PORT), version) {
             @Override
             public void onMessage(WebSocket webSocket, String frame) {
                 received.countDown();

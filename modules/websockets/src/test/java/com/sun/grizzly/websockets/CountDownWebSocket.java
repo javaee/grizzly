@@ -52,7 +52,7 @@ public class CountDownWebSocket extends WebSocketClient {
     private final AtomicInteger countDown = new AtomicInteger(0);
 
     public CountDownWebSocket(Version version, String url, WebSocketListener... listeners) throws IOException {
-        super(version, url, listeners);
+        super(url, version, listeners);
     }
 
     @Override

@@ -78,6 +78,10 @@ public class DefaultWebSocket implements WebSocket {
         return connected.get();
     }
 
+    public boolean setConnected(boolean conn) {
+        return connected.compareAndSet(true, conn);
+    }
+
     public final boolean add(WebSocketListener listener) {
         return listeners.add(listener);
     }

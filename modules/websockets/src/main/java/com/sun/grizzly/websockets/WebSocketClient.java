@@ -58,10 +58,10 @@ public class WebSocketClient extends WebSocketAdapter {
     private NetworkHandler networkHandler;
 
     public WebSocketClient(final String url, final WebSocketListener... listeners) throws IOException {
-        this(WebSocketEngine.DEFAULT_VERSION, url, listeners);
+        this(url, WebSocketEngine.DEFAULT_VERSION, listeners);
     }
 
-    public WebSocketClient(Version version, final String url, final WebSocketListener... listeners) throws IOException {
+    public WebSocketClient(final String url, Version version, final WebSocketListener... listeners) throws IOException {
         address = new URL(url);
         networkHandler = new ClientNetworkHandler(this);
         protocolHandler = version.createHandler(true);

@@ -64,13 +64,14 @@ public class FragmentationTest extends BaseWebSocketTestUtilities {
     public void fragment() throws IOException, InstantiationException, InterruptedException {
         if (version.isFragmentationSupported()) {
             final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter());
-            final WebSocketApplication app = new FragmentedApplication();
+            WebSocketApplication app = null;
             try {
+                app = new FragmentedApplication();
                 final StringBuilder builder = new StringBuilder();
                 WebSocketEngine.getEngine().register(app);
 
                 final CountDownLatch latch = new CountDownLatch(1);
-                WebSocketClient client = new WebSocketClient(version, String.format("ws://localhost:%s/echo", PORT),
+                WebSocketClient client = new WebSocketClient(String.format("ws://localhost:%s/echo", PORT), version,
                         new WebSocketAdapter() {
                             @Override
                             public void onFragment(WebSocket socket, String fragment, boolean last) {
