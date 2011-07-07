@@ -60,9 +60,10 @@ public interface ConnectionProbe {
     /**
      * Method will be called, when server side connection gets accepted.
      *
-     * @param connection {@link Connection}, the event belongs to.
+     * @param serverConnection server {@link Connection}, the event belongs to.
+     * @param clientConnection new client {@link Connection}.
      */
-    public void onAcceptEvent(Connection connection);
+    public void onAcceptEvent(Connection serverConnection, Connection clientConnection);
 
     /**
      * Method will be called, when client side connection gets connected (opened).

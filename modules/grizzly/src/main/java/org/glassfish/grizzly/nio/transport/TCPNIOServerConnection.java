@@ -41,7 +41,6 @@ package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.nio.NIOConnection;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.nio.channels.SelectionKey;
@@ -168,13 +167,13 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
         tcpNIOTransport.configureChannel(acceptedChannel);
     }
 
-    private void registerAcceptedChannel(final SocketChannel acceptedChannel,
+    private TCPNIOConnection registerAcceptedChannel(final SocketChannel acceptedChannel,
             final CompletionHandler<RegisterChannelResult> completionHandler,
             final int initialSelectionKeyInterest)
             throws IOException {
 
         final TCPNIOTransport tcpNIOTransport = (TCPNIOTransport) transport;
-        final NIOConnection connection =
+        final TCPNIOConnection connection =
                 tcpNIOTransport.obtainNIOConnection(acceptedChannel);
 
         if (processor != null) {
@@ -188,6 +187,8 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
         tcpNIOTransport.getNIOChannelDistributor().registerChannelAsync(
                 acceptedChannel, initialSelectionKeyInterest, connection,
                 completionHandler).recycle();
+        
+        return connection;
     }
 
     @Override
@@ -214,6 +215,8 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
      */
     public void onAccept() throws IOException {
 
+        final TCPNIOConnection acceptedConnection;
+        
         if (!isStandalone()) {
             final SocketChannel acceptedChannel = doAccept();
             if (acceptedChannel == null) {
@@ -221,8 +224,8 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
             }
 
             configureAcceptedChannel(acceptedChannel);
-            registerAcceptedChannel(acceptedChannel, defaultCompletionHandler,
-                    SelectionKey.OP_READ);
+            acceptedConnection = registerAcceptedChannel(acceptedChannel,
+                    defaultCompletionHandler, SelectionKey.OP_READ);
         } else {
             synchronized (acceptSync) {
                 if (acceptListener == null) {
@@ -237,14 +240,14 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
                 }
 
                 configureAcceptedChannel(acceptedChannel);
-                registerAcceptedChannel(acceptedChannel,
+                acceptedConnection = registerAcceptedChannel(acceptedChannel,
                         new RegisterAcceptedChannelCompletionHandler(acceptListener),
                         0);
                 acceptListener = null;
             }
         }
 
-        notifyProbesAccept(this);
+        notifyProbesAccept(this, acceptedConnection);
     }
 
     @Override

@@ -464,14 +464,16 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     /**
      * Notify registered {@link ConnectionProbe}s about the accept event.
      *
-     * @param connection the <tt>Connection</tt> event occurred on.
+     * @param serverConnection the server <tt>Connection</tt>, which accepted the client connection.
+     * @param clientConnection the client <tt>Connection</tt>.
      */
-    protected static void notifyProbesAccept(NIOConnection connection) {
+    protected static void notifyProbesAccept(final NIOConnection serverConnection,
+            final NIOConnection clientConnection) {
         final ConnectionProbe[] probes =
-            connection.monitoringConfig.getProbesUnsafe();
+            serverConnection.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (ConnectionProbe probe : probes) {
-                probe.onAcceptEvent(connection);
+                probe.onAcceptEvent(serverConnection, clientConnection);
             }
         }
     }

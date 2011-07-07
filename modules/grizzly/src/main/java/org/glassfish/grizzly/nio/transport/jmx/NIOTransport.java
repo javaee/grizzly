@@ -334,7 +334,8 @@ public class NIOTransport extends JmxObject {
         }
 
         @Override
-        public void onAcceptEvent(Connection connection) {
+        public void onAcceptEvent(Connection serverConnection,
+                Connection clientConnection) {
             openConnectionsNum.incrementAndGet();
             totalConnectionsNum.incrementAndGet();
         }
