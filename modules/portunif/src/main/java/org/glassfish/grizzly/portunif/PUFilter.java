@@ -170,6 +170,8 @@ public class PUFilter extends BaseFilter {
     @Override
     public NextAction handleRead(final FilterChainContext ctx) throws IOException {
         if (isProcessingAttribute.get(ctx) == Boolean.TRUE) {
+            // We get here, when context is resumed after
+            // child protocol chain execution is complete.
             isProcessingAttribute.remove(ctx);
             return ctx.getStopAction();
         }
@@ -186,12 +188,15 @@ public class PUFilter extends BaseFilter {
         PUProtocol protocol = puContext.protocol;
 
         if (protocol == null) {
+            // try to find appropriate protocol
             findProtocol(puContext, ctx);
             protocol = puContext.protocol;
         }
         
         if (protocol != null) {
             if (!puContext.isSticky) {
+                // if not sticky - next request may belong to another protocol
+                // so reset puContext
                 puContext.reset();
             }
             
