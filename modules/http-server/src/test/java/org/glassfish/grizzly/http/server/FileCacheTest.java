@@ -472,7 +472,8 @@ public class FileCacheTest {
         }
 
         @Override
-        public void onAcceptEvent(Connection connection) {
+        public void onAcceptEvent(Connection serverConnection,
+                Connection clientConnection) {
         }
 
         @Override
