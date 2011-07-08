@@ -40,35 +40,21 @@
 
 package com.sun.grizzly.websockets;
 
-import com.sun.grizzly.SSLConfig;
-import com.sun.grizzly.arp.DefaultAsyncHandler;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.servlet.ServletAdapter;
-import com.sun.grizzly.ssl.SSLSelectorThread;
-import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
-import com.sun.grizzly.util.Utils;
-import com.sun.grizzly.util.net.jsse.JSSEImplementation;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 import javax.servlet.Servlet;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.security.SecureRandom;
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
@@ -81,7 +67,6 @@ import java.util.concurrent.TimeUnit;
 public class WebSocketsTest extends BaseWebSocketTestUtilities {
     private static final Object SLUG = new Object();
     private static final int MESSAGE_COUNT = 5;
-    private static SSLConfig sslConfig;
     public static final int PORT = 1725;
     private final Version version;
 
@@ -153,7 +138,6 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
 
             client = new WebSocketClient(String.format("wss://localhost:%s/echo", PORT), version);
             Assert.assertTrue(client.isConnected());
-//            handshake(socket, headers, true);
         } finally {
             if (client != null) {
                 client.close();
@@ -165,63 +149,7 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
         }
     }
 
-    private static void setup() throws URISyntaxException {
-        sslConfig = new SSLConfig();
-        ClassLoader cl = WebSocketsTest.class.getClassLoader();
-        // override system properties
-        URL cacertsUrl = cl.getResource("ssltest-cacerts.jks");
-        String trustStoreFile = new File(cacertsUrl.toURI()).getAbsolutePath();
-        if (cacertsUrl != null) {
-            sslConfig.setTrustStoreFile(trustStoreFile);
-            sslConfig.setTrustStorePass("changeit");
-        }
 
-        // override system properties
-        URL keystoreUrl = cl.getResource("ssltest-keystore.jks");
-        String keyStoreFile = new File(keystoreUrl.toURI()).getAbsolutePath();
-        if (keystoreUrl != null) {
-            sslConfig.setKeyStoreFile(keyStoreFile);
-            sslConfig.setKeyStorePass("changeit");
-        }
-
-        SSLConfig.DEFAULT_CONFIG = sslConfig;
-
-        System.setProperty("javax.net.ssl.trustStore", trustStoreFile);
-        System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
-        System.setProperty("javax.net.ssl.keyStore", keyStoreFile);
-        System.setProperty("javax.net.ssl.keyStorePassword", "changeit");
-    }
-
-    public SSLSocketFactory getSSLSocketFactory() throws IOException {
-        try {
-            //---------------------------------
-            // Create a trust manager that does not validate certificate chains
-            TrustManager[] trustAllCerts = new TrustManager[]{
-                    new X509TrustManager() {
-                        public X509Certificate[] getAcceptedIssuers() {
-                            return null;
-                        }
-
-                        public void checkClientTrusted(
-                                X509Certificate[] certs, String authType) {
-                        }
-
-                        public void checkServerTrusted(
-                                X509Certificate[] certs, String authType) {
-                        }
-                    }
-            };
-            // Install the all-trusting trust manager
-            SSLContext sc = SSLContext.getInstance("SSL");
-            sc.init(null, trustAllCerts, new SecureRandom());
-            //---------------------------------
-            return sc.getSocketFactory();
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new IOException(e.getMessage());
-        } finally {
-        }
-    }
 
     private void send(WebSocketClient client, Map<String, Object> messages, final String message) {
         messages.put(message, SLUG);
@@ -258,9 +186,7 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
             final URLConnection urlConnection = url.openConnection();
             is = urlConnection.getInputStream();
             final byte[] bytes = new byte[1024];
-            final int i = is.read(bytes);
-            final String text = new String(bytes, 0, i);
-            Assert.assertEquals(EchoServlet.RESPONSE_TEXT, text);
+            Assert.assertEquals(EchoServlet.RESPONSE_TEXT, new String(bytes, 0, is.read(bytes)));
         } finally {
             if (thread != null) {
                 thread.stopEndpoint();
@@ -280,43 +206,13 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
         final InputStream content = (InputStream) urlConnection.getContent();
         try {
             final byte[] bytes = new byte[1024];
-            final int i = content.read(bytes);
-            Assert.assertEquals(EchoServlet.RESPONSE_TEXT, new String(bytes, 0, i));
+            Assert.assertEquals(EchoServlet.RESPONSE_TEXT, new String(bytes, 0, content.read(bytes)));
         } finally {
             content.close();
             thread.stopEndpoint();
         }
     }
 
-    public static SSLSelectorThread createSSLSelectorThread(int port, Adapter adapter) throws Exception {
-        setup();
-        SSLSelectorThread st = new SSLSelectorThread();
-        configure(port, adapter, st);
 
-        st.setSSLConfig(sslConfig);
-        try {
-            st.setSSLImplementation(new JSSEImplementation());
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-
-        st.listen();
-
-        return st;
-
-    }
-
-    private static void configure(int port, Adapter adapter, SelectorThread st) {
-        st.setSsBackLog(8192);
-        st.setCoreThreads(2);
-        st.setMaxThreads(2);
-        st.setPort(port);
-        st.setDisplayConfiguration(Utils.VERBOSE_TESTS);
-        st.setAdapter(adapter);
-        st.setAsyncHandler(new DefaultAsyncHandler());
-        st.setEnableAsyncExecution(true);
-        st.getAsyncHandler().addAsyncFilter(new WebSocketAsyncFilter());
-        st.setTcpNoDelay(true);
-    }
 
 }

@@ -40,13 +40,25 @@
 
 package com.sun.grizzly.websockets;
 
+import com.sun.grizzly.SSLConfig;
 import com.sun.grizzly.arp.DefaultAsyncHandler;
 import com.sun.grizzly.http.SelectorThread;
+import com.sun.grizzly.ssl.SSLSelectorThread;
 import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.util.Utils;
+import com.sun.grizzly.util.net.jsse.JSSEImplementation;
 import org.junit.runners.Parameterized;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -66,6 +78,13 @@ public class BaseWebSocketTestUtilities {
             throws IOException, InstantiationException {
         SelectorThread st = new SelectorThread();
 
+        configure(port, adapter, st);
+        st.listen();
+
+        return st;
+    }
+
+    private static void configure(int port, Adapter adapter, SelectorThread st) {
         st.setSsBackLog(8192);
         st.setCoreThreads(2);
         st.setMaxThreads(2);
@@ -76,8 +95,83 @@ public class BaseWebSocketTestUtilities {
         st.setEnableAsyncExecution(true);
         st.getAsyncHandler().addAsyncFilter(new WebSocketAsyncFilter());
         st.setTcpNoDelay(true);
+    }
+
+    public static SSLSelectorThread createSSLSelectorThread(int port, Adapter adapter) throws Exception {
+        final SSLConfig sslConfig = setup();
+        SSLSelectorThread st = new SSLSelectorThread();
+        configure(port, adapter, st);
+
+        st.setSSLConfig(sslConfig);
+        try {
+            st.setSSLImplementation(new JSSEImplementation());
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
         st.listen();
 
         return st;
+
     }
+
+    private static SSLConfig setup() throws URISyntaxException {
+        SSLConfig sslConfig = new SSLConfig();
+        ClassLoader cl = WebSocketsTest.class.getClassLoader();
+        // override system properties
+        URL cacertsUrl = cl.getResource("ssltest-cacerts.jks");
+        String trustStoreFile = new File(cacertsUrl.toURI()).getAbsolutePath();
+        if (cacertsUrl != null) {
+            sslConfig.setTrustStoreFile(trustStoreFile);
+            sslConfig.setTrustStorePass("changeit");
+        }
+
+        // override system properties
+        URL keystoreUrl = cl.getResource("ssltest-keystore.jks");
+        String keyStoreFile = new File(keystoreUrl.toURI()).getAbsolutePath();
+        if (keystoreUrl != null) {
+            sslConfig.setKeyStoreFile(keyStoreFile);
+            sslConfig.setKeyStorePass("changeit");
+        }
+
+        SSLConfig.DEFAULT_CONFIG = sslConfig;
+
+        System.setProperty("javax.net.ssl.trustStore", trustStoreFile);
+        System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
+        System.setProperty("javax.net.ssl.keyStore", keyStoreFile);
+        System.setProperty("javax.net.ssl.keyStorePassword", "changeit");
+
+        return sslConfig;
+    }
+    public SSLSocketFactory getSSLSocketFactory() throws IOException {
+        try {
+            //---------------------------------
+            // Create a trust manager that does not validate certificate chains
+            TrustManager[] trustAllCerts = new TrustManager[]{
+                    new X509TrustManager() {
+                        public X509Certificate[] getAcceptedIssuers() {
+                            return null;
+                        }
+
+                        public void checkClientTrusted(
+                                X509Certificate[] certs, String authType) {
+                        }
+
+                        public void checkServerTrusted(
+                                X509Certificate[] certs, String authType) {
+                        }
+                    }
+            };
+            // Install the all-trusting trust manager
+            SSLContext sc = SSLContext.getInstance("SSL");
+            sc.init(null, trustAllCerts, new SecureRandom());
+            //---------------------------------
+            return sc.getSocketFactory();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IOException(e.getMessage());
+        } finally {
+        }
+    }
+
 }

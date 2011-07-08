@@ -87,12 +87,13 @@ public abstract class HandShake {
 
         origin = url.getHost();
         serverHostName = url.getHost();
-        secure = "wss://".equals(url.getProtocol());
+        secure = "wss".equals(url.getProtocol());
         port = url.getPort();
         buildLocation();
     }
 
     public HandShake(Request request) {
+        setSecure(request.scheme().equals("https"));
         MimeHeaders mimeHeaders = request.getMimeHeaders();
         checkForHeader(mimeHeaders, "Upgrade", "WebSocket");
         checkForHeader(mimeHeaders, "Connection", "Upgrade");
@@ -176,7 +177,7 @@ public abstract class HandShake {
         return secure;
     }
 
-    public void setSecure(boolean secure) {
+    public final void setSecure(boolean secure) {
         this.secure = secure;
     }
 
