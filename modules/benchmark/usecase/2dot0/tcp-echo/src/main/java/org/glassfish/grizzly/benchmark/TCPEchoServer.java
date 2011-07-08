@@ -74,7 +74,7 @@ public class TCPEchoServer {
 
         int poolSize = (settings.getWorkerThreads());
 
-        final ThreadPoolConfig tpc = ThreadPoolConfig.defaultConfig().clone().
+        final ThreadPoolConfig tpc = ThreadPoolConfig.defaultConfig().copy().
                 setPoolName("Grizzly-BM").
                 setCorePoolSize(poolSize).setMaxPoolSize(poolSize);
 
