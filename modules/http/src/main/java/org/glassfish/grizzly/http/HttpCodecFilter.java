@@ -903,7 +903,7 @@ public abstract class HttpCodecFilter extends BaseFilter
             final MimeHeaders mimeHeaders, final HeaderParsingState parsingState,
             final Buffer input) {
         final int limit = Math.min(input.limit(), parsingState.packetLimit);
-        int start = parsingState.start;
+        final int start = parsingState.start;
         int offset = parsingState.offset;
 
         while(offset < limit) {
@@ -911,7 +911,7 @@ public abstract class HttpCodecFilter extends BaseFilter
             if (b == Constants.COLON) {
 
                 parsingState.headerValueStorage =
-                        mimeHeaders.addValue(input, parsingState.start, offset);
+                        mimeHeaders.addValue(input, start, offset - start);
                 parsingState.offset = offset + 1;
                 finalizeKnownHeaderNames(httpHeader, parsingState, input,
                         start, offset);

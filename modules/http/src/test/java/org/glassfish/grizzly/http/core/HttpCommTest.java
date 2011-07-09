@@ -71,6 +71,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import junit.framework.TestCase;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.utils.DataStructures;
 
 /**
@@ -166,8 +169,17 @@ public class HttpCommTest extends TestCase {
 
             HttpResponsePacket response = request.getResponse();
             HttpStatus.OK_200.setValues(response);
+
             response.addHeader("Content-Length", "0");
-            response.addHeader("Found", request.getRequestURI());
+            
+            // Set header using headers collection (just for testing reasons)            
+            final String junk = "---junk---";
+            final Buffer foundBuffer = 
+                    Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, junk + "Found");
+            response.getHeaders()
+                    .addValue(foundBuffer, junk.length(), foundBuffer.remaining() - junk.length())
+                    .setString(request.getRequestURI());
+//            response.addHeader("Found", request.getRequestURI());
             
             ctx.write(response);
 
