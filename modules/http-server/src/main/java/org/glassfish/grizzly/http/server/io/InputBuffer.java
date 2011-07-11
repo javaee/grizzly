@@ -367,8 +367,14 @@ public class InputBuffer {
         if (target == null) {
             throw new IllegalArgumentException("target cannot be null.");
         }
-
-        return fillChar(target.capacity(), target, !asyncEnabled, true);
+        final int read = fillChar(target.capacity(), target, !asyncEnabled, true);
+        if (readAheadLimit != -1) {
+            readCount += read;
+            if (readCount > readAheadLimit) {
+                markPos = -1;
+            }
+        }
+        return read;
 
     }
 
@@ -463,16 +469,13 @@ public class InputBuffer {
 
     /**
      * <p>
-     * Only supported with binary data.
+     * Supported with binary and character data.
      * </p>
      *
      * @see java.io.InputStream#mark(int)
+     * @see java.io.Reader#mark(int)
      */
     public void mark(final int readAheadLimit) {
-
-        if (processingChars) {
-            throw new IllegalStateException();
-        }
 
         if (readAheadLimit > 0) {
             markPos = inputContentBuffer.position();
@@ -511,15 +514,13 @@ public class InputBuffer {
         if (closed) {
             throw new IOException();
         }
-        if (processingChars) {
-            throw new IllegalStateException();
-        }
+
         if (readAheadLimit == -1 && markPos == -1) {
-            throw new IOException();
+            throw new IOException("Mark not set");
         }
         if (readAheadLimit != -1) {
             if (markPos == -1) {
-                throw new IOException();
+                throw new IOException("Mark not set");
             }
             readCount = 0;
         }

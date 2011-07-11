@@ -97,26 +97,26 @@ final class NIOReaderImpl extends NIOReader implements Cacheable {
     }
 
     /**
-     * This {@link Reader} implementation does not support marking.
+     * This {@link java.io.Reader} implementation supports marking.
      *
-     * @return <code>false</code>
+     * @return <code>true</code>
      */
     @Override public boolean markSupported() {
-        return false;
+        return true;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override public void mark(int readAheadLimit) throws IOException {
-        throw new IOException();
+        inputBuffer.mark(readAheadLimit);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override public void reset() throws IOException {
-        throw new IOException();
+        inputBuffer.reset();
     }
 
     /**
