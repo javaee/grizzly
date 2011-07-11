@@ -1730,9 +1730,10 @@ public class Request {
 
 
     /**
-     * @return the {@link InputBuffer} associated with this request.
+     * @return the {@link InputBuffer} associated with this request, which is the
+     * source for {@link #getInputStream(boolean)} and {@link #getReader(boolean)}.
      */
-    protected InputBuffer getInputBuffer() {
+    public InputBuffer getInputBuffer() {
 
         return inputBuffer;
 
