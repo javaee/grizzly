@@ -559,6 +559,11 @@ public final class UDPNIOTransport extends NIOTransport implements
                 workerThreadPool = null;
             }
 
+            if (kernelPool != null) {
+                kernelPool.shutdownNow();
+                kernelPool = null;
+            }
+
             notifyProbesStop(this);
         } finally {
             state.getStateLocker().writeLock().unlock();

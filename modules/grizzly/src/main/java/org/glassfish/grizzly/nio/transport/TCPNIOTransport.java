@@ -315,6 +315,11 @@ public final class TCPNIOTransport extends NIOTransport implements
                 workerThreadPool = null;
             }
 
+            if (kernelPool != null) {
+                kernelPool.shutdownNow();
+                kernelPool = null;
+            }
+
             notifyProbesStop(this);
         } finally {
             state.getStateLocker().writeLock().unlock();
