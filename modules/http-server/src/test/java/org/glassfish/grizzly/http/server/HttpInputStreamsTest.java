@@ -1222,7 +1222,7 @@ public class HttpInputStreamsTest extends TestCase {
 
         HttpRequestPacket request = b.build();
         request.setCharacterEncoding(encoding);
-        request.setContentType("text/plain");
+        //request.setContentType("text/plain");
 
         if (content != null) {
             HttpContent.Builder cb = request.httpContentBuilder();
