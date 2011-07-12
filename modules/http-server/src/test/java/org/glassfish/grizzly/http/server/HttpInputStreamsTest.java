@@ -1197,7 +1197,7 @@ public class HttpInputStreamsTest extends TestCase {
 
     private HttpPacket createRequest(final String method,
                                      final String content) {
-        return createRequest(method, content, "ISO8859-1");
+        return createRequest(method, content, "ISO-8859-1");
     }
 
     @SuppressWarnings({"unchecked"})
