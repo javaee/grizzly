@@ -1222,7 +1222,7 @@ public class HttpInputStreamsTest extends TestCase {
 
         HttpRequestPacket request = b.build();
         request.setCharacterEncoding(encoding);
-        //request.setContentType("text/plain");
+        request.setContentType("text/plain");
 
         if (content != null) {
             HttpContent.Builder cb = request.httpContentBuilder();
@@ -1270,7 +1270,7 @@ public class HttpInputStreamsTest extends TestCase {
             Connection connection = null;
             try {
                 connection = connectFuture.get(10, TimeUnit.SECONDS);
-                testResult.get(10, TimeUnit.SECONDS);
+                testResult.get(20, TimeUnit.SECONDS);
             } finally {
                 // Close the client connection
                 if (connection != null) {
