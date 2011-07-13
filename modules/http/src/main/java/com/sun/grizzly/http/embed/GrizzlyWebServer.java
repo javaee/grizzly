@@ -66,11 +66,12 @@ import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.http.mapper.Mapper;
 import com.sun.grizzly.util.net.jsse.JSSEImplementation;
+import java.net.UnknownHostException;
 
 import javax.management.ObjectInstance;
 import javax.management.ObjectName;
 import java.io.IOException;
-import java.lang.String;
+import java.net.InetAddress;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -323,7 +324,10 @@ import java.util.logging.Logger;
  * @author Jeanfrancois Arcand
  */
 public class GrizzlyWebServer {
-    // The port
+    // The default host
+    private static final String DEFAULT_HOST = "0.0.0.0";
+    
+    // The default port
     private static final int DEFAULT_PORT = 8080;
 
     // The port
@@ -365,6 +369,9 @@ public class GrizzlyWebServer {
     // The {@link Statistis} instance associated with this instance.
     private Statistics statistics;
 
+    // Host 
+    private final String host;
+    
     // Listening port
     private final int port;
     
@@ -445,7 +452,20 @@ public class GrizzlyWebServer {
     
     /**
      * Create a WebServer that listen for secure tls/https requests
+     * @param host The host to listen on.
      * @param port The port opened
+     * @param webResourcesPath the path to the web resource (ex: /var/www)
+     * @param secure <tt>true</tt> if https needs to be used.
+     */
+    public GrizzlyWebServer(String host, int port, String webResourcesPath,
+            boolean secure) throws UnknownHostException {
+        this(host, port, 5, webResourcesPath, secure);
+    }
+
+    
+    /**
+     * Create a WebServer that listen for secure tls/https requests
+     * @param port The port to listen on
      * @param maxThreads The maximum number of Thread created
      * @param webResourcesPath the path to the web resource (ex: /var/www)
      * @param secure <tt>true</tt> if https needs to be used.
@@ -453,8 +473,9 @@ public class GrizzlyWebServer {
      * @deprecated use {@link #setMaxThreads(int)} to set maximum number of
      *             threads in a thread pool
      */
-    public GrizzlyWebServer(int port, int maxThreads, String webResourcesPath,
-            boolean secure) {
+    public GrizzlyWebServer(int port, int maxThreads,
+            String webResourcesPath, boolean secure) {
+        this.host = DEFAULT_HOST;
         this.port = port;
         
         createSelectorThread(port, secure);
@@ -462,13 +483,47 @@ public class GrizzlyWebServer {
         this.webResourcesPath = webResourcesPath;
     }
 
+    /**
+     * Create a WebServer that listen for secure tls/https requests
+     * @param host The host to listen on.
+     * @param port The port to listen on.
+     * @param maxThreads The maximum number of Thread created
+     * @param webResourcesPath the path to the web resource (ex: /var/www)
+     * @param secure <tt>true</tt> if https needs to be used.
+     */
+    protected GrizzlyWebServer(String host, int port, int maxThreads,
+            String webResourcesPath, boolean secure) throws UnknownHostException {
+        
+        this.host = host;
+        this.port = port;
+        
+        createSelectorThread(host, port, secure);
+        setMaxThreads(maxThreads);
+        this.webResourcesPath = webResourcesPath;
+    }
+    
+    /**
+     * Create an underlying {@link SelectorThread}
+     * @param port The port to listen on.
+     * @param secure <tt>true</tt> if https needs to be used.
+     */
+    private void createSelectorThread(int port, boolean secure) {
+        try {
+            createSelectorThread(DEFAULT_HOST, port, secure);
+        } catch (UnknownHostException e) {
+            throw new IllegalStateException("Unexpected exception", e);
+        }
+    }
 
     /**
      * Create an underlying {@link SelectorThread}
-     * @param port The port to listen to.
+     * @param host The host to listen on.
+     * @param port The port to listen on.
      * @param secure <tt>true</tt> if https needs to be used.
      */
-    private void createSelectorThread(int port, boolean secure){
+    private void createSelectorThread(String host, int port, boolean secure)
+            throws UnknownHostException {
+        
         if (secure) {
             SSLSelectorThread sslSelectorThread = new SSLSelectorThread();
             try {
@@ -480,6 +535,8 @@ public class GrizzlyWebServer {
         } else {
             grizzlyListener = new SelectorThread();
         }
+        
+        ((SelectorThread) grizzlyListener).setAddress(InetAddress.getByName(host));
         ((SelectorThread) grizzlyListener).setPort(port);
     }
 
@@ -732,7 +789,7 @@ public class GrizzlyWebServer {
      * @param path the directory to serve static resource from.
      * @return a ready to use {@link GrizzlyWebServer} that listen on port 8080
      */
-    public final static GrizzlyWebServer newConfiguredInstance(String path){
+    public static GrizzlyWebServer newConfiguredInstance(String path){
         GrizzlyWebServer ws = new GrizzlyWebServer(8080);
         ws.addGrizzlyAdapter(new GrizzlyAdapter(path){           
             {
@@ -744,9 +801,9 @@ public class GrizzlyWebServer {
                     response.setStatus(404);
                     response.flushBuffer();
                 } catch (IOException ex) {
-                    final Logger logger = LoggerUtils.getLogger();
-                    if (logger.isLoggable(Level.SEVERE)) {
-                        logger.log(Level.SEVERE,
+                    final Logger localLogger = LoggerUtils.getLogger();
+                    if (localLogger.isLoggable(Level.SEVERE)) {
+                        localLogger.log(Level.SEVERE,
                                    LogMessages.SEVERE_GRIZZLY_HTTP_GWS_IO_ERROR(),
                                    ex);
                     }
