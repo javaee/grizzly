@@ -47,7 +47,9 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -94,6 +96,9 @@ public class OutputBuffer {
     // The cloner, which will be responsible for cloning temporaryWriteBuffer,
     // if it's not possible to write its content in this thread
     private final ByteArrayCloner cloner = new ByteArrayCloner();
+    
+    private final List<LifeCycleListener> lifeCycleListeners =
+            new ArrayList<LifeCycleListener>(2);
     
     private boolean committed;
 
@@ -154,18 +159,27 @@ public class OutputBuffer {
 
     public void processingChars() {
         processingChars = true;
+        getEncoder();
     }
 
     public int getBufferSize() {
         return bufferSize;
     }
 
+    public void registerLifeCycleListener(final LifeCycleListener listener) {
+        lifeCycleListeners.add(listener);
+    }
+    
+    public boolean removeLifeCycleListener(final LifeCycleListener listener) {
+        return lifeCycleListeners.remove(listener);
+    }
+    
     public void setBufferSize(final int bufferSize) {
         if (!committed && currentBuffer == null) {
             this.bufferSize = bufferSize;  
         }
     }
-
+    
     /**
      * Reset current response.
      *
@@ -187,6 +201,33 @@ public class OutputBuffer {
     }
 
 
+    /**
+     * @return <code>true</code> if this <tt>OutputBuffer</tt> is closed, otherwise
+     *  returns <code>false</code>.
+     */
+    public boolean isClosed() {
+        return closed;
+    }
+    
+    /**
+     * Get the number of bytes buffered on OutputBuffer and ready to be sent.
+     * 
+     * @return the number of bytes buffered on OutputBuffer and ready to be sent.
+     */
+    public int getBufferedDataSize() {
+        int size = 0;
+        if (compositeBuffer != null) {
+            size += compositeBuffer.remaining();
+        }
+        
+        if (currentBuffer != null) {
+            size += currentBuffer.position();
+        }
+        
+        return size;
+    }
+    
+    
     /**
      * Recycle the output buffer. This should be called when closing the
      * connection.
@@ -220,6 +261,7 @@ public class OutputBuffer {
         closed = false;
         processingChars = false;
 
+        lifeCycleListeners.clear();
     }
 
 
@@ -648,9 +690,10 @@ public class OutputBuffer {
     }
 
     
-    private boolean doCommit() {
+    private boolean doCommit() throws IOException {
 
         if (!committed) {
+            notifyCommit();
             committed = true;
             return true;
         }
@@ -715,6 +758,12 @@ public class OutputBuffer {
             writeContentChunk(!doCommit(), false);
         }        
     }
+
+    private void notifyCommit() throws IOException {
+        for (int i = 0; i < lifeCycleListeners.size(); i++) {
+            lifeCycleListeners.get(i).onCommit();
+        }
+    }
     
     /**
      * The {@link MessageCloner}, responsible for cloning Buffer content, if it
@@ -755,5 +804,9 @@ public class OutputBuffer {
                 
             return temporaryWriteBuffer.cloneContent();
         }
+    }
+    
+    public static interface LifeCycleListener {
+        public void onCommit() throws IOException;
     }
 }

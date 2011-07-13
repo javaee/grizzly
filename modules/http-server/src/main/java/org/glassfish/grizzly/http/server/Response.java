@@ -384,7 +384,7 @@ public class Response {
 
     }
 
-    private boolean doIsEncodeable(Request request, Session session,
+    private static boolean doIsEncodeable(Request request, Session session,
                                    String location){
         // Is this a valid absolute URL?
         URL url;
