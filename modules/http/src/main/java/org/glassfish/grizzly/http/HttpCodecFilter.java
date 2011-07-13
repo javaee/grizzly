@@ -473,10 +473,14 @@ public abstract class HttpCodecFilter extends BaseFilter
                         connection, emptyContent);
 
                 ctx.setMessage(emptyContent);
+                if (input.remaining() > 0) {
+                    return ctx.getInvokeAction(input);
+                }
                 return ctx.getInvokeAction();
             }
 
         } catch (RuntimeException re) {
+            re.printStackTrace();
             HttpProbeNotifier.notifyProbesError(this, connection, re);
             onHttpError(httpHeader, ctx);
 

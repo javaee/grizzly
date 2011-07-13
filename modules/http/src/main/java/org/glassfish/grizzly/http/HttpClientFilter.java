@@ -48,11 +48,11 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.memory.MemoryManager;
 import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.Queue;
 
 import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.Constants;
+import org.glassfish.grizzly.utils.DataStructures;
 
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 
@@ -70,9 +70,7 @@ import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
  */
 public class HttpClientFilter extends HttpCodecFilter {
 
-    private static final Logger LOGGER = Grizzly.logger(HttpClientFilter.class);
-
-    private final Attribute<HttpRequestPacketImpl> httpRequestInProcessAttr;
+    private final Attribute<Queue<HttpRequestPacketImpl>> httpRequestQueueAttr;
     private final Attribute<HttpResponsePacketImpl> httpResponseInProcessAttr;
 
     /**
@@ -94,7 +92,7 @@ public class HttpClientFilter extends HttpCodecFilter {
         this.httpResponseInProcessAttr =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
                 "HttpClientFilter.httpResponse");
-        this.httpRequestInProcessAttr =
+        this.httpRequestQueueAttr =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
                 "HttpClientFilter.httpRequest");
 
@@ -106,9 +104,10 @@ public class HttpClientFilter extends HttpCodecFilter {
     public NextAction handleWrite(FilterChainContext ctx) throws IOException {
 
         final Connection c = ctx.getConnection();
-        HttpRequestPacketImpl httpRequest = httpRequestInProcessAttr.get(c);
-        if (httpRequest == null) {
-            final Object message = ctx.getMessage();
+        final Queue<HttpRequestPacketImpl> requestQueue = getRequestQueue(c);
+        final Object message = ctx.getMessage();
+        //noinspection SuspiciousMethodCalls
+        if (requestQueue.isEmpty() || !requestQueue.contains(message)) {
             if (HttpHeader.isHttp(message)) {
                 HttpHeader header;
                 if (message instanceof HttpHeader) {
@@ -117,7 +116,7 @@ public class HttpClientFilter extends HttpCodecFilter {
                     header = ((HttpContent) message).getHttpHeader();
                 }
                 if (header.isRequest()) {
-                    httpRequestInProcessAttr.set(c, (HttpRequestPacketImpl) header);
+                    requestQueue.offer((HttpRequestPacketImpl) header);
                 }
             }
         }
@@ -148,7 +147,8 @@ public class HttpClientFilter extends HttpCodecFilter {
         HttpResponsePacketImpl httpResponse = httpResponseInProcessAttr.get(connection);
         if (httpResponse == null) {
             httpResponse = HttpResponsePacketImpl.create();
-            httpResponse.setRequest(httpRequestInProcessAttr.get(connection));
+            final Queue<HttpRequestPacketImpl> requestQueue = getRequestQueue(connection);
+            httpResponse.setRequest(requestQueue.poll());
             httpResponse.initialize(this, input.position(), maxHeadersSize);
             httpResponse.setSecure(isSecure(connection));
             httpResponseInProcessAttr.set(connection, httpResponse);
@@ -162,7 +162,6 @@ public class HttpClientFilter extends HttpCodecFilter {
     @Override
     protected boolean onHttpPacketParsed(HttpHeader httpHeader, FilterChainContext ctx) {
         final Connection connection = ctx.getConnection();
-        clearRequest(connection);
         clearResponse(connection);
         return false;
     }
@@ -236,11 +235,6 @@ public class HttpClientFilter extends HttpCodecFilter {
 
     }
 
-    protected final void clearRequest(final Connection connection) {
-
-        httpRequestInProcessAttr.remove(connection);
-
-    }
 
     @Override
     final boolean decodeInitialLine(final FilterChainContext ctx,
@@ -365,5 +359,16 @@ public class HttpClientFilter extends HttpCodecFilter {
         output = put(memoryManager, output, httpRequest.getProtocolString());
 
         return output;
+    }
+
+    private Queue<HttpRequestPacketImpl> getRequestQueue(final Connection c) {
+
+        Queue<HttpRequestPacketImpl> q = httpRequestQueueAttr.get(c);
+        if (q == null) {
+            q = DataStructures.getLTQInstance(HttpRequestPacketImpl.class);
+            httpRequestQueueAttr.set(c, q);
+        }
+        return q;
+
     }
 }
