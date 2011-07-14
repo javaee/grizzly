@@ -480,7 +480,6 @@ public abstract class HttpCodecFilter extends BaseFilter
             }
 
         } catch (RuntimeException re) {
-            re.printStackTrace();
             HttpProbeNotifier.notifyProbesError(this, connection, re);
             onHttpError(httpHeader, ctx);
 
