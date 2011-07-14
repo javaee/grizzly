@@ -106,8 +106,6 @@ public class OutputBuffer {
 
     private boolean closed;
 
-    private boolean processingChars;
-
     private CharsetEncoder encoder;
 
     private final Map<String, CharsetEncoder> encoders =
@@ -157,8 +155,7 @@ public class OutputBuffer {
     }
 
 
-    public void processingChars() {
-        processingChars = true;
+    public void prepareCharacterEncoder() {
         getEncoder();
     }
 
@@ -190,9 +187,7 @@ public class OutputBuffer {
         if (committed)
             throw new IllegalStateException(/*FIXME:Put an error message*/);
 
-        if (compositeBuffer != null) {
-            compositeBuffer.removeAll();
-        }
+        compositeBuffer = null;
         
         if (currentBuffer != null) {
             currentBuffer.clear();
@@ -259,7 +254,6 @@ public class OutputBuffer {
         committed = false;
         finished = false;
         closed = false;
-        processingChars = false;
 
         lifeCycleListeners.clear();
     }
@@ -312,10 +306,6 @@ public class OutputBuffer {
 
     public void write(char cbuf[], int off, int len) throws IOException {
 
-        if (!processingChars) {
-            throw new IllegalStateException();
-        }
-
         handleAsyncErrors();
 
         if (closed || len == 0) {
@@ -328,10 +318,6 @@ public class OutputBuffer {
 
 
     public void writeChar(int c) throws IOException {
-
-        if (!processingChars) {
-            throw new IllegalStateException();
-        }
 
         handleAsyncErrors();
 
@@ -356,10 +342,6 @@ public class OutputBuffer {
 
 
     public void write(final String str, final int off, final int len) throws IOException {
-
-        if (!processingChars) {
-            throw new IllegalStateException();
-        }
 
         handleAsyncErrors();
 

@@ -273,8 +273,8 @@ public class HttpServerFilter extends BaseFilter
 
         httpRequestInProcessAttr.remove(connection);
 
-        request.onAfterService();
         response.finish();
+        request.onAfterService();
         
         HttpServerProbeNotifier.notifyRequestComplete(this, connection, response);
 

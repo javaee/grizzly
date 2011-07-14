@@ -289,7 +289,7 @@ public abstract class HttpHandler {
         res.setContentLength(bb.limit());
         res.setContentType("text/html");
         OutputBuffer out = res.getOutputBuffer();
-        out.processingChars();
+        out.prepareCharacterEncoder();
         out.write(bb.array(), bb.arrayOffset() + bb.position(), bb.remaining());
         out.close();
     }

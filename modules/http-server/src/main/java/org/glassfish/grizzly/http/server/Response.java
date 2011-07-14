@@ -262,7 +262,6 @@ public class Response {
             new AtomicReference<SuspendState>(SuspendState.DISABLED);
 
     private final SuspendedContextImpl suspendedContext = new SuspendedContextImpl();
-//    private final Object suspendSync = new Object();
 
     private final SuspendStatus suspendStatus = new SuspendStatus();
     
@@ -648,7 +647,7 @@ public class Response {
         setCharacterEncoding(getCharacterEncoding());
 
         usingWriter = true;
-        outputBuffer.processingChars();
+        outputBuffer.prepareCharacterEncoder();
         writer.setOutputBuffer(outputBuffer);
         return writer;
 
