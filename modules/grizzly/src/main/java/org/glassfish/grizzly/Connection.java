@@ -187,8 +187,8 @@ public interface Connection<L> extends Readable<L>, Writable<L>,
     /**
      * Close the {@link Connection}
      *
-     * @param {@link CompletionHandler} to be called, when the connection is
-     *         closed.
+     * @param completionHandler {@link CompletionHandler} to be called, when
+     *  the connection is closed.
      * @return {@link Future}, which could be checked in case, if close operation
      *         will be run asynchronously
      * @throws IOException if I/O error was detected

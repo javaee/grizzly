@@ -48,7 +48,7 @@ import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
 
 /**
- * HTTP upload server, which instantiates two Grizzly {@link HttpHandler}s:
+ * HTTP upload server, which instantiates two Grizzly {@link org.glassfish.grizzly.http.server.HttpHandler}s:
  * {@link FormHttpHandler} on URL http://localhost:18080/,
  * {@link UploaderHttpHandler} on URIL http://localhost:18080/upload.
  * First one is responsible to serve simple HTML upload form and the second one

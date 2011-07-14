@@ -48,7 +48,7 @@ import org.glassfish.grizzly.http.server.HttpServerFilter;
 import org.glassfish.grizzly.http.server.NetworkListener;
 
 /**
- * Ajp {@link AddOn} for the {@link HttpServer}.
+ * Ajp {@link AddOn} for the {@link org.glassfish.grizzly.http.server.HttpServer}.
  *
  * The addon searches for {@link HttpCodecFilter} occurrence in the passed
  * {@link FilterChainBuilder}, removes it and adds 2 filters:

@@ -210,8 +210,9 @@ public class InputBuffer {
 
     /**
      * Set the default character encoding for this <tt>InputBuffer</tt>, which
-     * would be applied if no encoding was explicitly set on HTTP {@link Request}
-     * and character decoding wasn't started yet.
+     * would be applied if no encoding was explicitly set on HTTP
+     * {@link org.glassfish.grizzly.http.server.Request} and character decoding
+     * wasn't started yet.
      */
     public void setDefaultEncoding(final String encoding) {
         this.encoding = encoding;
@@ -664,11 +665,6 @@ public class InputBuffer {
      * becomes available to read without blocking.
      *
      * @param handler the {@link ReadHandler} to invoke.
-     *
-     * @return <code>true<code> if the specified <code>handler</code> has
-     *  been accepted and will be notified as data becomes available to write,
-     *  otherwise returns <code>false</code> which means data is available to
-     *  be read without blocking.
      *
      * @throws IllegalArgumentException if <code>handler</code> is <code>null</code>,
      *  or if <code>size</code> is less than zero.
