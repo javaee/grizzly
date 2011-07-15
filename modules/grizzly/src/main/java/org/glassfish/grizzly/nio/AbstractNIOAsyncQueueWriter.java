@@ -82,12 +82,12 @@ public abstract class AbstractNIOAsyncQueueWriter
 
     private final static Logger logger = Grizzly.logger(AbstractNIOAsyncQueueWriter.class);
 
-    private static final ThreadLocal<Reenterant> REENTERANTS_COUNTER =
-            new ThreadLocal<Reenterant>() {
+    private static final ThreadLocal<Reentrant> REENTERANTS_COUNTER =
+            new ThreadLocal<Reentrant>() {
 
         @Override
-        protected Reenterant initialValue() {
-            return new Reenterant();
+        protected Reentrant initialValue() {
+            return new Reentrant();
         }
     };
 
@@ -103,14 +103,14 @@ public abstract class AbstractNIOAsyncQueueWriter
     // Probably we shouldn't even care it's not volatile
     private IOException cachedIOException;
 
-    private final Attribute<Reenterant> reenterantsAttribute =
+    private final Attribute<Reentrant> reenterantsAttribute =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
             AbstractNIOAsyncQueueWriter.class + ".reenterant",
-            new NullaryFunction<Reenterant>() {
+            new NullaryFunction<Reentrant>() {
 
                 @Override
-                public Reenterant evaluate() {
-                    return new Reenterant();
+                public Reentrant evaluate() {
+                    return new Reentrant();
                 }
             });
 
@@ -224,11 +224,11 @@ public abstract class AbstractNIOAsyncQueueWriter
                     connection, queueRecord, isCurrent);
         }
 
-        Reenterant reenterants = null;
+        Reentrant reentrants = null;
         
         try {
-            if (isCurrent && (reenterants =
-                    getWriteReenterants()).incAndGet() < maxWriteReenterants) {                
+            if (isCurrent && (reentrants =
+                    getWriteReentrants()).incAndGet() < maxWriteReenterants) {
                 
                 // If we can write directly - do it w/o creating queue record (simple)
                 final int bytesWritten = write0(nioConnection, queueRecord);
@@ -254,7 +254,7 @@ public abstract class AbstractNIOAsyncQueueWriter
             }
 
             final SafeFutureImpl<WriteResult<Buffer,SocketAddress>> future = 
-                    SafeFutureImpl.<WriteResult<Buffer,SocketAddress>>create();
+                    SafeFutureImpl.create();
 
             queueRecord.setFuture(future);
             
@@ -288,9 +288,9 @@ public abstract class AbstractNIOAsyncQueueWriter
             onWriteFailure(nioConnection, queueRecord, e);
             return ReadyFutureImpl.create(e);
         } finally {
-            if (reenterants != null) {
-                // If reenterants != null - it means its counter was increased above
-                reenterants.decAndGet();
+            if (reentrants != null) {
+                // If reentrants != null - it means its counter was increased above
+                reentrants.decAndGet();
             }
         }
     }
@@ -460,10 +460,9 @@ public abstract class AbstractNIOAsyncQueueWriter
             completionHandler.completed(currentResult);
         }
 
-        if (originalMessage instanceof Buffer) {
-            // try to dispose originalBuffer (if allowed)
-            ((Buffer) originalMessage).tryDispose();
-        }
+        // try to dispose originalBuffer (if allowed)
+        originalMessage.tryDispose();
+
     }
     
     protected final void onWriteIncomplete(AsyncWriteQueueRecord record)
@@ -523,7 +522,7 @@ public abstract class AbstractNIOAsyncQueueWriter
     protected abstract void onReadyToWrite(Connection connection)
             throws IOException;
 
-    private Reenterant getWriteReenterants() {
+    private Reentrant getWriteReentrants() {
         final Thread t = Thread.currentThread();
         // If it's a Grizzly WorkerThread - use GrizzlyAttribute
         if (WorkerThread.class.isAssignableFrom(t.getClass())) {
@@ -534,7 +533,7 @@ public abstract class AbstractNIOAsyncQueueWriter
         return REENTERANTS_COUNTER.get();
     }
 
-    private static final class Reenterant {
+    private static final class Reentrant {
         private int counter;
         
         public int incAndGet() {

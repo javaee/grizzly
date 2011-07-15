@@ -110,7 +110,7 @@ public class Encoder {
 
     static class LiteralEncoder {
 
-        class Encoder2 {
+        static class Encoder2 {
 
             short[] m_Encoders = new short[0x300];
 

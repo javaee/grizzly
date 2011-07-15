@@ -451,7 +451,7 @@ public final class TCPNIOTransport extends NIOTransport implements
     public TCPNIOServerConnection bind(final String host,
             final PortRange portRange, final int backlog) throws IOException {
 
-        IOException ioException = null;
+        IOException ioException;
 
         final int lower = portRange.getLower();
         final int range = portRange.getUpper() - lower + 1;
@@ -463,9 +463,7 @@ public final class TCPNIOTransport extends NIOTransport implements
             final int port = lower + offset;
 
             try {
-                final TCPNIOServerConnection serverConnection =
-                        bind(host, port, backlog);
-                return serverConnection;
+                return bind(host, port, backlog);
             } catch (IOException e) {
                 ioException = e;
             }
@@ -826,12 +824,12 @@ public final class TCPNIOTransport extends NIOTransport implements
             
             final Processor conProcessor = connection.obtainProcessor(ioEvent);
 
-                if (ProcessorExecutor.execute(Context.create(connection,
-                        conProcessor, ioEvent, processingHandler))) {
-                    return IOEventReg.REGISTER;
-                } else {
-                    return IOEventReg.DEREGISTER;
-                }
+            if (ProcessorExecutor.execute(Context.create(connection,
+                    conProcessor, ioEvent, processingHandler))) {
+                return IOEventReg.REGISTER;
+            } else {
+                return IOEventReg.DEREGISTER;
+            }
         } catch (IOException e) {
             LOGGER.log(Level.FINE, "IOException occurred on fireIOEvent(). "
                     + "Connection={0} event={1}", new Object[] {connection, ioEvent});
@@ -1096,33 +1094,6 @@ public final class TCPNIOTransport extends NIOTransport implements
         return written;
     }
 
-    int write0(final Connection connection, final BufferArray bufferArray)
-    throws IOException {
-
-        final TCPNIOConnection tcpConnection = (TCPNIOConnection) connection;
-        final int written = writeGathered(tcpConnection, bufferArray);
-
-        if (LOGGER.isLoggable(Level.FINE)) {
-            LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (composite) write {1} bytes",
-                    new Object[]{connection, written});
-        }
-
-        return written;
-    }
-
-    int write0(final Connection connection, final Buffer buffer)
-            throws IOException {
-
-        final TCPNIOConnection tcpConnection = (TCPNIOConnection) connection;
-        final int written = writeSimple(tcpConnection, buffer);
-        if (LOGGER.isLoggable(Level.FINE)) {
-            LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (plain) write {1} bytes",
-                    new Object[]{connection, written});
-        }
-
-        return written;
-    }
-    
     private static int writeSimple(final TCPNIOConnection tcpConnection,
             final Buffer buffer) throws IOException {
         final SocketChannel socketChannel = (SocketChannel) tcpConnection.getChannel();

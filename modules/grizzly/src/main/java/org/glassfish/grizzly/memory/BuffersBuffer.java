@@ -1209,7 +1209,7 @@ public final class BuffersBuffer extends CompositeBuffer {
     
     private final SetterImpl setter = new SetterImpl();
 
-    private final class SetterImpl implements Setter {
+    private final static class SetterImpl implements Setter {
         private Buffer buffer;
         private int position;
                 
