@@ -291,8 +291,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
     public void setBufferSize(int size) {
 
         if (isCommitted())
-            throw new IllegalStateException
-                (/*sm.getString("responseBase.reset.ise")*/);
+            throw new IllegalStateException("Illegal attempt to adjust the buffer size after the response has already been committed.");
 
         response.setBufferSize(size);
 
@@ -360,8 +359,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
     public void resetBuffer() {
 
         if (isCommitted())
-            throw new IllegalStateException
-                (/*sm.getString("responseBase.reset.ise")*/);
+            throw new IllegalStateException("Illegal attempt to reset the buffer after the response has already been committed.");
 
         response.resetBuffer();
 
@@ -389,8 +387,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
     public void reset() {
 
         if (isCommitted())
-            throw new IllegalStateException
-                (/*sm.getString("responseBase.reset.ise")*/);
+            throw new IllegalStateException("Illegal attempt to reset the response after it has already been committed.");
 
         response.reset();
 
@@ -517,8 +514,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
         throws IOException {
 
         if (isCommitted())
-            throw new IllegalStateException
-                (/*sm.getString("responseBase.reset.ise")*/);
+            throw new IllegalStateException("Illegal attempt to call sendError() after the response has been committed.");
 
 //        response.setAppCommitted(true);
 
@@ -535,8 +531,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
         throws IOException {
 
         if (isCommitted())
-            throw new IllegalStateException
-                (/*sm.getString("responseBase.reset.ise")*/);
+            throw new IllegalStateException("Illegal attempt to call sendError() after the response has already been committed.");
 
 //        response.setAppCommitted(true);
 
@@ -553,8 +548,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
         throws IOException {
 
         if (isCommitted())
-            throw new IllegalStateException
-                (/*sm.getString("responseBase.reset.ise")*/);
+            throw new IllegalStateException("Illegal attempt to redirect the response after it has been committed.");
 
 //        response.setAppCommitted(true);
 
