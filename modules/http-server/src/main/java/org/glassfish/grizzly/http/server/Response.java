@@ -170,13 +170,6 @@ public class Response {
         "org.glassfish.grizzly.http.server.Response/2.0";
 
 
-    /**
-     * The string manager for this package.
-     */
-//    protected final static StringManager sm =
-//        StringManager.getManager(Constants.Package, Response.class.getClassLoader());
-
-
     // ------------------------------------------------------------- Properties
     /**
      * The request with which this response is associated.
@@ -594,7 +587,7 @@ public class Response {
     public NIOOutputStream getOutputStream() {
 
         if (usingWriter)
-            throw new IllegalStateException("response.getOutputStream.ise");
+            throw new IllegalStateException("Illegal attempt to call getOuputStream() after getWriter() has already been called.");
 
         usingOutputStream = true;
         outputStream.setOutputBuffer(outputBuffer);
@@ -627,7 +620,7 @@ public class Response {
     public NIOWriter getWriter() {
 
         if (usingOutputStream)
-            throw new IllegalStateException("response.getWriter.ise");
+            throw new IllegalStateException("Illegal attempt to call getWriter() after getOutputStream() has already been called.");
 
         /*
          * If the response's character encoding has not been specified as
@@ -715,7 +708,7 @@ public class Response {
     public void resetBuffer(boolean resetWriterStreamFlags) {
 
         if (isCommitted())
-            throw new IllegalStateException("response.resetBuffer.ise");
+            throw new IllegalStateException("Cannot reset buffer after response has been committed.");
 
         outputBuffer.reset();
 
@@ -1142,7 +1135,7 @@ public class Response {
     public void sendError(int status, String message) throws IOException {
         checkResponse();
         if (isCommitted())
-            throw new IllegalStateException("response.sendError.ise");
+            throw new IllegalStateException("Illegal attempt to call sendError() after the response has been committed.");
 
         setError();
 
@@ -1173,7 +1166,7 @@ public class Response {
         throws IOException {
 
         if (isCommitted())
-            throw new IllegalStateException("response.sendRedirect.ise");
+            throw new IllegalStateException("Illegal attempt to redirect the response as the response has been committed.");
 
         // Clear any data content that has been buffered
         resetBuffer();

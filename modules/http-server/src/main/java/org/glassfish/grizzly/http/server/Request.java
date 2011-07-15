@@ -242,12 +242,6 @@ public class Request {
     private MappingData cachedMappingData;
 
     /**
-     * The string manager for this package.
-     */
-//    protected static final StringManager sm =
-//        StringManager.getManager(Constants.Package, Request.class.getClassLoader());
-
-    /**
      * The set of cookies associated with this Request.
      */
     protected Cookie[] cookies = null;
@@ -801,7 +795,7 @@ public class Request {
     public NIOInputStream getInputStream(boolean blocking) {
 
         if (usingReader)
-            throw new IllegalStateException("request.getInputStream.ise");
+            throw new IllegalStateException("Illegal attempt to call getInputStream() after getReader() has already been called.");
 
         usingInputStream = true;
         inputBuffer.setAsyncEnabled(!blocking);
@@ -968,7 +962,7 @@ public class Request {
     public NIOReader getReader(boolean blocking) {
 
         if (usingInputStream)
-            throw new IllegalStateException("request.getReader.ise");
+            throw new IllegalStateException("Illegal attempt to call getReader() after getInputStream() has alread been called.");
 
         usingReader = true;
         inputBuffer.processingChars();
@@ -1088,7 +1082,7 @@ public class Request {
 
         // Name cannot be null
         if (name == null)
-            throw new IllegalArgumentException("request.setAttribute.namenull");
+            throw new IllegalArgumentException("Argument 'name' cannot be null");
 
         // Null value is the same as removeAttribute()
         if (value == null) {
