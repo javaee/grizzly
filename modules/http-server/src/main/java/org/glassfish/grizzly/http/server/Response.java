@@ -96,7 +96,6 @@ import org.glassfish.grizzly.http.util.HttpRequestURIDecoder;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MessageBytes;
 import org.glassfish.grizzly.http.util.MimeHeaders;
-import org.glassfish.grizzly.http.util.StringManager;
 import org.glassfish.grizzly.http.util.UEncoder;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 import org.glassfish.grizzly.utils.DelayedExecutor.DelayQueue;
@@ -174,8 +173,8 @@ public class Response {
     /**
      * The string manager for this package.
      */
-    protected final static StringManager sm =
-        StringManager.getManager(Constants.Package, Response.class.getClassLoader());
+//    protected final static StringManager sm =
+//        StringManager.getManager(Constants.Package, Response.class.getClassLoader());
 
 
     // ------------------------------------------------------------- Properties
@@ -595,8 +594,7 @@ public class Response {
     public NIOOutputStream getOutputStream() {
 
         if (usingWriter)
-            throw new IllegalStateException
-                (sm.getString("response.getOutputStream.ise"));
+            throw new IllegalStateException("response.getOutputStream.ise");
 
         usingOutputStream = true;
         outputStream.setOutputBuffer(outputBuffer);
@@ -629,8 +627,7 @@ public class Response {
     public NIOWriter getWriter() {
 
         if (usingOutputStream)
-            throw new IllegalStateException
-                (sm.getString("response.getWriter.ise"));
+            throw new IllegalStateException("response.getWriter.ise");
 
         /*
          * If the response's character encoding has not been specified as
@@ -718,8 +715,7 @@ public class Response {
     public void resetBuffer(boolean resetWriterStreamFlags) {
 
         if (isCommitted())
-            throw new IllegalStateException
-                (sm.getString("response.resetBuffer.ise"));
+            throw new IllegalStateException("response.resetBuffer.ise");
 
         outputBuffer.reset();
 
@@ -1146,8 +1142,7 @@ public class Response {
     public void sendError(int status, String message) throws IOException {
         checkResponse();
         if (isCommitted())
-            throw new IllegalStateException
-                (sm.getString("response.sendError.ise"));
+            throw new IllegalStateException("response.sendError.ise");
 
         setError();
 
@@ -1178,8 +1173,7 @@ public class Response {
         throws IOException {
 
         if (isCommitted())
-            throw new IllegalStateException
-                (sm.getString("response.sendRedirect.ise"));
+            throw new IllegalStateException("response.sendRedirect.ise");
 
         // Clear any data content that has been buffered
         resetBuffer();

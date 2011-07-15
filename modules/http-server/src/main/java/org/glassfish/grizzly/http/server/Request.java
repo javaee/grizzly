@@ -108,7 +108,6 @@ import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.FastHttpDateFormat;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.Parameters;
-import org.glassfish.grizzly.http.util.StringManager;
 
 /**
  * Wrapper object for the Coyote request.
@@ -245,8 +244,8 @@ public class Request {
     /**
      * The string manager for this package.
      */
-    protected static final StringManager sm =
-        StringManager.getManager(Constants.Package, Request.class.getClassLoader());
+//    protected static final StringManager sm =
+//        StringManager.getManager(Constants.Package, Request.class.getClassLoader());
 
     /**
      * The set of cookies associated with this Request.
@@ -802,8 +801,7 @@ public class Request {
     public NIOInputStream getInputStream(boolean blocking) {
 
         if (usingReader)
-            throw new IllegalStateException
-                (sm.getString("request.getInputStream.ise"));
+            throw new IllegalStateException("request.getInputStream.ise");
 
         usingInputStream = true;
         inputBuffer.setAsyncEnabled(!blocking);
@@ -970,8 +968,7 @@ public class Request {
     public NIOReader getReader(boolean blocking) {
 
         if (usingInputStream)
-            throw new IllegalStateException
-                (sm.getString("request.getReader.ise"));
+            throw new IllegalStateException("request.getReader.ise");
 
         usingReader = true;
         inputBuffer.processingChars();
@@ -1091,8 +1088,7 @@ public class Request {
 
         // Name cannot be null
         if (name == null)
-            throw new IllegalArgumentException
-                (sm.getString("request.setAttribute.namenull"));
+            throw new IllegalArgumentException("request.setAttribute.namenull");
 
         // Null value is the same as removeAttribute()
         if (value == null) {
