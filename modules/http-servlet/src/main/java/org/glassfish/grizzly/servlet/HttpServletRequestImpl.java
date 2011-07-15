@@ -78,11 +78,9 @@ import javax.servlet.http.HttpSession;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.http.Cookie;
-import org.glassfish.grizzly.http.server.Constants;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Session;
 import org.glassfish.grizzly.http.server.util.Enumerator;
-import org.glassfish.grizzly.http.util.StringManager;
 import org.glassfish.grizzly.localization.LogMessages;
 
 /**
@@ -154,8 +152,8 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     /**
      * The string manager for this package.
      */
-    protected static final StringManager sm =
-        StringManager.getManager(Constants.Package, Request.class.getClassLoader());
+//    protected static final StringManager sm =
+//        StringManager.getManager(Constants.Package, Request.class.getClassLoader());
 
 
     /**
@@ -188,8 +186,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public Object getAttribute(String name) {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         return request.getAttribute(name);
@@ -205,8 +202,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public Enumeration getAttributeNames() {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         if (System.getSecurityManager() != null){
@@ -227,8 +223,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public String getCharacterEncoding() {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         if (System.getSecurityManager() != null){
@@ -249,8 +244,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
             throws java.io.UnsupportedEncodingException {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         request.setCharacterEncoding(env);
@@ -265,8 +259,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public int getContentLength() {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         return request.getContentLength();
@@ -281,8 +274,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public String getContentType() {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         return request.getContentType();
@@ -296,8 +288,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     @Override
     public ServletInputStream getInputStream() throws IOException {
         if (usingReader)
-            throw new IllegalStateException
-                (sm.getString("request.getInputStream.ise"));
+            throw new IllegalStateException("request.getInputStream.ise");
 
         usingInputStream = true;
 
@@ -322,8 +313,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public String getParameter(String name) {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         if (System.getSecurityManager() != null){
@@ -344,8 +334,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public Enumeration getParameterNames() {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         if (System.getSecurityManager() != null){
@@ -366,8 +355,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public String[] getParameterValues(String name) {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         String[] ret;
@@ -399,8 +387,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public Map getParameterMap() {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         if (System.getSecurityManager() != null){
@@ -420,8 +407,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public String getProtocol() {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         return request.getProtocol().getProtocolString();
@@ -436,8 +422,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public String getScheme() {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         return request.getScheme();
@@ -452,8 +437,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public String getServerName() {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         return request.getServerName();
@@ -468,8 +452,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public int getServerPort() {
 
         if (request == null) {
-           throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+           throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         return request.getServerPort();
@@ -483,8 +466,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     @Override
     public BufferedReader getReader() throws IOException {
         if (usingInputStream)
-            throw new IllegalStateException
-                (sm.getString("request.getReader.ise"));
+            throw new IllegalStateException("request.getReader.ise");
 
         usingReader = true;
         //inputBuffer.checkConverter();
@@ -505,8 +487,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public String getRemoteAddr() {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         return request.getRemoteAddr();
@@ -521,8 +502,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public String getRemoteHost() {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         return request.getRemoteHost();
@@ -533,8 +513,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public void setAttribute(String name, Object value) {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         Object oldValue = request.getAttribute(name);
@@ -585,8 +564,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public void removeAttribute(String name) {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
         Object value = request.getAttribute(name);
         request.removeAttribute(name);
@@ -625,8 +603,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public Locale getLocale() {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         if (System.getSecurityManager() != null){
@@ -647,8 +624,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public Enumeration getLocales() {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         if (System.getSecurityManager() != null){
@@ -668,8 +644,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public boolean isSecure() {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         return request.isSecure();
@@ -683,7 +658,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     @SuppressWarnings( "unchecked" )
     public RequestDispatcher getRequestDispatcher( String path ) {
         if( request == null ) {
-            throw new IllegalStateException( sm.getString( "requestFacade.nullRequest" ) );
+            throw new IllegalStateException("requestFacade.nullRequest" );
         }
 
         if( System.getSecurityManager() != null ) {
@@ -753,8 +728,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     @Override
     public String getAuthType() {
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         return request.getAuthType();
@@ -765,8 +739,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public Cookie[] getGrizzlyCookies() {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         Cookie[] ret;
@@ -797,8 +770,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public long getDateHeader(String name) {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         return request.getDateHeader(name);
@@ -813,8 +785,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public String getHeader(String name) {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         return request.getHeader(name);
@@ -830,8 +801,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public Enumeration getHeaders(String name) {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         if (System.getSecurityManager() != null){
@@ -852,8 +822,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public Enumeration getHeaderNames() {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         if (System.getSecurityManager() != null){
@@ -873,8 +842,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public int getIntHeader(String name) {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         return request.getIntHeader(name);
@@ -889,8 +857,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public String getMethod() {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         return request.getMethod().getMethodString();
@@ -904,8 +871,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     @Override
     public String getPathInfo(){
         if (request == null){
-            throw new IllegalStateException(
-                    sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         String path = request.getRequestURI();
@@ -954,8 +920,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public String getQueryString() {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         return request.getQueryString();
@@ -970,8 +935,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public String getRemoteUser() {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         return request.getRemoteUser();
@@ -997,8 +961,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public java.security.Principal getUserPrincipal() {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         return request.getUserPrincipal();
@@ -1013,8 +976,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public String getRequestedSessionId() {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         return request.getRequestedSessionId();
@@ -1029,8 +991,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public String getRequestURI() {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         return request.getRequestURI();
@@ -1045,8 +1006,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public StringBuffer getRequestURL() {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         return Request.appendRequestURL(request, new StringBuffer());
@@ -1106,8 +1066,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public HttpSession getSession() {
 
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         return getSession(true);
@@ -1192,8 +1151,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     @Override
     public int getRemotePort() {
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         return request.getRemotePort();
@@ -1206,8 +1164,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     @Override
     public String getLocalName() {
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         return request.getLocalName();
@@ -1220,8 +1177,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     @Override
     public String getLocalAddr() {
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         return request.getLocalAddr();    
@@ -1234,8 +1190,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     @Override
     public int getLocalPort() {
         if (request == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            throw new IllegalStateException("requestFacade.nullRequest");
         }
 
         return request.getLocalPort();  

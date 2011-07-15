@@ -69,9 +69,7 @@ import javax.servlet.ServletOutputStream;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.http.server.Constants;
 import org.glassfish.grizzly.http.server.Response;
-import org.glassfish.grizzly.http.util.StringManager;
 
 
 
@@ -149,8 +147,8 @@ public class HttpServletResponseImpl implements HttpServletResponse {
     /**
      * The string manager for this package.
      */
-    protected static final StringManager sm =
-        StringManager.getManager(Constants.Package, Response.class.getClassLoader());
+//    protected static final StringManager sm =
+//        StringManager.getManager(Constants.Package, Response.class.getClassLoader());
 
 
     /**
@@ -180,7 +178,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 
         if (response == null) {
             throw new IllegalStateException(
-                            sm.getString("HttpServletResponseImpl.nullResponse"));
+                    "HttpServletResponseImpl.nullResponse");
         }
 
 //        response.setSuspended(true);
@@ -193,7 +191,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 //
 //        if (response == null) {
 //            throw new IllegalStateException(
-//                            sm.getString("HttpServletResponseImpl.nullResponse"));
+//                            "HttpServletResponseImpl.nullResponse"));
 //        }
 //
 //        return response.isBufferSuspended();
@@ -212,7 +210,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 
         if (response == null) {
             throw new IllegalStateException(
-                            sm.getString("HttpServletResponseImpl.nullResponse"));
+                    "HttpServletResponseImpl.nullResponse");
         }
 
         return response.getCharacterEncoding();
@@ -227,8 +225,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
         throws IOException {
 
         if (usingWriter)
-            throw new IllegalStateException
-                (sm.getString("response.getOutputStream.ise"));
+            throw new IllegalStateException("response.getOutputStream.ise");
 
         usingOutputStream = true;
         return outputStream;
@@ -253,8 +250,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
         throws IOException {
 
         if (usingOutputStream)
-            throw new IllegalStateException
-                (sm.getString("response.getWriter.ise"));
+            throw new IllegalStateException("response.getWriter.ise");
 
         usingWriter = true;
         if (writer == null) {
@@ -306,7 +302,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 
         if (isCommitted())
             throw new IllegalStateException
-                (/*sm.getString("responseBase.reset.ise")*/);
+                (/*"responseBase.reset.ise")*/);
 
         response.setBufferSize(size);
 
@@ -321,7 +317,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 
         if (response == null) {
             throw new IllegalStateException(
-                            sm.getString("HttpServletResponseImpl.nullResponse"));
+                    "HttpServletResponseImpl.nullResponse");
         }
 
         return response.getBufferSize();
@@ -338,7 +334,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 
 //        if (isFinished())
 //            //            throw new IllegalStateException
-//            //                (/*sm.getString("HttpServletResponseImpl.finished")*/);
+//            //                (/*"HttpServletResponseImpl.finished")*/);
 //            return;
         
         if (System.getSecurityManager() != null){
@@ -376,7 +372,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 
         if (isCommitted())
             throw new IllegalStateException
-                (/*sm.getString("responseBase.reset.ise")*/);
+                (/*"responseBase.reset.ise")*/);
 
         response.resetBuffer();
 
@@ -391,7 +387,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 
         if (response == null) {
             throw new IllegalStateException(
-                            sm.getString("HttpServletResponseImpl.nullResponse"));
+                    "HttpServletResponseImpl.nullResponse");
         }
 
         return response.isCommitted();
@@ -406,7 +402,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 
         if (isCommitted())
             throw new IllegalStateException
-                (/*sm.getString("responseBase.reset.ise")*/);
+                (/*"responseBase.reset.ise")*/);
 
         response.reset();
 
@@ -434,7 +430,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 
         if (response == null) {
             throw new IllegalStateException(
-                            sm.getString("HttpServletResponseImpl.nullResponse"));
+                    "HttpServletResponseImpl.nullResponse");
         }
 
         return response.getLocale();
@@ -464,7 +460,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 
         if (response == null) {
             throw new IllegalStateException(
-                            sm.getString("HttpServletResponseImpl.nullResponse"));
+                            "HttpServletResponseImpl.nullResponse");
         }
 
         return response.containsHeader(name);
@@ -479,7 +475,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 
         if (response == null) {
             throw new IllegalStateException(
-                            sm.getString("HttpServletResponseImpl.nullResponse"));
+                            "HttpServletResponseImpl.nullResponse");
         }
 
         return response.encodeURL(url);
@@ -494,7 +490,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 
         if (response == null) {
             throw new IllegalStateException(
-                            sm.getString("HttpServletResponseImpl.nullResponse"));
+                            "HttpServletResponseImpl.nullResponse");
         }
 
         throw new UnsupportedOperationException("Not supported yet.");
@@ -509,7 +505,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 
         if (response == null) {
             throw new IllegalStateException(
-                            sm.getString("HttpServletResponseImpl.nullResponse"));
+                            "HttpServletResponseImpl.nullResponse");
         }
 
         throw new UnsupportedOperationException("Not supported yet.");
@@ -524,7 +520,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 
         if (response == null) {
             throw new IllegalStateException(
-                            sm.getString("HttpServletResponseImpl.nullResponse"));
+                            "HttpServletResponseImpl.nullResponse");
         }
 
         throw new UnsupportedOperationException("Not supported yet.");
@@ -540,7 +536,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 
         if (isCommitted())
             throw new IllegalStateException
-                (/*sm.getString("responseBase.reset.ise")*/);
+                (/*responseBase.reset.ise")*/);
 
 //        response.setAppCommitted(true);
 
@@ -558,7 +554,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 
         if (isCommitted())
             throw new IllegalStateException
-                (/*sm.getString("responseBase.reset.ise")*/);
+                (/*"responseBase.reset.ise")*/);
 
 //        response.setAppCommitted(true);
 
@@ -576,7 +572,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 
         if (isCommitted())
             throw new IllegalStateException
-                (/*sm.getString("responseBase.reset.ise")*/);
+                (/*"responseBase.reset.ise")*/);
 
 //        response.setAppCommitted(true);
 
