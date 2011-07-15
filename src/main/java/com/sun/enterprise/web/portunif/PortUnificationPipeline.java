@@ -304,6 +304,10 @@ public class PortUnificationPipeline extends SSLPipeline{
         private ProtocolHandler protocolHandler = null;
         
         public void doTask(){
+            // prevent multiple task.terminate that enqueues
+            // same take to readTasks in SelectorThread
+            boolean isTaskTerminated = false;
+            
             if (sslContext != null) {
                 protocolInfo.sslContext = sslContext;
             }
@@ -340,6 +344,7 @@ public class PortUnificationPipeline extends SSLPipeline{
                                 return;                    
                             } finally {
                                 if (protocolInfo.bytesRead == -1){
+                                    isTaskTerminated = true;
                                     readTask.terminate(false);
                                     return;
                                 }                                                                
@@ -379,12 +384,16 @@ public class PortUnificationPipeline extends SSLPipeline{
                                 if (protocolInfo.keepAlive){
                                     readTask.registerKey();
                                 }
+                                isTaskTerminated = true;
                                 readTask.terminate(protocolInfo.keepAlive);                            
                             } else { 
                                 if ( isRequestedTransportSecure ) {
                                     ((SSLReadTask)readTask).setHandshake(false);
                                 }
                                 readTask.doTask();
+                                if (readTask.getSelectionKey() != key) {
+                                   isTaskTerminated = true;
+                                }
                             } 
                         } else {
                             // If the protocol wasn't found, it might be because 
@@ -411,6 +420,7 @@ public class PortUnificationPipeline extends SSLPipeline{
                                     (SocketChannel) key.channel(), tmpBB, 1000);
                             
                             if ((tmpBB.position() - byteAvailables) <= 0){
+                                isTaskTerminated = true;
                                 cancel(readTask,tmpBB);    
                                 return;
                             }
@@ -421,6 +431,7 @@ public class PortUnificationPipeline extends SSLPipeline{
                 } else {
                     protocolHandler.handle(protocolInfo);
                     readTask.registerKey();
+                    isTaskTerminated = true;
                     readTask.terminate(true);
                 }
             } catch (Throwable ex){
@@ -428,9 +439,14 @@ public class PortUnificationPipeline extends SSLPipeline{
                 if (logger.isLoggable(Level.WARNING)){
                     logger.log(Level.WARNING,"PortUnification exception",ex);
                 }   
+                if (!isTaskTerminated) {
+                    isTaskTerminated = true;
+                    cancel(readTask, protocolInfo.byteBuffer);
+                }
+                
                 cancel(readTask,protocolInfo.byteBuffer);         
             } finally {                                
-                if (readTry >= maxTry){
+                if (readTry >= maxTry && !isTaskTerminated){
                     cancel(readTask,protocolInfo.byteBuffer);
                 } 
                 protocolHandler = null;
@@ -448,6 +464,11 @@ public class PortUnificationPipeline extends SSLPipeline{
 
 
         private void cancel(Task task,ByteBuffer bb){
+            // Prevent calling multiple terminate.
+            if (key == null || task == null
+                    || task.getSelectionKey() != key) {
+                return;
+            }
             if (logger.isLoggable(Level.FINE) 
                     || task.getSelectorThread().isEnableNioLogging() ){                
                 logger.log(Level.FINE,"Invalid request from: " +
@@ -563,5 +584,4 @@ public class PortUnificationPipeline extends SSLPipeline{
             protocolHandlers.remove(protocol);  
         }
     } 
-
 }
