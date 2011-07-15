@@ -480,7 +480,7 @@ public abstract class HttpCodecFilter extends BaseFilter
             }
 
         } catch (RuntimeException re) {
-            HttpProbeNotifier.notifyProbesError(this, connection, re);
+            HttpProbeNotifier.notifyProbesError(this, connection, httpHeader, re);
             onHttpError(httpHeader, ctx);
 
             // make the connection deaf to any following input
@@ -594,7 +594,7 @@ public abstract class HttpCodecFilter extends BaseFilter
 
                 return ctx.getStopAction();
             } catch (RuntimeException re) {
-                HttpProbeNotifier.notifyProbesError(this, connection, re);
+                HttpProbeNotifier.notifyProbesError(this, connection, input, re);
                 throw re;
             }
         }

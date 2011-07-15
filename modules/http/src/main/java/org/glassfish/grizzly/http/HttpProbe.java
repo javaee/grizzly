@@ -165,7 +165,8 @@ public interface HttpProbe {
      * Method will be called, when error occurs during the {@link HttpCodecFilter} processing.
      *
      * @param connection {@link Connection}, the event belongs to.
+     * @param connection {@link HttpPacket}, the event belongs to.
      * @param error error
      */
-    public void onErrorEvent(Connection connection, Throwable error);
+    public void onErrorEvent(Connection connection, HttpPacket httpPacket, Throwable error);
 }

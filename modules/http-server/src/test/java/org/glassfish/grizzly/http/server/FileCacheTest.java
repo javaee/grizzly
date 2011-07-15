@@ -569,7 +569,7 @@ public class FileCacheTest {
         }
 
         @Override
-        public void onErrorEvent(Connection connection, Throwable error) {
+        public void onErrorEvent(Connection connection, HttpPacket packet, Throwable error) {
         }
 
         @Override

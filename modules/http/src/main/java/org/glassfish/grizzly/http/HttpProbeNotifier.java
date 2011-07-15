@@ -260,10 +260,12 @@ final class HttpProbeNotifier {
      *
      * @param httpFilter the <tt>HttpCodecFilter</tt> event occurred on.
      * @param connection the <tt>Connection</tt> event occurred on.
+     * @param httpPacket the <tt>HttpPacket</tt> event occurred on.
      * @param error {@link Throwable}.
      */
     static void notifyProbesError(final HttpCodecFilter httpFilter,
             final Connection connection,
+            final HttpPacket httpPacket,
             Throwable error) {
         final HttpProbe[] probes = httpFilter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
@@ -272,7 +274,7 @@ final class HttpProbeNotifier {
             }
             
             for (HttpProbe probe : probes) {
-                probe.onErrorEvent(connection, error);
+                probe.onErrorEvent(connection, httpPacket, error);
             }
         }
     }
