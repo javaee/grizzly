@@ -256,15 +256,9 @@ public class Request {
 
 
     /**
-     * The attributes associated with this Request, keyed by attribute name.
-     */
-//    protected final HashMap<String, Object> attributes = new HashMap<String, Object>();
-
-
-    /**
      * List of read only attributes for this Request.
      */
-    private final HashMap<String,Object> readOnlyAttributes = new HashMap<String,Object>();
+    private final Map<String,Object> readOnlyAttributes = new HashMap<String,Object>();
 
 
     /**
