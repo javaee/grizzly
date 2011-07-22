@@ -85,7 +85,7 @@ public class InputBuffer {
      * Flag indicating whether or not this <code>InputBuffer</code> is processing
      * character data.
      */
-    private boolean  processingChars;
+    private boolean processingChars;
 
 
     /**
