@@ -160,17 +160,24 @@ public class UploadHttpHandlerSample {
 
         private static void storeAvailableData(NIOInputStream in, FileChannel fileChannel)
                 throws IOException {
+            // Get the Buffer directly from NIOInputStream
             final Buffer buffer = in.getBuffer();
+            // Retrieve ByteBuffer
             final ByteBuffer byteBuffer = buffer.toByteBuffer();
             final int oldPos = byteBuffer.position();
             
             int written = 0;
             try {
                 while(byteBuffer.hasRemaining()) {
+                    // Write the ByteBuffer content to the file
                     written += fileChannel.write(byteBuffer);
                 }
             } finally {
+                // restore ByteBuffer old position, cause we don't know how it
+                // correlates with parent Buffer position (depends on Buffer implementation)
                 byteBuffer.position(oldPos);
+                
+                // Skip number of written bytes
                 in.skip(written);
             }
         }
