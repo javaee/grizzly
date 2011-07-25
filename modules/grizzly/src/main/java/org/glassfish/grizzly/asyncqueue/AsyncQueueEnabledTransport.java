@@ -45,7 +45,7 @@ package org.glassfish.grizzly.asyncqueue;
  *
  * @author Alexey Stashok
  */
-public interface AsyncQueueEnabledTransport<K, L> {
+public interface AsyncQueueEnabledTransport {
     /**
      * Get asynchronous queue implementation.
      *
