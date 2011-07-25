@@ -60,6 +60,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
 import org.glassfish.grizzly.http.util.Charsets;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.utils.Exceptions;
 
@@ -366,6 +367,19 @@ public class InputBuffer {
     }
 
 
+    /**
+     * @return the underlying {@link Buffer} used to buffer incoming request
+     *  data. Unlike {@link #getBuffer()}, this method detaches the returned
+     * {@link Buffer}, so user code becomes responsible for handling
+     * the {@link Buffer}.
+     */
+    public Buffer readBuffer() {
+        final Buffer buffer = inputContentBuffer;
+        inputContentBuffer = Buffers.EMPTY_BUFFER;
+        return buffer;
+    }
+    
+    
     /**
      * @return the {@link ReadHandler} current in use, if any.
      */
