@@ -459,7 +459,9 @@ public class HttpServer {
         final HttpServer server = new HttpServer();
         final ServerConfiguration config = server.getServerConfiguration();
         if (path != null) {
-            config.addHttpHandler(new StaticHttpHandler(path), "/");
+            final StaticHttpHandler handler = new StaticHttpHandler(path);
+            handler.setUseSendFile(config.isUseSendFile());
+            config.addHttpHandler(handler, "/");
         }
         final NetworkListener listener =
                 new NetworkListener("grizzly",

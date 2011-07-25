@@ -81,6 +81,7 @@ import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ThreadCache;
+import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.HttpResponsePacket;
@@ -655,10 +656,26 @@ public class Response {
 
     /**
      * Flush the current buffered content to the network.
-     * @throws IOException
+     *
+     * @throws IOException if an I/O error occurs.
      */
     public void flush() throws IOException {
         outputBuffer.flush();
+    }
+
+    /**
+     * Flush the current buffered content to the network.
+     *
+     * @param handler notifies the {@link CompletionHandler} when the flush
+     *  operation has been completed.
+     *
+     * @throws IOException if an I/O error occurs.
+     *
+     * @since 2.1.2
+     */
+    public void flush(final CompletionHandler<WriteResult> handler)
+    throws IOException {
+        outputBuffer.flush(handler);
     }
 
 
