@@ -275,6 +275,14 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
         return parentNIOInputStream.getBuffer();
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Buffer readBuffer() {
+        return parentNIOInputStream.readBuffer();
+    }
+
     protected void recycle() {
         parentNIOInputStream = null;
         handler = null;
