@@ -475,6 +475,7 @@ public class StaticHttpHandler extends HttpHandler {
         // Flush the headers to the client.  Once complete, *then(
         // invoke FileChannel.transferTo() directly against
         // the connection's channel.
+        response.suspend();
         response.flush(new CompletionHandler<WriteResult>() {
             private AtomicBoolean cancelled = new AtomicBoolean(false);
             @Override
@@ -509,6 +510,8 @@ public class StaticHttpHandler extends HttpHandler {
                     }
                 } catch (IOException ioe) {
                     logAndClose(ioe);
+                } finally {
+                    response.resume();
                 }
             }
 
