@@ -169,6 +169,14 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
      * {@inheritDoc}
      */
     @Override
+    public boolean willAllocateDirect(int size) {
+        return isDirect;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public ByteBufferWrapper wrap(byte[] data) {
         return wrap(data, 0, data.length);
     }
