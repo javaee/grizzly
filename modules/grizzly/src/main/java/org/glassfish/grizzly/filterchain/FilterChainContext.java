@@ -501,7 +501,16 @@ public final class FilterChainContext implements AttributeStorage {
     public NextAction getRerunFilterAction() {
         return RERUN_FILTER_ACTION;
     }
-    
+
+    /**
+     * <p>
+     * Performs a blocking read.
+     * </p>
+     *
+     * @return the result of the read operation.
+     *
+     * @throws IOException if an I/O error occurs.
+     */
     public ReadResult read() throws IOException {
         final FilterChainContext newContext =
                 getFilterChain().obtainFilterChainContext(getConnection());
@@ -520,30 +529,89 @@ public final class FilterChainContext implements AttributeStorage {
     }
     
     public void write(final Object message) throws IOException {
-        write(null, message, null);
+        write(null, message, null, transportFilterContext.isBlocking());
     }
+
+
+    public void write(final Object message, final boolean blocking)
+    throws IOException {
+        write(null, message, null, blocking);
+    }
+
 
     public void write(final Object message,
-            final CompletionHandler<WriteResult> completionHandler) throws IOException {
-        write(null, message, completionHandler);
+                      final CompletionHandler<WriteResult> completionHandler)
+    throws IOException {
+
+        write(null,
+              message,
+              completionHandler,
+              transportFilterContext.isBlocking());
+
     }
 
-    public void write(final Object address, final Object message,
-            final CompletionHandler<WriteResult> completionHandler)
-            throws IOException {
-        write(address, message, completionHandler, null);
+
+    public void write(final Object message,
+                      final CompletionHandler<WriteResult> completionHandler,
+                      final boolean blocking)
+    throws IOException {
+
+        write(null, message, completionHandler, blocking);
+
     }
+
+
+    public void write(final Object address,
+                      final Object message,
+                      final CompletionHandler<WriteResult> completionHandler)
+    throws IOException {
+
+        write(address,
+              message,
+              completionHandler,
+              null,
+              transportFilterContext.isBlocking());
+
+    }
+
+
+    public void write(final Object address,
+                      final Object message,
+                      final CompletionHandler<WriteResult> completionHandler,
+                      final boolean blocking)
+    throws IOException {
+
+        write(address, message, completionHandler, null, blocking);
+
+    }
+
+
+    public void write(final Object address,
+                      final Object message,
+                      final CompletionHandler<WriteResult> completionHandler,
+                      final MessageCloner cloner)
+    throws IOException {
         
-    public void write(final Object address, final Object message,
-            final CompletionHandler<WriteResult> completionHandler,
-            final MessageCloner cloner)
-            throws IOException {
-        
+        write(address,
+              message,
+              completionHandler,
+              cloner,
+              transportFilterContext.isBlocking());
+    }
+
+
+    public void write(final Object address,
+                      final Object message,
+                      final CompletionHandler<WriteResult> completionHandler,
+                      final MessageCloner cloner,
+                      final boolean blocking)
+    throws IOException {
+
         final FilterChainContext newContext =
                 getFilterChain().obtainFilterChainContext(getConnection());
-        
+
         newContext.setOperation(Operation.WRITE);
-        newContext.getTransportContext().configureBlocking(transportFilterContext.isBlocking());
+        newContext.getTransportContext().configureBlocking(blocking);
         newContext.setMessage(message);
         newContext.setAddress(address);
         newContext.transportFilterContext.completionHandler = completionHandler;

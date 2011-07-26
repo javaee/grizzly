@@ -774,17 +774,39 @@ public class Request {
         return request.getContentType();
     }
 
+    /**
+     * <p>
+     * Return the {@link NIOInputStream} for this {@link Request}.  This stream
+     * will not block when reading content.
+     * </p>
+     *
+     * @return the {@link NIOInputStream} for this {@link Request}.
+     *
+     * @exception IllegalStateException if {@link #getReader(boolean)} or
+     *  {@link #getReader()} has already been called for this request.
+     *
+     * @see #getInputStream(boolean)
+     *
+     * @since 2.1.2
+     */
+    public NIOInputStream getInputStream() {
+
+        return getInputStream(false);
+
+    }
 
     /**
-     * Return the servlet input stream for this Request.  The default
-     * implementation returns a servlet input stream created by
-     * <code>createInputStream()</code>.
+     * <p>
+     * Return the {@link NIOInputStream} for this {@link Request}.
+     * </p>
      *
      * @param blocking if <code>true</code>, the <code>NIOInputStream</code>
      *  will only be usable in blocking mode.
      *
-     * @exception IllegalStateException if {@link #getReader(boolean)} has
-     *  already been called for this request
+     * @return the {@link NIOInputStream} for this {@link Request}.
+     *
+     * @exception IllegalStateException if {@link #getReader(boolean)} or
+     *  {@link #getReader()} has already been called for this request.
      */
     public NIOInputStream getInputStream(boolean blocking) {
 
@@ -943,15 +965,34 @@ public class Request {
 
 
     /**
-     * Read the Reader wrapping the input stream for this Request.  The
-     * default implementation wraps a <code>BufferedReader</code> around the
-     * servlet input stream returned by <code>createInputStream()</code>.
+     * <p>
+     * Returns the {@link NIOReader} associated with this {@link Request}.  This
+     * {@link NIOReader} will not block while reading content.
+     * </p>
      *
-     * @param blocking if <code>true</code>, the <code>NIOInputStream</code>
+     * @return the {@link NIOReader} associated with this {@link Request}.
+     *
+     * @throws IllegalStateException if {@link #getInputStream(boolean)} or
+     *  {@link #getInputStream()} has already been called for this request.
+     *
+     * @since 2.1.2
+     */
+    public NIOReader getReader() {
+
+        return getReader(false);
+
+    }
+
+    /**
+     * <p>
+     * Returns the {@link NIOReader} associated with this {@link Request}.
+     * </p>
+     *
+     * @param blocking if <code>true</code>, the <code>NIOReader</code>
      *  will only be usable in blocking mode.
      *
-     * @exception IllegalStateException if {@link #getInputStream(boolean)}
-     *  has already been called for this request
+     * @throws IllegalStateException if {@link #getInputStream(boolean)} or
+     *  {@link #getInputStream()} has already been called for this request.
      */
     public NIOReader getReader(boolean blocking) {
 

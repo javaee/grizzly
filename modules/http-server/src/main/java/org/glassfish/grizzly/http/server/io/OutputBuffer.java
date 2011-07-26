@@ -124,6 +124,12 @@ public class OutputBuffer {
     private AsyncQueueWriter asyncWriter;
 
     private int bufferSize = DEFAULT_BUFFER_SIZE;
+
+    /**
+     * Flag indicating whether or not async operations are being used on the
+     * input streams.
+     */
+    private boolean asyncEnabled;
     
     private final CompletionHandler<WriteResult> asyncCompletionHandler =
             new EmptyCompletionHandler<WriteResult>() {
@@ -137,6 +143,8 @@ public class OutputBuffer {
                     }
                 }
             };
+
+
     // ---------------------------------------------------------- Public Methods
 
 
@@ -152,6 +160,34 @@ public class OutputBuffer {
             asyncWriter = null;
         }
 
+    }
+
+    /**
+     * <p>
+     * Returns <code>true</code> if content will be written in a non-blocking
+     * fashion, otherwise returns <code>false</code>.
+     * </p>
+     *
+     * @return <code>true</code> if content will be written in a non-blocking
+     * fashion, otherwise returns <code>false</code>.
+     *
+     * @since 2.1.2
+     */
+    public boolean isAsyncEnabled() {
+        return asyncEnabled;
+    }
+
+
+    /**
+     * Sets the asynchronous processing state of this <code>OutputBuffer</code>.
+     *
+     * @param asyncEnabled <code>true</code> if this <code>OutputBuffer<code>
+     *  will write content without blocking.
+     *
+     *  @since 2.1.2
+     */
+    public void setAsyncEnabled(boolean asyncEnabled) {
+        this.asyncEnabled = asyncEnabled;
     }
 
 
@@ -296,7 +332,7 @@ public class OutputBuffer {
      */
     public void acknowledge() throws IOException {
 
-        ctx.write(response);
+        ctx.write(response, !asyncEnabled);
         
     }
 
@@ -646,7 +682,11 @@ public class OutputBuffer {
         final HttpContent.Builder builder = response.httpContentBuilder();
 
         builder.content(bufferToFlush).last(isLast);
-        ctx.write(null, builder.build(), asyncCompletionHandler, messageCloner);
+        ctx.write(null,
+                  builder.build(),
+                  asyncCompletionHandler,
+                  messageCloner,
+                  !asyncEnabled);
     }
 
     private void checkCurrentBuffer() {
@@ -714,10 +754,10 @@ public class OutputBuffer {
             if (response != null) {
                 final HttpContent.Builder builder = response.httpContentBuilder();
                 builder.last(true);
-                ctx.write(builder.build(), handler);
+                ctx.write(builder.build(), handler, !asyncEnabled);
             }
         } else {
-            ctx.write(response, handler);
+            ctx.write(response, handler, !asyncEnabled);
         }
 
     }

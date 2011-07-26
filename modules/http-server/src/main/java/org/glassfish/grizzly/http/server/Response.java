@@ -580,17 +580,42 @@ public class Response {
     }
 
     /**
-     * Return the servlet output stream associated with this Response.
+     * <p>
+     * Return the {@link NIOOutputStream} associated with this {@link Response}.
+     * This {@link NIOOutputStream} will write content in a non-blocking manner.
+     * </p>
      *
-     * @exception IllegalStateException if <code>getWriter</code> has
-     *  already been called for this response
+    * @throws IllegalStateException if {@link #getWriter()} or {@link #getWriter(boolean)}
+     *  were already invoked.
      */
     public NIOOutputStream getOutputStream() {
 
+        return getOutputStream(false);
+
+    }
+
+    /**
+     * <p>
+     * Return the {@link NIOOutputStream} associated with this {@link Response}.
+     * </p>
+     *
+     * @param blocking flag indicating if content written using this
+     *  {@link NIOOutputStream} will block or not.
+     *
+     * @return the {@link NIOOutputStream} associated with this {@link Response}.
+     *
+     * @throws IllegalStateException if {@link #getWriter()} or {@link #getWriter(boolean)}
+     *  were already invoked.
+     *
+     * @since 2.1.2
+     */
+    public NIOOutputStream getOutputStream(final boolean blocking) {
+
         if (usingWriter)
-            throw new IllegalStateException("Illegal attempt to call getOuputStream() after getWriter() has already been called.");
+            throw new IllegalStateException("Illegal attempt to call getOutputStream() after getWriter() has already been called.");
 
         usingOutputStream = true;
+        outputBuffer.setAsyncEnabled(!blocking);
         outputStream.setOutputBuffer(outputBuffer);
         return outputStream;
 
@@ -612,13 +637,37 @@ public class Response {
 
 
     /**
-     * Return the writer associated with this Response.
+     * <p>
+     * Return the {@link NIOWriter} associated with this {@link Response}.
+     * The {@link NIOWriter} will write content in a non-blocking manner.
+     * </p>
      *
-     * @exception IllegalStateException if <code>getOutputStream</code> has
-     *  already been called for this response
-     * @exception java.io.IOException if an input/output error occurs
+     * @throws IllegalStateException if {@link #getOutputStream()} or
+     *  {@link #getOutputStream(boolean)} were already invoked.
      */
     public NIOWriter getWriter() {
+
+        return getWriter(false);
+
+    }
+
+
+    /**
+     * <p>
+     * Return the {@link NIOWriter} associated with this {@link Response}.
+     * </p>
+     *
+     * @param blocking flag indicating if content written using this
+     *  {@link NIOWriter} will block or not.
+     *
+     * @return the {@link NIOWriter} associated with this {@link Response}.
+     *
+     * @throws IllegalStateException if {@link #getOutputStream()} or
+     *  {@link #getOutputStream(boolean)} were already invoked.
+     *
+     * @since 2.1.2
+     */
+    public NIOWriter getWriter(boolean blocking) {
 
         if (usingOutputStream)
             throw new IllegalStateException("Illegal attempt to call getWriter() after getOutputStream() has already been called.");
@@ -639,6 +688,7 @@ public class Response {
 
         usingWriter = true;
         outputBuffer.prepareCharacterEncoder();
+        outputBuffer.setAsyncEnabled(!blocking);
         writer.setOutputBuffer(outputBuffer);
         return writer;
 
