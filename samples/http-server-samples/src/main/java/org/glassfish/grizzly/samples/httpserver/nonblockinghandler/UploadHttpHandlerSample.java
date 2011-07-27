@@ -56,6 +56,8 @@ import org.glassfish.grizzly.http.server.ServerConfiguration;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
 import org.glassfish.grizzly.http.server.io.ReadHandler;
 import org.glassfish.grizzly.http.util.HttpStatus;
+import org.glassfish.grizzly.memory.ByteBufferManager;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 
 /**
  * The sample shows how the HttpHandler should be implemented in order to
@@ -72,6 +74,18 @@ public class UploadHttpHandlerSample {
         // create a basic server that listens on port 8080.
         final HttpServer server = HttpServer.createSimpleServer();
 
+        
+//        final TCPNIOTransport transport = server.getListeners().iterator().next().getTransport();
+        
+//        If we want to try direct byte buffers?
+//        final ByteBufferManager mm = new ByteBufferManager(true, 128 * 1024,
+//                ByteBufferManager.DEFAULT_SMALL_BUFFER_SIZE);
+//        
+//        transport.setMemoryManager(mm);
+
+        //        transport.setIOStrategy(SameThreadIOStrategy.getInstance());
+        //        transport.setSelectorRunnersCount(4);
+        
         final ServerConfiguration config = server.getServerConfiguration();
 
         // Map the path, /upload, to the NonBlockingUploadHandler
@@ -115,24 +129,31 @@ public class UploadHttpHandlerSample {
 
                 @Override
                 public void onDataAvailable() throws Exception {
-                    LOGGER.log(Level.INFO, "[onDataAvailable] length: {0}", in.readyData());
+                    LOGGER.log(Level.FINE, "[onDataAvailable] length: {0}", in.readyData());
                     storeAvailableData(in, fileChannel);
                     in.notifyAvailable(this);
                 }
 
                 @Override
                 public void onError(Throwable t) {
-                    LOGGER.log(Level.INFO, "[onError]{0}", t);
+                    LOGGER.log(Level.WARNING, "[onError]", t);
                     response.setStatus(500, t.getMessage());
                     complete(true);
+                    
+                    if (response.isSuspended()) {
+                        response.resume();
+                    } else {
+                        response.finish();                    
+                    }
                 }
 
                 @Override
                 public void onAllDataRead() throws Exception {
-                    LOGGER.log(Level.INFO, "[onAllDataRead] length: {0}", in.readyData());
+                    LOGGER.log(Level.FINE, "[onAllDataRead] length: {0}", in.readyData());
                     storeAvailableData(in, fileChannel);
                     response.setStatus(HttpStatus.ACCEPTED_202);
                     complete(false);
+                    response.resume();
                 }
                 
                 private void complete(final boolean isError) {
@@ -150,9 +171,7 @@ public class UploadHttpHandlerSample {
                         if (!isError) {
                             response.setStatus(500, e.getMessage());
                         }
-                    }
-                    
-                    response.resume();
+                    }                                        
                 }
             });
 
@@ -161,24 +180,18 @@ public class UploadHttpHandlerSample {
         private static void storeAvailableData(NIOInputStream in, FileChannel fileChannel)
                 throws IOException {
             // Get the Buffer directly from NIOInputStream
-            final Buffer buffer = in.getBuffer();
+            final Buffer buffer = in.readBuffer();
             // Retrieve ByteBuffer
             final ByteBuffer byteBuffer = buffer.toByteBuffer();
-            final int oldPos = byteBuffer.position();
             
-            int written = 0;
             try {
                 while(byteBuffer.hasRemaining()) {
                     // Write the ByteBuffer content to the file
-                    written += fileChannel.write(byteBuffer);
+                    fileChannel.write(byteBuffer);
                 }
             } finally {
-                // restore ByteBuffer old position, cause we don't know how it
-                // correlates with parent Buffer position (depends on Buffer implementation)
-                byteBuffer.position(oldPos);
-                
-                // Skip number of written bytes
-                in.skip(written);
+                // we can try to dispose the buffer
+                buffer.tryDispose();
             }
         }
 
