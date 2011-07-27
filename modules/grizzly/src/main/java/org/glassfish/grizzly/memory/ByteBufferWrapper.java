@@ -325,23 +325,17 @@ public class ByteBufferWrapper implements Buffer {
 
     @Override
     public ByteBufferWrapper put(final Buffer src, final int position, final int length) {
-        if (!src.isComposite()) {
-            Buffers.put(src.toByteBuffer(), position, length, visible);
-        } else {
-            final ByteBufferArray array =
-                    src.toByteBufferArray(position, position + length);
-            
-            final ByteBuffer[] bbs = array.getArray();
-            final int size = array.size();
-            
-            for (int i = 0; i < size; i++) {
-                final ByteBuffer bb = bbs[i];
-                final int pos = bb.position();
-                Buffers.put(bb, pos, bb.remaining(), visible);
-            }
-
-            array.restore();
-            array.recycle();
+        final int oldPos = src.position();
+        final int oldLim = limit();
+        
+        src.position(position);
+        limit(position() + length);
+        
+        try {
+            src.get(visible);
+        } finally {
+            src.position(oldPos);
+            limit(oldLim);
         }
         
         return this;
