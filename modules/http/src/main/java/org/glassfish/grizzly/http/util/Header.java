@@ -224,7 +224,7 @@ public enum Header {
         }
 
         for (int i = 0; i < len; i++) {
-            if (Ascii.toLower(headerNameBytes[i]) != Ascii.toLower(b[i])) {
+            if (headerNameLowerCaseBytes[i] != Ascii.toLower(b[i])) {
                 return false;
             }
         }
@@ -268,6 +268,7 @@ public enum Header {
         @Override
         public void recycle() {
             this.heap = null;
+            this.byteBuffer = null;
             this.offset = 0;
             this.cap = 0;
             this.lim = 0;
