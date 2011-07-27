@@ -205,6 +205,7 @@ public class InputBuffer {
             inputContentBuffer = content.getContent();
             contentRead = content.isLast();
             content.recycle();
+            inputContentBuffer.allowBufferDispose(true);
         }
 
     }
@@ -968,6 +969,7 @@ public class InputBuffer {
 
     private void updateInputContentBuffer(final Buffer buffer)  {
 
+        buffer.allowBufferDispose(true);
         if (inputContentBuffer.hasRemaining()) {
             toCompositeInputContentBuffer().append(buffer);
         } else {

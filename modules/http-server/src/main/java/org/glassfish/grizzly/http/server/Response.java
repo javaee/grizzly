@@ -1719,34 +1719,31 @@ public class Response {
 
         checkResponse();
 
-//        synchronized(suspendSync) {
-            if (!suspendState.compareAndSet(SuspendState.DISABLED, SuspendState.ENABLED)) {
-                throw new IllegalStateException("Already Suspended");
-            }
+        if (!suspendState.compareAndSet(SuspendState.DISABLED, SuspendState.ENABLED)) {
+            throw new IllegalStateException("Already Suspended");
+        }
 
-            suspendedContext.completionHandler = completionHandler;
-            suspendedContext.timeoutHandler = timeoutHandler;
+        suspendedContext.completionHandler = completionHandler;
+        suspendedContext.timeoutHandler = timeoutHandler;
 
-            final Connection connection = ctx.getConnection();
+        final Connection connection = ctx.getConnection();
 
-            HttpServerProbeNotifier.notifyRequestSuspend(
-                    request.httpServerFilter, connection, request);
-            
-            suspendStatus.set();
-            
-            connection.addCloseListener(suspendedContext);
+        HttpServerProbeNotifier.notifyRequestSuspend(
+                request.httpServerFilter, connection, request);
 
-            if (timeout > 0) {
-                final long timeoutMillis =
-                        TimeUnit.MILLISECONDS.convert(timeout, timeunit);
-                suspendedContext.delayMillis = timeoutMillis;
+        suspendStatus.set();
+
+        connection.addCloseListener(suspendedContext);
+
+        if (timeout > 0) {
+            final long timeoutMillis =
+                    TimeUnit.MILLISECONDS.convert(timeout, timeunit);
+            suspendedContext.delayMillis = timeoutMillis;
 
 
-                delayQueue.add(this, timeoutMillis, TimeUnit.MILLISECONDS);
-            }
-            
-//            isSuspended = true;
-//        }
+            delayQueue.add(this, timeoutMillis, TimeUnit.MILLISECONDS);
+        }
+
     }
 
     /**
@@ -1810,29 +1807,26 @@ public class Response {
          * {@link FilterChainContext} invocation.
          */
         public void markResumed() {
-//            synchronized(suspendSync) {
-                if (!suspendState.compareAndSet(SuspendState.ENABLED, SuspendState.RESUMING)) {
-                    throw new IllegalStateException("Not Suspended");
-                }
+            if (!suspendState.compareAndSet(SuspendState.ENABLED, SuspendState.RESUMING)) {
+                throw new IllegalStateException("Not Suspended");
+            }
 
-                final Connection connection = ctx.getConnection();
+            final Connection connection = ctx.getConnection();
 
-                connection.removeCloseListener(this);
+            connection.removeCloseListener(this);
 
-                isResuming = true;
+            isResuming = true;
 
-                if (completionHandler != null) {
-                    completionHandler.completed(Response.this);
-                }
+            if (completionHandler != null) {
+                completionHandler.completed(Response.this);
+            }
 
-                reset();
+            reset();
 
-                suspendState.set(SuspendState.DISABLED);
-//                isSuspended = false;
+            suspendState.set(SuspendState.DISABLED);
 
-                HttpServerProbeNotifier.notifyRequestResume(request.httpServerFilter,
-                        connection, request);
-//            }
+            HttpServerProbeNotifier.notifyRequestResume(request.httpServerFilter,
+                    connection, request);
         }
 
         /**
@@ -1840,48 +1834,44 @@ public class Response {
          * {@link FilterChainContext} invocation.
          */
         public void markCancelled() {
-//            synchronized (suspendSync) {
-                if (!suspendState.compareAndSet(SuspendState.ENABLED, SuspendState.RESUMING)) {
-                    throw new IllegalStateException("Not Suspended");
-                }
+            if (!suspendState.compareAndSet(SuspendState.ENABLED, SuspendState.RESUMING)) {
+                throw new IllegalStateException("Not Suspended");
+            }
 
-                final Connection connection = ctx.getConnection();
+            final Connection connection = ctx.getConnection();
 
-                connection.removeCloseListener(this);
+            connection.removeCloseListener(this);
 
-                isResuming = true;
+            isResuming = true;
 
-                if (completionHandler != null) {
-                    completionHandler.cancelled();
-                }
+            if (completionHandler != null) {
+                completionHandler.cancelled();
+            }
 
-                suspendState.set(SuspendState.DISABLED);
-                reset();
+            suspendState.set(SuspendState.DISABLED);
+            reset();
 
-                HttpServerProbeNotifier.notifyRequestCancel(
-                        request.httpServerFilter, connection, request);
-//            }
+            HttpServerProbeNotifier.notifyRequestCancel(
+                    request.httpServerFilter, connection, request);
         }
 
         boolean onTimeout() {
-//            synchronized (suspendSync) {
-                timeoutTimeMillis = DelayedExecutor.UNSET_TIMEOUT;
-                final TimeoutHandler localTimeoutHandler = timeoutHandler;
-                if (localTimeoutHandler == null ||
-                        localTimeoutHandler.onTimeout(Response.this)) {
-                    HttpServerProbeNotifier.notifyRequestTimeout(
-                            request.httpServerFilter, ctx.getConnection(), request);
+            timeoutTimeMillis = DelayedExecutor.UNSET_TIMEOUT;
+            final TimeoutHandler localTimeoutHandler = timeoutHandler;
+            if (localTimeoutHandler == null
+                    || localTimeoutHandler.onTimeout(Response.this)) {
+                HttpServerProbeNotifier.notifyRequestTimeout(
+                        request.httpServerFilter, ctx.getConnection(), request);
 
-                    try {
-                        cancel();
-                    } catch (Exception ignored) {
-                    }
-
-                    return true;
-                } else {
-                    return false;
+                try {
+                    cancel();
+                } catch (Exception ignored) {
                 }
-//            }
+
+                return true;
+            } else {
+                return false;
+            }
         }
 
         private void reset() {
