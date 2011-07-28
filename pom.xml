@@ -43,6 +43,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <parent>
+        <groupId>net.java</groupId>
+        <artifactId>jvnet-parent</artifactId>
+        <version>1</version>
+    </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-project</artifactId>
@@ -111,51 +116,14 @@
     <scm>
         <connection>scm:git:git://java.net/grizzly~git</connection>
         <developerConnection>scm:git:ssh://username@git.java.net/grizzly~git</developerConnection>
-        <tag>master</tag>
         <url>http://java.net/projects/grizzly/sources/git/show</url>
     </scm>
     <organization>
         <name>Oracle Corpration</name>
         <url>http://www.oracle.com</url>
     </organization>
-    <repositories>
-        <repository>
-            <id>glassfish-repo-archive</id>
-            <name>Nexus repository collection for Glassfish</name>
-            <url>http://maven.glassfish.org/content/groups/glassfish</url>
-            <snapshots>
-                <updatePolicy>never</updatePolicy>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>glassfish-maven2-repository.dev.java.net</id>
-            <name>Java.net Maven 2 Repository for GlassFish</name>
-            <url>http://download.java.net/maven/glassfish/</url>
-            <layout>default</layout>
-        </repository>
-        <repository>
-            <id>java.net</id>
-            <name>Java.net Repository for Grizzly</name>
-            <url>http://download.java.net/maven/2</url>
-        </repository>
-    </repositories>
-    <pluginRepositories>
-        <pluginRepository>
-            <id>glassfish</id>
-            <url>http://download.java.net/maven/glassfish/</url>
-        </pluginRepository>
-        <pluginRepository>
-            <id>java.net</id>
-            <url>http://download.java.net/maven/2/</url>
-        </pluginRepository>
-    </pluginRepositories>
     <build>
         <extensions>
-            <extension>
-                <groupId>org.jvnet.wagon-svn</groupId>
-                <artifactId>wagon-svn</artifactId>
-                <version>1.9</version>
-            </extension>
             <extension>
                 <groupId>org.apache.maven.wagon</groupId>
                 <artifactId>wagon-ssh-external</artifactId>
@@ -201,7 +169,11 @@
                 </configuration>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-release-plugin</artifactId>
+                <configuration>
+                    <mavenExecutorId>forked-path</mavenExecutorId>
+                </configuration>
             </plugin>
             <plugin>
                 <inherited>true</inherited>
@@ -221,6 +193,32 @@
         </plugins>
     </build>
     <profiles>
+        <profile>
+            <id>release-sign-artifacts</id>
+            <activation>
+                <property>
+                    <name>performRelease</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <profile>
             <id>release-profile</id>
             <build>
@@ -373,18 +371,10 @@
             <dependency>
                 <groupId>javax.servlet</groupId>
                 <artifactId>servlet-api</artifactId>
-                <version>2.5</version>
+                <version>${servlet-version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>  
-    <distributionManagement>
-        <repository>
-            <uniqueVersion>false</uniqueVersion>
-            <!-- the ID maps to settings.xml, so don't change the ID -->
-            <id>rator.sfbay</id>
-            <url>dav:http://glassfish-maven-repository.us.oracle.com/maven/repositories/glassfish/</url>
-        </repository>
-    </distributionManagement>
     <dependencies>
         <dependency>
             <groupId>junit</groupId>
@@ -393,6 +383,25 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>glassfish</id>
+            <url>http://download.java.net/maven/glassfish/</url>
+        </pluginRepository>
+        <pluginRepository>
+            <id>java.net</id>
+            <url>http://download.java.net/maven/2/</url>
+        </pluginRepository>
+    </pluginRepositories>
+    <repositories>
+        <repository>
+            <id>glassfish-repo-archive</id>
+            <name>Nexus repository collection for Glassfish</name>
+            <url>
+                http://maven.glassfish.org/content/groups/glassfish
+            </url>
+        </repository>
+    </repositories>
     <properties>
 	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <hk2.version>1.6.11</hk2.version>
