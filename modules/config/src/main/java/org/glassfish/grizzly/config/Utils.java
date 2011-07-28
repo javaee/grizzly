@@ -100,7 +100,7 @@ public class Utils {
                     XMLInputFactory.class.getClassLoader());
             final DomDocument document = parser.parse(xif.createXMLStreamReader(inputStream));
 
-            habitat.addComponent("document", document);
+            habitat.addComponent(document);
             return habitat;
         } catch (Exception e) {
             e.printStackTrace();
