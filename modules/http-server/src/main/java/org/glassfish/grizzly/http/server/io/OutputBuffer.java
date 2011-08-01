@@ -481,30 +481,11 @@ public class OutputBuffer {
      * @throws java.io.IOException an underlying I/O error occurred
      */
     public void flush() throws IOException {
-
-        flush(null);
-
-    }
-
-
-    /**
-     * Flush the response.
-     *
-     * @param handler notifies the {@link CompletionHandler} when the flush
-     *  operation has been completed.
-     *
-     * @throws java.io.IOException an underlying I/O error occurred
-     *
-     * @since 2.1.2
-     */
-    public void flush(final CompletionHandler<WriteResult> handler)
-    throws IOException {
-
         handleAsyncErrors();
 
         final boolean isJustCommitted = doCommit();
         if (!writeContentChunk(!isJustCommitted, false) && isJustCommitted) {
-            forceCommitHeaders(false, handler);
+            forceCommitHeaders(false);
         }
 
     }
@@ -743,23 +724,15 @@ public class OutputBuffer {
     }
 
     private void forceCommitHeaders(final boolean isLast) throws IOException {
-        forceCommitHeaders(isLast, null);
-    }
-
-    private void forceCommitHeaders(final boolean isLast,
-                                    final CompletionHandler<WriteResult> handler)
-    throws IOException {
-
         if (isLast) {
             if (response != null) {
                 final HttpContent.Builder builder = response.httpContentBuilder();
                 builder.last(true);
-                ctx.write(builder.build(), handler, !asyncEnabled);
+                ctx.write(builder.build(), !asyncEnabled);
             }
         } else {
-            ctx.write(response, handler, !asyncEnabled);
+            ctx.write(response, !asyncEnabled);
         }
-
     }
 
     private void checkCompositeBuffer() {

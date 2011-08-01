@@ -47,7 +47,6 @@ import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
-import org.glassfish.grizzly.http.server.StaticHttpHandler;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
 import org.glassfish.grizzly.http.server.io.NIOReader;
 import org.glassfish.grizzly.http.server.io.NIOWriter;
@@ -80,10 +79,6 @@ final class EchoServer {
     public EchoServer(Settings settings) {
         this.settings = settings;
         httpServer = new HttpServer();
-        final StaticHttpHandler h = new StaticHttpHandler("/tmp");
-        h.setUseSendFile(true);
-        h.setSendFileMimeTypes(httpServer.getServerConfiguration().getSendFileMimeTypes());
-        httpServer.getServerConfiguration().addHttpHandler(h, "/");
         final NetworkListener listener = new NetworkListener(LISTENER_NAME,
                                                              settings.getHost(),
                                                              settings.getPort());

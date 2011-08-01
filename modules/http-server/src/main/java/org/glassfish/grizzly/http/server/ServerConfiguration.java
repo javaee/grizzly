@@ -43,9 +43,7 @@ package org.glassfish.grizzly.http.server;
 
 import java.util.Collections;
 import org.glassfish.grizzly.http.server.jmx.JmxEventListener;
-import org.glassfish.grizzly.http.server.util.MimeType;
 
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -83,24 +81,13 @@ public class ServerConfiguration extends ServerFilterConfiguration {
 
     private boolean jmxEnabled;
 
-    private boolean useSendFile;
-
-    private final Set<String> sendFileMimeTypes;
-
     final Object handlersSync = new Object();
-
-
+    
     // ------------------------------------------------------------ Constructors
 
 
     ServerConfiguration(HttpServer instance) {
         this.instance = instance;
-        sendFileMimeTypes = new HashSet<String>();
-        sendFileMimeTypes.add(MimeType.get("zip"));
-        sendFileMimeTypes.add(MimeType.get("gz"));
-        sendFileMimeTypes.add(MimeType.get("png"));
-        sendFileMimeTypes.add(MimeType.get("jpg"));
-        sendFileMimeTypes.add(MimeType.get("gif"));
     }
 
 
@@ -285,94 +272,5 @@ public class ServerConfiguration extends ServerFilterConfiguration {
         return jmxEventListeners;
         
     }
-
-
-    /**
-     * <p>
-     * Configures whether or not static resources will be sent to the user-agent
-     * via {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}.
-     * </p>
-     *
-     * <p>
-     * There are some restrictions on when {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}
-     * can be used:
-     * </p>
-     *
-     * <ul>
-     *     <li>
-     *         If the connection between user-agent/server is secure, this feature
-     *         will not be used.
-     *     </li>
-     *     <li>
-     *         If file caching is enabled on the {@link NetworkListener} to which
-     *         the user-agent has connected, this feature will not be used.
-     *     </li>
-     * </ul>
-     *
-     * <p>
-     * Additionally, compression can't be applied to files being sent in this
-     * fashion.  Given this, the application should call {@link #getSendFileMimeTypes()}
-     * and add mime types for content that is already or can't be compressed.
-     * </p>
-     *
-     * @param useSendFile if <code>true</code>, the {@link StaticHttpHandler} will
-     *  attempt to use {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}
-     *  where possible.
-     *
-     *  @since 2.1.2
-     */
-    public void setUseSendFile(final boolean useSendFile) {
-
-        this.useSendFile = useSendFile;
-
-    }
-
-
-    /**
-     * <p>
-     * Returns <code>true</code> if static content will, when possible, be served
-     * via {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}.
-     * </p>
-     *
-     * @return <code>true</code> if static content will, when possible, be served
-     * via {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}.
-     *
-     * @since 2.1.2
-     */
-    public boolean isUseSendFile() {
-
-        return useSendFile;
-
-    }
-
-
-    /**
-     * <p>
-     * Returns a {@link Set} of mime types that should be send using send file
-     * functionality.  By default, this set will contain the following mime
-     * types:
-     * </p>
-     * <ul>
-     *     <li>application/zip</li>
-     *     <li>application/x-gzip</li>
-     *     <li>image/png</li>
-     *     <li>image/gif</li>
-     *     <li>image/jpg</li>
-     * </ul>
-     *
-     * The returned set can be manipulated to add additional or remove
-     * existing references.
-     *
-     * @return a set of mime types that should be transferred using send file
-     *  functionality.
-     *
-     * @see #setUseSendFile(boolean)
-     *
-     * @since 2.1.2
-     */
-    public Set<String> getSendFileMimeTypes() {
-        return sendFileMimeTypes;
-    }
-
 
 } // END ServerConfiguration
