@@ -42,7 +42,7 @@ package org.glassfish.grizzly.websockets.draft07;
 
 import java.net.URI;
 
-import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.websockets.DataFrame;
@@ -76,8 +76,7 @@ public class Draft07Handler extends ProtocolHandler {
         packet[0] = opcode;
         System.arraycopy(lengthBytes, 0, packet, 1, lengthBytes.length);
         if (maskData) {
-            Masker masker = new Masker(handler);
-            masker.generateMask();
+            Masker masker = new Masker();
             packet[1] |= 0x80;
             masker.mask(packet, payloadStart, bytes);
             System.arraycopy(masker.getMask(), 0, packet, payloadStart - WebSocketEngine.MASK_SIZE,
@@ -89,8 +88,9 @@ public class Draft07Handler extends ProtocolHandler {
     }
 
     @Override
-    public DataFrame parse() {
-        byte opcode = handler.get();
+    public DataFrame parse(Buffer buffer) {
+        Masker masker = new Masker(buffer);
+        byte opcode = masker.get();
         boolean finalFragment = (opcode & 0x80) == 0x80;
         opcode &= 0x7F;
         FrameType type = valueOf(inFragmentedType, opcode);
@@ -102,8 +102,7 @@ public class Draft07Handler extends ProtocolHandler {
             inFragmentedType = 0;
         }
 
-        byte lengthCode = handler.get();
-        Masker masker = new Masker(handler);
+        byte lengthCode = masker.get();
 
         final boolean masked = (lengthCode & 0x80) == 0x80;
         if (masked) {
@@ -113,10 +112,10 @@ public class Draft07Handler extends ProtocolHandler {
         if (lengthCode <= 125) {
             length = lengthCode;
         } else {
-            length = decodeLength(handler.get(lengthCode == 126 ? 2 : 8));
+            length = decodeLength(masker.get(lengthCode == 126 ? 2 : 8));
         }
         if (masked) {
-            masker.setMask(handler.get(WebSocketEngine.MASK_SIZE));
+            masker.readMask();
         }
         final byte[] data = masker.unmask((int) length);
         if (data.length != length) {
@@ -164,7 +163,7 @@ public class Draft07Handler extends ProtocolHandler {
                 return new PongFrameType();
             default:
                 throw new FramingException(String.format("Unknown frame type: %s, %s",
-                        Integer.toHexString(opcode & 0xFF).toUpperCase(), handler));
+                        Integer.toHexString(opcode & 0xFF).toUpperCase(), connection));
         }
     }
 

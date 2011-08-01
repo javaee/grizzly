@@ -279,6 +279,7 @@ public abstract class HandShake {
     }
 
     public void respond(FilterChainContext ctx, WebSocketApplication application, HttpResponsePacket response) {
+        response.setProtocol(Protocol.HTTP_1_1);
         response.setStatus(101);
         response.setReasonPhrase("Web Socket Protocol Handshake");
         response.setHeader("Upgrade", "websocket");

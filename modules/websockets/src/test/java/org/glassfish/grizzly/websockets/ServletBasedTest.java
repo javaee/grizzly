@@ -59,7 +59,6 @@ public class ServletBasedTest {
         final CountDownLatch latch = new CountDownLatch(1);
         final EchoWebSocketApplication app = new EchoWebSocketApplication();
         WebSocketEngine.getEngine().register(app);
-        WebSocketEngine.setWebSocketEnabled(true);
         HttpServer httpServer = HttpServer.createSimpleServer(".", WebSocketsTest.PORT);
         httpServer.getServerConfiguration().setHttpServerName("WebSocket Server");
         httpServer.getServerConfiguration().setName("WebSocket Server");

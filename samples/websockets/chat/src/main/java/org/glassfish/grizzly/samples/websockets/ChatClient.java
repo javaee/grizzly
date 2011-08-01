@@ -40,18 +40,17 @@
 package org.glassfish.grizzly.samples.websockets;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.URI;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.glassfish.grizzly.websockets.WebSocketClient;
 import org.glassfish.grizzly.websockets.DataFrame;
 import org.glassfish.grizzly.websockets.WebSocket;
+import org.glassfish.grizzly.websockets.WebSocketClient;
+import org.glassfish.grizzly.websockets.WebSocketEngine;
 
 /**
- * Chat websocket client handler. This {@link ChatClient} customizes default {@link WebSocket} with {@link
+ * Chat websocket client connection. This {@link ChatClient} customizes default {@link WebSocket} with {@link
  * ChatWebSocket}, which includes some chat specific properties and logic.
  *
  * @author Alexey Stashok
@@ -68,8 +67,8 @@ public class ChatClient extends WebSocketClient {
      *
      * @param login user name
      */
-    public ChatClient(URI uri, String login) throws IOException {
-        super(uri);
+    public ChatClient(String uri, String login) {
+        super(uri, WebSocketEngine.DEFAULT_VERSION);
         this.login = login;
     }
 
@@ -104,6 +103,7 @@ public class ChatClient extends WebSocketClient {
         System.out.println("WebSocket is closed");
     }
 
+    @SuppressWarnings({"UnusedAssignment"})
     public static void main(String[] args) throws Exception {
         // initialize transport
         ChatClient websocket = null;
@@ -111,7 +111,7 @@ public class ChatClient extends WebSocketClient {
             // initialize console reader
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
             System.out.println("Type 'q' and <enter> any time to exit");
-            String login = null;
+            String login;
             // Ask for the user name
             do {
                 System.out.print("Login: ");
@@ -122,11 +122,11 @@ public class ChatClient extends WebSocketClient {
                 login = login.trim();
             } while (login.isEmpty());
             // Initialize websocket connect and login to chat
-            final URI uri = new URI("ws://localhost:" + ChatWebSocketServer.PORT + "/grizzly-websockets-chat/chat");
+            final String uri = "ws://localhost:" + ChatWebSocketServer.PORT + "/grizzly-websockets-chat/chat";
             final ChatClient client = new ChatClient(uri, login);
             websocket = (ChatClient) client.connect();
             // websocket client working cycle... Type the message and send it to the server
-            String message = null;
+            String message;
             do {
                 System.out.print("Message ('q' to quit) >");
                 message = reader.readLine();

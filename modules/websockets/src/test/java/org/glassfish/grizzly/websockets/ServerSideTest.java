@@ -50,11 +50,18 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 @SuppressWarnings({"StringContatenationInLoop"})
-public class ServerSideTest {
-    private static final int PORT = 1726;
-    public static final int ITERATIONS = 10000;
+@RunWith(Parameterized.class)
+public class ServerSideTest extends BaseWebSocketTestUtilities {
+    public static final int ITERATIONS = 5000;
+    private final Version version;
+
+    public ServerSideTest(Version version) {
+        this.version = version;
+    }
 
     @Test
     public void steadyFlow()
@@ -62,13 +69,15 @@ public class ServerSideTest {
         WebSocketServer server = new WebSocketServer(PORT);
         server.register("/echo", new EchoApplication());
         server.start();
-        TrackingWebSocket socket = new TrackingWebSocket(String.format("ws://localhost:%s/echo", PORT), 5 * ITERATIONS);
+        TrackingWebSocket socket = new TrackingWebSocket(String.format("ws://localhost:%s/echo", PORT), version,
+            5 * ITERATIONS);
         socket.connect();
         try {
             int count = 0;
             final Date start = new Date();
+            final int marker = ITERATIONS / 5;
             while (count++ < ITERATIONS) {
-                if (count % (ITERATIONS / 5) == 0) {
+                if (count % marker == 0) {
                     System.out.printf("Running iteration %s of %s\n", count, ITERATIONS);
                 }
                 socket.send("test message: " + count);
@@ -78,8 +87,28 @@ public class ServerSideTest {
                 socket.send("now, we're done: " + count);
             }
             Assert.assertTrue("All messages should come back: " + socket.getReceived(), socket.waitOnMessages());
-            time("ServerSideTest.steadyFlow", start, new Date());
+            time("ServerSideTest.steadyFlow (" + version + ")", start, new Date());
+        } finally {
+            if (socket != null) {
+                socket.close();
+            }
+            server.stop();
+        }
+    }
 
+    @Test
+    public void single()
+        throws IOException, InstantiationException, ExecutionException, InterruptedException, URISyntaxException {
+        WebSocketServer server = new WebSocketServer(PORT);
+        server.register("/echo", new EchoApplication());
+        server.start();
+        TrackingWebSocket socket = new TrackingWebSocket(String.format("ws://localhost:%s/echo", PORT), version, 1);
+        socket.connect();
+        try {
+            int count = 0;
+            final Date start = new Date();
+            socket.send("test message: " + count);
+            Assert.assertTrue("All messages should come back: " + socket.getReceived(), socket.waitOnMessages());
         } finally {
             if (socket != null) {
                 socket.close();
@@ -95,7 +124,7 @@ public class ServerSideTest {
         WebSocketServer server = new WebSocketServer(PORT);
         server.register("/echo", new EchoApplication());
         server.start();
-        CountDownWebSocket socket = new CountDownWebSocket(String.format("ws://localhost:%s/echo", PORT));
+        CountDownWebSocket socket = new CountDownWebSocket(String.format("ws://localhost:%s/echo", PORT), version);
         socket.connect();
         try {
             int count = 0;
@@ -112,7 +141,7 @@ public class ServerSideTest {
                 socket.send("now, we're done: " + count);
                 Assert.assertTrue("Everything should come back", socket.countDown());
             }
-            time("ServerSideTest.sendAndWait", start, new Date());
+            time("ServerSideTest.sendAndWait (" + version + ")", start, new Date());
         } finally {
             if (socket != null) {
                 socket.close();
@@ -127,21 +156,20 @@ public class ServerSideTest {
         WebSocketServer server = new WebSocketServer(PORT);
         server.register("/echo", new EchoApplication());
         server.start();
-
         List<TrackingWebSocket> clients = new ArrayList<TrackingWebSocket>();
         try {
             final String address = String.format("ws://localhost:%s/echo", PORT);
             for (int x = 0; x < 5; x++) {
-                final TrackingWebSocket socket = new TrackingWebSocket(address, x + "", 5 * ITERATIONS);
+                final TrackingWebSocket socket = new TrackingWebSocket(address, x + "", version, 5 * ITERATIONS);
                 socket.connect();
                 clients.add(socket);
             }
             String[] messages = {
-                    "test message",
-                    "let's try again",
-                    "3rd time's the charm!",
-                    "ok.  just one more",
-                    "now, we're done"
+                "test message",
+                "let's try again",
+                "3rd time's the charm!",
+                "ok.  just one more",
+                "now, we're done"
             };
             for (int count = 0; count < ITERATIONS; count++) {
                 for (String message : messages) {
@@ -173,21 +201,20 @@ public class ServerSideTest {
             }
         };
         socket.connect();
-
         try {
             StringBuilder sb = new StringBuilder();
             while (sb.length() < 10000) {
                 sb.append("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus quis lectus odio, et" +
-                        " dictum purus. Suspendisse id ante ac tortor facilisis porta. Nullam aliquet dapibus dui, ut" +
-                        " scelerisque diam luctus sit amet. Donec faucibus aliquet massa, eget iaculis velit ullamcorper" +
-                        " eu. Fusce quis condimentum magna. Vivamus eu feugiat mi. Cras varius convallis gravida. Vivamus" +
-                        " et elit lectus. Aliquam egestas, erat sed dapibus dictum, sem ligula suscipit mauris, a" +
-                        " consectetur massa augue vel est. Nam bibendum varius lobortis. In tincidunt, sapien quis" +
-                        " hendrerit vestibulum, lorem turpis faucibus enim, non rhoncus nisi diam non neque. Aliquam eu" +
-                        " urna urna, molestie aliquam sapien. Nullam volutpat, erat condimentum interdum viverra, tortor" +
-                        " lacus venenatis neque, vitae mattis sem felis pellentesque quam. Nullam sodales vestibulum" +
-                        " ligula vitae porta. Aenean ultrices, ligula quis dapibus sodales, nulla risus sagittis sapien," +
-                        " id posuere turpis lectus ac sapien. Pellentesque sed ante nisi. Quisque eget posuere sapien.");
+                    " dictum purus. Suspendisse id ante ac tortor facilisis porta. Nullam aliquet dapibus dui, ut" +
+                    " scelerisque diam luctus sit amet. Donec faucibus aliquet massa, eget iaculis velit ullamcorper" +
+                    " eu. Fusce quis condimentum magna. Vivamus eu feugiat mi. Cras varius convallis gravida. Vivamus" +
+                    " et elit lectus. Aliquam egestas, erat sed dapibus dictum, sem ligula suscipit mauris, a" +
+                    " consectetur massa augue vel est. Nam bibendum varius lobortis. In tincidunt, sapien quis" +
+                    " hendrerit vestibulum, lorem turpis faucibus enim, non rhoncus nisi diam non neque. Aliquam eu" +
+                    " urna urna, molestie aliquam sapien. Nullam volutpat, erat condimentum interdum viverra, tortor" +
+                    " lacus venenatis neque, vitae mattis sem felis pellentesque quam. Nullam sodales vestibulum" +
+                    " ligula vitae porta. Aenean ultrices, ligula quis dapibus sodales, nulla risus sagittis sapien," +
+                    " id posuere turpis lectus ac sapien. Pellentesque sed ante nisi. Quisque eget posuere sapien.");
             }
             final String data = sb.toString();
             for (int x = 0; x < count; x++) {

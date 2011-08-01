@@ -54,15 +54,15 @@ public class TrackingWebSocket extends WebSocketClient {
     private final CountDownLatch received;
     private String name;
 
-    public TrackingWebSocket(String address, int count, WebSocketListener... listeners)
+    public TrackingWebSocket(String address, Version version, int count, WebSocketListener... listeners)
         throws IOException, URISyntaxException {
-        super(address, listeners);
+        super(address, version, listeners);
         received = new CountDownLatch(count);
     }
 
-    public TrackingWebSocket(String address, String name, int count, WebSocketListener... listeners)
+    public TrackingWebSocket(String address, String name, Version version, int count, WebSocketListener... listeners)
         throws IOException, URISyntaxException {
-        super(address, listeners);
+        super(address, version, listeners);
         this.name = name;
         received = new CountDownLatch(count);
     }

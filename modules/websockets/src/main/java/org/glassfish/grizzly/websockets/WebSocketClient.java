@@ -67,22 +67,21 @@ public class WebSocketClient extends DefaultWebSocket {
     private Version version;
     private final URI address;
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
-    private TCPNIOTransport transport;
+    protected TCPNIOTransport transport;
 
-    public WebSocketClient(String uri, WebSocketListener... listeners) throws URISyntaxException {
-        this(WebSocketEngine.DEFAULT_VERSION, new URI(uri), listeners);
+    public WebSocketClient(String uri, WebSocketListener... listeners) {
+        this(uri, WebSocketEngine.DEFAULT_VERSION, listeners);
     }
 
-    public WebSocketClient(Version version, URI uri, WebSocketListener... listeners) {
-        super(listeners);
+    public WebSocketClient(String uri, Version version, WebSocketListener... listeners) {
+        super(version.createHandler(true), listeners);
         this.version = version;
-        address = uri;
+        try {
+            address = new URI(uri);
+        } catch (URISyntaxException e) {
+            throw new WebSocketException(e.getMessage(), e);
+        }
         add(new WebSocketCloseAdapter());
-    }
-
-    @Override
-    public void onClose(DataFrame frame) {
-        super.onClose(frame);
     }
 
     public URI getAddress() {
@@ -97,15 +96,16 @@ public class WebSocketClient extends DefaultWebSocket {
      * @return this on successful connection
      */
     public WebSocket connect() {
-        return connect(WebSocketEngine.DEFAULT_TIMEOUT);
+        return connect(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS);
     }
 
     /**
      * @param timeout number of seconds to timeout trying to connect
+     * @param unit time unit to use
      *
      * @return this on successful connection
      */
-    public WebSocket connect(long timeout) {
+    public WebSocket connect(long timeout, TimeUnit unit) {
         try {
             final FutureImpl<Connection> future = SafeFutureImpl.create();
             transport = TCPNIOTransportBuilder.newInstance().build();
@@ -121,7 +121,6 @@ public class WebSocketClient extends DefaultWebSocket {
                     final WebSocketHolder holder = WebSocketEngine.getEngine().setWebSocketHolder(conn, handler,
                         WebSocketClient.this);
                     holder.handshake = handler.createHandShake(address);
-                    connection = conn;
                 }
             };
             final CountDownLatch latch = new CountDownLatch(1);
@@ -136,9 +135,8 @@ public class WebSocketClient extends DefaultWebSocket {
             // start connect
             connectorHandler.connect(new InetSocketAddress(address.getHost(), address.getPort()),
                 new WebSocketCompletionHandler(future));
-
-            connection = future.get(timeout, TimeUnit.SECONDS);
-            latch.await(timeout, TimeUnit.SECONDS);
+            protocolHandler.setConnection(future.get(timeout, unit));
+            latch.await(timeout, unit);
 
             return this;
         } catch (Exception e) {

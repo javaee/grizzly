@@ -49,6 +49,11 @@ class EchoWebSocketApplication extends WebSocketApplication {
     }
 
     @Override
+    public void onClose(WebSocket socket, DataFrame frame) {
+        super.onClose(socket, frame);
+    }
+
+    @Override
     public void onMessage(WebSocket socket, String data) {
         super.onMessage(socket, data);
         socket.send(data);

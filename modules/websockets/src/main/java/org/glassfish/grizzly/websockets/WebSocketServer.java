@@ -53,7 +53,6 @@ public class WebSocketServer {
     private HttpServer httpServer;
 
     public WebSocketServer(int port) {
-        WebSocketEngine.setWebSocketEnabled(true);
         httpServer = HttpServer.createSimpleServer(".", port);
         httpServer.getServerConfiguration().setHttpServerName("WebSocket Server");
         httpServer.getServerConfiguration().setName("WebSocket Server");

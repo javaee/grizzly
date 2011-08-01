@@ -37,156 +37,100 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.websockets;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.websockets.draft06.ClosingFrame;
-import org.glassfish.grizzly.websockets.frametypes.BinaryFrameType;
 import org.glassfish.grizzly.websockets.frametypes.PongFrameType;
-import org.glassfish.grizzly.websockets.frametypes.TextFrameType;
 
 @SuppressWarnings({"StringContatenationInLoop"})
 public class DefaultWebSocket implements WebSocket {
+    private static final Logger logger = Grizzly.logger(DefaultWebSocket.class);
+    private final Collection<WebSocketListener> listeners = new ConcurrentLinkedQueue<WebSocketListener>();
+    protected final ProtocolHandler protocolHandler;
+
     enum State {
         NEW, CONNECTED, CLOSING, CLOSED
     }
 
-    private EnumSet<State> connectedSet = EnumSet.range(State.CONNECTED, State.CLOSING);
-
-    private static final Logger logger = Grizzly.logger(DefaultWebSocket.class);
-    Connection connection;
-    private final Collection<WebSocketListener> listeners =
-            new ConcurrentLinkedQueue<WebSocketListener>();
+    EnumSet<State> connected = EnumSet.<State>range(State.CONNECTED, State.CLOSING);
     private final AtomicReference<State> state = new AtomicReference<State>(State.NEW);
 
-    public DefaultWebSocket(WebSocketListener... listeners) {
+    public DefaultWebSocket(ProtocolHandler protocolHandler, WebSocketListener... listeners) {
+        this.protocolHandler = protocolHandler;
         for (WebSocketListener listener : listeners) {
             add(listener);
         }
-    }
-
-    public DefaultWebSocket(final Connection connection, final WebSocketListener[] listeners) {
-        this(listeners);
-        this.connection = connection;
+        protocolHandler.setWebSocket(this);
     }
 
     public Collection<WebSocketListener> getListeners() {
         return listeners;
     }
 
-    public boolean isConnected() {
-        return connectedSet.contains(state.get());
-    }
-
     public final boolean add(WebSocketListener listener) {
         return listeners.add(listener);
-    }
-
-    public void close() {
-        close(-1, null);
-    }
-
-    public void close(int code) {
-        close(code, null);
-    }
-
-    public void close(int code, String reason) {
-        if (state.compareAndSet(State.CONNECTED, State.CLOSING)) {
-            write(new ClosingFrame(code, reason), null);
-        }
-    }
-
-    @SuppressWarnings({"unchecked"})
-    private <T> GrizzlyFuture<T> write(final DataFrame frame, final CompletionHandler<T> completionHandler) {
-        try {
-            return connection.write(frame, completionHandler);
-        } catch (IOException e) {
-            logger.log(Level.SEVERE, e.getMessage(), e);
-            throw new WebSocketException(e.getMessage(), e);
-        }
-    }
-
-    public void onClose(final DataFrame frame) {
-        if (state.get() == State.CONNECTED) {
-            try {
-                write(new ClosingFrame(), new EmptyCompletionHandler<Object>() {
-                    @Override
-                    public void completed(final Object result) {
-                        doClose(frame);
-                    }
-                });
-            } catch (Exception e) {
-                throw new WebSocketException(e.getMessage(), e);
-            }
-        } else {
-            doClose(frame);
-        }
-    }
-
-    public void onPing(DataFrame frame) {
-        send(new DataFrame(new PongFrameType(), frame.getBytes()), null);
-        for (WebSocketListener listener : listeners) {
-            listener.onPing(this, frame.getBytes());
-        }
-    }
-
-    private void doClose(DataFrame frame) {
-        state.set(State.CLOSED);
-        final Iterator<WebSocketListener> it = listeners.iterator();
-        while (it.hasNext()) {
-            final WebSocketListener listener = it.next();
-            it.remove();
-            listener.onClose(this, frame);
-        }
     }
 
     public final boolean remove(WebSocketListener listener) {
         return listeners.remove(listener);
     }
 
-    public GrizzlyFuture<DataFrame> send(String data) {
-        return send(new DataFrame(new TextFrameType(), data), null);
+    public boolean isConnected() {
+        return connected.contains(state.get());
     }
 
-    private GrizzlyFuture<DataFrame> send(DataFrame frame, CompletionHandler<DataFrame> completionHandler) {
-        if (state.get() == State.CONNECTED) {
-            return write(frame, completionHandler);
-        } else {
-            throw new RuntimeException("Socket is already closed.");
+    public void setClosed() {
+        state.set(State.CLOSED);
+    }
+
+    public void onClose(DataFrame frame) {
+        synchronized (listeners) {
+            final Iterator<WebSocketListener> it = listeners.iterator();
+            while (it.hasNext()) {
+                final WebSocketListener listener = it.next();
+                it.remove();
+                listener.onClose(this, frame);
+            }
         }
-    }
-
-    public GrizzlyFuture<DataFrame> send(byte[] data) {
-        return send(new DataFrame(new BinaryFrameType(), data), null);
+        if (state.compareAndSet(State.CONNECTED, State.CLOSING)) {
+            final ClosingFrame closing = (ClosingFrame) frame;
+            protocolHandler.close(closing.getCode(), closing.getTextPayload());
+        } else {
+            state.set(State.CLOSED);
+            protocolHandler.doClose();
+        }
     }
 
     public void onConnect() {
         for (WebSocketListener listener : listeners) {
             listener.onConnect(this);
         }
-        state.compareAndSet(State.NEW, State.CONNECTED);
+        state.set(State.CONNECTED);
     }
 
     @Override
-    public void onMessage(String text) {
+    public void onFragment(boolean last, byte[] fragment) {
         for (WebSocketListener listener : listeners) {
-            listener.onMessage(this, text);
+            listener.onFragment(this, fragment, last);
         }
     }
+
+    @Override
+    public void onFragment(boolean last, String fragment) {
+        for (WebSocketListener listener : listeners) {
+            listener.onFragment(this, fragment, last);
+        }
+    }
+
     @Override
     public void onMessage(byte[] data) {
         for (WebSocketListener listener : listeners) {
@@ -195,20 +139,78 @@ public class DefaultWebSocket implements WebSocket {
     }
 
     @Override
-    public void onFragment(boolean last, String payload) {
+    public void onMessage(String text) {
         for (WebSocketListener listener : listeners) {
-            listener.onFragment(this, payload, last);
+            listener.onMessage(this, text);
         }
     }
 
-    @Override
-    public void onFragment(boolean last, byte[] payload) {
+    public void onPing(DataFrame frame) {
+        send(new DataFrame(new PongFrameType(), frame.getBytes()));
         for (WebSocketListener listener : listeners) {
-            listener.onFragment(this, payload, last);
+            listener.onPing(this, frame.getBytes());
         }
     }
 
     @Override
     public void onPong(DataFrame frame) {
+        for (WebSocketListener listener : listeners) {
+            listener.onPong(this, frame.getBytes());
+        }
     }
+
+    public void close() {
+        close(NORMAL_CLOSURE, null);
+    }
+
+    public void close(int code) {
+        close(code, null);
+    }
+
+    public void close(int code, String reason) {
+        if (state.compareAndSet(State.CONNECTED, State.CLOSING)) {
+            protocolHandler.close(code, reason);
+        }
+    }
+
+    public GrizzlyFuture<DataFrame> send(byte[] data) {
+        if (state.get() == State.CONNECTED) {
+            return protocolHandler.send(data);
+        } else {
+            throw new RuntimeException("Socket is already closed.");
+        }
+    }
+
+    public GrizzlyFuture<DataFrame> send(String data) {
+        if (state.get() == State.CONNECTED) {
+            return protocolHandler.send(data);
+        } else {
+            throw new RuntimeException("Socket is already closed.");
+        }
+    }
+
+    private GrizzlyFuture<DataFrame> send(DataFrame frame) {
+        if (isConnected()) {
+            return protocolHandler.send(frame);
+        } else {
+            throw new RuntimeException("Socket is already closed.");
+        }
+    }
+
+    public GrizzlyFuture<DataFrame> stream(boolean last, String fragment) {
+        if (state.get() == State.CONNECTED) {
+            return protocolHandler.stream(last, fragment);
+        } else {
+            throw new RuntimeException("Socket is already closed.");
+        }
+    }
+
+    public GrizzlyFuture<DataFrame> stream(boolean last, byte[] bytes, int off, int len) {
+        if (state.get() == State.CONNECTED) {
+            return protocolHandler.stream(last, bytes, off, len);
+        } else {
+            throw new RuntimeException("Socket is already closed.");
+        }
+    }
+
 }

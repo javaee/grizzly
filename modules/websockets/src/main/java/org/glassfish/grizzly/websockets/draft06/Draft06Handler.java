@@ -42,6 +42,7 @@ package org.glassfish.grizzly.websockets.draft06;
 
 import java.net.URI;
 
+import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.websockets.DataFrame;
@@ -50,7 +51,6 @@ import org.glassfish.grizzly.websockets.FramingException;
 import org.glassfish.grizzly.websockets.HandShake;
 import org.glassfish.grizzly.websockets.Masker;
 import org.glassfish.grizzly.websockets.ProtocolHandler;
-import org.glassfish.grizzly.websockets.WebSocketEngine;
 import org.glassfish.grizzly.websockets.frametypes.BinaryFrameType;
 import org.glassfish.grizzly.websockets.frametypes.ClosingFrameType;
 import org.glassfish.grizzly.websockets.frametypes.ContinuationFrameType;
@@ -82,7 +82,7 @@ public class Draft06Handler extends ProtocolHandler {
         byte opcode = checkForLastFrame(frame, getOpcode(frame.getType()));
         byte[] payloadBytes = frame.getBytes();
 
-//        ByteBuffer buffer = ByteBuffer.allocateDirect(payloadBytes + 8);
+//        ByteBuffer buffer = ByteBuffer.allocate(payloadBytes.length  + 8);
         final byte[] lengthBytes = encodeLength(payloadBytes.length);
         int packetLength = 1 + lengthBytes.length;
 
@@ -92,19 +92,17 @@ public class Draft06Handler extends ProtocolHandler {
         System.arraycopy(payloadBytes, 0, packet, packetLength, payloadBytes.length);
 
         if (maskData) {
-            Masker masker = new Masker(handler);
-            masker.generateMask();
-            packet = masker.maskAndPrepend(packet, masker);
+            packet = new Masker().maskAndPrepend(packet);
         }
 
         return packet;
     }
 
     @Override
-    public DataFrame parse() {
-        Masker masker = new Masker(handler);
+    public DataFrame parse(Buffer buffer) {
+        Masker masker = new Masker(buffer);
         if (!maskData) {
-            masker.setMask(handler.get(WebSocketEngine.MASK_SIZE));
+            masker.readMask();
         }
         byte opcode = masker.unmask();
         boolean finalFragment = (opcode & 0x80) == 0x80;

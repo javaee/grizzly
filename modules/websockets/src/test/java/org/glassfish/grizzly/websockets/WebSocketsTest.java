@@ -44,30 +44,32 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import javax.servlet.Servlet;
 
+import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
 import org.glassfish.grizzly.servlet.ServletHandler;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 @SuppressWarnings({"StringContatenationInLoop"})
-public class WebSocketsTest {
+@RunWith(Parameterized.class)
+public class WebSocketsTest extends BaseWebSocketTestUtilities {
     private static final Object SLUG = new Object();
-    private static final int MESSAGE_COUNT = 10;
-    public static final int PORT = 1725;
+    private static final int MESSAGE_COUNT = 5;
+    private final Version version;
 
-    @Before
-    public void enable() {
-        WebSocketEngine.setWebSocketEnabled(true);
+    public WebSocketsTest(Version version) {
+        this.version = version;
     }
 
     @Test
@@ -75,26 +77,7 @@ public class WebSocketsTest {
         run(new EchoServlet());
     }
 
-
-    @Test(expected = IllegalStateException.class)
-    public void websocketsNotEnabled() {
-        WebSocketEngine.setWebSocketEnabled(false);
-        final WebSocketApplication app = new WebSocketApplication() {
-            @Override
-            public boolean isApplicationRequest(HttpRequestPacket request) {
-                return false;
-            }
-        };
-        try {
-            WebSocketEngine.getEngine().register(app);
-        } finally {
-            WebSocketEngine.getEngine().unregister(app);
-            WebSocketEngine.setWebSocketEnabled(true);
-        }
-    }
-
     private void run(final Servlet servlet) throws Exception {
-        WebSocketEngine.setWebSocketEnabled(true);
         HttpServer httpServer = HttpServer.createSimpleServer(".", PORT);
         final ServerConfiguration configuration = httpServer.getServerConfiguration();
         configuration.addHttpHandler(new ServletHandler(servlet));
@@ -105,34 +88,30 @@ public class WebSocketsTest {
         }
         httpServer.start();
 
-        final Map<String, Object> sent = new ConcurrentHashMap<String, Object>();
+        final Set<String> sent = new ConcurrentSkipListSet<String>();
         final CountDownLatch connected = new CountDownLatch(1);
         final CountDownLatch received = new CountDownLatch(MESSAGE_COUNT);
 
         WebSocketClient client = null;
         try {
-            client = new WebSocketClient(String.format("ws://localhost:%s/echo", PORT), new WebSocketAdapter() {
+            client = new WebSocketClient(String.format("ws://localhost:%s/echo", PORT), version,
+                new CountDownAdapter(sent, received, connected)) {
                 @Override
-                public void onMessage(WebSocket socket, String data) {
-                    sent.remove(data);
-                    received.countDown();
+                public GrizzlyFuture<DataFrame> send(String data) {
+                    sent.add(data);
+                    return super.send(data);
                 }
-
-                @Override
-                public void onConnect(WebSocket socket) {
-                    connected.countDown();
-                }
-            });
+            };
 
             client.connect();
             for (int count = 0; count < MESSAGE_COUNT; count++) {
-                send(client, sent, "message " + count);
+                client.send("message " + count);
             }
 
             Assert.assertTrue(String.format("Waited %ss for the messages to echo back", WebSocketEngine.DEFAULT_TIMEOUT),
                 received.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS));
 
-            Assert.assertEquals(String.format("Should have received all %s messages back.", MESSAGE_COUNT), 0, sent.size());
+            Assert.assertEquals(String.format("Should have received all %s messages back. " + sent, MESSAGE_COUNT), 0, sent.size());
         } catch (InterruptedException e) {
             e.printStackTrace();
             throw new RuntimeException(e.getMessage(), e);
@@ -145,47 +124,7 @@ public class WebSocketsTest {
         }
     }
 
-    @Test
-    public void timeouts() throws Exception {
-        WebSocketServer server = new WebSocketServer(PORT);
-        server.register("/echo", new EchoApplication());
-        server.start();
-
-        WebSocketClient client = null;
-        final EchoWebSocketApplication app = new EchoWebSocketApplication();
-        try {
-            WebSocketEngine.getEngine().register(app);
-            final Map<String, Object> messages = new ConcurrentHashMap<String, Object>();
-            final CountDownLatch received = new CountDownLatch(MESSAGE_COUNT);
-            client = new WebSocketClient(String.format("ws://localhost:%s/echo", PORT), new WebSocketAdapter() {
-                @Override
-                public void onMessage(WebSocket socket, String data) {
-                    messages.remove(data);
-                    received.countDown();
-                }
-            });
-            client.connect();
-
-            for (int index = 0; index < MESSAGE_COUNT; index++) {
-                send(client, messages, "test " + index);
-                Thread.sleep(5000);
-            }
-
-            Assert.assertTrue(String.format("Waited %ss for everything to come back", WebSocketEngine.DEFAULT_TIMEOUT),
-                received.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS));
-            Assert.assertTrue("All messages should have been echoed back: " + messages, messages.isEmpty());
-        } finally {
-            WebSocketEngine.getEngine().unregister(app);
-            if (client != null) {
-                client.close();
-            }
-            if (server != null) {
-                server.stop();
-            }
-        }
-    }
-
-    @Test
+//    @Test
     public void ssl() throws Exception {
         WebSocketServer server = new WebSocketServer(PORT);
         server.register("/echo", new EchoApplication());
@@ -195,7 +134,7 @@ public class WebSocketsTest {
         WebSocketClient socket = null;
         try {
             WebSocketEngine.getEngine().register(app);
-            socket = new WebSocketClient("wss://localhost:" + PORT + "/echo");
+            socket = new WebSocketClient("wss://localhost:" + PORT + "/echo", version);
             socket.connect();
 
         } finally {
@@ -207,12 +146,7 @@ public class WebSocketsTest {
         }
     }
 
-    private void send(WebSocket client, Map<String, Object> messages, final String message) {
-        messages.put(message, SLUG);
-        client.send(message);
-    }
-
-    @Test
+    //    @Test
     public void testGetOnWebSocketApplication() throws IOException, InstantiationException, InterruptedException {
         final WebSocketApplication app = new WebSocketApplication() {
             public void onMessage(WebSocket socket, String data) {
@@ -223,16 +157,9 @@ public class WebSocketsTest {
             public boolean isApplicationRequest(HttpRequestPacket request) {
                 return true;
             }
-
-            public void onConnect(WebSocket socket) {
-            }
-
-            public void onClose(WebSocket socket) {
-            }
         };
         WebSocketEngine.getEngine().register(app);
 
-        WebSocketEngine.setWebSocketEnabled(true);
         HttpServer httpServer = HttpServer.createSimpleServer(".", PORT);
         final ServerConfiguration configuration = httpServer.getServerConfiguration();
         configuration.addHttpHandler(new ServletHandler(new EchoServlet()), "/echo");
@@ -248,9 +175,7 @@ public class WebSocketsTest {
         final InputStream is = urlConnection.getInputStream();
         try {
             final byte[] bytes = new byte[1024];
-            final int i = is.read(bytes);
-            final String text = new String(bytes, 0, i);
-            Assert.assertEquals(EchoServlet.RESPONSE_TEXT, text);
+            Assert.assertEquals(EchoServlet.RESPONSE_TEXT, new String(bytes, 0, is.read(bytes)));
         } finally {
             is.close();
             httpServer.stop();
@@ -258,34 +183,49 @@ public class WebSocketsTest {
         }
     }
 
-/*
     public void testGetOnServlet() throws IOException, InstantiationException, InterruptedException {
-        final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
+        HttpServer httpServer = HttpServer.createSimpleServer(".", PORT);
+        final ServerConfiguration configuration = httpServer.getServerConfiguration();
+        configuration.addHttpHandler(new ServletHandler(new EchoServlet()), "/echo");
+        configuration.setHttpServerName("WebSocket Server");
+        configuration.setName("WebSocket Server");
+        for (NetworkListener networkListener : httpServer.getListeners()) {
+            networkListener.registerAddOn(new WebSocketAddOn());
+        }
+        httpServer.start();
+
         URL url = new URL("http://localhost:" + PORT + "/echo");
         final URLConnection urlConnection = url.openConnection();
         final InputStream content = (InputStream) urlConnection.getContent();
         try {
             final byte[] bytes = new byte[1024];
-            final int i = content.read(bytes);
-            Assert.assertEquals(EchoServlet.RESPONSE_TEXT, new String(bytes, 0, i));
+            Assert.assertEquals(EchoServlet.RESPONSE_TEXT, new String(bytes, 0, content.read(bytes)));
         } finally {
             content.close();
-            thread.stopEndpoint();
+            httpServer.stop();
         }
     }
-*/
 
-/*
-    public void testSimpleConversationWithoutApplication()
-            throws IOException, InstantiationException, InterruptedException {
-        run(new HttpServlet() {
-            @Override
-            protected void service(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-                resp.setContentType("text/plain; charset=iso-8859-1");
-                resp.getWriter().write(req.getReader().readLine());
-                resp.getWriter().flush();
-            }
-        });
+    private static class CountDownAdapter extends WebSocketAdapter {
+        private final Set<String> sent;
+        private final CountDownLatch received;
+        private final CountDownLatch connected;
+
+        public CountDownAdapter(Set<String> sent, CountDownLatch received, CountDownLatch connected) {
+            this.sent = sent;
+            this.received = received;
+            this.connected = connected;
+        }
+
+        @Override
+        public void onMessage(WebSocket socket, String data) {
+            sent.remove(data);
+            received.countDown();
+        }
+
+        @Override
+        public void onConnect(WebSocket socket) {
+            connected.countDown();
+        }
     }
-*/
 }

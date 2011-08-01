@@ -45,7 +45,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 
 /**
@@ -75,8 +74,10 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
         return sockets.remove(socket) != null;
     }
 
-    public WebSocket createSocket(Connection connection, WebSocketListener... listeners) {
-        return new DefaultWebSocket(connection, listeners);
+    public WebSocket createSocket(ProtocolHandler handler, WebSocketListener... listeners) {
+        final DefaultWebSocket socket = new DefaultWebSocket(handler, listeners);
+        socket.add(this);
+        return socket;
     }
 
     /**

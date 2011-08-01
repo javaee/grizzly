@@ -53,7 +53,6 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.util.MimeHeaders;
-import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.utils.Utils;
 import org.glassfish.grizzly.websockets.draft06.ClosingFrame;
 
@@ -81,9 +80,8 @@ public class WebSocketEngine {
     public static final String CLIENT_WS_ORIGIN_HEADER = "Origin";
     public static final Version DEFAULT_VERSION = Version.values()[Version.values().length - 1];
     public static final int INITIAL_BUFFER_SIZE = 8192;
-    public static final int DEFAULT_TIMEOUT;
+    public static final int DEFAULT_TIMEOUT = Utils.isDebugVM() ? 900 : 30;
     private static final WebSocketEngine engine = new WebSocketEngine();
-    private static volatile boolean isWebSocketEnabled = true;
     static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     public static final String SERVER_KEY_HASH = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     public static final int MASK_SIZE = 4;
@@ -91,26 +89,7 @@ public class WebSocketEngine {
     private final Attribute<WebSocketHolder> webSocketAttribute =
         Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("web-socket");
 
-    static {
-        if (Utils.isDebugVM()) {
-            DEFAULT_TIMEOUT = 900;
-        } else {
-            DEFAULT_TIMEOUT = 30;
-        }
-    }
-
     private WebSocketEngine() {
-    }
-
-    /**
-     * @return true is WebSockets are enabled.
-     */
-    public static boolean isWebSocketEnabled() {
-        return isWebSocketEnabled;
-    }
-
-    public static void setWebSocketEnabled(boolean webSocketEnabled) {
-        isWebSocketEnabled = webSocketEnabled;
     }
 
     public static WebSocketEngine getEngine() {
@@ -164,9 +143,10 @@ public class WebSocketEngine {
         try {
             if (app != null) {
                 final ProtocolHandler protocolHandler = loadHandler(request.getHeaders());
-//                    final ServerNetworkHandler handler = new ServerNetworkHandler(request, request.getResponse());
+//                    final ServerNetworkHandler connection = new ServerNetworkHandler(request, request.getResponse());
                 final Connection connection = ctx.getConnection();
-                socket = app.createSocket(connection, app);
+                protocolHandler.setConnection(connection);
+                socket = app.createSocket(protocolHandler);
                 WebSocketEngine.getEngine().setWebSocketHolder(connection, protocolHandler, socket);
                 protocolHandler.handshake(ctx, app, requestContent);
                 request.getConnection().addCloseListener(new CloseListener() {
@@ -204,9 +184,6 @@ public class WebSocketEngine {
     }
 
     public void register(WebSocketApplication app) {
-        if (!isWebSocketEnabled()) {
-            throw new IllegalStateException(LogMessages.SEVERE_GRIZZLY_WS_NOT_ENABLED());
-        }
         applications.add(app);
     }
 

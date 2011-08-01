@@ -48,6 +48,7 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.websockets.DataFrame;
 import org.glassfish.grizzly.websockets.WebSocket;
 import org.glassfish.grizzly.websockets.WebSocketApplication;
 import org.glassfish.grizzly.websockets.WebSocketListener;
@@ -104,7 +105,7 @@ public class ChatApplication extends WebSocketApplication {
      * {@inheritDoc}
      */
     @Override
-    public void onClose(WebSocket websocket) {
+    public void onClose(WebSocket websocket, DataFrame frame) {
         broadcast("system", ((ChatWebSocket)websocket).getUser() + " left the chat");
     }
 
@@ -122,7 +123,6 @@ public class ChatApplication extends WebSocketApplication {
                 chat.sendJson(user, text);
             }
         }
-
     }
 
     /**

@@ -62,12 +62,6 @@ public class EchoServlet extends HttpServlet {
             public void onMessage(WebSocket socket, String data) {
                 socket.send(data);
             }
-
-            public void onConnect(WebSocket socket) {
-            }
-
-            public void onClose(WebSocket socket) {
-            }
         };
         WebSocketEngine.getEngine().register(app);
     }

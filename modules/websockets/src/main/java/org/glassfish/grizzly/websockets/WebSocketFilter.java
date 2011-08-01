@@ -66,7 +66,7 @@ import org.glassfish.grizzly.websockets.WebSocketEngine.WebSocketHolder;
  * WebSocket {@link Filter} implementation, which supposed to be placed into a {@link FilterChain} right after HTTP
  * Filter: {@link HttpServerFilter}, {@link HttpClientFilter}; depending whether it's server or client side. The
  * <tt>WebSocketFilter</tt> handles websocket connection, handshake phases and, when receives a websocket frame -
- * redirects it to appropriate handler ({@link WebSocketApplication}, {@link WebSocket}) for processing.
+ * redirects it to appropriate connection ({@link WebSocketApplication}, {@link WebSocket}) for processing.
  *
  * @author Alexey Stashok
  */
@@ -185,6 +185,7 @@ public class WebSocketFilter extends BaseFilter {
                     }
                     final DataFrame result = holder.handler.unframe(buffer);
                     if (result == null) {
+                        System.out.println("result = " + result);
                         holder.buffer = buffer;
                         break;
                     } else {
@@ -221,7 +222,9 @@ public class WebSocketFilter extends BaseFilter {
         if (websocket != null) {
             final DataFrame frame = (DataFrame) ctx.getMessage();
             final WebSocketHolder holder = WebSocketEngine.getEngine().getWebSocketHolder(ctx.getConnection());
-            ctx.setMessage(Buffers.wrap(ctx.getMemoryManager(), holder.handler.frame(frame)));
+            final Buffer wrap = Buffers.wrap(ctx.getMemoryManager(), holder.handler.frame(frame));
+            ctx.setMessage(wrap);
+            ctx.flush(null);
         }
         // invoke next filter in the chain
         return ctx.getInvokeAction();

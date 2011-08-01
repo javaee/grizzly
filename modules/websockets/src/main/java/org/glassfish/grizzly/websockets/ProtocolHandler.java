@@ -37,26 +37,27 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.websockets;
 
 import java.io.IOException;
 import java.net.URI;
 import java.nio.BufferUnderflowException;
-import java.util.Comparator;
-import java.util.Map;
-import java.util.TreeMap;
 
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.websockets.draft06.ClosingFrame;
 import org.glassfish.grizzly.websockets.frametypes.BinaryFrameType;
 import org.glassfish.grizzly.websockets.frametypes.TextFrameType;
 
 public abstract class ProtocolHandler {
-    protected NetworkHandler handler;
+    protected Connection connection;
     private boolean isHeaderParsed;
     private WebSocket webSocket;
     protected byte inFragmentedType;
@@ -73,16 +74,16 @@ public abstract class ProtocolHandler {
         return handshake;
     }
 
-    public void send(DataFrame frame) {
-        handler.write(frame(frame));
+    public GrizzlyFuture<DataFrame> send(DataFrame frame) {
+        return write(frame);
     }
 
-    public NetworkHandler getNetworkHandler() {
-        return handler;
+    public Connection getConnection() {
+        return connection;
     }
 
-    public void setNetworkHandler(NetworkHandler handler) {
-        this.handler = handler;
+    public void setConnection(Connection handler) {
+        this.connection = handler;
     }
 
     public WebSocket getWebSocket() {
@@ -97,40 +98,15 @@ public abstract class ProtocolHandler {
         return maskData;
     }
 
-    private Map<String, String> readResponse() throws IOException {
-        Map<String, String> headers = new TreeMap<String, String>(new Comparator<String>() {
-            public int compare(String o, String o1) {
-                return o.compareToIgnoreCase(o1);
-            }
-        });
-        if (!isHeaderParsed) {
-            String line = handler.readLine("ASCII").trim();
-            headers.put(WebSocketEngine.RESPONSE_CODE_HEADER, line.split(" ")[1]);
-            while (!isHeaderParsed) {
-                line = handler.readLine("ASCII").trim();
-
-                if (line.length() == 0) {
-                    isHeaderParsed = true;
-                } else {
-                    final int index = line.indexOf(":");
-                    headers.put(line.substring(0, index).trim(), line.substring(index+1).trim());
-                }
-            }
-        }
-
-        return headers;
-    }
-
     public abstract byte[] frame(DataFrame frame);
-
 /*
     public void readFrame() {
-        while (handler.ready()) {
+        while (connection.ready()) {
             try {
                 unframe(buffer, parsingFrame).respond(getWebSocket());
             } catch (FramingException fe) {
                 fe.printStackTrace();
-                System.out.println("handler = " + handler);
+                System.out.println("connection = " + connection);
                 getWebSocket().close();
             }
         }
@@ -141,39 +117,56 @@ public abstract class ProtocolHandler {
 
     protected abstract HandShake createHandShake(URI uri);
 
-    public void send(byte[] data) {
-        send(new DataFrame(new BinaryFrameType(), data));
+    public GrizzlyFuture<DataFrame> send(byte[] data) {
+        return send(new DataFrame(new BinaryFrameType(), data));
     }
 
-    public void send(String data) {
-        send(new DataFrame(new TextFrameType(), data));
+    public GrizzlyFuture<DataFrame> send(String data) {
+        return send(new DataFrame(new TextFrameType(), data));
     }
 
-    public void stream(boolean last, byte[] bytes, int off, int len) {
-        send(new DataFrame(new BinaryFrameType(), bytes, last));
+    public GrizzlyFuture<DataFrame> stream(boolean last, byte[] bytes, int off, int len) {
+        return send(new DataFrame(new BinaryFrameType(), bytes, last));
     }
 
-    public void stream(boolean last, String fragment) {
-        send(new DataFrame(new TextFrameType(), fragment, last));
+    public GrizzlyFuture<DataFrame> stream(boolean last, String fragment) {
+        return send(new DataFrame(new TextFrameType(), fragment, last));
     }
 
-    public void close(int code, String reason) {
-        send(new ClosingFrame(code, reason));
+    public GrizzlyFuture<DataFrame> close(int code, String reason) {
+        return send(new ClosingFrame(code, reason));
+    }
+
+    @SuppressWarnings({"unchecked"})
+    private GrizzlyFuture<DataFrame> write(final DataFrame frame) {
+        final FutureImpl<DataFrame> localFuture = SafeFutureImpl.<DataFrame>create();
+
+        try {
+            connection.write(frame, new EmptyCompletionHandler() {
+                @Override
+                public void completed(Object result) {
+                    localFuture.result(frame);
+                }
+            });
+        } catch (IOException e) {
+            throw new WebSocketException(e.getMessage(), e);
+        }
+
+        return localFuture;
     }
 
     public DataFrame unframe(Buffer buffer) {
         final int position = buffer.position();
         DataFrame frame = null;
-        handler = new ServerNetworkHandler(buffer);
         try {
-            frame = parse();
+            frame = parse(buffer);
         } catch (BufferUnderflowException e) {
             buffer.position(position);
         }
         return frame;
     }
 
-    public abstract DataFrame parse();
+    public abstract DataFrame parse(Buffer buffer);
 
     /**
      * Convert a byte[] to a long.  Used for rebuilding payload length.
@@ -183,16 +176,13 @@ public abstract class ProtocolHandler {
     }
 
     /**
-     * Converts the length given to the appropriate framing data:
-     * <ol>
-     * <li>0-125 one element that is the payload length.
-     * <li>up to 0xFFFF, 3 element array starting with 126 with the following 2 bytes interpreted as
-     * a 16 bit unsigned integer showing the payload length.
-     * <li>else 9 element array starting with 127 with the following 8 bytes interpreted as a 64-bit
-     * unsigned integer (the high bit must be 0) showing the payload length.
-     * </ol>
+     * Converts the length given to the appropriate framing data: <ol> <li>0-125 one element that is the payload length.
+     * <li>up to 0xFFFF, 3 element array starting with 126 with the following 2 bytes interpreted as a 16 bit unsigned
+     * integer showing the payload length. <li>else 9 element array starting with 127 with the following 8 bytes
+     * interpreted as a 64-bit unsigned integer (the high bit must be 0) showing the payload length. </ol>
      *
      * @param length the payload size
+     *
      * @return the array
      */
     public byte[] encodeLength(final long length) {
@@ -212,7 +202,6 @@ public abstract class ProtocolHandler {
                 System.arraycopy(b, 0, lengthBytes, 1, 8);
             }
         }
-
         return lengthBytes;
     }
 
@@ -241,5 +230,13 @@ public abstract class ProtocolHandler {
             local |= 0x80;
         }
         return local;
+    }
+
+    public void doClose() {
+        try {
+            connection.close();
+        } catch (IOException e) {
+            throw new WebSocketException(e.getMessage(), e);
+        }
     }
 }

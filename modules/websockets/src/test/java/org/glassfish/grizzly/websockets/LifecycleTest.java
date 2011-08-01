@@ -40,7 +40,6 @@
 package org.glassfish.grizzly.websockets;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -72,16 +71,17 @@ public class LifecycleTest extends BaseWebSocketTestUtilities {
         server.register(name, serverApp);
         server.start();
         try {
-            Assert.assertEquals("There should be no clients connected", serverApp.getWebSockets().size(), 0);
-            BadWebSocketClient client = new BadWebSocketClient(BASE_URL + name);
+            Assert.assertEquals("There should be no clients connected", 0, serverApp.getWebSockets().size());
+            BadWebSocketClient client = new BadWebSocketClient(BASE_URL + name, version);
             client.connect();
             connectedLatch.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS);
-            Assert.assertEquals("There should be 1 client connected", serverApp.getWebSockets().size(), 1);
+            Assert.assertEquals("There should be 1 client connected", 1, serverApp.getWebSockets().size());
+            checkSend(client);
             client.close();
             Assert.assertTrue(client.waitForClosed());
             Assert.assertTrue("Should get the close event",
                 closeLatch.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS));
-            Assert.assertEquals("There should be 0 clients connected", serverApp.getWebSockets().size(), 0);
+            Assert.assertEquals("There should be 0 clients connected", 0, serverApp.getWebSockets().size());
         } finally {
             server.stop();
             WebSocketEngine.getEngine().unregister(serverApp);
@@ -96,14 +96,14 @@ public class LifecycleTest extends BaseWebSocketTestUtilities {
         server.register(name, app);
         server.start();
         try {
-            Assert.assertEquals("There should be no clients connected", app.getWebSockets().size(), 0);
-            BadWebSocketClient client = new BadWebSocketClient(BASE_URL + name);
+            Assert.assertEquals("There should be no clients connected", 0, app.getWebSockets().size());
+            BadWebSocketClient client = new BadWebSocketClient(BASE_URL + name, version);
             client.connect();
             Assert.assertTrue(connectedLatch.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS));
-            Assert.assertEquals("There should be 1 client connected", app.getWebSockets().size(), 1);
+            Assert.assertEquals("There should be 1 client connected", 1, app.getWebSockets().size());
             client.killConnection();
             Assert.assertTrue("Should get the close event", closeLatch.await(1, TimeUnit.MINUTES));
-            Assert.assertEquals("There should be 0 clients connected", app.getWebSockets().size(), 0);
+            Assert.assertEquals("There should be 0 clients connected", 0, app.getWebSockets().size());
         } finally {
             server.stop();
         }
@@ -121,8 +121,13 @@ public class LifecycleTest extends BaseWebSocketTestUtilities {
             }
 
             @Override
+            public void onMessage(WebSocket socket, String text) {
+                socket.send(text);
+            }
+
+            @Override
             public boolean isApplicationRequest(HttpRequestPacket request) {
-                return request.getRequestURI().equals(name);
+                return true;
             }
 
             @Override
@@ -156,7 +161,7 @@ public class LifecycleTest extends BaseWebSocketTestUtilities {
     }
 
     private void dirtyDisconnect(EchoWebSocketApplication app) throws Exception {
-        Assert.assertEquals("There should be 0 clients connected", app.getWebSockets().size(), 0);
+        Assert.assertEquals("There should be 0 clients connected", 0, app.getWebSockets().size());
         BadWebSocketClient badClient = newClient();
         BadWebSocketClient client2 = newClient();
         badClient.killConnection();
@@ -165,34 +170,34 @@ public class LifecycleTest extends BaseWebSocketTestUtilities {
         client2.close();
         Assert.assertTrue(connected);
         Thread.sleep(3000);
-        Assert.assertEquals("There should be 0 clients connected", app.getWebSockets().size(), 0);
+        Assert.assertEquals("There should be 0 clients connected", 0, app.getWebSockets().size());
     }
 
     private void cleanDisconnect(WebSocketApplication app) throws Exception {
-        Assert.assertEquals("There should be 0 clients connected", app.getWebSockets().size(), 0);
+        Assert.assertEquals("There should be 0 clients connected", 0, app.getWebSockets().size());
         BadWebSocketClient client = newClient();
+        BadWebSocketClient client2 = newClient();
         Assert.assertTrue(client.isConnected());
         client.close();
         Assert.assertTrue(client.waitForClosed());
         Assert.assertFalse(client.isConnected());
-        BadWebSocketClient client2 = newClient();
+        checkSend(client2);
         Assert.assertTrue(client2.isConnected());
         client2.close();
         Assert.assertTrue(client2.waitForClosed());
         Assert.assertFalse(client2.isConnected());
-//        Thread.sleep(3000);
-        Assert.assertEquals("There should be 0 clients connected", app.getWebSockets().size(), 0);
+        Assert.assertEquals("There should be 0 clients connected", 0, app.getWebSockets().size());
     }
 
     private BadWebSocketClient newClient() throws Exception {
-        BadWebSocketClient client = new BadWebSocketClient(ADDRESS);
+        BadWebSocketClient client = new BadWebSocketClient(ADDRESS, version);
         client.connect();
         checkSend(client);
         return client;
     }
 
-    private void checkSend(BadWebSocketClient client) throws InterruptedException {
-        client.send("message");
+    private void checkSend(BadWebSocketClient client) throws InterruptedException, ExecutionException {
+        client.send("are you alive?");
         Assert.assertTrue("Message should come back", client.waitForMessage());
     }
 
@@ -200,12 +205,12 @@ public class LifecycleTest extends BaseWebSocketTestUtilities {
         private CountDownLatch messages;
         private final CountDownLatch closed = new CountDownLatch(1);
 
-        public BadWebSocketClient(String address, WebSocketListener... listeners) throws URISyntaxException {
-            super(address, listeners);
+        public BadWebSocketClient(String address, Version version, WebSocketListener... listeners) {
+            super(address, version, listeners);
         }
 
-        void killConnection() throws IOException, ExecutionException, InterruptedException {
-            connection.close().get();
+        void killConnection() throws IOException {
+            transport.stop();
         }
 
         @Override
@@ -233,6 +238,5 @@ public class LifecycleTest extends BaseWebSocketTestUtilities {
         public boolean waitForClosed() throws InterruptedException {
             return closed.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS);
         }
-
     }
 }

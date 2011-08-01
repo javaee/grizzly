@@ -51,11 +51,7 @@ public class DataFrame {
     private String payload;
     private byte[] bytes;
     private final FrameType type;
-    private boolean last = true;
-
-    public DataFrame(FrameType type) {
-        this.type = type;
-    }
+    private boolean last;
 
     public DataFrame(FrameType type, String data) {
         this(type, data, true);

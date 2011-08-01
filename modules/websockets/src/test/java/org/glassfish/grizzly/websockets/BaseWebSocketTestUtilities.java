@@ -51,6 +51,7 @@ public class BaseWebSocketTestUtilities {
     @Parameterized.Parameters
     public static List<Version[]> versions() {
         final List<Version[]> versions = new ArrayList<Version[]>();
+//        versions.add(new Version[]{Version.DRAFT07});
         for (Version version : Version.values()) {
             versions.add(new Version[]{version});
         }

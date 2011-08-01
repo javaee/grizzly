@@ -729,7 +729,7 @@ Ajax.Request.prototype = Object.extend(new Ajax.Base(), {
       this.dispatchException(e);
     }
 
-    /* Avoid memory leak in MSIE: clean up the oncomplete event handler */
+    /* Avoid memory leak in MSIE: clean up the oncomplete event connection */
     if (event == 'Complete')
       this.transport.onreadystatechange = Prototype.emptyFunction;
   },

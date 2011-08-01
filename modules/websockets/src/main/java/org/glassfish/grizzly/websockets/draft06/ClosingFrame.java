@@ -37,31 +37,22 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.websockets.draft06;
 
 import java.io.UnsupportedEncodingException;
 
 import org.glassfish.grizzly.websockets.DataFrame;
 import org.glassfish.grizzly.websockets.FramingException;
-import org.glassfish.grizzly.websockets.WebSocket;
 import org.glassfish.grizzly.websockets.WebSocketEngine;
 import org.glassfish.grizzly.websockets.frametypes.ClosingFrameType;
 
 public class ClosingFrame extends DataFrame {
     public static final byte[] EMPTY_BYTES = new byte[0];
     private int code;
-    private String reason;
-
-    public ClosingFrame() {
-        super(new ClosingFrameType());
-        code = WebSocket.NORMAL_CLOSURE;
-    }
 
     public ClosingFrame(int code, String reason) {
-        super(new ClosingFrameType());
+        super(new ClosingFrameType(), reason, true);
         this.code = code;
-        this.reason = reason;
     }
 
     public ClosingFrame(byte[] data) {
@@ -72,17 +63,13 @@ public class ClosingFrame extends DataFrame {
         return code;
     }
 
-    public String getReason() {
-        return reason;
-    }
-
     @Override
     public void setPayload(byte[] bytes) {
         if (bytes.length > 0) {
             code = (int) WebSocketEngine.toLong(bytes, 0, 2);
             if (bytes.length > 2) {
                 try {
-                    reason = new String(bytes, 2, bytes.length - 2, "UTF-8");
+                    setPayload(new String(bytes, 2, bytes.length - 2, "UTF-8"));
                 } catch (UnsupportedEncodingException e) {
                     throw new FramingException(e.getMessage(), e);
                 }
@@ -92,21 +79,15 @@ public class ClosingFrame extends DataFrame {
 
     @Override
     public byte[] getBytes() {
-        try {
-            if (code == -1) {
-                return EMPTY_BYTES;
-            }
-
-            final byte[] bytes = WebSocketEngine.toArray(code);
-            final byte[] reasonBytes = reason == null ? EMPTY_BYTES : reason.getBytes("UTF-8");
-            final byte[] frameBytes = new byte[2 + reasonBytes.length];
-            System.arraycopy(bytes, bytes.length - 2, frameBytes, 0, 2);
-            System.arraycopy(reasonBytes, 0, frameBytes, 2, reasonBytes.length);
-
-            return frameBytes;
-        } catch (UnsupportedEncodingException e) {
-            throw new FramingException(e.getMessage(), e);
+        if (code == -1) {
+            return EMPTY_BYTES;
         }
+        final byte[] bytes = WebSocketEngine.toArray(code);
+        final byte[] reasonBytes = super.getBytes() == null ? EMPTY_BYTES : super.getBytes();
+        final byte[] frameBytes = new byte[2 + reasonBytes.length];
+        System.arraycopy(bytes, bytes.length - 2, frameBytes, 0, 2);
+        System.arraycopy(reasonBytes, 0, frameBytes, 2, reasonBytes.length);
+        return frameBytes;
     }
 
     @Override
@@ -114,7 +95,7 @@ public class ClosingFrame extends DataFrame {
         final StringBuilder sb = new StringBuilder();
         sb.append("ClosingFrame");
         sb.append("{code=").append(code);
-        sb.append(", reason=").append(reason == null ? null : "'" + reason + "'");
+        sb.append(", payload=").append(getTextPayload() == null ? null : "'" + getTextPayload() + "'");
         sb.append('}');
         return sb.toString();
     }

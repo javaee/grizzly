@@ -95,9 +95,10 @@ public interface WebSocket {
      */
     GrizzlyFuture<DataFrame> send(byte[] data);
 
-    /**
-     * Close the <tt>WebSocket</tt>.
-     */
+    GrizzlyFuture<DataFrame> stream(boolean last, String fragment);
+
+    GrizzlyFuture<DataFrame> stream(boolean last, byte[] fragment, int off, int len);
+    
     void close();
 
     void close(int code);
@@ -110,7 +111,7 @@ public interface WebSocket {
 
     void onMessage(String text);
 
-    void onMessage(byte[] bytes);
+    void onMessage(byte[] data);
 
     void onFragment(boolean last, String payload);
 

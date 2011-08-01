@@ -49,8 +49,8 @@ public class CountDownWebSocket extends WebSocketClient {
     private final Object sync = new Object();
     private int countDown;;
 
-    public CountDownWebSocket(String url, WebSocketListener... listeners) throws IOException, URISyntaxException {
-        super(url, listeners);
+    public CountDownWebSocket(String url, Version version, WebSocketListener... listeners) throws IOException, URISyntaxException {
+        super(url, version, listeners);
     }
 
     @Override

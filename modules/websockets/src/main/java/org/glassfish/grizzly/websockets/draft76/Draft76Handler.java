@@ -37,12 +37,13 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.websockets.draft76;
 
 import java.io.ByteArrayOutputStream;
 import java.net.URI;
 
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.websockets.DataFrame;
 import org.glassfish.grizzly.websockets.FramingException;
@@ -59,24 +60,23 @@ public class Draft76Handler extends ProtocolHandler {
         return frame.getType().getBytes(frame);
     }
 
-    public DataFrame parse() {
-        byte b = handler.get();
+    public DataFrame parse(Buffer buffer) {
+        byte b = buffer.get();
         DataFrame frame;
         switch (b) {
             case 0x00:
                 ByteArrayOutputStream raw = new ByteArrayOutputStream();
-                while ((b = handler.get()) != (byte) 0xFF) {
+                while ((b = buffer.get()) != (byte) 0xFF) {
                     raw.write(b);
                 }
                 frame = new DataFrame(Draft76FrameType.TEXT, raw.toByteArray());
                 break;
             case (byte) 0xFF:
-                frame = new DataFrame(Draft76FrameType.CLOSING, new byte[]{b, handler.get()});
+                frame = new DataFrame(Draft76FrameType.CLOSING, new byte[]{b, buffer.get()});
                 break;
             default:
                 throw new FramingException("Unknown frame type: " + b);
         }
-
         return frame;
     }
 
@@ -91,23 +91,28 @@ public class Draft76Handler extends ProtocolHandler {
     }
 
     @Override
-    public void send(String data) {
-        send(new DataFrame(Draft76FrameType.TEXT, data));
+    public GrizzlyFuture<DataFrame> send(String data) {
+        return send(new DataFrame(Draft76FrameType.TEXT, data));
     }
 
     @Override
-    public void close(int code, String reason) {
-        send(new DataFrame(Draft76FrameType.CLOSING));
+    public GrizzlyFuture<DataFrame> close(int code, String reason) {
+        return send(new DataFrame(Draft76FrameType.CLOSING, (String)null, true));
     }
 
     @Override
-    public void send(byte[] data) {
-        throw new WebSocketException("Binary data not supported in draft -76");
+    public GrizzlyFuture<DataFrame> send(byte[] data) {
+        throw new WebSocketException("Binary data not supported in draft 76");
     }
 
     @Override
-    public void stream(boolean last, byte[] bytes, int off, int len) {
-        throw new WebSocketException("Streaming not supported in draft -76");
+    public GrizzlyFuture<DataFrame> stream(boolean last, byte[] bytes, int off, int len) {
+        throw new WebSocketException("Streaming not supported in draft 76");
+    }
+
+    @Override
+    public GrizzlyFuture<DataFrame> stream(boolean last, String data) {
+        throw new WebSocketException("Streaming not supported in draft 76");
     }
 
     @Override

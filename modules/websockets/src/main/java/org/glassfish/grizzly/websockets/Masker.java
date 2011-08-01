@@ -42,22 +42,38 @@ package org.glassfish.grizzly.websockets;
 
 import java.security.SecureRandom;
 
+import org.glassfish.grizzly.Buffer;
+
 public class Masker {
-    private final NetworkHandler handler;
+    private Buffer buffer;
     private byte[] mask;
     private int index = 0;
 
-    public Masker(NetworkHandler handler) {
-        this.handler = handler;
+    public Masker(Buffer buffer) {
+        this.buffer = buffer;
+    }
+
+    public Masker() {
+        generateMask();
+    }
+
+    public byte get() {
+        return buffer.get();
+    }
+
+    public byte[] get(final int size) {
+        byte[] bytes = new byte[size];
+        buffer.get(bytes);
+        return bytes;
     }
 
     public byte unmask() {
-        final byte b = handler.get();
+        final byte b = get();
         return mask == null ? b : (byte) (b ^ mask[index++ % WebSocketEngine.MASK_SIZE]);
     }
 
     public byte[] unmask(int count) {
-        byte[] bytes = handler.get(count);
+        byte[] bytes = get(count);
         if (mask != null) {
             for (int i = 0; i < bytes.length; i++) {
                 bytes[i] ^= mask[index++ % WebSocketEngine.MASK_SIZE];
@@ -86,10 +102,10 @@ public class Masker {
         }
     }
 
-    public byte[] maskAndPrepend(byte[] packet, Masker masker) {
+    public byte[] maskAndPrepend(byte[] packet) {
         byte[] masked = new byte[packet.length + WebSocketEngine.MASK_SIZE];
-        System.arraycopy(masker.getMask(), 0, masked, 0, WebSocketEngine.MASK_SIZE);
-        masker.mask(masked, WebSocketEngine.MASK_SIZE, packet);
+        System.arraycopy(getMask(), 0, masked, 0, WebSocketEngine.MASK_SIZE);
+        mask(masked, WebSocketEngine.MASK_SIZE, packet);
         return masked;
     }
 
@@ -98,7 +114,7 @@ public class Masker {
         return mask;
     }
 
-    public void setMask(byte[] mask) {
-        this.mask = mask;
+    public void readMask() {
+        mask = get(WebSocketEngine.MASK_SIZE);
     }
 }
