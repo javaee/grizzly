@@ -80,14 +80,17 @@ public class HandShake06 extends HandShake {
 
     public void initiate(NetworkHandler handler) {
         super.initiate(handler);
-        handler.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_KEY_HEADER, secKey).getBytes());
-        handler.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_ORIGIN_HEADER, getOrigin()).getBytes());
-        handler.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_VERSION, getVersion()).getBytes());
+        StringBuilder builder = new StringBuilder();
+        builder.append(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_KEY_HEADER, secKey));
+        builder.append(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_ORIGIN_HEADER, getOrigin()));
+        builder.append(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_VERSION, getVersion()));
         if (!getExtensions().isEmpty()) {
-            handler.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_EXTENSIONS_HEADER,
-                    join(getExtensions())).getBytes());
+            builder.append(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_EXTENSIONS_HEADER,
+                    join(getExtensions())));
         }
-        handler.write("\r\n".getBytes());
+        builder.append("\r\n");
+        
+        handler.write(builder.toString().getBytes());
     }
 
     protected int getVersion() {

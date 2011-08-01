@@ -103,7 +103,7 @@ public interface WebSocket {
 
     boolean isConnected();
 
-    boolean setConnected(boolean connected);
+    void setClosed();
 
     void onConnect();
 

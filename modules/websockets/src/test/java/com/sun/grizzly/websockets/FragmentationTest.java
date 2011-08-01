@@ -81,6 +81,7 @@ public class FragmentationTest extends BaseWebSocketTestUtilities {
                                 }
                             }
                         });
+                client.connect();
 
                 final String text = "abc";
                 int size = text.length();

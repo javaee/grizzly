@@ -265,15 +265,18 @@ public abstract class HandShake {
     }
 
     public void initiate(NetworkHandler handler) {
-        handler.write(String.format("GET %s HTTP/1.1\r\n", getResourcePath()).getBytes());
-        handler.write(String.format("Host: %s\r\n", getServerHostName()).getBytes());
-        handler.write(String.format("Connection: Upgrade\r\n").getBytes());
-        handler.write(String.format("Upgrade: WebSocket\r\n").getBytes());
+        StringBuilder builder = new StringBuilder();
+        builder.append(String.format("GET %s HTTP/1.1\r\n", getResourcePath()));
+        builder.append(String.format("Host: %s\r\n", getServerHostName()));
+        builder.append(String.format("Connection: Upgrade\r\n"));
+        builder.append(String.format("Upgrade: WebSocket\r\n"));
 
         if (!getSubProtocol().isEmpty()) {
-            handler.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_PROTOCOL_HEADER,
-                    join(getSubProtocol())).getBytes());
+            builder.append(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_PROTOCOL_HEADER,
+                    join(getSubProtocol())));
         }
+        
+        handler.write(builder.toString().getBytes());
     }
 
     public void validateServerResponse(Map<String, String> map) {

@@ -62,7 +62,7 @@ public class CountDownWebSocket extends WebSocketClient {
     }
 
     @Override
-    public void onMessage(WebSocket socket, String frame) {
+    public void onMessage(String frame) {
         countDown.decrementAndGet();
     }
 

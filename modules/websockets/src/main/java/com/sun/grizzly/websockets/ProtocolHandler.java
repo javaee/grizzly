@@ -159,6 +159,11 @@ public abstract class ProtocolHandler {
         send(new ClosingFrame(code, reason));
     }
 
+    public void close(DataFrame frame) {
+        final ClosingFrame closing = (ClosingFrame) frame;
+        close(closing.getCode(), closing.getReason());
+    }
+
     public abstract DataFrame unframe();
 
     /**

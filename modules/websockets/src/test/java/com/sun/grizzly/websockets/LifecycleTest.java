@@ -75,7 +75,8 @@ public class LifecycleTest extends BaseWebSocketTestUtilities {
         try {
             Assert.assertEquals("There should be no clients connected", 0, serverApp.getWebSockets().size());
 
-            BadWebSocketClient client = new BadWebSocketClient(version, BASE_URL + name);
+            BadWebSocketClient client = new BadWebSocketClient(BASE_URL + name, version);
+            client.connect();
 
             connectedLatch.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS);
             Assert.assertEquals("There should be 1 client connected", 1, serverApp.getWebSockets().size());
@@ -83,7 +84,8 @@ public class LifecycleTest extends BaseWebSocketTestUtilities {
             checkSend(client);
             client.close();
             Assert.assertTrue(client.waitForClosed());
-            closeLatch.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS);
+            Assert.assertTrue("Should get the close event",
+                closeLatch.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS));
 
             Assert.assertEquals("There should be 0 clients connected", 0, serverApp.getWebSockets().size());
         } finally {
@@ -103,7 +105,8 @@ public class LifecycleTest extends BaseWebSocketTestUtilities {
         try {
             Assert.assertEquals("There should be no clients connected", 0, app.getWebSockets().size());
 
-            BadWebSocketClient client = new BadWebSocketClient(version, BASE_URL + name);
+            BadWebSocketClient client = new BadWebSocketClient(BASE_URL + name, version);
+            client.connect();
 
             connectedLatch.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS);
             Assert.assertEquals("There should be 1 client connected", 1, app.getWebSockets().size());
@@ -177,8 +180,8 @@ public class LifecycleTest extends BaseWebSocketTestUtilities {
 
         Assert.assertEquals("There should be 0 clients connected", 0, app.getWebSockets().size());
 
-        BadWebSocketClient badClient = newClient(version);
-        BadWebSocketClient client2 = newClient(version);
+        BadWebSocketClient badClient = newClient();
+        BadWebSocketClient client2 = newClient();
 
         badClient.killConnection();
 
@@ -194,24 +197,27 @@ public class LifecycleTest extends BaseWebSocketTestUtilities {
     private void cleanDisconnect(WebSocketApplication app) throws Exception {
         Assert.assertEquals("There should be 0 clients connected", 0, app.getWebSockets().size());
 
-        BadWebSocketClient client = newClient(version);
-        BadWebSocketClient client2 = newClient(version);
+        BadWebSocketClient client = newClient();
+        BadWebSocketClient client2 = newClient();
 
+        Assert.assertTrue(client.isConnected());
         client.close();
-        client.waitForClosed();
+        Assert.assertTrue(client.waitForClosed());
+        Assert.assertFalse(client.isConnected());
         checkSend(client2);
         Assert.assertTrue(client2.isConnected());
 
         client2.close();
-        client2.waitForClosed();
+        Assert.assertTrue(client2.waitForClosed());
         Assert.assertFalse(client2.isConnected());
 
-        Thread.sleep(3000);
         Assert.assertEquals("There should be 0 clients connected", 0, app.getWebSockets().size());
     }
 
-    private BadWebSocketClient newClient(Version version) throws Exception {
-        return new BadWebSocketClient(version, ADDRESS);
+    private BadWebSocketClient newClient() throws Exception {
+        final BadWebSocketClient client = new BadWebSocketClient(ADDRESS, version);
+        client.connect();
+        return client;
     }
 
     private void checkSend(BadWebSocketClient client) throws InterruptedException {
@@ -223,7 +229,7 @@ public class LifecycleTest extends BaseWebSocketTestUtilities {
         private CountDownLatch messages;
         private final CountDownLatch closed = new CountDownLatch(1);
 
-        public BadWebSocketClient(Version version, String address, WebSocketListener... listeners) throws IOException {
+        public BadWebSocketClient(String address, Version version, WebSocketListener... listeners) throws IOException {
             super(address, version, listeners);
         }
 
@@ -238,14 +244,14 @@ public class LifecycleTest extends BaseWebSocketTestUtilities {
         }
 
         @Override
-        public void onClose(WebSocket socket, DataFrame frame) {
-            super.onClose(socket, frame);
+        public void onClose(DataFrame frame) {
+            super.onClose(frame);
             closed.countDown();
         }
 
         @Override
-        public void onMessage(WebSocket socket, String frame) {
-            super.onMessage(socket, frame);
+        public void onMessage(String frame) {
+            super.onMessage(frame);
             messages.countDown();
         }
 

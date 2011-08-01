@@ -79,6 +79,7 @@ public class ServletBasedTest extends BaseWebSocketTestUtilities {
                                     latch.countDown();
                                 }
                             });
+            socket.connect();
             socket.send("echo me back");
             Assert.assertTrue(latch.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS));
         } finally {
@@ -107,6 +108,7 @@ public class ServletBasedTest extends BaseWebSocketTestUtilities {
                             latch.countDown();
                         }
                     });
+            socket.connect();
             socket.send("echo me back");
             Assert.assertTrue(latch.await(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS));
         } finally {

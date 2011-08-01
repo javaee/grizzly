@@ -69,16 +69,11 @@ public class TrackingWebSocket extends WebSocketClient {
     }
 
     @Override
-    public void onMessage(WebSocket socket, String frame) {
-        super.onMessage(socket, frame);
+    public void onMessage(String frame) {
+        super.onMessage(frame);
         if(sent.remove(frame) != null) {
             received.countDown();
         }
-    }
-
-    @Override
-    public void onConnect(WebSocket socket) {
-        super.onConnect(socket);
     }
 
     public boolean waitOnMessages() throws InterruptedException {

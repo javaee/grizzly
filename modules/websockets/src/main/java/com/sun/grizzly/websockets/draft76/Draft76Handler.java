@@ -101,6 +101,11 @@ public class Draft76Handler extends ProtocolHandler {
     }
 
     @Override
+    public void close(DataFrame frame) {
+        send(new DataFrame(Draft76FrameType.CLOSING));
+    }
+
+    @Override
     public void send(byte[] data) {
         throw new WebSocketException("Binary data not supported in draft -76");
     }

@@ -40,10 +40,8 @@
 
 package com.sun.grizzly.websockets;
 
-import java.io.IOException;
-
 public class WebSocketException extends RuntimeException {
-    public WebSocketException(String message, IOException e) {
+    public WebSocketException(String message, Exception e) {
         super(message, e);
     }
 

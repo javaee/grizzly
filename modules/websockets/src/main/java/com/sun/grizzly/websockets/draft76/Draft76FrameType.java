@@ -82,6 +82,7 @@ enum Draft76FrameType implements FrameType {
         }
 
         public void respond(WebSocket socket, DataFrame frame) {
+            socket.onClose(frame);
             socket.close();
         }
     };

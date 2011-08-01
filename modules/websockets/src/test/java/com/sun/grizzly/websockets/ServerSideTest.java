@@ -72,6 +72,7 @@ public class ServerSideTest extends BaseWebSocketTestUtilities {
         TrackingWebSocket socket = null;
         try {
             socket = new TrackingWebSocket(version, String.format("ws://localhost:%s/echo", PORT), 5 * ITERATIONS);
+            socket.connect();
             int count = 0;
             final Date start = new Date();
             final int marker = ITERATIONS / 5;
@@ -103,6 +104,7 @@ public class ServerSideTest extends BaseWebSocketTestUtilities {
     public void single() throws IOException, InstantiationException, ExecutionException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
         TrackingWebSocket socket = new TrackingWebSocket(version, String.format("ws://localhost:%s/echo", PORT), 1);
+        socket.connect();
         try {
             int count = 0;
             final Date start = new Date();
@@ -122,6 +124,7 @@ public class ServerSideTest extends BaseWebSocketTestUtilities {
     public void sendAndWait() throws IOException, InstantiationException, InterruptedException, ExecutionException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
         CountDownWebSocket socket = new CountDownWebSocket(version, String.format("ws://localhost:%s/echo", PORT));
+        socket.connect();
 
         try {
             int count = 0;
@@ -157,7 +160,9 @@ public class ServerSideTest extends BaseWebSocketTestUtilities {
         try {
             final String address = String.format("ws://localhost:%s/echo", PORT);
             for (int x = 0; x < 5; x++) {
-                clients.add(new TrackingWebSocket(version, address, x + "", 5 * ITERATIONS));
+                final TrackingWebSocket socket = new TrackingWebSocket(version, address, x + "", 5 * ITERATIONS);
+                socket.connect();
+                clients.add(socket);
             }
             String[] messages = {
                     "test message",
@@ -188,10 +193,11 @@ public class ServerSideTest extends BaseWebSocketTestUtilities {
         final CountDownLatch received = new CountDownLatch(count);
         WebSocketClient socket = new WebSocketClient(String.format("ws://localhost:%s/echo", PORT), version) {
             @Override
-            public void onMessage(WebSocket webSocket, String frame) {
+            public void onMessage(String frame) {
                 received.countDown();
             }
         };
+        socket.connect();
 
         try {
             StringBuilder sb = new StringBuilder();

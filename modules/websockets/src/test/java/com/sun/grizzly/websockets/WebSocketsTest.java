@@ -52,11 +52,8 @@ import org.junit.runners.Parameterized;
 import javax.servlet.Servlet;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -67,7 +64,6 @@ import java.util.concurrent.TimeUnit;
 public class WebSocketsTest extends BaseWebSocketTestUtilities {
     private static final Object SLUG = new Object();
     private static final int MESSAGE_COUNT = 5;
-    public static final int PORT = 1725;
     private final Version version;
 
     public WebSocketsTest(Version version) {
@@ -87,7 +83,6 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
             final CountDownLatch connected = new CountDownLatch(1);
             final CountDownLatch received = new CountDownLatch(MESSAGE_COUNT);
 
-            client = null;
             client = new WebSocketClient(String.format("ws://localhost:%s/echo", PORT), version, new WebSocketAdapter() {
                 @Override
                 public void onMessage(WebSocket socket, String data) {
@@ -100,6 +95,7 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
                     connected.countDown();
                 }
             });
+            client.connect();
 
             for (int count = 0; count < MESSAGE_COUNT; count++) {
                 send(client, sent, "message " + count);
@@ -124,11 +120,6 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
 
     @Test
     public void ssl() throws Exception {
-        final ArrayList<String> headers = new ArrayList<String>(Arrays.asList(
-                WebSocketEngine.UPGRADE,
-                WebSocketEngine.CONNECTION,
-                WebSocketEngine.SEC_WS_ACCEPT
-        ));
         SelectorThread thread = null;
         final EchoWebSocketApplication app = new EchoWebSocketApplication();
         WebSocketClient client = null;
@@ -137,6 +128,7 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
             thread = createSSLSelectorThread(PORT, new StaticResourcesAdapter());
 
             client = new WebSocketClient(String.format("wss://localhost:%s/echo", PORT), version);
+            client.connect();
             Assert.assertTrue(client.isConnected());
         } finally {
             if (client != null) {
@@ -156,10 +148,6 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
         client.send(message);
     }
 
-    private void write(OutputStream os, String text) throws IOException {
-        os.write((text + "\r\n").getBytes("UTF-8"));
-    }
-
     @Test
     public void testGetOnWebSocketApplication() throws IOException, InstantiationException, InterruptedException {
         final WebSocketApplication app = new WebSocketApplication() {
@@ -170,12 +158,6 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
             @Override
             public boolean isApplicationRequest(Request request) {
                 return true;
-            }
-
-            public void onConnect(WebSocket socket) {
-            }
-
-            public void onClose(WebSocket socket, DataFrame frame) {
             }
         };
         WebSocketEngine.getEngine().register(app);

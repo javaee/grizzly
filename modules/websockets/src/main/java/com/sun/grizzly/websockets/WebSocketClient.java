@@ -43,49 +43,60 @@ package com.sun.grizzly.websockets;
 import com.sun.grizzly.util.net.URL;
 
 import java.io.IOException;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
-public class WebSocketClient extends WebSocketAdapter {
+public class WebSocketClient extends DefaultWebSocket {
     public static final int DEFAULT_TIMEOUT = WebSocketEngine.DEFAULT_TIMEOUT;
     public static final TimeUnit TIMEOUT_UNIT = TimeUnit.SECONDS;
     private final URL address;
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
-    private ProtocolHandler protocolHandler;
-    private WebSocket webSocket;
-    private NetworkHandler networkHandler;
 
     public WebSocketClient(final String url, final WebSocketListener... listeners) throws IOException {
         this(url, WebSocketEngine.DEFAULT_VERSION, listeners);
     }
 
     public WebSocketClient(final String url, Version version, final WebSocketListener... listeners) throws IOException {
+        super(version.createHandler(true), listeners);
         address = new URL(url);
-        networkHandler = new ClientNetworkHandler(this);
-        protocolHandler = version.createHandler(true);
-        final Future<?> future = executorService.submit(new Runnable() {
-            public void run() {
+        setNetworkHandler(new ClientNetworkHandler(this));
+        add(new CloseAdapter());
+    }
+
+    /**
+     * @return this on successful connection
+     */
+    public WebSocket connect() {
+        return connect(WebSocketEngine.DEFAULT_TIMEOUT, TimeUnit.SECONDS);
+    }
+
+    public WebSocket connect(final int timeout, final TimeUnit unit) {
+        final Callable<WebSocket> callable = new Callable<WebSocket>() {
+            public WebSocketClient call() {
                 try {
-                    protocolHandler.setNetworkHandler(networkHandler);
                     final HandShake handshake = protocolHandler.handshake(address);
-                    webSocket = new DefaultWebSocket(protocolHandler, WebSocketClient.this, new CloseAdapter());
-                    for (WebSocketListener listener : listeners) {
-                        webSocket.add(listener);
-                    }
-                    webSocket.onConnect();
+                    onConnect();
                     queueRead();
+                    return WebSocketClient.this;
                 } catch (IOException e) {
                     throw new RuntimeException(e.getMessage(), e);
                 }
             }
-        });
+        };
+        final Future<WebSocket> future = executorService.<WebSocket>submit(callable);
         try {
-            future.get(DEFAULT_TIMEOUT, TIMEOUT_UNIT);
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new IOException(e.getMessage());
+            return future.get(timeout, unit);
+        } catch (InterruptedException e) {
+            throw new WebSocketException(e.getMessage(), e);
+        } catch (ExecutionException e) {
+            throw new WebSocketException(e.getMessage(), e);
+        } catch (TimeoutException e) {
+            throw new WebSocketException(e.getMessage(), e);
         }
     }
 
@@ -93,47 +104,19 @@ public class WebSocketClient extends WebSocketAdapter {
         execute(new Runnable() {
             public void run() {
                 protocolHandler.readFrame();
-                if (webSocket.isConnected()) {
+                if (isConnected()) {
                     queueRead();
                 }
             }
         });
     }
 
-    protected NetworkHandler getNetworkHandler() {
-        return networkHandler;
-    }
-
     public URL getAddress() {
         return address;
     }
 
-    public boolean isConnected() {
-        return webSocket != null && webSocket.isConnected();
-    }
-
     protected void execute(Runnable runnable) {
         executorService.submit(runnable);
-    }
-
-    public void send(String s) {
-        webSocket.send(s);
-    }
-
-    public void send(byte[] s) {
-        webSocket.send(s);
-    }
-
-    public void close() {
-        webSocket.close();
-    }
-
-    public void stream(boolean last, String fragment) {
-        webSocket.stream(last, fragment);
-    }
-
-    public void stream(boolean last, byte[] bytes, int start, int length) {
-        webSocket.stream(last, bytes, start, length);
     }
 
     private static class CloseAdapter extends WebSocketAdapter {

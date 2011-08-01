@@ -40,23 +40,34 @@
 
 package com.sun.grizzly.websockets;
 
+import com.sun.grizzly.websockets.draft06.ClosingFrame;
 import com.sun.grizzly.websockets.frametypes.PongFrameType;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Collection;
+import java.util.EnumSet;
 import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 
 @SuppressWarnings({"StringContatenationInLoop"})
 public class DefaultWebSocket implements WebSocket {
-    protected static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
-    private final List<WebSocketListener> listeners = new ArrayList<WebSocketListener>();
-    private final AtomicBoolean connected = new AtomicBoolean(false);
-    private final ProtocolHandler protocolHandler;
+    private static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
+    private final Collection<WebSocketListener> listeners = new ConcurrentLinkedQueue<WebSocketListener>();
+    protected final ProtocolHandler protocolHandler;
+
+    enum State {
+        NEW,
+        CONNECTED,
+        CLOSING,
+        CLOSED
+    }
+
+    private final AtomicReference<State> state = new AtomicReference<State>(State.NEW);
+    EnumSet<State> connected = EnumSet.<State>range(State.CONNECTED, State.CLOSING);
 
     public DefaultWebSocket(ProtocolHandler protocolHandler, WebSocketListener... listeners) {
         this.protocolHandler = protocolHandler;
@@ -70,43 +81,75 @@ public class DefaultWebSocket implements WebSocket {
         return protocolHandler.getNetworkHandler();
     }
 
-    public List<WebSocketListener> getListeners() {
+    public void setNetworkHandler(NetworkHandler handler) {
+        protocolHandler.setNetworkHandler(handler);
+    }
+
+    public Collection<WebSocketListener> getListeners() {
         return listeners;
-    }
-
-    public boolean isConnected() {
-        return connected.get();
-    }
-
-    public boolean setConnected(boolean conn) {
-        return connected.compareAndSet(true, conn);
     }
 
     public final boolean add(WebSocketListener listener) {
         return listeners.add(listener);
     }
 
-    public void close() {
-        close(-1, null);
+    public final boolean remove(WebSocketListener listener) {
+        return listeners.remove(listener);
     }
 
-    public void close(int code) {
-        close(code, null);
+    public boolean isConnected() {
+        return connected.contains(state.get());
     }
 
-    public void close(int code, String reason) {
-        if (connected.compareAndSet(true, false)) {
-            protocolHandler.close(code, reason);
-            onClose(null);
-        }
+    public void setClosed() {
+        state.set(State.CLOSED);
     }
 
     public void onClose(DataFrame frame) {
-        final Iterator<WebSocketListener> it = listeners.iterator();
-        while (it.hasNext()) {
-            final WebSocketListener listener = it.next();
-            it.remove();
-            listener.onClose(this, frame);
+        if (state.compareAndSet(State.CONNECTED, State.CLOSING) || state.get() == State.CLOSING) {
+            if(frame != null) {
+                protocolHandler.close(frame);
+            }
+
+            final Iterator<WebSocketListener> it = listeners.iterator();
+            while (it.hasNext()) {
+                final WebSocketListener listener = it.next();
+                it.remove();
+                listener.onClose(this, frame);
+            }
+            
+            state.set(State.CLOSED);
+        }
+    }
+
+    public void onConnect() {
+        state.set(State.CONNECTED);
+        for (WebSocketListener listener : listeners) {
+            listener.onConnect(this);
+        }
+    }
+
+    public void onFragment(boolean last, byte[] fragment) {
+        for (WebSocketListener listener : listeners) {
+            listener.onFragment(this, fragment, last);
+        }
+    }
+
+    public void onFragment(boolean last, String fragment) {
+        for (WebSocketListener listener : listeners) {
+            listener.onFragment(this, fragment, last);
+        }
+    }
+
+    public void onMessage(byte[] data) {
+        for (WebSocketListener listener : listeners) {
+            listener.onMessage(this, data);
+        }
+    }
+
+    public void onMessage(String text) {
+        for (WebSocketListener listener : listeners) {
+            listener.onMessage(this, text);
         }
     }
 
@@ -123,32 +166,30 @@ public class DefaultWebSocket implements WebSocket {
         }
     }
 
-    public void onFragment(boolean last, String fragment) {
-        for (WebSocketListener listener : listeners) {
-            listener.onFragment(this, fragment, last);
+    public void close() {
+        close(-1, null);
+    }
+
+    public void close(int code) {
+        close(code, null);
+    }
+
+    public void close(int code, String reason) {
+        if (state.compareAndSet(State.CONNECTED, State.CLOSING)) {
+            protocolHandler.close(code, reason);
         }
     }
 
-    public void onFragment(boolean last, byte[] fragment) {
-        for (WebSocketListener listener : listeners) {
-            listener.onFragment(this, fragment, last);
-        }
-    }
-
-    public final boolean remove(WebSocketListener listener) {
-        return listeners.remove(listener);
-    }
-
-    public void send(String data) {
-        if (connected.get()) {
+    public void send(final byte[] data) {
+        if (state.get() == State.CONNECTED) {
             protocolHandler.send(data);
         } else {
             throw new RuntimeException("Socket is already closed.");
         }
     }
 
-    public void send(final byte[] data) {
-        if (connected.get()) {
+    public void send(String data) {
+        if (state.get() == State.CONNECTED) {
             protocolHandler.send(data);
         } else {
             throw new RuntimeException("Socket is already closed.");
@@ -156,34 +197,15 @@ public class DefaultWebSocket implements WebSocket {
     }
 
     private void send(DataFrame frame) {
-        if (connected.get()) {
+        if (state.get() == State.CONNECTED) {
             protocolHandler.send(frame);
         } else {
             throw new RuntimeException("Socket is already closed.");
         }
     }
 
-    public void onConnect() {
-        for (WebSocketListener listener : listeners) {
-            listener.onConnect(this);
-        }
-        connected.compareAndSet(false, true);
-    }
-
-    public void onMessage(String text) {
-        for (WebSocketListener listener : listeners) {
-            listener.onMessage(this, text);
-        }
-    }
-
-    public void onMessage(byte[] data) {
-        for (WebSocketListener listener : listeners) {
-            listener.onMessage(this, data);
-        }
-    }
-
     public void stream(boolean last, String fragment) {
-        if (connected.get()) {
+        if (state.get() == State.CONNECTED) {
             protocolHandler.stream(last, fragment);
         } else {
             throw new RuntimeException("Socket is already closed.");
@@ -191,7 +213,7 @@ public class DefaultWebSocket implements WebSocket {
     }
 
     public void stream(boolean last, byte[] bytes, int off, int len) {
-        if (connected.get()) {
+        if (state.get() == State.CONNECTED) {
             protocolHandler.stream(last, bytes, off, len);
         } else {
             throw new RuntimeException("Socket is already closed.");
