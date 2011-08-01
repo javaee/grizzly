@@ -3,7 +3,7 @@
 
     DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 
-    Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
 
     The contents of this file are subject to the terms of either the GNU
     General Public License Version 2 only ("GPL") or the Common Development
@@ -50,10 +50,10 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.glassfish.grizzly</groupId>
-    <artifactId>grizzly-http-server-core</artifactId>
+    <artifactId>grizzly-core</artifactId>
     <packaging>jar</packaging>
     <version>2.1.2-SNAPSHOT</version>
-    <name>grizzly-http-server-core</name>
+    <name>grizzly-core</name>
     <build>
         <defaultGoal>install</defaultGoal>
         <plugins>
@@ -131,22 +131,17 @@
     <dependencies>
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
-            <artifactId>grizzly-core</artifactId>
+            <artifactId>grizzly-framework</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
-            <artifactId>grizzly-http-server</artifactId>
+            <artifactId>grizzly-portunif</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
-            <artifactId>grizzly-http-ajp</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.glassfish.grizzly</groupId>
-            <artifactId>grizzly-http-server-multipart</artifactId>
+            <artifactId>grizzly-rcm</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>
