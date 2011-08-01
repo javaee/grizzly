@@ -243,5 +243,47 @@ public class MimeType {
             contentTypes.put(extension, contentType);
         }
     }
+    
+    /**
+     * @param fileName the filename
+     *
+     * @return the content type associated with <code>extension</code> of the 
+     *         given filename or if no associate is found, returns
+     *         <code>null</code>
+     */
+    public static String getByFilename(String fileName) {
+        String extn = getExtension(fileName);
+        if (extn != null) {
+            return get(extn);
+        } else {
+            // no extension, no content type
+            return null;
+        }
+    }
+    
+    /**
+     * Get extension of file, without fragment id
+     */
+    private static String getExtension(String fileName) {
+        // play it safe and get rid of any fragment id
+        // that might be there
+        int length = fileName.length();
+
+        int newEnd = fileName.lastIndexOf('#');
+        if (newEnd == -1) {
+            newEnd = length;
+        }
+        // Instead of creating a new string.
+        //         if (i != -1) {
+        //             fileName = fileName.substring(0, i);
+        //         }
+        int i = fileName.lastIndexOf('.', newEnd);
+        if (i != -1) {
+            return fileName.substring(i + 1, newEnd);
+        } else {
+            // no extension, no content type
+            return null;
+        }
+    }    
 }
 

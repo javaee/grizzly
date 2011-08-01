@@ -373,6 +373,17 @@
                 <artifactId>servlet-api</artifactId>
                 <version>${servlet-version}</version>
             </dependency>
+            <dependency>
+              <groupId>org.osgi</groupId>
+              <artifactId>org.osgi.core</artifactId>
+              <version>4.1.0</version>
+              <scope>provided</scope>
+            </dependency>
+            <dependency>
+              <groupId>org.osgi</groupId>
+              <artifactId>org.osgi.compendium</artifactId>
+              <version>4.1.0</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>  
     <dependencies>
