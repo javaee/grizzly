@@ -72,7 +72,7 @@
         <finalName>${artifactId}</finalName>
         <plugins>
             <plugin>
-                <groupId>com.sun.enterprise</groupId>
+                <groupId>org.glassfish.hk2</groupId>
                 <artifactId>hk2-maven-plugin</artifactId>
                 <version>${hk2.version}</version>
                 <extensions>true</extensions>
@@ -126,15 +126,15 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.sun.enterprise</groupId>
+            <groupId>org.glassfish.hk2</groupId>
             <artifactId>hk2</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.sun.enterprise</groupId>
+            <groupId>org.glassfish.hk2</groupId>
             <artifactId>config-types</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.sun.enterprise</groupId>
+            <groupId>org.glassfish.hk2</groupId>
             <artifactId>osgi-adapter</artifactId>
         </dependency>
         <dependency>

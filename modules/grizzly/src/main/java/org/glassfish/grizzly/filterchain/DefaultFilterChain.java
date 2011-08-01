@@ -242,10 +242,13 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                 break;
             case StopAction.TYPE:
                 // If the next action is StopAction and there is some data to store for the processed Filter - store it
-                filtersState = storeMessage(ctx,
-                        filtersState, FILTER_STATE_TYPE.INCOMPLETE, i,
-                        ((StopAction) lastNextAction).getRemainder(),
-                        ((StopAction) lastNextAction).getAppender());
+                final StopAction stopAction = (StopAction) lastNextAction;
+                storeMessage(ctx,
+                             filtersState,
+                             FILTER_STATE_TYPE.INCOMPLETE,
+                             i,
+                             stopAction.getRemainder(),
+                             stopAction.getAppender());
                 break;
             case SuspendingStopAction.TYPE:
                 ctx.suspend();

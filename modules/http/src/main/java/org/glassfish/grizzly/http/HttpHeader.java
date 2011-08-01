@@ -45,14 +45,12 @@ import java.util.Collections;
 import java.util.List;
 
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.Constants;
-import org.glassfish.grizzly.http.util.ContentType;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpUtils;
@@ -414,7 +412,7 @@ public abstract class HttpHeader extends HttpPacket
         }
 
         if (isContentTypeSet()) {
-            characterEncoding = ContentType.getCharsetFromContentType(getContentType());
+            getContentType(); // charEncoding is set as a side-effect of this call
             charEncodingParsed = true;
         }
 
@@ -488,7 +486,7 @@ public abstract class HttpHeader extends HttpPacket
 
         return (contentType != null
                     || characterEncoding != null
-                    || headers.getValue("content-type") != null);
+                    || headers.getValue(Header.ContentType) != null);
 
     }
 
@@ -501,7 +499,7 @@ public abstract class HttpHeader extends HttpPacket
             contentTypeParsed = true;
 
             if (contentType == null) {
-                final DataChunk dc = headers.getValue("content-type");
+                final DataChunk dc = headers.getValue(Header.ContentType);
 
                 if (dc != null && !dc.isNull()) {
                     setContentType(dc.toString());
@@ -532,8 +530,6 @@ public abstract class HttpHeader extends HttpPacket
      */
     public void setContentType(final String type) {
 
-        int semicolonIndex = -1;
-
         if (type == null) {
             contentType = null;
             return;
@@ -546,9 +542,10 @@ public abstract class HttpHeader extends HttpPacket
          * response's Content-Type (as its charset param) by getContentType();
          */
         boolean hasCharset = false;
-        int len = type.length();
+        int semicolonIndex = -1;
         int index = type.indexOf(';');
         while (index != -1) {
+            int len = type.length();
             semicolonIndex = index;
             index++;
             while (index < len && type.charAt(index) == ' ') {

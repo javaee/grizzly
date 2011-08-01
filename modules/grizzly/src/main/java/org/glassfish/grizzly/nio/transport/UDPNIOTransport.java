@@ -313,9 +313,11 @@ public final class UDPNIOTransport extends NIOTransport implements
                 try {
                     unbind(serverConnection);
                 } catch (Exception e) {
-                    LOGGER.log(Level.FINE,
-                            "Exception occurred when closing server connection: "
-                            + serverConnection, e);
+                    if (LOGGER.isLoggable(Level.FINE)) {
+                        LOGGER.log(Level.FINE,
+                                "Exception occurred when closing server connection: "
+                                + serverConnection, e);
+                    }
                 }
             }
 
@@ -557,6 +559,11 @@ public final class UDPNIOTransport extends NIOTransport implements
             if (workerThreadPool != null && managedWorkerPool) {
                 workerThreadPool.shutdown();
                 workerThreadPool = null;
+            }
+
+            if (kernelPool != null) {
+                kernelPool.shutdownNow();
+                kernelPool = null;
             }
 
             notifyProbesStop(this);

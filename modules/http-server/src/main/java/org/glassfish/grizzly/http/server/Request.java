@@ -108,7 +108,6 @@ import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.FastHttpDateFormat;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.Parameters;
-import org.glassfish.grizzly.http.util.StringManager;
 
 /**
  * Wrapper object for the Coyote request.
@@ -243,12 +242,6 @@ public class Request {
     private MappingData cachedMappingData;
 
     /**
-     * The string manager for this package.
-     */
-    protected static final StringManager sm =
-        StringManager.getManager(Constants.Package, Request.class.getClassLoader());
-
-    /**
      * The set of cookies associated with this Request.
      */
     protected Cookie[] cookies = null;
@@ -263,15 +256,9 @@ public class Request {
 
 
     /**
-     * The attributes associated with this Request, keyed by attribute name.
-     */
-//    protected final HashMap<String, Object> attributes = new HashMap<String, Object>();
-
-
-    /**
      * List of read only attributes for this Request.
      */
-    private final HashMap<String,Object> readOnlyAttributes = new HashMap<String,Object>();
+    private final Map<String,Object> readOnlyAttributes = new HashMap<String,Object>();
 
 
     /**
@@ -787,23 +774,44 @@ public class Request {
         return request.getContentType();
     }
 
+    /**
+     * <p>
+     * Return the {@link NIOInputStream} for this {@link Request}.  This stream
+     * will not block when reading content.
+     * </p>
+     *
+     * @return the {@link NIOInputStream} for this {@link Request}.
+     *
+     * @exception IllegalStateException if {@link #getReader(boolean)} or
+     *  {@link #getReader()} has already been called for this request.
+     *
+     * @see #getInputStream(boolean)
+     *
+     * @since 2.1.2
+     */
+    public NIOInputStream getInputStream() {
+
+        return getInputStream(false);
+
+    }
 
     /**
-     * Return the servlet input stream for this Request.  The default
-     * implementation returns a servlet input stream created by
-     * <code>createInputStream()</code>.
+     * <p>
+     * Return the {@link NIOInputStream} for this {@link Request}.
+     * </p>
      *
      * @param blocking if <code>true</code>, the <code>NIOInputStream</code>
      *  will only be usable in blocking mode.
      *
-     * @exception IllegalStateException if {@link #getReader(boolean)} has
-     *  already been called for this request
+     * @return the {@link NIOInputStream} for this {@link Request}.
+     *
+     * @exception IllegalStateException if {@link #getReader(boolean)} or
+     *  {@link #getReader()} has already been called for this request.
      */
     public NIOInputStream getInputStream(boolean blocking) {
 
         if (usingReader)
-            throw new IllegalStateException
-                (sm.getString("request.getInputStream.ise"));
+            throw new IllegalStateException("Illegal attempt to call getInputStream() after getReader() has already been called.");
 
         usingInputStream = true;
         inputBuffer.setAsyncEnabled(!blocking);
@@ -957,21 +965,39 @@ public class Request {
 
 
     /**
-     * Read the Reader wrapping the input stream for this Request.  The
-     * default implementation wraps a <code>BufferedReader</code> around the
-     * servlet input stream returned by <code>createInputStream()</code>.
+     * <p>
+     * Returns the {@link NIOReader} associated with this {@link Request}.  This
+     * {@link NIOReader} will not block while reading content.
+     * </p>
      *
-     * @param blocking if <code>true</code>, the <code>NIOInputStream</code>
+     * @return the {@link NIOReader} associated with this {@link Request}.
+     *
+     * @throws IllegalStateException if {@link #getInputStream(boolean)} or
+     *  {@link #getInputStream()} has already been called for this request.
+     *
+     * @since 2.1.2
+     */
+    public NIOReader getReader() {
+
+        return getReader(false);
+
+    }
+
+    /**
+     * <p>
+     * Returns the {@link NIOReader} associated with this {@link Request}.
+     * </p>
+     *
+     * @param blocking if <code>true</code>, the <code>NIOReader</code>
      *  will only be usable in blocking mode.
      *
-     * @exception IllegalStateException if {@link #getInputStream(boolean)}
-     *  has already been called for this request
+     * @throws IllegalStateException if {@link #getInputStream(boolean)} or
+     *  {@link #getInputStream()} has already been called for this request.
      */
     public NIOReader getReader(boolean blocking) {
 
         if (usingInputStream)
-            throw new IllegalStateException
-                (sm.getString("request.getReader.ise"));
+            throw new IllegalStateException("Illegal attempt to call getReader() after getInputStream() has alread been called.");
 
         usingReader = true;
         inputBuffer.processingChars();
@@ -1091,8 +1117,7 @@ public class Request {
 
         // Name cannot be null
         if (name == null)
-            throw new IllegalArgumentException
-                (sm.getString("request.setAttribute.namenull"));
+            throw new IllegalArgumentException("Argument 'name' cannot be null");
 
         // Null value is the same as removeAttribute()
         if (value == null) {
@@ -1730,9 +1755,10 @@ public class Request {
 
 
     /**
-     * @return the {@link InputBuffer} associated with this request.
+     * @return the {@link InputBuffer} associated with this request, which is the
+     * source for {@link #getInputStream(boolean)} and {@link #getReader(boolean)}.
      */
-    protected InputBuffer getInputBuffer() {
+    public InputBuffer getInputBuffer() {
 
         return inputBuffer;
 

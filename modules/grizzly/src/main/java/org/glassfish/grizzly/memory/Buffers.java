@@ -85,8 +85,11 @@ public class Buffers {
     public static final Buffer EMPTY_BUFFER;
 
     static {
-        EMPTY_BUFFER = new ByteBufferWrapper(ByteBuffer.allocate(0).asReadOnlyBuffer());
-        EMPTY_BUFFER.allowBufferDispose(false);
+        EMPTY_BUFFER = new ByteBufferWrapper(ByteBuffer.allocate(0).asReadOnlyBuffer()) {
+            @Override
+            public void dispose() {
+            }
+        };
     }
 
     /**

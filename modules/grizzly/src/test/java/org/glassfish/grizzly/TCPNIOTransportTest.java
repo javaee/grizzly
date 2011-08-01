@@ -541,7 +541,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             transport.stop();
         }
     }
-
+    
     public void testFeeder() throws Exception {
         class CheckSizeFilter extends BaseFilter {
             private int size;

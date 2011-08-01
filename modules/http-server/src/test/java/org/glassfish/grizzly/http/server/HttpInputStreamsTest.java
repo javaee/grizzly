@@ -56,6 +56,7 @@ import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpTrailer;
 import org.glassfish.grizzly.http.Protocol;
+import org.glassfish.grizzly.http.server.io.NIOReader;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
@@ -122,7 +123,7 @@ public class HttpInputStreamsTest extends TestCase {
                     in.reset();
                     fail();
                 } catch (IOException ioe) {
-                    // expected
+                    assertTrue("mark not set".equalsIgnoreCase(ioe.getMessage()));
                 }
                 return true;
             }
@@ -449,6 +450,271 @@ public class HttpInputStreamsTest extends TestCase {
     // -------------------------------------------------- Character Test Methods
 
 
+    public void testCharacterResetNoMark() throws Throwable {
+
+        final String expected = "abcdefghijklmnopqrstuvwxyz";
+        ReadStrategy reader = new ReadStrategy() {
+            @Override public boolean doRead(Request request)
+                    throws IOException {
+                Reader in = request.getReader(true);
+                try {
+                    in.reset();
+                    fail();
+                } catch (IOException ioe) {
+                    assertTrue("mark not set".equalsIgnoreCase(ioe.getMessage()));
+                }
+                return true;
+            }
+        };
+
+        doTest(createRequest("POST", expected), reader, 1024);
+
+    }
+
+
+    public void testCharacterMarkReset001() throws Throwable {
+
+        final String expected = "abcdefghijklmnopqrstuvwxyz";
+        ReadStrategy reader = new ReadStrategy() {
+            @Override public boolean doRead(Request request)
+            throws IOException {
+                StringBuilder sb = new StringBuilder(expected.length());
+                NIOReader in = request.getReader(true);
+
+                for (int j = 0; j < 5; j++) {
+                    sb.append((char) in.read());
+                }
+                assertEquals(expected.substring(0, 5), sb.toString());
+                in.mark(30);
+
+                for (int j = 0; j < 5; j++) {
+                    sb.append((char) in.read());
+                }
+                in.reset();
+                assertEquals(expected.substring(0, 10), sb.toString());
+
+                for (int i = in.read(); i != -1; i = in.read()) {
+                    sb.append((char) i);
+                }
+
+                in.close();
+                assertEquals(0, in.readyData());
+                StringBuilder exp = new StringBuilder(expected);
+                exp.insert(5, expected.substring(5, 10));
+                assertEquals(exp.toString(), sb.toString());
+                return true;
+            }
+        };
+
+        doTest(createRequest("POST", expected), reader, 1024);
+
+    }
+
+    public void testMultiByteCharacterMarkReset001() throws Throwable {
+
+        final String expected = "\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771";
+        ReadStrategy reader = new ReadStrategy() {
+            @Override public boolean doRead(Request request)
+            throws IOException {
+                StringBuilder sb = new StringBuilder(expected.length());
+                NIOReader in = request.getReader(true);
+
+                for (int j = 0; j < 5; j++) {
+                    sb.append((char) in.read());
+                }
+                assertEquals(expected.substring(0, 5), sb.toString());
+                in.mark(30);
+
+                for (int j = 0; j < 5; j++) {
+                    sb.append((char) in.read());
+                }
+                in.reset();
+                assertEquals(expected.substring(0, 10), sb.toString());
+
+                for (int i = in.read(); i != -1; i = in.read()) {
+                    sb.append((char) i);
+                }
+
+                in.close();
+                assertEquals(0, in.readyData());
+                StringBuilder exp = new StringBuilder(expected);
+                exp.insert(5, expected.substring(5, 10));
+                assertEquals(exp.toString(), sb.toString());
+                return true;
+            }
+        };
+
+        doTest(createRequest("POST", expected, "UTF-16"), reader, 1024);
+
+    }
+
+
+    public void testCharacterMarkReset002() throws Throwable {
+
+        final String expected = "abcdefghijklmnopqrstuvwxyz";
+        ReadStrategy reader = new ReadStrategy() {
+            @Override public boolean doRead(Request request)
+                    throws IOException {
+                StringBuilder sb = new StringBuilder(5);
+                NIOReader in = request.getReader(true);
+
+                for (int j = 0; j < 5; j++) {
+                    sb.append((char) in.read());
+                }
+                assertEquals(expected.substring(0, 5), sb.toString());
+                in.mark(2);
+
+                for (int j = 0; j < 5; j++) {
+                    sb.append((char) in.read());
+                }
+                try {
+                    in.reset();
+                    fail();
+                } catch (IOException ioe) {
+                    // expected
+                }
+                in.close();
+                return true;
+            }
+        };
+
+        doTest(createRequest("POST", expected), reader, 1024);
+
+    }
+
+
+    public void testMultiByteCharacterMarkReset002() throws Throwable {
+
+        final String expected = "\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771";
+        ReadStrategy reader = new ReadStrategy() {
+            @Override public boolean doRead(Request request)
+                    throws IOException {
+                StringBuilder sb = new StringBuilder(5);
+                NIOReader in = request.getReader(true);
+
+                for (int j = 0; j < 5; j++) {
+                    sb.append((char) in.read());
+                }
+                assertEquals(expected.substring(0, 5), sb.toString());
+                in.mark(2);
+
+                for (int j = 0; j < 5; j++) {
+                    sb.append((char) in.read());
+                }
+                try {
+                    in.reset();
+                    fail();
+                } catch (IOException ioe) {
+                    // expected
+                }
+                in.close();
+                return true;
+            }
+        };
+
+        doTest(createRequest("POST", expected, "UTF-16"), reader, 1024);
+
+    }
+
+
+    public void testCharacterMarkReset003() throws Throwable {
+
+        final String expected = "abcdefghijklmnopqrstuvwxyz";
+        ReadStrategy reader = new ReadStrategy() {
+            @Override
+            public boolean doRead(Request request)
+                    throws IOException {
+                StringBuilder sb = new StringBuilder(5);
+                NIOReader in = request.getReader(true);
+
+                for (int j = 0; j < 5; j++) {
+                    sb.append((char) in.read());
+                }
+                assertEquals(expected.substring(0, 5), sb.toString());
+                in.mark(2);
+
+                for (int j = 0; j < 2; j++) {
+                    sb.append((char) in.read());
+                }
+                in.reset();
+                assertEquals(expected.substring(0, 7), sb.toString());
+
+                for (int j = 0; j < 2; j++) {
+                    sb.append((char) in.read());
+                }
+                in.reset();
+                StringBuilder sb2 = new StringBuilder(expected);
+                sb2.insert(5, expected.substring(5, 7));
+                assertEquals(sb2.toString().substring(0, 9), sb.toString());
+
+                for (int j = 0; j < 3; j++) {
+                    sb.append((char) in.read());
+                }
+                try {
+                    in.reset();
+                    fail();
+                } catch (IOException ioe) {
+                    // expected
+                }
+                in.close();
+                return true;
+            }
+        };
+
+        doTest(createRequest("POST", expected), reader, 1024);
+
+    }
+
+
+    public void testMultiByteCharacterMarkReset003() throws Throwable {
+
+        final String expected = "\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771\u0041\u00DF\u6771";
+        ReadStrategy reader = new ReadStrategy() {
+            @Override
+            public boolean doRead(Request request)
+                    throws IOException {
+                StringBuilder sb = new StringBuilder(5);
+                NIOReader in = request.getReader(true);
+
+                for (int j = 0; j < 5; j++) {
+                    sb.append((char) in.read());
+                }
+                assertEquals(expected.substring(0, 5), sb.toString());
+                in.mark(2);
+
+                for (int j = 0; j < 2; j++) {
+                    sb.append((char) in.read());
+                }
+                in.reset();
+                assertEquals(expected.substring(0, 7), sb.toString());
+
+                for (int j = 0; j < 2; j++) {
+                    sb.append((char) in.read());
+                }
+                in.reset();
+                StringBuilder sb2 = new StringBuilder(expected);
+                sb2.insert(5, expected.substring(5, 7));
+                assertEquals(sb2.toString().substring(0, 9), sb.toString());
+
+                for (int j = 0; j < 3; j++) {
+                    sb.append((char) in.read());
+                }
+                try {
+                    in.reset();
+                    fail();
+                } catch (IOException ioe) {
+                    // expected
+                }
+                in.close();
+                return true;
+            }
+        };
+
+        doTest(createRequest("POST", expected, "UTF-16"), reader, 1024);
+
+    }
+
+
     public void testCharacter001() throws Throwable {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
@@ -749,9 +1015,7 @@ public class HttpInputStreamsTest extends TestCase {
             }
         };
 
-        final FutureImpl<Boolean> testResult = SafeFutureImpl.create();
-        Filter f = new CharsetClientFilter(createRequest("POST", null), expected, testResult, "UTF-16");
-        doTest(f, reader, testResult, 1024);
+        doTest(createRequest("POST", expected, "UTF-16"), reader, 1024);
 
     }
 
@@ -931,19 +1195,34 @@ public class HttpInputStreamsTest extends TestCase {
 
     // --------------------------------------------------------- Private Methods
 
+    private HttpPacket createRequest(final String method,
+                                     final String content) {
+        return createRequest(method, content, "ISO-8859-1");
+    }
+
     @SuppressWarnings({"unchecked"})
-    private HttpPacket createRequest(final String method, final String content) {
-        final Buffer contentBuffer = content != null ?
-            Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, content) :
+    private HttpPacket createRequest(final String method,
+                                     final String content,
+                                     final String encoding) {
+        Buffer contentBuffer;
+        try {
+        contentBuffer = content != null ?
+            Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, content.getBytes(encoding)) :
             null;
-        
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
         HttpRequestPacket.Builder b = HttpRequestPacket.builder();
-        b.method(method).protocol(Protocol.HTTP_1_1).uri("/path").chunked(((content == null))).header("Host", "localhost");
+        b.method(method).protocol(Protocol.HTTP_1_1).uri("/path").chunked(((content == null)))
+                .header("Host", "localhost");
         if (content != null) {
             b.contentLength(contentBuffer.remaining());
         }
 
         HttpRequestPacket request = b.build();
+        request.setCharacterEncoding(encoding);
+        request.setContentType("text/plain");
 
         if (content != null) {
             HttpContent.Builder cb = request.httpContentBuilder();
@@ -990,8 +1269,8 @@ public class HttpInputStreamsTest extends TestCase {
             Future<Connection> connectFuture = ctransport.connect("localhost", PORT);
             Connection connection = null;
             try {
-                connection = connectFuture.get(10, TimeUnit.SECONDS);
-                testResult.get(10, TimeUnit.SECONDS);
+                connection = connectFuture.get(30, TimeUnit.SECONDS);
+                testResult.get(30, TimeUnit.SECONDS);
             } finally {
                 // Close the client connection
                 if (connection != null) {

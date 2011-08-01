@@ -55,6 +55,7 @@ import org.glassfish.gmbal.ManagedAttribute;
 import org.glassfish.gmbal.ManagedObject;
 
 import java.util.concurrent.atomic.AtomicLong;
+import org.glassfish.grizzly.http.HttpPacket;
 
 /**
  * JMX management object for the {@link HttpCodecFilter}.
@@ -162,7 +163,8 @@ public class HttpCodecFilter extends JmxObject {
         }
 
         @Override
-        public void onErrorEvent(Connection connection, Throwable error) {
+        public void onErrorEvent(Connection connection, HttpPacket httpPacket,
+                Throwable error) {
             httpCodecErrorCount.incrementAndGet();
         }
 

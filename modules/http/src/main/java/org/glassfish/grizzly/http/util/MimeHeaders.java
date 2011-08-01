@@ -360,9 +360,10 @@ public class MimeHeaders {
     The conversion to chars can be delayed until
     encoding is known.
      */
-    public DataChunk addValue(Buffer buffer, int startN, int len) {
+    public DataChunk addValue(final Buffer buffer, final int startN,
+            final int len) {
         MimeHeaderField mhf = createHeader();
-        mhf.getName().setBuffer(buffer, startN, len);
+        mhf.getName().setBuffer(buffer, startN, startN + len);
         return mhf.getValue();
     }
 
@@ -372,7 +373,7 @@ public class MimeHeaders {
      * header value ( existing header or new
      * if this .
      */
-    public DataChunk setValue(String name) {
+    public DataChunk setValue(final String name) {
         for (int i = 0; i < count; i++) {
             if (headers[i].getName().equalsIgnoreCase(name)) {
                 for (int j = i + 1; j < count; j++) {

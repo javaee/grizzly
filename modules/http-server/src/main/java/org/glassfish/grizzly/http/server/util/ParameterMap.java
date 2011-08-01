@@ -61,7 +61,6 @@ package org.glassfish.grizzly.http.server.util;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.glassfish.grizzly.http.util.StringManager;
 
 /**
  * Extended implementation of <strong>LinkedHashMap</strong> that includes a
@@ -161,13 +160,6 @@ public final class ParameterMap extends LinkedHashMap<String,String[]> {
     }
 
 
-    /**
-     * The string manager for this package.
-     */
-    private static final StringManager sm = StringManager.getManager("org.glassfish.grizzly.http.server.util.res",
-        ParameterMap.class.getClassLoader());
-
-
     // --------------------------------------------------------- Public Methods
 
 
@@ -180,8 +172,7 @@ public final class ParameterMap extends LinkedHashMap<String,String[]> {
     public void clear() {
 
         if (locked)
-            throw new IllegalStateException
-                (sm.getString("parameterMap.locked"));
+            throw new IllegalStateException("Illegal attempt to modify ParameterMap while locked.");
         super.clear();
 
     }
@@ -203,8 +194,7 @@ public final class ParameterMap extends LinkedHashMap<String,String[]> {
     public String[] put(String key, String[] value) {
 
         if (locked)
-            throw new IllegalStateException
-                (sm.getString("parameterMap.locked"));
+            throw new IllegalStateException("Illegal attempt to modify ParameterMap while locked.");
         return (super.put(key, value));
 
     }
@@ -223,8 +213,7 @@ public final class ParameterMap extends LinkedHashMap<String,String[]> {
     public void putAll(Map map) {
 
         if (locked)
-            throw new IllegalStateException
-                (sm.getString("parameterMap.locked"));
+            throw new IllegalStateException("Illegal attempt to modify ParameterMap while locked.");
         super.putAll(map);
 
     }
@@ -243,8 +232,7 @@ public final class ParameterMap extends LinkedHashMap<String,String[]> {
     public Object remove(String key) {
 
         if (locked)
-            throw new IllegalStateException
-                (sm.getString("parameterMap.locked"));
+            throw new IllegalStateException("Illegal attempt to modify ParameterMap while locked.");
         return (super.remove(key));
 
     }

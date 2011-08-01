@@ -542,7 +542,10 @@ public class BufferChunk implements Chunk {
      * Compares the buffer chunk to the specified byte array representing
      * lower-case ASCII characters.
      *
-     * @param b the <code>byte[]</code> to compare
+     * @param buffer the <code>byte[]</code> to compare
+     * @param start buffer start
+     * @param end buffer end
+     * @param cmpTo byte[] to compare against
      *
      * @return true if the comparison succeeded, false otherwise
      *

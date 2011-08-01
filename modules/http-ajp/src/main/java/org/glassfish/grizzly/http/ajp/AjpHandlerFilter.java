@@ -176,9 +176,10 @@ public class AjpHandlerFilter extends BaseFilter {
     /**
      * Handle the Ajp message.
      *
-     * @param ctx
-     * @return
-     * @throws IOException
+     * @param ctx the {@link FilterChainContext} for the current
+     *  {@link org.glassfish.grizzly.filterchain.FilterChain} invocation.
+     * @return the {@link NextAction}
+     * @throws IOException if an I/O error occurs
      */
     @Override
     public NextAction handleRead(final FilterChainContext ctx) throws IOException {
@@ -224,9 +225,10 @@ public class AjpHandlerFilter extends BaseFilter {
     /**
      * Encoding HttpResponsePacket or HttpContent to Ajp message.
      *
-     * @param ctx
-     * @return
-     * @throws IOException
+     * @param ctx the {@link FilterChainContext} for the current
+     *  {@link org.glassfish.grizzly.filterchain.FilterChain} invocation.
+     * @return the {@link NextAction}
+     * @throws IOException if an I/O error occurs
      */
     @Override
     public NextAction handleWrite(final FilterChainContext ctx) throws IOException {
@@ -277,10 +279,11 @@ public class AjpHandlerFilter extends BaseFilter {
      * Handling Http request completion event sent by Http server filter and
      * send the Ajp end response message.
      *
-     * @param ctx
-     * @param event
-     * @return
-     * @throws IOException
+     * @param ctx the {@link FilterChainContext} for the current
+     *  {@link org.glassfish.grizzly.filterchain.FilterChain} invocation.
+     * @param event the event triggering the invocation of this method.
+     * @return the {@link NextAction}.
+     * @throws IOException if an I/O error occurs.
      */
     @Override
     public NextAction handleEvent(final FilterChainContext ctx,
@@ -348,10 +351,12 @@ public class AjpHandlerFilter extends BaseFilter {
     /**
      * Process ForwardRequest request message.
      *
-     * @param ctx
-     * @param message
-     * @return
-     * @throws IOException
+     * @param ctx the {@link FilterChainContext} for the current
+     *  {@link org.glassfish.grizzly.filterchain.FilterChain} invocation.
+     * @param content the content of the forwarded request
+     *
+     * @return {@link NextAction}
+     * @throws IOException if an I/O error occurs
      */
     private NextAction processForwardRequest(final FilterChainContext ctx,
             final Buffer content) throws IOException {

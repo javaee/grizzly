@@ -50,10 +50,10 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.glassfish.grizzly</groupId>
-    <artifactId>grizzly-servlet-webserver</artifactId>
+    <artifactId>grizzly-http-servlet-server</artifactId>
     <packaging>jar</packaging>
     <version>2.1.2-SNAPSHOT</version>
-    <name>grizzly-servlet-webserver</name>
+    <name>grizzly-http-servlet-server</name>
     <build>
         <defaultGoal>install</defaultGoal>
         <plugins>
@@ -66,7 +66,6 @@
                         <Import-Package>*</Import-Package>
                         <Export-Package>org.glassfish.grizzly.*;-split-package:=merge-first,javax.servlet.*</Export-Package>
                         <Embed-Dependency>org.glassfish.grizzly;scope=runtime</Embed-Dependency>
-                        <Main-Class>org.glassfish.grizzly.launcher.web.servlet.ServletLauncher</Main-Class>
                     </instructions>
                     <unpackBundle>true</unpackBundle>
                 </configuration>
@@ -130,6 +129,11 @@
         </profile>
     </profiles>
     <dependencies>
+        <dependency>
+            <groupId>org.glassfish.grizzly</groupId>
+            <artifactId>grizzly-http-server-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-http-servlet</artifactId>

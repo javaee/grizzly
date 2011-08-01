@@ -47,7 +47,9 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -95,13 +97,14 @@ public class OutputBuffer {
     // if it's not possible to write its content in this thread
     private final ByteArrayCloner cloner = new ByteArrayCloner();
     
+    private final List<LifeCycleListener> lifeCycleListeners =
+            new ArrayList<LifeCycleListener>(2);
+    
     private boolean committed;
 
     private boolean finished;
 
     private boolean closed;
-
-    private boolean processingChars;
 
     private CharsetEncoder encoder;
 
@@ -121,6 +124,12 @@ public class OutputBuffer {
     private AsyncQueueWriter asyncWriter;
 
     private int bufferSize = DEFAULT_BUFFER_SIZE;
+
+    /**
+     * Flag indicating whether or not async operations are being used on the
+     * input streams.
+     */
+    private boolean asyncEnabled;
     
     private final CompletionHandler<WriteResult> asyncCompletionHandler =
             new EmptyCompletionHandler<WriteResult>() {
@@ -134,6 +143,8 @@ public class OutputBuffer {
                     }
                 }
             };
+
+
     // ---------------------------------------------------------- Public Methods
 
 
@@ -151,21 +162,57 @@ public class OutputBuffer {
 
     }
 
+    /**
+     * <p>
+     * Returns <code>true</code> if content will be written in a non-blocking
+     * fashion, otherwise returns <code>false</code>.
+     * </p>
+     *
+     * @return <code>true</code> if content will be written in a non-blocking
+     * fashion, otherwise returns <code>false</code>.
+     *
+     * @since 2.1.2
+     */
+    public boolean isAsyncEnabled() {
+        return asyncEnabled;
+    }
 
-    public void processingChars() {
-        processingChars = true;
+
+    /**
+     * Sets the asynchronous processing state of this <code>OutputBuffer</code>.
+     *
+     * @param asyncEnabled <code>true</code> if this <code>OutputBuffer<code>
+     *  will write content without blocking.
+     *
+     *  @since 2.1.2
+     */
+    public void setAsyncEnabled(boolean asyncEnabled) {
+        this.asyncEnabled = asyncEnabled;
+    }
+
+
+    public void prepareCharacterEncoder() {
+        getEncoder();
     }
 
     public int getBufferSize() {
         return bufferSize;
     }
 
+    public void registerLifeCycleListener(final LifeCycleListener listener) {
+        lifeCycleListeners.add(listener);
+    }
+    
+    public boolean removeLifeCycleListener(final LifeCycleListener listener) {
+        return lifeCycleListeners.remove(listener);
+    }
+    
     public void setBufferSize(final int bufferSize) {
         if (!committed && currentBuffer == null) {
             this.bufferSize = bufferSize;  
         }
     }
-
+    
     /**
      * Reset current response.
      *
@@ -176,9 +223,7 @@ public class OutputBuffer {
         if (committed)
             throw new IllegalStateException(/*FIXME:Put an error message*/);
 
-        if (compositeBuffer != null) {
-            compositeBuffer.removeAll();
-        }
+        compositeBuffer = null;
         
         if (currentBuffer != null) {
             currentBuffer.clear();
@@ -187,6 +232,33 @@ public class OutputBuffer {
     }
 
 
+    /**
+     * @return <code>true</code> if this <tt>OutputBuffer</tt> is closed, otherwise
+     *  returns <code>false</code>.
+     */
+    public boolean isClosed() {
+        return closed;
+    }
+    
+    /**
+     * Get the number of bytes buffered on OutputBuffer and ready to be sent.
+     * 
+     * @return the number of bytes buffered on OutputBuffer and ready to be sent.
+     */
+    public int getBufferedDataSize() {
+        int size = 0;
+        if (compositeBuffer != null) {
+            size += compositeBuffer.remaining();
+        }
+        
+        if (currentBuffer != null) {
+            size += currentBuffer.position();
+        }
+        
+        return size;
+    }
+    
+    
     /**
      * Recycle the output buffer. This should be called when closing the
      * connection.
@@ -218,8 +290,8 @@ public class OutputBuffer {
         committed = false;
         finished = false;
         closed = false;
-        processingChars = false;
 
+        lifeCycleListeners.clear();
     }
 
 
@@ -260,7 +332,7 @@ public class OutputBuffer {
      */
     public void acknowledge() throws IOException {
 
-        ctx.write(response);
+        ctx.write(response, !asyncEnabled);
         
     }
 
@@ -269,10 +341,6 @@ public class OutputBuffer {
 
 
     public void write(char cbuf[], int off, int len) throws IOException {
-
-        if (!processingChars) {
-            throw new IllegalStateException();
-        }
 
         handleAsyncErrors();
 
@@ -286,10 +354,6 @@ public class OutputBuffer {
 
 
     public void writeChar(int c) throws IOException {
-
-        if (!processingChars) {
-            throw new IllegalStateException();
-        }
 
         handleAsyncErrors();
 
@@ -314,10 +378,6 @@ public class OutputBuffer {
 
 
     public void write(final String str, final int off, final int len) throws IOException {
-
-        if (!processingChars) {
-            throw new IllegalStateException();
-        }
 
         handleAsyncErrors();
 
@@ -603,7 +663,11 @@ public class OutputBuffer {
         final HttpContent.Builder builder = response.httpContentBuilder();
 
         builder.content(bufferToFlush).last(isLast);
-        ctx.write(null, builder.build(), asyncCompletionHandler, messageCloner);
+        ctx.write(null,
+                  builder.build(),
+                  asyncCompletionHandler,
+                  messageCloner,
+                  !asyncEnabled);
     }
 
     private void checkCurrentBuffer() {
@@ -648,9 +712,10 @@ public class OutputBuffer {
     }
 
     
-    private boolean doCommit() {
+    private boolean doCommit() throws IOException {
 
         if (!committed) {
+            notifyCommit();
             committed = true;
             return true;
         }
@@ -663,10 +728,10 @@ public class OutputBuffer {
             if (response != null) {
                 final HttpContent.Builder builder = response.httpContentBuilder();
                 builder.last(true);
-                ctx.write(builder.build());
+                ctx.write(builder.build(), !asyncEnabled);
             }
         } else {
-            ctx.write(response);
+            ctx.write(response, !asyncEnabled);
         }
     }
 
@@ -715,6 +780,12 @@ public class OutputBuffer {
             writeContentChunk(!doCommit(), false);
         }        
     }
+
+    private void notifyCommit() throws IOException {
+        for (int i = 0; i < lifeCycleListeners.size(); i++) {
+            lifeCycleListeners.get(i).onCommit();
+        }
+    }
     
     /**
      * The {@link MessageCloner}, responsible for cloning Buffer content, if it
@@ -755,5 +826,9 @@ public class OutputBuffer {
                 
             return temporaryWriteBuffer.cloneContent();
         }
+    }
+    
+    public static interface LifeCycleListener {
+        public void onCommit() throws IOException;
     }
 }

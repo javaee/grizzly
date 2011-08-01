@@ -1,0 +1,15 @@
+ ------
+ Grizzly OSGi Http Service - Quick Start
+ ------
+ Hubert Iwaniuk
+ ------
+ ------
+
+
+Grizzly OSGi Http Service Quick Start.
+
+Configuration parameters.
+
+ Apart from standard OSGi Http Service parameters Grizzly has:
+
+  * com.sun.grizzly.cometSupport - set it to true to enable Comet.

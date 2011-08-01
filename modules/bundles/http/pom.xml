@@ -50,10 +50,10 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.glassfish.grizzly</groupId>
-    <artifactId>grizzly-http-webserver</artifactId>
+    <artifactId>grizzly-http-server-core</artifactId>
     <packaging>jar</packaging>
     <version>2.1.2-SNAPSHOT</version>
-    <name>grizzly-http-webserver</name>
+    <name>grizzly-http-server-core</name>
     <build>
         <defaultGoal>install</defaultGoal>
         <plugins>
@@ -66,7 +66,6 @@
                         <Import-Package>*</Import-Package>
                         <Export-Package>org.glassfish.grizzly.*;-split-package:=merge-first</Export-Package>
                         <Embed-Dependency>org.glassfish.grizzly;scope=runtime</Embed-Dependency>
-                        <Main-Class>org.glassfish.grizzly.launcher.web.Main</Main-Class>
                     </instructions>
                     <unpackBundle>true</unpackBundle>
                 </configuration>
@@ -83,8 +82,8 @@
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>1.5</source>
-                    <target>1.5</target>
+                    <source>1.6</source>
+                    <target>1.6</target>
                 </configuration>
             </plugin>
         </plugins>
@@ -132,7 +131,22 @@
     <dependencies>
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
-            <artifactId>grizzly-http</artifactId>
+            <artifactId>grizzly-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.grizzly</groupId>
+            <artifactId>grizzly-http-server</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.grizzly</groupId>
+            <artifactId>grizzly-http-ajp</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.grizzly</groupId>
+            <artifactId>grizzly-http-server-multipart</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

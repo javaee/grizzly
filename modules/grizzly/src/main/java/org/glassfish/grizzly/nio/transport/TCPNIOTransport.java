@@ -315,6 +315,11 @@ public final class TCPNIOTransport extends NIOTransport implements
                 workerThreadPool = null;
             }
 
+            if (kernelPool != null) {
+                kernelPool.shutdownNow();
+                kernelPool = null;
+            }
+
             notifyProbesStop(this);
         } finally {
             state.getStateLocker().writeLock().unlock();
@@ -446,7 +451,7 @@ public final class TCPNIOTransport extends NIOTransport implements
     public TCPNIOServerConnection bind(final String host,
             final PortRange portRange, final int backlog) throws IOException {
 
-        IOException ioException = null;
+        IOException ioException;
 
         final int lower = portRange.getLower();
         final int range = portRange.getUpper() - lower + 1;
@@ -458,9 +463,7 @@ public final class TCPNIOTransport extends NIOTransport implements
             final int port = lower + offset;
 
             try {
-                final TCPNIOServerConnection serverConnection =
-                        bind(host, port, backlog);
-                return serverConnection;
+                return bind(host, port, backlog);
             } catch (IOException e) {
                 ioException = e;
             }
@@ -821,12 +824,12 @@ public final class TCPNIOTransport extends NIOTransport implements
             
             final Processor conProcessor = connection.obtainProcessor(ioEvent);
 
-                if (ProcessorExecutor.execute(Context.create(connection,
-                        conProcessor, ioEvent, processingHandler))) {
-                    return IOEventReg.REGISTER;
-                } else {
-                    return IOEventReg.DEREGISTER;
-                }
+            if (ProcessorExecutor.execute(Context.create(connection,
+                    conProcessor, ioEvent, processingHandler))) {
+                return IOEventReg.REGISTER;
+            } else {
+                return IOEventReg.DEREGISTER;
+            }
         } catch (IOException e) {
             LOGGER.log(Level.FINE, "IOException occurred on fireIOEvent(). "
                     + "Connection={0} event={1}", new Object[] {connection, ioEvent});
@@ -895,18 +898,24 @@ public final class TCPNIOTransport extends NIOTransport implements
         if (isAllocate) {
 
             try {
-                final DirectByteBufferRecord directByteBufferRecord =
-                        obtainDirectByteBuffer(connection.getReadBufferSize());
-                final ByteBuffer directByteBuffer = directByteBufferRecord.strongRef;
-                read = doReadInLoop((SocketChannel) tcpConnection.getChannel(),
-                        directByteBuffer);
-                
-                directByteBuffer.flip();
-                
-                buffer = memoryManager.allocate(read);
-                buffer.put(directByteBuffer);
-                
-                releaseDirectByteBuffer(directByteBufferRecord);
+                final int receiveBufferSize = connection.getReadBufferSize();
+                if (!memoryManager.willAllocateDirect(receiveBufferSize)) {
+                    final DirectByteBufferRecord directByteBufferRecord =
+                            obtainDirectByteBuffer(receiveBufferSize);
+                    final ByteBuffer directByteBuffer = directByteBufferRecord.strongRef;
+                    read = readSimpleByteBuffer(tcpConnection,
+                            directByteBuffer, isSelectorThread);
+
+                    directByteBuffer.flip();
+
+                    buffer = memoryManager.allocate(read);
+                    buffer.put(directByteBuffer);
+
+                    releaseDirectByteBuffer(directByteBufferRecord);
+                } else {
+                    buffer = memoryManager.allocateAtLeast(receiveBufferSize);
+                    read = readSimple(tcpConnection, buffer, isSelectorThread);
+                }
                 
                 tcpConnection.onRead(buffer, read);
             } catch (Exception e) {
@@ -987,6 +996,21 @@ public final class TCPNIOTransport extends NIOTransport implements
             read = doReadInLoop(socketChannel, buffer.toByteBuffer());
         } else {
             read = socketChannel.read(buffer.toByteBuffer());
+        }
+
+        return read;
+    }
+    
+    private int readSimpleByteBuffer(final TCPNIOConnection tcpConnection,
+            final ByteBuffer byteBuffer, final boolean isSelectorThread) throws IOException {
+
+        final SocketChannel socketChannel = (SocketChannel) tcpConnection.getChannel();
+
+        final int read;
+        if (!isSelectorThread) {
+            read = doReadInLoop(socketChannel, byteBuffer);
+        } else {
+            read = socketChannel.read(byteBuffer);
         }
 
         return read;
@@ -1091,33 +1115,6 @@ public final class TCPNIOTransport extends NIOTransport implements
         return written;
     }
 
-    int write0(final Connection connection, final BufferArray bufferArray)
-    throws IOException {
-
-        final TCPNIOConnection tcpConnection = (TCPNIOConnection) connection;
-        final int written = writeGathered(tcpConnection, bufferArray);
-
-        if (LOGGER.isLoggable(Level.FINE)) {
-            LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (composite) write {1} bytes",
-                    new Object[]{connection, written});
-        }
-
-        return written;
-    }
-
-    int write0(final Connection connection, final Buffer buffer)
-            throws IOException {
-
-        final TCPNIOConnection tcpConnection = (TCPNIOConnection) connection;
-        final int written = writeSimple(tcpConnection, buffer);
-        if (LOGGER.isLoggable(Level.FINE)) {
-            LOGGER.log(Level.FINE, "TCPNIOConnection ({0}) (plain) write {1} bytes",
-                    new Object[]{connection, written});
-        }
-
-        return written;
-    }
-    
     private static int writeSimple(final TCPNIOConnection tcpConnection,
             final Buffer buffer) throws IOException {
         final SocketChannel socketChannel = (SocketChannel) tcpConnection.getChannel();

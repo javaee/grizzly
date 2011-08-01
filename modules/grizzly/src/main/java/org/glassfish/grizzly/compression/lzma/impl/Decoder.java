@@ -149,7 +149,7 @@ public class Decoder {
 
     public static class LiteralDecoder {
 
-        public class Decoder2 {
+        public static class Decoder2 {
 
             short[] m_Decoders = new short[0x300];
             int decodeNormalMethodState;

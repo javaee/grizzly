@@ -55,7 +55,11 @@
     <version>2.1.2-SNAPSHOT</version>
     <name>grizzly-bundles</name>
     <modules>
+        <module>core</module>
         <module>http</module>
         <module>http-servlet</module>
+        <module>comet</module>
+        <module>websockets</module>
+        <module>http-all</module>
     </modules>
 </project>

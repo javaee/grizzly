@@ -69,9 +69,7 @@ import javax.servlet.ServletOutputStream;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.http.server.Constants;
 import org.glassfish.grizzly.http.server.Response;
-import org.glassfish.grizzly.http.util.StringManager;
 
 
 
@@ -145,14 +143,6 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 
     // ----------------------------------------------- Class/Instance Variables
 
-
-    /**
-     * The string manager for this package.
-     */
-    protected static final StringManager sm =
-        StringManager.getManager(Constants.Package, Response.class.getClassLoader());
-
-
     /**
      * The wrapped response.
      */
@@ -179,8 +169,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
     public void finish() throws IOException {
 
         if (response == null) {
-            throw new IllegalStateException(
-                            sm.getString("HttpServletResponseImpl.nullResponse"));
+            throw new IllegalStateException("Null response object");
         }
 
 //        response.setSuspended(true);
@@ -211,8 +200,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
     public String getCharacterEncoding() {
 
         if (response == null) {
-            throw new IllegalStateException(
-                            sm.getString("HttpServletResponseImpl.nullResponse"));
+            throw new IllegalStateException("Null response object");
         }
 
         return response.getCharacterEncoding();
@@ -227,8 +215,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
         throws IOException {
 
         if (usingWriter)
-            throw new IllegalStateException
-                (sm.getString("response.getOutputStream.ise"));
+            throw new IllegalStateException("Illegal attempt to call getOutputStream() after getWriter() has already been called.");
 
         usingOutputStream = true;
         return outputStream;
@@ -253,8 +240,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
         throws IOException {
 
         if (usingOutputStream)
-            throw new IllegalStateException
-                (sm.getString("response.getWriter.ise"));
+            throw new IllegalStateException("Illegal attempt to call getWriter() after getOutputStream has already been called.");
 
         usingWriter = true;
         if (writer == null) {
@@ -305,8 +291,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
     public void setBufferSize(int size) {
 
         if (isCommitted())
-            throw new IllegalStateException
-                (/*sm.getString("responseBase.reset.ise")*/);
+            throw new IllegalStateException("Illegal attempt to adjust the buffer size after the response has already been committed.");
 
         response.setBufferSize(size);
 
@@ -320,8 +305,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
     public int getBufferSize() {
 
         if (response == null) {
-            throw new IllegalStateException(
-                            sm.getString("HttpServletResponseImpl.nullResponse"));
+            throw new IllegalStateException("Null response object");
         }
 
         return response.getBufferSize();
@@ -375,8 +359,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
     public void resetBuffer() {
 
         if (isCommitted())
-            throw new IllegalStateException
-                (/*sm.getString("responseBase.reset.ise")*/);
+            throw new IllegalStateException("Illegal attempt to reset the buffer after the response has already been committed.");
 
         response.resetBuffer();
 
@@ -390,8 +373,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
     public boolean isCommitted() {
 
         if (response == null) {
-            throw new IllegalStateException(
-                            sm.getString("HttpServletResponseImpl.nullResponse"));
+            throw new IllegalStateException("Null response object");
         }
 
         return response.isCommitted();
@@ -405,8 +387,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
     public void reset() {
 
         if (isCommitted())
-            throw new IllegalStateException
-                (/*sm.getString("responseBase.reset.ise")*/);
+            throw new IllegalStateException("Illegal attempt to reset the response after it has already been committed.");
 
         response.reset();
 
@@ -433,8 +414,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
     public Locale getLocale() {
 
         if (response == null) {
-            throw new IllegalStateException(
-                            sm.getString("HttpServletResponseImpl.nullResponse"));
+            throw new IllegalStateException("Null response object");
         }
 
         return response.getLocale();
@@ -463,8 +443,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
     public boolean containsHeader(String name) {
 
         if (response == null) {
-            throw new IllegalStateException(
-                            sm.getString("HttpServletResponseImpl.nullResponse"));
+            throw new IllegalStateException("Null response object");
         }
 
         return response.containsHeader(name);
@@ -478,8 +457,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
     public String encodeURL(String url) {
 
         if (response == null) {
-            throw new IllegalStateException(
-                            sm.getString("HttpServletResponseImpl.nullResponse"));
+            throw new IllegalStateException("Null response object");
         }
 
         return response.encodeURL(url);
@@ -493,8 +471,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
     public String encodeRedirectURL(String url) {
 
         if (response == null) {
-            throw new IllegalStateException(
-                            sm.getString("HttpServletResponseImpl.nullResponse"));
+            throw new IllegalStateException("Null response object");
         }
 
         throw new UnsupportedOperationException("Not supported yet.");
@@ -508,8 +485,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
     public String encodeUrl(String url) {
 
         if (response == null) {
-            throw new IllegalStateException(
-                            sm.getString("HttpServletResponseImpl.nullResponse"));
+            throw new IllegalStateException("Null response object");
         }
 
         throw new UnsupportedOperationException("Not supported yet.");
@@ -523,8 +499,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
     public String encodeRedirectUrl(String url) {
 
         if (response == null) {
-            throw new IllegalStateException(
-                            sm.getString("HttpServletResponseImpl.nullResponse"));
+            throw new IllegalStateException("Null response object");
         }
 
         throw new UnsupportedOperationException("Not supported yet.");
@@ -539,8 +514,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
         throws IOException {
 
         if (isCommitted())
-            throw new IllegalStateException
-                (/*sm.getString("responseBase.reset.ise")*/);
+            throw new IllegalStateException("Illegal attempt to call sendError() after the response has been committed.");
 
 //        response.setAppCommitted(true);
 
@@ -557,8 +531,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
         throws IOException {
 
         if (isCommitted())
-            throw new IllegalStateException
-                (/*sm.getString("responseBase.reset.ise")*/);
+            throw new IllegalStateException("Illegal attempt to call sendError() after the response has already been committed.");
 
 //        response.setAppCommitted(true);
 
@@ -575,8 +548,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
         throws IOException {
 
         if (isCommitted())
-            throw new IllegalStateException
-                (/*sm.getString("responseBase.reset.ise")*/);
+            throw new IllegalStateException("Illegal attempt to redirect the response after it has been committed.");
 
 //        response.setAppCommitted(true);
 

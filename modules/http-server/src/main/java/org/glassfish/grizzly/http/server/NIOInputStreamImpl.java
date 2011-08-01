@@ -182,6 +182,13 @@ final class NIOInputStreamImpl extends NIOInputStream implements Cacheable {
         return inputBuffer.getBuffer();
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Buffer readBuffer() {
+        return inputBuffer.readBuffer();
+    }
 
     // -------------------------------------------------- Methods from Cacheable
 

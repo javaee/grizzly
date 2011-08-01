@@ -96,7 +96,6 @@ import org.glassfish.grizzly.http.util.HttpRequestURIDecoder;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MessageBytes;
 import org.glassfish.grizzly.http.util.MimeHeaders;
-import org.glassfish.grizzly.http.util.StringManager;
 import org.glassfish.grizzly.http.util.UEncoder;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 import org.glassfish.grizzly.utils.DelayedExecutor.DelayQueue;
@@ -169,13 +168,6 @@ public class Response {
      */
     protected static final String info =
         "org.glassfish.grizzly.http.server.Response/2.0";
-
-
-    /**
-     * The string manager for this package.
-     */
-    protected final static StringManager sm =
-        StringManager.getManager(Constants.Package, Response.class.getClassLoader());
 
 
     // ------------------------------------------------------------- Properties
@@ -262,7 +254,6 @@ public class Response {
             new AtomicReference<SuspendState>(SuspendState.DISABLED);
 
     private final SuspendedContextImpl suspendedContext = new SuspendedContextImpl();
-//    private final Object suspendSync = new Object();
 
     private final SuspendStatus suspendStatus = new SuspendStatus();
     
@@ -384,7 +375,7 @@ public class Response {
 
     }
 
-    private boolean doIsEncodeable(Request request, Session session,
+    private static boolean doIsEncodeable(Request request, Session session,
                                    String location){
         // Is this a valid absolute URL?
         URL url;
@@ -588,18 +579,42 @@ public class Response {
     }
 
     /**
-     * Return the servlet output stream associated with this Response.
+     * <p>
+     * Return the {@link NIOOutputStream} associated with this {@link Response}.
+     * This {@link NIOOutputStream} will write content in a non-blocking manner.
+     * </p>
      *
-     * @exception IllegalStateException if <code>getWriter</code> has
-     *  already been called for this response
+    * @throws IllegalStateException if {@link #getWriter()} or {@link #getWriter(boolean)}
+     *  were already invoked.
      */
     public NIOOutputStream getOutputStream() {
 
+        return getOutputStream(false);
+
+    }
+
+    /**
+     * <p>
+     * Return the {@link NIOOutputStream} associated with this {@link Response}.
+     * </p>
+     *
+     * @param blocking flag indicating if content written using this
+     *  {@link NIOOutputStream} will block or not.
+     *
+     * @return the {@link NIOOutputStream} associated with this {@link Response}.
+     *
+     * @throws IllegalStateException if {@link #getWriter()} or {@link #getWriter(boolean)}
+     *  were already invoked.
+     *
+     * @since 2.1.2
+     */
+    public NIOOutputStream getOutputStream(final boolean blocking) {
+
         if (usingWriter)
-            throw new IllegalStateException
-                (sm.getString("response.getOutputStream.ise"));
+            throw new IllegalStateException("Illegal attempt to call getOutputStream() after getWriter() has already been called.");
 
         usingOutputStream = true;
+        outputBuffer.setAsyncEnabled(!blocking);
         outputStream.setOutputBuffer(outputBuffer);
         return outputStream;
 
@@ -621,17 +636,40 @@ public class Response {
 
 
     /**
-     * Return the writer associated with this Response.
+     * <p>
+     * Return the {@link NIOWriter} associated with this {@link Response}.
+     * The {@link NIOWriter} will write content in a non-blocking manner.
+     * </p>
      *
-     * @exception IllegalStateException if <code>getOutputStream</code> has
-     *  already been called for this response
-     * @exception java.io.IOException if an input/output error occurs
+     * @throws IllegalStateException if {@link #getOutputStream()} or
+     *  {@link #getOutputStream(boolean)} were already invoked.
      */
     public NIOWriter getWriter() {
 
+        return getWriter(false);
+
+    }
+
+
+    /**
+     * <p>
+     * Return the {@link NIOWriter} associated with this {@link Response}.
+     * </p>
+     *
+     * @param blocking flag indicating if content written using this
+     *  {@link NIOWriter} will block or not.
+     *
+     * @return the {@link NIOWriter} associated with this {@link Response}.
+     *
+     * @throws IllegalStateException if {@link #getOutputStream()} or
+     *  {@link #getOutputStream(boolean)} were already invoked.
+     *
+     * @since 2.1.2
+     */
+    public NIOWriter getWriter(boolean blocking) {
+
         if (usingOutputStream)
-            throw new IllegalStateException
-                (sm.getString("response.getWriter.ise"));
+            throw new IllegalStateException("Illegal attempt to call getWriter() after getOutputStream() has already been called.");
 
         /*
          * If the response's character encoding has not been specified as
@@ -648,7 +686,8 @@ public class Response {
         setCharacterEncoding(getCharacterEncoding());
 
         usingWriter = true;
-        outputBuffer.processingChars();
+        outputBuffer.prepareCharacterEncoder();
+        outputBuffer.setAsyncEnabled(!blocking);
         writer.setOutputBuffer(outputBuffer);
         return writer;
 
@@ -719,8 +758,7 @@ public class Response {
     public void resetBuffer(boolean resetWriterStreamFlags) {
 
         if (isCommitted())
-            throw new IllegalStateException
-                (sm.getString("response.resetBuffer.ise"));
+            throw new IllegalStateException("Cannot reset buffer after response has been committed.");
 
         outputBuffer.reset();
 
@@ -1147,8 +1185,7 @@ public class Response {
     public void sendError(int status, String message) throws IOException {
         checkResponse();
         if (isCommitted())
-            throw new IllegalStateException
-                (sm.getString("response.sendError.ise"));
+            throw new IllegalStateException("Illegal attempt to call sendError() after the response has been committed.");
 
         setError();
 
@@ -1179,8 +1216,7 @@ public class Response {
         throws IOException {
 
         if (isCommitted())
-            throw new IllegalStateException
-                (sm.getString("response.sendRedirect.ise"));
+            throw new IllegalStateException("Illegal attempt to redirect the response as the response has been committed.");
 
         // Clear any data content that has been buffered
         resetBuffer();
@@ -1666,34 +1702,31 @@ public class Response {
 
         checkResponse();
 
-//        synchronized(suspendSync) {
-            if (!suspendState.compareAndSet(SuspendState.DISABLED, SuspendState.ENABLED)) {
-                throw new IllegalStateException("Already Suspended");
-            }
+        if (!suspendState.compareAndSet(SuspendState.DISABLED, SuspendState.ENABLED)) {
+            throw new IllegalStateException("Already Suspended");
+        }
 
-            suspendedContext.completionHandler = completionHandler;
-            suspendedContext.timeoutHandler = timeoutHandler;
+        suspendedContext.completionHandler = completionHandler;
+        suspendedContext.timeoutHandler = timeoutHandler;
 
-            final Connection connection = ctx.getConnection();
+        final Connection connection = ctx.getConnection();
 
-            HttpServerProbeNotifier.notifyRequestSuspend(
-                    request.httpServerFilter, connection, request);
-            
-            suspendStatus.set();
-            
-            connection.addCloseListener(suspendedContext);
+        HttpServerProbeNotifier.notifyRequestSuspend(
+                request.httpServerFilter, connection, request);
 
-            if (timeout > 0) {
-                final long timeoutMillis =
-                        TimeUnit.MILLISECONDS.convert(timeout, timeunit);
-                suspendedContext.delayMillis = timeoutMillis;
+        suspendStatus.set();
+
+        connection.addCloseListener(suspendedContext);
+
+        if (timeout > 0) {
+            final long timeoutMillis =
+                    TimeUnit.MILLISECONDS.convert(timeout, timeunit);
+            suspendedContext.delayMillis = timeoutMillis;
 
 
-                delayQueue.add(this, timeoutMillis, TimeUnit.MILLISECONDS);
-            }
-            
-//            isSuspended = true;
-//        }
+            delayQueue.add(this, timeoutMillis, TimeUnit.MILLISECONDS);
+        }
+
     }
 
     /**
@@ -1757,29 +1790,26 @@ public class Response {
          * {@link FilterChainContext} invocation.
          */
         public void markResumed() {
-//            synchronized(suspendSync) {
-                if (!suspendState.compareAndSet(SuspendState.ENABLED, SuspendState.RESUMING)) {
-                    throw new IllegalStateException("Not Suspended");
-                }
+            if (!suspendState.compareAndSet(SuspendState.ENABLED, SuspendState.RESUMING)) {
+                throw new IllegalStateException("Not Suspended");
+            }
 
-                final Connection connection = ctx.getConnection();
+            final Connection connection = ctx.getConnection();
 
-                connection.removeCloseListener(this);
+            connection.removeCloseListener(this);
 
-                isResuming = true;
+            isResuming = true;
 
-                if (completionHandler != null) {
-                    completionHandler.completed(Response.this);
-                }
+            if (completionHandler != null) {
+                completionHandler.completed(Response.this);
+            }
 
-                reset();
+            reset();
 
-                suspendState.set(SuspendState.DISABLED);
-//                isSuspended = false;
+            suspendState.set(SuspendState.DISABLED);
 
-                HttpServerProbeNotifier.notifyRequestResume(request.httpServerFilter,
-                        connection, request);
-//            }
+            HttpServerProbeNotifier.notifyRequestResume(request.httpServerFilter,
+                    connection, request);
         }
 
         /**
@@ -1787,48 +1817,44 @@ public class Response {
          * {@link FilterChainContext} invocation.
          */
         public void markCancelled() {
-//            synchronized (suspendSync) {
-                if (!suspendState.compareAndSet(SuspendState.ENABLED, SuspendState.RESUMING)) {
-                    throw new IllegalStateException("Not Suspended");
-                }
+            if (!suspendState.compareAndSet(SuspendState.ENABLED, SuspendState.RESUMING)) {
+                throw new IllegalStateException("Not Suspended");
+            }
 
-                final Connection connection = ctx.getConnection();
+            final Connection connection = ctx.getConnection();
 
-                connection.removeCloseListener(this);
+            connection.removeCloseListener(this);
 
-                isResuming = true;
+            isResuming = true;
 
-                if (completionHandler != null) {
-                    completionHandler.cancelled();
-                }
+            if (completionHandler != null) {
+                completionHandler.cancelled();
+            }
 
-                suspendState.set(SuspendState.DISABLED);
-                reset();
+            suspendState.set(SuspendState.DISABLED);
+            reset();
 
-                HttpServerProbeNotifier.notifyRequestCancel(
-                        request.httpServerFilter, connection, request);
-//            }
+            HttpServerProbeNotifier.notifyRequestCancel(
+                    request.httpServerFilter, connection, request);
         }
 
         boolean onTimeout() {
-//            synchronized (suspendSync) {
-                timeoutTimeMillis = DelayedExecutor.UNSET_TIMEOUT;
-                final TimeoutHandler localTimeoutHandler = timeoutHandler;
-                if (localTimeoutHandler == null ||
-                        localTimeoutHandler.onTimeout(Response.this)) {
-                    HttpServerProbeNotifier.notifyRequestTimeout(
-                            request.httpServerFilter, ctx.getConnection(), request);
+            timeoutTimeMillis = DelayedExecutor.UNSET_TIMEOUT;
+            final TimeoutHandler localTimeoutHandler = timeoutHandler;
+            if (localTimeoutHandler == null
+                    || localTimeoutHandler.onTimeout(Response.this)) {
+                HttpServerProbeNotifier.notifyRequestTimeout(
+                        request.httpServerFilter, ctx.getConnection(), request);
 
-                    try {
-                        cancel();
-                    } catch (Exception ignored) {
-                    }
-
-                    return true;
-                } else {
-                    return false;
+                try {
+                    cancel();
+                } catch (Exception ignored) {
                 }
-//            }
+
+                return true;
+            } else {
+                return false;
+            }
         }
 
         private void reset() {

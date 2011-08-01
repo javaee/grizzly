@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -60,9 +60,10 @@ public interface ConnectionProbe {
     /**
      * Method will be called, when server side connection gets accepted.
      *
-     * @param connection {@link Connection}, the event belongs to.
+     * @param serverConnection server {@link Connection}, the event belongs to.
+     * @param clientConnection new client {@link Connection}.
      */
-    public void onAcceptEvent(Connection connection);
+    public void onAcceptEvent(Connection serverConnection, Connection clientConnection);
 
     /**
      * Method will be called, when client side connection gets connected (opened).

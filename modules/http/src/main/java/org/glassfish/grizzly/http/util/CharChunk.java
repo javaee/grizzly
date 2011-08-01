@@ -165,7 +165,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
         end=0;
         output =true;
         isSet=true;
-        cachedString = null;
+        resetStringCache();
     }
 
     public void ensureCapacity(final int size) {
@@ -176,7 +176,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
 
         start=0;
         end=0;
-        cachedString = null;
+        resetStringCache();
     }
 
     public void setOptimizedWrite(boolean optimizedWrite) {
@@ -188,7 +188,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
         start=off;
         end=start + len;
         isSet=true;
-        cachedString = null;
+        resetStringCache();
     }
 
     /** Maximum amount of data in this buffer.
@@ -200,6 +200,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
      */
     public void setLimit(int limit) {
         this.limit=limit;
+        resetStringCache();
     }
 
     public int getLimit() {
@@ -246,6 +247,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
     @Override
     public void setStart(int start) {
         this.start = start;
+        resetStringCache();
     }
 
     /**
@@ -265,6 +267,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
     @Override
     public void setEnd( int i ) {
         end=i;
+        resetStringCache();
     }
 
     // -------------------- Adding data --------------------
@@ -277,7 +280,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
             flushBuffer();
         }
         buff[end++]=b;
-        cachedString = null;
+        resetStringCache();
     }
 
     public void append( CharChunk src ) throws IOException {
@@ -288,6 +291,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
      */
     public void append( char src[], int off, int len ) throws IOException {
         // will grow, up to limit
+        resetStringCache();
         makeSpace( len );
 
         // if we don't have limit: makeSpace can grow as it wants
@@ -355,6 +359,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
     /** Add data to the buffer
      */
     public void append( StringBuffer sb ) throws IOException {
+        resetStringCache();
         int len=sb.length();
 
         // will grow, up to limit
@@ -394,6 +399,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
     public void append(String s, int off, int len) throws IOException {
         if (s==null) return;
 
+        resetStringCache();
         // will grow, up to limit
         makeSpace( len );
 
@@ -420,6 +426,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
     // -------------------- Removing data from the buffer --------------------
     @Override
     public void delete(final int start, final int end) {
+        resetStringCache();
         final int diff = this.end - end;
         if (diff == 0) {
             this.end = start;
@@ -432,6 +439,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
     public int substract()
         throws IOException {
 
+        resetStringCache();
         if ((end - start) == 0) {
             if (in == null)
                 return -1;
@@ -447,6 +455,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
     public int substract(CharChunk src)
         throws IOException {
 
+        resetStringCache();
         if ((end - start) == 0) {
             if (in == null)
                 return -1;
@@ -465,6 +474,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
     public int substract( char src[], int off, int len )
         throws IOException {
 
+        resetStringCache();
         if ((end - start) == 0) {
             if (in == null)
                 return -1;
@@ -492,6 +502,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
         }
         out.realWriteChars( buff, start, end - start );
         end=start;
+        resetStringCache();
     }
 
     /** Make space for len chars. If len is small, allocate
@@ -535,7 +546,6 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
         System.arraycopy(buff, start, tmp, start, end-start);
         buff = tmp;
         tmp = null;
-        cachedString = null;        
     }
 
     /**
@@ -545,6 +555,10 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
     public void notifyDirectUpdate() {
     }
 
+    protected final void resetStringCache() {
+        cachedString = null;
+    }
+    
     // -------------------- Conversion and getters --------------------
 
     @Override

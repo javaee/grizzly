@@ -853,7 +853,7 @@ public interface Buffer extends Comparable<Buffer> {
      * except that it first checks that there is sufficient space in this
      * buffer and it is potentially much more efficient. </p>
      *
-     * @param  src
+     * @param  s
      *         The {@link String} from which bytes are to be read
      *
      * @return  This buffer

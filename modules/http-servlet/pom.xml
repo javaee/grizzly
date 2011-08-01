@@ -113,12 +113,12 @@
             <artifactId>grizzly-framework</artifactId>
             <version>${project.version}</version>
         </dependency>
-         <dependency>
+<!--         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-framework</artifactId>
             <classifier>tests</classifier>
             <version>${project.version}</version>
-        </dependency>
+        </dependency>-->
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-http-server</artifactId>

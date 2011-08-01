@@ -378,7 +378,7 @@ public class ServletHandler extends HttpHandler {
 
             //TODO: Make this configurable.
             servletResponse.addHeader("server", "grizzly/" + Grizzly.getDotedVersion());
-            FilterChainImpl filterChain = new FilterChainImpl(servletInstance, servletConfig);
+            FilterChainImpl filterChain = new FilterChainImpl(servletInstance, servletConfig, filters, n);
             filterChain.invokeFilterChain(servletRequest, servletResponse);
         } catch (Throwable ex) {
             LOGGER.log(Level.SEVERE, "service exception:", ex);
@@ -390,7 +390,7 @@ public class ServletHandler extends HttpHandler {
             throws IOException, ServletException {
         try {
             loadServlet();
-            FilterChainImpl filterChain = new FilterChainImpl(servletInstance, servletConfig);
+            FilterChainImpl filterChain = new FilterChainImpl(servletInstance, servletConfig, filters, n);
             filterChain.invokeFilterChain(servletRequest, servletResponse);
         } catch (ServletException se) {
             LOGGER.log(Level.SEVERE, "service exception:", se);
@@ -885,6 +885,9 @@ public class ServletHandler extends HttpHandler {
          */
         private final Servlet servlet;
         private final ServletConfigImpl configImpl;
+        private final FilterConfigImpl[] filters;
+        private final int n;
+        
         /**
          * The int which is used to maintain the current position
          * in the filter chain.
@@ -892,10 +895,13 @@ public class ServletHandler extends HttpHandler {
         private int pos = 0;
 
         public FilterChainImpl(final Servlet servlet,
-                final ServletConfigImpl configImpl) {
+                final ServletConfigImpl configImpl,
+                final FilterConfigImpl[] filters, final int n) {
 
             this.servlet = servlet;
             this.configImpl = configImpl;
+            this.filters = filters;
+            this.n = n;
         }
 
         // ---------------------------------------------------- FilterChain Methods
@@ -956,11 +962,7 @@ public class ServletHandler extends HttpHandler {
             // Call the next filter if there is one
             if (pos < n) {
 
-                FilterConfigImpl filterConfig;
-
-                synchronized (lock) {
-                    filterConfig = filters[pos++];
-                }
+                FilterConfigImpl filterConfig = filters[pos++];
 
                 try {
                     Filter filter = filterConfig.getFilter();

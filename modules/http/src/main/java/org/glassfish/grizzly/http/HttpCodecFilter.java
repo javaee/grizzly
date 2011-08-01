@@ -473,11 +473,14 @@ public abstract class HttpCodecFilter extends BaseFilter
                         connection, emptyContent);
 
                 ctx.setMessage(emptyContent);
+                if (input.remaining() > 0) {
+                    return ctx.getInvokeAction(input);
+                }
                 return ctx.getInvokeAction();
             }
 
         } catch (RuntimeException re) {
-            HttpProbeNotifier.notifyProbesError(this, connection, re);
+            HttpProbeNotifier.notifyProbesError(this, connection, httpHeader, re);
             onHttpError(httpHeader, ctx);
 
             // make the connection deaf to any following input
@@ -591,7 +594,7 @@ public abstract class HttpCodecFilter extends BaseFilter
 
                 return ctx.getStopAction();
             } catch (RuntimeException re) {
-                HttpProbeNotifier.notifyProbesError(this, connection, re);
+                HttpProbeNotifier.notifyProbesError(this, connection, input, re);
                 throw re;
             }
         }
@@ -903,7 +906,7 @@ public abstract class HttpCodecFilter extends BaseFilter
             final MimeHeaders mimeHeaders, final HeaderParsingState parsingState,
             final Buffer input) {
         final int limit = Math.min(input.limit(), parsingState.packetLimit);
-        int start = parsingState.start;
+        final int start = parsingState.start;
         int offset = parsingState.offset;
 
         while(offset < limit) {
@@ -911,7 +914,7 @@ public abstract class HttpCodecFilter extends BaseFilter
             if (b == Constants.COLON) {
 
                 parsingState.headerValueStorage =
-                        mimeHeaders.addValue(input, parsingState.start, offset);
+                        mimeHeaders.addValue(input, start, offset - start);
                 parsingState.offset = offset + 1;
                 finalizeKnownHeaderNames(httpHeader, parsingState, input,
                         start, offset);

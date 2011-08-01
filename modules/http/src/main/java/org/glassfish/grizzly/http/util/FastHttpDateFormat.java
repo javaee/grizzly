@@ -104,8 +104,6 @@ public final class FastHttpDateFormat {
         }
     }
 
-    protected final static TimeZone gmtZone = TimeZone.getTimeZone("GMT");
-
     /**
      * ThreadLocal for the set of SimpleDateFormat formats to use in getDateHeader().
      * GMT timezone - all HTTP dates are on GMT

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -260,10 +260,12 @@ final class HttpProbeNotifier {
      *
      * @param httpFilter the <tt>HttpCodecFilter</tt> event occurred on.
      * @param connection the <tt>Connection</tt> event occurred on.
+     * @param httpPacket the <tt>HttpPacket</tt> event occurred on.
      * @param error {@link Throwable}.
      */
     static void notifyProbesError(final HttpCodecFilter httpFilter,
             final Connection connection,
+            final HttpPacket httpPacket,
             Throwable error) {
         final HttpProbe[] probes = httpFilter.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
@@ -272,7 +274,7 @@ final class HttpProbeNotifier {
             }
             
             for (HttpProbe probe : probes) {
-                probe.onErrorEvent(connection, error);
+                probe.onErrorEvent(connection, httpPacket, error);
             }
         }
     }

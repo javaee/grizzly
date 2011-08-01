@@ -60,6 +60,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
 import org.glassfish.grizzly.http.util.Charsets;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.utils.Exceptions;
 
@@ -85,7 +86,7 @@ public class InputBuffer {
      * Flag indicating whether or not this <code>InputBuffer</code> is processing
      * character data.
      */
-    private boolean  processingChars;
+    private boolean processingChars;
 
 
     /**
@@ -204,11 +205,21 @@ public class InputBuffer {
             inputContentBuffer = content.getContent();
             contentRead = content.isLast();
             content.recycle();
+            inputContentBuffer.allowBufferDispose(true);
         }
 
     }
 
-
+    /**
+     * Set the default character encoding for this <tt>InputBuffer</tt>, which
+     * would be applied if no encoding was explicitly set on HTTP
+     * {@link org.glassfish.grizzly.http.server.Request} and character decoding
+     * wasn't started yet.
+     */
+    public void setDefaultEncoding(final String encoding) {
+        this.encoding = encoding;
+    }
+    
     /**
      * <p>
      * Recycle this <code>InputBuffer</code> for reuse.
@@ -251,12 +262,14 @@ public class InputBuffer {
      */
     public void processingChars() {
 
-        processingChars = true;
-        String enc = request.getCharacterEncoding();
-        if (enc != null) {
-            encoding = enc;
-            final CharsetDecoder localDecoder = getDecoder();
-            averageCharsPerByte = localDecoder.averageCharsPerByte();
+        if (!processingChars) {
+            processingChars = true;
+            final String enc = request.getCharacterEncoding();
+            if (enc != null) {
+                encoding = enc;
+                final CharsetDecoder localDecoder = getDecoder();
+                averageCharsPerByte = localDecoder.averageCharsPerByte();
+            }
         }
 
     }
@@ -322,7 +335,20 @@ public class InputBuffer {
         
     }
 
-
+    /**
+     * Depending on the <tt>InputBuffer</tt> mode, method will return either
+     * number of available bytes or characters ready to be read without blocking.
+     * 
+     * @return depending on the <tt>InputBuffer</tt> mode, method will return
+     * either number of available bytes or characters ready to be read without
+     * blocking.
+     */
+    public int readyData() {
+        if (closed) return 0;
+        
+        return ((processingChars) ? availableChar() : available());
+    }
+    
     /**
      * @see java.io.InputStream#available()
      */
@@ -342,6 +368,19 @@ public class InputBuffer {
     }
 
 
+    /**
+     * @return the underlying {@link Buffer} used to buffer incoming request
+     *  data. Unlike {@link #getBuffer()}, this method detaches the returned
+     * {@link Buffer}, so user code becomes responsible for handling
+     * the {@link Buffer}.
+     */
+    public Buffer readBuffer() {
+        final Buffer buffer = inputContentBuffer;
+        inputContentBuffer = Buffers.EMPTY_BUFFER;
+        return buffer;
+    }
+    
+    
     /**
      * @return the {@link ReadHandler} current in use, if any.
      */
@@ -367,8 +406,14 @@ public class InputBuffer {
         if (target == null) {
             throw new IllegalArgumentException("target cannot be null.");
         }
-
-        return fillChar(target.capacity(), target, !asyncEnabled, true);
+        final int read = fillChar(target.capacity(), target, !asyncEnabled, true);
+        if (readAheadLimit != -1) {
+            readCount += read;
+            if (readCount > readAheadLimit) {
+                markPos = -1;
+            }
+        }
+        return read;
 
     }
 
@@ -463,16 +508,13 @@ public class InputBuffer {
 
     /**
      * <p>
-     * Only supported with binary data.
+     * Supported with binary and character data.
      * </p>
      *
      * @see java.io.InputStream#mark(int)
+     * @see java.io.Reader#mark(int)
      */
     public void mark(final int readAheadLimit) {
-
-        if (processingChars) {
-            throw new IllegalStateException();
-        }
 
         if (readAheadLimit > 0) {
             markPos = inputContentBuffer.position();
@@ -511,15 +553,13 @@ public class InputBuffer {
         if (closed) {
             throw new IOException();
         }
-        if (processingChars) {
-            throw new IllegalStateException();
-        }
+
         if (readAheadLimit == -1 && markPos == -1) {
-            throw new IOException();
+            throw new IOException("Mark not set");
         }
         if (readAheadLimit != -1) {
             if (markPos == -1) {
-                throw new IOException();
+                throw new IOException("Mark not set");
             }
             readCount = 0;
         }
@@ -627,17 +667,19 @@ public class InputBuffer {
         return contentRead;
     }
 
-
+    /**
+     * @return <code>true</code> if this <tt>InputBuffer</tt> is closed, otherwise
+     *  returns <code>false</code>.
+     */
+    public boolean isClosed() {
+        return closed;
+    }
+    
     /**
      * Installs a {@link ReadHandler} that will be notified when any data
      * becomes available to read without blocking.
      *
      * @param handler the {@link ReadHandler} to invoke.
-     *
-     * @return <code>true<code> if the specified <code>handler</code> has
-     *  been accepted and will be notified as data becomes available to write,
-     *  otherwise returns <code>false</code> which means data is available to
-     *  be read without blocking.
      *
      * @throws IllegalArgumentException if <code>handler</code> is <code>null</code>,
      *  or if <code>size</code> is less than zero.
@@ -686,7 +728,7 @@ public class InputBuffer {
             return;
         }
 
-        final int available = ((processingChars) ? availableChar() : available());
+        final int available = readyData();
         if (shouldNotifyNow(size, available)) {
             try {
                 handler.onDataAvailable();
@@ -726,9 +768,7 @@ public class InputBuffer {
             if (addSize > 0) {
                 updateInputContentBuffer(buffer);
                 if (handler != null) {
-                    final int available = ((processingChars)
-                            ? availableChar()
-                            : available());
+                    final int available = readyData();
                     if (available > requestedSize) {
                         final ReadHandler localHandler = handler;
                         handler = null;
@@ -929,6 +969,7 @@ public class InputBuffer {
 
     private void updateInputContentBuffer(final Buffer buffer)  {
 
+        buffer.allowBufferDispose(true);
         if (inputContentBuffer.hasRemaining()) {
             toCompositeInputContentBuffer().append(buffer);
         } else {
@@ -948,7 +989,7 @@ public class InputBuffer {
      *  to {@link #notifyAvailable(ReadHandler)} or {@link #notifyAvailable(ReadHandler, int)},
      *  otherwise <code>false</code>
      */
-    private static boolean shouldNotifyNow(int size, int available) {
+    private static boolean shouldNotifyNow(final int size, final int available) {
 
         return (available != 0 && available >= size);
 

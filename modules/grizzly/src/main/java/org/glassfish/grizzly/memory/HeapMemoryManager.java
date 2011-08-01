@@ -104,6 +104,14 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
      * {@inheritDoc}
      */
     @Override
+    public boolean willAllocateDirect(int size) {
+        return false;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public JmxMonitoringConfig<MemoryProbe> getMonitoringConfig() {
         return monitoringConfig;
     }

@@ -61,4 +61,16 @@ public interface BinaryNIOInputSource extends NIOInputSource {
      */
     Buffer getBuffer();
 
+    /**
+     * <p>
+     * Returns the underlying {@link org.glassfish.grizzly.Buffer} that backs this
+     *  <code>NIOInputSource</code>. Unlike {@link #getBuffer()}, this method
+     *  detaches the returned {@link Buffer}, so user becomes responsible for
+     *  handling the {@link Buffer} life-cycle.
+     * </p>
+     *
+     * @return the underlying {@link org.glassfish.grizzly.Buffer} that backs this
+     *  <code>NIOInputSource</code>.
+     */
+    Buffer readBuffer();    
 }
