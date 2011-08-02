@@ -45,6 +45,7 @@ import java.util.logging.Logger;
 
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.websockets.DefaultWebSocket;
+import org.glassfish.grizzly.websockets.ProtocolHandler;
 import org.glassfish.grizzly.websockets.WebSocket;
 import org.glassfish.grizzly.websockets.WebSocketException;
 import org.glassfish.grizzly.websockets.WebSocketListener;
@@ -62,8 +63,8 @@ public class ChatWebSocket extends DefaultWebSocket {
     // chat user name
     private volatile String user;
 
-    public ChatWebSocket(WebSocketListener... listeners) {
-        super(listeners);
+    public ChatWebSocket(ProtocolHandler protocolHandler, WebSocketListener... listeners) {
+        super(protocolHandler, listeners);
     }
 
     /**

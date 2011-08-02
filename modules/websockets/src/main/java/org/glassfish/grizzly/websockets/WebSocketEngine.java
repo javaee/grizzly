@@ -146,7 +146,7 @@ public class WebSocketEngine {
 //                    final ServerNetworkHandler connection = new ServerNetworkHandler(request, request.getResponse());
                 final Connection connection = ctx.getConnection();
                 protocolHandler.setConnection(connection);
-                socket = app.createSocket(protocolHandler);
+                socket = app.createSocket(protocolHandler, app);
                 WebSocketEngine.getEngine().setWebSocketHolder(connection, protocolHandler, socket);
                 protocolHandler.handshake(ctx, app, requestContent);
                 request.getConnection().addCloseListener(new CloseListener() {

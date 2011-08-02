@@ -75,9 +75,7 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
     }
 
     public WebSocket createSocket(ProtocolHandler handler, WebSocketListener... listeners) {
-        final DefaultWebSocket socket = new DefaultWebSocket(handler, listeners);
-        socket.add(this);
-        return socket;
+        return new DefaultWebSocket(handler, listeners);
     }
 
     /**

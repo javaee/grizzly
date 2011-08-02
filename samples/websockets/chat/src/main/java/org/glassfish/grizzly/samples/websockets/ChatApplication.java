@@ -45,10 +45,10 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.websockets.DataFrame;
+import org.glassfish.grizzly.websockets.ProtocolHandler;
 import org.glassfish.grizzly.websockets.WebSocket;
 import org.glassfish.grizzly.websockets.WebSocketApplication;
 import org.glassfish.grizzly.websockets.WebSocketListener;
@@ -71,8 +71,8 @@ public class ChatApplication extends WebSocketApplication {
      * @return customized {@link WebSocket} implementation - {@link ChatWebSocket}
      */
     @Override
-    public WebSocket createSocket(final Connection connection, WebSocketListener... listeners) {
-        return new ChatWebSocket(listeners);
+    public WebSocket createSocket(ProtocolHandler handler, WebSocketListener... listeners) {
+        return new ChatWebSocket(handler, listeners);
     }
 
     @Override
