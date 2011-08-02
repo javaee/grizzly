@@ -111,10 +111,11 @@ public class DefaultWebSocket implements WebSocket {
     }
 
     public void onConnect() {
+        state.set(State.CONNECTED);
+        
         for (WebSocketListener listener : listeners) {
             listener.onConnect(this);
         }
-        state.set(State.CONNECTED);
     }
 
     @Override
@@ -174,18 +175,18 @@ public class DefaultWebSocket implements WebSocket {
     }
 
     public GrizzlyFuture<DataFrame> send(byte[] data) {
-        if (state.get() == State.CONNECTED) {
+        if (isConnected()) {
             return protocolHandler.send(data);
         } else {
-            throw new RuntimeException("Socket is already closed.");
+            throw new RuntimeException("Socket is not connected.");
         }
     }
 
     public GrizzlyFuture<DataFrame> send(String data) {
-        if (state.get() == State.CONNECTED) {
+        if (isConnected()) {
             return protocolHandler.send(data);
         } else {
-            throw new RuntimeException("Socket is already closed.");
+            throw new RuntimeException("Socket is not connected.");
         }
     }
 
@@ -193,23 +194,23 @@ public class DefaultWebSocket implements WebSocket {
         if (isConnected()) {
             return protocolHandler.send(frame);
         } else {
-            throw new RuntimeException("Socket is already closed.");
+            throw new RuntimeException("Socket is not connected.");
         }
     }
 
     public GrizzlyFuture<DataFrame> stream(boolean last, String fragment) {
-        if (state.get() == State.CONNECTED) {
+        if (isConnected()) {
             return protocolHandler.stream(last, fragment);
         } else {
-            throw new RuntimeException("Socket is already closed.");
+            throw new RuntimeException("Socket is not connected.");
         }
     }
 
     public GrizzlyFuture<DataFrame> stream(boolean last, byte[] bytes, int off, int len) {
-        if (state.get() == State.CONNECTED) {
+        if (isConnected()) {
             return protocolHandler.stream(last, bytes, off, len);
         } else {
-            throw new RuntimeException("Socket is already closed.");
+            throw new RuntimeException("Socket is not connected.");
         }
     }
 
