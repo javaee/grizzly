@@ -41,7 +41,6 @@
 package org.glassfish.grizzly.websockets.draft07;
 
 import java.net.URI;
-import java.nio.BufferUnderflowException;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.HttpContent;
@@ -92,7 +91,8 @@ public class Draft07Handler extends ProtocolHandler {
     public DataFrame parse(Buffer buffer) {
         
         if (buffer.remaining() < 2) {
-            throw new BufferUnderflowException();
+            // Don't have enough bytes to read opcode and lengthCode
+            return null;
         }
         
         Masker masker = new Masker(buffer);
@@ -118,11 +118,27 @@ public class Draft07Handler extends ProtocolHandler {
         if (lengthCode <= 125) {
             length = lengthCode;
         } else {
-            length = decodeLength(masker.get(lengthCode == 126 ? 2 : 8));
+            final int lengthBytes = lengthCode == 126 ? 2 : 8;
+            if (buffer.remaining() < lengthBytes) {
+                // Don't have enought bytes to read length
+                return null;
+            }
+            length = decodeLength(masker.get(lengthBytes));
         }
         if (masked) {
+            if (buffer.remaining() < WebSocketEngine.MASK_SIZE) {
+                // Don't have enough bytes to read mask
+                return null;
+            }
+            
             masker.readMask();
         }
+        
+        if (buffer.remaining() < length) {
+            // Don't have enought bytes to read data
+            return null;
+        }
+        
         final byte[] data = masker.unmask((int) length);
         if (data.length != length) {
             throw new FramingException(String.format("Data read (%s) is not the expected" +

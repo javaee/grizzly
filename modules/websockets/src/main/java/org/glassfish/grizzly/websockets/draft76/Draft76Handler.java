@@ -56,20 +56,33 @@ public class Draft76Handler extends ProtocolHandler {
         super(false);
     }
 
+    @Override
     public byte[] frame(DataFrame frame) {
         return frame.getType().getBytes(frame);
     }
 
+    @Override
     public DataFrame parse(Buffer buffer) {
+        if (buffer.remaining() < 2) {
+            // Don't have enough bytes to read opcode and one more byte
+            return null;
+        }
+        
         byte b = buffer.get();
-        DataFrame frame;
+        DataFrame frame = null;
+        
         switch (b) {
             case 0x00:
                 ByteArrayOutputStream raw = new ByteArrayOutputStream();
-                while ((b = buffer.get()) != (byte) 0xFF) {
-                    raw.write(b);
+                while (buffer.hasRemaining()) {
+                    if ((b = buffer.get()) == (byte) 0xFF) {
+                        frame = new DataFrame(Draft76FrameType.TEXT, raw.toByteArray());                        
+                        break;
+                    }
+                    
+                    raw.write(b);                    
                 }
-                frame = new DataFrame(Draft76FrameType.TEXT, raw.toByteArray());
+                
                 break;
             case (byte) 0xFF:
                 frame = new DataFrame(Draft76FrameType.CLOSING, new byte[]{b, buffer.get()});

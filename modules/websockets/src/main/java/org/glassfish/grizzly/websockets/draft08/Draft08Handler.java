@@ -42,7 +42,6 @@ package org.glassfish.grizzly.websockets.draft08;
 
 import java.net.URI;
 
-import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.websockets.HandShake;

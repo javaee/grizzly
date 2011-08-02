@@ -51,6 +51,7 @@ import org.glassfish.grizzly.websockets.FramingException;
 import org.glassfish.grizzly.websockets.HandShake;
 import org.glassfish.grizzly.websockets.Masker;
 import org.glassfish.grizzly.websockets.ProtocolHandler;
+import org.glassfish.grizzly.websockets.WebSocketEngine;
 import org.glassfish.grizzly.websockets.frametypes.BinaryFrameType;
 import org.glassfish.grizzly.websockets.frametypes.ClosingFrameType;
 import org.glassfish.grizzly.websockets.frametypes.ContinuationFrameType;
@@ -78,6 +79,7 @@ public class Draft06Handler extends ProtocolHandler {
         return new HandShake06(uri);
     }
 
+    @Override
     public byte[] frame(DataFrame frame) {
         byte opcode = checkForLastFrame(frame, getOpcode(frame.getType()));
         byte[] payloadBytes = frame.getBytes();
@@ -102,8 +104,19 @@ public class Draft06Handler extends ProtocolHandler {
     public DataFrame parse(Buffer buffer) {
         Masker masker = new Masker(buffer);
         if (!maskData) {
+            if (buffer.remaining() < WebSocketEngine.MASK_SIZE) {
+                // Don't have enough bytes to read mask
+                return null;
+            }
+            
             masker.readMask();
         }
+        
+        if (buffer.remaining() < 2) {
+            // Don't have enough bytes to read opcode and lengthCode
+            return null;
+        }
+        
         byte opcode = masker.unmask();
         boolean finalFragment = (opcode & 0x80) == 0x80;
         opcode &= 0x7F;
@@ -121,14 +134,23 @@ public class Draft06Handler extends ProtocolHandler {
         if (lengthCode <= 125) {
             length = lengthCode;
         } else {
-            length = decodeLength(masker.unmask(lengthCode == 126 ? 2 : 8));
+            final int lengthBytes = lengthCode == 126 ? 2 : 8;
+            if (buffer.remaining() < lengthBytes) {
+                // Don't have enought bytes to read length
+                return null;
+            }
+            length = decodeLength(masker.unmask(lengthBytes));
         }
+        
+        if (buffer.remaining() < length) {
+            // Don't have enought bytes to read data
+            return null;
+        }
+        
         final byte[] data = masker.unmask((int) length);
         if (data.length != length) {
-            final FramingException e = new FramingException(String.format("Data read (%s) is not the expected" +
+            throw new FramingException(String.format("Data read (%s) is not the expected" +
                     " size (%s)", data.length, length));
-            e.printStackTrace();
-            throw e;
         }
         return type.create(finalFragment, data);
     }

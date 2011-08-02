@@ -41,7 +41,6 @@ package org.glassfish.grizzly.websockets;
 
 import java.io.IOException;
 import java.net.URI;
-import java.nio.BufferUnderflowException;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
@@ -157,11 +156,10 @@ public abstract class ProtocolHandler {
 
     public DataFrame unframe(Buffer buffer) {
         final int position = buffer.position();
-        DataFrame frame = null;
-        try {
-            frame = parse(buffer);
-        } catch (BufferUnderflowException e) {
-            buffer.position(position);
+        DataFrame frame = parse(buffer);
+        
+        if (frame == null) {
+            buffer.position(position);            
         }
         
         return frame;
