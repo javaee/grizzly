@@ -67,8 +67,8 @@ import com.sun.grizzly.util.http.MimeHeaders;
 import com.sun.grizzly.util.http.Parameters;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 
 
@@ -190,7 +190,7 @@ public class Request {
 
     private MessageBytes remoteUser = MessageBytes.newInstance();
     private MessageBytes authType = MessageBytes.newInstance();
-    private Map attributes = new ConcurrentHashMap();
+    private Map attributes = new HashMap();
 
     private Response response;
     private ActionHook hook;
