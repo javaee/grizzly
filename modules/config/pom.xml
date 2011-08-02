@@ -55,6 +55,43 @@
     <packaging>hk2-jar</packaging>
     <version>2.1.2-SNAPSHOT</version>
     <name>grizzly-config</name>
+    <profiles>
+        <profile>
+            <id>jdk7</id>
+            <activation>
+                <jdk>1.7</jdk>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.glassfish.hk2</groupId>
+                        <artifactId>hk2-maven-plugin</artifactId>
+                        <version>${hk2.version}</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <archive>
+                                <!-- Use the manifest.mf produced by maven-bundle-plugin:manifest -->
+                                <manifestFile>
+                                    ${project.build.outputDirectory}/META-INF/MANIFEST.MF
+                                </manifestFile>
+                            </archive>
+                        </configuration>
+
+                        <dependencies>
+                            <dependency>
+                                <groupId>com.sun</groupId>
+                                <artifactId>tools</artifactId>
+                                <version>1.7.0</version>
+                                <scope>system</scope>
+                                <systemPath>${java.home}/../lib/tools.jar
+                                </systemPath>
+                            </dependency>
+                        </dependencies>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
     <build>
         <resources>
             <resource>
