@@ -59,7 +59,6 @@ import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.websockets.WebSocketEngine.WebSocketHolder;
 
 /**
@@ -179,13 +178,14 @@ public class WebSocketFilter extends BaseFilter {
             try {
                 while (buffer != null && buffer.hasRemaining()) {
                     if (holder.buffer != null) {
-                        buffer = Buffers
-                            .appendBuffers(MemoryManager.DEFAULT_MEMORY_MANAGER, holder.buffer, buffer);
+                        buffer = Buffers.appendBuffers(
+                                ctx.getMemoryManager(), holder.buffer, buffer);
+                        
                         holder.buffer = null;
                     }
                     final DataFrame result = holder.handler.unframe(buffer);
                     if (result == null) {
-                        System.out.println("result = " + result);
+//                        System.out.println("result = " + result);
                         holder.buffer = buffer;
                         break;
                     } else {

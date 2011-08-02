@@ -163,6 +163,7 @@ public abstract class ProtocolHandler {
         } catch (BufferUnderflowException e) {
             buffer.position(position);
         }
+        
         return frame;
     }
 

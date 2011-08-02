@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.websockets.draft07;
 
 import java.net.URI;
+import java.nio.BufferUnderflowException;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.HttpContent;
@@ -89,6 +90,11 @@ public class Draft07Handler extends ProtocolHandler {
 
     @Override
     public DataFrame parse(Buffer buffer) {
+        
+        if (buffer.remaining() < 2) {
+            throw new BufferUnderflowException();
+        }
+        
         Masker masker = new Masker(buffer);
         byte opcode = masker.get();
         boolean finalFragment = (opcode & 0x80) == 0x80;
