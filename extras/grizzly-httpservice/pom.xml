@@ -104,26 +104,6 @@
             <artifactId>grizzly-websockets</artifactId>
             <version>${project.version}</version>
         </dependency>
-<!-- Prepaartion for integration tests
-    <dependency>
-      <groupId>org.ops4j.pax.exam</groupId>
-      <artifactId>pax-exam</artifactId>
-      <version>0.3.0-SNAPSHOT</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.ops4j.pax.exam</groupId>
-      <artifactId>pax-exam-junit</artifactId>
-      <version>0.3.0-SNAPSHOT</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.ops4j.pax.exam</groupId>
-      <artifactId>pax-exam-container-default</artifactId>
-      <version>0.3.0-SNAPSHOT</version>
-      <scope>test</scope>
-    </dependency>
--->
     </dependencies>
     <build>
         <plugins>
@@ -165,7 +145,7 @@
             <plugin>
                 <groupId>org.ops4j</groupId>
                 <artifactId>maven-pax-plugin</artifactId>
-                <version>1.4</version>
+                <version>1.5</version>
                 <configuration>
             <!--<profiles>log</profiles>-->
                     <args>file:src/main/etc/pax.args</args>
@@ -173,31 +153,4 @@
             </plugin>
         </plugins>
     </build>
-    <repositories>
-        <repository>
-            <id>ops4j.releases</id>
-            <url>http://repository.ops4j.org/maven2/</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-<!--
-    <repository>
-      <id>ops4j.snapshots</id>
-      <url>http://repository.ops4j.org/mvn-snapshots/</url>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-    </repository>
--->
-    </repositories>
-    <pluginRepositories>
-        <pluginRepository>
-            <id>ops4j.releases</id>
-            <url>http://repository.ops4j.org/maven2</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </pluginRepository>
-    </pluginRepositories>
 </project>
