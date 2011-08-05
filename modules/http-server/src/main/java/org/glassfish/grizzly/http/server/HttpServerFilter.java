@@ -278,10 +278,13 @@ public class HttpServerFilter extends BaseFilter
         
         HttpServerProbeNotifier.notifyRequestComplete(this, connection, response);
 
-        response.recycle();
-        request.recycle();
-
-
+        // Suspend state is cancelled - it means normal processing might have
+        // been broken. We don't want to reuse Request and Response in this state,
+        // cause there still might be threads referencing them.
+        if (response.suspendState.get() != Response.SuspendState.CANCELLED) {
+            response.recycle();
+            request.recycle();
+        }
     }
 
 }

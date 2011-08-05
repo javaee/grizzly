@@ -110,8 +110,8 @@ import org.glassfish.grizzly.utils.DelayedExecutor.DelayQueue;
 
 public class Response {
 
-    private enum SuspendState {
-        ENABLED, RESUMING, DISABLED
+    enum SuspendState {
+        NONE, SUSPENDED, RESUMING, RESUMED, CANCELLED
     }
 
     private static final Logger LOGGER = Grizzly.logger(Response.class);
@@ -251,7 +251,7 @@ public class Response {
     protected DelayedExecutor.DelayQueue<Response> delayQueue;
 
     final AtomicReference<SuspendState> suspendState =
-            new AtomicReference<SuspendState>(SuspendState.DISABLED);
+            new AtomicReference<SuspendState>(SuspendState.NONE);
 
     private final SuspendedContextImpl suspendedContext = new SuspendedContextImpl();
 
@@ -307,7 +307,7 @@ public class Response {
 
         response = null;
         ctx = null;
-        suspendState.set(SuspendState.DISABLED);
+        suspendState.set(SuspendState.NONE);
         cookies.clear();
 
         cacheEnabled = false;
@@ -1615,10 +1615,8 @@ public class Response {
     public boolean isSuspended() {
         checkResponse();
 
-        return suspendState.get() != SuspendState.DISABLED;
-//        synchronized(suspendSync) {
-//            return isSuspended;
-//        }
+        final SuspendState state = suspendState.get();
+        return state == SuspendState.SUSPENDED || state == SuspendState.RESUMING;
     }
 
     /**
@@ -1702,7 +1700,7 @@ public class Response {
 
         checkResponse();
 
-        if (!suspendState.compareAndSet(SuspendState.DISABLED, SuspendState.ENABLED)) {
+        if (!suspendState.compareAndSet(SuspendState.NONE, SuspendState.SUSPENDED)) {
             throw new IllegalStateException("Already Suspended");
         }
 
@@ -1790,7 +1788,7 @@ public class Response {
          * {@link FilterChainContext} invocation.
          */
         public void markResumed() {
-            if (!suspendState.compareAndSet(SuspendState.ENABLED, SuspendState.RESUMING)) {
+            if (!suspendState.compareAndSet(SuspendState.SUSPENDED, SuspendState.RESUMING)) {
                 throw new IllegalStateException("Not Suspended");
             }
 
@@ -1806,7 +1804,7 @@ public class Response {
 
             reset();
 
-            suspendState.set(SuspendState.DISABLED);
+            suspendState.set(SuspendState.RESUMED);
 
             HttpServerProbeNotifier.notifyRequestResume(request.httpServerFilter,
                     connection, request);
@@ -1817,7 +1815,7 @@ public class Response {
          * {@link FilterChainContext} invocation.
          */
         public void markCancelled() {
-            if (!suspendState.compareAndSet(SuspendState.ENABLED, SuspendState.RESUMING)) {
+            if (!suspendState.compareAndSet(SuspendState.SUSPENDED, SuspendState.RESUMING)) {
                 throw new IllegalStateException("Not Suspended");
             }
 
@@ -1831,7 +1829,7 @@ public class Response {
                 completionHandler.cancelled();
             }
 
-            suspendState.set(SuspendState.DISABLED);
+            suspendState.set(SuspendState.CANCELLED);
             reset();
 
             HttpServerProbeNotifier.notifyRequestCancel(
@@ -1890,19 +1888,17 @@ public class Response {
 
         @Override
         public void setTimeout(final long timeout, final TimeUnit timeunit) {
-//            synchronized (suspendSync) {
-                if (suspendState.get() != SuspendState.ENABLED) {
-                    return;
-                }
-                
-                if (timeout > 0) {
-                    delayMillis = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
-                } else {
-                    delayMillis = DelayedExecutor.UNSET_TIMEOUT;
-                }
+            if (suspendState.get() != SuspendState.SUSPENDED) {
+                return;
+            }
 
-                delayQueue.add(Response.this, delayMillis, TimeUnit.MILLISECONDS);
-//            }
+            if (timeout > 0) {
+                delayMillis = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
+            } else {
+                delayMillis = DelayedExecutor.UNSET_TIMEOUT;
+            }
+
+            delayQueue.add(Response.this, delayMillis, TimeUnit.MILLISECONDS);
         }
 
         @Override
