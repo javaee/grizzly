@@ -114,6 +114,7 @@
     </profiles>
     <modules>
         <module>http-server-multipart</module>
+        <module>http-server-jaxws</module>
         <module>grizzly-httpservice</module>
         <module>bundles</module>
     </modules>
