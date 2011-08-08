@@ -780,6 +780,12 @@ public class Request {
      * will not block when reading content.
      * </p>
      *
+     * <p>
+     * NOTE: For now, in order to use non-blocking functionality, this
+     * method must be invoked before the {@link HttpHandler#service(Request, Response)}
+     * method returns.  We hope to have this addressed in the next release.
+     * </p>
+     *
      * @return the {@link NIOInputStream} for this {@link Request}.
      *
      * @exception IllegalStateException if {@link #getReader(boolean)} or
@@ -798,6 +804,12 @@ public class Request {
     /**
      * <p>
      * Return the {@link NIOInputStream} for this {@link Request}.
+     * </p>
+     *
+     * <p>
+     * NOTE: For now, in order to use non-blocking functionality, this
+     * method must be invoked before the {@link HttpHandler#service(Request, Response)}
+     * method returns.  We hope to have this addressed in the next release.
      * </p>
      *
      * @param blocking if <code>true</code>, the <code>NIOInputStream</code>
