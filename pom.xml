@@ -394,16 +394,6 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-    <pluginRepositories>
-        <pluginRepository>
-            <id>glassfish</id>
-            <url>http://download.java.net/maven/glassfish/</url>
-        </pluginRepository>
-        <pluginRepository>
-            <id>java.net</id>
-            <url>http://download.java.net/maven/2/</url>
-        </pluginRepository>
-    </pluginRepositories>
     <repositories>
         <repository>
             <id>glassfish-repo-archive</id>
@@ -415,7 +405,7 @@
     </repositories>
     <properties>
 	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <hk2.version>1.6.11</hk2.version>
+        <hk2.version>1.6.13</hk2.version>
         <junit-version>4.7</junit-version>
         <maven-plugin.version>1.0.0</maven-plugin.version>
         <servlet-version>2.5</servlet-version>
