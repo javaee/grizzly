@@ -846,7 +846,7 @@ public class Request {
 
 
     /**
-     * @return <code>true</code> if this request requires acknowledgement.
+     * @return <code>true</code> if this request requires acknowledgment.
      */
     public boolean requiresAcknowledgement() {
         return request.requiresAcknowledgement();
