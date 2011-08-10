@@ -120,7 +120,7 @@ public interface AsyncQueueWriter<L>
      * Using maxWriteReentrants value it's possible to limit such a chain.
      *
      * @return the maximum number of write() method reentrants a thread
-     * is allowed to made.
+     * is allowed to make.
      */
     int getMaxWriteReentrants();
 
@@ -132,7 +132,7 @@ public interface AsyncQueueWriter<L>
      * Using maxWriteReentrants value it's possible to limit such a chain.
      *
      * @param maxWriteReentrants  the maximum number of write() method calls
-     *  a thread is allowed to made.
+     *  a thread is allowed to make.
      */
     void setMaxWriteReentrants(int maxWriteReentrants);
     
