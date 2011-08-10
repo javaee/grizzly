@@ -383,7 +383,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
         }
     }
 
-    public void testAsyncWriteQueueReenterants() throws Exception {
+    public void testAsyncWriteQueueReentrants() throws Exception {
         Connection connection = null;
 
         final AtomicInteger serverRcvdBytes = new AtomicInteger();
@@ -418,8 +418,8 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
             final MemoryManager mm = transport.getMemoryManager();
             final Connection con = connection;
 
-            final int maxReenterants = 10;
-            asyncQueueWriter.setMaxWriteReenterants(10);
+            final int maxReentrants = 10;
+            asyncQueueWriter.setMaxWriteReentrants(10);
 
             final AtomicInteger packetCounter = new AtomicInteger();
 
@@ -439,7 +439,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
                                 WriteResult<Buffer, SocketAddress> result) {
 
                             final int packetNum = packetCounter.incrementAndGet();
-                            if (packetNum <= maxReenterants + 1) {
+                            if (packetNum <= maxReentrants + 1) {
                                 threadsHistory.add(Thread.currentThread());
                                 Buffer bufferInner = Buffers.wrap(mm, "" +
                                         ((char) ('A' + packetNum)));

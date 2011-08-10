@@ -100,8 +100,8 @@ public interface AsyncQueueWriter<L>
      * Configures the maximum number of bytes pending to be written
      * for a particular {@link Connection}.
      *
-     * @param maxQueuedWrites maximum number of pending writes that may be
-     *  queued for a particular {@link Connection}
+     * @param maxQueuedWrites maximum number of bytes that may be pending to be
+     *  written to a particular {@link Connection}.
      */
     void setMaxPendingBytesPerConnection(final int maxQueuedWrites);
 
@@ -113,27 +113,27 @@ public interface AsyncQueueWriter<L>
     int getMaxPendingBytesPerConnection();
     
     /**
-     * Returns the maximum number of write() method reenterants a thread
+     * Returns the maximum number of write() method reentrants a thread
      * is allowed to made.
      * This is related to possible write()->onComplete()->write()->...
      * chain, which may grow infinitely and cause StackOverflow.
-     * Using maxWriteReeenterants value it's possible to limit such a chain.
+     * Using maxWriteReentrants value it's possible to limit such a chain.
      *
-     * @return the maximum number of write() method reenterants a thread
+     * @return the maximum number of write() method reentrants a thread
      * is allowed to made.
      */
-    int getMaxWriteReenterants();
+    int getMaxWriteReentrants();
 
     /**
-     * Sets the maximum number of write() method reenterants a thread
+     * Sets the maximum number of write() method reentrants a thread
      * is allowed to made.
      * This is related to possible write()->onComplete()->write()->...
      * chain, which may grow infinitely and cause StackOverflow.
-     * Using maxWriteReeenterants value it's possible to limit such a chain.
+     * Using maxWriteReentrants value it's possible to limit such a chain.
      *
-     * @param maxWriteReenterants  the maximum number of write() method
-     * reenterants a thread is allowed to made.
+     * @param maxWriteReentrants  the maximum number of write() method
+     * http://dosync.posterous.com/lispers-know-the-value-of-everything-and-the a thread is allowed to made.
      */
-    void setMaxWriteReenterants(int maxWriteReenterants);
+    void setMaxWriteReentrants(int maxWriteReentrants);
     
 }
