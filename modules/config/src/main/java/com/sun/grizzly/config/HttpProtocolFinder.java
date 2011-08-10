@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -170,8 +170,6 @@ public class HttpProtocolFinder extends com.sun.grizzly.http.portunif.HttpProtoc
                 final Object attachment = workerThread.updateAttachment(Mode.SSL_ENGINE);
                 key.attach(attachment);
 
-                // set "no available data" for secured output buffer
-                outputBB.limit(outputBB.position());
                 isHandshakeDone = true;
             } catch (EOFException ex) {
                 if (isloglevelfine) {
@@ -186,6 +184,9 @@ public class HttpProtocolFinder extends com.sun.grizzly.http.portunif.HttpProtoc
 
                 inputBB.flip();
                 byteBuffer.put(inputBB);
+            } finally {
+                // set "no available data" for secured output buffer
+                outputBB.limit(outputBB.position());                
             }
 
             if (isloglevelfine) {
