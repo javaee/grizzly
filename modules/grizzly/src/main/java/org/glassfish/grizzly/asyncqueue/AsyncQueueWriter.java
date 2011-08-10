@@ -131,8 +131,8 @@ public interface AsyncQueueWriter<L>
      * chain, which may grow infinitely and cause StackOverflow.
      * Using maxWriteReentrants value it's possible to limit such a chain.
      *
-     * @param maxWriteReentrants  the maximum number of write() method
-     * http://dosync.posterous.com/lispers-know-the-value-of-everything-and-the a thread is allowed to made.
+     * @param maxWriteReentrants  the maximum number of write() method calls
+     *  a thread is allowed to made.
      */
     void setMaxWriteReentrants(int maxWriteReentrants);
     
