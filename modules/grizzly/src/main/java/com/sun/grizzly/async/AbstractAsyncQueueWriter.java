@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -137,30 +137,33 @@ public abstract class AbstractAsyncQueueWriter implements AsyncQueueWriter {
         FutureImpl<AsyncQueueWriteUnit> future =
                 new FutureImpl<AsyncQueueWriteUnit>();
         SelectableChannel channel = key.channel();
-        AsyncQueueEntry channelEntry = 
+        AsyncQueueEntry channelEntry =
                 writeQueue.obtainAsyncQueueEntry(channel);
-        
+
         // Update statistics
         channelEntry.totalElementsCount.incrementAndGet();
 
         AsyncQueueWriteUnit record = new AsyncQueueWriteUnit();
-        
+
         final Queue<AsyncQueueWriteUnit> queue = channelEntry.queue;
         final AtomicReference<AsyncQueueWriteUnit> currentElement = channelEntry.currentElement;
         ReentrantLock lock = channelEntry.queuedActionLock;
-        
+
         // If AsyncQueue is empty - try to write ByteBuffer here
         final int holdState = lock.getHoldCount();
         try {
+
+            boolean isCurrentElement = false;
 
             if (currentElement.get() == null && // Weak comparison for null
                     lock.tryLock()) {
                 // Strong comparison for null, because we're in locked region
                 if (currentElement.compareAndSet(null, record)) {
+                    isCurrentElement = true;
                     OperationResult dstResult = channelEntry.tmpResult;
                     doWrite((WritableByteChannel) channel,
                             dstAddress, buffer, writePreProcessor, dstResult);
-                    
+
                     channelEntry.processedDataSize.addAndGet(
                             dstResult.bytesProcessed);
                 } else {
@@ -168,10 +171,9 @@ public abstract class AbstractAsyncQueueWriter implements AsyncQueueWriter {
                 }
             }
 
-            if (buffer.hasRemaining() || 
-                    (lock.isHeldByCurrentThread() && writePreProcessor != null && 
-                    writePreProcessor.getInternalByteBuffer().hasRemaining())) {
-                
+            if (!isCurrentElement || buffer.hasRemaining() || (writePreProcessor != null
+                    && writePreProcessor.getInternalByteBuffer().hasRemaining())) {
+
                 // clone ByteBuffer if required
                 if (cloner != null) {
                     buffer = cloner.clone(buffer);
@@ -185,7 +187,7 @@ public abstract class AbstractAsyncQueueWriter implements AsyncQueueWriter {
                         dstAddress, cloner, future);
 
                 boolean isRegisterForWriting = false;
-                
+
                 // add new element to the queue, if it's not current
                 if (currentElement.get() != record) {
                     queue.offer(record); // add to queue
@@ -196,16 +198,16 @@ public abstract class AbstractAsyncQueueWriter implements AsyncQueueWriter {
                     isRegisterForWriting = true;
                     lock.unlock();
                 }
-                
+
                 if (isRegisterForWriting) {
                     registerForWriting(key);
                 }
             } else { // If there are no bytes available for writing
-                
+
                 record.set(buffer, callbackHandler, writePreProcessor,
                         dstAddress, cloner, future);
                 future.setResult(record);
-                
+
                 // Update statistics
                 channelEntry.processedElementsCount.incrementAndGet();
 
@@ -213,31 +215,29 @@ public abstract class AbstractAsyncQueueWriter implements AsyncQueueWriter {
                 if (callbackHandler != null) {
                     callbackHandler.onWriteCompleted(key, record);
                 }
-                
+
                 // If buffer was written directly - set next queue element as current
-                if (lock.isHeldByCurrentThread()) {
-                    AsyncQueueWriteUnit nextRecord = queue.poll();
-                    if (nextRecord != null) { // if there is something in queue
-                        currentElement.set(nextRecord); 
-                        lock.unlock();
+                AsyncQueueWriteUnit nextRecord = queue.poll();
+                if (nextRecord != null) { // if there is something in queue
+                    currentElement.set(nextRecord);
+                    lock.unlock();
+                    registerForWriting(key);
+                } else { // if nothing in queue
+                    currentElement.set(null);
+                    lock.unlock();  // unlock
+                    if (queue.peek() != null) {  // check one more time
                         registerForWriting(key);
-                    } else { // if nothing in queue
-                        currentElement.set(null);
-                        lock.unlock();  // unlock
-                        if (queue.peek() != null) {  // check one more time
-                            registerForWriting(key);
-                        }
                     }
                 }
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             if (record.callbackHandler != null) {
                 record.callbackHandler.onException(e, key,
                         buffer, queue);
             }
-            
+
             onClose(channel);
-            
+
             if (e instanceof IOException) {
                 throw (IOException) e;
             }

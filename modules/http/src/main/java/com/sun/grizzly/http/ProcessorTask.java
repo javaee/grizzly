@@ -1375,7 +1375,9 @@ public class ProcessorTask extends TaskBase implements Processor,
             final int count = k.increaseKeepAliveCount();
 
             // If count == 1 - then it means we just recognized keep-alive connection
-            if (count == 1 && selectorThread.getMaxKeepAliveRequests() < count && ks.isEnabled()) {
+            final int stMaxKeepAliveRequests = selectorThread.getMaxKeepAliveRequests();
+            if (count == 1 && stMaxKeepAliveRequests != -1 &&
+                    stMaxKeepAliveRequests < count && ks.isEnabled()) {
                 ks.incrementCountRefusals();
                 setDropConnection(true);
             }

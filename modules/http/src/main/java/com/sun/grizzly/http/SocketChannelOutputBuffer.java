@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -517,7 +517,7 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
     /**
      * {@link ByteBufferCloner} implementation, which is called by Grizzly
      * framework at the time, when asynchronous write queue can not write
-     * the buffer direcly on socket and instead will put it in queue.
+     * the buffer directly on socket and instead will put it in queue.
      * This implementation tries to get temporary ByteBuffer from the pool,
      * if no ByteBuffer is available - then new one will be created.
      */

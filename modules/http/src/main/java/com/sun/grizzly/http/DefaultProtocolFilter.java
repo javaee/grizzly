@@ -42,9 +42,11 @@ package com.sun.grizzly.http;
 
 import com.sun.grizzly.Context;
 import com.sun.grizzly.Controller;
+import com.sun.grizzly.async.AsyncQueueWriteUnit;
 import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.SelectorHandler;
+import com.sun.grizzly.async.AsyncWriteCallbackHandler;
 import com.sun.grizzly.filter.ReadFilter;
 import com.sun.grizzly.http.algorithms.NoParsingAlgorithm;
 import com.sun.grizzly.rcm.ResourceAllocationFilter;
@@ -57,6 +59,7 @@ import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.Queue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -261,12 +264,18 @@ public class DefaultProtocolFilter implements ProtocolFilter {
             processorTask.recycle();
         }
         
-        if (keepAlive){
+        if (keepAlive) {
             ctx.setKeyRegistrationState(
                     Context.KeyRegistrationState.REGISTER);
         } else {
-            ctx.setKeyRegistrationState(
-                    Context.KeyRegistrationState.CANCEL);
+            if (selectorThread.isAsyncHttpWriteEnabled()) {
+                ctx.setKeyRegistrationState(
+                        Context.KeyRegistrationState.NONE);
+                flushAsyncWriteQueueAndClose(ctx.getSelectorHandler(), key);
+            } else {
+                ctx.setKeyRegistrationState(
+                        Context.KeyRegistrationState.CANCEL);
+            }
         }
         
         byteBuffer.clear();
@@ -322,6 +331,32 @@ public class DefaultProtocolFilter implements ProtocolFilter {
         return false;
     }
 
+    private static final ByteBuffer NULL_BUFFER = ByteBuffer.allocate(0);
+
+    protected static void flushAsyncWriteQueueAndClose(
+            final SelectorHandler selectorHandler, final SelectionKey key) {
+
+        try {
+            selectorHandler.getAsyncQueueWriter().write(key, NULL_BUFFER, new AsyncWriteCallbackHandler() {
+
+                public void onWriteCompleted(SelectionKey key, AsyncQueueWriteUnit writtenRecord) {
+                    close();
+                }
+
+                public void onException(Exception exception, SelectionKey key,
+                        ByteBuffer buffer, Queue<AsyncQueueWriteUnit> remainingQueue) {
+                    close();
+                }
+
+                private void close() {
+                    selectorHandler.addPendingKeyCancel(key);
+                }
+            });
+        } catch (Exception e) {
+            selectorHandler.addPendingKeyCancel(key);
+        }
+    }
+
     private static final class PostProcessor implements ProcessorTask.PostProcessor {
 
         public void postProcess(ProcessorTask processorTask) {
@@ -334,7 +369,11 @@ public class DefaultProtocolFilter implements ProtocolFilter {
                 selectorHandler.register(selectionKey,
                         SelectionKey.OP_READ);
             } else {
-                selectorHandler.addPendingKeyCancel(selectionKey);
+                if (selectorThread.isAsyncHttpWriteEnabled()) {
+                    flushAsyncWriteQueueAndClose(selectorHandler, selectionKey);
+                } else {
+                    selectorHandler.addPendingKeyCancel(selectionKey);
+                }
             }
 
             ((InputReader) processorTask.getInputStream()).recycle();

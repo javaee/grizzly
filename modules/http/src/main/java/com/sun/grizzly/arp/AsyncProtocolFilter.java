@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -133,13 +133,20 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
      */
     @Override
     public boolean execute(Context ctx) throws IOException{
+        final SelectorThread selectorThread = SelectorThread.getSelector(address, port);
+        final SelectionKey key = ctx.getSelectionKey();
+        
         if (Boolean.TRUE.equals(ctx.getAttribute(ReadFilter.DELAYED_CLOSE_NOTIFICATION))) {
-            ctx.setKeyRegistrationState(Context.KeyRegistrationState.CANCEL);
+            if (selectorThread.isAsyncHttpWriteEnabled()) {
+                ctx.setKeyRegistrationState(Context.KeyRegistrationState.NONE);
+                flushAsyncWriteQueueAndClose(ctx.getSelectorHandler(), key);
+            } else {
+                ctx.setKeyRegistrationState(Context.KeyRegistrationState.CANCEL);
+            }
             return false;
         }
 
         HttpWorkerThread workerThread = ((HttpWorkerThread)Thread.currentThread());         
-        SelectionKey key = ctx.getSelectionKey();      
         ByteBuffer byteBuffer = workerThread.getByteBuffer();        
 
         // Intercept the request and delegate the processing to the parent if
@@ -173,8 +180,7 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
         }
         
                 
-        SelectorThread selectorThread = SelectorThread.getSelector(address, port);
-        bbSize = SelectorThread.getSelector(address, port).getMaxHttpHeaderSize();
+        bbSize = selectorThread.getMaxHttpHeaderSize();
         
         InputReader inputStream = byteBufferStreams.poll();
         if (inputStream == null) {
@@ -197,13 +203,13 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
         byteBuffer = streamAlgorithm.preParse(byteBuffer);
         ctx.setKeyRegistrationState(Context.KeyRegistrationState.NONE);
 
-        if (streamAlgorithm.parse(byteBuffer)){
+        if (streamAlgorithm.parse(byteBuffer)) {
             ProcessorTask processor = selectorThread.getProcessorTask();
-            configureProcessorTask(processor, ctx, streamAlgorithm, inputStream);            
-            try{
+            configureProcessorTask(processor, ctx, streamAlgorithm, inputStream);
+            try {
                 selectorThread.getAsyncHandler().handle(processor);
-            } catch (Throwable ex){
-                logger.log(Level.INFO,"Processor exception",ex);
+            } catch (Throwable ex) {
+                logger.log(Level.INFO, "Processor exception", ex);
                 ctx.setKeyRegistrationState(Context.KeyRegistrationState.CANCEL);
                 return false;
             }
@@ -239,15 +245,19 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
             boolean cancelkey = processor.getAptCancelKey() || processor.isError()
                     || !processor.isKeepAlive();
             try {
-                if (!cancelkey){
-                    if (processor.getReRegisterSelectionKey()){
+                if (!cancelkey) {
+                    if (processor.getReRegisterSelectionKey()) {
                         setSelectionKeyTimeout(processorSelectionKey, SelectionKeyAttachment.UNLIMITED_TIMEOUT);
                         selectorHandler.register(processorSelectionKey, SelectionKey.OP_READ);
                     }
-                }else{
-                    selectorHandler.getSelectionKeyHandler().cancel(processorSelectionKey);
+                } else {
+                    if (selectorThread.isAsyncHttpWriteEnabled()) {
+                        flushAsyncWriteQueueAndClose(selectorHandler, processorSelectionKey);
+                    } else {
+                        selectorHandler.getSelectionKeyHandler().cancel(processorSelectionKey);
+                    }
                 }
-            } finally{
+            } finally {
                 processor.recycle();
                 selectorThread.returnTask(processor);
             }
