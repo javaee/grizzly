@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -134,6 +134,16 @@ public class OutputWriter {
             len = -1;
             throw ex;
         } finally {
+            if (len == -1) {
+                if (key == null) {
+                    // create dummy key to not break notifyRemotelyClosed contract
+                    writeSelector = SelectorFactory.getSelector();
+                    key = channel.register(writeSelector, 0);
+                }
+
+                notifyRemotelyClosed(key);
+            }
+            
             if (key != null) {
                 key.cancel();
                 key = null;
@@ -142,11 +152,7 @@ public class OutputWriter {
             if ( writeSelector != null ) {
                 // Cancel the key.
                 SelectorFactory.selectNowAndReturnSelector(writeSelector);
-            }
-            
-            if (len == -1){
-                notifyRemotelyClosed(key);
-            }
+            }            
         }
         return nWrite;
     }  
@@ -226,6 +232,16 @@ public class OutputWriter {
             len = -1;
             throw ex;
         } finally {
+            if (len == -1) {
+                if (key == null) {
+                    // create dummy key to not break notifyRemotelyClosed contract
+                    writeSelector = SelectorFactory.getSelector();
+                    key = socketChannel.register(writeSelector, 0);
+                }
+
+                notifyRemotelyClosed(key);
+            }
+            
             if (key != null) {
                 key.cancel();
                 key = null;
@@ -235,10 +251,6 @@ public class OutputWriter {
                 // Cancel the key.
                 SelectorFactory.selectNowAndReturnSelector(writeSelector);
             }
-            
-            if (len == -1){
-                notifyRemotelyClosed(key);
-            }          
         }
         return nWrite;
     }  
