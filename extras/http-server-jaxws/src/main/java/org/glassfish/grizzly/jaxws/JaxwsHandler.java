@@ -101,7 +101,7 @@ public class JaxwsHandler extends HttpHandler {
      * Create JaxwsHandler based on WebService implementation class, which will
      * operate in synchronous mode.
      * 
-     * @param implementor WebService implementation class.
+     * @param implementor WebService implementation.
      */
     public JaxwsHandler(final Object implementor) {
         this(implementor, false);
@@ -161,6 +161,9 @@ public class JaxwsHandler extends HttpHandler {
         this.properties = null;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void start() {
         if (implementor != null) {
