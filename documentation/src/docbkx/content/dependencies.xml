@@ -112,7 +112,11 @@
       <listitem>
         <para>AJP</para>
       </listitem>
-    </itemizedlist></para>
+  
+    <listitem>
+      <para>JAX-WS</para>
+    </listitem>
+  </itemizedlist></para>
 
   <section xml:id="core-dep">
     <title>Core framework</title>
@@ -302,4 +306,26 @@
         </listitem>
       </itemizedlist></para>
   </section>
+
+  <section xml:id="jaxws-dep">
+    <title>JAX-WS</title>
+    
+    <para>Maven developers require a dependency on the Grizzly jax-ws module. The
+      following dependency needs to be added to the pom:<programlisting
+    language="xml">&lt;dependency&gt;
+     &lt;groupId&gt;org.glassfish.grizzly&lt;/groupId&gt;
+     &lt;artifactId&gt;grizzly-http-server-jaxws&lt;/artifactId&gt;
+     &lt;version&gt;@project.version@&lt;/version&gt;
+&lt;/dependency&gt;</programlisting></para>
+    
+    <para>Non-maven developers, additionally to jars, required by <link
+      linkend="http-server-dep">HTTP Server framework</link>,
+      require:<itemizedlist>
+        <listitem>
+          <para><link
+            xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-http-server-jaxws/@project.version@/grizzly-http-server-jaxws-@project.version@.jar">grizzly-http-server-jaxws.jar</link></para>
+        </listitem>
+      </itemizedlist></para>
+  </section>
+  
 </chapter>
