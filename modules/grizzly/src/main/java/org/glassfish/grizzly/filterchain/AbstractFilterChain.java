@@ -40,10 +40,10 @@
 
 package org.glassfish.grizzly.filterchain;
 
+import java.util.EnumSet;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.utils.IOEventMask;
 
 /**
  * Abstract {@link FilterChain} implementation,
@@ -56,7 +56,7 @@ import org.glassfish.grizzly.utils.IOEventMask;
  */
 public abstract class AbstractFilterChain implements FilterChain {
     // By default interested in all client connection related events
-    protected final IOEventMask interestedIoEventsMask = IOEventMask.ALL_EVENTS_MASK;
+    protected final EnumSet<IOEvent> interestedIoEventsMask = EnumSet.allOf(IOEvent.class);
 
     /**
      * {@inheritDoc}
@@ -78,16 +78,20 @@ public abstract class AbstractFilterChain implements FilterChain {
      * {@inheritDoc}
      */
     @Override
-    public boolean isInterested(IOEvent ioEvent) {
-        return interestedIoEventsMask.isInterested(ioEvent);
+    public boolean isInterested(final IOEvent ioEvent) {
+        return interestedIoEventsMask.contains(ioEvent);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void setInterested(IOEvent ioEvent, boolean isInterested) {
-        interestedIoEventsMask.setInterested(ioEvent, isInterested);
+    public void setInterested(final IOEvent ioEvent, final boolean isInterested) {
+        if (isInterested) {
+            interestedIoEventsMask.add(ioEvent);
+        } else {
+            interestedIoEventsMask.remove(ioEvent);
+        }
     }
 
     @Override

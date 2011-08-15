@@ -79,9 +79,6 @@ public class StandaloneProcessor implements Processor {
             final AsyncQueueReader reader =
                     ((AsyncQueueEnabledTransport) connection.getTransport()).
                     getAsyncQueueIO().getReader();
-//            if (reader.isReady(connection)) {
-//                reader.processAsync(context);
-//            }
 
             return reader.processAsync(context) ?
                 ProcessorResult.createComplete() :
@@ -92,10 +89,6 @@ public class StandaloneProcessor implements Processor {
                     ((AsyncQueueEnabledTransport) connection.getTransport()).
                     getAsyncQueueIO().getWriter();
             
-//            if (writer.isReady(connection)) {
-//                writer.processAsync(context);
-//            }
-
             return writer.processAsync(context) ?
                 ProcessorResult.createComplete() :
                 ProcessorResult.createLeave();
