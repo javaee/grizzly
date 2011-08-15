@@ -70,7 +70,7 @@
           <para>Web service instance, so default configuration will be used;</para>
         </listitem>
         <listitem>
-          <para>WSEndpont, which may contain customized web services configuration, like binding,
+          <para><link xlink:href="http://java.net/projects/jax-ws/sources/sources/content/tags/JAXWS_2_2_5_07282011/jaxws-ri/rt/src/com/sun/xml/ws/api/server/WSEndpoint.java">WSEndpoint</link>, which may contain customized web services configuration, like binding,
             WSDL location etc...</para>
         </listitem>
       </itemizedlist></para>
@@ -101,7 +101,7 @@
           <row>
             <entry>endpoint</entry>
 
-            <entry>The web services, represented by WSEndpoint. Unlike "implementor" approach, when
+            <entry>The web services, represented by <link xlink:href="http://java.net/projects/jax-ws/sources/sources/content/tags/JAXWS_2_2_5_07282011/jaxws-ri/rt/src/com/sun/xml/ws/api/server/WSEndpoint.java">WSEndpoint</link>. Unlike "implementor" approach, when
               using endpoint, we can customize web service more finely. It's also possible to use
               external config files in this case.</entry>
           </row>
