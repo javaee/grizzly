@@ -394,15 +394,6 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-    <repositories>
-        <repository>
-            <id>glassfish-repo-archive</id>
-            <name>Nexus repository collection for Glassfish</name>
-            <url>
-                http://maven.glassfish.org/content/groups/glassfish
-            </url>
-        </repository>
-    </repositories>
     <properties>
 	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <hk2.version>1.6.13</hk2.version>
