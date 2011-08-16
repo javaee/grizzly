@@ -50,7 +50,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.glassfish.grizzly</groupId>
-    <artifactId>grizzly-all</artifactId>
+    <artifactId>grizzly-http-all</artifactId>
     <packaging>jar</packaging>
     <version>2.1.2-SNAPSHOT</version>
     <name>grizzly-all</name>
