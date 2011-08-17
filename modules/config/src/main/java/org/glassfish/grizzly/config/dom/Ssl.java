@@ -268,11 +268,15 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
      * @return <code>true</code> if ssl session renegotiation will occur if
      *  client-auth is want.
      *
-     * @since 2.1.1
+     * @since 2.1.2
      */
     @Attribute(defaultValue = "" + RENEGOTIATE_ON_CLIENT_AUTH_WANT, dataType = Boolean.class)
     String getRenegotiateOnClientAuthWant();
 
+
+    /**
+     * @since 2.1.2
+     */
     void setRenegotiateOnClientAuthWant(boolean renegotiateClientAuthWant);
 
 }
