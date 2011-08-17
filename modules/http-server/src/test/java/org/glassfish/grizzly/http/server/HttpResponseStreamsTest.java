@@ -389,6 +389,315 @@ public class HttpResponseStreamsTest extends TestCase {
     }
 
 
+    public void testCharacter014() throws Exception {
+
+        final String[] content = new String[] {
+              "abcdefg",
+              "hijk",
+              "lmnopqrs",
+              "tuvwxyz"
+        };
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0, len = content.length; i < len; i++) {
+            sb.append(content[i]);
+        }
+
+        WriteStrategy s = new WriteStrategy() {
+            @Override public void doWrite(Response response)
+                  throws IOException {
+                Writer writer = response.getWriter(true);
+                for (int i = 0, len = content.length; i < len; i++) {
+                    writer.write(content[i]);
+                }
+            }
+        };
+
+        doTest(s, sb.toString());
+
+    }
+
+
+    public void testCharacter015() throws Exception {
+
+        final char[][] content = new char[][] {
+              "abcdefg".toCharArray(),
+              "hijk".toCharArray(),
+              "lmnopqrs".toCharArray(),
+              "tuvwxyz".toCharArray()
+        };
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0, len = content.length; i < len; i++) {
+            sb.append(content[i]);
+        }
+
+        WriteStrategy s = new WriteStrategy() {
+            @Override public void doWrite(Response response)
+                  throws IOException {
+                Writer writer = response.getWriter(true);
+                for (int i = 0, len = content.length; i < len; i++) {
+                    writer.write(content[i]);
+                }
+            }
+        };
+
+        doTest(s, sb.toString());
+
+    }
+
+
+    public void testCharacter016() throws Exception {
+
+        final StringBuilder sb = buildBuffer(8192); // boundary
+
+        WriteStrategy s = new WriteStrategy() {
+            @Override public void doWrite(Response response)
+                  throws IOException {
+                Writer writer = response.getWriter(true);
+                writer.write(sb.toString());
+            }
+        };
+
+        doTest(s, sb.toString());
+
+        s = new WriteStrategy() {
+            @Override public void doWrite(Response response)
+                  throws IOException {
+                Writer writer = response.getWriter();
+                writer.write(sb.toString().toCharArray());
+            }
+        };
+
+        doTest(s, sb.toString());
+
+    }
+
+
+    public void testCharacter017() throws Exception {
+
+        final StringBuilder sb = buildBuffer(8194); // boundary + 2
+
+        WriteStrategy s = new WriteStrategy() {
+            @Override public void doWrite(Response response)
+                  throws IOException {
+                Writer writer = response.getWriter(true);
+                writer.write(sb.toString());
+            }
+        };
+
+        doTest(s, sb.toString());
+
+        s = new WriteStrategy() {
+            @Override public void doWrite(Response response)
+                  throws IOException {
+                Writer writer = response.getWriter();
+                writer.write(sb.toString().toCharArray());
+            }
+        };
+
+        doTest(s, sb.toString());
+
+    }
+
+
+    public void testCharacter018() throws Exception {
+
+        final StringBuilder sb = buildBuffer(8192); // boundary
+
+        WriteStrategy s = new WriteStrategy() {
+            @Override public void doWrite(Response response)
+                  throws IOException {
+                Writer writer = response.getWriter(true);
+                for (int i = 0, len = sb.length(); i < len; i++) {
+                    writer.write(sb.charAt(i));
+                }
+            }
+        };
+
+        doTest(s, sb.toString());
+
+    }
+
+
+    public void testCharacter019() throws Exception {
+
+        final StringBuilder sb = buildBuffer(8194); // boundary + 2
+
+        WriteStrategy s = new WriteStrategy() {
+            @Override public void doWrite(Response response)
+                  throws IOException {
+                Writer writer = response.getWriter(true);
+                for (int i = 0, len = sb.length(); i < len; i++) {
+                    writer.write(sb.charAt(i));
+                }
+            }
+        };
+
+        doTest(s, sb.toString());
+
+    }
+
+
+    public void testCharacter020() throws Exception {
+
+        int len = 1024 * 31; // boundary
+        final StringBuilder sb = buildBuffer(len);
+
+        WriteStrategy s = new WriteStrategy() {
+            @Override public void doWrite(Response response)
+                  throws IOException {
+                Writer writer = response.getWriter(true);
+                writer.write(sb.toString());
+            }
+        };
+
+        doTest(s, sb.toString());
+
+    }
+
+
+    public void testCharacter021() throws Exception {
+
+        int len = 1024 * 31; // boundary
+        final StringBuilder sb = buildBuffer(len);
+
+        WriteStrategy s = new WriteStrategy() {
+            @Override public void doWrite(Response response)
+                  throws IOException {
+                Writer writer = response.getWriter(true);
+                writer.write(sb.toString().toCharArray());
+            }
+        };
+
+        doTest(s, sb.toString());
+
+    }
+
+
+    public void testCharacter022() throws Exception {
+
+        int len = 1024 * 31 + 8; // boundary + 8
+        final StringBuilder sb = buildBuffer(len);
+
+        WriteStrategy s = new WriteStrategy() {
+            @Override public void doWrite(Response response)
+                  throws IOException {
+                Writer writer = response.getWriter(true);
+                writer.write(sb.toString().toCharArray());
+            }
+        };
+
+        doTest(s, sb.toString());
+
+    }
+
+
+    public void testCharacter023() throws Exception {
+
+        final int len = 1024 * 33;
+        final StringBuilder sb = buildBuffer(len);
+
+        WriteStrategy s = new WriteStrategy() {
+            @Override public void doWrite(Response response)
+                  throws IOException {
+                Writer writer = response.getWriter(true);
+                // write in 3k chunks
+                int off = 0;
+                int writeLen = 1024 * 3;
+                int count = len / writeLen;
+                String s = sb.toString();
+                for (int i = 0; i < count; i++) {
+                    writer.write(s, off, writeLen);
+                    off += writeLen;
+                }
+            }
+        };
+
+        doTest(s, sb.toString());
+
+    }
+
+
+    public void testCharacter024() throws Exception {
+
+        final int len = 1024 * 33;
+        final StringBuilder sb = buildBuffer(len);
+
+        WriteStrategy s = new WriteStrategy() {
+            @Override public void doWrite(Response response)
+                  throws IOException {
+                Writer writer = response.getWriter(true);
+                // write in 3k chunks
+                int off = 0;
+                int writeLen = 1024 * 3;
+                int count = len / writeLen;
+                String s = sb.toString();
+                for (int i = 0; i < count; i++) {
+                    char[] buf = new char[writeLen];
+                    s.getChars(off, off + writeLen, buf, 0);
+                    writer.write(buf, 0, writeLen);
+                    off += writeLen;
+                }
+            }
+        };
+
+        doTest(s, sb.toString());
+    }
+
+
+    public void testCharacter025() throws Exception {
+
+        final int len = 1024 * 9 * 10;
+        final StringBuilder sb = buildBuffer(len);
+
+        WriteStrategy s = new WriteStrategy() {
+            @Override public void doWrite(Response response)
+                  throws IOException {
+                Writer writer = response.getWriter(true);
+                // write in 9k chunks
+                int off = 0;
+                int writeLen = 1024 * 9;
+                int count = len / writeLen;
+                String s = sb.toString();
+                for (int i = 0; i < count; i++) {
+                    writer.write(s, off, writeLen);
+                    off += writeLen;
+                }
+            }
+        };
+
+        doTest(s, sb.toString());
+
+    }
+
+
+    public void testCharacter026() throws Exception {
+
+        final int len = 1024 * 9 * 10;
+        final StringBuilder sb = buildBuffer(len);
+
+        WriteStrategy s = new WriteStrategy() {
+            @Override public void doWrite(Response response)
+                  throws IOException {
+                Writer writer = response.getWriter(true);
+                // write in 9k chunks
+                int off = 0;
+                int writeLen = 1024 * 9;
+                int count = len / writeLen;
+                String s = sb.toString();
+                for (int i = 0; i < count; i++) {
+                    char[] buf = new char[writeLen];
+                    s.getChars(off, off + writeLen, buf, 0);
+                    writer.write(buf, 0, writeLen);
+                    off += writeLen;
+                }
+            }
+        };
+
+        doTest(s, sb.toString());
+    }
+
     // ------------------------------------------------------------ Binary Tests
 
 
@@ -530,6 +839,160 @@ public class HttpResponseStreamsTest extends TestCase {
             @Override public void doWrite(Response response)
                   throws IOException {
                 OutputStream out = response.getOutputStream();
+                // write in 9k chunks
+                int off = 0;
+                int writeLen = 1024 * 9;
+                int count = len / writeLen;
+                byte[] s = sb.toString().getBytes();
+                for (int i = 0; i < count; i++) {
+                    out.write(s, off, writeLen);
+                    off += writeLen;
+                }
+            }
+        };
+
+        doTest(s, sb.toString());
+
+    }
+
+    public void testBinary008() throws Exception {
+
+        final byte[][] content = new byte[][] {
+              "abcdefg".getBytes("UTF-8"),
+              "hijk".getBytes("UTF-8"),
+              "lmnopqrs".getBytes("UTF-8"),
+              "tuvwxyz".getBytes("UTF-8")
+        };
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0, len = content.length; i < len; i++) {
+            sb.append(new String(content[i], "UTF-8"));
+        }
+
+        WriteStrategy s = new WriteStrategy() {
+            @Override public void doWrite(Response response)
+                  throws IOException {
+                OutputStream out = response.getOutputStream(true);
+                for (int i = 0, len = content.length; i < len; i++) {
+                    out.write(content[i]);
+                }
+            }
+        };
+
+        doTest(s, sb.toString());
+
+    }
+
+
+    public void testBinary009() throws Exception {
+
+        final StringBuilder sb = buildBuffer(8192); // boundary
+
+        WriteStrategy s = new WriteStrategy() {
+            @Override public void doWrite(Response response)
+                  throws IOException {
+                OutputStream out = response.getOutputStream(true);
+                for (int i = 0, len = sb.length(); i < len; i++) {
+                    out.write(sb.charAt(i));
+                }
+            }
+        };
+
+        doTest(s, sb.toString());
+
+    }
+
+
+    public void testBinary010() throws Exception {
+
+        final StringBuilder sb = buildBuffer(8192); // boundary + 2
+
+        WriteStrategy s = new WriteStrategy() {
+            @Override public void doWrite(Response response)
+                  throws IOException {
+                OutputStream out = response.getOutputStream(true);
+                for (int i = 0, len = sb.length(); i < len; i++) {
+                    out.write(sb.charAt(i));
+                }
+            }
+        };
+
+        doTest(s, sb.toString());
+
+    }
+
+
+    public void testBinary011() throws Exception {
+
+        int len = 1024 * 31; // boundary
+        final StringBuilder sb = buildBuffer(len);
+
+        WriteStrategy s = new WriteStrategy() {
+            @Override public void doWrite(Response response)
+                  throws IOException {
+                OutputStream out = response.getOutputStream(true);
+                out.write(sb.toString().getBytes());
+            }
+        };
+
+        doTest(s, sb.toString());
+
+    }
+
+
+    public void testBinary012() throws Exception {
+
+        int len = 1024 * 31 + 8; // boundary + 8
+        final StringBuilder sb = buildBuffer(len);
+
+        WriteStrategy s = new WriteStrategy() {
+            @Override public void doWrite(Response response)
+                  throws IOException {
+                OutputStream out = response.getOutputStream(true);
+                out.write(sb.toString().getBytes());
+            }
+        };
+
+        doTest(s, sb.toString());
+
+    }
+
+
+    public void testBinary013() throws Exception {
+
+        final int len = 1024 * 33;
+        final StringBuilder sb = buildBuffer(len);
+
+        WriteStrategy s = new WriteStrategy() {
+            @Override public void doWrite(Response response)
+                  throws IOException {
+                OutputStream out = response.getOutputStream(true);
+                // write in 3k chunks
+                int off = 0;
+                int writeLen = 1024 * 3;
+                int count = len / writeLen;
+                byte[] s = sb.toString().getBytes();
+                for (int i = 0; i < count; i++) {
+                    out.write(s, off, writeLen);
+                    off += writeLen;
+                }
+            }
+        };
+
+        doTest(s, sb.toString());
+
+    }
+
+
+    public void testBinary014() throws Exception {
+
+        final int len = 1024 * 9 * 10;
+        final StringBuilder sb = buildBuffer(len);
+
+        WriteStrategy s = new WriteStrategy() {
+            @Override public void doWrite(Response response)
+                  throws IOException {
+                OutputStream out = response.getOutputStream(true);
                 // write in 9k chunks
                 int off = 0;
                 int writeLen = 1024 * 9;
