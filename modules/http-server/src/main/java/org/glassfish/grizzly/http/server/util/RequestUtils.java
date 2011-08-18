@@ -102,8 +102,8 @@ public class RequestUtils {
                 }
             }
         } else {
-            if (LOGGER.isLoggable(Level.WARNING)) {
-                LOGGER.log(Level.WARNING,
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE,
                         "Unable to populate SSL attributes on plain HTTP request");
             }
         }
