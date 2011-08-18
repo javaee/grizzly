@@ -351,7 +351,19 @@ public abstract class HttpCodecFilter extends BaseFilter
     public boolean removeContentEncoding(final ContentEncoding contentEncoding) {
         return contentEncodings.remove(contentEncoding);
     }
-    
+
+
+    /**
+     * Return <code>true</code> if chunked transfer-encoding may be used.
+     *
+     * @return <code>true</code> if chunked transfer-encoding may be used.
+     *
+     * @since 2.1.2
+     */
+    protected boolean isChunkingEnabled() {
+        return chunkingEnabled;
+    }
+
     /**
      * The method is called by the specific <tt>HttpCodecFilter</tt> implementation,
      * once we have received a {@link Buffer}, which has to be transformed

@@ -173,6 +173,7 @@ public class OutputBuffer {
      *
      * @since 2.1.2
      */
+    @SuppressWarnings({"UnusedDeclaration"})
     public boolean isAsyncEnabled() {
         return asyncEnabled;
     }
@@ -199,10 +200,12 @@ public class OutputBuffer {
         return bufferSize;
     }
 
+    @SuppressWarnings({"UnusedDeclaration"})
     public void registerLifeCycleListener(final LifeCycleListener listener) {
         lifeCycleListeners.add(listener);
     }
     
+    @SuppressWarnings({"UnusedDeclaration"})
     public boolean removeLifeCycleListener(final LifeCycleListener listener) {
         return lifeCycleListeners.remove(listener);
     }
@@ -236,6 +239,7 @@ public class OutputBuffer {
      * @return <code>true</code> if this <tt>OutputBuffer</tt> is closed, otherwise
      *  returns <code>false</code>.
      */
+    @SuppressWarnings({"UnusedDeclaration"})
     public boolean isClosed() {
         return closed;
     }
@@ -245,6 +249,7 @@ public class OutputBuffer {
      * 
      * @return the number of bytes buffered on OutputBuffer and ready to be sent.
      */
+    @SuppressWarnings({"UnusedDeclaration"})
     public int getBufferedDataSize() {
         int size = 0;
         if (compositeBuffer != null) {
@@ -403,7 +408,8 @@ public class OutputBuffer {
         if (currentBuffer.hasRemaining()) {
             currentBuffer.put((byte) b);
         } else {
-            flush();
+            //flush();
+            finishCurrentBuffer();
             checkCurrentBuffer();
             currentBuffer.put((byte) b);
         }
@@ -502,7 +508,7 @@ public class OutputBuffer {
      * @param byteBuffer the {@link ByteBuffer} to write
      * @throws IOException if an error occurs during the write
      */
-    @SuppressWarnings({"unchecked"})
+    @SuppressWarnings({"unchecked", "UnusedDeclaration"})
     public void writeByteBuffer(final ByteBuffer byteBuffer) throws IOException {
         final Buffer w = Buffers.wrap(memoryManager, byteBuffer);
         w.allowBufferDispose(false);
@@ -627,6 +633,15 @@ public class OutputBuffer {
     
     private boolean writeContentChunk(final boolean areHeadersCommitted,
                                       final boolean isLast) throws IOException {
+        if (!committed
+                && !response.isChunkingAllowed()
+                && response.getContentLength() == -1) {
+            if (!isLast) {
+                return false;
+            } else {
+                response.setContentLength(getBufferedDataSize());
+            }
+        }
         final Buffer bufferToFlush;
         final boolean isFlushComposite = compositeBuffer != null && compositeBuffer.hasRemaining();
 

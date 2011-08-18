@@ -518,6 +518,7 @@ public class InputBuffer {
 
         if (readAheadLimit > 0) {
             markPos = inputContentBuffer.position();
+            readCount = 0;
             this.readAheadLimit = readAheadLimit;
         }
 
@@ -889,14 +890,20 @@ public class InputBuffer {
             final int charPos = dst.position();
             final ByteBuffer bb = inputContentBuffer.toByteBuffer();
             final int bbPos = bb.position();
-            decoderLocal.decode(bb, dst, false);
+            CoderResult result = decoderLocal.decode(bb, dst, false);
+            if (result == CoderResult.UNDERFLOW && block) {
+                fill(1);
+                decoderLocal.decode(bb, dst, false);
+            }
 
             int readChars = dst.position() - charPos;
             final int readBytes = bb.position() - bbPos;
             bb.position(bbPos);
 
             inputContentBuffer.position(inputContentBuffer.position() + readBytes);
-            inputContentBuffer.shrink();
+            if (readAheadLimit == -1) {
+                inputContentBuffer.shrink();
+            }
             
             if (inputContentBuffer.hasRemaining() && readChars < requestedLen) {
                 readChars += fillChar(0, dst, false, false);

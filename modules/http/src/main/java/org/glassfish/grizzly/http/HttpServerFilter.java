@@ -633,7 +633,7 @@ public class HttpServerFilter extends HttpCodecFilter {
     }
 
     
-    private static void prepareRequest(final HttpRequestPacketImpl request,
+    private void prepareRequest(final HttpRequestPacketImpl request,
             final boolean hasReadyContent) {
 
         final ProcessingState state = request.getProcessingState();
@@ -742,6 +742,8 @@ public class HttpServerFilter extends HttpCodecFilter {
             // request
             request.requiresAcknowledgement(isHttp11 && !hasReadyContent);
         }
+
+        request.getResponse().setChunkingAllowed(isChunkingEnabled());
     }
 
     protected HttpContent customizeErrorResponse(
