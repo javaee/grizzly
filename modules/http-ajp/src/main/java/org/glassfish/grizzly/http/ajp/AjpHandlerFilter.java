@@ -58,6 +58,7 @@ import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.HttpServerFilter;
+import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.utils.DataStructures;
@@ -444,11 +445,11 @@ public class AjpHandlerFilter extends BaseFilter {
         if (message.remaining() > 2) {
             // Secret is available
             int offset = message.position();
-            final int secretLen = AjpMessageUtils.readShort(message, offset);
-            offset += 2;
 
-            shutdownSecret = message.toStringContent(
-                    null, offset, offset + secretLen);
+            final DataChunk tmpDataChunk = DataChunk.newInstance();
+            offset = AjpMessageUtils.getBytesToDataChunk(message, offset, tmpDataChunk);
+            
+            shutdownSecret = tmpDataChunk.toString();
         }
 
         if (secret != null &&

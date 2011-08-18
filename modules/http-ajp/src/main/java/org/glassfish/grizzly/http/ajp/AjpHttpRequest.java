@@ -78,6 +78,8 @@ public final class AjpHttpRequest extends HttpRequestPacket {
     private final DataChunk instanceId = DataChunk.newInstance();
     private final DataChunk sslCert = DataChunk.newInstance();
 
+    final DataChunk tmpDataChunk = DataChunk.newInstance();
+    
     private String secret;
     
     private final AjpHttpResponse cachedResponse = new AjpHttpResponse();
@@ -182,8 +184,8 @@ public final class AjpHttpRequest extends HttpRequestPacket {
         cachedResponse.recycle();
 
         instanceId.recycle();
-
         sslCert.recycle();
+        tmpDataChunk.recycle();
 
         secret = null;
         

@@ -76,7 +76,9 @@ final class AjpMessageUtils {
 
         offset = getBytesToDataChunk(requestContent, offset, req.getProtocolDC());
         final int requestURILen = readShort(requestContent, offset);
-        req.getRequestURIRef().init(requestContent, offset + 2, offset + 2 + requestURILen);
+        if (!isNullLength(requestURILen)) {
+            req.getRequestURIRef().init(requestContent, offset + 2, offset + 2 + requestURILen);
+        }
         // Don't forget to skip the terminating \0 (that's why "+ 1")
         offset += 2 + requestURILen + 1;
 
@@ -106,6 +108,8 @@ final class AjpMessageUtils {
     private static int decodeAttributes(final Buffer requestContent, int offset,
             final AjpHttpRequest req, final boolean tomcatAuthentication) {
 
+        final DataChunk tmpDataChunk = req.tmpDataChunk;
+        
         boolean moreAttr = true;
 
         while (moreAttr) {
@@ -190,12 +194,10 @@ final class AjpMessageUtils {
                     break;
 
                 case AjpConstants.SC_A_SECRET:
-                    final int secretLen = readShort(requestContent, offset);
-                    offset += 2;
+                    offset = getBytesToDataChunk(requestContent, offset, tmpDataChunk);
 
-                    req.setSecret(requestContent.toStringContent(
-                            null, offset, offset + secretLen));
-                    offset += secretLen;
+                    req.setSecret(tmpDataChunk.toString());
+                    tmpDataChunk.recycle();
 
                     break;
 
@@ -338,16 +340,20 @@ final class AjpMessageUtils {
 
     }
 
-    static int readShort(final Buffer buffer, final int offset) {
+    private static boolean isNullLength(final int length) {
+        return length == 0xFFFF || length == -1;
+    }
+
+    private static int readShort(final Buffer buffer, final int offset) {
         return buffer.getShort(offset) & 0xFFFF;
     }
 
-    private static int getBytesToDataChunk(final Buffer buffer, final int offset,
+    static int getBytesToDataChunk(final Buffer buffer, final int offset,
             final DataChunk dataChunk) {
 
         final int bytesStart = offset + 2;
         final int length = readShort(buffer, offset);
-        if (length == 0xFFFF) {
+        if (isNullLength(length)) {
             return bytesStart;
         }
 
@@ -357,28 +363,11 @@ final class AjpMessageUtils {
         return bytesStart + length + 1;
     }
 
-    private static int getBytesToDataChunks(final Buffer buffer, final int offset,
-            final DataChunk... dataChunks) {
-
-        final int bytesStart = offset + 2;
-        final int length = readShort(buffer, offset);
-        if (length == 0xFFFF) {
-            return bytesStart;
-        }
-
-        for (final DataChunk dataChunk : dataChunks) {
-            dataChunk.setBuffer(buffer, bytesStart, bytesStart + length);
-        }
-
-        // Don't forget to skip the terminating \0 (that's why "+ 1")
-        return bytesStart + length + 1;
-    }
-
     private static int skipBytes(final Buffer buffer, final int offset) {
 
         final int bytesStart = offset + 2;
         final int length = readShort(buffer, offset);
-        if (length == 0xFFFF) {
+        if (isNullLength(length)) {
             return bytesStart;
         }
 
@@ -388,31 +377,36 @@ final class AjpMessageUtils {
 
     private static int setStringAttribute(final AjpHttpRequest req,
             final Buffer buffer, int offset) {
-        final int keyLen = readShort(buffer, offset);
-        final String key = buffer.toStringContent(null,
-                offset + 2, offset + 2 + keyLen);
+        final DataChunk tmpDataChunk = req.tmpDataChunk;
 
-        // Don't forget to skip the terminating \0 (that's why "+ 1")
-        offset += 2 + keyLen + 1;
+        offset = getBytesToDataChunk(buffer, offset, tmpDataChunk);
+        final String key = tmpDataChunk.toString();
 
-        final int valueLen = readShort(buffer, offset);
-        final String value = buffer.toStringContent(null,
-                offset + 2, offset + 2 + valueLen);
+        tmpDataChunk.recycle();
+
+        offset = getBytesToDataChunk(buffer, offset, tmpDataChunk);        
+        final String value = tmpDataChunk.toString();
+        
+        tmpDataChunk.recycle();
 
         req.setAttribute(key, value);
-        // Don't forget to skip the terminating \0 (that's why "+ 1")
-        return offset + 2 + valueLen + 1;
+        
+        return offset;
     }
 
     private static int setStringAttributeValue(final AjpHttpRequest req,
-            final String key, final Buffer buffer, final int offset) {
-        final int valueLen = readShort(buffer, offset);
-        final String value = buffer.toStringContent(null,
-                offset + 2, offset + 2 + valueLen);
+            final String key, final Buffer buffer, int offset) {
+
+        final DataChunk tmpDataChunk = req.tmpDataChunk;
+        
+        offset = getBytesToDataChunk(buffer, offset, tmpDataChunk);
+        final String value = tmpDataChunk.toString();
+        
+        tmpDataChunk.recycle();
 
         req.setAttribute(key, value);
         // Don't forget to skip the terminating \0 (that's why "+ 1")
-        return offset + 2 + valueLen + 1;
+        return offset;
     }
 
     public static Buffer encodeHeaders(MemoryManager mm,
