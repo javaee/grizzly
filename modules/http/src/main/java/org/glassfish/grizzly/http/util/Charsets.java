@@ -41,12 +41,7 @@
 package org.glassfish.grizzly.http.util;
 
 import java.nio.charset.Charset;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CharsetEncoder;
-import java.util.Collections;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import org.glassfish.grizzly.ThreadCache;
 
 /**
  * Charset utility class.
