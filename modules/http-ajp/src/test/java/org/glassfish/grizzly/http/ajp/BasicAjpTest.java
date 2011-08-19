@@ -200,7 +200,14 @@ public class BasicAjpTest {
         Buffer responseBuffer = send("localhost", PORT, request).get(10, TimeUnit.SECONDS);
 
         // Successful response length is 16 bytes
-        assertEquals(16, responseBuffer.remaining());
+        boolean isFailure = responseBuffer.remaining() != 16;
+
+        if (isFailure) {
+            byte[] response = new byte[responseBuffer.remaining()];
+            responseBuffer.get(response);
+            String hex = toHexString(response);
+            fail("unexpected response length=" + response.length + " content=[" + hex + "]");
+        }
     }
     
     @SuppressWarnings({"unchecked"})
@@ -242,6 +249,19 @@ public class BasicAjpTest {
     private void startHttpServer(HttpHandler httpHandler, String... mappings) throws Exception {
         httpServer.getServerConfiguration().addHttpHandler(httpHandler, mappings);
         httpServer.start();
+    }
+
+    private String toHexString(byte[] response) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < response.length; i++) {
+            sb.append(Integer.toHexString(response[i] & 0xFF));
+            
+            if (i != response.length - 1) {
+                sb.append(' ');
+            }
+        }
+        
+        return sb.toString();
     }
 
     private static class ResultFilter extends BaseFilter {
