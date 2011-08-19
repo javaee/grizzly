@@ -427,7 +427,7 @@ public class ServletContextImpl implements ServletContext {
         if( dispatcherHelper == null ) {
             return null;
         }
-        if( !path.startsWith( "/" ) && !path.isEmpty() ) {
+        if( !path.startsWith( "/" ) && path.length() != 0 ) {
             throw new IllegalArgumentException( "Path " + path + " does not start with ''/'' and is not empty" );
         }
 
