@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -58,10 +58,14 @@
 
 package com.sun.grizzly.http.servlet;
 
+import com.sun.grizzly.util.http.DispatcherHelper;
 import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.util.Grizzly;
+import com.sun.grizzly.util.buf.MessageBytes;
 import com.sun.grizzly.util.http.Enumerator;
 import com.sun.grizzly.util.http.MimeType;
+import com.sun.grizzly.util.http.mapper.MappingData;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -70,7 +74,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.EventListener;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -97,6 +100,14 @@ public class ServletContextImpl implements ServletContext {
      * <strong>DO NOT ADD ANY ELEMENTS TO THIS COLLECTION!</strong>
      */
     private static final ArrayList empty = new ArrayList();
+
+
+    /**
+     * Thread local data used during request dispatch.
+     */
+    private ThreadLocal<DispatchData> dispatchData = new ThreadLocal<DispatchData>();
+
+    private DispatcherHelper dispatcherHelper;
     
 
     private final transient ArrayList<EventListener> eventListeners = new ArrayList();
@@ -225,7 +236,45 @@ public class ServletContextImpl implements ServletContext {
      * @param uri Absolute URI of a resource on the server
      */
     public ServletContext getContext(String uri) {
-        return this;
+       // Validate the format of the specified argument
+       if( uri == null || !uri.startsWith( "/" ) ) {
+           return null;
+       }
+       if( dispatcherHelper == null ) {
+           return null;
+       }
+
+       // Use the thread local URI and mapping data
+       DispatchData dd = dispatchData.get();
+       if( dd == null ) {
+           dd = new DispatchData();
+           dispatchData.set( dd );
+       } else {
+           dd.recycle();
+       }
+       MessageBytes uriDC = dd.uriMB;
+       // Retrieve the thread local mapping data
+       MappingData mappingData = dd.mappingData;
+
+       try {
+           uriDC.setString( uri );
+           dispatcherHelper.mapPath(dd.hostMB, uriDC, mappingData );
+           if( mappingData.context == null ) {
+               return null;
+           }
+       } catch( Exception e ) {
+           // Should never happen
+           if( logger.isLoggable( Level.WARNING ) ) {
+               logger.log( Level.WARNING, "Error during mapping", e );
+           }
+           return null;
+       }
+
+       if( !( mappingData.context instanceof ServletAdapter ) ) {
+           return null;
+       }
+       ServletAdapter context = (ServletAdapter)mappingData.context;
+       return context.getServletCtx();
     }
 
     
@@ -370,18 +419,110 @@ public class ServletContextImpl implements ServletContext {
     /**
      * {@inheritDoc}
      */   
-    //TODO.
-    public RequestDispatcher getRequestDispatcher(String arg0) {
-        throw new UnsupportedOperationException("Not supported yet.");
+    public RequestDispatcher getRequestDispatcher(String path) {
+                // Validate the path argument
+        if( path == null ) {
+            return null;
+        }
+        if( dispatcherHelper == null ) {
+            return null;
+        }
+        if( !path.startsWith( "/" ) && !path.isEmpty() ) {
+            throw new IllegalArgumentException( "Path " + path + " does not start with ''/'' and is not empty" );
+        }
+
+        // Get query string
+        String queryString = null;
+        int pos = path.indexOf( '?' );
+        if( pos >= 0 ) {
+            queryString = path.substring( pos + 1 );
+            path = path.substring( 0, pos );
+        }
+        path = normalize( path );
+        if( path == null )
+            return null;
+        pos = path.length();
+
+        // Use the thread local URI and mapping data
+        DispatchData dd = dispatchData.get();
+        if( dd == null ) {
+            dd = new DispatchData();
+            dispatchData.set( dd );
+        } else {
+            dd.recycle();
+        }
+        MessageBytes uriDC = dd.uriMB;
+        // Retrieve the thread local mapping data
+        MappingData mappingData = dd.mappingData;
+
+        try {
+            uriDC.setString( contextPath + path );
+            dispatcherHelper.mapPath(dd.hostMB, uriDC, mappingData );
+            if( mappingData.wrapper == null ) {
+                return null;
+            }
+        } catch( Exception e ) {
+            // Should never happen
+            if( logger.isLoggable( Level.WARNING ) ) {
+                logger.log( Level.WARNING, "Error during mapping", e );
+            }
+            return null;
+        }
+
+        if( !( mappingData.wrapper instanceof ServletAdapter ) ) {
+            return null;
+        }
+        ServletAdapter wrapper = (ServletAdapter)mappingData.wrapper;
+        String wrapperPath = mappingData.wrapperPath.toString();
+        String pathInfo = mappingData.pathInfo.toString();
+        // Construct a RequestDispatcher to process this request
+        return new RequestDispatcherImpl( wrapper, uriDC.toString(), wrapperPath, pathInfo, queryString, null );
     }
 
    
     /**
      * {@inheritDoc}
      */     
-    //TODO.
-    public RequestDispatcher getNamedDispatcher(String arg0) {
-        throw new UnsupportedOperationException("Not supported yet.");
+    public RequestDispatcher getNamedDispatcher(String name) {
+                // Validate the name argument
+        if( name == null )
+            return null;
+        if( dispatcherHelper == null ) {
+            return null;
+        }
+
+        // Use the thread local URI and mapping data
+        DispatchData dd = dispatchData.get();
+        if( dd == null ) {
+            dd = new DispatchData();
+            dispatchData.set( dd );
+        } else {
+            dd.recycle();
+        }
+//        DataChunk uriDC = dd.uriDC;
+        MessageBytes servletNameDC = dd.servletNameMB;
+        // Retrieve the thread local mapping data
+        MappingData mappingData = dd.mappingData;
+        // Map the name
+//        uriDC.setString( contextPath );
+        servletNameDC.setString( name );
+
+        try {
+            dispatcherHelper.mapName( servletNameDC, mappingData );
+            if( !( mappingData.wrapper instanceof ServletAdapter ) ) {
+                return null;
+            }
+        } catch( Exception e ) {
+            // Should never happen
+            if( logger.isLoggable( Level.WARNING ) ) {
+                logger.log( Level.WARNING, "Error during mapping", e );
+            }
+            return null;
+        }
+
+        ServletAdapter wrapper = (ServletAdapter) mappingData.wrapper;
+        // Construct a RequestDispatcher to process this request
+        return new RequestDispatcherImpl( wrapper, null, null, null, null, name );
     }
 
     
@@ -661,6 +802,35 @@ public class ServletContextImpl implements ServletContext {
      */
     protected void setBasePath(String basePath) {
         this.basePath = basePath;
+    }
+
+     protected void setDispatcherHelper( DispatcherHelper dispatcherHelper ) {
+        this.dispatcherHelper = dispatcherHelper;
+    }
+
+    /**
+     * Internal class used as thread-local storage when doing path
+     * mapping during dispatch.
+     */
+    private static final class DispatchData {
+        public final MessageBytes hostMB;
+        public final MessageBytes uriMB;
+        public final MessageBytes servletNameMB;
+        public final MappingData mappingData;
+
+        public DispatchData() {
+            hostMB = MessageBytes.newInstance();
+            uriMB = MessageBytes.newInstance();
+            servletNameMB = MessageBytes.newInstance();
+            mappingData = new MappingData();
+        }
+
+        public void recycle() {
+            hostMB.recycle();
+            uriMB.recycle();
+            servletNameMB.recycle();
+            mappingData.recycle();
+        }
     }
     
     // ----------------------------------- Listener implementation ----------//

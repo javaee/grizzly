@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -57,6 +57,16 @@ import java.net.URL;
  */
 public abstract class GrizzlyWebServerAbstractTest extends TestCase {
     protected GrizzlyWebServer gws;
+
+    protected StringBuilder readMultilineResponse(HttpURLConnection conn) throws IOException {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+        StringBuilder sb = new StringBuilder();
+        String line = null;
+        while ((line = reader.readLine()) != null) {
+            sb.append(line).append("\n");
+        }
+        return sb;
+    }
 
     protected String readResponse(HttpURLConnection conn) throws IOException {
         BufferedReader reader = new BufferedReader(

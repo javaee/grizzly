@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -638,7 +638,17 @@ public class HttpServletRequestImpl implements HttpServletRequest {
      */
     @SuppressWarnings("unchecked")
     public RequestDispatcher getRequestDispatcher(String path) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        if (request == null) {
+            throw new IllegalStateException(sm.getString("requestFacade.nullRequest"));
+        }
+
+        if (System.getSecurityManager() != null) {
+            return (RequestDispatcher) AccessController.doPrivileged(
+                    new GetRequestDispatcherPrivilegedAction(path));
+        } else {
+            return getRequestDispatcherInternal(path);
+        }
+
     }
 
 
@@ -1143,7 +1153,48 @@ public class HttpServletRequestImpl implements HttpServletRequest {
      */
     protected void setServletPath(String servletPath){
         this.servletPath = servletPath;
-    }    
+    }
+
+    private RequestDispatcher getRequestDispatcherInternal(String path) {
+        if (contextImpl == null) {
+            return null;
+        }
+
+        // If the path is already context-relative, just pass it through
+        if (path == null) {
+            return (null);
+        } else if (path.startsWith("/")) {
+            return (contextImpl.getRequestDispatcher(path));
+        }
+
+        // Convert a request-relative path to a context-relative one
+        String servletPath = (String) getAttribute(DispatcherConstants.INCLUDE_SERVLET_PATH);
+        if (servletPath == null) {
+            servletPath = getServletPath();
+        }
+
+        // Add the path info, if there is any
+        String pathInfo = getPathInfo();
+        String requestPath = null;
+
+        if (pathInfo == null) {
+            requestPath = servletPath;
+        } else {
+            requestPath = servletPath + pathInfo;
+        }
+
+        int pos = requestPath.lastIndexOf('/');
+        String relative = null;
+        if (pos >= 0) {
+            relative = requestPath.substring(0, pos + 1) + path;
+        } else {
+            relative = requestPath + path;
+        }
+
+        return contextImpl.getRequestDispatcher(relative);
+    }
+
+
     // ----------------------------------------------------------- DoPrivileged
     
     private final class GetAttributePrivilegedAction
@@ -1167,14 +1218,14 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     private final class GetRequestDispatcherPrivilegedAction
             implements PrivilegedAction {
 
-        private String path;
+        private final String path;
 
         public GetRequestDispatcherPrivilegedAction(String path){
             this.path = path;
         }
-        
-        public Object run() {   
-            throw new UnsupportedOperationException("Not supported yet.");
+
+        public Object run() {
+            return getRequestDispatcherInternal(path);
         }           
     }    
     

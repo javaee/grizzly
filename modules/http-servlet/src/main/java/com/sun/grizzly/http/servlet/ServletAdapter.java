@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -66,6 +66,7 @@ import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
+import com.sun.grizzly.util.http.DispatcherHelper;
 import com.sun.grizzly.util.ClassLoaderUtil;
 import com.sun.grizzly.util.Grizzly;
 import com.sun.grizzly.util.IntrospectionUtils;
@@ -221,7 +222,18 @@ public class ServletAdapter extends GrizzlyAdapter {
      * @param publicDirectory the folder where the static resource are located.
      */    
     public ServletAdapter(String publicDirectory) {
-        this(publicDirectory, new ServletContextImpl(), 
+        this(publicDirectory, null, new ServletContextImpl(),
+                new HashMap<String,String>(), new HashMap<String,String>(),
+                new ArrayList<String>() );
+    }
+
+    /**
+     * Create a new instance which will look for static pages located
+     * under <tt>publicDirectory</tt> folder.
+     * @param publicDirectory the folder where the static resource are located.
+     */
+    public ServletAdapter(String publicDirectory, String name) {
+        this(publicDirectory, name, new ServletContextImpl(),
                 new HashMap<String,String>(), new HashMap<String,String>(),
                 new ArrayList<String>() );
     }
@@ -238,8 +250,24 @@ public class ServletAdapter extends GrizzlyAdapter {
     protected ServletAdapter(String publicDirectory, ServletContextImpl servletCtx,
             Map<String,String> contextParameters, Map<String,String> servletInitParameters,
             List<String> listeners){
-       this(publicDirectory, servletCtx, contextParameters, servletInitParameters, listeners, true);
+       this(publicDirectory, null, servletCtx, contextParameters, servletInitParameters, listeners, true);
     }
+
+    /**
+     * Convenience constructor.
+     *
+     * @param publicDirectory The folder where the static resource are located.
+     * @param servletCtx {@link ServletContextImpl} to be used by new instance.
+     * @param contextParameters Context parameters.
+     * @param servletInitParameters servlet initialization parameres.
+     * @param listeners Listeners.
+     */
+    protected ServletAdapter(String publicDirectory, String servletName, ServletContextImpl servletCtx,
+            Map<String,String> contextParameters, Map<String,String> servletInitParameters,
+            List<String> listeners){
+       this(publicDirectory, servletName, servletCtx, contextParameters, servletInitParameters, listeners, true);
+    }
+
 
     /**
      * Convenience constructor.
@@ -251,12 +279,13 @@ public class ServletAdapter extends GrizzlyAdapter {
      * @param listeners Listeners.
      * @param initialize false only when the {@link #newServletAdapter()} is invoked.
      */
-    protected ServletAdapter(String publicDirectory, ServletContextImpl servletCtx,
+    protected ServletAdapter(String publicDirectory, String servletName, ServletContextImpl servletCtx,
             Map<String,String> contextParameters, Map<String,String> servletInitParameters,
             List<String> listeners, boolean initialize){
         super(publicDirectory);
         this.servletCtx = servletCtx;
-        servletConfig = new ServletConfigImpl(servletCtx, servletInitParameters); 
+        servletConfig = new ServletConfigImpl(servletCtx, servletInitParameters);
+        servletConfig.setServletName(servletName);
         this.contextParameters = contextParameters;
         this.servletInitParameters = servletInitParameters;
         this.listeners = listeners;
@@ -272,12 +301,13 @@ public class ServletAdapter extends GrizzlyAdapter {
      * @param servletInitParameters servlet initialization parameres.
      * @param initialize false only when the {@link #newServletAdapter()} is invoked.
      */
-    protected ServletAdapter(String publicDirectory, ServletContextImpl servletCtx,
+    protected ServletAdapter(String publicDirectory, String servletName, ServletContextImpl servletCtx,
             Map<String,String> contextParameters, Map<String,String> servletInitParameters,
             boolean initialize){
         super(publicDirectory);
         this.servletCtx = servletCtx;
         servletConfig = new ServletConfigImpl(servletCtx, servletInitParameters);
+        servletConfig.setServletName(servletName);
         this.contextParameters = contextParameters;
         this.servletInitParameters = servletInitParameters;
         this.initialize = initialize;
@@ -832,7 +862,9 @@ public class ServletAdapter extends GrizzlyAdapter {
      * @return a new {@link ServletAdapter}
      */
     public ServletAdapter newServletAdapter(Servlet servlet){
-        ServletAdapter sa = new ServletAdapter(".",servletCtx, contextParameters,
+        final String servletName = servlet.getServletConfig() != null ?
+                servlet.getServletConfig().getServletName() : null;
+        ServletAdapter sa = new ServletAdapter(".",servletName, servletCtx, contextParameters,
                 new HashMap<String,String>(), listeners,
                 false);
         if( classLoader != null )
@@ -840,6 +872,16 @@ public class ServletAdapter extends GrizzlyAdapter {
         sa.setServletInstance(servlet);
         sa.setServletPath(servletPath);
         return sa;
+    }
+
+    @Override
+    public String getName() {
+        return servletConfig.getServletName();
+    }
+
+    @Override
+    protected void setDispatcherHelper(DispatcherHelper dispatcherHelper) {
+        servletCtx.setDispatcherHelper(dispatcherHelper);
     }
 
     protected ServletContextImpl getServletCtx() {
@@ -880,6 +922,21 @@ public class ServletAdapter extends GrizzlyAdapter {
             filters[n++] = filterConfig;
         }
     }
+
+    void doServletService(final ServletRequest servletRequest, final ServletResponse servletResponse)
+           throws IOException, ServletException {
+       try {
+           loadServlet();
+           FilterChainImpl filterChain = new FilterChainImpl(servletInstance, servletConfig);
+           filterChain.invokeFilterChain(servletRequest, servletResponse);
+       } catch (ServletException se) {
+           LOGGER.log(Level.SEVERE, "service exception:", se);
+           throw se;
+       } catch (IOException ie) {
+           LOGGER.log(Level.SEVERE, "service exception:", ie);
+           throw ie;
+       }
+   }
 
 
     // ---------------------------------------------------------- Nested Classes

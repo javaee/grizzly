@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,6 +44,7 @@ package com.sun.grizzly.tcp.http11;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
+import com.sun.grizzly.util.http.DispatcherHelper;
 import com.sun.grizzly.util.buf.MessageBytes;
 import com.sun.grizzly.util.buf.UDecoder;
 import com.sun.grizzly.util.http.HttpRequestURIDecoder;
@@ -72,8 +73,7 @@ abstract public class GrizzlyAdapter extends StaticResourcesAdapter {
 
 
     public GrizzlyAdapter() {
-        super();
-        commitErrorResponse = false;
+        this(".", null);
     }
 
     
@@ -83,7 +83,13 @@ abstract public class GrizzlyAdapter extends StaticResourcesAdapter {
      * @param publicDirectory the folder where the static resource are located.
      */
     public GrizzlyAdapter(String publicDirectory) {
+        this(publicDirectory, null);
+    }
+
+
+    public GrizzlyAdapter(String publicDirectory, String name) {
         super(publicDirectory);
+        this.name = name;
         commitErrorResponse = false;
     }
 
@@ -105,8 +111,13 @@ abstract public class GrizzlyAdapter extends StaticResourcesAdapter {
      * Is the URL decoded
      */
     private boolean decodeURL = true;
-    
-    
+
+    /**
+     * GrizzlyAdpater name;
+     */
+    private final String name;
+
+
     /**
      * Wrap a {@link Request} and {@link Response} with associated high level
      * classes like {@link GrizzlyRequest} and {@link GrizzlyResponse}. The later
@@ -293,10 +304,17 @@ abstract public class GrizzlyAdapter extends StaticResourcesAdapter {
         this.decodeURL = decodeURL;
     }
 
+    protected void setDispatcherHelper(final DispatcherHelper dispatcherHelper) {
+    }
+
     /**
      * Should this class decode the URL
      */
     public boolean isDecodeURL() {
         return decodeURL;
+    }
+
+    public String getName() {
+        return name;
     }
 }

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,6 +41,7 @@
 package com.sun.grizzly.tcp.http11;
 
 import com.sun.grizzly.tcp.Request;
+import com.sun.grizzly.util.http.DispatcherHelper;
 import com.sun.grizzly.util.buf.CharChunk;
 import com.sun.grizzly.util.buf.MessageBytes;
 import com.sun.grizzly.util.buf.UDecoder;
@@ -86,6 +87,12 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
     protected final static int MAPPING_DATA = 12;
     protected final static int MAPPED_ADAPTER = 13;
     protected final static int INVOKED_ADAPTER = 15;
+
+    /**
+     * The name -> {@link GrizzlyAdapter} map.
+     */
+    private final ConcurrentHashMap<String, GrizzlyAdapter> adaptersByName =
+            new ConcurrentHashMap<String, GrizzlyAdapter>();
     
     /**
      * The list of {@link GrizzlyAdapter} instance.
@@ -109,9 +116,15 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
      */
     private boolean isRootConfigured = false;
 
+    /**
+     * DispatcherHelper, which maps path or name to the Mapper entry.
+     */
+    private final DispatcherHelper dispatcherHelper;
+
     public GrizzlyAdapterChain() {
         mapper.setDefaultHostName(LOCAL_HOST);
         setHandleStaticResources(false);
+        dispatcherHelper = new DispatcherHelperImpl();
         // We will decode it
         setDecodeUrl(false);
     }
@@ -239,6 +252,10 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
             addGrizzlyAdapter(adapter);
         } else {
             adapters.put(adapter, mappings);
+            final String name = adapter.getName();
+            if (name != null) {
+                adaptersByName.put(adapter.getName(), adapter);
+            }
             for (String mapping : mappings) {
                 String ctx = getContextPath(mapping);
                 String wrapper = getWrapperPath(ctx, mapping);
@@ -269,6 +286,7 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
                     }      
                 }
                 mapper.addWrapper(LOCAL_HOST,ctx, wrapper , adapter);
+                adapter.setDispatcherHelper(dispatcherHelper);
             }
         }
     }
@@ -329,6 +347,11 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
         if (adapter == null) {
             throw new IllegalStateException();
         }
+
+        final String name = adapter.getName();
+        if (name != null) {
+            adaptersByName.remove(name);
+        }
         String[] mappings = adapters.remove(adapter);
         if (mappings != null) {
             for (String mapping : mappings) {
@@ -376,6 +399,25 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
             mapper.map(serverName, decodedURI, mappingData);
         } finally {
             charChunk.setEnd(oldEnd);
+        }
+    }
+
+    private final class DispatcherHelperImpl implements DispatcherHelper {
+
+        public void mapPath(final MessageBytes host, final MessageBytes path,
+                final MappingData mappingData) throws Exception {
+
+            mapper.map(host, path, mappingData);
+        }
+
+        public void mapName(final MessageBytes name, final MappingData mappingData) {
+            final String nameStr = name.toString();
+
+            final GrizzlyAdapter handler = adaptersByName.get(nameStr);
+            if (handler != null) {
+                mappingData.wrapper = handler;
+                mappingData.servletName = nameStr;
+            }
         }
     }
 }
