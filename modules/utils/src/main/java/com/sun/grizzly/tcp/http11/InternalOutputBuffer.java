@@ -552,9 +552,9 @@ public class InternalOutputBuffer
 
     private String getMessage(final int message) {
         if (System.getSecurityManager() != null) {
-            return (String) AccessController.doPrivileged(
-                    new PrivilegedAction() {
-                        public Object run() {
+            return (String) AccessController.<String>doPrivileged(
+                    new PrivilegedAction<String>() {
+                        public String run() {
                             return HttpMessages.getMessage(message);
                         }
                     }
@@ -733,7 +733,7 @@ public class InternalOutputBuffer
 
 
     /**
-     * This method will write the contents of the specyfied char
+     * This method will write the contents of the specified char
      * buffer to the output stream, without filtering. This method is meant to
      * be used to write the response header.
      *

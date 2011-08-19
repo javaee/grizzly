@@ -131,6 +131,7 @@
         <module>portunif</module>
         <module>rcm</module>
         <module>http</module>
+        <module>http-ajp</module>
         <module>http-servlet</module>
         <module>comet</module>
         <module>cometd</module>

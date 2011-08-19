@@ -56,7 +56,6 @@
 package com.sun.grizzly.http;
 
 
-import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.arp.AsyncHandler;
 import com.sun.grizzly.tcp.ActionCode;
 import com.sun.grizzly.tcp.ActionHook;
@@ -82,6 +81,7 @@ import com.sun.grizzly.util.ExtendedThreadPool;
 import com.sun.grizzly.util.Grizzly;
 import com.sun.grizzly.util.InputReader;
 import com.sun.grizzly.util.Interceptor;
+import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.util.StreamAlgorithm;
 import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.buf.Ascii;
@@ -511,20 +511,15 @@ public class ProcessorTask extends TaskBase implements Processor,
     public void initialize(){
         boolean securityEnabled = System.getSecurityManager() != null;
         started = true;
-        request = createRequest();
 
+        request = createRequest();
         response = createResponse();
         response.setHook(this);
 
-        inputBuffer = new InternalInputBuffer(request,requestBufferSize);
-
-        outputBuffer = new SocketChannelOutputBuffer(response,
-                                                     sendBufferSize,
-                                                     bufferResponse);
-
+        inputBuffer = createInputBuffer(request, requestBufferSize);
+        outputBuffer = createOutputBuffer(response, sendBufferSize, bufferResponse);
 
         request.setInputBuffer(inputBuffer);
-
         response.setOutputBuffer(outputBuffer);
         request.setResponse(response);
 
@@ -549,6 +544,15 @@ public class ProcessorTask extends TaskBase implements Processor,
                 }
             }
         }
+    }
+
+    protected InternalInputBuffer createInputBuffer(final Request request, final int requestBufferSize) {
+        return new InternalInputBuffer(request, requestBufferSize);
+    }
+
+    protected SocketChannelOutputBuffer createOutputBuffer(final Response response, final int sendBufferSize,
+            final boolean bufferResponse) {
+        return new SocketChannelOutputBuffer(response, sendBufferSize, bufferResponse);
     }
 
     /**
@@ -1412,16 +1416,12 @@ public class ProcessorTask extends TaskBase implements Processor,
                 if (slashPos == -1) {
                     slashPos = uriBC.getLength();
                     // Set URI as "/"
-                    request.requestURI().setBytes
-                        (uriB, uriBCStart + pos + 1, 1);
+                    request.requestURI().setBytes(uriB, uriBCStart + pos + 1, 1);
                 } else {
-                    request.requestURI().setBytes
-                        (uriB, uriBCStart + slashPos,
-                         uriBC.getLength() - slashPos);
+                    request.requestURI().setBytes(uriB, uriBCStart + slashPos, uriBC.getLength() - slashPos);
                 }
                 MessageBytes hostMB = headers.setValue("host");
-                hostMB.setBytes(uriB, uriBCStart + pos + 3,
-                                slashPos - pos - 3);
+                hostMB.setBytes(uriB, uriBCStart + pos + 3, slashPos - pos - 3);
             }
 
         }
@@ -1672,8 +1672,7 @@ public class ProcessorTask extends TaskBase implements Processor,
 
             // Add date header
             if (!response.containsHeader("Date")) {
-                String date = FastHttpDateFormat.getCurrentDate();
-                response.addHeader("Date", date);
+                response.addHeader("Date", FastHttpDateFormat.getCurrentDate());
             }
 
             // Add transfer encoding header
@@ -1696,10 +1695,14 @@ public class ProcessorTask extends TaskBase implements Processor,
                 headers.setValue("Connection").setString("Keep-Alive");
             }
         }
+        sendHeaders();
+    }
 
+    protected void sendHeaders() {
         // Build the response header
         outputBuffer.sendStatus();
 
+        MimeHeaders headers = response.getMimeHeaders();
         int size = headers.size();
         for (int i = 0; i < size; i++) {
             outputBuffer.sendHeader(headers.getName(i), headers.getValue(i));

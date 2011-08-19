@@ -40,17 +40,17 @@
 
 package com.sun.grizzly.config;
 
+import com.sun.grizzly.config.dom.Http;
+import com.sun.grizzly.config.dom.NetworkListener;
+import com.sun.grizzly.config.dom.ThreadPool;
+import org.testng.Assert;
+import org.testng.annotations.Test;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.List;
-
-import com.sun.grizzly.config.dom.NetworkListener;
-import com.sun.grizzly.config.dom.ThreadPool;
-import com.sun.grizzly.config.dom.Http;
-import org.testng.Assert;
-import org.testng.annotations.Test;
 
 /**
  * Created Jan 5, 2009
@@ -109,6 +109,16 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
             final Http http = grizzlyConfig.getConfig().getNetworkListeners().getNetworkListener().get(0).findHttpProtocol().getHttp();
             Assert.assertEquals(threadPool.getMaxThreadPoolSize(), "5");
             Assert.assertEquals(http.getCompressableMimeType(), "text/html,text/xml,text/plain");
+        } finally {
+            grizzlyConfig.shutdown();
+        }
+    }
+
+    public void ajp() {
+        GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-ajp.xml");
+        try {
+            Assert.assertEquals(
+                    grizzlyConfig.getConfig().getNetworkListeners().getNetworkListener().get(0).getJkEnabled(), "true");
         } finally {
             grizzlyConfig.shutdown();
         }

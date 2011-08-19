@@ -59,8 +59,8 @@
 package com.sun.grizzly.util.buf;
 
 
-import java.io.Serializable;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.Locale;
 
 /**

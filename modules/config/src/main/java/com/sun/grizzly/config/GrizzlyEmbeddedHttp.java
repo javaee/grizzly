@@ -57,6 +57,7 @@ import com.sun.grizzly.config.dom.ThreadPool;
 import com.sun.grizzly.config.dom.Transport;
 import com.sun.grizzly.filter.ReadFilter;
 import com.sun.grizzly.http.HttpProtocolChain;
+import com.sun.grizzly.http.ProcessorTaskFactory;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.StatsThreadPool;
 import com.sun.grizzly.portunif.CustomFilterChainProtocolHandler;
@@ -320,6 +321,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                     Boolean.getBoolean("v3.grizzly.cometSupport"))) {
                 enableComet(habitat);
             }
+            enableAjpSupport(habitat, networkListener);
         } else if (protocol.getPortUnification() != null) {
             // Port unification
             PortUnification pu = protocol.getPortUnification();
@@ -367,7 +369,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                             finderClassname, e);
                 }
             }
-            configurePortUnification();
+            configurePortUnification(finders, handlers, preprocessors);
         } else if (protocol.getHttpRedirect() != null) {
             HttpRedirectFilter filter = new HttpRedirectFilter();
             filter.configure(habitat, protocol.getHttpRedirect());
@@ -404,11 +406,6 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         return null;
     }
 
-
-    protected void configurePortUnification() {
-        configurePortUnification(finders, handlers, preprocessors);
-    }
-
     @Override
     public void configurePortUnification(List<ProtocolFinder> protocolFinders,
             List<ProtocolHandler> protocolHandlers,
@@ -418,6 +415,13 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         } else {
             super.configurePortUnification(protocolFinders, protocolHandlers,
                     preProcessors);
+        }
+    }
+
+    private void enableAjpSupport(Habitat habitat, NetworkListener networkListener) {
+        if(GrizzlyConfig.toBoolean(networkListener.getJkEnabled())) {
+            System.out.println("GrizzlyEmbeddedHttp.enableAjPSupport");
+            processorTaskFactory = loadAjpFactory(habitat);
         }
     }
 
@@ -448,6 +452,14 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     /**
      * Load and initializes Comet {@link AsyncFilter}.
      */
+    public static ProcessorTaskFactory loadAjpFactory(final Habitat habitat) {
+        return Utils.newInstance(habitat, ProcessorTaskFactory.class, "comet",
+                "com.sun.grizzly.comet.CometAsyncFilter");
+    }
+
+    /**
+     * Load and initializes Comet {@link AsyncFilter}.
+     */
     public static AsyncFilter loadCometAsyncFilter(final Habitat habitat) {
         return loadAsyncFilter(habitat, "comet",
                 "com.sun.grizzly.comet.CometAsyncFilter");
@@ -463,7 +475,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
 
     /**
      * Load {@link AsyncFilter} with the specific service name and classname.
-     * 
+     *
      * @param habitat
      * @param name
      * @param asyncFilterClassName

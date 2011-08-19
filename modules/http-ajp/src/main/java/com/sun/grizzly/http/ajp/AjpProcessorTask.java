@@ -1,14 +1,14 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
  * may not use this file except in compliance with the License.  You can
  * obtain a copy of the License at
- * https://glassfish.dev.java.net/public/CDDL+GPL_1_1.html
+ * http://glassfish.java.net/public/CDDL+GPL_1_1.html
  * or packager/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
  *
@@ -38,31 +38,43 @@
  * holder.
  */
 
-/*
- *  Copyright 1999-2004 The Apache Software Foundation
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
+package com.sun.grizzly.http.ajp;
 
-package com.sun.grizzly.http;
+import com.sun.grizzly.http.ProcessorTask;
+import com.sun.grizzly.http.SocketChannelOutputBuffer;
+import com.sun.grizzly.tcp.Request;
+import com.sun.grizzly.tcp.Response;
+import com.sun.grizzly.tcp.http11.InternalInputBuffer;
 
-/**
- * Factory, responsible for creating {@link ProcessorTask}.
- *
- * @see SelectorThread
- *
- * @author Alexey Stashok
- */
-public interface ProcessorTaskFactory {
-    ProcessorTask createProcessorTask(SelectorThread selectorThread, boolean isInitialize);
+public class AjpProcessorTask extends ProcessorTask {
+    public AjpProcessorTask(boolean initialize) {
+        super(initialize, false);
+    }
+
+    @Override
+    protected Request createRequest() {
+        return new AjpHttpRequest();
+    }
+
+    @Override
+    protected Response createResponse() {
+        return new AjpHttpResponse();
+    }
+
+    @Override
+    protected InternalInputBuffer createInputBuffer(Request request, int requestBufferSize) {
+        return new AjpInputBuffer(request, requestBufferSize);
+    }
+
+    @Override
+    public void sendHeaders() {
+        ((AjpOutputBuffer)outputBuffer).sendHeaders();
+    }
+
+    @Override
+    protected SocketChannelOutputBuffer createOutputBuffer(Response response, int sendBufferSize,
+            boolean bufferResponse) {
+        return new AjpOutputBuffer(response, sendBufferSize, bufferResponse);
+    }
+
 }

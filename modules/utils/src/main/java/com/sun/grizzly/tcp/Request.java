@@ -390,7 +390,7 @@ public class Request {
 
 
     public void setContentType(String type) {
-        contentTypeMB.setString(type);
+        contentType().setString(type);
     }
 
 
