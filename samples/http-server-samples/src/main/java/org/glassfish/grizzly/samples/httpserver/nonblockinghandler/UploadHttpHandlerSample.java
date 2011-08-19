@@ -56,8 +56,6 @@ import org.glassfish.grizzly.http.server.ServerConfiguration;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
 import org.glassfish.grizzly.http.server.io.ReadHandler;
 import org.glassfish.grizzly.http.util.HttpStatus;
-import org.glassfish.grizzly.memory.ByteBufferManager;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 
 /**
  * The sample shows how the HttpHandler should be implemented in order to
