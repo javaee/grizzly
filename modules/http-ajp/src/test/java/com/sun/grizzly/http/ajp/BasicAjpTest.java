@@ -57,7 +57,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.Socket;
-import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.List;
@@ -152,11 +151,13 @@ public class BasicAjpTest {
     }
 
     @SuppressWarnings({"unchecked"})
-    private ByteBuffer send(String host, int port, Buffer request) throws IOException {
+    private ByteBuffer send(String host, int port, ByteBuffer request) throws IOException {
         ByteChunk response = new ByteChunk();
         Socket socket = new Socket(host, port);
         try {
-            socket.getOutputStream().write((byte[]) request.array());
+            byte[] data = new byte[request.limit() - request.position()];
+            request.get(data);
+            socket.getOutputStream().write(data);
             final InputStream stream = socket.getInputStream();
             byte[] bytes = new byte[8192];
             int read;
