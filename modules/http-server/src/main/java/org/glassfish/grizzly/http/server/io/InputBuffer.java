@@ -317,7 +317,7 @@ public class InputBuffer {
             return 0;
         }
         if (!asyncEnabled && !inputContentBuffer.hasRemaining()) {
-            if (fill(len) == -1) {
+            if (fill(1) == -1) {
                 return -1;
             }
         }
