@@ -41,19 +41,18 @@
 
 -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <parent>
         <groupId>org.glassfish.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>2.1.2-SNAPSHOT</version>
+        <version>2.1.2</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-extras</artifactId>
     <packaging>pom</packaging>
-    <version>2.1.2-SNAPSHOT</version>
+    <version>2.1.2</version>
     <name>grizzly-extras</name>
     <profiles>
         <profile>
@@ -75,11 +74,11 @@
                                 <phase>process-test-classes</phase>
                                 <configuration>
                                     <tasks>
-                                        <taskdef classpathref="maven.runtime.classpath" resource="tasks.properties"/>
-                                        <mkdir dir="target/cobertura"/>
+                                        <taskdef classpathref="maven.runtime.classpath" resource="tasks.properties" />
+                                        <mkdir dir="target/cobertura" />
                                         <cobertura-merge datafile="target/cobertura/cobertura.ser">
                                             <fileset dir=".">
-                                                <include name="**/cobertura.ser"/>
+                                                <include name="**/cobertura.ser" />
                                             </fileset>
                                         </cobertura-merge>
                                     </tasks>
