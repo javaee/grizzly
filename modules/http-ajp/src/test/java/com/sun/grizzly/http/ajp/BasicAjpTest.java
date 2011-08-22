@@ -68,7 +68,7 @@ import java.util.List;
  * @author Justin Lee
  */
 public class BasicAjpTest {
-    private static final int PORT = 8009;
+    private static final int PORT = 19012;
 
     private SelectorThread selectorThread;
 
@@ -86,9 +86,7 @@ public class BasicAjpTest {
 
     @Test
     public void testRequest() throws IOException {
-        ByteChunk chunk = new ByteChunk();
-        ByteBuffer request = read("/request.txt");
-        final ByteBuffer response = send("localhost", PORT, request);
+        final ByteBuffer response = send("localhost", PORT, read("/request.txt"));
         List<AjpResponse> responses = AjpMessageUtils.parseResponse(response);
 
         final Iterator<AjpResponse> iterator = responses.iterator();
@@ -104,13 +102,17 @@ public class BasicAjpTest {
 
     private byte[] readFile(String name) throws IOException {
         final FileInputStream stream = new FileInputStream(name);
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        byte[] read = new byte[4096];
-        int count = 0;
-        while((count = stream.read(read)) != -1) {
-            out.write(read, 0, count);
+        ByteArrayOutputStream out;
+        try {
+            out = new ByteArrayOutputStream();
+            byte[] read = new byte[4096];
+            int count = 0;
+            while((count = stream.read(read)) != -1) {
+                out.write(read, 0, count);
+            }
+        } finally {
+            stream.close();
         }
-        stream.close();
         return out.toByteArray();
     }
 
