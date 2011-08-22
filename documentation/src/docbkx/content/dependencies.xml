@@ -112,11 +112,11 @@
       <listitem>
         <para>AJP;</para>
       </listitem>
-  
-    <listitem>
-      <para>JAX-WS.</para>
-    </listitem>
-  </itemizedlist></para>
+
+      <listitem>
+        <para>JAX-WS.</para>
+      </listitem>
+    </itemizedlist></para>
 
   <section xml:id="core-dep">
     <title>Core framework</title>
@@ -128,20 +128,6 @@
     &lt;artifactId&gt;grizzly-framework&lt;/artifactId&gt;
     &lt;version&gt;@project.version@&lt;/version&gt;
 &lt;/dependency&gt;</programlisting></para>
-
-    <para>And the following repositories need to be added to the pom:</para>
-
-    <programlisting language="xml">&lt;repository&gt;
-    &lt;id&gt;glassfish-maven2-repository.dev.java.net&lt;/id&gt;
-    &lt;name&gt;Java.net Maven 2 Repository for GlassFish&lt;/name&gt;
-    &lt;url&gt;http://download.java.net/maven/glassfish/&lt;/url&gt;
-    &lt;layout&gt;default&lt;/layout&gt;
-&lt;/repository&gt;
-&lt;repository&gt;
-    &lt;id&gt;java.net&lt;/id&gt;
-    &lt;name&gt;Java.net Repository for Grizzly&lt;/name&gt;
-    &lt;url&gt;http://download.java.net/maven/2&lt;/url&gt;
-&lt;/repository&gt;</programlisting>
 
     <para>Non-maven developers require:</para>
 
@@ -309,23 +295,22 @@
 
   <section xml:id="jaxws-dep">
     <title>JAX-WS</title>
-    
-    <para>Maven developers require a dependency on the Grizzly jax-ws module. The
-      following dependency needs to be added to the pom:<programlisting
+
+    <para>Maven developers require a dependency on the Grizzly jax-ws module.
+    The following dependency needs to be added to the pom:<programlisting
     language="xml">&lt;dependency&gt;
      &lt;groupId&gt;org.glassfish.grizzly&lt;/groupId&gt;
      &lt;artifactId&gt;grizzly-http-server-jaxws&lt;/artifactId&gt;
      &lt;version&gt;@project.version@&lt;/version&gt;
 &lt;/dependency&gt;</programlisting></para>
-    
+
     <para>Non-maven developers, additionally to jars, required by <link
-      linkend="http-server-dep">HTTP Server framework</link>,
-      require:<itemizedlist>
+    linkend="http-server-dep">HTTP Server framework</link>,
+    require:<itemizedlist>
         <listitem>
           <para><link
-            xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-http-server-jaxws/@project.version@/grizzly-http-server-jaxws-@project.version@.jar">grizzly-http-server-jaxws.jar</link></para>
+          xlink:href="http://download.java.net/maven/glassfish/org/glassfish/grizzly/grizzly-http-server-jaxws/@project.version@/grizzly-http-server-jaxws-@project.version@.jar">grizzly-http-server-jaxws.jar</link></para>
         </listitem>
       </itemizedlist></para>
   </section>
-  
 </chapter>
