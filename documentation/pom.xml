@@ -106,7 +106,7 @@
                             <chunkedOutput>true</chunkedOutput>
                             <htmlStylesheet>css/style.css</htmlStylesheet>
                             <useIdAsFilename>1</useIdAsFilename>
-                            <htmlCustomization>src/docbkx/hightlight.xsl</htmlCustomization>
+                            <htmlCustomization>${basedir}/src/docbkx/hightlight.xsl</htmlCustomization>
                         </configuration>
                         <phase>install</phase>
                     </execution>
