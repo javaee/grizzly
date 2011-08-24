@@ -64,6 +64,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import junit.framework.TestCase;
+import org.glassfish.grizzly.Connection.CloseListener;
+import org.glassfish.grizzly.Connection.CloseType;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 
 /**
@@ -295,10 +297,11 @@ public class KeepAliveTest extends TestCase {
                 }
             });
 
-            connection.addCloseListener(new Connection.CloseListener() {
+            connection.addCloseListener(new CloseListener() {
 
                 @Override
-                public void onClosed(Connection connection) throws IOException {
+                public void onClosed(final Connection connection,
+                        final CloseType closeType) throws IOException {
                     localFuture.failure(new IOException());
                 }
             });

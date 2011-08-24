@@ -71,6 +71,8 @@ import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 
+import org.glassfish.grizzly.Connection.CloseListener;
+import org.glassfish.grizzly.Connection.CloseType;
 import org.glassfish.grizzly.PendingWriteQueueLimitExceededException;
 
 import static org.glassfish.grizzly.ssl.SSLUtils.*;
@@ -713,9 +715,9 @@ public class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
      * Close listener, which is used to notify handshake completion handler about
      * failure, if <tt>Connection</tt> will be unexpectedly closed.
      */
-    private final class ConnectionCloseListener implements Connection.CloseListener {
+    private final class ConnectionCloseListener implements CloseListener {
         @Override
-        public void onClosed(Connection connection) throws IOException {
+        public void onClosed(final Connection connection, final CloseType type) throws IOException {
             final CompletionHandler<SSLEngine> completionHandler =
                     handshakeCompletionHandlerAttr.remove(connection);
             if (completionHandler != null) {

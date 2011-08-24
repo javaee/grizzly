@@ -42,6 +42,7 @@ package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ConnectionProbe;
+import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.nio.SelectorRunner;
@@ -224,6 +225,17 @@ public class TCPNIOConnection extends NIOConnection {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected GrizzlyFuture<Connection> close0(
+            final CompletionHandler<Connection> completionHandler,
+            final boolean isClosedLocally) throws IOException {
+        return super.close0(completionHandler, isClosedLocally);
+    }
+
+    
     /**
      * Method will be called, when some data was read on the connection
      */

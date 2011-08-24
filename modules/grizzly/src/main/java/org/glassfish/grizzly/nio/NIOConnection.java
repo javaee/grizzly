@@ -47,7 +47,7 @@ import java.util.Queue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -87,6 +87,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     private static final boolean WIN32 = "\\".equals(System.getProperty("file.separator"));
     private static final Logger logger = Grizzly.logger(NIOConnection.class);
     private static final short MAX_ZERO_READ_COUNT = 100;
+    
     protected final NIOTransport transport;
     protected volatile int readBufferSize;
     protected volatile int writeBufferSize;
@@ -100,7 +101,11 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     protected final AttributeHolder attributes;
     protected final TaskQueue<AsyncReadQueueRecord> asyncReadQueue;
     protected final TaskQueue<AsyncWriteQueueRecord> asyncWriteQueue;
-    protected final AtomicBoolean isClosed = new AtomicBoolean(false);
+    
+    // closeFlag, "null" value means the connection is open.
+    protected final AtomicReference<CloseType> closeFlag =
+            new AtomicReference<CloseType>();
+    
     protected volatile boolean isBlocking;
     protected volatile boolean isStandalone;
     protected short zeroByteReadCount;
@@ -340,19 +345,29 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
     @Override
     public boolean isOpen() {
-        return channel != null && channel.isOpen() && !isClosed.get();
+        return channel != null && channel.isOpen() && closeFlag.get() == null;
     }
 
     @Override
     public GrizzlyFuture<Connection> close() throws IOException {
-        return close(null);
+        return close0(null, true);
     }
 
     @Override
     public GrizzlyFuture<Connection> close(
             final CompletionHandler<Connection> completionHandler)
             throws IOException {
-        if (!isClosed.getAndSet(true)) {
+        return close0(completionHandler, true);
+    }
+        
+    protected GrizzlyFuture<Connection> close0(
+            final CompletionHandler<Connection> completionHandler,
+            final boolean isClosedLocally)
+            throws IOException {
+        
+        if (closeFlag.compareAndSet(null,
+                isClosedLocally ? CloseType.LOCALLY : CloseType.REMOTELY)) {
+            
             preClose();
             notifyCloseListeners();
             notifyProbesClose(this);
@@ -402,22 +417,25 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * {@inheritDoc}
      */
     @Override
-    public void addCloseListener(CloseListener closeListener) {
+    public void addCloseListener(final CloseListener closeListener) {
+        CloseType closeType = closeFlag.get();
+        
         // check if connection is still open
-        if (!isClosed.get()) {
+        if (closeType == null) {
             // add close listener
             closeListeners.add(closeListener);
             // check the connection state again
-            if (isClosed.get() && closeListeners.remove(closeListener)) {
+            closeType = closeFlag.get();
+            if (closeType != null && closeListeners.remove(closeListener)) {
                 // if connection was closed during the method call - notify the listener
                 try {
-                    closeListener.onClosed(this);
+                    closeListener.onClosed(this, closeType);
                 } catch (IOException ignored) {
                 }
             }
         } else { // if connection is closed - notify the listener
             try {
-                closeListener.onClosed(this);
+                closeListener.onClosed(this, closeType);
             } catch (IOException ignored) {
             }
         }
@@ -427,7 +445,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * {@inheritDoc}
      */
     @Override
-    public boolean removeCloseListener(CloseListener closeListener) {
+    public boolean removeCloseListener(final CloseListener closeListener) {
         return closeListeners.remove(closeListener);
     }
 
@@ -607,10 +625,12 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * Notify all close listeners
      */
     private void notifyCloseListeners() {
+        final CloseType closeType = closeFlag.get();
+        
         CloseListener closeListener;
         while ((closeListener = closeListeners.poll()) != null) {
             try {
-                closeListener.onClosed(this);
+                closeListener.onClosed(this, closeType);
             } catch (IOException ignored) {
             }
         }

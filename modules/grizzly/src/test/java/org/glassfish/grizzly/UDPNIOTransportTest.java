@@ -96,9 +96,6 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
             for (int i = 0; i < portsTest; i++) {
                 final UDPNIOServerConnection serverConnection =
                         transport.bind("localhost", portRange, 4096);
-
-//                assertEquals(PORT + i,
-//                        ((InetSocketAddress) serverConnection.getLocalAddress()).getPort());
             }
 
             try {

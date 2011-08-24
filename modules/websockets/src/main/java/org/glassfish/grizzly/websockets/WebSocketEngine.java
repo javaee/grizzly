@@ -39,6 +39,7 @@
  */
 package org.glassfish.grizzly.websockets;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -47,6 +48,7 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Connection.CloseListener;
+import org.glassfish.grizzly.Connection.CloseType;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -60,7 +62,7 @@ import org.glassfish.grizzly.websockets.draft06.ClosingFrame;
  * WebSockets engine implementation (singleton), which handles {@link WebSocketApplication}s registration, responsible
  * for client and server handshake validation.
  *
- * @author Alexey Stashok.
+ * @author Alexey Stashok
  * @see WebSocket
  * @see WebSocketApplication
  */
@@ -151,7 +153,9 @@ public class WebSocketEngine {
                 protocolHandler.handshake(ctx, app, requestContent);
                 request.getConnection().addCloseListener(new CloseListener() {
                     @Override
-                    public void onClosed(Connection connection) {
+                    public void onClosed(final Connection connection,
+                            final CloseType type) throws IOException {
+                        
                         final WebSocket webSocket = getWebSocket(connection);
                         webSocket.close();
                         webSocket.onClose(new ClosingFrame(WebSocket.END_POINT_GOING_DOWN,

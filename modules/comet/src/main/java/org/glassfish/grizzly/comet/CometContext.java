@@ -50,6 +50,7 @@ import java.util.logging.Logger;
 
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Connection.CloseType;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.http.server.Request;
@@ -519,7 +520,8 @@ public class CometContext<E> {
         }
 
         @Override
-        public void onClosed(Connection connection) throws IOException {
+        public void onClosed(final Connection connection, final CloseType type)
+                throws IOException {
             removeCometHandler(handler);
             connection.removeCloseListener(this);
         }

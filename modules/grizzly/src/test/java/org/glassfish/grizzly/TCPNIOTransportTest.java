@@ -41,6 +41,7 @@
 package org.glassfish.grizzly;
 
 import java.nio.channels.SelectableChannel;
+import org.glassfish.grizzly.Connection.CloseType;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
@@ -48,6 +49,7 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -65,10 +67,13 @@ import org.glassfish.grizzly.utils.EchoFilter;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.AbstractNIOConnectionDistributor;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.nio.SelectorRunner;
+import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Unit test for {@link TCPNIOTransport}
@@ -217,9 +222,6 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             for (int i = 0; i < portsTest; i++) {
                 final TCPNIOServerConnection serverConnection =
                         transport.bind("localhost", portRange, 4096);
-
-//                assertEquals(startPort + i,
-//                        ((InetSocketAddress) serverConnection.getLocalAddress()).getPort());
             }
 
             try {
@@ -285,6 +287,82 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         }
     }
 
+    public void testClose() throws Exception {
+        final BlockingQueue<Connection> acceptedQueue = DataStructures.<Connection>getLTQInstance();
+        
+        Connection connectedConnection = null;
+        Connection acceptedConnection = null;
+
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+
+        try {
+            FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+            filterChainBuilder.add(new TransportFilter());
+            filterChainBuilder.add(new BaseFilter() {
+
+                @Override
+                public NextAction handleAccept(final FilterChainContext ctx)
+                        throws IOException {
+                    acceptedQueue.offer(ctx.getConnection());
+                    return ctx.getInvokeAction();
+                }
+            });
+            
+            transport.setProcessor(filterChainBuilder.build());
+
+            transport.bind(PORT);
+            transport.start();
+            
+            Future<Connection> connectFuture = transport.connect(
+                    new InetSocketAddress("localhost", PORT));
+                        
+            connectedConnection = connectFuture.get(10, TimeUnit.SECONDS);
+            acceptedConnection = acceptedQueue.poll(10, TimeUnit.SECONDS);
+            
+            final FutureImpl<Boolean> connectedCloseFuture = new SafeFutureImpl<Boolean>();
+            final FutureImpl<Boolean> acceptedCloseFuture = new SafeFutureImpl<Boolean>();
+            
+            connectedConnection.addCloseListener(new Connection.CloseListener() {
+
+                @Override
+                public void onClosed(Connection connection, CloseType type) throws IOException {
+                    connectedCloseFuture.result(type == CloseType.LOCALLY);
+                }
+            });
+            
+            acceptedConnection.addCloseListener(new Connection.CloseListener() {
+
+                @Override
+                public void onClosed(Connection connection, CloseType type) throws IOException {
+                    acceptedCloseFuture.result(type == CloseType.REMOTELY);
+                }
+            });
+
+            connectedConnection.close();
+
+            assertTrue(connectedCloseFuture.get(10, TimeUnit.SECONDS));
+            assertTrue(acceptedCloseFuture.get(10, TimeUnit.SECONDS));
+        } finally {
+            if (acceptedConnection != null) {
+                try {
+                    acceptedConnection.close();
+                } catch (IOException e) {
+                    logger.log(Level.WARNING, "unexpected exception during close", e);
+                }
+            }
+
+            if (connectedConnection != null) {
+                try {
+                    connectedConnection.close();
+                } catch (IOException e) {
+                    logger.log(Level.WARNING, "unexpected exception during close", e);
+                }
+            }
+
+            transport.stop();
+        }        
+    }
+    
     public void testSimpleEcho() throws Exception {
         Connection connection = null;
         StreamReader reader;

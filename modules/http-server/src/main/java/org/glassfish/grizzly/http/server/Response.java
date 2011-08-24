@@ -77,6 +77,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.glassfish.grizzly.Connection.CloseListener;
+import org.glassfish.grizzly.Connection.CloseType;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
@@ -475,17 +477,6 @@ public class Response {
 
 
     /**
-     * Create and return a ServletOutputStream to write the content
-     * associated with this Response.
-     *
-     */
-    public NIOOutputStream createOutputStream() {
-        outputStream.setOutputBuffer(outputBuffer);
-        return outputStream;
-    }
-
-
-    /**
      * Perform whatever actions are required to flush and close the output
      * stream or writer, in a single operation.
      */
@@ -493,11 +484,11 @@ public class Response {
         // Writing leftover bytes
         try {
             outputBuffer.endRequest();
-        } catch(IOException e) {
+        } catch (IOException e) {
             if (LOGGER.isLoggable(Level.FINEST)) {
                 LOGGER.log(Level.FINEST, "ACTION_CLIENT_FLUSH", e);
             }
-        } catch(Throwable t) {
+        } catch (Throwable t) {
             if (LOGGER.isLoggable(Level.WARNING)) {
                 LOGGER.log(Level.WARNING, "ACTION_CLIENT_FLUSH", t);
             }
@@ -578,6 +569,33 @@ public class Response {
         response.setCharacterEncoding(charset);
     }
 
+    /**
+     * Create and return a ServletOutputStream to write the content
+     * associated with this Response.
+     */
+    public NIOOutputStream createOutputStream() {
+        outputStream.setOutputBuffer(outputBuffer);
+        return outputStream;
+    }
+
+    /**
+     * <p>
+     * Create and return the {@link NIOOutputStream} associated with this {@link Response}.
+     * </p>
+     *
+     * @param blocking flag indicating if content written using this
+     *  {@link NIOOutputStream} will block or not.
+     *
+     * @return the {@link NIOOutputStream} associated with this {@link Response}.
+     *
+     * @since 2.2
+     */
+    public NIOOutputStream createOutputStream(final boolean blocking) {
+        outputBuffer.setAsyncEnabled(!blocking);
+        outputStream.setOutputBuffer(outputBuffer);
+        return outputStream;
+    }
+    
     /**
      * <p>
      * Return the {@link NIOOutputStream} associated with this {@link Response}.
@@ -1775,7 +1793,7 @@ public class Response {
     }
 
     public final class SuspendedContextImpl implements SuspendContext,
-            Connection.CloseListener {
+            CloseListener {
 
         volatile CompletionHandler<Response> completionHandler;
         volatile TimeoutHandler timeoutHandler;
@@ -1855,7 +1873,7 @@ public class Response {
             }
         }
 
-        private void reset() {
+        void reset() {
             timeoutTimeMillis = DelayedExecutor.UNSET_TIMEOUT;
             completionHandler = null;
             timeoutHandler = null;
@@ -1863,7 +1881,8 @@ public class Response {
         }
 
         @Override
-        public void onClosed(final Connection connection) throws IOException {
+        public void onClosed(final Connection connection,
+                final CloseType closeType) throws IOException {
             cancel();
         }
 

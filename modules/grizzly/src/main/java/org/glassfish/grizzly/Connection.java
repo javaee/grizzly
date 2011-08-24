@@ -273,11 +273,15 @@ public interface Connection<L> extends Readable<L>, Writable<L>,
      * @param error {@link Throwable}.
      */
     void notifyConnectionError(Throwable error);
+    
+    public static enum CloseType {
+        LOCALLY, REMOTELY
+    }
 
     /**
      * The listener, which is used to be notified, when <tt>Connection</tt> gets closed.
      */
-    interface CloseListener {
-        void onClosed(Connection connection) throws IOException;
-    }
+    public interface CloseListener {
+        void onClosed(Connection connection, CloseType type) throws IOException;    
+    }    
 }

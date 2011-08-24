@@ -824,11 +824,11 @@ public final class UDPNIOTransport extends NIOTransport implements
             }
 
             connection.onRead(buffer, read);
+        } catch (Exception e) {
+            read = -1;
         } finally {
             if (isAllocate && read <= 0) {
                 buffer.dispose();
-                //noinspection UnusedAssignment
-                buffer = null;
             }
         }
 

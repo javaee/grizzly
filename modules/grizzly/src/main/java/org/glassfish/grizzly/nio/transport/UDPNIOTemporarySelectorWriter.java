@@ -43,7 +43,6 @@ package org.glassfish.grizzly.nio.transport;
 import java.io.IOException;
 import java.net.SocketAddress;
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorWriter;
