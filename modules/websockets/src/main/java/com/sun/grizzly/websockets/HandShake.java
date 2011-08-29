@@ -234,13 +234,15 @@ public abstract class HandShake {
     }
 
     private void validate(String header, String validValue, String value) {
+        boolean found = false;
         if(value.contains(",")) {
-            boolean found = false;
             for(String part: value.split(",")) {
                 found |= part.trim().equalsIgnoreCase(validValue);
             }
+        } else {
+            found = value.equalsIgnoreCase(validValue);
         }
-        if(!value.equalsIgnoreCase(validValue)) {
+        if(!found) {
             throw new HandshakeException(String.format("Invalid %s header returned: '%s'", header, value));
         }
     }
