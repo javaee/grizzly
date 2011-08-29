@@ -38,3 +38,8 @@ moo.fx
 prototype.js
 readme
 readme.txt
+modules/http-ajp/src/test/resources/request.txt
+modules/http-ajp/src/test/resources/request2.txt
+modules/http-ajp/src/test/resources/response1.txt
+modules/http-ajp/src/test/resources/response2.txt
+modules/http-ajp/src/test/resources/response3.txt
