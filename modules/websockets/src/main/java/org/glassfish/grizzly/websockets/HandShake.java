@@ -219,14 +219,19 @@ public abstract class HandShake {
     }
 
     private void checkForHeader(HttpHeader headers, String header, String validValue) {
-        final String value = headers.getHeader(header);
-        if (!validValue.equalsIgnoreCase(value)) {
-            throw new HandshakeException(String.format("Invalid %s header returned: '%s'", header, value));
-        }
+        validate(header, validValue, headers.getHeader(header));
     }
 
     private void validate(String header, String validValue, String value) {
-        if (!validValue.equalsIgnoreCase(value)) {
+        boolean found = false;
+        if(value.contains(",")) {
+            for(String part: value.split(",")) {
+                found |= part.trim().equalsIgnoreCase(validValue);
+            }
+        } else {
+            found = value.equalsIgnoreCase(validValue);
+        }
+        if(!found) {
             throw new HandshakeException(String.format("Invalid %s header returned: '%s'", header, value));
         }
     }

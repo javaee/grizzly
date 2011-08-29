@@ -401,7 +401,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     }
 
     private static boolean isRenegotiateOnClientAuthWant(final Ssl ssl) {
-        return ((ssl == null) || Boolean.parseBoolean(ssl.getRenegotiateOnClientAuthWant()));
+        return ssl == null || Boolean.parseBoolean(ssl.getRenegotiateOnClientAuthWant());
     }
 
     @SuppressWarnings({"unchecked"})
