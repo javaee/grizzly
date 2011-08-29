@@ -236,5 +236,4 @@ public class AjpConstants {
      */
     public static final int MAX_READ_SIZE = MAX_PACKET_SIZE - H_SIZE - 2;
 
-    public static final byte[] MAX_READ_SIZE_BYTES = {(byte) (MAX_READ_SIZE >> 8), (byte) (MAX_READ_SIZE & 0xFF)};
 }

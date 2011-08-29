@@ -42,6 +42,8 @@ package com.sun.grizzly.http.ajp;
 
 import com.sun.grizzly.http.SocketChannelOutputBuffer;
 import com.sun.grizzly.tcp.Response;
+import com.sun.grizzly.util.buf.ByteChunk;
+import com.sun.grizzly.util.buf.CharChunk;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -60,13 +62,55 @@ public class AjpOutputBuffer extends SocketChannelOutputBuffer {
     }
 
     @Override
+    public void realWriteBytes(byte[] cbuf, int off, int len) throws IOException {
+        if (response.isCommitted()) {
+            final ByteBuffer wrap = ByteBuffer.allocate(len+3);
+            wrap.putShort((short) len);
+            wrap.put(cbuf, off, len);
+            wrap.put((byte) 0);
+            wrap.flip();
+            final ByteBuffer packet =
+                    AjpMessageUtils.createAjpPacket(AjpConstants.JK_AJP13_SEND_BODY_CHUNK, wrap);
+            super.realWriteBytes(packet.array(), packet.position(), packet.limit());
+        } else {
+            super.realWriteBytes(cbuf, off, len);
+        }
+    }
+
+    @Override
+    protected void write(ByteChunk bc) {
+        super.write(bc);
+    }
+
+    @Override
+    protected void write(CharChunk cc) {
+        super.write(cc);
+    }
+
+    @Override
+    protected void write(byte[] b) {
+        super.write(b);
+    }
+
+    @Override
+    protected void write(String s) {
+        super.write(s);
+    }
+
+    @Override
+    protected void write(int i) {
+        super.write(i);
+    }
+
+    @Override
     public long sendFile(FileChannel fileChannel, long position, final long length) throws IOException {
         return fileChannel.transferTo(position, length,
                 new WritableByteChannel() {
                     public int write(ByteBuffer src) throws IOException {
-                        ByteBuffer buffer = ByteBuffer.allocate((int) (2 + length));
+                        ByteBuffer buffer = ByteBuffer.allocate((int) (3 + length));
                         buffer.putShort((short) length);
                         buffer.put(src);
+                        buffer.put((byte) 0);
                         buffer.flip();
                         ((SocketChannel) channel).write(AjpMessageUtils
                                 .createAjpPacket(AjpConstants.JK_AJP13_SEND_BODY_CHUNK, buffer));
@@ -86,9 +130,9 @@ public class AjpOutputBuffer extends SocketChannelOutputBuffer {
     @Override
     public void endRequest() throws IOException {
         if (!finished) {
+            super.endRequest();
             ((SocketChannel) channel).write(AjpMessageUtils.createAjpPacket(AjpConstants.JK_AJP13_END_RESPONSE,
                     ByteBuffer.wrap(new byte[]{1})));
-            super.endRequest();
         }
     }
 }

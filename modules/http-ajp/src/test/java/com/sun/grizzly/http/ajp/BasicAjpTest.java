@@ -43,11 +43,13 @@ package com.sun.grizzly.http.ajp;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
+import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
+import com.sun.grizzly.tcp.http11.GrizzlyRequest;
+import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.buf.ByteChunk;
 import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.io.BufferedReader;
@@ -72,11 +74,6 @@ public class BasicAjpTest {
 
     private SelectorThread selectorThread;
 
-    @Before
-    public void before() throws Exception {
-        configureHttpServer();
-    }
-
     @After
     public void after() throws Exception {
         if (selectorThread != null) {
@@ -85,7 +82,34 @@ public class BasicAjpTest {
     }
 
     @Test
-    public void testRequest() throws IOException {
+    public void testDynamicRequest() throws IOException, InstantiationException {
+        final String message = "Test Message";
+        configureHttpServer(new GrizzlyAdapter() {
+            @Override
+            public void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
+                response.getOutputBuffer().write(message);
+            }
+        });
+        final ByteBuffer response = send("localhost", PORT, read("/request.txt"));
+        List<AjpResponse> responses = AjpMessageUtils.parseResponse(response);
+
+        final Iterator<AjpResponse> iterator = responses.iterator();
+        AjpResponse next = iterator.next();
+        Assert.assertEquals(200, next.getResponseCode());
+        Assert.assertEquals("OK", next.getResponseMessage());
+
+        iterator.next(); // skip chunked encoded message
+        next = iterator.next();
+        Assert.assertEquals(message, new String(next.getBody()));
+        iterator.next();
+        iterator.next();
+
+        Assert.assertEquals(AjpConstants.JK_AJP13_END_RESPONSE, iterator.next().getType());
+    }
+
+    @Test
+    public void testStaticRequest() throws IOException, InstantiationException {
+        configureHttpServer(new StaticResourcesAdapter("src/test/resources"));
         final ByteBuffer response = send("localhost", PORT, read("/request.txt"));
         List<AjpResponse> responses = AjpMessageUtils.parseResponse(response);
 
@@ -98,6 +122,22 @@ public class BasicAjpTest {
         Assert.assertArrayEquals(readFile("src/test/resources/ajpindex.html"), next.getBody());
 
         Assert.assertEquals(AjpConstants.JK_AJP13_END_RESPONSE, iterator.next().getType());
+    }
+
+    public void testPingPong() throws Exception {
+        configureHttpServer(new StaticResourcesAdapter("src/test/resources"));
+        final ByteBuffer request = ByteBuffer.allocate(12);
+        request.put((byte) 0x12);
+        request.put((byte) 0x34);
+        request.putShort((short) 1);
+        request.put(AjpConstants.JK_AJP13_CPING_REQUEST);
+        request.flip();
+
+        final ByteBuffer response = send("localhost", PORT, request);
+        Assert.assertEquals((byte) 'A', response.get());
+        Assert.assertEquals((byte) 'B', response.get());
+        Assert.assertEquals((short) 1, response.getShort());
+        Assert.assertEquals(AjpConstants.JK_AJP13_CPONG_REPLY, response.get());
     }
 
     private byte[] readFile(String name) throws IOException {
@@ -137,21 +177,6 @@ public class BasicAjpTest {
         return ByteBuffer.wrap(stream.toByteArray());
     }
 
-    public void testPingPong() throws Exception {
-        final ByteBuffer request = ByteBuffer.allocate(12);
-        request.put((byte) 0x12);
-        request.put((byte) 0x34);
-        request.putShort((short) 1);
-        request.put(AjpConstants.JK_AJP13_CPING_REQUEST);
-        request.flip();
-
-        final ByteBuffer response = send("localhost", PORT, request);
-        Assert.assertEquals((byte) 'A', response.get());
-        Assert.assertEquals((byte) 'B', response.get());
-        Assert.assertEquals((short) 1, response.getShort());
-        Assert.assertEquals(AjpConstants.JK_AJP13_CPONG_REPLY, response.get());
-    }
-
     @SuppressWarnings({"unchecked"})
     private ByteBuffer send(String host, int port, ByteBuffer request) throws IOException {
         ByteChunk response = new ByteChunk();
@@ -173,8 +198,7 @@ public class BasicAjpTest {
         return response.getLength() == 0 ? ByteBuffer.allocate(0) : response.toByteBuffer();
     }
 
-    private void configureHttpServer() throws Exception {
-        final Adapter adapter = new StaticResourcesAdapter("src/test/resources");
+    private void configureHttpServer(final Adapter adapter) throws IOException, InstantiationException {
         selectorThread = new AjpSelectorThread();
         selectorThread.setSsBackLog(8192);
         selectorThread.setCoreThreads(2);
@@ -189,6 +213,6 @@ public class BasicAjpTest {
 
     public static void main(String[] args) throws Exception {
         BasicAjpTest test = new BasicAjpTest();
-        test.configureHttpServer();
+        test.configureHttpServer(new StaticResourcesAdapter("src/test/resources"));
     }
 }

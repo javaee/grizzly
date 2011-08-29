@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -453,8 +453,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
      * Load and initializes Comet {@link AsyncFilter}.
      */
     public static ProcessorTaskFactory loadAjpFactory(final Habitat habitat) {
-        return Utils.newInstance(habitat, ProcessorTaskFactory.class, "comet",
-                "com.sun.grizzly.comet.CometAsyncFilter");
+        return Utils.newInstance(habitat, ProcessorTaskFactory.class, "ajp",
+                "com.sun.grizzly.http.ajp.AjpProcessorTaskFactory");
     }
 
     /**

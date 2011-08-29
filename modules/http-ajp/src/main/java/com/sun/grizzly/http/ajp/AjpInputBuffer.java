@@ -72,7 +72,7 @@ public class AjpInputBuffer extends InternalInputBuffer {
                 processForwardRequest();
                 break;
             case AjpConstants.JK_AJP13_DATA:
-//                return processData(chunk);
+                processData();
                 break;
             case AjpConstants.JK_AJP13_SHUTDOWN:
 //                return processShutdown(chunk);
@@ -139,6 +139,49 @@ public class AjpInputBuffer extends InternalInputBuffer {
             // content-length == 0 - no content is expected
             ajpRequest.setExpectContent(false);
         }
+    }
+    
+    private void processData() {
+        if (buffer.hasRemaining()) {
+            // Skip the content length field - we know the size from the packet header
+            buffer.position(buffer.position() + 2);
+        }
+
+        final AjpHttpRequest ajpRequest = (AjpHttpRequest) request;
+
+        // Figure out if the content is last
+        if (ajpRequest.isExpectContent()) {
+            int contentBytesRemaining = ajpRequest.getContentBytesRemaining();
+            // if we know the content-length
+            if (contentBytesRemaining > 0) {
+                contentBytesRemaining -= buffer.remaining();
+                ajpRequest.setContentBytesRemaining(contentBytesRemaining);
+                // do we have more content remaining?
+                if (contentBytesRemaining <= 0) {
+                    ajpRequest.setExpectContent(false);
+                }
+            } else if (!buffer.hasRemaining()) {
+                // if chunked and zero-length content came
+                ajpRequest.setExpectContent(false);
+            }
+        }
+
+/*
+        final HttpContent content = HttpContent.builder(ajpRequest)
+                .content(buffer)
+                .last(!ajpRequest.isExpectContent())
+                .build();
+
+        ctx.setMessage(content);
+
+        // If we may expect more data - do the following trick:
+        // set NEED_MORE_DATA_MESSAGE as remainder, so when more data will be requested
+        // this filter will be invoked. This way we'll be able to send a request
+        // for more data to web server.
+        // See handleRead() and sendMoreDataRequestIfNeeded() methods
+        return ctx.getInvokeAction(ajpRequest.isExpectContent() ?
+            NEED_MORE_DATA_MESSAGE : null);
+*/
     }
 
 }

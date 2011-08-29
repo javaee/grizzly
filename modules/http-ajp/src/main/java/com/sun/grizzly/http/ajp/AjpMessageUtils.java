@@ -425,7 +425,7 @@ final class AjpMessageUtils {
 
     public static ByteBuffer createAjpPacket(final byte type, ByteBuffer src) {
         final int length = src.limit() - src.position();
-        final ByteBuffer ajpHeader = ByteBuffer.allocate((int) (5 + length));
+        final ByteBuffer ajpHeader = ByteBuffer.allocate((int) (6 + length));
         ajpHeader.put((byte) 'A');
         ajpHeader.put((byte) 'B');
         ajpHeader.putShort((short) (1 + length));
@@ -441,7 +441,7 @@ final class AjpMessageUtils {
             final AjpResponse ajpResponse = new AjpResponse();
             final short magic = buffer.getShort();
             if (magic != 0x4142) {
-                throw new RuntimeException("Invalid magic number");
+                throw new RuntimeException("Invalid magic number: " + magic + " buffer: " + buffer);
             }
             final short packetSize = buffer.getShort();
             int start = buffer.position();
@@ -462,6 +462,7 @@ final class AjpMessageUtils {
                     body = new byte[size];
                     buffer.get(body);
                     ajpResponse.setBody(body);
+                    buffer.get();  // consume terminating \0
                     break;
                 case AjpConstants.JK_AJP13_END_RESPONSE:
                     body = new byte[1];

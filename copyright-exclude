@@ -2,6 +2,7 @@
 .args
 .bundle
 .class
+.exe
 .gif
 .gitignore
 .ico
@@ -17,7 +18,13 @@
 .ods
 .png
 .project
+.sql
 .svg
+.war
+.zip
+/MANIFEST.MF
+/META-INF/services/
+/README
 BayeuxClient.java
 Grizzly-Migration-Guide
 Grizzly_THIRDPARTYLICENSEREADME.txt
@@ -25,9 +32,7 @@ LICENSE.txt
 MANIFEST.MF
 atlassian-ide-plugin.xml
 behaviour.js
-copyright.excludes
-copyright.sh
-copyrightcheck.out
+copyright-exclude
 dojo
 moo.fx
 prototype.js
