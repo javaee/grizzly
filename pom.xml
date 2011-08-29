@@ -191,6 +191,17 @@
                     </archive>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.glassfish.copyright</groupId>
+                <artifactId>glassfish-copyright-maven-plugin</artifactId>
+                <version>1.28</version>
+                <configuration>
+                    <excludeFile>copyright-exclude</excludeFile>
+                    <scm>git</scm>
+                    <scmOnly>true</scmOnly>
+                    <warn>false</warn>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
     <profiles>
