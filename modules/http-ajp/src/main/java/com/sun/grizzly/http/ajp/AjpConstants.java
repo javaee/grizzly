@@ -63,7 +63,7 @@ package com.sun.grizzly.http.ajp;
  * Common class for the AJP Protocol values
  */
 
-public class AjpConstants {
+public final class AjpConstants {
     // Prefix codes for message types from server to container
     /**
      * Message code for initial Request packet
@@ -236,4 +236,23 @@ public class AjpConstants {
      */
     public static final int MAX_READ_SIZE = MAX_PACKET_SIZE - H_SIZE - 2;
 
+    public static byte getMethodCode(String method) {
+        for (int i = 0; i < methodTransArray.length; i++) {
+            if(methodTransArray[i].equalsIgnoreCase(method)) {
+                return (byte) (i + 1);
+            }
+        }
+
+        return -1;
+    }
+
+    public static byte getHeaderCode(String header) {
+        for (int i = 0; i < headerTransArray.length; i++) {
+            if(headerTransArray[i].equalsIgnoreCase(header)) {
+                return (byte) (i + 1);
+            }
+        }
+
+        return -1;
+    }
 }

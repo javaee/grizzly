@@ -8,7 +8,7 @@
  * and Distribution License("CDDL") (collectively, the "License").  You
  * may not use this file except in compliance with the License.  You can
  * obtain a copy of the License at
- * https://glassfish.dev.java.net/public/CDDL+GPL_1_1.html
+ * http://glassfish.java.net/public/CDDL+GPL_1_1.html
  * or packager/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
  *
@@ -38,57 +38,22 @@
  * holder.
  */
 
-package com.sun.grizzly.websockets;
+package com.sun.grizzly.http.ajp;
 
-import com.sun.grizzly.util.Utils;
-import com.sun.grizzly.util.buf.ByteChunk;
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.io.IOException;
-import java.util.List;
 
-public abstract class BaseNetworkHandler implements NetworkHandler {
-    protected final ByteChunk chunk = new ByteChunk();
+public class AjpPacketTest extends AjpTestBase {
+    @Test
+    public void forwardRequest() throws IOException {
+        AjpForwardRequestPacket forward = new AjpForwardRequestPacket("GET", "//ajpindex.html", 1025, 61878);
+        forward.addHeader("User-Agent", "Wget/1.13 (darwin10.8.0)");
+        forward.addHeader("Accept", "*/*");
+        forward.addHeader("Host", "localhost:1025");
+        forward.addHeader("Connection", "Keep-Alive");
 
-    protected abstract int read();
-
-    public byte[] readLine() throws IOException {
-        if (chunk.getLength() <= 0) {
-            read();
-        }
-
-        int idx = chunk.indexOf('\n', 0);
-        if (idx != -1) {
-            int eolBytes = 1;
-            final int offset = chunk.getOffset();
-            idx += offset;
-
-            if (idx > offset && chunk.getBuffer()[idx - 1] == '\r') {
-                idx--;
-                eolBytes = 2;
-            }
-
-            final int size = idx - offset;
-
-            final byte[] result = new byte[size];
-            chunk.substract(result, 0, size);
-
-            chunk.setOffset(chunk.getOffset() + eolBytes); // Skip \r\n or \n
-            return result;
-        }
-
-        return null;
-    }
-
-    public List<String> getBytes() {
-        return getByteList(chunk.getStart(), chunk.getEnd());
-    }
-
-    private List<String> getByteList(final int start, final int end) {
-        return Utils.toString(chunk.getBytes(), start, end);
-    }
-
-    @Override
-    public String toString() {
-        return String.format("Active: %s" /*+ ", Full: %s"*/, getBytes().toString()/*, getByteList(0, chunk.getEnd())*/);
+        Assert.assertArrayEquals(read("/request.txt").array(), forward.toBuffer().array());
     }
 }

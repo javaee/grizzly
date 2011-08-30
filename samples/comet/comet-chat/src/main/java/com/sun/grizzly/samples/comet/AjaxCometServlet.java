@@ -40,21 +40,18 @@
 
 package com.sun.grizzly.samples.comet;
 
-import java.io.IOException;
-import java.io.PrintWriter;
+import com.sun.grizzly.comet.CometContext;
+import com.sun.grizzly.comet.CometEngine;
+import com.sun.grizzly.comet.CometEvent;
+import com.sun.grizzly.comet.CometHandler;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-
-import com.sun.grizzly.comet.CometContext;
-import com.sun.grizzly.comet.CometEngine;
-import com.sun.grizzly.comet.CometEvent;
-import com.sun.grizzly.comet.CometHandler;
-
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.logging.Logger;
 
 public class AjaxCometServlet extends HttpServlet {
@@ -67,7 +64,7 @@ public class AjaxCometServlet extends HttpServlet {
             "servers to send data to the client without having any need " +
             "for the client to request it. -->\n";
 
-    public class ChatListnerHandler implements CometHandler<PrintWriter> {
+    public class ChatListenerHandler implements CometHandler<PrintWriter> {
 
         private PrintWriter writer;
 
@@ -133,7 +130,7 @@ public class AjaxCometServlet extends HttpServlet {
         }
         writer.flush();
 
-        ChatListnerHandler handler = new ChatListnerHandler();
+        ChatListenerHandler handler = new ChatListenerHandler();
         handler.attach(writer);
 
         CometContext context = CometEngine.getEngine().register(contextPath);

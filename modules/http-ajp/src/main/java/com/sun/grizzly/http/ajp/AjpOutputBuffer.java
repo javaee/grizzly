@@ -107,14 +107,15 @@ public class AjpOutputBuffer extends SocketChannelOutputBuffer {
         return fileChannel.transferTo(position, length,
                 new WritableByteChannel() {
                     public int write(ByteBuffer src) throws IOException {
-                        ByteBuffer buffer = ByteBuffer.allocate((int) (3 + length));
-                        buffer.putShort((short) length);
+                        final int count = src.remaining();
+                        ByteBuffer buffer = ByteBuffer.allocate((int) (3 + count));
+                        buffer.putShort((short) count);
                         buffer.put(src);
                         buffer.put((byte) 0);
                         buffer.flip();
                         ((SocketChannel) channel).write(AjpMessageUtils
                                 .createAjpPacket(AjpConstants.JK_AJP13_SEND_BODY_CHUNK, buffer));
-                        return (int) length;
+                        return (int) count;
                     }
 
                     public boolean isOpen() {

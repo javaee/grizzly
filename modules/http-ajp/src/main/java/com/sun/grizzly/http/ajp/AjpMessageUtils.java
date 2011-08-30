@@ -191,7 +191,7 @@ final class AjpMessageUtils {
         }
     }
 
-    private static String getString(ByteBuffer buffer) {
+    public static String getString(ByteBuffer buffer) {
         final int length = getShort(buffer);
         final String s = new String(buffer.array(), buffer.position(), length);
         // Don't forget to skip the terminating \0 (that's why "+ 1")
@@ -444,6 +444,9 @@ final class AjpMessageUtils {
                 throw new RuntimeException("Invalid magic number: " + magic + " buffer: " + buffer);
             }
             final short packetSize = buffer.getShort();
+            if(packetSize + 5 > 8192) {
+//                throw new RuntimeException("Packet size too large:" + packetSize);
+            }
             int start = buffer.position();
             final byte type = buffer.get();
             ajpResponse.setType(type);
@@ -453,7 +456,7 @@ final class AjpMessageUtils {
                     ajpResponse.setResponseCode(buffer.getShort());
                     ajpResponse.setResponseMessage(getString(buffer));
                     AjpHttpRequest request = new AjpHttpRequest();
-                    final MessageBytes header = request.getMimeHeaders().addValue("content-type");
+                    request.getMimeHeaders().addValue("content-type");
                     decodeHeaders(request, buffer);
                     ajpResponse.setHeaders(request.getMimeHeaders());
                     break;
@@ -477,5 +480,9 @@ final class AjpMessageUtils {
             responses.add(ajpResponse);
         }
         return responses;
+    }
+
+    public static byte[] toBytes(short size) {
+        return new byte[] {(byte) (size >> 8), (byte) (size & 0xFF)};
     }
 }

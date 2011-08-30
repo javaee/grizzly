@@ -113,14 +113,6 @@ public class WebSocketEngine {
         return value;
     }
 
-    public static List<String> toString(byte[] bytes, int start, int end) {
-        List<String> list = new ArrayList<String>();
-        for (int i = start; i < end; i++) {
-            list.add(Integer.toHexString(bytes[i] & 0xFF).toUpperCase());
-        }
-        return list;
-    }
-
     public static ProtocolHandler loadHandler(MimeHeaders headers) {
         for (Version version : Version.values()) {
             if(version.validate(headers)) {
