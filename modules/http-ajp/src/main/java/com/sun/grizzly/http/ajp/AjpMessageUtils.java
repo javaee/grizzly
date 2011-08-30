@@ -66,7 +66,7 @@ final class AjpMessageUtils {
     private static final int BODY_CHUNK_HEADER_SIZE = 7;
     private static final int MAX_BODY_CHUNK_CONTENT_SIZE = AjpConstants.MAX_READ_SIZE - BODY_CHUNK_HEADER_SIZE;
 
-    public static void decodeRequest(ByteBuffer buffer, boolean tomcatAuthentication, AjpHttpRequest request)
+    public static void decodeForwardRequest(ByteBuffer buffer, boolean tomcatAuthentication, AjpHttpRequest request)
             throws IOException {
         // FORWARD_REQUEST handler
 

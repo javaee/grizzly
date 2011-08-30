@@ -355,11 +355,11 @@ public class Utils {
         return copy;
     }
 
-    public static List<String> toString(byte[] bytes) {
-        return toString(bytes, 0, bytes.length);
+    public static List<String> toHexStrings(byte[] bytes) {
+        return toHexStrings(bytes, 0, bytes.length);
     }
 
-    public static List<String> toString(byte[] bytes, int start, int end) {
+    public static List<String> toHexStrings(byte[] bytes, int start, int end) {
         List<String> list = new ArrayList<String>();
         for (int i = start; i < end; i++) {
             list.add(Integer.toHexString(bytes[i] & 0xFF).toUpperCase());

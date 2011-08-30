@@ -47,7 +47,7 @@ import java.io.IOException;
 
 public class AjpPacketTest extends AjpTestBase {
     @Test
-    public void forwardRequest() throws IOException {
+    public void forwardWgetRequest() throws IOException {
         AjpForwardRequestPacket forward = new AjpForwardRequestPacket("GET", "//ajpindex.html", 1025, 61878);
         forward.addHeader("User-Agent", "Wget/1.13 (darwin10.8.0)");
         forward.addHeader("Accept", "*/*");
@@ -55,5 +55,18 @@ public class AjpPacketTest extends AjpTestBase {
         forward.addHeader("Connection", "Keep-Alive");
 
         Assert.assertArrayEquals(read("/request.txt").array(), forward.toBuffer().array());
+    }
+    @Test
+    public void forwardFireFoxRequest() throws IOException {
+        AjpForwardRequestPacket forward = new AjpForwardRequestPacket("GET", "//index.html", 1025, 56599);
+        forward.addHeader("Host", "localhost:1025");
+        forward.addHeader("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:5.0.1) Gecko/20100101 Firefox/5.0.1");
+        forward.addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+        forward.addHeader("Accept-Language", "en-us,en;q=0.5");
+        forward.addHeader("Accept-Encoding", "gzip, deflate");
+        forward.addHeader("Accept-Charset", "ISO-8859-1,utf-8;q=0.7,*;q=0.7");
+        forward.addHeader("Connection", "keep-alive");
+
+        Assert.assertArrayEquals(read("/request2.txt").array(), forward.toBuffer().array());
     }
 }

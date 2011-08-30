@@ -64,9 +64,15 @@ public class AjpInputBuffer extends InternalInputBuffer {
                 throw new EOFException(sm.getString("iib.eof.error"));
         }
 
+        buffer = ByteBuffer.wrap(buf, pos, lastValid);
+        final short magic = buffer.getShort();
+        if(magic != 0x1234) {
+            throw new RuntimeException("Invalid packet magic number: " + Integer.toHexString(magic));
+        }
+        buffer.getShort();
+
         final int type = extractType();
 
-        buffer = ByteBuffer.wrap(buf, 5, lastValid);
         switch (type) {
             case AjpConstants.JK_AJP13_FORWARD_REQUEST:
                 processForwardRequest();
@@ -104,11 +110,11 @@ public class AjpInputBuffer extends InternalInputBuffer {
         isTomcatAuthentication = Boolean.parseBoolean(properties.getProperty("tomcatAuthentication", "true"));
     }
 
-    private int extractType() throws IOException {
-        final int type;
+    private byte extractType() throws IOException {
+        final byte type;
 //        if (!httpRequestInProcessAttr.isSet(connection)) {
         // if request is no in process - it should be a new Ajp message
-        type = buf[4] & 0xFF;
+        type = buffer.get();
 //        } else {
 //            Ajp Data Packet
 //            type = AjpConstants.JK_AJP13_DATA;
@@ -119,7 +125,7 @@ public class AjpInputBuffer extends InternalInputBuffer {
 
     private void processForwardRequest() throws IOException {
         final AjpHttpRequest ajpRequest = (AjpHttpRequest) request;
-        AjpMessageUtils.decodeRequest(buffer, isTomcatAuthentication, ajpRequest);
+        AjpMessageUtils.decodeForwardRequest(buffer, isTomcatAuthentication, ajpRequest);
         pos = buffer.position();
 
         if (secret != null) {

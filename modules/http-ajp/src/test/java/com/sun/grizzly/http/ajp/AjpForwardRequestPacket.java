@@ -63,7 +63,9 @@ public class AjpForwardRequestPacket {
     }
 
     public ByteBuffer toBuffer() {
-        //            ByteBuffer body = bodyBuffer();
+        if(headers.getValue("host") == null) {
+            headers.addValue("host").setString("localhost:" + port);
+        }
         ByteBuffer header = headerBuffer();
         ByteBuffer pktHeader = buildPacketHeader((short) header.remaining());
 
@@ -153,7 +155,7 @@ public class AjpForwardRequestPacket {
         return ensureCapacity(target, 2)
                 .putShort(value);
     }
-    
+
     public static ByteBuffer putString(ByteBuffer target, String value) {
         ByteBuffer buffer;
         if (value == null) {

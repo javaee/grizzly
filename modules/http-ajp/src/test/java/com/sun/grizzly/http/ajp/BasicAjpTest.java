@@ -62,55 +62,29 @@ import java.util.List;
 public class BasicAjpTest extends AjpTestBase {
 
     @Test
-    public void testDynamicRequest() throws IOException, InstantiationException {
-        final String message = "Test Message";
-        configureHttpServer(new GrizzlyAdapter() {
-            @Override
-            public void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
-                response.getOutputBuffer().write(message);
-            }
-        });
-        final ByteBuffer response = send("localhost", PORT, read("/request.txt"));
-        List<AjpResponse> responses = AjpMessageUtils.parseResponse(response);
+    public void testStaticRequests() throws IOException, InstantiationException {
+        configureHttpServer(new StaticResourcesAdapter("src/test/resources"));
 
-        final Iterator<AjpResponse> iterator = responses.iterator();
-        AjpResponse next = iterator.next();
-        Assert.assertEquals(200, next.getResponseCode());
-        Assert.assertEquals("OK", next.getResponseMessage());
-
-        next = iterator.next();
-        Assert.assertEquals(message, new String(next.getBody()));
-
-        Assert.assertEquals(AjpConstants.JK_AJP13_END_RESPONSE, iterator.next().getType());
+        final String[] files = {"/ajpindex.html", "/ajplarge.html"};
+        for (String file : files) {
+            requestFile(file);
+        }
     }
 
-    @Test
-    public void testStaticRequest() throws IOException, InstantiationException {
-        configureHttpServer(new StaticResourcesAdapter("src/test/resources"));
-        final ByteBuffer response = send("localhost", PORT, read("/request.txt"));
-        List<AjpResponse> responses = AjpMessageUtils.parseResponse(response);
+    private void requestFile(String file) throws IOException {
+        AjpForwardRequestPacket forward = new AjpForwardRequestPacket("GET", file, PORT, 0);
+        final ByteBuffer response = send(PORT, forward.toBuffer());
+        List<AjpResponse> responses;
+        try {
+            responses = AjpMessageUtils.parseResponse(response);
+        } catch (RuntimeException e) {
+            throw new RuntimeException("Testing file " + file + ": " + e.getMessage(), e);
+        }
 
         final Iterator<AjpResponse> iterator = responses.iterator();
         AjpResponse next = iterator.next();
-        Assert.assertEquals(200, next.getResponseCode());
-        Assert.assertEquals("OK", next.getResponseMessage());
-
-        next = iterator.next();
-        Assert.assertArrayEquals(readFile("src/test/resources/ajpindex.html"), next.getBody());
-
-        Assert.assertEquals(AjpConstants.JK_AJP13_END_RESPONSE, iterator.next().getType());
-    }
-
-    @Test
-    public void testLargeStaticRequest() throws IOException, InstantiationException {
-        configureHttpServer(new StaticResourcesAdapter("src/test/resources"));
-        final ByteBuffer response = send("localhost", PORT, read("/large-request.txt"));
-        List<AjpResponse> responses = AjpMessageUtils.parseResponse(response);
-
-        final Iterator<AjpResponse> iterator = responses.iterator();
-        AjpResponse next = iterator.next();
-        Assert.assertEquals(200, next.getResponseCode());
-        Assert.assertEquals("OK", next.getResponseMessage());
+        Assert.assertEquals("Testing file " + file, 200, next.getResponseCode());
+        Assert.assertEquals("Testing file " + file, "OK", next.getResponseMessage());
 
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         do {
@@ -119,42 +93,53 @@ public class BasicAjpTest extends AjpTestBase {
                 stream.write(next.getBody());
             }
         } while (next.getType() == AjpConstants.JK_AJP13_SEND_BODY_CHUNK);
-        Assert.assertArrayEquals(readFile("src/test/resources/ajplarge.html"), stream.toByteArray());
+        Assert.assertArrayEquals("Testing file " + file, readFile("src/test/resources" + file), stream.toByteArray());
 
-        Assert.assertEquals(AjpConstants.JK_AJP13_END_RESPONSE, next.getType());
+        Assert.assertEquals("Testing file " + file, AjpConstants.JK_AJP13_END_RESPONSE, next.getType());
     }
 
     @Test
-    public void testLargeDynamicRequest() throws IOException, InstantiationException {
+    public void testDynamicRequests() throws IOException, InstantiationException {
         final String message = "Test Message";
         final StringBuilder builder = new StringBuilder();
         while (builder.length() < 10000) {
             builder.append(message);
         }
-        configureHttpServer(new GrizzlyAdapter() {
-            @Override
-            public void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
-                response.getOutputBuffer().write(builder.toString());
-            }
-        });
-        final ByteBuffer response = send("localhost", PORT, read("/request.txt"));
-        List<AjpResponse> responses = AjpMessageUtils.parseResponse(response);
+        for (String test : new String[]{message, builder.toString()}) {
+            dynamicRequest(test);
+        }
+    }
 
-        final Iterator<AjpResponse> iterator = responses.iterator();
-        AjpResponse next = iterator.next();
-        Assert.assertEquals(200, next.getResponseCode());
-        Assert.assertEquals("OK", next.getResponseMessage());
+    private void dynamicRequest(final String message) throws IOException, InstantiationException {
+        try {
+            configureHttpServer(new GrizzlyAdapter() {
+                @Override
+                public void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
+                    response.getOutputBuffer().write(message);
+                }
+            });
+            AjpForwardRequestPacket forward = new AjpForwardRequestPacket("GET", "/bob", PORT, 0);
+            final ByteBuffer response = send(PORT, forward.toBuffer());
+            List<AjpResponse> responses = AjpMessageUtils.parseResponse(response);
 
-        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        do {
-            next = iterator.next();
-            if (next.getType() == AjpConstants.JK_AJP13_SEND_BODY_CHUNK) {
-                stream.write(next.getBody());
-            }
-        } while (next.getType() == AjpConstants.JK_AJP13_SEND_BODY_CHUNK);
-        Assert.assertEquals(builder.toString(), new String(stream.toByteArray()));
+            final Iterator<AjpResponse> iterator = responses.iterator();
+            AjpResponse next = iterator.next();
+            Assert.assertEquals(200, next.getResponseCode());
+            Assert.assertEquals("OK", next.getResponseMessage());
 
-        Assert.assertEquals(AjpConstants.JK_AJP13_END_RESPONSE, next.getType());
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            do {
+                next = iterator.next();
+                if (next.getType() == AjpConstants.JK_AJP13_SEND_BODY_CHUNK) {
+                    stream.write(next.getBody());
+                }
+            } while (next.getType() == AjpConstants.JK_AJP13_SEND_BODY_CHUNK);
+            Assert.assertEquals(message, new String(stream.toByteArray()));
+
+            Assert.assertEquals(AjpConstants.JK_AJP13_END_RESPONSE, next.getType());
+        } finally {
+            after();
+        }
     }
 
     public void testPingPong() throws Exception {
@@ -166,7 +151,7 @@ public class BasicAjpTest extends AjpTestBase {
         request.put(AjpConstants.JK_AJP13_CPING_REQUEST);
         request.flip();
 
-        final ByteBuffer response = send("localhost", PORT, request);
+        final ByteBuffer response = send(PORT, request);
         Assert.assertEquals((byte) 'A', response.get());
         Assert.assertEquals((byte) 'B', response.get());
         Assert.assertEquals((short) 1, response.getShort());

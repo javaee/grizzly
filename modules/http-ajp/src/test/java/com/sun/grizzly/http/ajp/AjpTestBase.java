@@ -60,19 +60,19 @@ public class AjpTestBase {
     private SelectorThread selectorThread;
 
     @After
-    public void after() throws Exception {
+    public void after() {
         if (selectorThread != null) {
             selectorThread.stopEndpoint();
         }
     }
 
     protected byte[] readFile(String name) throws IOException {
-        final FileInputStream stream = new FileInputStream(name);
         ByteArrayOutputStream out;
+        final FileInputStream stream = new FileInputStream(name);
         try {
             out = new ByteArrayOutputStream();
             byte[] read = new byte[4096];
-            int count = 0;
+            int count;
             while ((count = stream.read(read)) != -1) {
                 out.write(read, 0, count);
             }
@@ -83,8 +83,8 @@ public class AjpTestBase {
     }
 
     protected ByteBuffer read(String file) throws IOException {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream(file)));
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        BufferedReader reader = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream(file)));
         try {
             while (reader.ready()) {
                 String[] line = reader.readLine().split(" ");
@@ -104,9 +104,9 @@ public class AjpTestBase {
     }
 
     @SuppressWarnings({"unchecked"})
-    protected ByteBuffer send(String host, int port, ByteBuffer request) throws IOException {
+    protected ByteBuffer send(int port, ByteBuffer request) throws IOException {
         ByteChunk response = new ByteChunk();
-        Socket socket = new Socket(host, port);
+        Socket socket = new Socket("localhost", port);
         try {
             byte[] data = new byte[request.limit() - request.position()];
             request.get(data);
@@ -133,7 +133,7 @@ public class AjpTestBase {
         selectorThread.setDisplayConfiguration(Utils.VERBOSE_TESTS);
         selectorThread.setAdapter(adapter);
         selectorThread.setTcpNoDelay(true);
-//        selectorThread.setUseChunking(false);
+        selectorThread.setUseChunking(false);
 
         selectorThread.listen();
     }

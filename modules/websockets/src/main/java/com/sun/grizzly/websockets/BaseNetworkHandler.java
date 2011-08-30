@@ -84,7 +84,7 @@ public abstract class BaseNetworkHandler implements NetworkHandler {
     }
 
     private List<String> getByteList(final int start, final int end) {
-        return Utils.toString(chunk.getBytes(), start, end);
+        return Utils.toHexStrings(chunk.getBytes(), start, end);
     }
 
     @Override
