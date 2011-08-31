@@ -55,7 +55,10 @@ import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.servlet.ServletHandler;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -72,6 +75,11 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
         this.version = version;
     }
 
+    @After
+    public void tearDown() {
+        WebSocketEngine.getEngine().unregisterAll();
+    }
+    
     @Test
     public void simpleConversationWithApplication() throws Exception {
         run(new EchoServlet());
@@ -120,7 +128,6 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
                 client.close();
             }
             httpServer.stop();
-            WebSocketEngine.getEngine().unregisterAll();
         }
     }
 
@@ -142,11 +149,10 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
                 socket.close();
             }
             server.stop();
-            WebSocketEngine.getEngine().unregister(app);
         }
     }
 
-    //    @Test
+    @Test
     public void testGetOnWebSocketApplication() throws IOException, InstantiationException, InterruptedException {
         final WebSocketApplication app = new WebSocketApplication() {
             public void onMessage(WebSocket socket, String data) {
@@ -179,10 +185,10 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
         } finally {
             is.close();
             httpServer.stop();
-            WebSocketEngine.getEngine().unregister(app);
         }
     }
 
+    @Test
     public void testGetOnServlet() throws IOException, InstantiationException, InterruptedException {
         HttpServer httpServer = HttpServer.createSimpleServer(".", PORT);
         final ServerConfiguration configuration = httpServer.getServerConfiguration();
@@ -206,6 +212,42 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
         }
     }
 
+    @Test
+    public void testCloseHandler() throws Exception {
+        final WebSocketApplication app = new WebSocketApplication() {
+            @Override
+            public boolean isApplicationRequest(HttpRequestPacket request) {
+                return true;
+            }
+        };
+        
+        final HttpServer server = HttpServer.createSimpleServer(".", 8051);
+        server.getListener("grizzly").registerAddOn(new WebSocketAddOn());
+        WebSocketEngine.getEngine().register("/grizzly-websockets-chat/chat", app);
+        
+        final FutureImpl<Boolean> isConnectedStateWhenClosed = SafeFutureImpl.<Boolean>create();
+        WebSocketClient client = new WebSocketClient("ws://localhost:8051/chat",
+                new WebSocketAdapter() {
+            @Override
+            public void onClose(WebSocket socket, DataFrame frame) {
+                isConnectedStateWhenClosed.result(socket.isConnected());
+            }
+        });
+        
+        
+        try {
+            server.start();
+            client.connect();
+            
+            server.stop();
+            
+            Assert.assertFalse(isConnectedStateWhenClosed.get(10, TimeUnit.SECONDS));
+        } finally {
+            client.close();
+            server.stop();
+        }
+    }
+    
     private static class CountDownAdapter extends WebSocketAdapter {
         private final Set<String> sent;
         private final CountDownLatch received;

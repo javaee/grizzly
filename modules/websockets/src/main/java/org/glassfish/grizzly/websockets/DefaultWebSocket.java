@@ -41,7 +41,7 @@ package org.glassfish.grizzly.websockets;
 
 import java.util.Collection;
 import java.util.EnumSet;
-import java.util.Iterator;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
@@ -54,7 +54,7 @@ import org.glassfish.grizzly.websockets.frametypes.PongFrameType;
 @SuppressWarnings({"StringContatenationInLoop"})
 public class DefaultWebSocket implements WebSocket {
     private static final Logger logger = Grizzly.logger(DefaultWebSocket.class);
-    private final Collection<WebSocketListener> listeners = new ConcurrentLinkedQueue<WebSocketListener>();
+    private final Queue<WebSocketListener> listeners = new ConcurrentLinkedQueue<WebSocketListener>();
     protected final ProtocolHandler protocolHandler;
 
     enum State {
@@ -92,21 +92,18 @@ public class DefaultWebSocket implements WebSocket {
         state.set(State.CLOSED);
     }
 
-    public void onClose(DataFrame frame) {
-        synchronized (listeners) {
-            final Iterator<WebSocketListener> it = listeners.iterator();
-            while (it.hasNext()) {
-                final WebSocketListener listener = it.next();
-                it.remove();
-                listener.onClose(this, frame);
-            }
-        }
+    public void onClose(final DataFrame frame) {
         if (state.compareAndSet(State.CONNECTED, State.CLOSING)) {
             final ClosingFrame closing = (ClosingFrame) frame;
             protocolHandler.close(closing.getCode(), closing.getTextPayload());
         } else {
             state.set(State.CLOSED);
             protocolHandler.doClose();
+        }
+        
+        WebSocketListener listener;
+        while ((listener = listeners.poll()) != null) {
+            listener.onClose(this, frame);
         }
     }
 
