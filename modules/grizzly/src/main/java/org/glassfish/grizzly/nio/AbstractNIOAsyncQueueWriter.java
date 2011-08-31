@@ -188,11 +188,15 @@ public abstract class AbstractNIOAsyncQueueWriter
             final MessageCloner<Buffer> cloner) throws IOException {                
         
         if (connection == null) {
-            throw new IOException("Connection is null");
+            final IOException failure = new IOException("Connection is null");
+            notifyOnFailure(null, completionHandler, failure);
+            return ReadyFutureImpl.create(failure);
         }
 
         if (!connection.isOpen()) {
-            throw new IOException("Connection is closed");
+            final IOException failure = new IOException("Connection is closed");
+            notifyOnFailure(null, completionHandler, failure);
+            return ReadyFutureImpl.create(failure);
         }
         
         final NIOConnection nioConnection = (NIOConnection) connection;
@@ -465,7 +469,8 @@ public abstract class AbstractNIOAsyncQueueWriter
     public final void close() {
     }
     
-    protected static void onWriteComplete(AsyncWriteQueueRecord record) throws IOException {
+    protected static void onWriteComplete(final AsyncWriteQueueRecord record)
+            throws IOException {
 
         final WriteResult currentResult = record.getCurrentResult();
         final FutureImpl future = (FutureImpl) record.getFuture();
@@ -488,7 +493,7 @@ public abstract class AbstractNIOAsyncQueueWriter
 
     }
     
-    protected final void onWriteIncomplete(AsyncWriteQueueRecord record)
+    protected final void onWriteIncomplete(final AsyncWriteQueueRecord record)
             throws IOException {
 
         WriteResult currentResult = record.getCurrentResult();
@@ -500,8 +505,8 @@ public abstract class AbstractNIOAsyncQueueWriter
         }
     }
 
-    protected static void onWriteFailure(Connection connection,
-            AsyncWriteQueueRecord failedRecord, IOException e) {
+    protected static void onWriteFailure(final Connection connection,
+            final AsyncWriteQueueRecord failedRecord, final IOException e) {
 
         failWriteRecord(failedRecord, e);
         try {
@@ -510,17 +515,23 @@ public abstract class AbstractNIOAsyncQueueWriter
         }
     }
 
-    protected static void failWriteRecord(AsyncWriteQueueRecord record, Throwable e) {
+    protected static void failWriteRecord(final AsyncWriteQueueRecord record,
+            final Throwable e) {
         if (record == null) {
             return;
         }
 
-        final FutureImpl future = (FutureImpl) record.getFuture();
+        notifyOnFailure((FutureImpl) record.getFuture(),
+                record.getCompletionHandler(), e);
+    }
+
+    protected static void notifyOnFailure(final FutureImpl future,
+            final CompletionHandler completionHandler,
+            final Throwable e) {
+
         final boolean hasFuture = (future != null);
         
         if (!hasFuture || !future.isDone()) {
-            CompletionHandler<WriteResult> completionHandler =
-                    record.getCompletionHandler();
 
             if (completionHandler != null) {
                 completionHandler.failed(e);
@@ -531,7 +542,6 @@ public abstract class AbstractNIOAsyncQueueWriter
             }
         }
     }
-
 
     private static boolean isFinished(final AsyncWriteQueueRecord queueRecord) {
         final Buffer buffer = queueRecord.getMessage();
