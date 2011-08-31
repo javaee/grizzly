@@ -99,13 +99,17 @@ public abstract class AbstractNIOAsyncQueueReader
             final Interceptor<ReadResult> interceptor) throws IOException {
 
         if (connection == null) {
-            throw new IOException("Connection is null");
+            final IOException failure = new IOException("Connection is null");
+            notifyOnFailure(null, completionHandler, failure);
+            return ReadyFutureImpl.create(failure);
         }
 
         if (!connection.isOpen()) {
-            throw new IOException("Connection is closed");
+            final IOException failure = new IOException("Connection is closed");
+            notifyOnFailure(null, completionHandler, failure);
+            return ReadyFutureImpl.create(failure);
         }
-
+        
         // Get connection async read queue
         final TaskQueue<AsyncReadQueueRecord> connectionQueue =
                 ((NIOConnection) connection).getAsyncReadQueue();
@@ -371,8 +375,8 @@ public abstract class AbstractNIOAsyncQueueReader
         }
     }
 
-    protected final void onReadFailure(Connection connection,
-            AsyncReadQueueRecord failedRecord, IOException e) {
+    protected final void onReadFailure(final Connection connection,
+            final AsyncReadQueueRecord failedRecord, final IOException e) {
 
         failReadRecord(failedRecord, e);
         try {
@@ -381,17 +385,23 @@ public abstract class AbstractNIOAsyncQueueReader
         }
     }
 
-    protected final void failReadRecord(AsyncReadQueueRecord record, Throwable e) {
+    protected final void failReadRecord(final AsyncReadQueueRecord record,
+            final Throwable e) {
         if (record == null) {
             return;
         }
 
-        final FutureImpl future = (FutureImpl) record.getFuture();
-        final boolean hasFuture = (future != null);
+        notifyOnFailure((FutureImpl) record.getFuture(),
+                record.getCompletionHandler(), e);        
+    }
 
+    protected static void notifyOnFailure(final FutureImpl future,
+            final CompletionHandler completionHandler,
+            final Throwable e) {
+
+        final boolean hasFuture = (future != null);
+        
         if (!hasFuture || !future.isDone()) {
-            CompletionHandler<ReadResult> completionHandler =
-                    record.getCompletionHandler();
 
             if (completionHandler != null) {
                 completionHandler.failed(e);
