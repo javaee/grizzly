@@ -103,7 +103,7 @@ public class DownloadHttpHandlerSample {
         
         final ServerConfiguration config = server.getServerConfiguration();
 
-        // Map the path, /download, to the NonBlockingUploadHandler
+        // Map the NonBlockingUploadHandler to "/" URL
         config.addHttpHandler(new NonBlockingDownloadHandler(downloadFolder),
                 "/");
 
