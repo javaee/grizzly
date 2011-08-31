@@ -67,19 +67,26 @@ public class BasicAjpTest extends AjpTestBase {
 
         final String[] files = {"/ajpindex.html", "/ajplarge.html"};
         for (String file : files) {
-            requestFile(file);
+            try {
+                requestFile(file);
+            } catch (RuntimeException e) {
+                throw new RuntimeException("Testing file " + file + ": " + e.getMessage(), e);
+            }
         }
     }
 
+    @Test
+    public void dumpTable() throws IOException {
+        final ByteBuffer content = read("/request.txt");
+        final String example = new String(readFile("src/test/resources/request.txt"));
+        String table = AjpMessageUtils.dumpByteTable(content);
+        Assert.assertEquals(example, table);
+    }
+    
     private void requestFile(String file) throws IOException {
         AjpForwardRequestPacket forward = new AjpForwardRequestPacket("GET", file, PORT, 0);
         final ByteBuffer response = send(PORT, forward.toBuffer());
-        List<AjpResponse> responses;
-        try {
-            responses = AjpMessageUtils.parseResponse(response);
-        } catch (RuntimeException e) {
-            throw new RuntimeException("Testing file " + file + ": " + e.getMessage(), e);
-        }
+        List<AjpResponse> responses = AjpMessageUtils.parseResponse(response);
 
         final Iterator<AjpResponse> iterator = responses.iterator();
         AjpResponse next = iterator.next();

@@ -42,8 +42,6 @@ package com.sun.grizzly.http.ajp;
 
 import com.sun.grizzly.tcp.Response;
 
-import java.io.IOException;
-
 /**
  * {@link Response} implementation, which also contains AJP
  * related meta data.
@@ -51,25 +49,9 @@ import java.io.IOException;
  * @author Alexey Stashok
  */
 public final class AjpHttpResponse extends Response {
-//    final ProcessingState processingState = new ProcessingState();
     private boolean secure;
-
-//    @Override
-//    public ProcessingState getProcessingState() {
-//        return processingState;
-//    }
 
     public void setSecure(final boolean secure) {
         this.secure = secure;
-    }
-
-    @Override
-    public void flushHeaders() throws IOException {
-        super.flushHeaders();
-    }
-
-    @Override
-    public void sendHeaders() throws IOException {
-        super.sendHeaders();
     }
 }

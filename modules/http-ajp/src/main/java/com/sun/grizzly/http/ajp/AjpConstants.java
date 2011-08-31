@@ -228,6 +228,16 @@ public final class AjpConstants {
      */
     public static final int MAX_PACKET_SIZE = 8192;
     /**
+     * Maximum Total byte size for a AJP body:
+     * MAX_PACKET_SIZE
+     *      - 2 magic bytes
+     *      - 2 bytes for size
+     *      - 1 byte for type
+     *      - 2 bytes for body size
+     *      - 1 byte for \0 terminator
+     */
+    public static final int MAX_BODY_SIZE = MAX_PACKET_SIZE - 9;
+    /**
      * Size of basic packet header
      */
     public static final int H_SIZE = 4;

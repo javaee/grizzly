@@ -424,11 +424,11 @@ final class AjpMessageUtils {
     }
 
     public static ByteBuffer createAjpPacket(final byte type, ByteBuffer src) {
-        final int length = src.limit() - src.position();
-        final ByteBuffer ajpHeader = ByteBuffer.allocate((int) (6 + length));
+        final int length = src.remaining();
+        final ByteBuffer ajpHeader = ByteBuffer.allocate(5 + length);
         ajpHeader.put((byte) 'A');
         ajpHeader.put((byte) 'B');
-        ajpHeader.putShort((short) (1 + length));
+        ajpHeader.putShort((short) (length + 1));
         ajpHeader.put(type);
         ajpHeader.put(src);
         ajpHeader.flip();
@@ -439,13 +439,14 @@ final class AjpMessageUtils {
         List<AjpResponse> responses = new ArrayList<AjpResponse>();
         while (buffer.hasRemaining()) {
             final AjpResponse ajpResponse = new AjpResponse();
+            final int position = buffer.position();
             final short magic = buffer.getShort();
             if (magic != 0x4142) {
                 throw new RuntimeException("Invalid magic number: " + magic + " buffer: " + buffer);
             }
             final short packetSize = buffer.getShort();
-            if(packetSize + 5 > 8192) {
-//                throw new RuntimeException("Packet size too large:" + packetSize);
+            if(packetSize > AjpConstants.MAX_PACKET_SIZE - 2) {
+                throw new RuntimeException("Packet size too large: " + packetSize);
             }
             int start = buffer.position();
             final byte type = buffer.get();
@@ -465,7 +466,7 @@ final class AjpMessageUtils {
                     body = new byte[size];
                     buffer.get(body);
                     ajpResponse.setBody(body);
-                    buffer.get();  // consume terminating \0
+                    buffer.get();  // consume terminating 0x00
                     break;
                 case AjpConstants.JK_AJP13_END_RESPONSE:
                     body = new byte[1];
@@ -475,7 +476,7 @@ final class AjpMessageUtils {
             }
             final int end = buffer.position();
             if (end - start != packetSize) {
-                throw new RuntimeException("packet size mismatch");
+                throw new RuntimeException(String.format("packet size mismatch: %s vs %s", end - start, packetSize));
             }
             responses.add(ajpResponse);
         }
@@ -484,5 +485,41 @@ final class AjpMessageUtils {
 
     public static byte[] toBytes(short size) {
         return new byte[] {(byte) (size >> 8), (byte) (size & 0xFF)};
+    }
+
+    public static String dumpByteTable(ByteBuffer buffer) {
+        int pos = buffer.position();
+        StringBuilder bytes = new StringBuilder();
+        StringBuilder chars = new StringBuilder();
+        StringBuilder table = new StringBuilder();
+        int count = 0;
+        while(buffer.remaining() > 0) {
+            count++;
+            byte cur = buffer.get();
+            bytes.append(String.format("%02x ", cur));
+            chars.append(printable(cur));
+            if(count % 16 == 0) {
+                table.append(String.format("%s   %s", bytes, chars).trim());
+                table.append("\n");
+                chars = new StringBuilder();
+                bytes = new StringBuilder();
+            } else if(count % 8 == 0) {
+                table.append(String.format("%s   ", bytes));
+                bytes = new StringBuilder();
+            }
+        }
+        if(bytes.length() > 0) {
+            table.append(String.format("%-51s   %s", bytes, chars).trim());
+        }
+        buffer.position(pos);
+        
+        return table.toString();
+    }
+
+    private static char printable(byte cur) {
+        if((cur & (byte)0xa0) == 0xa0) {
+            return '?';
+        }
+        return cur < 127 && cur > 31 || Character.isLetterOrDigit(cur) ? (char) cur : '.';
     }
 }

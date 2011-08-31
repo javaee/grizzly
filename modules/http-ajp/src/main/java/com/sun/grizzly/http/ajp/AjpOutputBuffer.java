@@ -42,8 +42,6 @@ package com.sun.grizzly.http.ajp;
 
 import com.sun.grizzly.http.SocketChannelOutputBuffer;
 import com.sun.grizzly.tcp.Response;
-import com.sun.grizzly.util.buf.ByteChunk;
-import com.sun.grizzly.util.buf.CharChunk;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -52,6 +50,10 @@ import java.nio.channels.SocketChannel;
 import java.nio.channels.WritableByteChannel;
 
 public class AjpOutputBuffer extends SocketChannelOutputBuffer {
+
+    private static final ByteBuffer END_RESPONSE_AJP_PACKET =
+            AjpMessageUtils.createAjpPacket(AjpConstants.JK_AJP13_END_RESPONSE,
+                    ByteBuffer.wrap(new byte[]{1}));
 
     public AjpOutputBuffer(Response response, int sendBufferSize, boolean bufferResponse) {
         super(response, sendBufferSize, bufferResponse);
@@ -64,42 +66,22 @@ public class AjpOutputBuffer extends SocketChannelOutputBuffer {
     @Override
     public void realWriteBytes(byte[] cbuf, int off, int len) throws IOException {
         if (response.isCommitted()) {
-            final ByteBuffer wrap = ByteBuffer.allocate(len+3);
-            wrap.putShort((short) len);
-            wrap.put(cbuf, off, len);
-            wrap.put((byte) 0);
-            wrap.flip();
-            final ByteBuffer packet =
-                    AjpMessageUtils.createAjpPacket(AjpConstants.JK_AJP13_SEND_BODY_CHUNK, wrap);
-            super.realWriteBytes(packet.array(), packet.position(), packet.limit());
+            int written = 0;
+            while (written < len) {
+                int count = Math.min(AjpConstants.MAX_BODY_SIZE, len - written);
+                final ByteBuffer wrap = ByteBuffer.allocate(count + 3);
+                wrap.putShort((short) count);
+                wrap.put(cbuf, off + written, count);
+                wrap.put((byte) 0);
+                wrap.flip();
+                final ByteBuffer packet =
+                        AjpMessageUtils.createAjpPacket(AjpConstants.JK_AJP13_SEND_BODY_CHUNK, wrap);
+                super.realWriteBytes(packet.array(), packet.position(), packet.limit());
+                written += count;
+            }
         } else {
             super.realWriteBytes(cbuf, off, len);
         }
-    }
-
-    @Override
-    protected void write(ByteChunk bc) {
-        super.write(bc);
-    }
-
-    @Override
-    protected void write(CharChunk cc) {
-        super.write(cc);
-    }
-
-    @Override
-    protected void write(byte[] b) {
-        super.write(b);
-    }
-
-    @Override
-    protected void write(String s) {
-        super.write(s);
-    }
-
-    @Override
-    protected void write(int i) {
-        super.write(i);
     }
 
     @Override
@@ -107,10 +89,14 @@ public class AjpOutputBuffer extends SocketChannelOutputBuffer {
         return fileChannel.transferTo(position, length,
                 new WritableByteChannel() {
                     public int write(ByteBuffer src) throws IOException {
-                        final int count = src.remaining();
-                        ByteBuffer buffer = ByteBuffer.allocate((int) (3 + count));
+                        final int remaining = src.remaining();
+                        final int maxBodySize = AjpConstants.MAX_BODY_SIZE;
+                        int count = Math.min(remaining, maxBodySize);
+                        ByteBuffer buffer = ByteBuffer.allocate(count + 3);
                         buffer.putShort((short) count);
-                        buffer.put(src);
+                        byte[] bytes = new byte[count];
+                        src.get(bytes);
+                        buffer.put(bytes);
                         buffer.put((byte) 0);
                         buffer.flip();
                         ((SocketChannel) channel).write(AjpMessageUtils
@@ -132,8 +118,9 @@ public class AjpOutputBuffer extends SocketChannelOutputBuffer {
     public void endRequest() throws IOException {
         if (!finished) {
             super.endRequest();
-            ((SocketChannel) channel).write(AjpMessageUtils.createAjpPacket(AjpConstants.JK_AJP13_END_RESPONSE,
-                    ByteBuffer.wrap(new byte[]{1})));
+            ((SocketChannel) channel).write(END_RESPONSE_AJP_PACKET);
+            END_RESPONSE_AJP_PACKET.position(0);
+            flushBuffer();
         }
     }
 }
