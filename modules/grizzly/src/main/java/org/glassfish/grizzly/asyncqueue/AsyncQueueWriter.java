@@ -136,4 +136,42 @@ public interface AsyncQueueWriter<L>
      */
     void setMaxWriteReentrants(int maxWriteReentrants);
     
+    /**
+     * Returns the current write reentrants counter.
+     * Might be useful, if developer wants to use custom notification mechanism,
+     * based on on {@link #canWrite(org.glassfish.grizzly.Connection, int)} and
+     * {@link #write()} methods.
+     */
+    Reentrant getWriteReentrant();
+
+    /**
+     * Returns <tt>true</tt>, if max number of write->completion-handler reentrants
+     * has been reached for the passed {@link Reentrant} object, and next write
+     * will happen in the separate thread.
+     * 
+     * @param reentrant {@link Reentrant} object.
+     * @return <tt>true</tt>, if max number of write->completion-handler reentrants
+     * has been reached for the passed {@link Reentrant} object, and next write
+     * will happen in the separate thread.
+     */
+    boolean isMaxReentrantsReached(Reentrant reentrant);
+
+    /**
+     * Write reentrants counter
+     */
+    public static final class Reentrant {
+        private int counter;
+        
+        public int get() {
+            return counter;
+        }
+        
+        public int incAndGet() {
+            return ++counter;
+        }
+
+        public int decAndGet() {
+            return --counter;
+        }
+    }    
 }

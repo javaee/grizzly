@@ -65,6 +65,8 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -72,6 +74,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.http.HttpHeader;
+import org.glassfish.grizzly.http.HttpPacket;
+import org.glassfish.grizzly.http.HttpResponsePacket;
 
 public class NIOOutputSinksTest extends TestCase {
     private static final Logger LOGGER = Grizzly.logger(NIOOutputSinksTest.class);
@@ -593,6 +598,131 @@ public class NIOOutputSinksTest extends TestCase {
                 
             } finally {
                 LOGGER.log(Level.INFO, "Written {0}", writeCounter);
+                // Close the client connection
+                if (connection != null) {
+                    connection.close();
+                }
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            fail();
+        } finally {
+            clientTransport.stop();
+            server.stop();
+        }
+    }
+    
+    public void testWritePossibleReentrants() throws Exception {
+
+        final HttpServer server = new HttpServer();
+        final NetworkListener listener =
+                new NetworkListener("Grizzly",
+                                    NetworkListener.DEFAULT_NETWORK_HOST,
+                                    PORT);
+        server.addListener(listener);
+        
+        final FutureImpl<HttpHeader> parseResult = SafeFutureImpl.<HttpHeader>create();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new HttpClientFilter());
+        filterChainBuilder.add(new BaseFilter() {
+
+            @Override
+            public NextAction handleConnect(FilterChainContext ctx) throws IOException {
+                // Build the HttpRequestPacket, which will be sent to a server
+                // We construct HTTP request version 1.1 and specifying the URL of the
+                // resource we want to download
+                final HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("GET")
+                        .uri("/path").protocol(Protocol.HTTP_1_1)
+                        .header("Host", "localhost:" + PORT).build();
+
+                // Write the request asynchronously
+                ctx.write(httpRequest);
+
+                // Return the stop action, which means we don't expect next filter to process
+                // connect event
+                return ctx.getStopAction();
+            }
+
+            @Override
+            public NextAction handleRead(FilterChainContext ctx) throws IOException {
+                final HttpPacket message = ctx.getMessage();
+                final HttpHeader header = message.isHeader() ?
+                        (HttpHeader) message :
+                        ((HttpContent) message).getHttpHeader();
+                
+                parseResult.result(header);
+                
+                return ctx.getStopAction();
+            }
+        });
+        
+        final int maxAllowedReentrants = listener.getTransport().getAsyncQueueIO().getWriter().getMaxWriteReentrants();
+        final Queue<Thread> threadsHistory = new ConcurrentLinkedQueue<Thread>();
+
+        final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
+        clientTransport.setProcessor(filterChainBuilder.build());
+        final HttpHandler ga = new HttpHandler() {
+
+            int reentrants = maxAllowedReentrants;
+            
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+                response.suspend();
+                
+                //clientTransport.pause();
+                final NIOOutputStream outputStream = response.getOutputStream(false);
+                outputStream.notifyCanWrite(new WriteHandler() {
+
+                    @Override
+                    public void onWritePossible() throws Exception {
+                        if (reentrants-- >= 0) {
+                            threadsHistory.offer(Thread.currentThread());
+                            outputStream.notifyCanWrite(this, 1);
+                        } else {
+                            finish(200);
+                        }
+                    }
+
+                    @Override
+                    public void onError(Throwable t) {
+                        finish(500);
+                    }
+                    
+                    private void finish(int code) {
+                        response.setStatus(code);
+                        response.resume();
+                    }
+                }, 1);
+            }
+        };
+
+        server.getServerConfiguration().addHttpHandler(ga, "/path");
+
+        try {
+            server.start();
+            clientTransport.start();
+
+            Future<Connection> connectFuture = clientTransport.connect("localhost", PORT);
+            Connection connection = null;
+            try {
+                connection = connectFuture.get(10, TimeUnit.SECONDS);
+                final HttpHeader header = parseResult.get(10, TimeUnit.SECONDS);
+                assertEquals(200, ((HttpResponsePacket) header).getStatus());
+                
+                Thread t = null;
+                for (int i = 0; i < maxAllowedReentrants; i++) {
+                    if (t == null) {
+                        t = threadsHistory.poll();
+                    } else {
+                        assertEquals("(Unexpected): Different threads were used", threadsHistory.poll(), t);
+                    }
+                }
+                
+                assertNotNull(t);
+                assertNotSame("The last thread has to be different", t, threadsHistory.poll());
+            } finally {
                 // Close the client connection
                 if (connection != null) {
                     connection.close();

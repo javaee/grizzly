@@ -59,6 +59,7 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
+import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter.Reentrant;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -80,7 +81,7 @@ import org.glassfish.grizzly.utils.Exceptions;
 public class OutputBuffer {
 
     private static final int DEFAULT_BUFFER_SIZE = 1024 * 8;
-
+    
     private HttpResponsePacket response;
 
     private FilterChainContext ctx;
@@ -131,19 +132,11 @@ public class OutputBuffer {
      */
     private boolean asyncEnabled;
     
-    private final CompletionHandler<WriteResult> asyncCompletionHandler =
-            new EmptyCompletionHandler<WriteResult>() {
+    private final CompletionHandler<WriteResult> onAsyncErrorCompletionHandler =
+            new OnErrorCompletionHandler();
 
-                @Override
-                public void failed(Throwable throwable) {
-                    if (handler != null) {
-                        handler.onError(throwable);
-                    } else {
-                        asyncError.compareAndSet(null, throwable);
-                    }
-                }
-            };
-
+    private final CompletionHandler<WriteResult> onWritePossibleCompletionHandler =
+            new OnWritePossibleCompletionHandler();
 
     // ---------------------------------------------------------- Public Methods
 
@@ -156,10 +149,6 @@ public class OutputBuffer {
         memoryManager = ctx.getMemoryManager();
         final Connection c = ctx.getConnection();
         asyncWriter = ((AsyncQueueWriter) c.getTransport().getWriter(c));
-        if (asyncWriter.getMaxPendingBytesPerConnection() <= 0) {
-            asyncWriter = null;
-        }
-
     }
 
     /**
@@ -312,7 +301,7 @@ public class OutputBuffer {
         if (monitor != null) {
             final Connection c = ctx.getConnection();
             final TaskQueue tqueue = ((NIOConnection) c).getAsyncWriteQueue();
-            tqueue.removeQueueMonitor(monitor);
+            tqueue.removeQueueMonitor();
             monitor = null;
         }
 
@@ -524,7 +513,7 @@ public class OutputBuffer {
      * Note, that passed {@link Buffer} will be directly used by underlying
      * connection, so it could be reused only if it has been flushed.
      * 
-     * @param buffer the {@link ByteBuffer} to write
+     * @param buffer the {@link Buffer} to write
      * @throws IOException if an error occurs during the write
      */
     public void writeBuffer(final Buffer buffer) throws IOException {
@@ -532,6 +521,10 @@ public class OutputBuffer {
         finishCurrentBuffer();
         checkCompositeBuffer();
         compositeBuffer.append(buffer);
+        
+        if (compositeBuffer.remaining() > bufferSize) {
+            flush();
+        }
     }
 
 
@@ -539,7 +532,7 @@ public class OutputBuffer {
 
 
     public boolean canWriteChar(final int length) {
-        if (length <= 0 || asyncWriter == null) {
+        if (length <= 0 || asyncWriter.getMaxPendingBytesPerConnection() <= 0) {
             return true;
         }
         final CharsetEncoder e = getEncoder();
@@ -551,13 +544,12 @@ public class OutputBuffer {
      * @see AsyncQueueWriter#canWrite(org.glassfish.grizzly.Connection, int)
      */
     public boolean canWrite(final int length) {
-
-        if (length <= 0 || asyncWriter == null) {
+        if (length <= 0 || asyncWriter.getMaxPendingBytesPerConnection() <= 0) {
             return true;
         }
+        
         final Connection c = ctx.getConnection();
-        return asyncWriter.canWrite(c, length);
-
+        return asyncWriter.canWrite(c, length + getBufferedDataSize());
     }
 
 
@@ -566,53 +558,98 @@ public class OutputBuffer {
             throw new IllegalStateException("Illegal attempt to set a new handler before the existing handler has been notified.");
         }
 
-        if (asyncWriter == null || canWrite(length)) {
-            try {
-                handler.onWritePossible();
-            } catch (Exception ioe) {
-                handler.onError(ioe);
-            }
+        final Throwable asyncException;
+        if ((asyncException = asyncError.get()) != null) {
+            handler.onError(Exceptions.makeIOException(asyncException));
             return;
         }
-        
+
         this.handler = handler;
-        final Connection c = ctx.getConnection();
-        final TaskQueue taskQueue = ((NIOConnection) c).getAsyncWriteQueue();
 
         final int maxBytes = asyncWriter.getMaxPendingBytesPerConnection();
-        if (length > maxBytes) {
+        if (maxBytes > 0 && length > maxBytes) {
             throw new IllegalArgumentException("Illegal request to write "
                                                   + length
                                                   + " bytes.  Max allowable write is "
                                                   + maxBytes + '.');
         }
+        
+        final Connection c = ctx.getConnection();
+        
+        final int totalLength = length + getBufferedDataSize();
+        
+        if (canWrite(totalLength)) {
+            final Reentrant reentrant = asyncWriter.getWriteReentrant();
+            if (!asyncWriter.isMaxReentrantsReached(reentrant)) {
+                notifyWritePossible();
+            } else {
+                notifyWritePossibleAsync(c);
+            }
+            
+            return;
+        }
+        
+        final TaskQueue taskQueue = ((NIOConnection) c).getAsyncWriteQueue();
+
         monitor = new TaskQueue.QueueMonitor() {
             
             @Override
             public boolean shouldNotify() {
-                return ((maxBytes - taskQueue.spaceInBytes()) >= length);
+                return ((maxBytes - taskQueue.spaceInBytes()) >= totalLength);
             }
 
             @Override
             public void onNotify() throws IOException {
-                OutputBuffer.this.handler = null;
                 OutputBuffer.this.monitor = null;
-                try {
-                    handler.onWritePossible();
-                } catch (Throwable t) {
-                    handler.onError(t);
-                    throw Exceptions.makeIOException(t);
+                final Reentrant reentrant = asyncWriter.getWriteReentrant();
+                if (!asyncWriter.isMaxReentrantsReached(reentrant)) {
+                    notifyWritePossible();
+                } else {
+                    notifyWritePossibleAsync(c);
                 }
             }
         };
         try {
             // If exception occurs here - it's from WriteHandler, so it must
             // have been processed by WriteHandler.onError().
-            taskQueue.addQueueMonitor(monitor);
+            taskQueue.setQueueMonitor(monitor);
         } catch (Exception ignored) {
         }
     }
 
+    /**
+     * Notify WriteHandler asynchronously
+     */
+    @SuppressWarnings("unchecked")
+    private void notifyWritePossibleAsync(final Connection c) {
+        try {
+            asyncWriter.write(c, Buffers.EMPTY_BUFFER,
+                    onWritePossibleCompletionHandler);
+        } catch (IOException ignored) {
+            // If exception occurs here - it's from WriteHandler, so it must
+            // have been processed by WriteHandler.onError().
+        }
+    }
+
+    /**
+     * Notify WriteHandler
+     */
+    private void notifyWritePossible() {
+        final Reentrant reentrant = asyncWriter.getWriteReentrant();
+        final WriteHandler localHandler = handler;
+        
+        if (localHandler != null) {
+            try {
+                this.handler = null;
+                reentrant.incAndGet();
+                localHandler.onWritePossible();
+            } catch (Exception ioe) {
+                localHandler.onError(ioe);
+            } finally {
+                reentrant.decAndGet();
+            }
+        }
+    }
 
     // --------------------------------------------------------- Private Methods
 
@@ -620,13 +657,7 @@ public class OutputBuffer {
     private void handleAsyncErrors() throws IOException {
         final Throwable t = asyncError.get();
         if (t != null) {
-            if (t instanceof IOException) {
-                throw (IOException) t;
-            } else if (t instanceof RuntimeException) {
-                throw (RuntimeException) t;
-            } else {
-                throw new IOException(t);
-            }
+            throw Exceptions.makeIOException(t);
         }
     }
 
@@ -680,7 +711,7 @@ public class OutputBuffer {
         builder.content(bufferToFlush).last(isLast);
         ctx.write(null,
                   builder.build(),
-                  asyncCompletionHandler,
+                  onAsyncErrorCompletionHandler,
                   messageCloner,
                   !asyncEnabled);
     }
@@ -846,4 +877,29 @@ public class OutputBuffer {
     public static interface LifeCycleListener {
         public void onCommit() throws IOException;
     }
+    
+    private class OnErrorCompletionHandler
+            extends EmptyCompletionHandler<WriteResult> {
+
+        @Override
+        public void failed(final Throwable throwable) {
+            asyncError.compareAndSet(null, throwable);
+
+            final WriteHandler localHandler = handler;
+            handler = null;
+            
+            if (localHandler != null) {
+                localHandler.onError(throwable);
+            }
+        }
+    };
+
+    private final class OnWritePossibleCompletionHandler
+            extends OnErrorCompletionHandler {
+
+        @Override
+        public void completed(final WriteResult result) {
+            notifyWritePossible();
+        }
+    }    
 }

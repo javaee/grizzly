@@ -41,9 +41,7 @@
 package org.glassfish.grizzly.asyncqueue;
 
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -54,8 +52,6 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author Alexey Stashok
  */
 public final class TaskQueue<E> {
-    private static final AtomicReferenceFieldUpdater<QueueMonitor,Boolean> MONITOR =
-            AtomicReferenceFieldUpdater.newUpdater(QueueMonitor.class, Boolean.class, "invalid");
     /**
      * The queue of tasks, which will be processed asynchronously
      */
@@ -64,7 +60,8 @@ public final class TaskQueue<E> {
     private final AtomicReference<E> currentElement;
     private final AtomicInteger spaceInBytes = new AtomicInteger();
 
-    protected final Queue<QueueMonitor> monitorQueue;
+    protected final AtomicReference<QueueMonitor> queueMonitor =
+            new AtomicReference<QueueMonitor>();
 
     // ------------------------------------------------------------ Constructors
 
@@ -72,7 +69,6 @@ public final class TaskQueue<E> {
     protected TaskQueue() {        
         currentElement = new AtomicReference<E>();
         queue = new ConcurrentLinkedQueue<E>();
-        monitorQueue = new ConcurrentLinkedQueue<QueueMonitor>();
     }
 
     // ---------------------------------------------------------- Public Methods
@@ -151,19 +147,25 @@ public final class TaskQueue<E> {
 //    }
 
 
-    public boolean addQueueMonitor(final QueueMonitor monitor) throws IOException {
-        if (monitor.shouldNotify()) {
+    public void setQueueMonitor(final QueueMonitor monitor) throws IOException {
+        if (monitor == null) {
+            removeQueueMonitor();
+            return;
+        }
+        
+        if (!queueMonitor.compareAndSet(null, monitor)) {
+            throw new IllegalStateException("Illegal attempt to set a new monitor before the existing monitor has been notified.");
+        }
+        
+        if (monitor.shouldNotify() &&
+                queueMonitor.compareAndSet(monitor, null)) {
             monitor.onNotify();
-            return false;
-        } else {
-            monitorQueue.offer(monitor);
-            return true;
         }
     }
 
 
-    public void removeQueueMonitor(final QueueMonitor monitor) {
-        monitorQueue.remove(monitor);
+    public void removeQueueMonitor() {
+        queueMonitor.set(null);
     }
 
 
@@ -171,21 +173,11 @@ public final class TaskQueue<E> {
 
 
     protected void doNotify() throws IOException {
-        if (!monitorQueue.isEmpty()) {
-            for (final Iterator<QueueMonitor> i = monitorQueue.iterator(); i.hasNext(); ) {
-                final QueueMonitor m = i.next();
-                if (!MONITOR.get(m)) {
-                    if (m.shouldNotify()) {
-                        if (MONITOR.compareAndSet(m, Boolean.FALSE, Boolean.TRUE)) {
-                            m.onNotify();
-                        }
-                    }
-                } else {
-                    i.remove();
-                }
-            }
+        final QueueMonitor monitor = queueMonitor.get();
+        if (monitor != null && monitor.shouldNotify() &&
+                queueMonitor.compareAndSet(monitor, null)) {
+            monitor.onNotify();
         }
-
     }
     
     /**
@@ -226,9 +218,6 @@ public final class TaskQueue<E> {
      * is called.
      */
     public static abstract class QueueMonitor {
-
-        volatile Boolean invalid = Boolean.FALSE;
-
         // ------------------------------------------------------ Public Methods
 
         /**

@@ -285,7 +285,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
-                    assertTrue("IOException occurred: " + e.toString(), false);
+                    assertTrue("IOException occurred: " + e.toString() + " loopCount=" + loopCount, false);
 
                 }
                 i++;
@@ -355,7 +355,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
             } while (asyncQueueWriter.canWrite(con, 256000));  // fill the buffer
 
             // out of space.  Add a monitor to be notified when space is available
-            tqueue.addQueueMonitor(new WriteQueueFreeSpaceMonitor(con, 256000 * 4));
+            tqueue.setQueueMonitor(new WriteQueueFreeSpaceMonitor(con, 256000 * 4));
 
             transport.resume(); // resume the transport so bytes start draining from the queue
 

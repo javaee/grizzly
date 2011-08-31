@@ -52,6 +52,7 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.Interceptor;
 import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter.Reentrant;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
@@ -82,7 +83,7 @@ public abstract class AbstractNIOAsyncQueueWriter
 
     private final static Logger logger = Grizzly.logger(AbstractNIOAsyncQueueWriter.class);
 
-    private static final ThreadLocal<Reentrant> REENTRANTS_COUNTER =
+    private final ThreadLocal<Reentrant> REENTRANTS_COUNTER =
             new ThreadLocal<Reentrant>() {
 
         @Override
@@ -105,7 +106,7 @@ public abstract class AbstractNIOAsyncQueueWriter
 
     private final Attribute<Reentrant> reentrantsAttribute =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-            AbstractNIOAsyncQueueWriter.class + ".reentrant",
+            AbstractNIOAsyncQueueWriter.class.getName() + hashCode() + ".reentrant",
             new NullaryFunction<Reentrant>() {
 
                 @Override
@@ -216,7 +217,7 @@ public abstract class AbstractNIOAsyncQueueWriter
         final int bytesToReserve = isEmptyRecord ?
                  EMPTY_RECORD_SPACE_VALUE : bufferSize;
 
-        final int pendingBytes = connectionQueue.reserveSpace(bytesToReserve);
+        final int pendingBytes = connectionQueue.reserveSpace(bytesToReserve);        
         final boolean isCurrent = (pendingBytes == bytesToReserve);
         final boolean isLogFine = logger.isLoggable(Level.FINEST);
         if (isLogFine) {
@@ -227,8 +228,16 @@ public abstract class AbstractNIOAsyncQueueWriter
         Reentrant reentrants = null;
         
         try {
+            // Check if the buffer size matches maxPendingBytes
+            if (maxPendingBytes > 0 && pendingBytes > maxPendingBytes) {
+                connectionQueue.releaseSpace(bytesToReserve);
+                throw new PendingWriteQueueLimitExceededException(
+                        "Max queued data limit exceeded: "
+                        + pendingBytes + '>' + maxPendingBytes);
+            }
+
             if (isCurrent && (reentrants =
-                    getWriteReentrants()).incAndGet() < maxWriteReentrants) {
+                    getWriteReentrant()).incAndGet() < maxWriteReentrants) {
                 
                 // If we can write directly - do it w/o creating queue record (simple)
                 final int bytesWritten = write0(nioConnection, queueRecord);
@@ -244,13 +253,6 @@ public abstract class AbstractNIOAsyncQueueWriter
                     }
                     return ReadyFutureImpl.create(currentResult);
                 }
-            } else if (maxPendingBytes > 0 && pendingBytes > maxPendingBytes
-                    && !isEmptyRecord) {
-
-                connectionQueue.releaseSpace(bytesToReserve);
-                throw new PendingWriteQueueLimitExceededException(
-                        "Max queued data limit exceeded: " +
-                        pendingBytes + '>' + maxPendingBytes);
             }
 
             final SafeFutureImpl<WriteResult<Buffer,SocketAddress>> future = 
@@ -439,6 +441,27 @@ public abstract class AbstractNIOAsyncQueueWriter
      * {@inheritDoc}
      */
     @Override
+    public Reentrant getWriteReentrant() {
+        final Thread t = Thread.currentThread();
+        // If it's a Grizzly WorkerThread - use GrizzlyAttribute
+        if (WorkerThread.class.isAssignableFrom(t.getClass())) {
+            return reentrantsAttribute.get((WorkerThread) t);
+        }
+
+        // ThreadLocal otherwise
+        return REENTRANTS_COUNTER.get();
+    }
+
+    @Override
+    public boolean isMaxReentrantsReached(final Reentrant reentrant) {
+        return reentrant.get() >= getMaxWriteReentrants();
+    }
+
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public final void close() {
     }
     
@@ -522,26 +545,4 @@ public abstract class AbstractNIOAsyncQueueWriter
     protected abstract void onReadyToWrite(Connection connection)
             throws IOException;
 
-    private Reentrant getWriteReentrants() {
-        final Thread t = Thread.currentThread();
-        // If it's a Grizzly WorkerThread - use GrizzlyAttribute
-        if (WorkerThread.class.isAssignableFrom(t.getClass())) {
-            return reentrantsAttribute.get((WorkerThread) t);
-        }
-
-        // ThreadLocal otherwise
-        return REENTRANTS_COUNTER.get();
-    }
-
-    private static final class Reentrant {
-        private int counter;
-        
-        public int incAndGet() {
-            return ++counter;
-        }
-
-        public int decAndGet() {
-            return --counter;
-        }
-    }
 }
