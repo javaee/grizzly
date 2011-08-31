@@ -43,6 +43,7 @@ import java.io.IOException;
 import java.net.URI;
 
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.GrizzlyFuture;
@@ -73,8 +74,13 @@ public abstract class ProtocolHandler {
         return handshake;
     }
 
-    public GrizzlyFuture<DataFrame> send(DataFrame frame) {
-        return write(frame);
+    public final GrizzlyFuture<DataFrame> send(DataFrame frame) {
+        return send(frame, null);
+    }
+
+    public GrizzlyFuture<DataFrame> send(DataFrame frame,
+            CompletionHandler<DataFrame> completionHandler) {
+        return write(frame, completionHandler);
     }
 
     public Connection getConnection() {
@@ -133,18 +139,43 @@ public abstract class ProtocolHandler {
     }
 
     public GrizzlyFuture<DataFrame> close(int code, String reason) {
-        return send(new ClosingFrame(code, reason));
+        return send(new ClosingFrame(code, reason),
+                new EmptyCompletionHandler<DataFrame>() {
+
+            @Override
+            public void failed(final Throwable throwable) {
+                webSocket.onClose(null);
+            }
+        });
     }
 
-    @SuppressWarnings({"unchecked"})
     private GrizzlyFuture<DataFrame> write(final DataFrame frame) {
+        return write(frame, null);
+    }
+    
+    @SuppressWarnings({"unchecked"})
+    private GrizzlyFuture<DataFrame> write(final DataFrame frame,
+            final CompletionHandler<DataFrame> completionHandler) {
         final FutureImpl<DataFrame> localFuture = SafeFutureImpl.<DataFrame>create();
 
         try {
             connection.write(frame, new EmptyCompletionHandler() {
                 @Override
-                public void completed(Object result) {
+                public void completed(final Object result) {
+                    if (completionHandler != null) {
+                        completionHandler.completed(frame);
+                    }
+                    
                     localFuture.result(frame);
+                }
+
+                @Override
+                public void failed(final Throwable throwable) {
+                    if (completionHandler != null) {
+                        completionHandler.failed(throwable);
+                    }
+                    
+                    localFuture.failure(throwable);
                 }
             });
         } catch (IOException e) {
