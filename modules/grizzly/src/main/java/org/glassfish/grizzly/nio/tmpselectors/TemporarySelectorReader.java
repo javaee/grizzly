@@ -108,8 +108,9 @@ public abstract class TemporarySelectorReader
             final long timeout, final TimeUnit timeunit) throws IOException {
 
         if (connection == null || !(connection instanceof NIOConnection)) {
-            throw new IllegalStateException(
-                    "Connection should be NIOConnection and cannot be null.");
+            return failure(new IllegalStateException(
+                    "Connection should be NIOConnection and cannot be null"),
+                    completionHandler);
         }
 
         final NIOConnection nioConnection = (NIOConnection) connection;
@@ -117,25 +118,29 @@ public abstract class TemporarySelectorReader
         final ReadResult<Buffer, SocketAddress> currentResult =
                 ReadResult.create(connection, message, null, 0);
 
-        final int readBytes = read0(nioConnection, interceptor,
-                currentResult, message, timeout, timeunit);
+        try {
+            final int readBytes = read0(nioConnection, interceptor,
+                    currentResult, message, timeout, timeunit);
 
-        if (readBytes > 0) {
+            if (readBytes > 0) {
 
-            if (completionHandler != null) {
-                completionHandler.completed(currentResult);
+                if (completionHandler != null) {
+                    completionHandler.completed(currentResult);
+                }
+
+                if (interceptor != null) {
+                    interceptor.intercept(COMPLETE_EVENT, connection, currentResult);
+                }
+
+                return ReadyFutureImpl.create(currentResult);
+            } else {
+                return failure(new TimeoutException(), completionHandler);
             }
-
-            if (interceptor != null) {
-                interceptor.intercept(COMPLETE_EVENT, connection, currentResult);
-            }
-
-            return ReadyFutureImpl.create(currentResult);
-        } else {
-            return ReadyFutureImpl.create(new TimeoutException());
+        } catch (IOException e) {
+            return failure(e, completionHandler);
         }
     }
-
+    
     private int read0(NIOConnection connection,
             Interceptor<ReadResult> interceptor,
             ReadResult<Buffer, SocketAddress> currentResult, Buffer buffer,
@@ -220,4 +225,14 @@ public abstract class TemporarySelectorReader
     public TemporarySelectorsEnabledTransport getTransport() {
         return transport;
     }
+    
+    private static GrizzlyFuture<ReadResult<Buffer, SocketAddress>> failure(
+            final Throwable failure,
+            final CompletionHandler<ReadResult<Buffer, SocketAddress>> completionHandler) {
+        if (completionHandler != null) {
+            completionHandler.failed(failure);
+        }
+        
+        return ReadyFutureImpl.<ReadResult<Buffer, SocketAddress>>create(failure);
+    }    
 }
