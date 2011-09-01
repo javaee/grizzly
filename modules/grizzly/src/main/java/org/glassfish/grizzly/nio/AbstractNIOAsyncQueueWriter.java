@@ -188,15 +188,13 @@ public abstract class AbstractNIOAsyncQueueWriter
             final MessageCloner<Buffer> cloner) throws IOException {                
         
         if (connection == null) {
-            final IOException failure = new IOException("Connection is null");
-            notifyOnFailure(null, completionHandler, failure);
-            return ReadyFutureImpl.create(failure);
+            return failure(new IOException("Connection is null"),
+                    completionHandler);
         }
 
         if (!connection.isOpen()) {
-            final IOException failure = new IOException("Connection is closed");
-            notifyOnFailure(null, completionHandler, failure);
-            return ReadyFutureImpl.create(failure);
+            return failure(new IOException("Connection is closed"),
+                    completionHandler);
         }
         
         final NIOConnection nioConnection = (NIOConnection) connection;
@@ -521,18 +519,14 @@ public abstract class AbstractNIOAsyncQueueWriter
             return;
         }
 
-        notifyOnFailure((FutureImpl) record.getFuture(),
-                record.getCompletionHandler(), e);
-    }
-
-    protected static void notifyOnFailure(final FutureImpl future,
-            final CompletionHandler completionHandler,
-            final Throwable e) {
-
+        final FutureImpl future = (FutureImpl) record.getFuture();
         final boolean hasFuture = (future != null);
         
         if (!hasFuture || !future.isDone()) {
 
+            final CompletionHandler completionHandler =
+                    record.getCompletionHandler();
+            
             if (completionHandler != null) {
                 completionHandler.failed(e);
             }
@@ -542,7 +536,17 @@ public abstract class AbstractNIOAsyncQueueWriter
             }
         }
     }
-
+    
+    private static GrizzlyFuture<WriteResult<Buffer, SocketAddress>> failure(
+            final Throwable failure,
+            final CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler) {
+        if (completionHandler != null) {
+            completionHandler.failed(failure);
+        }
+        
+        return ReadyFutureImpl.<WriteResult<Buffer, SocketAddress>>create(failure);
+    }
+    
     private static boolean isFinished(final AsyncWriteQueueRecord queueRecord) {
         final Buffer buffer = queueRecord.getMessage();
         return !buffer.hasRemaining();

@@ -99,15 +99,13 @@ public abstract class AbstractNIOAsyncQueueReader
             final Interceptor<ReadResult> interceptor) throws IOException {
 
         if (connection == null) {
-            final IOException failure = new IOException("Connection is null");
-            notifyOnFailure(null, completionHandler, failure);
-            return ReadyFutureImpl.create(failure);
+            return failure(new IOException("Connection is null"),
+                    completionHandler);
         }
 
         if (!connection.isOpen()) {
-            final IOException failure = new IOException("Connection is closed");
-            notifyOnFailure(null, completionHandler, failure);
-            return ReadyFutureImpl.create(failure);
+            return failure(new IOException("Connection is closed"),
+                    completionHandler);
         }
         
         // Get connection async read queue
@@ -391,18 +389,14 @@ public abstract class AbstractNIOAsyncQueueReader
             return;
         }
 
-        notifyOnFailure((FutureImpl) record.getFuture(),
-                record.getCompletionHandler(), e);        
-    }
-
-    protected static void notifyOnFailure(final FutureImpl future,
-            final CompletionHandler completionHandler,
-            final Throwable e) {
-
+        final FutureImpl future = (FutureImpl) record.getFuture();
         final boolean hasFuture = (future != null);
         
         if (!hasFuture || !future.isDone()) {
 
+            final CompletionHandler completionHandler =
+                    record.getCompletionHandler();
+            
             if (completionHandler != null) {
                 completionHandler.failed(e);
             }
@@ -413,6 +407,16 @@ public abstract class AbstractNIOAsyncQueueReader
         }
     }
 
+    private static GrizzlyFuture<ReadResult<Buffer, SocketAddress>> failure(
+            final Throwable failure,
+            final CompletionHandler<ReadResult<Buffer, SocketAddress>> completionHandler) {
+        if (completionHandler != null) {
+            completionHandler.failed(failure);
+        }
+        
+        return ReadyFutureImpl.<ReadResult<Buffer, SocketAddress>>create(failure);
+    }
+    
     private int intercept(final int event,
                           final AsyncReadQueueRecord asyncQueueRecord,
                           final ReadResult currentResult) {

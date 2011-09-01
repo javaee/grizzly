@@ -110,12 +110,14 @@ public abstract class TemporarySelectorWriter
             long timeout, TimeUnit timeunit) throws IOException {
 
         if (message == null) {
-            throw new IllegalStateException("Message cannot be null.");
+            return failure(new IllegalStateException("Message cannot be null"),
+                    completionHandler);
         }
 
         if (connection == null || !(connection instanceof NIOConnection)) {
-            throw new IllegalStateException(
-                    "Connection should be NIOConnection and cannot be null.");
+            return failure(
+                    new IllegalStateException("Connection should be NIOConnection and cannot be null"),
+                    completionHandler);
         }
 
         final NIOConnection nioConnection = (NIOConnection) connection;
@@ -124,19 +126,23 @@ public abstract class TemporarySelectorWriter
                 WriteResult.create(connection,
                         message, dstAddress, 0);
 
-        write0(nioConnection, dstAddress, message, writeResult,
-                timeout, timeunit);
+        try {
+            write0(nioConnection, dstAddress, message, writeResult,
+                    timeout, timeunit);
 
-        final GrizzlyFuture<WriteResult<Buffer, SocketAddress>> writeFuture =
-                ReadyFutureImpl.create(writeResult);
-        
-        if (completionHandler != null) {
-            completionHandler.completed(writeResult);
+            final GrizzlyFuture<WriteResult<Buffer, SocketAddress>> writeFuture =
+                    ReadyFutureImpl.create(writeResult);
+
+            if (completionHandler != null) {
+                completionHandler.completed(writeResult);
+            }
+
+            message.tryDispose();
+            return writeFuture;
+            
+        } catch (IOException e) {
+            return failure(e, completionHandler);
         }
-
-        message.tryDispose();
-
-        return writeFuture;
     }
     
     /**
@@ -211,4 +217,14 @@ public abstract class TemporarySelectorWriter
             SocketAddress dstAddress, Buffer buffer,
             WriteResult<Buffer, SocketAddress> currentResult)
             throws IOException;
+    
+    private static GrizzlyFuture<WriteResult<Buffer, SocketAddress>> failure(
+            final Throwable failure,
+            final CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler) {
+        if (completionHandler != null) {
+            completionHandler.failed(failure);
+        }
+        
+        return ReadyFutureImpl.<WriteResult<Buffer, SocketAddress>>create(failure);
+    }
 }
