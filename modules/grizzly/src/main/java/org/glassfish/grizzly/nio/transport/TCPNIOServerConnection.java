@@ -186,7 +186,7 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
 
         tcpNIOTransport.getNIOChannelDistributor().registerChannelAsync(
                 acceptedChannel, initialSelectionKeyInterest, connection,
-                completionHandler).recycle();
+                completionHandler).markForRecycle(false);
         
         return connection;
     }
