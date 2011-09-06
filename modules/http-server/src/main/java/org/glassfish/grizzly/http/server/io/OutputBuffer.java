@@ -664,8 +664,7 @@ public class OutputBuffer {
     
     private boolean writeContentChunk(final boolean areHeadersCommitted,
                                       final boolean isLast) throws IOException {
-        if (!committed
-                && !response.isChunkingAllowed()
+        if (!response.isChunkingAllowed()
                 && response.getContentLength() == -1) {
             if (!isLast) {
                 return false;
