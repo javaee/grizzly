@@ -199,8 +199,9 @@ public class BasicAjpTest {
 
         Buffer responseBuffer = send("localhost", PORT, request).get(10, TimeUnit.SECONDS);
 
-        // Successful response length is 16 bytes
-        boolean isFailure = responseBuffer.remaining() != 16;
+        // Successful response length is 37 bytes.  This includes the status
+        // line and a content-length
+        boolean isFailure = responseBuffer.remaining() != 37;
 
         if (isFailure) {
             byte[] response = new byte[responseBuffer.remaining()];
