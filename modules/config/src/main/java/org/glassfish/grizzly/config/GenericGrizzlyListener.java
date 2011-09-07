@@ -781,7 +781,23 @@ public class GenericGrizzlyListener implements GrizzlyListener {
                     if (org.glassfish.grizzly.http.Protocol.HTTP_1_1 != httpPacket.getProtocol()) {
                         return false;
                     }
+                    
+                    // If at least one encoding has been already selected
+                    // skip this one
+                    if (!httpPacket.getContentEncodings().isEmpty()) {
+                        return false;
+                    }
+
                     final HttpResponsePacket responsePacket = (HttpResponsePacket) httpPacket;
+                    
+                    final MimeHeaders responseHeaders = responsePacket.getHeaders();
+                    // Check if content is already encoded (no matter which encoding)
+                    final DataChunk contentEncodingMB =
+                        responseHeaders.getValue("Content-Encoding");
+                    if (contentEncodingMB != null && !contentEncodingMB.isNull()) {
+                        return false;
+                    }
+                    
                     final MimeHeaders requestHeaders = responsePacket.getRequest().getHeaders();
                     // Check if browser support gzip encoding
                     final DataChunk acceptEncodingDC =
@@ -789,14 +805,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
                     if (acceptEncodingDC == null || indexOf(aliases, acceptEncodingDC) == -1) {
                         return false;
                     }
-                    final MimeHeaders responseHeaders = responsePacket.getHeaders();
-                    // Check if content is not already gzipped
-                    final DataChunk contentEncodingMB =
-                        responseHeaders.getValue("Content-Encoding");
-                    if (contentEncodingMB != null
-                        && indexOf(aliases, contentEncodingMB) != -1) {
-                        return false;
-                    }
+                    
                     // If force mode, always compress (test purposes only)
                     if (compressionLevel == COMPRESSION_LEVEL.FORCE) {
                         return true;
