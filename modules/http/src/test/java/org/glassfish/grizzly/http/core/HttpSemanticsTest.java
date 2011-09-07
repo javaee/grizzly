@@ -53,7 +53,6 @@ import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.HttpClientFilter;
 import org.glassfish.grizzly.http.HttpContent;
-import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.HttpServerFilter;
@@ -78,7 +77,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.memory.Buffers;
 
 
@@ -334,7 +332,9 @@ public class HttpSemanticsTest extends TestCase {
                 HttpStatus.OK_200.setValues(response);
                 MemoryManager mm = ctx.getMemoryManager();
                 HttpContent content = response.httpContentBuilder().content(Buffers.wrap(mm, "Content")).build();
-                content.setLast(true);
+                // Setting last flag to false to make sure HttpServerFilter will not
+                // add content-length header
+                content.setLast(false);
                 ctx.write(content);
                 ctx.flush(new FlushAndCloseHandler());
                 return ctx.getStopAction();
@@ -342,6 +342,42 @@ public class HttpSemanticsTest extends TestCase {
         });
     }
 
+    public void testHttp1AutoContentLengthOnSingleChunk() throws Throwable {
+
+        final HttpRequestPacket request = HttpRequestPacket.builder()
+                .method("GET")
+                .uri("/path")
+                .chunked(false)
+                .header("Host", "localhost:" + PORT)
+                .protocol("HTTP/1.1")
+                .build();
+
+        ExpectedResult result = new ExpectedResult();
+        result.setProtocol("HTTP/1.1");
+        result.setStatusCode(200);
+        result.addHeader("!Transfer-Encoding", "chunked");
+        result.addHeader("Content-Length", "7");
+        result.setStatusMessage("ok");
+        result.appendContent("Content");
+        doTest(request, result, new BaseFilter() {
+            @Override
+            public NextAction handleRead(FilterChainContext ctx) throws IOException {
+                HttpRequestPacket request =
+                        (HttpRequestPacket)
+                                ((HttpContent) ctx.getMessage()).getHttpHeader();
+                HttpResponsePacket response = request.getResponse();
+                HttpStatus.OK_200.setValues(response);
+                MemoryManager mm = ctx.getMemoryManager();
+                HttpContent content = response.httpContentBuilder().content(Buffers.wrap(mm, "Content")).build();
+                // HttpServerFilter should apply content-length implicitly
+                content.setLast(true);
+                ctx.write(content);
+                ctx.flush(new FlushAndCloseHandler());
+                return ctx.getStopAction();
+            }
+        });
+    }
+    
     public void testContentLengthDuplicationSame() throws Throwable {
 
         String requestString = "POST /path HTTP/1.1\r\n"
