@@ -833,7 +833,7 @@ public class GenericGrizzlyListener implements GrizzlyListener {
     private static int indexOf(String[] aliases, DataChunk dc) {
         for (int i = 0; i < aliases.length; i++) {
             final String alias = aliases[i];
-            if (dc.equalsIgnoreCase(alias)) {
+            if (dc.indexOf(alias, 0) != -1) {
                 return i;
             }
         }
