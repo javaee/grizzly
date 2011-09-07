@@ -199,7 +199,7 @@ public class Request {
         }, 5, 5, TimeUnit.SECONDS);
     }
 
-    final MappingData obtainMappingData() {
+    public final MappingData obtainMappingData() {
         if (cachedMappingData == null) {
             cachedMappingData = new MappingData();
         }
@@ -720,6 +720,8 @@ public class Request {
             RequestUtils.populateSSLAttributes(this);
 
             attribute = request.getAttribute(name);
+        } else if (Globals.DISPATCHER_REQUEST_PATH_ATTR.equals(name)) {
+            return requestDispatcherPath;
         }
 
         return attribute;

@@ -56,11 +56,10 @@ public class ServletConfigImpl implements ServletConfig {
     private String name;
     private final ConcurrentHashMap<String, String> initParameters =
             new ConcurrentHashMap<String, String>(16, 0.75f, 64);
-    private final ServletContextImpl servletContextImpl;
+    private final WebappContext servletContextImpl;
 
-    protected ServletConfigImpl(ServletContextImpl servletContextImpl, Map<String, String> initParameters) {
+    protected ServletConfigImpl(WebappContext servletContextImpl) {
         this.servletContextImpl = servletContextImpl;
-        setInitParameters(initParameters);
     }
 
     /**
@@ -88,8 +87,10 @@ public class ServletConfigImpl implements ServletConfig {
     }
 
     final void setInitParameters(Map<String, String> parameters) {
-        this.initParameters.clear();
-        this.initParameters.putAll(parameters);
+        if (parameters != null && !parameters.isEmpty()) {
+            this.initParameters.clear();
+            this.initParameters.putAll(parameters);
+        }
     }
 
     /**

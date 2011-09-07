@@ -715,4 +715,11 @@ public class HttpServletResponseImpl implements HttpServletResponse {
     public void setCharacterEncoding(String charEnc) {
         response.setCharacterEncoding(charEnc);
     }
+
+
+    // ------------------------------------------------------- Protected Methods
+
+    protected Response getResponse() {
+        return response;
+    }
 }

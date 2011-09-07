@@ -66,14 +66,6 @@ package org.glassfish.grizzly.servlet;
  */
 public class DispatcherConstants {
 
-    static enum DispatcherType {
-        FORWARD,
-        INCLUDE,
-        REQUEST,
-        ASYNC,
-        ERROR
-    }
-
     static final String FORWARD_REQUEST_URI = "javax.servlet.forward.request_uri";
 
     static final String FORWARD_CONTEXT_PATH = "javax.servlet.forward.context_path";

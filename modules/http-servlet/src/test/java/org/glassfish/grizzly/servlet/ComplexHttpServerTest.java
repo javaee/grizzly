@@ -82,52 +82,46 @@ public class ComplexHttpServerTest extends HttpServerAbstractTest {
         Utils.dumpOut("testComplexAliasMapping");
         try {
             startHttpServer(PORT);
-            String[] aliases = new String[] { "/1", "/2", "/3", "/*.a" };
-           
+            String[] aliases = new String[] { "/1", "/2", "/3", "*.a" };
             String context = "/test";
-            String servletPath = "/servlet";
-//            String rootFolder = ".";
-           
-            for (String alias : aliases) {
-                addHttpHandler(context + servletPath + alias, context, servletPath);
-            }
+            WebappContext ctx = new WebappContext("Test", context);
+
 
             for (String alias : aliases) {
-                HttpURLConnection conn = getConnection(context + servletPath + alias, PORT);
-                assertEquals(HttpServletResponse.SC_OK, getResponseCodeFromAlias(conn));
-                assertEquals(context + servletPath + alias, readResponse(conn));
+                addServlet(ctx, alias);
             }
-           
+
+            ctx.deploy(httpServer);
+            for (int i = 0; i < 3; i++) {
+                HttpURLConnection conn = getConnection(context + aliases[i], PORT);
+                assertEquals(HttpServletResponse.SC_OK, getResponseCodeFromAlias(conn));
+                assertEquals(context + aliases[i], readResponse(conn));
+            }
+
             //special test
-            String url = context + servletPath + "/test.a";
+            String url = context + "/test.a";
             HttpURLConnection conn = getConnection(url, PORT);
             assertEquals(HttpServletResponse.SC_OK, getResponseCodeFromAlias(conn));
             assertEquals(url, readResponse(conn));
-           
+
         } finally {
             stopHttpServer();
         }
     }
 
-    private ServletHandler addHttpHandler(final String alias, final String context,
-            final String servletPath) {
-        
-        ServletHandler handler = new ServletHandler(new HttpServlet() {
+    private ServletRegistration addServlet(final WebappContext ctx,
+                                           final String alias) {
+
+        ServletRegistration reg = ctx.addServlet(alias, new HttpServlet() {
 
             @Override
             protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
                 logger.log(Level.INFO, "{0} received request {1}", new Object[]{alias, req.getRequestURI()});
                 resp.setStatus(HttpServletResponse.SC_OK);
-                resp.getWriter().write(alias.indexOf("*") == 0 ? alias : req.getRequestURI());
+                resp.getWriter().write(req.getRequestURI());
             }
         });
-       
-        handler.setContextPath(context);
-        handler.setServletPath(servletPath);
-//        handler.addDocRoot(rootFolder);
-       
-       
-        httpServer.getServerConfiguration().addHttpHandler(handler, alias);
-        return handler;
+        reg.addMapping(alias);
+        return reg;
     }
 }

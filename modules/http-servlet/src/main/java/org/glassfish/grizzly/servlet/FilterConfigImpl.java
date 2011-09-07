@@ -80,7 +80,7 @@ public final class FilterConfigImpl implements FilterConfig {
     /**
      * The Context with which we are associated.
      */
-    private ServletContextImpl servletContext = null;
+    private WebappContext servletContext = null;
     
     
     /**
@@ -105,7 +105,7 @@ public final class FilterConfigImpl implements FilterConfig {
     
 
     
-    public FilterConfigImpl(ServletContextImpl servletContext) {
+    public FilterConfigImpl(WebappContext servletContext) {
         this.servletContext = servletContext;
     }
 
@@ -197,6 +197,8 @@ public final class FilterConfigImpl implements FilterConfig {
      * @param initParameters the configuration parameters for this {@link Filter}
      */    
     protected void setInitParameters(Map initParameters) {
-        this.initParameters = initParameters;
+        if (initParameters != null && !initParameters.isEmpty()) {
+            this.initParameters = initParameters;
+        }
     }
 }

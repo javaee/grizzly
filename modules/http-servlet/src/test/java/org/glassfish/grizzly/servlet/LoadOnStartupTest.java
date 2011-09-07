@@ -40,8 +40,17 @@
 
 package org.glassfish.grizzly.servlet;
 
+import org.glassfish.grizzly.servlet.ver30.*;
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Set;
+
+import static org.junit.Assert.*;
 
 
 /**
@@ -51,36 +60,55 @@ import org.junit.Test;
  *
  */
 public class LoadOnStartupTest {
-	
-	@Test
-	public void loadOnStartupTest() throws Exception {
-		
-		ServletHandler sa = new ServletHandler();
-		Assert.assertTrue(!sa.isLoadOnStartup());
-		
-		sa = new ServletHandler();
-		sa.setProperty("empty", Boolean.TRUE);
-		Assert.assertTrue(!sa.isLoadOnStartup());
-		
-		sa = new ServletHandler();
-		sa.setProperty(ServletHandler.LOAD_ON_STARTUP, Boolean.TRUE);
-		Assert.assertTrue(sa.isLoadOnStartup());
-		
-		sa = new ServletHandler();
-		sa.setProperty(ServletHandler.LOAD_ON_STARTUP, Boolean.FALSE);
-		Assert.assertTrue(!sa.isLoadOnStartup());
-		
-		sa = new ServletHandler();
-		sa.setProperty(ServletHandler.LOAD_ON_STARTUP, "-1");
-		Assert.assertTrue(!sa.isLoadOnStartup());
-		
-		sa = new ServletHandler();
-		sa.setProperty(ServletHandler.LOAD_ON_STARTUP, "0");
-		Assert.assertTrue(sa.isLoadOnStartup());
-		
-		sa = new ServletHandler();
-		sa.setProperty(ServletHandler.LOAD_ON_STARTUP, "15");
-		Assert.assertTrue(sa.isLoadOnStartup());
-		
-	}
+
+    @Test
+    public void loadOnStartupTest() throws Exception {
+
+        WebappContext ctx = new WebappContext("Test");
+        ServletRegistration s = ctx.addServlet("t1", "foo.TestServlet");
+        assertEquals(-1, s.loadOnStartup);
+
+        s = ctx.addServlet("t2", "foo.TestServlet");
+        s.setLoadOnStartup(-5);
+        assertEquals(-1, s.loadOnStartup);
+
+        s = ctx.addServlet("t3", "foo.TestServlet");
+        s.setLoadOnStartup(0);
+        assertEquals(0, s.loadOnStartup);
+
+        s = ctx.addServlet("t4", "foo.TestServlet");
+        s.setLoadOnStartup(3);
+        assertEquals(3, s.loadOnStartup);
+
+        s = ctx.addServlet("t5", "foo.TestServlet");
+        s.setLoadOnStartup(5);
+        assertEquals(5, s.loadOnStartup);
+
+        s = ctx.addServlet("t6", "foo.TestServlet");
+        s.setLoadOnStartup(2);
+        assertEquals(2, s.loadOnStartup);
+
+
+        java.lang.String[] expectedOrder = {
+            "t3", "t6", "t4", "t5"
+        };
+
+        Collection<? extends ServletRegistration> registrations =
+                ctx.getServletRegistrations().values();
+
+        assertTrue(!registrations.isEmpty());
+
+        LinkedList<ServletRegistration> list =
+                new LinkedList<ServletRegistration>(registrations);
+        Collections.sort(list);
+        int i = 0;
+        for (ServletRegistration r : list) {
+            if (r.loadOnStartup < 0) {
+                continue;
+            }
+            assertEquals(expectedOrder[i], r.name);
+            i++;
+        }
+
+    }
 }

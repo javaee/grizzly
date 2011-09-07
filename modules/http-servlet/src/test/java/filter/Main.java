@@ -40,6 +40,8 @@
 
 package filter;
 
+import com.sun.jersey.server.impl.application.WebApplicationContext;
+import org.glassfish.grizzly.servlet.FilterRegistration;
 import org.glassfish.grizzly.servlet.ServletHandler;
 import com.sun.jersey.api.core.ClasspathResourceConfig;
 import com.sun.jersey.spi.container.servlet.ServletContainer;
@@ -53,6 +55,7 @@ import javax.ws.rs.core.UriBuilder;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
+import org.glassfish.grizzly.servlet.WebappContext;
 
 public class Main {
 
@@ -86,18 +89,17 @@ public class Main {
         if (u == null) {
             throw new IllegalArgumentException("The URI must not be null");
         }
-
-        ServletHandler servletHandler = new ServletHandler();
+        WebappContext ctx = new WebappContext("Test", "/");
+        FilterRegistration registration = ctx.addFilter("TestFilter", c);
         if (initParams == null) {
-            servletHandler.addInitParameter(ClasspathResourceConfig.PROPERTY_CLASSPATH,
+            registration.setInitParameter(ClasspathResourceConfig.PROPERTY_CLASSPATH,
                     System.getProperty("java.class.path").replace(File.pathSeparatorChar, ';'));
         } else {
             for (Map.Entry<String, String> e : initParams.entrySet()) {
-                servletHandler.addInitParameter(e.getKey(), e.getValue());
+                registration.setInitParameter(e.getKey(), e.getValue());
             }
         }
-
-        servletHandler.addFilter(getInstance(c), "filter", initParams);
+        registration.addMappingForUrlPatterns(null, "/*");
 
         String path = u.getPath();
         if (path == null) {
@@ -111,15 +113,7 @@ public class Main {
                     ". must start with a '/'");
         }
 
-        if (path.length() > 1) {
-            if (path.endsWith("/")) {
-                path = path.substring(0, path.length() - 1);
-            }
-            servletHandler.setContextPath(path);
-        }
-
-//        System.out.println("createServletService @ " + path);
-        return create(u, servletHandler, path);
+        return create(u, ctx, path);
     }
 
     private static Filter getInstance(Class<? extends Filter> c) {
@@ -130,7 +124,7 @@ public class Main {
         }
     }
 
-    private static HttpServer create(URI u, HttpHandler handler, String path)
+    private static HttpServer create(URI u, WebappContext ctx, String path)
             throws IOException, IllegalArgumentException {
         if (u == null) {
             throw new IllegalArgumentException("The URI must not be null");
@@ -143,22 +137,11 @@ public class Main {
                     ", must be equal (ignoring case) to 'http'");
         }
 
-
-//        final SelectorThread selectorThread = new SelectorThread();
-
-//        selectorThread.setAlgorithmClassName(StaticStreamAlgorithm.class.getName());
-
         final int port = (u.getPort() == -1) ? 80 : u.getPort();
-//        final HttpServer server = new HttpServer();
-//
-//        NetworkListener listener = new NetworkListener("grizzly", "0.0.0.0", port);
-//        server.addListener(listener);
 
         final HttpServer server = HttpServer.createSimpleServer("./tmp", port);
 
-        final ServerConfiguration sconfig = server.getServerConfiguration();
-//        sconfig.addHttpHandler(new StaticResourcesHandler("./tmp"), path);
-        sconfig.addHttpHandler(handler, path);
+        ctx.deploy(server);
 
         server.start();
 

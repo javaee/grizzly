@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,67 +37,28 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.servlet;
 
-import junit.framework.TestCase;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-
-import org.glassfish.grizzly.http.server.HttpHandler;
-import org.glassfish.grizzly.http.server.HttpServer;
-
 /**
- * Contains utility methods for testing {@link HttpServer}.
+ * Enumerates the DispatcherTypes supported by the Servlet 3.0 specification.
  *
- * @author Hubert Iwaniuk
+ * @since 2.2
  */
-public abstract class HttpServerAbstractTest extends TestCase {
-    protected HttpServer httpServer;
+@SuppressWarnings({"UnusedDeclaration"})
+enum DispatcherType {
+    REQUEST((byte) (1)),
+    FORWARD((byte) (1 << 1)),
+    INCLUDE((byte) (1 << 2)),
+    ERROR((byte) (1 << 3)),
+    ASYNC((byte) (1 << 4));
 
-    protected String readResponse(HttpURLConnection conn) throws IOException {
-        BufferedReader reader = new BufferedReader(
-                new InputStreamReader(conn.getInputStream()));
-        return reader.readLine();
+    private byte type;
+
+    DispatcherType(final byte type) {
+        this.type = type;
     }
 
-    protected StringBuilder readMultilineResponse(HttpURLConnection conn) throws IOException {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-        StringBuilder sb = new StringBuilder();
-        String line = null;
-        while((line = reader.readLine())!=null){
-            sb.append(line).append("\n");
-        }
-        return sb;
+    public byte type() {
+        return type;
     }
-
-    protected HttpURLConnection getConnection(String alias, int port) throws IOException {
-        URL url = new URL("http", "localhost", port, alias);
-        HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();
-        urlConn.connect();
-        return urlConn;
-    }
-
-    protected int getResponseCodeFromAlias(HttpURLConnection urlConn)
-            throws IOException {
-        return urlConn.getResponseCode();
-    }
-
-    protected void startHttpServer(int port) throws IOException {
-        newHttpServer(port);
-        httpServer.start();
-    }
-
-    protected void stopHttpServer() {
-        httpServer.stop();
-    }
-
-    protected void newHttpServer(int port) throws IOException {
-        httpServer = HttpServer.createSimpleServer("./", port);
-    }
-
 }

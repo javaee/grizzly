@@ -68,11 +68,9 @@ public class BasicServletTest extends HttpServerAbstractTest {
         Utils.dumpOut("testServletName");
         try {
             newHttpServer(PORT);
-            String alias = "/contextPath/servletPath/";
-            ServletHandler servletHandler = addHttpHandler(alias);
-            servletHandler.setContextPath("/contextPath");
-            servletHandler.setServletPath("/servletPath");
-            servletHandler.setProperty("servlet-name", "foobar");
+            WebappContext ctx = new WebappContext("Test", "/contextPath");
+            addServlet(ctx, "foobar", "/servletPath/*");
+            ctx.deploy(httpServer);
             httpServer.start();
             HttpURLConnection conn = getConnection("/contextPath/servletPath/pathInfo", PORT);
             String s = conn.getHeaderField("Servlet-Name");
@@ -86,9 +84,10 @@ public class BasicServletTest extends HttpServerAbstractTest {
         Utils.dumpOut("testSetHeaderTest");
         try {
             startHttpServer(PORT);
+            WebappContext ctx = new WebappContext("Test");
             String alias = "/1";
-            addHttpHandler(alias);
-            
+            addServlet(ctx, "TestServlet", alias);
+            ctx.deploy(httpServer);
             HttpURLConnection conn = getConnection(alias, PORT);
             String s = conn.getHeaderField("Content-Type");
             assertEquals(header, s);
@@ -101,62 +100,60 @@ public class BasicServletTest extends HttpServerAbstractTest {
         Utils.dumpOut("testPathInfo");
         try {
             newHttpServer(PORT);
-            String alias = "/contextPath/servletPath/";
-            ServletHandler servletHandler = addHttpHandler(alias);
-            servletHandler.setContextPath("/contextPath");
-            servletHandler.setServletPath("/servletPath");
+            WebappContext ctx = new WebappContext("Test", "/contextPath");
+            addServlet(ctx, "TestServlet", "/servletPath/*");
+            ctx.deploy(httpServer);
             httpServer.start();
             HttpURLConnection conn = getConnection("/contextPath/servletPath/pathInfo", PORT);
             String s = conn.getHeaderField("Path-Info");
-            assertEquals(s, "/pathInfo");
+            assertEquals("/pathInfo", s);
         } finally {
             stopHttpServer();
         }
     }
 
-    public void testNotAllowEncodedSlash() throws IOException {
-        Utils.dumpOut("testNotAllowEncodedSlash");
-        try {
-            newHttpServer(PORT);
-            String alias = "/contextPath/servletPath/";
-            ServletHandler servletHandler = addHttpHandler(alias);
-            servletHandler.setContextPath("/contextPath");
-            servletHandler.setServletPath("/servletPath");
-            httpServer.start();
-            HttpURLConnection conn = getConnection("/contextPath/servletPath%5FpathInfo", PORT);
-            String s = conn.getHeaderField("Path-Info");
-            assertNotSame(s, "/pathInfo");
-        } finally {
-            stopHttpServer();
-        }
-    }
-
-    public void testAllowEncodedSlash() throws IOException {
-        Utils.dumpOut("testAllowEncodedSlash");
-        try {
-            newHttpServer(PORT);
-            String alias = "/contextPath/servletPath/";
-            ServletHandler servletHandler = addHttpHandler(alias);
-            servletHandler.setAllowEncodedSlash(true);
-            servletHandler.setContextPath("/contextPath");
-            servletHandler.setServletPath("/servletPath");
-            httpServer.start();
-            HttpURLConnection conn = getConnection("/contextPath/servletPath%5FpathInfo", PORT);
-            String s = conn.getHeaderField("Path-Info");
-            assertNotSame(s, "/pathInfo");
-        } finally {
-            stopHttpServer();
-        }
-    }
+//    public void testNotAllowEncodedSlash() throws IOException {
+//        Utils.dumpOut("testNotAllowEncodedSlash");
+//        try {
+//            newHttpServer(PORT);
+//            String alias = "/contextPath/servletPath/";
+//            ServletHandler servletHandler = addHttpHandler(alias);
+//            servletHandler.setContextPath("/contextPath");
+//            servletHandler.setServletPath("/servletPath");
+//            httpServer.start();
+//            HttpURLConnection conn = getConnection("/contextPath/servletPath%5FpathInfo", PORT);
+//            String s = conn.getHeaderField("Path-Info");
+//            assertNotSame(s, "/pathInfo");
+//        } finally {
+//            stopHttpServer();
+//        }
+//    }
+//
+//    public void testAllowEncodedSlash() throws IOException {
+//        Utils.dumpOut("testAllowEncodedSlash");
+//        try {
+//            newHttpServer(PORT);
+//            String alias = "/contextPath/servletPath/";
+//            ServletHandler servletHandler = addHttpHandler(alias);
+//            servletHandler.setAllowEncodedSlash(true);
+//            servletHandler.setContextPath("/contextPath");
+//            servletHandler.setServletPath("/servletPath");
+//            httpServer.start();
+//            HttpURLConnection conn = getConnection("/contextPath/servletPath%5FpathInfo", PORT);
+//            String s = conn.getHeaderField("Path-Info");
+//            assertNotSame(s, "/pathInfo");
+//        } finally {
+//            stopHttpServer();
+//        }
+//    }
 
     public void testDoubleSlash() throws IOException {
         Utils.dumpOut("testDoubleSlash");
         try {
             newHttpServer(PORT);
-            String alias = "/*.html";
-            ServletHandler servletHandler = addHttpHandler(alias);
-            servletHandler.setContextPath("/");
-            servletHandler.setServletPath("/");
+            WebappContext ctx = new WebappContext("Test");
+            addServlet(ctx, "TestServet", "*.html");
+            ctx.deploy(httpServer);
             httpServer.start();
             HttpURLConnection conn = getConnection("/index.html", PORT);
             assertEquals(HttpServletResponse.SC_OK,
@@ -173,7 +170,9 @@ public class BasicServletTest extends HttpServerAbstractTest {
         Utils.dumpOut("testContextParameters");
         try {
             newHttpServer(PORT);
-            ServletHandler sa1 = new ServletHandler(new HttpServlet() {
+            WebappContext ctx = new WebappContext("Test");
+            ctx.addContextInitParameter("ctx", "something");
+            ServletRegistration servlet1 = ctx.addServlet("Servlet1", new HttpServlet() {
                 private ServletConfig config;
                 @Override public void init(ServletConfig config) throws ServletException {
                     super.init(config);
@@ -186,9 +185,10 @@ public class BasicServletTest extends HttpServerAbstractTest {
                     resp.setStatus(ok ? 200 : 404);
                 }
             });
-            sa1.addInitParameter("servlet", "sa1");
-            sa1.addContextParameter("ctx", "something");
-            ServletHandler sa2 = sa1.newServletHandler(new HttpServlet() {
+            servlet1.setInitParameter("servlet", "sa1");
+            servlet1.addMapping("/1");
+
+            ServletRegistration servlet2 = ctx.addServlet("Servlet2", new HttpServlet() {
                 private ServletConfig config;
                 @Override public void init(ServletConfig config) throws ServletException {
                     super.init(config);
@@ -201,9 +201,9 @@ public class BasicServletTest extends HttpServerAbstractTest {
                     resp.setStatus(ok ? 200 : 404);
                 }
             });
-            sa2.addInitParameter("servlet", "sa2");
-            httpServer.getServerConfiguration().addHttpHandler(sa1, new String[]{"/1"});
-            httpServer.getServerConfiguration().addHttpHandler(sa2, new String[]{"/2"});
+            servlet2.setInitParameter("servlet", "sa2");
+            servlet2.addMapping("/2");
+            ctx.deploy(httpServer);
             httpServer.start();
 
             assertEquals(200, getConnection("/1", PORT).getResponseCode());
@@ -222,12 +222,14 @@ public class BasicServletTest extends HttpServerAbstractTest {
     public void testNoContentServlet() throws IOException {
         try {
             startHttpServer(PORT);
-            ServletHandler noContent = new ServletHandler(new HttpServlet() {
+            WebappContext ctx = new WebappContext("Test");
+            ServletRegistration reg = ctx.addServlet("TestServlet", new HttpServlet() {
                 @Override protected void service(HttpServletRequest req, HttpServletResponse resp) {
                     resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
                 }
             });
-            httpServer.getServerConfiguration().addHttpHandler(noContent, new String[]{"/NoContent"});
+            reg.addMapping("/NoContent");
+            ctx.deploy(httpServer);
 
             assertEquals(HttpServletResponse.SC_NO_CONTENT, getConnection("/NoContent", PORT).getResponseCode());
         } finally {
@@ -235,8 +237,10 @@ public class BasicServletTest extends HttpServerAbstractTest {
         }
     }
 
-    private ServletHandler addHttpHandler(final String alias) {
-        ServletHandler handler = new ServletHandler(new HttpServlet() {
+    private ServletRegistration addServlet(final WebappContext ctx,
+                                           final String name,
+                                           final String alias) {
+        final ServletRegistration reg = ctx.addServlet(name, new HttpServlet() {
 
             @Override
             protected void doGet(
@@ -247,11 +251,12 @@ public class BasicServletTest extends HttpServerAbstractTest {
                 resp.setHeader("Content-Type", header);
                 resp.setHeader("Path-Info", req.getPathInfo());
                 resp.setHeader("Request-Was", req.getRequestURI());
-                resp.setHeader("Servlet-Name",getServletName());
+                resp.setHeader("Servlet-Name", getServletName());
                 resp.getWriter().write(alias);
             }
         });
-        addHttpHandler(alias, handler);
-        return handler;
+        reg.addMapping(alias);
+
+        return reg;
     }
 }

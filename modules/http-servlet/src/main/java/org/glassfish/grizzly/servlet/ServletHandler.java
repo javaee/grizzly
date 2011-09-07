@@ -41,24 +41,18 @@ package org.glassfish.grizzly.servlet;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.EventListener;
+import java.lang.String;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
 import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
-import javax.servlet.ServletRequestEvent;
-import javax.servlet.ServletRequestListener;
 import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
 
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.Cookie;
@@ -70,61 +64,16 @@ import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.util.ClassLoaderUtil;
 import org.glassfish.grizzly.http.server.util.DispatcherHelper;
-import org.glassfish.grizzly.http.server.util.IntrospectionUtils;
+import org.glassfish.grizzly.http.server.util.Globals;
+import org.glassfish.grizzly.http.server.util.MappingData;
 import org.glassfish.grizzly.http.util.CharChunk;
 import org.glassfish.grizzly.http.util.HttpRequestURIDecoder;
-import org.glassfish.grizzly.localization.LogMessages;
+
+import static org.glassfish.grizzly.servlet.DispatcherType.REQUEST;
 
 /**
- * HttpHandler class that can initiate a {@link javax.servlet.FilterChain} and execute its
- * {@link Filter} and its {@link Servlet}
- * 
- * Configuring a {@link org.glassfish.grizzly.http.server.HttpServer} to use this
- * {@link HttpHandler} implementation, adds the ability of servicing {@link Servlet}
- * as well as static resources. 
- * 
- * This class can be used to programatically configure a Servlet, Filters, listeners,
- * init parameters, context-param, etc. a application usually defined using the web.xml.
- * See {@link #addInitParameter(String, String)} {@link #addContextParameter(String, String)}
- * {@link #setProperty(String, Object)}, {@link #addServletListener(String)}, etc.
- * 
- * As an example:
- * 
- * <pre><code>
- * HttpServer hs = HttpServer.createSimpleServer("/var/www");
- * try {
- *     ServletHandler sa = new ServletHandler();
- *     sa.setServlet(new MyServlet());
- *
- *     // Set the display-name property
- *     sa.setProperty("display-name", "myServlet");
- *
- *     // All Servlet listener types are added via the
- *     // addServletListener() method regardless of their type...
- *     sa.addServletListener(MyHttpSessionListener.class.getName());
- *     sa.addServletListener(MyOtherHttpSessionListener.class.getName());
- *     sa.addServletListener(FooServletContextListener.class.getName());
- *     sa.assServletListener(BarServletCtxAttListener.class.getName());
- *
- *     // adding context initialization parameter...
- *     sa.addContextParameter("databaseURI","jdbc://");
- *
- *     // adding servlet initialization parameter...
- *     sa.addInitParameter("password","hello");
- *
- *     // adding servlet path information...
- *     sa.setServletPath("/MyServletPath");
- *     sa.setContextPath("/myApp");
- *
- *     // register the handler with the server...
- *     hs.getServerConfiguration().addHttpHandler(sa, "/MyServletPath");
- *
- *     // start the server so the handler is able to serve requests...
- *     hs.start();
- * } catch (IOException ex){
- *     // Something when wrong.
- * }
- * </code></pre>
+ * HttpHandler implementation that provides an entry point for processing
+ * a Servlet request.
  * 
  * @author Jeanfrancois Arcand
  */
@@ -140,30 +89,17 @@ public class ServletHandler extends HttpHandler {
     static final ServletAfterServiceListener servletAfterServiceListener =
             new ServletAfterServiceListener();
 
-    public static final String LOAD_ON_STARTUP = "load-on-startup";
+    protected String servletClassName;
+    protected Class<? extends Servlet> servletClass;
     protected volatile Servlet servletInstance = null;
-    private transient List<String> listeners = new ArrayList<String>();
-    private String servletPath = "";
     private String contextPath = "";
-    // Instanciate the Servlet when the start method is invoked.
-    private boolean loadOnStartup = false;
+    private final Object lock = new Object();
+
+
     /**
-     * The context parameters.
+     * The {@link WebappContext}
      */
-    private Map<String, String> contextParameters = new HashMap<String, String>();
-    /**
-     * The servlet initialization parameters
-     */
-    private Map<String, String> servletInitParameters = new HashMap<String, String>();
-    /**
-     * Is the Servlet initialized.
-     */
-    private volatile boolean filterChainConfigured = false;
-    private final ReentrantLock filterChainReady = new ReentrantLock();
-    /**
-     * The {@link ServletContextImpl}
-     */
-    private final ServletContextImpl servletCtx;
+    private final WebappContext servletCtx;
     /**
      * The {@link ServletConfigImpl}
      */
@@ -177,98 +113,19 @@ public class ServletHandler extends HttpHandler {
      */
     protected boolean initialize = true;
     protected ClassLoader classLoader;
-    private final static Object[] lock = new Object[0];
-    /**
-     * Filters.
-     */
-    private FilterConfigImpl[] filters = new FilterConfigImpl[8];
-    public static final int INCREMENT = 8;
-    /**
-     * The int which gives the current number of filters.
-     */
-    private int n = 0;
 
-    public ServletHandler() {
-        this((String) null);
+    private FilterChainFactory filterChainFactory;
+
+
+    // ------------------------------------------------------------ Constructors
+
+
+    protected ServletHandler(final ServletConfigImpl servletConfig) {
+        this.servletConfig = servletConfig;
+        servletCtx = (WebappContext) servletConfig.getServletContext();
     }
 
-    public ServletHandler(final String servletName) {
-        this(servletName, new ServletContextImpl(),
-                new HashMap<String, String>(), new HashMap<String, String>(),
-                new ArrayList<String>());
-    }
-
-    /**
-     * Create a ServletAdapter which support the specific Servlet
-     *
-     * @param servlet Instance to be used by this adapter.
-     */
-    public ServletHandler(Servlet servlet) {
-        this(servlet.getServletConfig() != null ? servlet.getServletConfig().getServletName() : null);
-        this.servletInstance = servlet;
-    }
-
-    /**
-     * Convenience constructor.
-     *
-     * @param servletCtx {@link ServletContextImpl} to be used by new instance.
-     * @param contextParameters Context parameters.
-     * @param servletInitParameters servlet initialization parameters.
-     * @param listeners Listeners.
-     */
-    protected ServletHandler(String servletName, ServletContextImpl servletCtx,
-            Map<String, String> contextParameters, Map<String, String> servletInitParameters,
-            List<String> listeners) {
-        this(servletName, servletCtx, contextParameters, servletInitParameters,
-                listeners, true);
-    }
-
-    /**
-     * Convenience constructor.
-     *
-     * @param servletCtx {@link ServletContextImpl} to be used by new instance.
-     * @param contextParameters Context parameters.
-     * @param servletInitParameters servlet initialization parameters.
-     * @param listeners Listeners.
-     * @param initialize false only when the {@link #newServletHandler(javax.servlet.Servlet)} is invoked.
-     */
-    protected ServletHandler(String servletName, ServletContextImpl servletCtx,
-            Map<String, String> contextParameters, Map<String, String> servletInitParameters,
-            List<String> listeners, boolean initialize) {
-        this.servletCtx = servletCtx;
-        servletConfig = new ServletConfigImpl(servletCtx, servletInitParameters);
-        servletConfig.setServletName(servletName);
-        this.contextParameters = contextParameters;
-        this.servletInitParameters = servletInitParameters;
-        this.listeners = listeners;
-        this.initialize = initialize;
-    }
-
-    /**
-     * Convenience constructor.
-     *
-     * @param servletCtx {@link ServletContextImpl} to be used by new instance.
-     * @param contextParameters Context parameters.
-     * @param servletInitParameters servlet initialization parameters.
-     * @param initialize false only when the {@link #newServletHandler(javax.servlet.Servlet)} is invoked.
-     */
-    protected ServletHandler(String servletName, ServletContextImpl servletCtx,
-            Map<String, String> contextParameters, Map<String, String> servletInitParameters,
-            boolean initialize) {
-        this.servletCtx = servletCtx;
-        
-        servletConfig = new ServletConfigImpl(servletCtx, servletInitParameters);
-        servletConfig.setServletName(servletName);
-
-        this.contextParameters = contextParameters;
-        this.servletInitParameters = servletInitParameters;
-        this.initialize = initialize;
-    }
-
-    public ServletHandler(Servlet servlet, ServletContextImpl servletContext) {
-        servletInstance = servlet;
-        servletCtx = servletContext;
-    }
+    // ---------------------------------------------------------- Public Methods
 
     /**
      * {@inheritDoc}
@@ -279,27 +136,9 @@ public class ServletHandler extends HttpHandler {
             configureServletEnv();
             
             if (initialize) {
-//                initWebDir();
                 configureClassLoader(new File(servletCtx.getBasePath()).getCanonicalPath());
             }
 
-            if (classLoader != null) {
-                ClassLoader prevClassLoader = Thread.currentThread().getContextClassLoader();
-                Thread.currentThread().setContextClassLoader(classLoader);
-                try {
-//                    setContextPath(contextPath);
-                    if (loadOnStartup) {
-                        loadServlet();
-                    }
-                } finally {
-                    Thread.currentThread().setContextClassLoader(prevClassLoader);
-                }
-            } else {
-//                setContextPath(contextPath);
-                if (loadOnStartup) {
-                    loadServlet();
-                }
-            }
         } catch (Throwable t) {
             LOGGER.log(Level.SEVERE, "start", t);
         }
@@ -322,7 +161,7 @@ public class ServletHandler extends HttpHandler {
      * {@inheritDoc}
      */
     @Override
-    public void service(Request request, Response response) {
+    public void service(Request request, Response response) throws Exception {
         if (classLoader != null) {
             final ClassLoader prevClassLoader = Thread.currentThread().getContextClassLoader();
             Thread.currentThread().setContextClassLoader(classLoader);
@@ -338,12 +177,10 @@ public class ServletHandler extends HttpHandler {
 
     protected void doServletService(final Request request, final Response response) {
         try {
-//            Request req = request.getRequest();
-//            Response res = response.getResponse();
             final String uri = request.getRequestURI();
 
             // The request is not for us.
-            if (!uri.startsWith(contextPath)) {
+            if (contextPath.length() > 0 && !uri.startsWith(contextPath)) {
                 customizeErrorPage(response, "Resource Not Found", 404);
                 return;
             }
@@ -351,6 +188,7 @@ public class ServletHandler extends HttpHandler {
             final HttpServletRequestImpl servletRequest = HttpServletRequestImpl.create();
             final HttpServletResponseImpl servletResponse = HttpServletResponseImpl.create();
 
+            setPathData(request, servletRequest);
             servletRequest.initialize(request);
             servletResponse.initialize(response);
 
@@ -373,25 +211,69 @@ public class ServletHandler extends HttpHandler {
             loadServlet();
 
             servletRequest.setContextImpl(servletCtx);
-            servletRequest.setServletPath(servletPath);
             servletRequest.initSession();
+            setDispatcherPath(request, getCombinedPath(servletRequest));
 
             //TODO: Make this configurable.
             servletResponse.addHeader("server", "grizzly/" + Grizzly.getDotedVersion());
-            FilterChainImpl filterChain = new FilterChainImpl(servletInstance, servletConfig, filters, n);
-            filterChain.invokeFilterChain(servletRequest, servletResponse);
+            FilterChainImpl filterChain = filterChainFactory.createFilterChain(request, servletInstance, REQUEST);
+            if (filterChain != null) {
+                filterChain.invokeFilterChain(servletRequest, servletResponse);
+            } else {
+                servletInstance.service(servletRequest, servletResponse);
+            }
         } catch (Throwable ex) {
             LOGGER.log(Level.SEVERE, "service exception:", ex);
             customizeErrorPage(response, "Internal Error", 500);
         }
     }
 
-    void doServletService(final ServletRequest servletRequest, final ServletResponse servletResponse)
+    private void setDispatcherPath(final Request request, final String path) {
+        request.setAttribute(Globals.DISPATCHER_REQUEST_PATH_ATTR, path);
+    }
+
+    /**
+     * Combines the servletPath and the pathInfo.
+     *
+     * If pathInfo is <code>null</code>, it is ignored. If servletPath
+     * is <code>null</code>, then <code>null</code> is returned.
+     *
+     * @return The combined path with pathInfo appended to servletInfo
+     */
+    private String getCombinedPath(final HttpServletRequest request) {
+        if (request.getServletPath() == null) {
+            return null;
+        }
+        if (request.getPathInfo() == null) {
+            return request.getServletPath();
+        }
+        return request.getServletPath() + request.getPathInfo();
+    }
+
+    private static void setPathData(final Request from,
+                                    final HttpServletRequestImpl to) {
+
+        final MappingData data = from.obtainMappingData();
+        to.setServletPath(data.wrapperPath.toString());
+        to.setPathInfo(data.pathInfo.toString());
+
+    }
+
+    void doServletService(final ServletRequest servletRequest,
+                          final ServletResponse servletResponse,
+                          final DispatcherType dispatcherType)
             throws IOException, ServletException {
         try {
             loadServlet();
-            FilterChainImpl filterChain = new FilterChainImpl(servletInstance, servletConfig, filters, n);
-            filterChain.invokeFilterChain(servletRequest, servletResponse);
+            FilterChainImpl filterChain =
+                    filterChainFactory.createFilterChain(servletRequest,
+                                                         servletInstance,
+                                                         dispatcherType);
+            if (filterChain != null) {
+                filterChain.invokeFilterChain(servletRequest, servletResponse);
+            } else {
+                servletInstance.service(servletRequest, servletResponse);
+            }
         } catch (ServletException se) {
             LOGGER.log(Level.SEVERE, "service exception:", se);
             throw se;
@@ -427,41 +309,28 @@ public class ServletHandler extends HttpHandler {
      */
     protected void loadServlet() throws ServletException {
 
-        try {
-            filterChainReady.lock();
-            if (filterChainConfigured) {
-                return;
-            }
-
-            if (servletInstance == null) {
-                String servletClassName = System.getProperty("com.sun.grizzly.servletClass");
-                if (servletClassName != null) {
-                    servletInstance = (Servlet) ClassLoaderUtil.load(servletClassName);
-                }
-
-                if (servletInstance != null) {
+        if (servletInstance == null) {
+            synchronized (lock) {
+                if (servletInstance == null) {
+                    if (servletClassName != null) {
+                        servletInstance = (Servlet) ClassLoaderUtil.load(servletClassName);
+                    } else {
+                        try {
+                            servletInstance = servletClass.newInstance();
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
                     LOGGER.log(Level.INFO, "Loading Servlet: {0}", servletInstance.getClass().getName());
+                    servletInstance.init(servletConfig);
                 }
             }
-
-            if (servletInstance != null) {
-                servletInstance.init(servletConfig);
-            }
-
-            for (FilterConfigImpl f : filters) {
-                if (f != null) {
-                    f.getFilter().init(f);
-                }
-            }
-
-            filterChainConfigured = true;
-        } finally {
-            filterChainReady.unlock();
         }
+
     }
 
     /**
-     * Configure the {@link ServletContextImpl}
+     * Configure the {@link WebappContext}
      * and {@link ServletConfigImpl}
      * 
      * @throws javax.servlet.ServletException Error while configuring
@@ -480,85 +349,13 @@ public class ServletHandler extends HttpHandler {
             contextPath = "";
         }
 
-        if (initialize) {
-            servletCtx.setInitParameter(contextParameters);
-            servletCtx.setContextPath(contextPath);
-
-            servletCtx.setBasePath(".");
-
-            configureProperties(servletCtx);
-            servletCtx.initListeners(listeners);
-        }
-        servletConfig.setInitParameters(servletInitParameters);
-        configureProperties(servletConfig);
-    }
-
-    /**
-     * Add a new servlet initialization parameter for this servlet.
-     *
-     * @param name Name of this initialization parameter to add
-     * @param value Value of this initialization parameter to add
-     */
-    public void addInitParameter(String name, String value) {
-        servletInitParameters.put(name, value);
-    }
-
-    /**
-     * Remove a servlet initialization parameter for this servlet.
-     *
-     * @param name Name of this initialization parameter to remove
-     */
-    public void removeInitParameter(String name) {
-        servletInitParameters.remove(name);
-    }
-
-    /**
-     * get a servlet initialization parameter for this servlet.
-     *
-     * @param name Name of this initialization parameter to retrieve
-     */
-    public String getInitParameter(String name) {
-        return servletInitParameters.get(name);
-    }
-
-    /**
-     * if the servlet initialization parameter in present for this servlet.
-     *
-     * @param name Name of this initialization parameter 
-     */
-    public boolean containsInitParameter(String name) {
-        return servletInitParameters.containsKey(name);
-    }
-
-    /**
-     * Add a new servlet context parameter for this servlet.
-     *
-     * @param name Name of this initialization parameter to add
-     * @param value Value of this initialization parameter to add
-     */
-    public void addContextParameter(String name, String value) {
-        contextParameters.put(name, value);
-    }
-
-    /**
-     * Add a {@link Filter} to the {@link FilterChain}.
-     *
-     * @param filter an instance of Filter
-     * @param filterName the Filter's name
-     * @param initParameters the Filter init parameters.
-     */
-    public void addFilter(Filter filter, String filterName, Map initParameters) {
-        FilterConfigImpl filterConfig = new FilterConfigImpl(servletCtx);
-        filterConfig.setFilter(filter);
-        filterConfig.setFilterName(filterName);
-        filterConfig.setInitParameters(initParameters);
-        addFilter(filterConfig);
     }
 
     /**
      * Return the {@link Servlet} instance used by this {@link ServletHandler}
      * @return {@link Servlet} instance.
      */
+    @SuppressWarnings({"UnusedDeclaration"})
     public Servlet getServletInstance() {
         return servletInstance;
     }
@@ -567,45 +364,16 @@ public class ServletHandler extends HttpHandler {
      * Set the {@link Servlet} instance used by this {@link ServletHandler}
      * @param servletInstance an instance of Servlet.
      */
-    public void setServletInstance(Servlet servletInstance) {
+    protected void setServletInstance(Servlet servletInstance) {
         this.servletInstance = servletInstance;
     }
 
-    /**
-     *
-     * Returns the part of this request's URL that calls
-     * the servlet. This path starts with a "/" character
-     * and includes either the servlet name or a path to
-     * the servlet, but does not include any extra path
-     * information or a query string. Same as the value of
-     * the CGI variable SCRIPT_NAME.
-     *
-     * <p>This method will return an empty string ("") if the
-     * servlet used to process this request was matched using
-     * the "/*" pattern.
-     *
-     * @return		a <code>String</code> containing
-     *			the name or path of the servlet being
-     *			called, as specified in the request URL,
-     *			decoded, or an empty string if the servlet
-     *			used to process the request is matched
-     *			using the "/*" pattern.
-     *
-     */
-    public String getServletPath() {
-        return servletPath;
+    protected void setServletClassName(final String servletClassName) {
+        this.servletClassName = servletClassName;
     }
 
-    /**
-     * Programmatically set the servlet path of the Servlet.
-     *
-     * @param servletPath Path of {@link Servlet}.
-     */
-    public void setServletPath(String servletPath) {
-        this.servletPath = servletPath;
-        if (servletPath.length() != 0 && !servletPath.startsWith("/")) {
-            servletPath = "/" + servletPath;
-        }
+    protected void setServletClass(final Class<? extends Servlet> servletClass) {
+        this.servletClass = servletClass;
     }
 
     /**
@@ -645,114 +413,8 @@ public class ServletHandler extends HttpHandler {
         this.contextPath = contextPath;
     }
 
-    /**
-     * Add Servlet listeners that implement {@link EventListener}
-     *
-     * @param listenerName name of a Servlet listener
-     */
-    public void addServletListener(String listenerName) {
-        if (listenerName == null) {
-            return;
-        }
-        listeners.add(listenerName);
-    }
 
-    /**
-     * Remove Servlet listeners that implement {@link EventListener}
-     *
-     * @param listenerName name of a Servlet listener to remove
-     */
-    public boolean removeServletListener(String listenerName) {
-        return listenerName != null && listeners.remove(listenerName);
-    }
 
-    /**
-     * Use reflection to configure Object setter.
-     *
-     * @param object Populate this object with available properties.
-     */
-    private void configureProperties(Object object) {
-        for (String s : properties.keySet()) {
-            String value = properties.get(s).toString();
-            IntrospectionUtils.setProperty(object, s, value);
-        }
-    }
-
-    /**
-     * Return a configured property. Property apply to
-     * {@link ServletContextImpl}
-     * and {@link ServletConfigImpl}
-     *
-     * @param name Name of property to get.
-     * @return Value of property.
-     */
-    public Object getProperty(String name) {
-        return properties.get(name);
-    }
-
-    /**
-     * Set a configured property. Property apply to
-     * {@link ServletContextImpl}
-     * and {@link ServletConfigImpl}.
-     * Use this method to map what's you usually
-     * have in a web.xml like display-name, context-param, etc.
-     * @param name Name of the property to set
-     * @param value of the property.
-     */
-    public void setProperty(String name, Object value) {
-
-        /**
-         * Servlet 2.4 specs
-         *
-         *  If the value is a negative integer,
-         *  or the element is not present, the container is free to load the
-         *  servlet whenever it chooses. If the value is a positive integer
-         *  or 0, the container must load and initialize the servlet as the
-         *  application is deployed.
-         */
-        if (name.equalsIgnoreCase(LOAD_ON_STARTUP) && value != null) {
-            if (value instanceof Boolean && ((Boolean) value)) {
-                loadOnStartup = true;
-            } else {
-                try {
-                    if ((new Integer(value.toString())) >= 0) {
-                        loadOnStartup = true;
-                    }
-                } catch (Exception ignored) {
-                }
-            }
-
-        }
-
-        // Get rid of "-";
-        int pos = name.indexOf("-");
-        if (pos > 0) {
-            String pre = name.substring(0, pos);
-            String post = name.substring(pos + 1, pos + 2).toUpperCase() + name.substring(pos + 2);
-            name = pre + post;
-        }
-        properties.put(name, value);
-
-    }
-
-    /** 
-     * Remove a configured property. Property apply to
-     * {@link ServletContextImpl}
-     * and {@link ServletConfigImpl}
-     *
-     * @param name Property name to remove.
-     */
-    public void removeProperty(String name) {
-        properties.remove(name);
-    }
-
-    /**
-     * 
-     * @return is the servlet will be loaded at startup
-     */
-    public boolean isLoadOnStartup() {
-        return loadOnStartup;
-    }
 
     /**
      * Destroy this Servlet and its associated
@@ -765,61 +427,22 @@ public class ServletHandler extends HttpHandler {
             Thread.currentThread().setContextClassLoader(classLoader);
             try {
                 super.destroy();
-                servletCtx.destroyListeners();
-                for (FilterConfigImpl filter : filters) {
-                    if (filter != null) {
-                        filter.recycle();
-                    }
-                }
+
                 if (servletInstance != null) {
                     servletInstance.destroy();
                     servletInstance = null;
                 }
-                filters = null;
             } finally {
                 Thread.currentThread().setContextClassLoader(prevClassLoader);
             }
         } else {
             super.destroy();
-            servletCtx.destroyListeners();
         }
     }
 
-    /**
-     * Create a new {@link ServletHandler} instance that will share the same
-     * {@link ServletContextImpl} and Servlet's
-     * listener but with an empty map of init-parameters.
-     *
-     * @param servlet - The Servlet associated with the {@link ServletHandler}
-     * @return a new {@link ServletHandler}
-     */
-    public ServletHandler newServletHandler(Servlet servlet) {
-        final String servletName = servlet.getServletConfig() != null ?
-            servlet.getServletConfig().getServletName() : null;
 
-        ServletHandler sa = new ServletHandler(
-                servletName,
-                servletCtx, contextParameters,
-                new HashMap<String, String>(), listeners,
-                false);
-        if (classLoader != null) {
-            sa.setClassLoader(classLoader);
-        }
-        sa.setServletInstance(servlet);
-        sa.setServletPath(servletPath);
-        return sa;
-    }
-
-    protected ServletContextImpl getServletCtx() {
+    protected WebappContext getServletCtx() {
         return servletCtx;
-    }
-
-    protected List<String> getListeners() {
-        return listeners;
-    }
-
-    protected Map<String, String> getContextParameters() {
-        return contextParameters;
     }
 
     public ClassLoader getClassLoader() {
@@ -835,181 +458,16 @@ public class ServletHandler extends HttpHandler {
         return servletConfig.getServletName();
     }
 
-//    private String getDefaultDocRootPath() {
-//        final File[] basePaths = getDocRoots().getArray();
-//        return (basePaths != null && basePaths.length > 0) ? basePaths[0].getPath() : null;
-//    }
-//
-//    private File getDefaultDocRoot() {
-//        final File[] basePaths = getDocRoots().getArray();
-//        return (basePaths != null && basePaths.length > 0) ? basePaths[0] : null;
-//    }
-
-    /**
-     * Add a filter to the set of filters that will be executed in this chain.
-     *
-     * @param filterConfig The FilterConfig for the servlet to be executed
-     */
-    protected void addFilter(FilterConfigImpl filterConfig) {
-        synchronized (lock) {
-            if (n == filters.length) {
-                FilterConfigImpl[] newFilters =
-                        new FilterConfigImpl[n + INCREMENT];
-                System.arraycopy(filters, 0, newFilters, 0, n);
-                filters = newFilters;
-            }
-
-            filters[n++] = filterConfig;
-        }
-    }
-
     @Override
     protected void setDispatcherHelper( final DispatcherHelper dispatcherHelper ) {
         servletCtx.setDispatcherHelper( dispatcherHelper );
     }
 
-    // ---------------------------------------------------------- Nested Classes
-    /**
-     * Implementation of <code>javax.servlet.FilterChain</code> used to manage
-     * the execution of a set of filters for a particular request.  When the
-     * set of defined filters has all been executed, the next call to
-     * <code>doFilter()</code> will execute the servlet's <code>service()</code>
-     * method itself.
-     *
-     * @author Craig R. McClanahan
-     */
-    private final class FilterChainImpl implements FilterChain {
-
-        /**
-         * The servlet instance to be executed by this chain.
-         */
-        private final Servlet servlet;
-        private final ServletConfigImpl configImpl;
-        private final FilterConfigImpl[] filters;
-        private final int n;
-        
-        /**
-         * The int which is used to maintain the current position
-         * in the filter chain.
-         */
-        private int pos = 0;
-
-        public FilterChainImpl(final Servlet servlet,
-                final ServletConfigImpl configImpl,
-                final FilterConfigImpl[] filters, final int n) {
-
-            this.servlet = servlet;
-            this.configImpl = configImpl;
-            this.filters = filters;
-            this.n = n;
-        }
-
-        // ---------------------------------------------------- FilterChain Methods
-        protected void invokeFilterChain(ServletRequest request, ServletResponse response)
-                throws IOException, ServletException {
-
-            ServletRequestEvent event =
-                    new ServletRequestEvent(configImpl.getServletContext(), request);
-            try {
-                for (EventListener l : ((ServletContextImpl) configImpl.getServletContext()).getListeners()) {
-                    try {
-                        if (l instanceof ServletRequestListener) {
-                            ((ServletRequestListener) l).requestInitialized(event);
-                        }
-                    } catch (Throwable t) {
-                        if (LOGGER.isLoggable(Level.WARNING)) {
-                            LOGGER.log(Level.WARNING,
-                                    LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_CONTAINER_OBJECT_INITIALIZED_ERROR("requestInitialized", "ServletRequestListener", l.getClass().getName()),
-                                    t);
-                        }
-                    }
-                }
-                pos = 0;
-                doFilter(request, response);
-            } finally {
-                for (EventListener l : ((ServletContextImpl) configImpl.getServletContext()).getListeners()) {
-                    try {
-                        if (l instanceof ServletRequestListener) {
-                            ((ServletRequestListener) l).requestDestroyed(event);
-                        }
-                    } catch (Throwable t) {
-                        if (LOGGER.isLoggable(Level.WARNING)) {
-                            LOGGER.log(Level.WARNING,
-                                    LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_CONTAINER_OBJECT_DESTROYED_ERROR("requestDestroyed", "ServletRequestListener", l.getClass().getName()),
-                                    t);
-                        }
-                    }
-                }
-            }
-
-        }
-
-        /**
-         * Invoke the next filter in this chain, passing the specified request
-         * and response.  If there are no more filters in this chain, invoke
-         * the <code>service()</code> method of the servlet itself.
-         *
-         * @param request The servlet request we are processing
-         * @param response The servlet response we are creating
-         *
-         * @exception java.io.IOException if an input/output error occurs
-         * @exception javax.servlet.ServletException if a servlet exception occurs
-         */
-        @Override
-        public void doFilter(ServletRequest request, ServletResponse response)
-                throws IOException, ServletException {
-
-            // Call the next filter if there is one
-            if (pos < n) {
-
-                FilterConfigImpl filterConfig = filters[pos++];
-
-                try {
-                    Filter filter = filterConfig.getFilter();
-                    filter.doFilter(request, response, this);
-                } catch (IOException e) {
-                    throw e;
-                } catch (ServletException e) {
-                    throw e;
-                } catch (RuntimeException e) {
-                    throw e;
-                } catch (Throwable e) {
-                    throw new ServletException("Throwable", e);
-                }
-
-                return;
-            }
-
-            try {
-                if (servlet != null) {
-                    servlet.service(request, response);
-                }
-
-            } catch (IOException e) {
-                throw e;
-            } catch (ServletException e) {
-                throw e;
-            } catch (RuntimeException e) {
-                throw e;
-            } catch (Throwable e) {
-                throw new ServletException("Throwable", e);
-            }
-
-        }
-
-        // -------------------------------------------------------- Package Methods
-        protected FilterConfigImpl getFilter(int i) {
-            return filters[i];
-        }
-
-        protected Servlet getServlet() {
-            return servlet;
-        }
-
-        protected ServletConfigImpl getServletConfig() {
-            return configImpl;
-        }
+    protected void setFilterChainFactory(final FilterChainFactory filterChainFactory) {
+        this.filterChainFactory = filterChainFactory;
     }
+
+    // ---------------------------------------------------------- Nested Classes
 
     /**
      * AfterServiceListener, which is responsible for recycle servlet request and response

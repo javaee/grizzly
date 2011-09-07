@@ -343,6 +343,8 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
             return mapping.substring(mapping.lastIndexOf("/") + 1);
         } else if (ctx.length() != 0) {
             return mapping.substring(ctx.length());
+        } else if (mapping.startsWith("//")) {
+            return mapping.substring(1);
         } else {
             return mapping;
         }

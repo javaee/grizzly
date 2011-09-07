@@ -63,7 +63,7 @@ import java.io.IOException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Enumeration;
-import java.util.List;
+import java.util.EventListener;
 import java.util.Map;
 import java.util.Locale;
 import java.util.Set;
@@ -101,9 +101,11 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     
     private HttpSessionImpl httpSession = null;
 
-    private ServletContextImpl contextImpl;        
+    private WebappContext contextImpl;
         
     private String servletPath = "";
+
+    private String pathInfo;
     
     /**
      * Using stream flag.
@@ -512,16 +514,16 @@ public class HttpServletRequestImpl implements HttpServletRequest {
         Object oldValue = request.getAttribute(name);
         request.setAttribute(name, value);
         
-        List listeners = contextImpl.getListeners();
-        if (listeners.isEmpty())
+        EventListener[] listeners = contextImpl.getEventListeners();
+        if (listeners.length == 0)
             return;
         ServletRequestAttributeEvent event = null;
 
-        for (int i = 0; i < listeners.size(); i++) {
-            if (!(listeners.get(i) instanceof ServletRequestAttributeListener))
+        for (int i = 0, len = listeners.length; i < len; i++) {
+            if (!(listeners[i] instanceof ServletRequestAttributeListener))
                 continue;
             ServletRequestAttributeListener listener =
-                (ServletRequestAttributeListener) listeners.get(i);
+                (ServletRequestAttributeListener) listeners[i];
             try {
                 if (event == null) {
                     if (oldValue != null)
@@ -563,15 +565,15 @@ public class HttpServletRequestImpl implements HttpServletRequest {
         request.removeAttribute(name);
 
         // Notify interested application event listeners
-        List listeners = contextImpl.getListeners();
-        if (listeners.isEmpty())
+        EventListener[] listeners = contextImpl.getEventListeners();
+        if (listeners.length == 0)
             return;
         ServletRequestAttributeEvent event = null;
-        for (int i = 0; i < listeners.size(); i++) {
-            if (!(listeners.get(i) instanceof ServletRequestAttributeListener))
+        for (int i = 0, len = listeners.length; i < len; i++) {
+            if (!(listeners[i] instanceof ServletRequestAttributeListener))
                 continue;
             ServletRequestAttributeListener listener =
-                (ServletRequestAttributeListener) listeners.get(i);
+                (ServletRequestAttributeListener) listeners[i];
             try {
                 if (event == null) {
                     event = new ServletRequestAttributeEvent(contextImpl,
@@ -867,17 +869,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
             throw new IllegalStateException("Null request object");
         }
 
-        String path = request.getRequestURI();
-        StringBuilder pathToRemove = new StringBuilder();
-        pathToRemove.append(contextImpl.getContextPath()); 
-        pathToRemove.append(getServletPath());
-        String s = pathToRemove.toString();
-        if (path.startsWith(s)){
-            String pathInfo = path.substring(s.length());
-            return "".equals(pathInfo) ? null : pathInfo;
-        } else {
-            throw new IllegalStateException("Request path not in servlet context.");
-        }
+        return pathInfo;
     }
 
 
@@ -1191,19 +1183,19 @@ public class HttpServletRequestImpl implements HttpServletRequest {
 
 
     /**
-     * Return the underlying {@link ServletContextImpl}
-     * @return  Return the underlying {@link ServletContextImpl}
+     * Return the underlying {@link WebappContext}
+     * @return  Return the underlying {@link WebappContext}
      */
-    protected ServletContextImpl getContextImpl() {
+    protected WebappContext getContextImpl() {
         return contextImpl;
     }
 
     
      /**
-     * Set the underlying {@link ServletContextImpl}
-     * @param contextImpl the underlying {@link ServletContextImpl}
+     * Set the underlying {@link WebappContext}
+     * @param contextImpl the underlying {@link WebappContext}
      */
-    protected void setContextImpl(ServletContextImpl contextImpl) {
+    protected void setContextImpl(WebappContext contextImpl) {
         this.contextImpl = contextImpl;
     }
     
@@ -1212,9 +1204,23 @@ public class HttpServletRequestImpl implements HttpServletRequest {
      * Programmatically set the servlet path value. Default is an empty String.
      * @param servletPath Servlet path to set.
      */
-    protected void setServletPath(String servletPath){
-        this.servletPath = servletPath;
-    }    
+    protected void setServletPath(final String servletPath){
+        if (servletPath != null) {
+            if (servletPath.length() == 0) {
+                this.servletPath = "/";
+            }  else {
+                this.servletPath = servletPath;
+            }
+        }
+    }
+
+    protected void setPathInfo(final String pathInfo) {
+        this.pathInfo = pathInfo;
+    }
+
+    protected Request getRequest() {
+        return request;
+    }
     // ----------------------------------------------------------- DoPrivileged
     
     private final class GetAttributePrivilegedAction

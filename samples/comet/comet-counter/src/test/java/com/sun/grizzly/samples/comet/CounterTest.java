@@ -58,7 +58,8 @@ import org.glassfish.grizzly.comet.CometAddOn;
 
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
-import org.glassfish.grizzly.servlet.ServletHandler;
+import org.glassfish.grizzly.servlet.WebappContext;
+import org.glassfish.grizzly.servlet.ServletRegistration;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -72,8 +73,14 @@ public class CounterTest {
     public void setUp() throws Exception {
         stopHttpServer();
         httpServer = HttpServer.createSimpleServer("./", PORT);
-        httpServer.getServerConfiguration().addHttpHandler(new ServletHandler(new LongPollingServlet()),
-            QUERY_PATH);
+        final WebappContext ctx =
+                new WebappContext("Counter", "/grizzly-comet-counter");
+        final ServletRegistration servletRegistration =
+            ctx.addServlet("LongPollingServlet", LongPollingServlet.class);
+        servletRegistration.addMapping("/long_polling");
+
+        ctx.deploy(httpServer);
+
         final Collection<NetworkListener> listeners = httpServer.getListeners();
         for (NetworkListener listener : listeners) {
             listener.registerAddOn(new CometAddOn());

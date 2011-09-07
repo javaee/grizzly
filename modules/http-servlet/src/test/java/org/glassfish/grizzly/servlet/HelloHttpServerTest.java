@@ -76,102 +76,70 @@ public class HelloHttpServerTest extends TestCase {
         try {
             createHttpServer(PORT);
             String[] aliases = new String[] { "*.php" };
+            WebappContext ctx = new WebappContext("Test");
+            ServletRegistration servlet = ctx.addServlet("TestServet", HelloServlet.class);
+            servlet.addMapping(aliases);
+            ctx.deploy(httpServer);
+            httpServer.start();
 
             String context = "/";
             String servletPath = "war_autodeploy/php_test";
-//            String rootFolder = ".";
-           
-            ServletHandler adapter = new ServletHandler();
-            adapter.setServletInstance(new HelloServlet());
-
-            adapter.setContextPath(context);
-            adapter.setServletPath(servletPath);
-//            adapter.addDocRoot(rootFolder);
-
-            httpServer.getServerConfiguration().addHttpHandler(adapter, aliases);
-
-            httpServer.start();
-           
             String url = context + servletPath + "/index.php";
             HttpURLConnection conn = getConnection(url);
             assertEquals(HttpServletResponse.SC_OK, getResponseCodeFromAlias(conn));
-           
+
             String response = readResponse(conn).toString();
             assertEquals("Hello, world!", response.trim());
-           
+
         } finally {
             stopHttpServer();
         }
     }
-    
+
     public void testMultiPath() throws IOException {
         Utils.dumpOut("testMultiPath");
         try {
             createHttpServer(PORT);
             String[] aliases = new String[] { "*.php" };
+            WebappContext ctx = new WebappContext("Test");
+
+            ServletRegistration servlet =
+                    ctx.addServlet("TestServlet", HelloServlet.class);
+            servlet.addMapping(aliases);
+            ctx.deploy(httpServer);
+            httpServer.start();
 
             String context = "/";
             String servletPath = "notvalid/php_test";
-//            String rootFolder = ".";
-           
-            ServletHandler adapter = new ServletHandler();
-            adapter.setServletInstance(new HelloServlet());
-
-            adapter.setContextPath(context);
-            adapter.setServletPath(servletPath);
-//            adapter.addDocRoot(rootFolder);
-
-            httpServer.getServerConfiguration().addHttpHandler(adapter, aliases);
-
-            httpServer.start();
-           
-            String url;
-            HttpURLConnection conn;
-            String response;
-            
-            url = context + servletPath + "/index.php";
-            conn = getConnection(url);
+            String url = context + servletPath + "/index.php";
+            HttpURLConnection conn = getConnection(url);
             assertEquals(HttpServletResponse.SC_OK, getResponseCodeFromAlias(conn));
-           
-            response = readResponse(conn).toString();
+
+            String response = readResponse(conn).toString();
             assertEquals("Hello, world!", response.trim());
-            
+
             // should failed
             url = context + servletPath + "/hello.1";
             conn = getConnection(url);
             assertEquals(HttpServletResponse.SC_NOT_FOUND, getResponseCodeFromAlias(conn));
-           
-           
+
+
         } finally {
             stopHttpServer();
         }
-    }
-   
-   
-    private StringBuffer readResponse(HttpURLConnection conn) throws IOException {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-       
-        StringBuffer sb = new StringBuffer();
-        String line;
-       
-        while((line = reader.readLine())!=null){
-            logger.log(Level.INFO, "received line {0}", line);
-            sb.append(line).append("\n");
-        }
-       
-        return sb;
     }
 
     public void testProtocolFilter() throws IOException {
         Utils.dumpOut("testProtocolFilter");
         try {
             String[] aliases = new String[] { "*.foo" };
-
-            ServletHandler adapter = new ServletHandler();
-            adapter.setServletInstance(new HelloServlet());
+            WebappContext ctx = new WebappContext("Test");
+            ServletRegistration servlet =
+                    ctx.addServlet("TestServlet", HelloServlet.class);
+            servlet.addMapping(aliases);
             httpServer = HttpServer.createSimpleServer(".", PORT);
-            httpServer.getServerConfiguration().addHttpHandler(adapter, aliases);
             httpServer.start();
+            ctx.deploy(httpServer);
 
             Processor pc = httpServer.getListener("grizzly").getTransport().getProcessor();
             Utils.dumpOut("ProtcolChain: " + pc);
@@ -179,6 +147,24 @@ public class HelloHttpServerTest extends TestCase {
         } finally {
             stopHttpServer();
         }
+    }
+
+
+    // --------------------------------------------------------- Private Methods
+
+
+     private StringBuffer readResponse(HttpURLConnection conn) throws IOException {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+
+        StringBuffer sb = new StringBuffer();
+        String line;
+
+        while((line = reader.readLine())!=null){
+            logger.log(Level.INFO, "received line {0}", line);
+            sb.append(line).append("\n");
+        }
+
+        return sb;
     }
 
     private HttpURLConnection getConnection(String path) throws IOException {
@@ -193,7 +179,7 @@ public class HelloHttpServerTest extends TestCase {
         return urlConn.getResponseCode();
     }
 
-   
+
     private void createHttpServer(int port) {
         httpServer = HttpServer.createSimpleServer(".", port);
 
@@ -202,12 +188,15 @@ public class HelloHttpServerTest extends TestCase {
     private void stopHttpServer() {
         httpServer.stop();
     }
-    
+
+
+    // ---------------------------------------------------------- Nested Classes
+
     /**
      * Hello world servlet.  Most servlets will extend
      * javax.servlet.http.HttpServlet as this one does.
      */
-    public class HelloServlet extends HttpServlet {
+    public static class HelloServlet extends HttpServlet {
       /**
        * Implements the HTTP GET method.  The GET method is the standard
        * browser method.

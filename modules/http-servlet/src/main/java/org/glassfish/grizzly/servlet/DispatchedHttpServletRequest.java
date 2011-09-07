@@ -92,7 +92,7 @@ public class DispatchedHttpServletRequest extends HttpServletRequestWrapper {
     private String pathInfo;
     private String queryString;
     private HashMap specialAttributes;
-    private DispatcherConstants.DispatcherType dispatcherType;
+    private DispatcherType dispatcherType;
     private Object requestDispatcherPath;
 
     /**
@@ -129,7 +129,7 @@ public class DispatchedHttpServletRequest extends HttpServletRequestWrapper {
      */
     private boolean parsedParams = false;
 
-    public DispatchedHttpServletRequest( HttpServletRequest request, DispatcherConstants.DispatcherType dispatcherType ) {
+    public DispatchedHttpServletRequest( HttpServletRequest request, DispatcherType dispatcherType ) {
         super( request );
         this.dispatcherType = dispatcherType;
         setRequest( request );
@@ -477,7 +477,7 @@ public class DispatchedHttpServletRequest extends HttpServletRequestWrapper {
             while( ( result == null ) && ( parentEnumeration.hasMoreElements() ) ) {
                 String current = parentEnumeration.nextElement();
                 if( !isSpecial( current ) ||
-                    ( !dispatcherType.equals( DispatcherConstants.DispatcherType.FORWARD ) &&
+                    ( !dispatcherType.equals( DispatcherType.FORWARD ) &&
                       current.startsWith( "javax.servlet.forward" ) &&
                       getAttribute( current ) != null ) ) {
                     result = current;

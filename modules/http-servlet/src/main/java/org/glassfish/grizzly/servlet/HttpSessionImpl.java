@@ -41,7 +41,7 @@
 package org.glassfish.grizzly.servlet;
 
 import java.util.Enumeration;
-import java.util.List;
+import java.util.EventListener;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.ServletContext;
@@ -71,7 +71,7 @@ public class HttpSessionImpl implements HttpSession {
     /**
      * The ServletContext.
      */
-    private final ServletContextImpl contextImpl;
+    private final WebappContext contextImpl;
     /**
      * When this session was created.
      */
@@ -89,7 +89,7 @@ public class HttpSessionImpl implements HttpSession {
      * Create an HttpSession.
      * @param contextImpl
      */
-    public HttpSessionImpl(ServletContextImpl contextImpl) {
+    public HttpSessionImpl(WebappContext contextImpl) {
         this.contextImpl = contextImpl;
 
         creationTime = System.currentTimeMillis();
@@ -239,16 +239,16 @@ public class HttpSessionImpl implements HttpSession {
         }
 
         // Notify interested application event listeners
-        List listeners = contextImpl.getListeners();
-        if (listeners.isEmpty()) {
+        EventListener[] listeners = contextImpl.getEventListeners();
+        if (listeners.length == 0) {
             return;
         }
-        for (int i = 0; i < listeners.size(); i++) {
-            if (!(listeners.get(i) instanceof HttpSessionAttributeListener)) {
+        for (int i = 0, len = listeners.length; i < len; i++) {
+            if (!(listeners[i] instanceof HttpSessionAttributeListener)) {
                 continue;
             }
             HttpSessionAttributeListener listener =
-                    (HttpSessionAttributeListener) listeners.get(i);
+                    (HttpSessionAttributeListener) listeners[i];
             try {
                 if (unbound != null) {
                     if (event == null) {
@@ -297,14 +297,14 @@ public class HttpSessionImpl implements HttpSession {
             ((HttpSessionBindingListener) value).valueUnbound(event);
         }
 
-        List listeners = contextImpl.getListeners();
-        if (listeners.isEmpty())
+        EventListener[] listeners = contextImpl.getEventListeners();
+        if (listeners.length == 0)
             return;
-        for (int i = 0; i < listeners.size(); i++) {
-            if (!(listeners.get(i) instanceof HttpSessionAttributeListener))
+        for (int i = 0, len = listeners.length; i < len; i++) {
+            if (!(listeners[i] instanceof HttpSessionAttributeListener))
                 continue;
             HttpSessionAttributeListener listener =
-                (HttpSessionAttributeListener) listeners.get(i);
+                (HttpSessionAttributeListener) listeners[i];
             try {
                 if (event == null) {
                     event = new HttpSessionBindingEvent
@@ -340,12 +340,12 @@ public class HttpSessionImpl implements HttpSession {
         creationTime = 0L;
         isNew = true;
 
-        List listeners = contextImpl.getListeners();
-        if (!listeners.isEmpty()) {
+        EventListener[] listeners = contextImpl.getEventListeners();
+        if (listeners.length > 0) {
             HttpSessionEvent event =
                     new HttpSessionEvent(this);
-            for (int i = 0; i < listeners.size(); i++) {
-                Object listenerObj = listeners.get(i);
+            for (int i = 0, len = listeners.length; i < len; i++) {
+                Object listenerObj = listeners[i];
                 if (!(listenerObj instanceof HttpSessionListener)) {
                     continue;
                 }
@@ -384,12 +384,12 @@ public class HttpSessionImpl implements HttpSession {
      * session has just been created.
      */
     protected void notifyNew() {
-        List listeners = contextImpl.getListeners();
-        if (!listeners.isEmpty()) {
+        EventListener[] listeners = contextImpl.getEventListeners();
+        if (listeners.length > 0) {
             HttpSessionEvent event =
                     new HttpSessionEvent(this);
-            for (int i = 0; i < listeners.size(); i++) {
-                Object listenerObj = listeners.get(i);
+            for (int i = 0, len = listeners.length; i < len; i++) {
+                Object listenerObj = listeners[i];
                 if (!(listenerObj instanceof HttpSessionListener)) {
                     continue;
                 }

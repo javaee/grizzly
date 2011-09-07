@@ -58,6 +58,8 @@ import org.glassfish.grizzly.http.server.ServerConfiguration;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.servlet.ServletHandler;
+import org.glassfish.grizzly.servlet.ServletRegistration;
+import org.glassfish.grizzly.servlet.WebappContext;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
@@ -87,13 +89,15 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
 
     private void run(final Servlet servlet) throws Exception {
         HttpServer httpServer = HttpServer.createSimpleServer(".", PORT);
+        WebappContext ctx = new WebappContext("WS Test", "/");
+        final ServletRegistration reg = ctx.addServlet("TestServlet", servlet);
+        reg.addMapping("/");
         final ServerConfiguration configuration = httpServer.getServerConfiguration();
-        configuration.addHttpHandler(new ServletHandler(servlet));
-        configuration.setHttpServerName("WebSocket Server");
         configuration.setName("WebSocket Server");
         for (NetworkListener networkListener : httpServer.getListeners()) {
             networkListener.registerAddOn(new WebSocketAddOn());
         }
+        ctx.deploy(httpServer);
         httpServer.start();
 
         final Set<String> sent = new ConcurrentSkipListSet<String>();
@@ -168,12 +172,16 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
 
         HttpServer httpServer = HttpServer.createSimpleServer(".", PORT);
         final ServerConfiguration configuration = httpServer.getServerConfiguration();
-        configuration.addHttpHandler(new ServletHandler(new EchoServlet()), "/echo");
+        WebappContext ctx = new WebappContext("WS Test", "/");
+        final ServletRegistration registration =
+                ctx.addServlet("TestServlet", new EchoServlet());
+        registration.addMapping("/echo");
         configuration.setHttpServerName("WebSocket Server");
         configuration.setName("WebSocket Server");
         for (NetworkListener networkListener : httpServer.getListeners()) {
             networkListener.registerAddOn(new WebSocketAddOn());
         }
+        ctx.deploy(httpServer);
         httpServer.start();
 
         URL url = new URL("http://localhost:" + PORT + "/echo");
@@ -192,12 +200,16 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
     public void testGetOnServlet() throws IOException, InstantiationException, InterruptedException {
         HttpServer httpServer = HttpServer.createSimpleServer(".", PORT);
         final ServerConfiguration configuration = httpServer.getServerConfiguration();
-        configuration.addHttpHandler(new ServletHandler(new EchoServlet()), "/echo");
+        WebappContext ctx = new WebappContext("WS Test", "/");
+        final ServletRegistration registration =
+                ctx.addServlet("TestServlet", new EchoServlet());
+        registration.addMapping("/echo");
         configuration.setHttpServerName("WebSocket Server");
         configuration.setName("WebSocket Server");
         for (NetworkListener networkListener : httpServer.getListeners()) {
             networkListener.registerAddOn(new WebSocketAddOn());
         }
+        ctx.deploy(httpServer);
         httpServer.start();
 
         URL url = new URL("http://localhost:" + PORT + "/echo");
