@@ -112,12 +112,6 @@
             <artifactId>grizzly-framework</artifactId>
             <version>${project.version}</version>
         </dependency>
-<!--         <dependency>
-            <groupId>org.glassfish.grizzly</groupId>
-            <artifactId>grizzly-framework</artifactId>
-            <classifier>tests</classifier>
-            <version>${project.version}</version>
-        </dependency>-->
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-http-server</artifactId>
@@ -127,7 +121,7 @@
             <groupId>javax.servlet</groupId>
             <artifactId>servlet-api</artifactId>
             <version>${servlet-version}</version>
-            <!--<scope>provided</scope>-->
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.sun.jersey</groupId>
