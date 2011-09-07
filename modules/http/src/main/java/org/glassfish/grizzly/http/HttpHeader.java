@@ -110,6 +110,8 @@ public abstract class HttpHeader extends HttpPacket
 
     private TransferEncoding transferEncoding;
     private final List<ContentEncoding> contentEncodings = new ArrayList<ContentEncoding>();
+    // <tt>true</tt>, if content encodings for this headers were chosen
+    private boolean isContentEncodingsSelected;
 
     private final AttributeHolder attributes =
             new IndexedAttributeHolder(Grizzly.DEFAULT_ATTRIBUTE_BUILDER);
@@ -162,6 +164,14 @@ public abstract class HttpHeader extends HttpPacket
 
     public List<ContentEncoding> getContentEncodings() {
         return getContentEncodings(false);
+    }
+
+    protected final boolean isContentEncodingsSelected() {
+        return isContentEncodingsSelected;
+    }
+    
+    protected final void setContentEncodingsSelected(final boolean isContentEncodingsSelected) {
+        this.isContentEncodingsSelected = isContentEncodingsSelected;
     }
 
     /**
@@ -368,7 +378,7 @@ public abstract class HttpHeader extends HttpPacket
      * already serialized, and only {@link HttpContent} messages might be
      * serialized for this {@link HttpPacket}.
      */
-    public void setCommitted(boolean isCommitted) {
+    public void setCommitted(final boolean isCommitted) {
         this.isCommitted = isCommitted;
     }
 
@@ -380,7 +390,7 @@ public abstract class HttpHeader extends HttpPacket
      *
      * @param defaultValue default transfer-encoding value.
      */
-    protected void makeTransferEncodingHeader(String defaultValue) {
+    protected void makeTransferEncodingHeader(final String defaultValue) {
         final int idx = headers.indexOf(Header.TransferEncoding, 0);
         
         if (idx == -1) {
@@ -394,7 +404,7 @@ public abstract class HttpHeader extends HttpPacket
      *
      * @param value container for the content-type value.
      */
-    protected void extractContentEncoding(DataChunk value) {
+    protected void extractContentEncoding(final DataChunk value) {
         final int idx = headers.indexOf(Header.ContentEncoding, 0);
 
         if (idx != -1) {
@@ -755,6 +765,7 @@ public abstract class HttpHeader extends HttpPacket
      * Reset the internal state.
      */
     protected void reset() {
+        isContentEncodingsSelected = false;
         secure = false;
         attributes.recycle();
         protocolC.recycle();

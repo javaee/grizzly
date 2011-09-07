@@ -652,8 +652,6 @@ public abstract class HttpCodecFilter extends BaseFilter
     }
 
     protected Buffer encodeHttpPacket(final FilterChainContext ctx, final HttpPacket input) {
-        final Connection connection = ctx.getConnection();
-        final MemoryManager memoryManager = connection.getTransport().getMemoryManager();
         final boolean isHeader = input.isHeader();
         final HttpContent httpContent;
         final HttpHeader httpHeader;
@@ -664,6 +662,15 @@ public abstract class HttpCodecFilter extends BaseFilter
             httpContent = (HttpContent) input;
             httpHeader = httpContent.getHttpHeader();
         }
+
+        return encodeHttpPacket(ctx, httpHeader, httpContent, false);
+    }
+
+    protected final Buffer encodeHttpPacket(final FilterChainContext ctx,
+            final HttpHeader httpHeader, final HttpContent httpContent,
+            final boolean isContentAlreadyEncoded) {
+        final Connection connection = ctx.getConnection();
+        final MemoryManager memoryManager = ctx.getMemoryManager();
 
         Buffer encodedBuffer = null;
         
@@ -685,7 +692,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                     encodedBuffer.trim();
                     encodedBuffer.allowBufferDispose(true);
 
-                    HttpProbeNotifier.notifyHeaderSerialize(this, ctx.getConnection(),
+                    HttpProbeNotifier.notifyHeaderSerialize(this, connection,
                             httpHeader, encodedBuffer);
 
                     response.acknowledged();
@@ -720,12 +727,14 @@ public abstract class HttpCodecFilter extends BaseFilter
         }
         
         
-        if (!isHeader && httpHeader.isExpectContent()) {
-            final HttpContent encodedHttpContent;
+        if (httpContent != null && httpHeader.isExpectContent()) {
 
             HttpProbeNotifier.notifyContentChunkSerialize(this, connection, httpContent);
             
-            if ((encodedHttpContent = encodeContent(connection, httpContent)) == null) {
+            final HttpContent encodedHttpContent = isContentAlreadyEncoded ?
+                    httpContent : encodeContent(connection, httpContent);
+            
+            if (encodedHttpContent == null) {
                 return encodedBuffer;
             }
             
@@ -746,7 +755,7 @@ public abstract class HttpCodecFilter extends BaseFilter
         }
 
         return encodedBuffer;
-    }    
+    }
 
     protected static Buffer encodeKnownHeaders(final MemoryManager memoryManager,
             Buffer buffer, final HttpHeader httpHeader) {
@@ -1294,35 +1303,35 @@ public abstract class HttpCodecFilter extends BaseFilter
     }
 
     final void setContentEncodingsOnSerializing(final HttpHeader httpHeader) {
+        // If content encoders have been already set - skip lookup phase
+        if (httpHeader.isContentEncodingsSelected()) return;
 
-        final DataChunk bc =
-                httpHeader.getHeaders().getValue(Header.ContentEncoding);
-
-        final boolean isSomeEncodingApplied = bc != null && bc.getLength() > 0;
-
+        httpHeader.setContentEncodingsSelected(true);
+        
         final ContentEncoding[] encodingsLibrary = contentEncodings.getArray();
         if (encodingsLibrary == null) return;
 
-        final List<ContentEncoding> httpPacketEncoders = httpHeader.getContentEncodings(true);
+        // If content-length is explicitly set - we don't apply any additional content encoding
+        if (httpHeader.getContentLength() >= 0) return;        
+        
+        final DataChunk bc =
+                httpHeader.getHeaders().getValue(Header.ContentEncoding);
+        final boolean isSomeEncodingApplied = bc != null && bc.getLength() > 0;
 
-        final boolean specifiedLength = (httpHeader.getContentLength() >= 0);
+        final List<ContentEncoding> httpPacketEncoders = httpHeader.getContentEncodings(true);
+        
         for (ContentEncoding encoding : encodingsLibrary) {
             if (isSomeEncodingApplied) {
+                // If the current encoding is already applied - don't add it to httpPacketEncoders
                 if (lookupAlias(encoding, bc, 0)) {
                     continue;
                 }
             }
 
             if (encoding.wantEncode(httpHeader)) {
-                if (specifiedLength && chunkingEnabled) {
-                    httpHeader.setContentLength(-1);
-                    httpHeader.setChunked(true);
-                } else if (specifiedLength) {
-                    continue;
-                }
                 httpPacketEncoders.add(encoding);
             }
-        }
+        }        
     }
     
     private ContentEncoding lookupContentEncoding(final DataChunk bc,

@@ -371,18 +371,32 @@ public class HttpServerFilter extends HttpCodecFilter {
     protected Buffer encodeHttpPacket(final FilterChainContext ctx,
             final HttpPacket input) {
         final HttpHeader header;
-        if (input.isHeader()) {
+        HttpContent content;
+        
+        final boolean isHeaderPacket = input.isHeader();        
+        if (isHeaderPacket) {
             header = (HttpHeader) input;
+            content = null;
         } else {
-            header = ((HttpContent) input).getHttpHeader();
+            content = (HttpContent) input;
+            header = content.getHttpHeader();
         }
+        
+        boolean wasContentAlreadyEncoded = false;
         final HttpResponsePacketImpl response = (HttpResponsePacketImpl) header;
         if (!response.isCommitted() && response.getUpgrade() == null) {
-            prepareResponse(response.getRequest(), response);
+            final HttpContent encodedHttpContent = prepareResponse(
+                    ctx.getConnection(), response.getRequest(), response, content);
+            
+            if (encodedHttpContent != null) {
+                content = encodedHttpContent;
+                wasContentAlreadyEncoded = true;
+            }
         }
 
-        final Buffer encoded = super.encodeHttpPacket(ctx, input);
-        if (HttpContent.isContent(input)) {
+        final Buffer encoded = super.encodeHttpPacket(ctx, header, content,
+                wasContentAlreadyEncoded);
+        if (!isHeaderPacket) {
             input.recycle();
         }
         return encoded;
@@ -542,18 +556,23 @@ public class HttpServerFilter extends HttpCodecFilter {
         return found;
     }
 
-
-    private void prepareResponse(final HttpRequestPacket request,
-                                 final HttpResponsePacketImpl response) {
+    /**
+     * Prepare Http response
+     * @return encoded HttpContent, if content encoders have been applied, or
+     *      <tt>null</tt>, if HttpContent wasn't changed.
+     */
+    private HttpContent prepareResponse(final Connection connection,
+            final HttpRequestPacket request,
+            final HttpResponsePacketImpl response,
+            final HttpContent httpContent) {
         final Protocol requestProtocol = request.getProtocol();
 
         response.setProtocol(Protocol.HTTP_1_1);
-        final ProcessingState state = response.getProcessingState();
-
+        
         if (requestProtocol == Protocol.HTTP_0_9) {
-            return;
+            return null;
         }
-
+        
         boolean entityBody = true;
         final int statusCode = response.getStatus();
 
@@ -562,18 +581,34 @@ public class HttpServerFilter extends HttpCodecFilter {
             // No entity body
             entityBody = false;
             response.setExpectContent(false);
-            state.contentDelimitation = true;
         }
 
         final boolean isHttp11 = (requestProtocol == Protocol.HTTP_1_1);
-        final MimeHeaders headers = response.getHeaders();
-
+        
+        // Check if any compression would be applied
+        setContentEncodingsOnSerializing(response);
+        
+        HttpContent encodedHttpContent = null;
+        
         final long contentLength = response.getContentLength();
-        if (contentLength != -1L) {
-            state.contentDelimitation = true;
-        } else {
-            if (chunkingEnabled && entityBody && isHttp11) {
-                state.contentDelimitation = true;
+        
+        // @TODO consider moving underlying "if"-logic to HttpCodecFilter
+        // to make it common for client and server sides.
+        if (entityBody && contentLength == -1L && !response.isChunked()) {
+            // If neither content-length not chunking is explicitly set -
+            // try to apply one of those depending on headers and content
+            if (httpContent != null && httpContent.isLast()) {
+                // if this is first and last data chunk - set the content-length
+                if (!response.getContentEncodings(true).isEmpty()) {
+                    // optimization...
+                    // if content encodings have to be applied - apply them here
+                    // to be able to set correct content-length
+                    encodedHttpContent = encodeContent(connection, httpContent);
+                }
+                
+                response.setContentLength(httpContent.getContent().remaining());
+            } else if (chunkingEnabled && isHttp11) {
+                // otherwise use chunking if possible
                 response.setChunked(true);
             }
         }
@@ -582,9 +617,10 @@ public class HttpServerFilter extends HttpCodecFilter {
         if (Method.HEAD.equals(method)) {
             // No entity body
             response.setExpectContent(false);
-            state.contentDelimitation = true;
         }
 
+        final MimeHeaders headers = response.getHeaders();
+        
         if (!entityBody) {
             response.setContentLength(-1);
         } else {
@@ -602,11 +638,9 @@ public class HttpServerFilter extends HttpCodecFilter {
             response.addHeader(Header.Date, date);
         }
 
-        if ((entityBody) && (!state.contentDelimitation)) {
-            // Mark as close the connection after the request, and add the
-            // connection: close header
-            state.keepAlive = false;
-        } else if (entityBody && !isHttp11 && response.getContentLength() == -1) {
+        final ProcessingState state = response.getProcessingState();
+
+        if (entityBody && !isHttp11 && response.getContentLength() == -1) {
             // HTTP 1.0 response with no content-length having been set.
             // Close the connection to signal the response as being complete.
             state.keepAlive = false;
@@ -630,6 +664,7 @@ public class HttpServerFilter extends HttpCodecFilter {
             headers.setValue(Header.Connection).setString("Keep-Alive");
         }
 
+        return encodedHttpContent;
     }
 
     
@@ -713,11 +748,6 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
         // --------------------------
 
-        final long contentLength = request.getContentLength();
-        if (contentLength >= 0) {
-            state.contentDelimitation = true;
-        }
-
         if (hostDC == null) {
             hostDC = headers.getValue(Header.Host);
         }
@@ -729,13 +759,6 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
 
         parseHost(hostDC, request, response, state);
-
-        if (!state.contentDelimitation) {
-            // If there's no content length
-            // (broken HTTP/1.0 or HTTP/1.1), assume
-            // the client is not broken and didn't send a body
-            state.contentDelimitation = true;
-        }
 
         if (request.requiresAcknowledgement()) {
             // if we have any request content, we can ignore the Expect

@@ -61,14 +61,6 @@ public final class ProcessingState {
 
     /**
      * <p>
-     * Content delimitation for the request.  If <code>false</code>, the
-     * connection will be closed at the end of the request.
-     * </p>
-     */
-    boolean contentDelimitation = true;
-
-    /**
-     * <p>
      * This flag indicates whether error occurred during the HTTP processing.
      * </p>
      *
@@ -123,7 +115,6 @@ public final class ProcessingState {
     public void recycle() {
         keepAlive = false;
         error = false;
-        contentDelimitation = true;
     }
 
 }

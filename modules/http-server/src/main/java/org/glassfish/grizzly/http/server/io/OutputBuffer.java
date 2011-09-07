@@ -688,11 +688,6 @@ public class OutputBuffer {
         }
 
         if (bufferToFlush != null) {
-            if (isLast && !areHeadersCommitted &&
-                    response.getContentLength() == -1 && !response.isChunked()) {
-                response.setContentLength(bufferToFlush.remaining());
-            }
-            
             writeContentBuffer0(bufferToFlush, isLast, null);
 
             return true;
