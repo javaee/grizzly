@@ -1291,7 +1291,7 @@ public abstract class HttpCodecFilter extends BaseFilter
                 final ContentEncoding ce = lookupContentEncoding(bc, currentIdx,
                         commaIdx >= 0 ? commaIdx : bc.getLength());
                 if (ce != null && ce.wantDecode(httpHeader)) {
-                    encodings.add(ce);
+                    encodings.add(0, ce);
                 } else {
                     // if encoding was not found or doesn't want to decode -
                     // following could not be applied
@@ -1503,13 +1503,17 @@ public abstract class HttpCodecFilter extends BaseFilter
             Arrays.fill(contentEncodingRemainders, null);
         }
 
-        private Buffer removeContentDecodingRemainder(int i) {
+        private Buffer removeContentDecodingRemainder(final int i) {
+            if (i >= contentDecodingRemainders.length) {
+                return null;
+            }
+            
             final Buffer remainder = contentDecodingRemainders[i];
             contentDecodingRemainders[i] = null;
             return remainder;
         }
 
-        private void setContentDecodingRemainder(int i, Buffer remainder) {
+        private void setContentDecodingRemainder(final int i, final Buffer remainder) {
             if (i >= contentDecodingRemainders.length) {
                 contentDecodingRemainders = Arrays.copyOf(contentDecodingRemainders, i + 1);
             }
