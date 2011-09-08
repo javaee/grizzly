@@ -150,7 +150,7 @@ public class WebappContext implements ServletContext {
     /* Listeners */
     private Set<Class<? extends EventListener>> eventListenerClasses;
     private Set<String> eventListenerClassNames;  // TODO - wire this in
-    private EventListener[] eventListeners;
+    private EventListener[] eventListeners = new EventListener[0];
 
     /* Application start/stop state */
     protected boolean deployed;
@@ -1408,7 +1408,7 @@ public class WebappContext implements ServletContext {
      *
      */
     private void initializeListeners() {
-        if (!eventListenerClasses.isEmpty()) {
+        if (!eventListenerClasses.isEmpty() || !eventListenerClassNames.isEmpty()) {
             final ArrayList<EventListener> listeners =
                     new ArrayList<EventListener>(eventListenerClasses.size());
             for (final String className : eventListenerClassNames) {
@@ -1422,8 +1422,6 @@ public class WebappContext implements ServletContext {
                 }
             }
             eventListeners = listeners.toArray(new EventListener[listeners.size()]);
-        } else {
-            eventListeners = new EventListener[0];
         }
     }
 
