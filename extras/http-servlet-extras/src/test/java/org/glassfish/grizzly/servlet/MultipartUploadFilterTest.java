@@ -39,6 +39,8 @@
  */
 package org.glassfish.grizzly.servlet;
 
+import junit.framework.Assert;
+import junit.framework.TestCase;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.EmptyCompletionHandler;
@@ -55,6 +57,7 @@ import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
+import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
@@ -78,13 +81,13 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class MultipartUploadFilterTest extends HttpServerAbstractTest {
+public class MultipartUploadFilterTest extends TestCase {
 
     private static final int PORT = 9977;
 
     public void testBasicMultipartUploadFilter001() throws Exception {
 
-        newHttpServer(PORT);
+        HttpServer httpServer = HttpServer.createSimpleServer(".", 9977);
         WebappContext ctx = new WebappContext("Upload Test");
         final String fileContent = "One Ring to rule them all, One Ring to find them,\n" +
                         "One Ring to bring them all and in the darkness bind them.";
@@ -99,17 +102,17 @@ public class MultipartUploadFilterTest extends HttpServerAbstractTest {
                                   HttpServletResponse resp) throws ServletException, IOException {
 
                 final Object value = req.getAttribute(MultipartUploadFilter.UPLOADED_FILES);
-                assertNotNull(value);
-                assertTrue(value instanceof File[]);
+                Assert.assertNotNull(value);
+                Assert.assertTrue(value instanceof File[]);
                 final File[] uploadedFiles = (File[]) value;
-                assertEquals(1, uploadedFiles.length);
+                Assert.assertEquals(1, uploadedFiles.length);
                 final File f = uploadedFiles[0];
                 Reader r = new InputStreamReader(new FileInputStream(f));
                 char[] buf = new char[512];
                 int read = r.read(buf);
-                assertEquals(fileContent, new String(buf, 0, read));
-                assertTrue(f.exists());
-                assertTrue(f.canRead());
+                Assert.assertEquals(fileContent, new String(buf, 0, read));
+                Assert.assertTrue(f.exists());
+                Assert.assertTrue(f.canRead());
                 uploadedFile.set(f);
             }
         });
@@ -127,10 +130,10 @@ public class MultipartUploadFilterTest extends HttpServerAbstractTest {
             Future<HttpPacket> future = client.get(createMultipartPacket(fileContent));
             HttpPacket packet = future.get(10, TimeUnit.SECONDS);
             HttpResponsePacket response = (HttpResponsePacket) ((HttpContent) packet).getHttpHeader();
-            assertEquals(200, response.getStatus());
+            Assert.assertEquals(200, response.getStatus());
             File f = uploadedFile.get();
-            assertNotNull(f);
-            assertFalse(f.exists());
+            Assert.assertNotNull(f);
+            Assert.assertFalse(f.exists());
         } finally {
             httpServer.stop();
         }
@@ -138,7 +141,7 @@ public class MultipartUploadFilterTest extends HttpServerAbstractTest {
 
     public void testBasicMultipartUploadFilter002() throws Exception {
 
-        newHttpServer(PORT);
+        HttpServer httpServer = HttpServer.createSimpleServer(".", 9977);
         WebappContext ctx = new WebappContext("Upload Test");
         final String fileContent = "One Ring to rule them all, One Ring to find them,\n" +
                         "One Ring to bring them all and in the darkness bind them.";
@@ -154,17 +157,17 @@ public class MultipartUploadFilterTest extends HttpServerAbstractTest {
                                   HttpServletResponse resp) throws ServletException, IOException {
 
                 final Object value = req.getAttribute(MultipartUploadFilter.UPLOADED_FILES);
-                assertNotNull(value);
-                assertTrue(value instanceof File[]);
+                Assert.assertNotNull(value);
+                Assert.assertTrue(value instanceof File[]);
                 final File[] uploadedFiles = (File[]) value;
-                assertEquals(1, uploadedFiles.length);
+                Assert.assertEquals(1, uploadedFiles.length);
                 final File f = uploadedFiles[0];
                 Reader r = new InputStreamReader(new FileInputStream(f));
                 char[] buf = new char[512];
                 int read = r.read(buf);
-                assertEquals(fileContent, new String(buf, 0, read));
-                assertTrue(f.exists());
-                assertTrue(f.canRead());
+                Assert.assertEquals(fileContent, new String(buf, 0, read));
+                Assert.assertTrue(f.exists());
+                Assert.assertTrue(f.canRead());
                 uploadedFile.set(f);
             }
         });
@@ -182,10 +185,10 @@ public class MultipartUploadFilterTest extends HttpServerAbstractTest {
             Future<HttpPacket> future = client.get(createMultipartPacket(fileContent));
             HttpPacket packet = future.get(10, TimeUnit.SECONDS);
             HttpResponsePacket response = (HttpResponsePacket) ((HttpContent) packet).getHttpHeader();
-            assertEquals(200, response.getStatus());
+            Assert.assertEquals(200, response.getStatus());
             File f = uploadedFile.get();
-            assertNotNull(f);
-            assertTrue(f.exists());
+            Assert.assertNotNull(f);
+            Assert.assertTrue(f.exists());
             f.deleteOnExit();
         } finally {
             httpServer.stop();

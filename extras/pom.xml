@@ -116,5 +116,6 @@
         <module>http-server-jaxws</module>
         <!--<module>grizzly-httpservice</module>  Need to reevaluate this once the new api is stable. -->
         <module>bundles</module>
+        <module>http-servlet-extras</module>
     </modules>
 </project>
