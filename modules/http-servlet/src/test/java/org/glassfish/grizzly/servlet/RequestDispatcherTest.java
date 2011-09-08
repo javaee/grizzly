@@ -102,6 +102,48 @@ public class RequestDispatcherTest extends HttpServerAbstractTest {
         }
     }
 
+    public void testForwardRootContext() throws IOException {
+        Utils.dumpOut("testForwardRootContext");
+        try {
+            newHttpServer(PORT);
+
+            String contextPath = "/";
+            WebappContext ctx = new WebappContext("Test", contextPath);
+            ServletRegistration servlet1 = ctx.addServlet("servlet1", new HttpServlet() {
+                @Override
+                public void doGet(HttpServletRequest request, HttpServletResponse response)
+                        throws ServletException, IOException {
+                    PrintWriter out = response.getWriter();
+                    out.println("Hello, world! I am a servlet1");
+
+                    // relative path test
+                    RequestDispatcher dispatcher = request.getRequestDispatcher("servlet2");
+                    assertNotNull(dispatcher);
+                    dispatcher.forward(request, response);
+                    out.close();
+                }
+            });
+            servlet1.addMapping("/servlet1");
+            ServletRegistration servlet2 = ctx.addServlet("servlet2", new HttpServlet() {
+                @Override
+                public void doGet(HttpServletRequest request, HttpServletResponse response)
+                        throws ServletException, IOException {
+                    PrintWriter out = response.getWriter();
+                    out.println("Hello, world! I am a servlet2");
+                    out.close();
+                }
+            });
+            servlet2.addMapping("/servlet2");
+            ctx.deploy(httpServer);
+            httpServer.start();
+            HttpURLConnection conn = getConnection("/servlet1", PORT);
+            assertEquals(HttpServletResponse.SC_OK, getResponseCodeFromAlias(conn));
+            assertEquals("Hello, world! I am a servlet2", readMultilineResponse(conn).toString().trim());
+        } finally {
+            stopHttpServer();
+        }
+    }
+
     public void testInclude() throws IOException {
         Utils.dumpOut("testInclude");
         try {
@@ -138,6 +180,49 @@ public class RequestDispatcherTest extends HttpServerAbstractTest {
 
             httpServer.start();
             HttpURLConnection conn = getConnection("/webapp/servlet1", PORT);
+            assertEquals(HttpServletResponse.SC_OK, getResponseCodeFromAlias(conn));
+            assertEquals("Hello, world! I am a servlet1\nHello, world! I am a servlet2", readMultilineResponse(conn).toString().trim());
+        } finally {
+            stopHttpServer();
+        }
+    }
+
+    public void testIncludeRootContext() throws IOException {
+        Utils.dumpOut("testIncludeRootContext");
+        try {
+            newHttpServer(PORT);
+
+            String contextPath = "/";
+            WebappContext ctx = new WebappContext("Test", contextPath);
+            ServletRegistration servlet1 = ctx.addServlet("servlet1", new HttpServlet() {
+                @Override
+                public void doGet(HttpServletRequest request, HttpServletResponse response)
+                        throws ServletException, IOException {
+                    PrintWriter out = response.getWriter();
+                    out.println("Hello, world! I am a servlet1");
+
+                    // relative path test
+                    RequestDispatcher dispatcher = request.getRequestDispatcher("servlet2");
+                    assertNotNull(dispatcher);
+                    dispatcher.include(request, response);
+                    out.close();
+                }
+            });
+            servlet1.addMapping("/servlet1");
+            ServletRegistration servlet2 = ctx.addServlet("servlet2", new HttpServlet() {
+                @Override
+                public void doGet(HttpServletRequest request, HttpServletResponse response)
+                        throws ServletException, IOException {
+                    PrintWriter out = response.getWriter();
+                    out.println("Hello, world! I am a servlet2");
+                    out.close();
+                }
+            });
+            servlet2.addMapping("/servlet2");
+            ctx.deploy(httpServer);
+
+            httpServer.start();
+            HttpURLConnection conn = getConnection("/servlet1", PORT);
             assertEquals(HttpServletResponse.SC_OK, getResponseCodeFromAlias(conn));
             assertEquals("Hello, world! I am a servlet1\nHello, world! I am a servlet2", readMultilineResponse(conn).toString().trim());
         } finally {

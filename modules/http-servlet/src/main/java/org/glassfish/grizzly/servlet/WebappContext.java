@@ -65,6 +65,7 @@ import org.glassfish.grizzly.http.server.StaticHttpHandler;
 import org.glassfish.grizzly.http.server.util.ClassLoaderUtil;
 import org.glassfish.grizzly.http.server.util.DispatcherHelper;
 import org.glassfish.grizzly.http.server.util.Enumerator;
+import org.glassfish.grizzly.http.server.util.Mapper;
 import org.glassfish.grizzly.http.server.util.MappingData;
 import org.glassfish.grizzly.http.server.util.MimeType;
 import org.glassfish.grizzly.http.util.DataChunk;
@@ -213,6 +214,7 @@ public class WebappContext implements ServletContext {
         filterRegistrations = new LinkedHashMap<String,FilterRegistration>(4, 1.0f);
         eventListenerClasses = new LinkedHashSet<Class<? extends EventListener>>(4, 1.0f);
         eventListenerClassNames = new LinkedHashSet<String>(4, 1.0f);
+        Mapper.setAllowReplacement(true);
 
     }
 
@@ -1025,7 +1027,11 @@ public class WebappContext implements ServletContext {
         MappingData mappingData = dd.mappingData;
 
         try {
-            uriDC.setString(contextPath + path);
+            if (contextPath.length() == 1 && contextPath.charAt(0) == '/') {
+                uriDC.setString(path);
+            } else {
+                uriDC.setString(contextPath + path);
+            }
             dispatcherHelper.mapPath(dd.hostDC, uriDC, mappingData);
             if (mappingData.wrapper == null) {
                 return null;
@@ -1476,8 +1482,8 @@ public class WebappContext implements ServletContext {
                 final String[] patterns = registration.urlPatterns.getArray();
                 for (final String spath : patterns) {
                     serverConfig.addHttpHandler(servletHandler,
-                                                updateMappings(servletHandler,
-                                                               spath));
+                            updateMappings(servletHandler,
+                                    spath));
                 }
                 servletHandlers.add(servletHandler);
                 if (LOGGER.isLoggable(Level.INFO)) {

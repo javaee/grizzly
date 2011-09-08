@@ -195,6 +195,25 @@ public class MapperTest extends HttpServerAbstractTest {
     }
 
 
+    public void testDefaultServletOverride() throws Exception {
+        try {
+            startHttpServer(PORT);
+            WebappContext ctx = new WebappContext("Test");
+            String alias = "/";
+            addServlet(ctx, alias);
+            ctx.deploy(httpServer);
+            HttpURLConnection conn = getConnection("/", PORT);
+            assertEquals(HttpServletResponse.SC_OK, getResponseCodeFromAlias(conn));
+            assertEquals("/", conn.getHeaderField("servlet-path"));
+        } finally {
+            stopHttpServer();
+        }
+    }
+
+
+    // --------------------------------------------------------- Private Methods
+
+
     private static ServletRegistration addServlet(final WebappContext ctx,
                                                   final String alias) {
         final ServletRegistration reg = ctx.addServlet(alias, new HttpServlet() {
