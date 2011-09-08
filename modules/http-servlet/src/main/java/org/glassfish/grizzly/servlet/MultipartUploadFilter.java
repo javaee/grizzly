@@ -115,53 +115,53 @@ public class MultipartUploadFilter implements Filter {
         }
         validateRequestResponse(servletRequest, servletResponse);
         final String dirName = Long.toString(System.nanoTime());
-        File dir = new File(tempDir, dirName);
+        final File dir = new File(tempDir, dirName);
         final Request request = ((HttpServletRequestImpl) servletRequest).getRequest();
         final Response response = ((HttpServletResponseImpl) servletResponse).getResponse();
-        try {
-            response.suspend();
-            // Start the asynchronous multipart request scanning...
-            final List<File> uploadedFiles = new ArrayList<File>();
-            final UploadMultipartHandler uploadHandler =
-                    new UploadMultipartHandler(uploadedFiles, dir);
-            MultipartScanner.scan(request,
-                    uploadHandler,
-                    new EmptyCompletionHandler<Request>() {
-                        // CompletionHandler is called once HTTP request processing is completed
-                        // or failed.
-                        @Override
-                        public void completed(final Request request) {
-                            // Upload is complete
-                            //final int bytesUploaded = uploadHandler.getBytesUploaded();
+        response.suspend();
+        // Start the asynchronous multipart request scanning...
+        final List<File> uploadedFiles = new ArrayList<File>();
+        final UploadMultipartHandler uploadHandler =
+                new UploadMultipartHandler(uploadedFiles, dir);
+        MultipartScanner.scan(request,
+                uploadHandler,
+                new EmptyCompletionHandler<Request>() {
+                    // CompletionHandler is called once HTTP request processing is completed
+                    // or failed.
+                    @Override
+                    public void completed(final Request request) {
+                        // Upload is complete
+                        //final int bytesUploaded = uploadHandler.getBytesUploaded();
 
 //                            LOGGER.log(Level.INFO, "Upload is complete. "
 //                                    + "{0} bytes uploaded",
 //                                    new Object[]{bytesUploaded});
 
-                            // Resume the asynchronous HTTP request processing
-                            // (in other words finish the asynchronous HTTP request processing).
-                            servletRequest.setAttribute(UPLOADED_FILES, uploadedFiles.toArray(new File[uploadedFiles.size()]));
-                        }
-
-                        @Override
-                        public void failed(Throwable throwable) {
-                            // if failed - log the error
-                            LOGGER.log(Level.SEVERE, "Upload failed.", throwable);
-                            // Complete the asynchronous HTTP request processing.
+                        // Resume the asynchronous HTTP request processing
+                        // (in other words finish the asynchronous HTTP request processing).
+                        servletRequest.setAttribute(UPLOADED_FILES, uploadedFiles.toArray(new File[uploadedFiles.size()]));
+                        try {
+                            filterChain.doFilter(servletRequest, servletResponse);
+                        } catch (Exception e) {
+                            LOGGER.log(Level.SEVERE, e.toString(), e);
+                        } finally {
+                            if (deleteAfterRequestEnd) {
+                                clean(dir);
+                            }
                             response.resume();
                         }
-                    });
-                    filterChain.doFilter(servletRequest, servletResponse);
-        } finally {
-            if (deleteAfterRequestEnd) {
-                clean(dir);
-            }
-            response.resume();
-        }
+                    }
+
+                    @Override
+                    public void failed(Throwable throwable) {
+                        // if failed - log the error
+                        LOGGER.log(Level.SEVERE, "Upload failed.", throwable);
+                        // Complete the asynchronous HTTP request processing.
+                        response.resume();
+                    }
+                });
 
     }
-
-
 
     @Override
     public void destroy() {
