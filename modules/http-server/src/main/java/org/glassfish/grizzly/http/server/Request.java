@@ -1843,7 +1843,7 @@ public class Request {
 
             try {
                 final Buffer formData = getPostBody(len);
-                parameters.processParameters(formData, 0, len);
+                parameters.processParameters(formData, formData.position(), len);
             } catch (Exception ignored) {
             } finally {
                 try {
