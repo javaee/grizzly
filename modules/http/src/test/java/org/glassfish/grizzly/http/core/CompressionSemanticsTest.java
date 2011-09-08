@@ -70,16 +70,18 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import junit.framework.TestCase;
 import org.glassfish.grizzly.filterchain.Filter;
+import org.glassfish.grizzly.http.LZMAContentEncoding;
 import org.glassfish.grizzly.memory.Buffers;
 
 /**
@@ -95,10 +97,10 @@ public class CompressionSemanticsTest extends TestCase {
 
     public void testImplicitContentLength() throws Throwable {
         ContentEncoding gzipServerContentEncoding =
-                getServerContentEncoding();
+                getGzipServerContentEncoding();
 
         ContentEncoding gzipClientContentEncoding =
-                getClientContentEncoding();
+                getGzipClientContentEncoding();
 
         HttpRequestPacket request = HttpRequestPacket.builder()
             .method("GET")
@@ -118,8 +120,10 @@ public class CompressionSemanticsTest extends TestCase {
         result.addHeader("Content-Length", "35");
         result.addHeader("!Transfer-Encoding", "chunked");
         
-        doTest(request, result, gzipServerContentEncoding,
-                gzipClientContentEncoding, new BaseFilter() {
+        doTest(request, result,
+                Collections.<ContentEncoding>singletonList(gzipServerContentEncoding),
+                Collections.<ContentEncoding>singletonList(gzipClientContentEncoding),
+                new BaseFilter() {
 
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
@@ -154,10 +158,10 @@ public class CompressionSemanticsTest extends TestCase {
     
     public void testImplicitChunking() throws Throwable {
         ContentEncoding gzipServerContentEncoding =
-                getServerContentEncoding();
+                getGzipServerContentEncoding();
 
         ContentEncoding gzipClientContentEncoding =
-                getClientContentEncoding();
+                getGzipClientContentEncoding();
 
         HttpRequestPacket request = HttpRequestPacket.builder()
             .method("GET")
@@ -177,8 +181,84 @@ public class CompressionSemanticsTest extends TestCase {
         result.addHeader("Transfer-Encoding", "chunked");
         result.addHeader("!Content-Length", "35");
         
-        doTest(request, result, gzipServerContentEncoding,
-                gzipClientContentEncoding, new BaseFilter() {
+        doTest(request, result,
+                Collections.<ContentEncoding>singletonList(gzipServerContentEncoding),
+                Collections.<ContentEncoding>singletonList(gzipClientContentEncoding),
+                new BaseFilter() {
+
+            @Override
+            public NextAction handleRead(FilterChainContext ctx) throws IOException {
+                final HttpContent httpContent = (HttpContent) ctx.getMessage();
+
+                if (httpContent.isLast()) {
+                    final HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
+
+                    final HttpResponsePacket response = request.getResponse();
+                    HttpStatus.OK_200.setValues(response);
+
+                    final Buffer requestContent = httpContent.getContent();
+
+                    final StringBuilder sb = new StringBuilder("Echo: ").append(requestContent.hasRemaining()
+                            ? requestContent.toStringContent()
+                            : "<nothing>");
+                    final String content1 = sb.substring(0, sb.length() / 2);
+                    final String content2 = sb.substring(sb.length() / 2, sb.length());
+
+                    final HttpContent responseContent1 =
+                            HttpContent.builder(response)
+                            .last(false)
+                            .content(Buffers.wrap(ctx.getMemoryManager(), content1))
+                            .build();
+
+                    final HttpContent responseContent2 =
+                            HttpContent.builder(response)
+                            .last(true)
+                            .content(Buffers.wrap(ctx.getMemoryManager(), content2))
+                            .build();
+
+                    ctx.write(responseContent1);
+                    ctx.write(responseContent2);
+                    return ctx.getStopAction();
+                }
+
+                return ctx.getStopAction(httpContent);
+            }
+        });        
+    }
+    
+    public void testMultipleEncodings() throws Throwable {
+        ContentEncoding gzipServerContentEncoding =
+                getGzipServerContentEncoding();
+        ContentEncoding gzipClientContentEncoding =
+                getGzipClientContentEncoding();
+
+        ContentEncoding lzmaServerContentEncoding =
+                getLzmaServerContentEncoding();
+        ContentEncoding lzmaClientContentEncoding =
+                getLzmaClientContentEncoding();
+
+        HttpRequestPacket request = HttpRequestPacket.builder()
+            .method("GET")
+            .header("Host", "localhost:" + PORT)
+            .uri("/path")
+            .header("accept-encoding", "gzip, lzma")
+            .protocol(Protocol.HTTP_1_1)
+            .build();
+
+        ExpectedResult result = new ExpectedResult();
+        result.setProtocol("HTTP/1.1");
+        result.setStatusCode(200);
+        result.addHeader("content-encoding", "gzip,lzma");
+
+        final MemoryManager mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
+        result.setContent(Buffers.wrap(mm, "Echo: <nothing>"));
+        result.addHeader("Transfer-Encoding", "chunked");
+        result.addHeader("!Content-Length", "35");
+        
+        doTest(request, result,
+                Arrays.asList(gzipServerContentEncoding, lzmaServerContentEncoding),
+                Arrays.asList(gzipClientContentEncoding, lzmaClientContentEncoding),
+                new BaseFilter() {
 
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
@@ -231,7 +311,8 @@ public class CompressionSemanticsTest extends TestCase {
     }
 
     private void doTest(HttpPacket request, ExpectedResult expectedResults,
-            ContentEncoding serverContentEncoding, ContentEncoding clientContentEncoding,
+            List<ContentEncoding> serverContentEncoding,
+            List<ContentEncoding> clientContentEncoding,
             Filter serverFilter)
     throws Throwable {
 
@@ -242,7 +323,9 @@ public class CompressionSemanticsTest extends TestCase {
 
         final HttpServerFilter httpServerFilter = new HttpServerFilter();
         if (serverContentEncoding != null) {
-            httpServerFilter.addContentEncoding(serverContentEncoding);
+            for (ContentEncoding ce : serverContentEncoding) {
+                httpServerFilter.addContentEncoding(ce);
+            }
         }
         filterChainBuilder.add(httpServerFilter);
 
@@ -263,7 +346,9 @@ public class CompressionSemanticsTest extends TestCase {
 
             final HttpClientFilter httpClientFilter = new HttpClientFilter();
             if (clientContentEncoding != null) {
-                httpClientFilter.addContentEncoding(clientContentEncoding);
+                for (ContentEncoding ce : clientContentEncoding) {
+                    httpClientFilter.addContentEncoding(ce);
+                }
             }
             clientFilterChainBuilder.add(httpClientFilter);
 
@@ -278,7 +363,7 @@ public class CompressionSemanticsTest extends TestCase {
             Connection connection = null;
             try {
                 connection = connectFuture.get(10, TimeUnit.SECONDS);
-                testResult.get(10, TimeUnit.SECONDS);
+                testResult.get(10000, TimeUnit.SECONDS);
             } finally {
                 // Close the client connection
                 if (connection != null) {
@@ -395,49 +480,6 @@ public class CompressionSemanticsTest extends TestCase {
     }
 
 
-    private static final class SimpleResponseFilter extends BaseFilter {
-        @Override
-        public NextAction handleRead(FilterChainContext ctx) throws IOException {
-            final HttpContent httpContent = (HttpContent) ctx.getMessage();
-
-            if (httpContent.isLast()) {
-                final HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
-
-                final HttpResponsePacket response = request.getResponse();
-                HttpStatus.OK_200.setValues(response);
-                response.setChunked(true);
-
-                final Buffer requestContent = httpContent.getContent();
-
-                final StringBuilder sb = new StringBuilder("Echo: ")
-                        .append(requestContent.hasRemaining() ?
-                            requestContent.toStringContent() :
-                            "<nothing>");
-
-                final HttpContent responseContent = HttpContent.builder(response)
-                        .last(true)
-                        .content(Buffers.wrap(ctx.getMemoryManager(), sb.toString()))
-                        .build();
-
-                ctx.write(responseContent);
-                return ctx.getStopAction();
-            }
-
-            return ctx.getStopAction(httpContent);
-        }
-    }
-
-    private String generateBigString(int size) {
-        final Random r = new Random();
-        
-        StringBuilder sb = new StringBuilder(size);
-        for (int i = 0; i < size; i++) {
-            sb.append((char) ('A' + r.nextInt('Z' - 'A')));
-        }
-
-        return sb.toString();
-    }
-
     private static final class ExpectedResult {
 
         private int statusCode = -1;
@@ -488,7 +530,7 @@ public class CompressionSemanticsTest extends TestCase {
         }
     }
     
-    private ContentEncoding getClientContentEncoding() {
+    private ContentEncoding getGzipClientContentEncoding() {
         return new GZipContentEncoding(512, 512, new EncodingFilter() {
            @Override
            public boolean applyEncoding(HttpHeader httpPacket) {
@@ -502,7 +544,7 @@ public class CompressionSemanticsTest extends TestCase {
        });
     }
 
-    private ContentEncoding getServerContentEncoding() {
+    private ContentEncoding getGzipServerContentEncoding() {
         return new GZipContentEncoding(512, 512, new EncodingFilter() {
            @Override
            public boolean applyEncoding(HttpHeader httpPacket) {
@@ -519,5 +561,38 @@ public class CompressionSemanticsTest extends TestCase {
                return false;
            }
        });
-    }    
+    }
+    
+    private ContentEncoding getLzmaClientContentEncoding() {
+        return new LZMAContentEncoding(new EncodingFilter() {
+           @Override
+           public boolean applyEncoding(HttpHeader httpPacket) {
+               return false;
+           }
+
+           @Override
+           public boolean applyDecoding(HttpHeader httpPacket) {
+               return true;
+           }
+       });
+    }
+
+    private ContentEncoding getLzmaServerContentEncoding() {
+        return new LZMAContentEncoding(new EncodingFilter() {
+           @Override
+           public boolean applyEncoding(HttpHeader httpPacket) {
+               final HttpResponsePacket httpResponse = (HttpResponsePacket) httpPacket;
+               final HttpRequestPacket httpRequest = httpResponse.getRequest();
+
+               final DataChunk bc = httpRequest.getHeaders().getValue("accept-encoding");
+
+               return bc != null && bc.indexOf("lzma", 0) != -1;
+           }
+
+           @Override
+           public boolean applyDecoding(HttpHeader httpPacket) {
+               return false;
+           }
+       });
+    }
 }
