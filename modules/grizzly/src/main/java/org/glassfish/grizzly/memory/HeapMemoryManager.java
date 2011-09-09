@@ -266,6 +266,7 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
 
     private void reallocatePoolBuffer() {
         final byte[] heap = new byte[maxBufferSize];
+        ProbeNotifier.notifyBufferAllocated(monitoringConfig, maxBufferSize);
 
         final HeapBufferThreadLocalPool threadLocalCache =
                 (HeapBufferThreadLocalPool) getThreadLocalPool();
@@ -274,7 +275,10 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
     }
 
     TrimmableHeapBuffer createTrimAwareBuffer(final int length) {
-        return createTrimAwareBuffer(new byte[length], 0, length);
+        final byte[] heap = new byte[length];
+        ProbeNotifier.notifyBufferAllocated(monitoringConfig, length);
+        
+        return createTrimAwareBuffer(heap, 0, length);
     }
 
     TrimmableHeapBuffer createTrimAwareBuffer(final byte[] heap,
