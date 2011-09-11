@@ -49,7 +49,9 @@ import org.glassfish.grizzly.http.multipart.MultipartScanner;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.io.NIOInputStream;
+import org.glassfish.grizzly.http.server.io.NIOReader;
 import org.glassfish.grizzly.http.server.io.ReadHandler;
+import org.glassfish.grizzly.http.util.Parameters;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -121,8 +123,9 @@ public class MultipartUploadFilter implements Filter {
         response.suspend();
         // Start the asynchronous multipart request scanning...
         final List<File> uploadedFiles = new ArrayList<File>();
+        final Parameters formParams = new Parameters();
         final UploadMultipartHandler uploadHandler =
-                new UploadMultipartHandler(uploadedFiles, dir);
+                new UploadMultipartHandler(uploadedFiles, dir, formParams);
         MultipartScanner.scan(request,
                 uploadHandler,
                 new EmptyCompletionHandler<Request>() {
@@ -130,15 +133,9 @@ public class MultipartUploadFilter implements Filter {
                     // or failed.
                     @Override
                     public void completed(final Request request) {
-                        // Upload is complete
-                        //final int bytesUploaded = uploadHandler.getBytesUploaded();
-
-//                            LOGGER.log(Level.INFO, "Upload is complete. "
-//                                    + "{0} bytes uploaded",
-//                                    new Object[]{bytesUploaded});
-
                         // Resume the asynchronous HTTP request processing
                         // (in other words finish the asynchronous HTTP request processing).
+                        request.setRequestParameters(formParams);
                         servletRequest.setAttribute(UPLOADED_FILES, uploadedFiles.toArray(new File[uploadedFiles.size()]));
                         try {
                             filterChain.doFilter(servletRequest, servletResponse);
@@ -233,11 +230,15 @@ public class MultipartUploadFilter implements Filter {
         private final AtomicInteger uploadedBytesCounter = new AtomicInteger();
         private final File uploadDir;
         private final List<File> uploadedFiles;
+        private final Parameters formParams;
+
 
         public UploadMultipartHandler(final List<File> uploadedFiles,
-                                      final File uploadDir) {
+                                      final File uploadDir,
+                                      final Parameters formParams) {
             this.uploadedFiles = uploadedFiles;
             this.uploadDir = uploadDir;
+            this.formParams = formParams;
         }
 
         /**
@@ -249,34 +250,52 @@ public class MultipartUploadFilter implements Filter {
             final ContentDisposition contentDisposition =
                     multipartEntry.getContentDisposition();
 
-
+            final String paramName = contentDisposition.getDispositionParamUnquoted("name");
             // get the filename for Content-Disposition
             final String filename =
                     contentDisposition.getDispositionParamUnquoted("filename");
 
-            // Get the NIOInputStream to read the multipart entry content
-            final NIOInputStream inputStream = multipartEntry.getNIOInputStream();
+            if (filename != null) {
+                formParams.addParameterValues(paramName, new String[] { filename });
+                // Get the NIOInputStream to read the multipart entry content
+                final NIOInputStream inputStream = multipartEntry.getNIOInputStream();
 
-            LOGGER.log(Level.FINE, "Uploading file {0}",
-                    new Object[]{filename});
+                LOGGER.log(Level.FINE, "Uploading file {0}",
+                        new Object[]{filename});
 
-            // start asynchronous non-blocking content read.
-            inputStream.notifyAvailable(
-                    new UploadReadHandler(uploadedFiles,
-                            uploadDir,
-                            filename,
-                            inputStream,
-                            uploadedBytesCounter));
+                // start asynchronous non-blocking content read.
+                inputStream.notifyAvailable(
+                        new UploadReadHandler(uploadedFiles,
+                                uploadDir,
+                                filename,
+                                inputStream,
+                                uploadedBytesCounter));
+            } else {
+                // standard param value
+                final NIOReader nioReader = multipartEntry.getNIOReader();
+                nioReader.notifyAvailable(new ReadHandler() {
+                    @Override
+                    public void onDataAvailable() throws Exception {
+                     // ignored
+                    }
+
+                    @Override
+                    public void onError(Throwable t) {
+                        try {
+                            nioReader.close();
+                        } catch (IOException ignored) {}
+                    }
+
+                    @Override
+                    public void onAllDataRead() throws Exception {
+                        final char[] chars = new char[nioReader.readyData()];
+                        nioReader.read(chars);
+                        formParams.addParameterValues(paramName, new String[] { new String(chars) });
+                    }
+                });
+            }
         }
 
-        /**
-         * Returns the number of bytes uploaded for this multipart entry.
-         *
-         * @return the number of bytes uploaded for this multipart entry.
-         */
-        int getBytesUploaded() {
-            return uploadedBytesCounter.get();
-        }
     } // END UploadMultipartHandler
 
 
@@ -315,7 +334,7 @@ public class MultipartUploadFilter implements Filter {
 
             this.uploadedFiles = uploadedFiles;
             this.filename = filename;
-            if (!uploadDir.mkdirs()) {
+            if (!uploadDir.exists() && !uploadDir.mkdirs()) {
                 throw new RuntimeException(String.format("Unable to create directory %s", uploadDir.toString()));
             }
             uploadFile = new File(uploadDir, filename);

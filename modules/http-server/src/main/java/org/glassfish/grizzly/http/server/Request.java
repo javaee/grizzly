@@ -1779,6 +1779,24 @@ public class Request {
     }
 
 
+    /**
+     * This method may be used if some other entity processed request parameters
+     * and wishes to expose them via the request.  When this method is called,
+     * it will mark the internal request parameter state as having been processed.
+     *
+     * @param parameters the parameters to expose via this request.
+     *
+     * @since 2.2
+     */
+    public void setRequestParameters(final Parameters parameters) {
+
+        this.requestParametersParsed = true;
+        for (final String name : parameters.getParameterNames()) {
+            this.parameters.addParameterValues(name,
+                                               parameters.getParameterValues(name));
+        }
+
+    }
 
 
     /**

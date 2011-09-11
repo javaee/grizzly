@@ -90,7 +90,8 @@ public class ContentDisposition {
             parseParams();
         }
 
-        return dispositionParams.get(paramName).get();
+        final ParamValue v = dispositionParams.get(paramName);
+        return ((v != null) ? v.get() : null);
     }
 
     public String getDispositionParamUnquoted(String paramName) {
@@ -98,8 +99,8 @@ public class ContentDisposition {
             isParamsParsed = true;
             parseParams();
         }
-
-        return dispositionParams.get(paramName).getUnquoted();
+        final ParamValue v = dispositionParams.get(paramName);
+        return ((v != null) ? v.getUnquoted() : null);
     }
 
     @Override
