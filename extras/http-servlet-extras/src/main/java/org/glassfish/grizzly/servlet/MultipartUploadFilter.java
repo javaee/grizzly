@@ -71,13 +71,32 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * TODO: DOCS
+ * <p>
+ * A {@link Filter} implementation that leverages the non-blocking multipart
+ * processing API.
+ * </p>
+ *
+ * <p>
+ * NOTE: this filter is implementation specific and will not function properly
+ * outside of the Grizzly 2.x Servlet implementation.
+ * </p>
  *
  * @since 2.2
  */
 public class MultipartUploadFilter implements Filter {
 
+    /**
+     * Filter initialization parameter name to control whether or not
+     * the temp files used to store the uploaded file bytes will be deleted
+     * after the request ends.  If this parameter is omitted, it will be assumed
+     * that the files will be deleted after request end.
+     */
     public static final String DELETE_ON_REQUEST_END = "org.glassfish.grizzly.multipart.DELETE_ON_REQUEST_END";
+
+    /**
+     * The name of the request attribute with which an array of all Files (java.io.File[])
+     * that were uploaded will be stored.
+     */
     public static final java.lang.String UPLOADED_FILES = "org.glassfish.grizzly.multipart.UPLOADED_FILES";
 
     private static final Logger LOGGER = Grizzly.logger(MultipartUploadFilter.class);
