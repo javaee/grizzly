@@ -255,7 +255,7 @@ public class MultipartUploadFilter implements Filter {
             final String filename =
                     contentDisposition.getDispositionParamUnquoted("filename");
 
-            if (filename != null) {
+            if (filename != null && filename.length() > 0) {
                 formParams.addParameterValues(paramName, new String[] { filename });
                 // Get the NIOInputStream to read the multipart entry content
                 final NIOInputStream inputStream = multipartEntry.getNIOInputStream();
