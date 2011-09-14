@@ -80,6 +80,8 @@ public final class Method {
             return Method.CONNECT;
         } else if (methodC.equals(Method.OPTIONS.getMethodString())) {
             return Method.OPTIONS;
+        } else if (methodC.equals(Method.PATCH.getMethodString())) {
+            return Method.PATCH;
         } else {
             return CUSTOM(methodC.toString());
         }
