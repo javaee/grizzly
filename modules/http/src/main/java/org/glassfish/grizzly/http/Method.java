@@ -57,6 +57,7 @@ public final class Method {
     public static final Method DELETE = new Method("DELETE");
     public static final Method TRACE = new Method("TRACE");
     public static final Method CONNECT = new Method("CONNECT");
+    public static final Method PATCH = new Method("PATCH");
 
     public static Method CUSTOM(final String methodName) {
         return new Method(methodName);
