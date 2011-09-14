@@ -244,7 +244,9 @@ public class Cookie implements Cloneable {
      */
 
     public void setDomain(String pattern) {
-	domain = pattern.toLowerCase();	// IE allegedly needs this
+        if (pattern != null) {
+	        domain = pattern.toLowerCase();	// IE allegedly needs this
+        }
     }
     
     
