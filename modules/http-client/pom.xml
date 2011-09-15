@@ -73,7 +73,7 @@
                             !com.ning.http.client.providers.netty.spnego,
                             !org.jboss.*,
                             !org.apache.*,
-                            com.ning.http.client.*
+                            com.ning.http.client.*;-split-package:=merge-first
                         </Export-Package>
                     </instructions>
                     <unpackBundle>true</unpackBundle>
