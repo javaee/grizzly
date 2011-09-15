@@ -46,14 +46,14 @@
         <groupId>org.glassfish.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
         <version>2.2-SNAPSHOT</version>
-        <relativePath>../../../pom.xml</relativePath>
+        <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.glassfish.grizzly</groupId>
-    <artifactId>grizzly-http-client-all</artifactId>
+    <artifactId>grizzly-http-client</artifactId>
     <packaging>jar</packaging>
     <version>2.2-SNAPSHOT</version>
-    <name>grizzly-http-client-all</name>
+    <name>grizzly-http-client</name>
     <build>
         <defaultGoal>install</defaultGoal>
         <plugins>
@@ -67,16 +67,14 @@
                             *
                         </Import-Package>
                         <Export-Package>
-                            org.glassfish.grizzly.*;-split-package:=merge-first,
                             !com.ning.http.client.providers.jdk,
                             !com.ning.http.client.providers.apache,
                             !com.ning.http.client.providers.netty,
                             !com.ning.http.client.providers.netty.spnego,
                             !org.jboss.*,
                             !org.apache.*,
-                            com.ning.http.client.*;-split-package:=merge-first
+                            com.ning.http.client.*
                         </Export-Package>
-                        <Embed-Dependency>org.glassfish.grizzly;scope=runtime</Embed-Dependency>
                     </instructions>
                     <unpackBundle>true</unpackBundle>
                 </configuration>
@@ -152,9 +150,9 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.glassfish.grizzly</groupId>
-            <artifactId>grizzly-http-client</artifactId>
-            <version>${project.version}</version>
+            <groupId>com.ning</groupId>
+            <artifactId>async-http-client</artifactId>
+            <version>1.7.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>
