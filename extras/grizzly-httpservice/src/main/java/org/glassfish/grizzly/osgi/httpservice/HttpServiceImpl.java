@@ -65,7 +65,7 @@ public class HttpServiceImpl implements HttpService {
      * {@link HttpService} constructor.
      *
      * @param bundle {@link org.osgi.framework.Bundle} that got this instance of {@link org.osgi.service.http.HttpService}.
-     * @param logger {@link com.sun.grizzly.osgi.httpservice.util.Logger} utility to be used here.
+     * @param logger {@link org.glassfish.grizzly.osgi.httpservice.util.Logger} utility to be used here.
      */
     public HttpServiceImpl(
             Bundle bundle, final Logger logger) {

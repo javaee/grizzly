@@ -146,7 +146,7 @@ public class OSGiMainHandler extends HttpHandler implements OSGiHandler {
     }
 
     /**
-     * Registers {@link com.sun.grizzly.osgi.httpservice.OSGiServletHandler} in OSGi Http Service.
+     * Registers {@link org.glassfish.grizzly.osgi.httpservice.OSGiServletHandler} in OSGi Http Service.
      * <p/>
      * Keeps truck of all registrations, takes care of thread safety.
      *
@@ -392,7 +392,9 @@ public class OSGiMainHandler extends HttpHandler implements OSGiHandler {
             servletHandlers.add(osgiServletHandler);
             mapper.addContext(httpContext, servletHandlers);
         }
-        osgiServletHandler.addFilter(new OSGiAuthFilter(httpContext), "AuthorisationFilter", new HashMap(0));
+        osgiServletHandler.addFilter(new OSGiAuthFilter(httpContext),
+                                     "AuthorisationFilter",
+                                     Collections.<String, String>emptyMap());
         return osgiServletHandler;
     }
 }

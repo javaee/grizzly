@@ -177,6 +177,12 @@ public class WebappContext implements ServletContext {
 
     // ------------------------------------------------------------ Constructors
 
+    protected WebappContext() {
+        displayName = "";
+        contextPath = "";
+        basePath = "";
+    }
+
     /**
      * <p>
      * Creates a simple <code>WebappContext</code> with the root being "/".

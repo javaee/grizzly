@@ -64,7 +64,7 @@ import java.util.logging.Logger;
  *
  * @author Craig R. McClanahan
  */
-final class FilterChainImpl implements FilterChain {
+final class FilterChainImpl implements FilterChain, FilterChainInvoker {
 
     private static final Logger LOGGER = Grizzly.logger(FilterChainImpl.class);
 
@@ -95,7 +95,7 @@ final class FilterChainImpl implements FilterChain {
     // ---------------------------------------------------- FilterChain Methods
 
 
-    protected void invokeFilterChain(ServletRequest request, ServletResponse response)
+    public void invokeFilterChain(ServletRequest request, ServletResponse response)
             throws IOException, ServletException {
 
         ServletRequestEvent event =

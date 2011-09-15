@@ -1204,7 +1204,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
      * Programmatically set the servlet path value. Default is an empty String.
      * @param servletPath Servlet path to set.
      */
-    protected void setServletPath(final String servletPath){
+    public void setServletPath(final String servletPath){
         if (servletPath != null) {
             if (servletPath.length() == 0) {
                 this.servletPath = "/";

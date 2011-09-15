@@ -47,7 +47,9 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.servlet.FilterChain;
 import javax.servlet.Servlet;
+import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
@@ -216,7 +218,7 @@ public class ServletHandler extends HttpHandler {
 
             //TODO: Make this configurable.
             servletResponse.addHeader("server", "grizzly/" + Grizzly.getDotedVersion());
-            FilterChainImpl filterChain = filterChainFactory.createFilterChain(request, servletInstance, REQUEST);
+            FilterChainInvoker filterChain = getFilterChain(request);
             if (filterChain != null) {
                 filterChain.invokeFilterChain(servletRequest, servletResponse);
             } else {
@@ -226,6 +228,10 @@ public class ServletHandler extends HttpHandler {
             LOGGER.log(Level.SEVERE, "service exception:", ex);
             customizeErrorPage(response, "Internal Error", 500);
         }
+    }
+
+    protected FilterChainInvoker getFilterChain(Request request) {
+        return filterChainFactory.createFilterChain(request, servletInstance, REQUEST);
     }
 
     private void setDispatcherPath(final Request request, final String path) {
@@ -250,8 +256,8 @@ public class ServletHandler extends HttpHandler {
         return request.getServletPath() + request.getPathInfo();
     }
 
-    private static void setPathData(final Request from,
-                                    final HttpServletRequestImpl to) {
+    protected void setPathData(final Request from,
+                               final HttpServletRequestImpl to) {
 
         final MappingData data = from.obtainMappingData();
         to.setServletPath(data.wrapperPath.toString());
@@ -413,9 +419,6 @@ public class ServletHandler extends HttpHandler {
         this.contextPath = contextPath;
     }
 
-
-
-
     /**
      * Destroy this Servlet and its associated
      * {@link javax.servlet.ServletContextListener}
@@ -451,6 +454,10 @@ public class ServletHandler extends HttpHandler {
 
     public void setClassLoader(ClassLoader classLoader) {
         this.classLoader = classLoader;
+    }
+
+    public ServletConfigImpl getServletConfig() {
+        return servletConfig;
     }
 
     @Override

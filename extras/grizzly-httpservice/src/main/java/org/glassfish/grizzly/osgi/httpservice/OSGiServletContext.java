@@ -41,7 +41,7 @@
 package org.glassfish.grizzly.osgi.httpservice;
 
 import org.glassfish.grizzly.http.server.util.MimeType;
-import org.glassfish.grizzly.servlet.ServletContextImpl;
+import org.glassfish.grizzly.servlet.WebappContext;
 import org.osgi.service.http.HttpContext;
 import org.glassfish.grizzly.osgi.httpservice.util.Logger;
 
@@ -49,14 +49,16 @@ import java.net.URL;
 import java.net.MalformedURLException;
 import java.io.InputStream;
 import java.io.IOException;
+import java.util.EventListener;
+
 import static java.text.MessageFormat.format;
 
 /**
- * OSGi {@link ServletContextImpl} integration.
+ * OSGi {@link WebappContext} integration.
  *
  * @author Hubert Iwaniuk
  */
-public class OSGiServletContext extends ServletContextImpl {
+public class OSGiServletContext extends WebappContext {
     /**
      * {@link HttpContext} providing OSGi integration.
      */
@@ -121,5 +123,10 @@ public class OSGiServletContext extends ServletContextImpl {
             mime = MimeType.getByFilename(file);
         }
         return mime;
+    }
+
+    @Override
+    protected EventListener[] getEventListeners() {
+        return super.getEventListeners();
     }
 }

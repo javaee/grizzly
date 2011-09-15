@@ -53,10 +53,10 @@ import org.glassfish.grizzly.http.server.util.Enumerator;
  */
 public class ServletConfigImpl implements ServletConfig {
 
-    private String name;
-    private final ConcurrentHashMap<String, String> initParameters =
+    protected String name;
+    protected final ConcurrentHashMap<String, String> initParameters =
             new ConcurrentHashMap<String, String>(16, 0.75f, 64);
-    private final WebappContext servletContextImpl;
+    protected final WebappContext servletContextImpl;
 
     protected ServletConfigImpl(WebappContext servletContextImpl) {
         this.servletContextImpl = servletContextImpl;
@@ -86,7 +86,7 @@ public class ServletConfigImpl implements ServletConfig {
         return initParameters.get(name);
     }
 
-    final void setInitParameters(Map<String, String> parameters) {
+    protected void setInitParameters(Map<String, String> parameters) {
         if (parameters != null && !parameters.isEmpty()) {
             this.initParameters.clear();
             this.initParameters.putAll(parameters);

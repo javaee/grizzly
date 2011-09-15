@@ -60,8 +60,7 @@ public class HttpServiceFactory implements ServiceFactory {
     public HttpServiceFactory(HttpServer httpServer, Logger logger, Bundle bundle) {
         this.logger = logger;
         mainHttpHandler = new OSGiMainHandler(logger, bundle);
-        httpServer.getServerConfiguration().addHttpHandler(mainHttpHandler,
-                new String[]{"/"});
+        httpServer.getServerConfiguration().addHttpHandler(mainHttpHandler, "/");
     }
 
     @Override

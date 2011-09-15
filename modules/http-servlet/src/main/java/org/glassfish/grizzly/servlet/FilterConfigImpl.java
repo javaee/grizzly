@@ -74,7 +74,7 @@ import org.glassfish.grizzly.http.server.util.Enumerator;
  * @author Jeanfrancois Arcand
  */
 @SuppressWarnings("unchecked")
-public final class FilterConfigImpl implements FilterConfig {
+public class FilterConfigImpl implements FilterConfig {
 
     
     /**

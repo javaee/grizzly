@@ -43,7 +43,7 @@ package org.glassfish.grizzly.osgi.httpservice;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * Abstract OSGi {@link HttpHandler}.
+ * Abstract OSGi {@link org.glassfish.grizzly.http.server.HttpHandler}.
  * <p/>
  * Defines locking model for processing and removal of handler.
  *
