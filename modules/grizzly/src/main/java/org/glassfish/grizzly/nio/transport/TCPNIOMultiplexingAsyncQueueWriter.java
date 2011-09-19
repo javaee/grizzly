@@ -42,6 +42,7 @@ package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.nio.AbstractNIOMultiplexingAsyncQueueWriter;
 import org.glassfish.grizzly.nio.NIOTransport;
 import java.io.IOException;
@@ -50,6 +51,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.Queue;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
@@ -134,7 +136,9 @@ public final class TCPNIOMultiplexingAsyncQueueWriter extends AbstractNIOMultipl
     private int writeComposite0(final NIOConnection connection,
             final CompositeQueueRecord queueRecord) throws IOException {
         
-        final int bufferSize = queueRecord.size;
+        final int bufferSize = Math.min(queueRecord.size,
+                                        connection.getWriteBufferSize() * 2);
+//      final int bufferSize = queueRecord.size;
         
         final DirectByteBufferRecord directByteBufferRecord =
                 TCPNIOTransport.obtainDirectByteBuffer(bufferSize);
@@ -173,17 +177,34 @@ public final class TCPNIOMultiplexingAsyncQueueWriter extends AbstractNIOMultipl
 
     private static void fillByteBuffer(final Deque<AsyncWriteQueueRecord> queue,
             final ByteBuffer dstByteBuffer) {
+        int dstBufferRemaining = dstByteBuffer.remaining();
+
         dstByteBuffer.limit(0);
-        
-        for (AsyncWriteQueueRecord record : queue) {
+
+        for (final Iterator<AsyncWriteQueueRecord> it = queue.iterator();
+                it.hasNext() && dstBufferRemaining > 0; ) {
+
+            final AsyncWriteQueueRecord record = it.next();
+
             if (record.isEmptyRecord()) continue;
-            
+
             final Buffer message = record.getMessage();
             final int oldPos = message.position();
-            dstByteBuffer.limit(dstByteBuffer.limit() + message.remaining());
+            final int oldLim = message.limit();
+
+            final int remaining = message.remaining();
+
+            if (dstBufferRemaining >= remaining) {
+                dstByteBuffer.limit(dstByteBuffer.limit() + remaining);
+            } else {
+                dstByteBuffer.limit(dstByteBuffer.capacity());
+                message.limit(oldPos + dstBufferRemaining);
+            }
 
             message.get(dstByteBuffer);
-            message.position(oldPos);
+            Buffers.setPositionLimit(message, oldPos, oldLim);
+
+            dstBufferRemaining -= remaining;
         }
         
         dstByteBuffer.position(0);
