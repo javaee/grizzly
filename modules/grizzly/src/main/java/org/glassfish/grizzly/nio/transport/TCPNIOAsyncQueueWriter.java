@@ -135,9 +135,9 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
     private int writeComposite0(final NIOConnection connection,
             final CompositeQueueRecord queueRecord) throws IOException {
         
-//        final int bufferSize = Math.min(queueRecord.size,
-//                connection.getWriteBufferSize());
-        final int bufferSize = queueRecord.size;
+        final int bufferSize = Math.min(queueRecord.size,
+                connection.getWriteBufferSize() * 2);
+//        final int bufferSize = queueRecord.size;
         
         final DirectByteBufferRecord directByteBufferRecord =
                 TCPNIOTransport.obtainDirectByteBuffer(bufferSize);
