@@ -42,6 +42,7 @@ package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
+import org.glassfish.grizzly.nio.AbstractNIOMultiplexingAsyncQueueWriter;
 import org.glassfish.grizzly.nio.NIOTransport;
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -49,7 +50,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.Iterator;
 import java.util.Queue;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
@@ -58,20 +58,19 @@ import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.attributes.Attribute;
-import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.nio.AbstractNIOAsyncQueueWriter;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport.DirectByteBufferRecord;
 
 /**
  * The TCP transport {@link AsyncQueueWriter} implementation, based on
- * the Java NIO
+ * the Java NIO, which performs better for usecases, when we send messages
+ * simultaneously from different threads.
  *
  * @author Alexey Stashok
  */
-public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
+public final class TCPNIOMultiplexingAsyncQueueWriter extends AbstractNIOMultiplexingAsyncQueueWriter {
 
-    public TCPNIOAsyncQueueWriter(final NIOTransport transport) {
+    public TCPNIOMultiplexingAsyncQueueWriter(final NIOTransport transport) {
         super(transport);
     }
 
@@ -135,8 +134,6 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
     private int writeComposite0(final NIOConnection connection,
             final CompositeQueueRecord queueRecord) throws IOException {
         
-//        final int bufferSize = Math.min(queueRecord.size,
-//                connection.getWriteBufferSize());
         final int bufferSize = queueRecord.size;
         
         final DirectByteBufferRecord directByteBufferRecord =
@@ -176,35 +173,17 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
 
     private static void fillByteBuffer(final Deque<AsyncWriteQueueRecord> queue,
             final ByteBuffer dstByteBuffer) {
-        
-        int dstBufferRemaining = dstByteBuffer.remaining();
-        
         dstByteBuffer.limit(0);
-
-        for (final Iterator<AsyncWriteQueueRecord> it = queue.iterator();
-                it.hasNext() && dstBufferRemaining > 0; ) {
-            
-            final AsyncWriteQueueRecord record = it.next();
-            
+        
+        for (AsyncWriteQueueRecord record : queue) {
             if (record.isEmptyRecord()) continue;
             
             final Buffer message = record.getMessage();
             final int oldPos = message.position();
-            final int oldLim = message.limit();
-            
-            final int remaining = message.remaining();
-            
-            if (dstBufferRemaining >= remaining) {
-                dstByteBuffer.limit(dstByteBuffer.limit() + remaining);
-            } else {
-                dstByteBuffer.limit(dstByteBuffer.capacity());
-                message.limit(oldPos + dstBufferRemaining);
-            }
+            dstByteBuffer.limit(dstByteBuffer.limit() + message.remaining());
 
             message.get(dstByteBuffer);
-            Buffers.setPositionLimit(message, oldPos, oldLim);
-            
-            dstBufferRemaining -= remaining;
+            message.position(oldPos);
         }
         
         dstByteBuffer.position(0);
@@ -322,7 +301,7 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
     
     private final Attribute<CompositeQueueRecord> compositeBufferAttr =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.<CompositeQueueRecord>createAttribute(
-            TCPNIOAsyncQueueWriter.class.getName() + ".compositeBuffer");
+            TCPNIOMultiplexingAsyncQueueWriter.class.getName() + ".compositeBuffer");
 
     
     private static final class CompositeQueueRecord extends AsyncWriteQueueRecord {
