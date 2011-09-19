@@ -506,6 +506,35 @@ public class CompositeBufferTest extends GrizzlyTestCase {
         assertEquals(msg, composite.toStringContent(utf16));
     }
 
+    public void testGetByteBuffer() {
+        final ByteBufferManager manager = new ByteBufferManager();
+
+        final byte[] bytes = new byte[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+
+        final List<Buffer> bufferList = new ArrayList<Buffer>();
+        for (byte b : bytes) {
+            final Buffer buffer = manager.allocate(1);
+            buffer.put(0, b);
+            bufferList.add(buffer);
+        }
+
+        final Buffer[] buffers = bufferList.toArray(new Buffer[0]);
+        final CompositeBuffer composite = CompositeBuffer.newBuffer(manager, buffers);
+
+        final ByteBuffer byteBuffer = ByteBuffer.allocate(bytes.length * 2);
+        final int position = byteBuffer.remaining() / 4;
+        for (int i = 0; i < bytes.length; i++) {
+            Buffers.setPositionLimit(composite, 0, i);
+            Buffers.setPositionLimit(byteBuffer, position, position + i);
+            composite.get(byteBuffer);
+            
+            Buffers.setPositionLimit(composite, 0, i);
+            Buffers.setPositionLimit(byteBuffer, position, position + i);
+
+            assertTrue(composite.equals(Buffers.wrap(manager, byteBuffer)));
+        }
+    }
+    
     public void testBulk() {
         final ByteBufferManager manager = new ByteBufferManager();
         final Charset ascii = Charset.forName("ASCII");
