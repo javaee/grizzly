@@ -810,7 +810,7 @@ public final class BuffersBuffer extends CompositeBuffer {
 
     @Override
     public BuffersBuffer get(final ByteBuffer dst) {
-        get(dst, 0, dst.remaining());
+        get(dst, dst.position(), dst.remaining());
         dst.position(dst.limit());
 
         return this;
