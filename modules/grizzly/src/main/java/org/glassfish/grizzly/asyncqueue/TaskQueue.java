@@ -41,10 +41,10 @@
 package org.glassfish.grizzly.asyncqueue;
 
 import java.io.IOException;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import org.glassfish.grizzly.utils.LinkedTransferQueue;
 
 /**
  * Class represents common implementation of asynchronous processing queue.
@@ -68,7 +68,7 @@ public final class TaskQueue<E> {
 
     protected TaskQueue() {        
         currentElement = new AtomicReference<E>();
-        queue = new ConcurrentLinkedQueue<E>();
+        queue = new LinkedTransferQueue<E>();
     }
 
     // ---------------------------------------------------------- Public Methods
@@ -142,9 +142,9 @@ public final class TaskQueue<E> {
      * Get the queue of tasks, which will be processed asynchronously
      * @return the queue of tasks, which will be processed asynchronously
      */
-//    public Queue<E> getQueue() {
-//        return queue;
-//    }
+    public Queue<E> getQueue() {
+        return queue;
+    }
 
 
     public void setQueueMonitor(final QueueMonitor monitor) throws IOException {

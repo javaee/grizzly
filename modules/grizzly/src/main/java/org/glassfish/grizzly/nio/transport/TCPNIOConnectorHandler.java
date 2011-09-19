@@ -343,16 +343,16 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
         @Override
         public void onReregister(final Context context) throws IOException {
-            onComplete(context);
+            onComplete(context, null);
         }
 
         @Override
-        public void onNotRun(Context context) throws IOException {
-            onComplete(context);
+        public void onNotRun(final Context context) throws IOException {
+            onComplete(context, null);
         }
 
         @Override
-        public void onComplete(final Context context)
+        public void onComplete(final Context context, final Object data)
                 throws IOException {
             final NIOConnection connection = (NIOConnection) context.getConnection();
 

@@ -133,14 +133,14 @@ public abstract class AbstractNIOAsyncQueueReader
                         Reader.READ_EVENT, queueRecord, currentResult);
 
                 if ((interceptInstructions & Interceptor.COMPLETED) != 0
-                        || (interceptor == null && isFinished(queueRecord))) { // if direct read is completed
+                        || (interceptor == null && queueRecord.isFinished())) { // if direct read is completed
 
                     // If message was read directly - set next queue element as current
                     final boolean isQueueEmpty =
                         (connectionQueue.releaseSpaceAndNotify(1) == 0);
 
                     // Notify callback handler
-                    onReadComplete(queueRecord);
+                    queueRecord.notifyComplete();
 
                     if (!isQueueEmpty) {
                         onReadyToRead(connection);
@@ -163,7 +163,7 @@ public abstract class AbstractNIOAsyncQueueReader
                     queueRecord.setFuture(future);
                     connectionQueue.setCurrentElement(queueRecord);
                     
-                    onReadIncomplete(queueRecord);
+                    queueRecord.notifyIncomplete();
                     onReadyToRead(connection);
 
                     intercept(INCOMPLETE_EVENT, queueRecord, null);
@@ -207,7 +207,7 @@ public abstract class AbstractNIOAsyncQueueReader
      * {@inheritDoc}
      */
     @Override
-    public boolean processAsync(final Context context) throws IOException {
+    public AsyncResult processAsync(final Context context) throws IOException {
         final NIOConnection nioConnection = (NIOConnection) context.getConnection();
 
         final TaskQueue<AsyncReadQueueRecord> connectionQueue =
@@ -232,7 +232,7 @@ public abstract class AbstractNIOAsyncQueueReader
                         currentResult);
 
                 if ((interceptInstructions & Interceptor.COMPLETED) != 0
-                        || (interceptor == null && isFinished(queueRecord))) {
+                        || (interceptor == null && queueRecord.isFinished())) {
 
                     // Is here a chance that queue becomes empty?
                     // If yes - we need to switch to manual io event processing
@@ -246,7 +246,7 @@ public abstract class AbstractNIOAsyncQueueReader
 
                     done = (connectionQueue.releaseSpaceAndNotify(1) == 0);
 
-                    onReadComplete(queueRecord);
+                    queueRecord.notifyComplete();
 
                     intercept(Reader.COMPLETE_EVENT, queueRecord, null);
                     queueRecord.recycle();
@@ -263,11 +263,11 @@ public abstract class AbstractNIOAsyncQueueReader
                     }
 
                     connectionQueue.setCurrentElement(queueRecord);
-                    onReadIncomplete(queueRecord);
+                    queueRecord.notifyIncomplete();
                     intercept(Reader.INCOMPLETE_EVENT, queueRecord, null);
 
 //                    onReadyToRead(nioConnection);
-                    return true;
+                    return AsyncResult.INCOMPLETE;
                 }
             }
 
@@ -276,7 +276,7 @@ public abstract class AbstractNIOAsyncQueueReader
                 // but seems write() method still didn't add them to a queue
                 // so we can release the thread for now
 //                onReadyToRead(nioConnection);
-                return true;
+                return AsyncResult.EXPECTING_MORE;
             }
         } catch (IOException e) {
             onReadFailure(nioConnection, queueRecord, e);
@@ -287,7 +287,7 @@ public abstract class AbstractNIOAsyncQueueReader
             onReadFailure(nioConnection, queueRecord, ioe);
         }
 
-        return false;
+        return AsyncResult.COMPLETE;
     }
 
     /**
@@ -308,7 +308,7 @@ public abstract class AbstractNIOAsyncQueueReader
             }
             AsyncReadQueueRecord record;
             while ((record = readQueue.obtainCurrentElementAndReserve()) != null) {
-                failReadRecord(record, error);
+                record.notifyFailure(error);
             }
         }
     }
@@ -344,66 +344,16 @@ public abstract class AbstractNIOAsyncQueueReader
         return readBytes;
     }
 
-    protected final void onReadComplete(AsyncReadQueueRecord record)
-            throws IOException {
-
-        final ReadResult currentResult = record.getCurrentResult();
-        final FutureImpl future = (FutureImpl) record.getFuture();
-        if (future != null) {
-            future.result(currentResult);
-        }
-
-        final CompletionHandler<ReadResult> completionHandler =
-                record.getCompletionHandler();
-
-        if (completionHandler != null) {
-            completionHandler.completed(currentResult);
-        }
-    }
-
-    protected final void onReadIncomplete(AsyncReadQueueRecord record)
-            throws IOException {
-
-        final ReadResult currentResult = record.getCurrentResult();
-        final CompletionHandler<ReadResult> completionHandler =
-                record.getCompletionHandler();
-
-        if (completionHandler != null) {
-            completionHandler.updated(currentResult);
-        }
-    }
-
     protected final void onReadFailure(final Connection connection,
             final AsyncReadQueueRecord failedRecord, final IOException e) {
 
-        failReadRecord(failedRecord, e);
+        if (failedRecord != null) {
+            failedRecord.notifyFailure(e);
+        }
+        
         try {
             connection.close().markForRecycle(true);
         } catch (IOException ignored) {
-        }
-    }
-
-    protected final void failReadRecord(final AsyncReadQueueRecord record,
-            final Throwable e) {
-        if (record == null) {
-            return;
-        }
-
-        final FutureImpl future = (FutureImpl) record.getFuture();
-        final boolean hasFuture = (future != null);
-        
-        if (!hasFuture || !future.isDone()) {
-
-            final CompletionHandler completionHandler =
-                    record.getCompletionHandler();
-            
-            if (completionHandler != null) {
-                completionHandler.failed(e);
-            }
-
-            if (hasFuture) {
-                future.failure(e);
-            }
         }
     }
 
@@ -426,15 +376,6 @@ public abstract class AbstractNIOAsyncQueueReader
         }
 
         return Interceptor.DEFAULT;
-    }
-
-    private <E> boolean isFinished(final AsyncReadQueueRecord queueRecord) {
-
-        final ReadResult readResult = queueRecord.getCurrentResult();
-        final Object message = readResult.getMessage();
-
-        return readResult.getReadSize() > 0
-                || !((Buffer) message).hasRemaining();
     }
 
     protected abstract int read0(Connection connection, Buffer buffer,

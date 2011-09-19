@@ -80,18 +80,14 @@ public class StandaloneProcessor implements Processor {
                     ((AsyncQueueEnabledTransport) connection.getTransport()).
                     getAsyncQueueIO().getReader();
 
-            return reader.processAsync(context) ?
-                ProcessorResult.createComplete() :
-                ProcessorResult.createLeave();
+            return reader.processAsync(context).toProcessorResult();
         } else if (iOEvent == IOEvent.WRITE) {
             final Connection connection = context.getConnection();
             final AsyncQueueWriter writer =
                     ((AsyncQueueEnabledTransport) connection.getTransport()).
                     getAsyncQueueIO().getWriter();
             
-            return writer.processAsync(context) ?
-                ProcessorResult.createComplete() :
-                ProcessorResult.createLeave();
+            return writer.processAsync(context).toProcessorResult();
         }
         
         throw new IllegalStateException("Unexpected IOEvent=" + iOEvent);

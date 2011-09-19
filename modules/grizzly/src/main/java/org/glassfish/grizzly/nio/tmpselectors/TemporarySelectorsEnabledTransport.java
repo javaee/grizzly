@@ -47,5 +47,4 @@ package org.glassfish.grizzly.nio.tmpselectors;
  */
 public interface TemporarySelectorsEnabledTransport {
     public TemporarySelectorIO getTemporarySelectorIO();
-    public void setTemporarySelectorIO(TemporarySelectorIO temporarySelectorIO);
 }

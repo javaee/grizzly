@@ -56,6 +56,7 @@ import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
 import java.util.concurrent.ExecutionException;
+import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.filterchain.FilterChainEvent;
 
@@ -142,10 +143,8 @@ public final class TCPNIOTransportFilter extends BaseFilter {
             transportContext.setMessageCloner(null);
 
             if (!transportContext.isBlocking()) {
-                final TCPNIOAsyncQueueWriter writer =
-                        (TCPNIOAsyncQueueWriter) transport.getAsyncQueueIO().getWriter();
-                writer.write(connection, null, message, writeCompletionHandler,
-                        null, cloner)
+                transport.getAsyncQueueIO().getWriter().write(connection, null,
+                        message, writeCompletionHandler, null, cloner)
                         .markForRecycle(!hasFuture);
             } else {
                 transport.getTemporarySelectorIO().getWriter().write(connection,

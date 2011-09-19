@@ -215,20 +215,28 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
     }
 
     /**
+     * @see TCPNIOTransport#isOptimizedForMultiplexing()
+     */
+    public boolean isOptimizedForMultiplexing() {
+        return tcpTransport.isOptimizedForMultiplexing();
+    }
+
+    /**
+     * @see TCPNIOTransport#setOptimizedForMultiplexing(boolean)
+     *
+     * @return this <code>TCPNIOTransportBuilder</code>
+     */
+    public TCPNIOTransportBuilder setOptimizedForMultiplexing(
+            final boolean isOptimizedForMultiplexing) {
+        tcpTransport.setOptimizedForMultiplexing(isOptimizedForMultiplexing);
+        return this;
+    }
+    
+    /**
      * @see TCPNIOTransport#getTemporarySelectorIO()
      */
     public TemporarySelectorIO getTemporarySelectorIO() {
         return tcpTransport.getTemporarySelectorIO();
-    }
-
-    /**
-     * @see TCPNIOTransport#setTemporarySelectorIO(TemporarySelectorIO)
-     *
-     * @return this <code>TCPNIOTransportBuilder</code>
-     */
-    public TCPNIOTransportBuilder setTemporarySelectorIO(TemporarySelectorIO temporarySelectorIO) {
-        tcpTransport.setTemporarySelectorIO(temporarySelectorIO);
-        return getThis();
     }
 
     /**

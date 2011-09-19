@@ -43,6 +43,7 @@ package org.glassfish.grizzly.asyncqueue;
 import java.io.IOException;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
+import org.glassfish.grizzly.ProcessorResult;
 
 /**
  * Common interface for {@link AsyncQueue} processors.
@@ -50,6 +51,26 @@ import org.glassfish.grizzly.Context;
  * @author Alexey Stashok
  */
 public interface AsyncQueue {
+    static final String EXPECTING_MORE_OPTION =
+            AsyncQueue.class.getName() + ".expectingMore";
+    
+    public enum AsyncResult {
+        COMPLETE(ProcessorResult.createLeave()),
+        INCOMPLETE(ProcessorResult.createComplete()),
+        EXPECTING_MORE(ProcessorResult.createComplete(EXPECTING_MORE_OPTION));
+
+        private final ProcessorResult result;
+        
+        private AsyncResult(final ProcessorResult result) {
+            this.result = result;
+        }
+
+        public ProcessorResult toProcessorResult() {
+            return result;
+        }
+        
+    }
+    
     /**
      * Checks whether there is ready data in {@link AsyncQueue},
      * associated with the {@link Connection}.
@@ -66,12 +87,11 @@ public interface AsyncQueue {
      * {@link Connection}
      * 
      * @param context {@link Context}
-     * @return <tt>true</tt>, if there are pending elements to be processed, or
-     * <tt>false</tt> otherwise.
+     * @return {@link AsyncResult}, depending on async queue status.
      * 
      * @throws java.io.IOException
      */
-    public abstract boolean processAsync(Context context) throws IOException;
+    public abstract AsyncResult processAsync(Context context) throws IOException;
     
     /**
      * Callback method, which is called, when {@link Connection} has been closed,

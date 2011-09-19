@@ -47,6 +47,7 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.utils.DebugPoint;
 
 /**
@@ -82,6 +83,7 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
                 currentResult, completionHandler, dstAddress, isEmptyRecord);
     }
     
+    private int initialMessageSize;
     private boolean isEmptyRecord;
     private Object dstAddress;
 
@@ -95,6 +97,7 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
         super(connection, message, future, currentResult, completionHandler);
         this.dstAddress = dstAddress;
         this.isEmptyRecord = isEmptyRecord;
+        this.initialMessageSize = message != null ? message.remaining() : 0;
     }
 
     protected void set(final Connection connection, final Buffer message,
@@ -106,6 +109,7 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
 
         this.dstAddress = dstAddress;
         this.isEmptyRecord = isEmptyRecord;
+        this.initialMessageSize = message != null ? message.remaining() : 0;
     }
 
     public final Object getDstAddress() {
@@ -119,6 +123,42 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
 
     public void setEmptyRecord(boolean isEmptyRecord) {
         this.isEmptyRecord = isEmptyRecord;
+    }
+
+    public int getInitialMessageSize() {
+        return initialMessageSize;
+    }
+
+    public int remaining() {
+        return message.remaining();
+    }
+
+    @SuppressWarnings("unchecked")
+    public void notifyCompleteAndRecycle() {
+
+        final WriteResult currentResultLocal = currentResult;
+        final FutureImpl futureLocal = (FutureImpl) future;
+        final CompletionHandler<WriteResult> completionHandlerLocal =
+                completionHandler;
+        final Buffer messageLocal = message;
+
+        recycle();
+        
+        if (futureLocal != null) {
+            futureLocal.result(currentResultLocal);
+        }        
+
+        if (completionHandlerLocal != null) {
+            completionHandlerLocal.completed(currentResultLocal);
+        }
+
+        // try to dispose originalBuffer (if allowed)
+        messageLocal.tryDispose();
+
+    }
+    
+    public boolean isFinished() {
+        return !message.hasRemaining();
     }
 
     protected final void reset() {

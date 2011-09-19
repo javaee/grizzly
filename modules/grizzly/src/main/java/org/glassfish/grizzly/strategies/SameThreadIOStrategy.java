@@ -50,6 +50,7 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.IOEventProcessingHandler;
 import org.glassfish.grizzly.Transport;
+import org.glassfish.grizzly.asyncqueue.AsyncQueue;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
 /**
@@ -64,8 +65,11 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
     private static final Logger logger = Grizzly.logger(SameThreadIOStrategy.class);
 
 
-    private static final EnableInterestProcessingHandler PROCESSING_HANDLER =
-            new EnableInterestProcessingHandler();
+    private static final InterestProcessingHandlerWhenIoEnabled PROCESSING_HANDLER_WHEN_IO_ENABLED =
+            new InterestProcessingHandlerWhenIoEnabled();
+
+    private static final InterestProcessingHandlerWhenIoDisabled PROCESSING_HANDLER_WHEN_IO_DISABLED =
+            new InterestProcessingHandlerWhenIoDisabled();
     
     // ------------------------------------------------------------ Constructors
 
@@ -86,11 +90,14 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
 
     @Override
     public boolean executeIoEvent(final Connection connection,
-                                  final IOEvent ioEvent) throws IOException {
+            final IOEvent ioEvent, final boolean isIoEventEnabled)
+            throws IOException {
+        
         IOEventProcessingHandler ph = null;
         if (isReadWrite(ioEvent)) {
-//            connection.disableIOEvent(ioEvent);
-            ph = PROCESSING_HANDLER;
+            ph = isIoEventEnabled
+                    ? PROCESSING_HANDLER_WHEN_IO_ENABLED
+                    : PROCESSING_HANDLER_WHEN_IO_DISABLED;
         }
 
         fireIOEvent(connection, ioEvent, ph, logger);
@@ -112,27 +119,32 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
     // ---------------------------------------------------------- Nested Classes
 
 
-    private static final class EnableInterestProcessingHandler
+    private static final class InterestProcessingHandlerWhenIoEnabled
             extends EmptyIOEventProcessingHandler {
 
         @Override
         public void onReregister(final Context context) throws IOException {
-            onComplete(context);
+            onComplete(context, null);
         }
 
         @Override
-        public void onComplete(final Context context) throws IOException {
-            if (context.wasSuspended() || context.isManualIOEventControl()) {
+        public void onComplete(final Context context, final Object data) throws IOException {
+            if (isIOEventDisabled(context)) {
                 final IOEvent ioEvent = context.getIoEvent();
                 final Connection connection = context.getConnection();
-                connection.enableIOEvent(ioEvent);
+                
+                if (AsyncQueue.EXPECTING_MORE_OPTION.equals(data)) {
+                    connection.simulateIOEvent(ioEvent);
+                } else {
+                    connection.enableIOEvent(ioEvent);
+                }
             }
         }
 
         @Override
         public void onContextSuspend(final Context context) throws IOException {
             // check manual io event control, to not disable ioevent twice
-            if (!context.isManualIOEventControl()) {
+            if (!isIOEventDisabled(context)) {
                 disableIOEvent(context);
             }
         }
@@ -141,7 +153,7 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
         public void onContextManualIOEventControl(final Context context)
                 throws IOException {
             // check suspended mode, to not disable ioevent twice
-            if (!context.wasSuspended()) {
+            if (!isIOEventDisabled(context)) {
                 disableIOEvent(context);
             }
         }
@@ -152,5 +164,31 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
             final IOEvent ioEvent = context.getIoEvent();
             connection.disableIOEvent(ioEvent);
         }
+        
+        private static boolean isIOEventDisabled(final Context context) {
+            return context.wasSuspended() || context.isManualIOEventControl();
+        }
     }
+    
+    private static final class InterestProcessingHandlerWhenIoDisabled
+            extends EmptyIOEventProcessingHandler {
+
+        @Override
+        public void onReregister(final Context context) throws IOException {
+            onComplete(context, null);
+        }
+
+        @Override
+        public void onComplete(final Context context, final Object data)
+                throws IOException {
+            
+            final IOEvent ioEvent = context.getIoEvent();
+            final Connection connection = context.getConnection();
+            if (AsyncQueue.EXPECTING_MORE_OPTION.equals(data)) {
+                connection.simulateIOEvent(ioEvent);
+            } else {
+                connection.enableIOEvent(ioEvent);
+            }
+        }
+    }    
 }

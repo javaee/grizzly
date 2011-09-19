@@ -108,8 +108,8 @@ public class DefaultSelectorHandler implements SelectorHandler {
     }
 
     @Override
-    public void preSelect(SelectorRunner selectorRunner) throws IOException {
-        processPendingTasks(selectorRunner);
+    public boolean preSelect(final SelectorRunner selectorRunner) throws IOException {
+        return processPendingTasks(selectorRunner);
     }
 
     @Override
@@ -222,7 +222,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
             throws IOException {
 
         final FutureImpl<RegisterChannelResult> future =
-                SafeFutureImpl.create();
+                SafeFutureImpl.<RegisterChannelResult>create();
 
         if (isSelectorRunnerThread(selectorRunner)) {
             deregisterChannel0(selectorRunner, channel,
@@ -236,33 +236,58 @@ public class DefaultSelectorHandler implements SelectorHandler {
     }
 
     @Override
-    public GrizzlyFuture<Runnable> executeInSelectorThread(
-            final SelectorRunner selectorRunner, final Runnable runnableTask,
-            final CompletionHandler<Runnable> completionHandler) {
+    public GrizzlyFuture<Task> execute(
+            final SelectorRunner selectorRunner, final Task task,
+            final CompletionHandler<Task> completionHandler) {
         if (isSelectorRunnerThread(selectorRunner)) {
             try {
-                runnableTask.run();
+                task.run();
             } catch (Exception e) {
                 if (completionHandler != null) {
                     completionHandler.failed(e);
                 }
                 
-                return ReadyFutureImpl.create(e);
+                return ReadyFutureImpl.<Task>create(e);
             }
             if (completionHandler != null) {
-                completionHandler.completed(runnableTask);
+                completionHandler.completed(task);
             }
             
-            return ReadyFutureImpl.create(runnableTask);
+            return ReadyFutureImpl.create(task);
         } else {
-            final FutureImpl<Runnable> future = SafeFutureImpl.create();
+            final FutureImpl<Task> future = SafeFutureImpl.<Task>create();
 
-            addPendingTask(selectorRunner, new RunnableTask(runnableTask,
+            addPendingTask(selectorRunner, new RunnableTask(task,
                     future, completionHandler));
             return future;
         }
     }
 
+    @Override
+    public GrizzlyFuture<Task> enque(
+            final SelectorRunner selectorRunner, final Task task,
+            final CompletionHandler<Task> completionHandler) {
+        
+        if (isSelectorRunnerThread(selectorRunner)) {
+            // If this is Selector thread - put the task to postponed queue
+            // it's faster than using pending task queue, which is thread-safe
+            final FutureImpl<Task> future = SafeFutureImpl.<Task>create();
+
+            final Queue<SelectorHandlerTask> postponedTasks =
+                    selectorRunner.getPostponedTasks();
+            postponedTasks.offer(new RunnableTask(task,
+                    future, completionHandler));
+            
+            return future;
+        } else {
+            final FutureImpl<Task> future = SafeFutureImpl.<Task>create();
+
+            addPendingTask(selectorRunner, new RunnableTask(task,
+                    future, completionHandler));
+            return future;
+        }
+    }
+    
     private void addPendingTask(final SelectorRunner selectorRunner,
             final SelectorHandlerTask task) {
 
@@ -289,20 +314,24 @@ public class DefaultSelectorHandler implements SelectorHandler {
         selectorRunner.wakeupSelector();
     }
 
-    private void processPendingTasks(final SelectorRunner selectorRunner)
+    private boolean processPendingTasks(final SelectorRunner selectorRunner)
             throws IOException {
 
-        processPendingTaskQueue(selectorRunner, selectorRunner.getPostponedTasks());
-        processPendingTaskQueue(selectorRunner, selectorRunner.getPendingTasks());
+        return processPendingTaskQueue(selectorRunner, selectorRunner.getPendingTasks())
+                && processPendingTaskQueue(selectorRunner, selectorRunner.obtainPostponedTasks());
     }
 
-    private void processPendingTaskQueue(final SelectorRunner selectorRunner,
+    private boolean processPendingTaskQueue(final SelectorRunner selectorRunner,
             final Queue<SelectorHandlerTask> selectorHandlerTasks)
             throws IOException {
         SelectorHandlerTask selectorHandlerTask;
         while((selectorHandlerTask = selectorHandlerTasks.poll()) != null) {
-            selectorHandlerTask.run(selectorRunner);
+            if (!selectorHandlerTask.run(selectorRunner)) {
+                return false;
+            }
         }
+        
+        return true;
     }
 
     private void registerKey0(final SelectionKey selectionKey, final int interest) {
@@ -506,13 +535,15 @@ public class DefaultSelectorHandler implements SelectorHandler {
         }
 
         @Override
-        public void run(final SelectorRunner selectorRunner) throws IOException {
+        public boolean run(final SelectorRunner selectorRunner) throws IOException {
             SelectionKey localSelectionKey = selectionKey;
             if (IS_WORKAROUND_SELECTOR_SPIN) {
                 localSelectionKey = checkIfSpinnedKey(selectorRunner, selectionKey);
             }
 
             registerKey0(localSelectionKey, interest);
+            
+            return true;
         }
 
         @Override
@@ -530,13 +561,15 @@ public class DefaultSelectorHandler implements SelectorHandler {
         }
 
         @Override
-        public void run(final SelectorRunner selectorRunner) throws IOException {
+        public boolean run(final SelectorRunner selectorRunner) throws IOException {
             SelectionKey localSelectionKey = selectionKey;
             if (IS_WORKAROUND_SELECTOR_SPIN) {
                 localSelectionKey = checkIfSpinnedKey(selectorRunner, selectionKey);
             }
 
             deregisterKey0(localSelectionKey, interest);
+
+            return true;
         }
 
         @Override
@@ -563,9 +596,10 @@ public class DefaultSelectorHandler implements SelectorHandler {
         }
 
         @Override
-        public void run(final SelectorRunner selectorRunner) throws IOException {
+        public boolean run(final SelectorRunner selectorRunner) throws IOException {
             registerChannel0(selectorRunner, channel, interest,
                     attachment, completionHandler, future);
+            return true;
         }
 
         @Override
@@ -594,8 +628,9 @@ public class DefaultSelectorHandler implements SelectorHandler {
         }
 
         @Override
-        public void run(final SelectorRunner selectorRunner) throws IOException {
+        public boolean run(final SelectorRunner selectorRunner) throws IOException {
             deregisterChannel0(selectorRunner, channel, completionHandler, future);
+            return true;
         }
 
         @Override
@@ -611,21 +646,23 @@ public class DefaultSelectorHandler implements SelectorHandler {
     }
     
     protected static final class RunnableTask implements SelectorHandlerTask {
-        private final Runnable task;
-        private final FutureImpl<Runnable> future;
-        private final CompletionHandler<Runnable> completionHandler;
+        private final Task task;
+        private final FutureImpl<Task> future;
+        private final CompletionHandler<Task> completionHandler;
 
-        private RunnableTask(final Runnable task, final FutureImpl<Runnable> future,
-                final CompletionHandler<Runnable> completionHandler) {
+        private RunnableTask(final Task task, final FutureImpl<Task> future,
+                final CompletionHandler<Task> completionHandler) {
             this.task = task;
             this.future = future;
             this.completionHandler = completionHandler;
         }
 
         @Override
-        public void run(final SelectorRunner selectorRunner) throws IOException {
+        public boolean run(final SelectorRunner selectorRunner) throws IOException {
+            boolean continueExecution = true;
+            
             try {
-                task.run();
+                continueExecution = task.run();
                 if (completionHandler != null) {
                     completionHandler.completed(task);
                 }
@@ -640,6 +677,8 @@ public class DefaultSelectorHandler implements SelectorHandler {
 
                 future.failure(t);
             }
+            
+            return continueExecution;
         }
 
         @Override

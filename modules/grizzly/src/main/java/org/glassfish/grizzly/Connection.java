@@ -242,6 +242,8 @@ public interface Connection<L> extends Readable<L>, Writable<L>,
 
     void setWriteTimeout(long timeout, TimeUnit timeUnit);
 
+    public void simulateIOEvent(final IOEvent ioEvent) throws IOException;
+
     public void enableIOEvent(final IOEvent ioEvent) throws IOException;
 
     public void disableIOEvent(final IOEvent ioEvent) throws IOException;

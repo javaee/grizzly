@@ -71,10 +71,14 @@ public class ProcessorResult {
     /**
      * Result description
      */
-    private Object context;
+    private Object data;
 
     public static ProcessorResult createComplete() {
         return COMPLETE_RESULT;
+    }
+
+    public static ProcessorResult createComplete(final Object data) {
+        return create().setStatus(Status.COMPLETE).setData(data);
     }
 
     public static ProcessorResult createLeave() {
@@ -90,11 +94,11 @@ public class ProcessorResult {
     }
 
     public static ProcessorResult createError(Object description) {
-        return create().setStatus(Status.ERROR).setContext(description);
+        return create().setStatus(Status.ERROR).setData(description);
     }
 
     public static ProcessorResult createRerun(Context context) {
-        return create().setStatus(Status.RERUN).setContext(context);
+        return create().setStatus(Status.RERUN).setData(context);
     }
 
     public static ProcessorResult createTerminate() {
@@ -115,7 +119,7 @@ public class ProcessorResult {
 
     private ProcessorResult(final Status status, final Object context) {
         this.status = status;
-        this.context = context;
+        this.data = context;
     }
 
     /**
@@ -133,16 +137,16 @@ public class ProcessorResult {
     }
 
     /**
-     * Get the {@link ProcessorResult} context.
+     * Get the {@link ProcessorResult} extra data.
      *
-     * @return the {@link ProcessorResult} context.
+     * @return the {@link ProcessorResult} extra data.
      */
-    public Object getContext() {
-        return context;
+    public Object getData() {
+        return data;
     }
 
-    protected ProcessorResult setContext(Object context) {
-        this.context = context;
+    protected ProcessorResult setData(Object context) {
+        this.data = context;
         return this;
     }
 }

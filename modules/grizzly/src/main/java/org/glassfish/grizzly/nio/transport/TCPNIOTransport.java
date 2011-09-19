@@ -100,6 +100,7 @@ import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.ThreadCache;
+import org.glassfish.grizzly.asyncqueue.AsyncQueueIO.MutableAsyncQueueIO;
 import org.glassfish.grizzly.memory.BufferArray;
 import org.glassfish.grizzly.memory.ByteBufferArray;
 import org.glassfish.grizzly.utils.Exceptions;
@@ -127,11 +128,11 @@ public final class TCPNIOTransport extends NIOTransport implements
     /**
      * Transport AsyncQueueIO
      */
-    final AsyncQueueIO<SocketAddress> asyncQueueIO;
+    final MutableAsyncQueueIO<SocketAddress> asyncQueueIO;
     /**
      * Transport TemporarySelectorIO, used for blocking I/O simulation
      */
-    TemporarySelectorIO temporarySelectorIO;
+    final TemporarySelectorIO temporarySelectorIO;
     /**
      * The server socket time out
      */
@@ -170,6 +171,8 @@ public final class TCPNIOTransport extends NIOTransport implements
 
     private final int maxReadAttempts = 3;
     
+    private boolean isOptimizedForMultiplexing;
+    
     private final Filter defaultTransportFilter;
     final RegisterChannelCompletionHandler selectorRegistrationHandler;
 
@@ -191,9 +194,8 @@ public final class TCPNIOTransport extends NIOTransport implements
 
         selectorRegistrationHandler = new RegisterChannelCompletionHandler();
 
-        asyncQueueIO = new AsyncQueueIO<SocketAddress>(
-                new TCPNIOAsyncQueueReader(this),
-                new TCPNIOAsyncQueueWriter(this));
+        asyncQueueIO = AsyncQueueIO.Factory.<SocketAddress>createMutable(
+                new TCPNIOAsyncQueueReader(this), pickupAsyncQueueWriter());
 
         temporarySelectorIO = new TemporarySelectorIO(
                 new TCPNIOTemporarySelectorReader(this),
@@ -791,6 +793,35 @@ public final class TCPNIOTransport extends NIOTransport implements
         notifyProbesConfigChanged(this);
     }
 
+    /**
+     * Returns <tt>true</tt>, if <tt>TCPNIOTransport</tt> is configured to use
+     * {@link AsyncQueueWriter}, optimized to be used in connection multiplexing
+     * mode, or <tt>false</tt> otherwise.
+     * 
+     * @return <tt>true</tt>, if <tt>TCPNIOTransport</tt> is configured to use
+     * {@link AsyncQueueWriter}, optimized to be used in connection multiplexing
+     * mode, or <tt>false</tt> otherwise.
+     */
+    public boolean isOptimizedForMultiplexing() {
+        return isOptimizedForMultiplexing;
+    }
+
+    /**
+     * Configures <tt>TCPNIOTransport</tt> to be optimized for specific for the
+     * connection multiplexing usecase, when different threads will try to
+     * write data simultaneously.
+     */
+    public void setOptimizedForMultiplexing(final boolean isOptimizedForMultiplexing) {
+        this.isOptimizedForMultiplexing = isOptimizedForMultiplexing;
+        asyncQueueIO.setWriter(pickupAsyncQueueWriter());
+    }
+
+    private AsyncQueueWriter<SocketAddress> pickupAsyncQueueWriter() {
+        return isOptimizedForMultiplexing()
+               ? new TCPNIOMultiplexingAsyncQueueWriter(this)
+               : new TCPNIOAsyncQueueWriter(this);
+    }
+    
     @Override
     public Filter getTransportFilter() {
         return defaultTransportFilter;
@@ -799,12 +830,6 @@ public final class TCPNIOTransport extends NIOTransport implements
     @Override
     public TemporarySelectorIO getTemporarySelectorIO() {
         return temporarySelectorIO;
-    }
-
-    @Override
-    public void setTemporarySelectorIO(final TemporarySelectorIO temporarySelectorIO) {
-        this.temporarySelectorIO = temporarySelectorIO;
-        notifyProbesConfigChanged(this);
     }
 
     @Override

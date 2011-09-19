@@ -132,7 +132,7 @@ public final class UDPNIOTransport extends NIOTransport implements
     /**
      * Server socket backlog.
      */
-    protected TemporarySelectorIO temporarySelectorIO;
+    protected final TemporarySelectorIO temporarySelectorIO;
     private final Filter transportFilter;
     protected final RegisterChannelCompletionHandler registerChannelCompletionHandler;
     /**
@@ -153,7 +153,7 @@ public final class UDPNIOTransport extends NIOTransport implements
 
         registerChannelCompletionHandler = new RegisterChannelCompletionHandler();
 
-        asyncQueueIO = new AsyncQueueIO<SocketAddress>(
+        asyncQueueIO = AsyncQueueIO.Factory.<SocketAddress>createImmutable(
                 new UDPNIOAsyncQueueReader(this),
                 new UDPNIOAsyncQueueWriter(this));
 
@@ -631,12 +631,6 @@ public final class UDPNIOTransport extends NIOTransport implements
     @Override
     public TemporarySelectorIO getTemporarySelectorIO() {
         return temporarySelectorIO;
-    }
-
-    @Override
-    public void setTemporarySelectorIO(TemporarySelectorIO temporarySelectorIO) {
-        this.temporarySelectorIO = temporarySelectorIO;
-        notifyProbesConfigChanged(this);
     }
 
     public int getConnectionTimeout() {

@@ -40,25 +40,26 @@
 
 package org.glassfish.grizzly.nio.transport;
 
-import java.util.concurrent.Future;
-import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
-import org.glassfish.grizzly.nio.AbstractNIOAsyncQueueWriter;
+import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.nio.NIOTransport;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.Queue;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
+import org.glassfish.grizzly.attributes.Attribute;
+import org.glassfish.grizzly.nio.AbstractNIOAsyncQueueWriter;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport.DirectByteBufferRecord;
-import org.glassfish.grizzly.utils.DebugPoint;
 
 /**
  * The TCP transport {@link AsyncQueueWriter} implementation, based on
@@ -73,23 +74,14 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
     }
 
     @Override
-    protected AsyncWriteQueueRecord createRecord(
-            final Connection connection,
-            final Buffer message,
-            final Future<WriteResult<Buffer, SocketAddress>> future,
-            final WriteResult<Buffer, SocketAddress> currentResult,
-            final CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler,
-            final SocketAddress dstAddress,
-            final boolean isEmptyRecord) {
-        return TCPNIOQueueRecord.create(connection, message, future,
-                currentResult, completionHandler, dstAddress, isEmptyRecord);
-    }
-
-    @Override
     @SuppressWarnings("unchecked")
     protected int write0(final NIOConnection connection,
             final AsyncWriteQueueRecord queueRecord) throws IOException {
-                
+
+        if (queueRecord instanceof CompositeQueueRecord) {
+            return writeComposite0(connection, (CompositeQueueRecord) queueRecord);
+        }
+        
         final WriteResult<Buffer, SocketAddress> currentResult =
                 queueRecord.getCurrentResult();
         final Buffer buffer = queueRecord.getMessage();
@@ -112,7 +104,8 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
                 fillByteBuffer(buffer, 0, bufferSize, directByteBuffer);
                 written = TCPNIOTransport.flushByteBuffer(
                         socketChannel, directByteBuffer);
-
+                
+                buffer.position(oldPos + written);
             } catch (IOException e) {
                 // Mark connection as closed remotely.
                 ((TCPNIOConnection) connection).close0(null, false).markForRecycle(true);
@@ -123,9 +116,6 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
 
         }
 
-        if (written > 0) {
-            buffer.position(oldPos + written);
-        }
 
         ((TCPNIOConnection) connection).onWrite(buffer, written);
 
@@ -140,6 +130,33 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
         return written;
     }
 
+    private int writeComposite0(final NIOConnection connection,
+            final CompositeQueueRecord queueRecord) throws IOException {
+        
+        final int bufferSize = queueRecord.size;
+        
+        final DirectByteBufferRecord directByteBufferRecord =
+                TCPNIOTransport.obtainDirectByteBuffer(bufferSize);
+
+        try {
+            final ByteBuffer directByteBuffer = directByteBufferRecord.strongRef;
+            final SocketChannel socketChannel = (SocketChannel) connection.getChannel();
+        
+            fillByteBuffer(queueRecord.queue, directByteBuffer);
+            
+            final int written = TCPNIOTransport.flushByteBuffer(socketChannel,
+                    directByteBuffer);
+
+            return update(queueRecord, written);
+        } catch (IOException e) {
+            // Mark connection as closed remotely.
+            ((TCPNIOConnection) connection).close0(null, false).markForRecycle(true);
+            throw e;
+        } finally {
+            TCPNIOTransport.releaseDirectByteBuffer(directByteBufferRecord);
+        }
+    }
+    
     private static void fillByteBuffer(final Buffer src, final int offset,
             final int size, final ByteBuffer dstByteBuffer) {
         
@@ -153,64 +170,189 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
         src.position(oldPos);
     }
 
-    @Override
-    protected final void onReadyToWrite(Connection connection) throws IOException {
-        final NIOConnection nioConnection = (NIOConnection) connection;
-        nioConnection.enableIOEvent(IOEvent.WRITE);
+    private static void fillByteBuffer(final Deque<AsyncWriteQueueRecord> queue,
+            final ByteBuffer dstByteBuffer) {
+        dstByteBuffer.limit(0);
+        
+        for (AsyncWriteQueueRecord record : queue) {
+            if (record.isEmptyRecord()) continue;
+            
+            final Buffer message = record.getMessage();
+            final int oldPos = message.position();
+            dstByteBuffer.limit(dstByteBuffer.limit() + message.remaining());
+
+            message.get(dstByteBuffer);
+            message.position(oldPos);
+        }
+        
+        dstByteBuffer.position(0);
     }
 
-    private static final class TCPNIOQueueRecord extends AsyncWriteQueueRecord {
-
-        private static final ThreadCache.CachedTypeIndex<TCPNIOQueueRecord> CACHE_IDX =
-                ThreadCache.obtainIndex(TCPNIOQueueRecord.class, 2);
-
-        public static AsyncWriteQueueRecord create(
-                final Connection connection,
-                final Buffer message,
-                final Future future,
-                final WriteResult currentResult,
-                final CompletionHandler completionHandler,
-                final Object dstAddress,
-                final boolean isEmptyRecord) {
-
-            final TCPNIOQueueRecord asyncWriteQueueRecord =
-                    ThreadCache.takeFromCache(CACHE_IDX);
-
-            if (asyncWriteQueueRecord != null) {
-                asyncWriteQueueRecord.isRecycled = false;
-                asyncWriteQueueRecord.set(connection, message, future,
-                        currentResult, completionHandler,
-                        dstAddress, isEmptyRecord);
-
-                return asyncWriteQueueRecord;
+    private int update(final CompositeQueueRecord queueRecord, int written) {
+        int remainder = written;
+        queueRecord.size -= written;
+        
+        final Connection connection = queueRecord.getConnection();
+        final Deque<AsyncWriteQueueRecord> queue = queueRecord.queue;
+        
+        AsyncWriteQueueRecord record;
+        while (remainder > 0) {
+            record = queue.peekFirst();
+            
+            if (record.isEmptyRecord()) {
+                record.notifyCompleteAndRecycle();
+                written += EMPTY_RECORD_SPACE_VALUE;
+                queue.removeFirst();
+                continue;
             }
 
-            return new TCPNIOQueueRecord(connection, message, future,
-                    currentResult, completionHandler, dstAddress, isEmptyRecord);
+            final WriteResult firstResult = record.getCurrentResult();
+            final Buffer firstMessage = record.getMessage();
+            final int firstMessageRemaining =
+                    record.getInitialMessageSize() - firstResult.getWrittenSize();
+
+            if (remainder >= firstMessageRemaining) {
+                remainder -= firstMessageRemaining;
+                queue.removeFirst();
+                firstResult.setWrittenSize(record.getInitialMessageSize());
+                firstMessage.position(firstMessage.limit());
+                
+                ((TCPNIOConnection) connection).onWrite(firstMessage, firstMessageRemaining);
+                                
+                record.notifyCompleteAndRecycle();
+            } else {
+                firstMessage.position(firstMessage.position() + remainder);
+                firstResult.setWrittenSize(
+                        firstResult.getWrittenSize() + remainder);
+                
+                ((TCPNIOConnection) connection).onWrite(firstMessage, remainder);
+                remainder = 0;
+                
+                return written;
+            }
         }
 
-        public TCPNIOQueueRecord(final Connection connection,
-                final Buffer message,
-                final Future future,
-                final WriteResult currentResult,
-                final CompletionHandler completionHandler,
-                final Object dstAddress,
-                final boolean isEmptyRecord) {
-            super(connection, message, future, currentResult, completionHandler,
-                    dstAddress, isEmptyRecord);
+        while ((record = queue.peekFirst()) != null && record.isEmptyRecord()) {
+            queue.removeFirst();
+            record.notifyCompleteAndRecycle();
+            written += EMPTY_RECORD_SPACE_VALUE;
+        }
+
+        return written;
+    }
+    
+    @Override
+    protected final void onReadyToWrite(final NIOConnection connection) throws IOException {
+        connection.enableIOEvent(IOEvent.WRITE);
+    }
+
+    @Override
+    protected AsyncWriteQueueRecord aggregate(
+            final TaskQueue<AsyncWriteQueueRecord> connectionQueue) {
+//        return connectionQueue.obtainCurrentElementAndReserve();
+        final int queueSize = connectionQueue.spaceInBytes();
+        
+        if (queueSize == 0) {
+//            NIOConnection.l.offer("r.aggr1");
+            return null;
+        }
+        
+        AsyncWriteQueueRecord currentRecord =
+                connectionQueue.obtainCurrentElementAndReserve();
+        
+        if (currentRecord == null || currentRecord.isEmptyRecord() ||
+                currentRecord.remaining() == queueSize) {
+            if (currentRecord == null)
+//                NIOConnection.l.offer("r.aggr2 null");
+            return currentRecord;
+        }
+        
+        final Queue<AsyncWriteQueueRecord> queue = connectionQueue.getQueue();
+        
+        AsyncWriteQueueRecord nextRecord = queue.poll();
+        
+        if (nextRecord == null) {
+            return currentRecord;
+        }
+        
+        CompositeQueueRecord compositeQueueRecord;
+        if (!(currentRecord instanceof CompositeQueueRecord)) {
+            final Connection connection = currentRecord.getConnection();
+            compositeQueueRecord = compositeBufferAttr.get(connection);
+            if (compositeQueueRecord == null) {
+                compositeQueueRecord = CompositeQueueRecord.create(connection);
+                compositeBufferAttr.set(connection, compositeQueueRecord);
+            }
+
+            compositeQueueRecord.append(currentRecord);
+            currentRecord = compositeQueueRecord;
+        } else {
+            compositeQueueRecord = (CompositeQueueRecord) currentRecord;
+        }
+        
+        do {
+            compositeQueueRecord.append(nextRecord);
+        } while(compositeQueueRecord.remaining() < queueSize &&
+                (nextRecord = queue.poll()) != null);
+        
+        return compositeQueueRecord;
+    }
+    
+    private final Attribute<CompositeQueueRecord> compositeBufferAttr =
+            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.<CompositeQueueRecord>createAttribute(
+            TCPNIOAsyncQueueWriter.class.getName() + ".compositeBuffer");
+
+    
+    private static final class CompositeQueueRecord extends AsyncWriteQueueRecord {
+        
+        private final Deque<AsyncWriteQueueRecord> queue =
+                new ArrayDeque<AsyncWriteQueueRecord>(2);
+        
+        private int size;
+        
+        public static CompositeQueueRecord create(final Connection connection) {
+            return new CompositeQueueRecord(connection);
+        }
+
+        public CompositeQueueRecord(final Connection connection) {
+            super(connection, null, null, null, null,
+                    null, false);
+        }
+
+        public void append(final AsyncWriteQueueRecord queueRecord) {
+            size += queueRecord.getMessage().remaining();
+            queue.add(queueRecord);
         }
 
         @Override
-        public void recycle() {
-            checkRecycled();
-            reset();
-            isRecycled = true;
-            if (Grizzly.isTrackingThreadCache()) {
-                recycleTrack = new DebugPoint(new Exception(),
-                        Thread.currentThread().getName());
+        public boolean isEmptyRecord() {
+            return false;
+        }
+
+        @Override
+        public boolean isFinished() {
+            return size == 0;
+        }
+
+        @Override
+        public int remaining() {
+            return size;
+        }
+
+        @Override
+        public void notifyCompleteAndRecycle() {
+        }
+
+        @Override
+        public void notifyFailure(final Throwable e) {
+            AsyncWriteQueueRecord record;
+            while ((record = queue.poll()) != null) {
+                record.notifyFailure(e);
             }
-            
-            ThreadCache.putToCache(CACHE_IDX, this);
+        }
+        
+        @Override
+        public void recycle() {
         }
     }
 }

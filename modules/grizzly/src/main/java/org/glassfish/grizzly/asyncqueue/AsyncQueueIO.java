@@ -46,30 +46,94 @@ package org.glassfish.grizzly.asyncqueue;
  * 
  * @author Alexey Stashok
  */
-public class AsyncQueueIO<L> {
-    private final AsyncQueueReader<L> reader;
-    private final AsyncQueueWriter<L> writer;
-
-    public AsyncQueueIO(AsyncQueueReader<L> reader, AsyncQueueWriter<L> writer) {
-        this.reader = reader;
-        this.writer = writer;
-    }
-
+public interface AsyncQueueIO<L> {
     /**
      * Get {@link AsyncQueueReader} implementation.
      * 
      * @return {@link AsyncQueueReader} implementation.
      */
-    public AsyncQueueReader<L> getReader() {
-        return reader;
-    }
+    public AsyncQueueReader<L> getReader();
 
     /**
      * Get {@link AsyncQueueWriter} implementation.
      *
      * @return {@link AsyncQueueWriter} implementation.
      */
-    public AsyncQueueWriter<L> getWriter() {
-        return writer;
+    public AsyncQueueWriter<L> getWriter();
+    
+    public static class Factory {
+        public static <L> AsyncQueueIO<L> createImmutable(
+                final AsyncQueueReader<L> reader, final AsyncQueueWriter<L> writer) {
+            return new ImmutableAsyncQueueIO<L>(reader, writer);
+        }
+        
+        public static <L> MutableAsyncQueueIO<L> createMutable(
+                final AsyncQueueReader<L> reader, final AsyncQueueWriter<L> writer) {
+            return new MutableAsyncQueueIO<L>(reader, writer);
+        }
     }
+    
+    static final class ImmutableAsyncQueueIO<L> implements AsyncQueueIO<L> {
+
+        private final AsyncQueueReader<L> reader;
+        private final AsyncQueueWriter<L> writer;
+
+        private ImmutableAsyncQueueIO(final AsyncQueueReader<L> reader, final AsyncQueueWriter<L> writer) {
+            this.reader = reader;
+            this.writer = writer;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public AsyncQueueReader<L> getReader() {
+            return reader;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public AsyncQueueWriter<L> getWriter() {
+            return writer;
+        }
+    }
+    
+    static final class MutableAsyncQueueIO<L> implements AsyncQueueIO<L> {
+
+        private volatile AsyncQueueReader<L> reader;
+        private volatile AsyncQueueWriter<L> writer;
+
+        private MutableAsyncQueueIO(final AsyncQueueReader<L> reader,
+                final AsyncQueueWriter<L> writer) {
+            this.reader = reader;
+            this.writer = writer;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public AsyncQueueReader<L> getReader() {
+            return reader;
+        }
+
+        public void setReader(AsyncQueueReader<L> reader) {
+            this.reader = reader;
+        }
+        
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public AsyncQueueWriter<L> getWriter() {
+            return writer;
+        }
+        
+        public void setWriter(AsyncQueueWriter<L> writer) {
+            this.writer = writer;
+        }               
+    }    
+    
 }

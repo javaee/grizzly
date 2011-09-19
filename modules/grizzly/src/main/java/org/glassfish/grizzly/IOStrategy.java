@@ -75,4 +75,28 @@ public interface IOStrategy extends WorkerThreadPoolConfigProducer {
     boolean executeIoEvent(final Connection connection, final IOEvent ioEvent)
     throws IOException;
 
+    /**
+     * The {@link org.glassfish.grizzly.nio.SelectorRunner} will invoke this
+     * method to allow the strategy implementation to decide how the
+     * {@link IOEvent} will be handled.
+     *
+     * @param connection the {@link Connection} upon which the provided
+     *  {@link IOEvent} occurred.
+     * @param ioEvent the {@link IOEvent} that triggered execution of this
+     *  <code>strategy</code>
+     * @param isIoEventEnabled <tt>true</tt> if IOEvent is still enabled on the
+     *  {@link Connection}, or <tt>false</tt> if IOEvent was preliminary disabled
+     *  or IOEvent is being simulated.
+     *
+     * @return <tt>true</tt>, if this thread should keep processing IOEvents on
+     * the current and other Connections, or <tt>false</tt> if this thread
+     * should hand-off the farther IOEvent processing on any Connections,
+     * which means IOStrategy is becoming responsible for continuing IOEvent
+     * processing (possibly starting new thread, which will handle IOEvents).
+     *
+     * @throws IOException if an error occurs processing the {@link IOEvent}.
+     */
+    boolean executeIoEvent(final Connection connection, final IOEvent ioEvent,
+            final boolean isIoEventEnabled) throws IOException;
+    
 }

@@ -81,7 +81,7 @@ public class EmptyIOEventProcessingHandler implements IOEventProcessingHandler {
      * {@inheritDoc}
      */
     @Override
-    public void onComplete(Context context) throws IOException {
+    public void onComplete(Context context, Object data) throws IOException {
     }
 
     /**
@@ -109,7 +109,7 @@ public class EmptyIOEventProcessingHandler implements IOEventProcessingHandler {
      * {@inheritDoc}
      */
     @Override
-    public void onError(Context context) throws IOException {
+    public void onError(Context context, Object description) throws IOException {
     }
 
     /**

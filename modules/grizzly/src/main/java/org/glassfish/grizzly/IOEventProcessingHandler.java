@@ -89,7 +89,7 @@ public interface IOEventProcessingHandler {
      * @param context 
      * @throws IOException
      */
-    public void onComplete(Context context) throws IOException;
+    public void onComplete(Context context, Object data) throws IOException;
 
     /**
      * Detaching {@link IOEvent} processing out of this {@link Context}.
@@ -121,7 +121,7 @@ public interface IOEventProcessingHandler {
      *
      * @param context
      */
-    public void onError(Context context) throws IOException;
+    public void onError(Context context, Object description) throws IOException;
 
     /**
      * {@link IOEvent} wasn't processed.

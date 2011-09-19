@@ -44,6 +44,7 @@ import java.net.SocketAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -93,9 +94,13 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     protected volatile int writeBufferSize;
     protected volatile long readTimeoutMillis = 30000;
     protected volatile long writeTimeoutMillis = 30000;
-    protected volatile SelectorRunner selectorRunner;
     protected volatile SelectableChannel channel;
     protected volatile SelectionKey selectionKey;
+    protected volatile SelectorRunner selectorRunner;
+    
+//    protected volatile SelectionKey writerSelectionKey;
+//    protected volatile SelectorRunner writerSelectorRunner;
+    
     protected volatile Processor processor;
     protected volatile ProcessorSelector processorSelector;
     protected final AttributeHolder attributes;
@@ -376,21 +381,23 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                 final FutureImpl<Connection> resultFuture =
                         SafeFutureImpl.create();
                 
-                transport.getSelectorHandler().executeInSelectorThread(
-                        selectorRunner, new Runnable() {
+                transport.getSelectorHandler().execute(
+                        selectorRunner, new SelectorHandler.Task() {
                     @Override
-                    public void run() {
+                    public boolean run() {
                         try {
                             transport.closeConnection(NIOConnection.this);
                         } catch (IOException e) {
                             logger.log(Level.FINE, "Error during connection close", e);
                         }
+                        
+                        return true;
                     }
-                }, new CompletionHandlerAdapter<Connection, Runnable>(
+                }, new CompletionHandlerAdapter<Connection, SelectorHandler.Task>(
                         resultFuture, completionHandler) {
 
                     @Override
-                    protected Connection adapt(final Runnable result) {
+                    protected Connection adapt(final SelectorHandler.Task result) {
                         return NIOConnection.this;
                     }
 
@@ -639,28 +646,120 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     protected abstract void preClose();
 
     @Override
+    public void simulateIOEvent(final IOEvent ioEvent) throws IOException {
+        final SelectorHandler selectorHandler = transport.getSelectorHandler();
+        switch (ioEvent) {
+            case WRITE:
+                selectorHandler.enque(selectorRunner, writeSimulatorRunnable, null);
+                break;
+            case READ:
+                selectorHandler.enque(selectorRunner, readSimulatorRunnable, null);
+                break;
+            default:
+                throw new IllegalArgumentException("We support only READ and WRITE events. Got " + ioEvent);
+        }
+    }
+    
+    @Override
     public final void enableIOEvent(final IOEvent ioEvent) throws IOException {
         final int interest = ioEvent.getSelectionKeyInterest();
         if (interest == 0) {
             return;
         }
+        
+//        if (interest == SelectionKey.OP_WRITE) {
+//            new Exception("enable write").printStackTrace(System.out);
+//        }
+        
         notifyIOEventEnabled(this, ioEvent);
+//        if (interest == SelectionKey.OP_WRITE) {
+//            enableWrite();
+//            return;
+//        }
+        
         final SelectorHandler selectorHandler = transport.getSelectorHandler();
         selectorHandler.registerKeyInterest(selectorRunner, selectionKey,
             interest);
     }
 
+//    private void enableWrite() throws IOException {
+//        if (writerSelectorRunner == null) {
+//            ((NIOTransport) getTransport()).getNIOChannelDistributor()
+//                    .registerChannelAsync(channel, SelectionKey.OP_WRITE, this,
+//                    new EmptyCompletionHandler<RegisterChannelResult>() {
+//
+//                        @Override
+//                        public void completed(final RegisterChannelResult result) {
+//                            writerSelectorRunner = result.getSelectorRunner();
+//                            writerSelectionKey = result.getSelectionKey();
+//                        }
+//                    });
+//        } else {
+//            final SelectorHandler selectorHandler = transport.getSelectorHandler();
+//            selectorHandler.registerKeyInterest(writerSelectorRunner, writerSelectionKey,
+//                SelectionKey.OP_WRITE);            
+//        }
+//    }
+    
+//    public static final Queue<String> l = new ConcurrentLinkedQueue<String>();
+//    {
+//        Runtime.getRuntime().addShutdownHook(new Thread() {
+//
+//            @Override
+//            public void run() {
+//                System.out.println(l);
+//            }
+//            
+//        });
+//    }
+    
+    private final SelectorHandler.Task writeSimulatorRunnable =
+            new SelectorHandler.Task() {
+
+                @Override
+                public boolean run() throws IOException {
+//                    l.offer("r.simulate2 " + Thread.currentThread().getId());
+                    return transport.getIOStrategy().executeIoEvent(
+                            NIOConnection.this, IOEvent.WRITE, false);
+                }
+            };
+    
+    private final SelectorHandler.Task readSimulatorRunnable =
+            new SelectorHandler.Task() {
+
+                @Override
+                public boolean run() throws IOException {
+                    return transport.getIOStrategy().executeIoEvent(
+                            NIOConnection.this, IOEvent.READ, false);
+                }
+            }; 
+    
     @Override
     public final void disableIOEvent(final IOEvent ioEvent) throws IOException {
         final int interest = ioEvent.getSelectionKeyInterest();
         if (interest == 0) {
             return;
         }
+
         notifyIOEventDisabled(this, ioEvent);
+
+//        if (interest == SelectionKey.OP_WRITE) {
+//            disableWrite();
+//            return;
+//        }
+        
         final SelectorHandler selectorHandler = transport.getSelectorHandler();
         selectorHandler.deregisterKeyInterest(selectorRunner, selectionKey, interest);
     }
 
+//    private void disableWrite() throws IOException {
+//        if (writerSelectorRunner != null) {
+//            final SelectorHandler selectorHandler = transport.getSelectorHandler();
+//            selectorHandler.deregisterKeyInterest(writerSelectorRunner, writerSelectionKey,
+//                SelectionKey.OP_WRITE);            
+//        }
+//    }
+    
     protected final void checkEmptyRead(final int size) {
         if (WIN32) {
             if (size == 0) {

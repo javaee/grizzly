@@ -57,13 +57,13 @@ import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
-import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 
 import java.util.concurrent.Future;
 import java.util.logging.Level;
 import org.glassfish.grizzly.Context;
+import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.NullaryFunction;
 import org.glassfish.grizzly.threadpool.WorkerThread;
@@ -92,7 +92,7 @@ public abstract class AbstractNIOAsyncQueueWriter
         }
     };
 
-    private final static int EMPTY_RECORD_SPACE_VALUE = 1;
+    protected final static int EMPTY_RECORD_SPACE_VALUE = 1;
 
     protected final NIOTransport transport;
 
@@ -242,16 +242,17 @@ public abstract class AbstractNIOAsyncQueueWriter
                     getWriteReentrant()).incAndGet() < maxWriteReentrants) {
                 
                 // If we can write directly - do it w/o creating queue record (simple)
-                final int bytesWritten = write0(nioConnection, queueRecord);
                 final int bytesToRelease = isEmptyRecord ?
-                        EMPTY_RECORD_SPACE_VALUE : bytesWritten;
+                        EMPTY_RECORD_SPACE_VALUE :
+                        write0(nioConnection, queueRecord);
+                
                 final boolean isQueueEmpty =
                         (connectionQueue.releaseSpaceAndNotify(bytesToRelease) == 0);
 
-                if (isFinished(queueRecord)) {
-                    onWriteComplete(queueRecord);
+                if (queueRecord.isFinished()) {
+                    queueRecord.notifyCompleteAndRecycle();
                     if (!isQueueEmpty) {
-                        onReadyToWrite(nioConnection);
+                        nioConnection.simulateIOEvent(IOEvent.WRITE);
                     }
                     return ReadyFutureImpl.create(currentResult);
                 }
@@ -325,7 +326,7 @@ public abstract class AbstractNIOAsyncQueueWriter
      * {@inheritDoc}
      */
     @Override
-    public boolean processAsync(final Context context) throws IOException {
+    public AsyncResult processAsync(final Context context) throws IOException {
         final boolean isLogFine = logger.isLoggable(Level.FINEST);
         final NIOConnection nioConnection = (NIOConnection) context.getConnection();
         
@@ -336,19 +337,20 @@ public abstract class AbstractNIOAsyncQueueWriter
         AsyncWriteQueueRecord queueRecord = null;
 
         try {
-            while ((queueRecord = connectionQueue.obtainCurrentElementAndReserve()) != null) {
+            while ((queueRecord = aggregate(connectionQueue)) != null) {
+                
                 
                 if (isLogFine) {
                     doFineLog("AsyncQueueWriter.processAsync doWrite"
                             + "connection={0} record={1}",
                             nioConnection, queueRecord);
-                }
+                }                 
 
                 final int bytesToRelease = queueRecord.isEmptyRecord() ?
                         EMPTY_RECORD_SPACE_VALUE :
                         write0(nioConnection, queueRecord);
-
-                final boolean isFinished = isFinished(queueRecord);
+                
+                final boolean isFinished = queueRecord.isFinished();
 
                 if (isFinished) {
                     // Is here a chance that queue becomes empty?
@@ -371,14 +373,14 @@ public abstract class AbstractNIOAsyncQueueWriter
                     }
                     // Do compareAndSet, because connection might have been close
                     // from another thread, and failReadRecord has been invoked already
-                    onWriteComplete(queueRecord);
+                    queueRecord.notifyCompleteAndRecycle();
                     if (isLogFine) {
                         doFineLog("AsyncQueueWriter.processAsync nextRecord "
                                 + "connection={0} nextRecord={1}",
                                 nioConnection, queueRecord);
                     }
                     if (done) {
-                        return false;
+                        return AsyncResult.COMPLETE;
                     }
                 } else { // if there is still some data in current message
                     connectionQueue.setCurrentElement(queueRecord);
@@ -389,8 +391,8 @@ public abstract class AbstractNIOAsyncQueueWriter
                     }
 
                     // If connection is closed - this will fail,
-                    // and onWriteFaulure called properly
-                    return true;
+                    // and onWriteFailure called properly
+                    return AsyncResult.INCOMPLETE;
                 }
             }
 
@@ -398,7 +400,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                 // Counter shows there should be some elements in queue,
                 // but seems write() method still didn't add them to a queue
                 // so we can release the thread for now
-                return true;
+                return AsyncResult.EXPECTING_MORE;
             }
         } catch (IOException e) {
             if (isLogFine) {
@@ -409,7 +411,7 @@ public abstract class AbstractNIOAsyncQueueWriter
             onWriteFailure(nioConnection, queueRecord, e);
         }
 
-        return false;
+        return AsyncResult.COMPLETE;
     }
        
     private static void doFineLog(String msg, Object... params) {
@@ -434,7 +436,7 @@ public abstract class AbstractNIOAsyncQueueWriter
             
             AsyncWriteQueueRecord record;
             while ((record = writeQueue.obtainCurrentElementAndReserve()) != null) {
-                failWriteRecord(record, error);
+                record.notifyFailure(error);
             }
         }
     }
@@ -467,73 +469,14 @@ public abstract class AbstractNIOAsyncQueueWriter
     public final void close() {
     }
     
-    protected static void onWriteComplete(final AsyncWriteQueueRecord record)
-            throws IOException {
-
-        final WriteResult currentResult = record.getCurrentResult();
-        final FutureImpl future = (FutureImpl) record.getFuture();
-        final CompletionHandler<WriteResult> completionHandler =
-                record.getCompletionHandler();
-        final Buffer originalMessage = record.getMessage();
-
-        record.recycle();
-        
-        if (future != null) {
-            future.result(currentResult);
-        }        
-
-        if (completionHandler != null) {
-            completionHandler.completed(currentResult);
-        }
-
-        // try to dispose originalBuffer (if allowed)
-        originalMessage.tryDispose();
-
-    }
     
-    protected final void onWriteIncomplete(final AsyncWriteQueueRecord record)
-            throws IOException {
-
-        WriteResult currentResult = record.getCurrentResult();
-        CompletionHandler<WriteResult> completionHandler =
-                record.getCompletionHandler();
-
-        if (completionHandler != null) {
-            completionHandler.updated(currentResult);
-        }
-    }
-
     protected static void onWriteFailure(final Connection connection,
             final AsyncWriteQueueRecord failedRecord, final IOException e) {
 
-        failWriteRecord(failedRecord, e);
+        failedRecord.notifyFailure(e);
         try {
             connection.close().markForRecycle(true);
         } catch (IOException ignored) {
-        }
-    }
-
-    protected static void failWriteRecord(final AsyncWriteQueueRecord record,
-            final Throwable e) {
-        if (record == null) {
-            return;
-        }
-
-        final FutureImpl future = (FutureImpl) record.getFuture();
-        final boolean hasFuture = (future != null);
-        
-        if (!hasFuture || !future.isDone()) {
-
-            final CompletionHandler completionHandler =
-                    record.getCompletionHandler();
-            
-            if (completionHandler != null) {
-                completionHandler.failed(e);
-            }
-
-            if (hasFuture) {
-                future.failure(e);
-            }
         }
     }
     
@@ -547,16 +490,15 @@ public abstract class AbstractNIOAsyncQueueWriter
         return ReadyFutureImpl.<WriteResult<Buffer, SocketAddress>>create(failure);
     }
     
-    private static boolean isFinished(final AsyncWriteQueueRecord queueRecord) {
-        final Buffer buffer = queueRecord.getMessage();
-        return !buffer.hasRemaining();
-    }
-
     protected abstract int write0(final NIOConnection connection,
             final AsyncWriteQueueRecord queueRecord)
             throws IOException;
 
-    protected abstract void onReadyToWrite(Connection connection)
+    protected abstract void onReadyToWrite(NIOConnection connection)
             throws IOException;
+
+    protected AsyncWriteQueueRecord aggregate(TaskQueue<AsyncWriteQueueRecord> connectionQueue) {
+        return connectionQueue.obtainCurrentElementAndReserve();
+    }
 
 }

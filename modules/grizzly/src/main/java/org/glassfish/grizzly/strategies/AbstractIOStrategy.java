@@ -47,12 +47,14 @@ import org.glassfish.grizzly.IOStrategy;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
 import java.io.IOException;
+import java.util.EnumSet;
 import java.util.concurrent.Executor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.EmptyIOEventProcessingHandler;
 
 import org.glassfish.grizzly.Transport;
+import org.glassfish.grizzly.asyncqueue.AsyncQueue;
 
 /**
  *
@@ -60,7 +62,13 @@ import org.glassfish.grizzly.Transport;
  */
 public abstract class AbstractIOStrategy implements IOStrategy {
 
-    protected final static IOEventProcessingHandler enableInterestProcessingHandler =
+    private final static EnumSet<IOEvent> READ_WRITE_EVENT_SET =
+            EnumSet.<IOEvent>of(IOEvent.READ, IOEvent.WRITE);
+
+    private final static EnumSet<IOEvent> WORKER_THREAD_EVENT_SET =
+            EnumSet.<IOEvent>of(IOEvent.READ, IOEvent.WRITE, IOEvent.CLOSED);
+    
+    protected final static IOEventProcessingHandler ENABLE_INTEREST_PROCESSING_HANDLER =
             new EnableInterestProcessingHandler();
 
 
@@ -79,16 +87,24 @@ public abstract class AbstractIOStrategy implements IOStrategy {
 
     }
 
+    // ------------------------------------------------------- Public Methods
+
+    @Override
+    public final boolean executeIoEvent(final Connection connection,
+            final IOEvent ioEvent) throws IOException {
+        return executeIoEvent(connection, ioEvent, true);
+    }
+    
 
     // ------------------------------------------------------- Protected Methods
 
 
     protected static boolean isReadWrite(final IOEvent ioEvent) {
-        return (ioEvent == IOEvent.READ || ioEvent == IOEvent.WRITE);
+        return READ_WRITE_EVENT_SET.contains(ioEvent);
     }
 
     protected static boolean isExecuteInWorkerThread(final IOEvent ioEvent) {
-        return (isReadWrite(ioEvent) || ioEvent == IOEvent.CLOSED);
+        return WORKER_THREAD_EVENT_SET.contains(ioEvent);
     }
 
     protected static Executor getWorkerThreadPool(final Connection c) {
@@ -130,14 +146,19 @@ public abstract class AbstractIOStrategy implements IOStrategy {
         
         @Override
         public void onReregister(final Context context) throws IOException {
-            onComplete(context);
+            onComplete(context, null);
         }
 
         @Override
-        public void onComplete(final Context context) throws IOException {
+        public void onComplete(final Context context, final Object data) throws IOException {
             final IOEvent ioEvent = context.getIoEvent();
             final Connection connection = context.getConnection();
-            connection.enableIOEvent(ioEvent);
+            
+            if (AsyncQueue.EXPECTING_MORE_OPTION.equals(data)) {
+                connection.simulateIOEvent(ioEvent);
+            } else {
+                connection.enableIOEvent(ioEvent);
+            }
         }
     }
 }

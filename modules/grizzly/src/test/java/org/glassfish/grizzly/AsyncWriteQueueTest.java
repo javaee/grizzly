@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly;
 
+import org.junit.Test;
+import org.junit.runners.Parameterized.Parameters;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -75,6 +77,9 @@ import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import static org.junit.Assert.*;
 
 /**
  * AsyncWriteQueue tests.
@@ -82,11 +87,36 @@ import org.glassfish.grizzly.memory.Buffers;
  * @author Alexey Stashok
  * @author Ryan Lubke
  */
-public class AsyncWriteQueueTest extends GrizzlyTestCase {
+@RunWith(Parameterized.class)
+public class AsyncWriteQueueTest {
     public static final int PORT = 7781;
 
     private static final Logger LOGGER = Grizzly.logger(AsyncWriteQueueTest.class);
 
+    @Parameters
+    public static Collection<Object[]> getOptimizedForMultiplexing() {
+        return Arrays.asList(new Object[][]{
+                    {Boolean.FALSE},
+                    {Boolean.TRUE}
+                });
+    }
+    
+    private final boolean isOptimizedForMultiplexing;
+    
+    public AsyncWriteQueueTest(boolean isOptimizedForMultiplexing) {
+        this.isOptimizedForMultiplexing = isOptimizedForMultiplexing;
+    }
+    
+    private static TCPNIOTransport createTransport(
+            final boolean isOptimizedForMultiplexing) {
+        
+        return TCPNIOTransportBuilder
+                .newInstance()
+                .setOptimizedForMultiplexing(isOptimizedForMultiplexing)
+                .build();
+    }
+    
+    @Test
     public void testAsyncWriteQueueEcho() throws Exception {
         Connection connection = null;
         StreamReader reader = null;
@@ -109,7 +139,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
             }
         });
 
-        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+        TCPNIOTransport transport = createTransport(isOptimizedForMultiplexing);
         transport.setProcessor(filterChainBuilder.build());
 
         try {
@@ -215,6 +245,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
     }
 
 
+    @Test
     public void testAsyncWriteQueueLimits() throws Exception {
 
         Connection connection = null;
@@ -225,7 +256,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
         filterChainBuilder.add(new TransportFilter());
         
 
-        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+        TCPNIOTransport transport = createTransport(isOptimizedForMultiplexing);
         transport.setProcessor(filterChainBuilder.build());
 
 
@@ -310,6 +341,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
     }
 
 
+    @Test
     public void testQueueNotification() throws Exception {
 
         Connection connection = null;
@@ -319,7 +351,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
         filterChainBuilder.add(new TransportFilter());
 
 
-        final TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+        final TCPNIOTransport transport = createTransport(isOptimizedForMultiplexing);
         transport.setProcessor(filterChainBuilder.build());
 
 
@@ -383,6 +415,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
         }
     }
 
+    @Test
     public void testAsyncWriteQueueReentrants() throws Exception {
         Connection connection = null;
 
@@ -400,7 +433,8 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
             }
         });
 
-        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+        // reentrants limitation is applicable for non-multiplexing-optimized write queue
+        TCPNIOTransport transport = createTransport(false);
         transport.setProcessor(filterChainBuilder.build());
 
         try {

@@ -125,9 +125,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                         (AsyncQueueEnabledTransport) connection.getTransport();
                 final AsyncQueueWriter writer = transport.getAsyncQueueIO().getWriter();
 
-                return writer.processAsync(context) ?
-                    ProcessorResult.createComplete() :
-                    ProcessorResult.createLeave();
+                return writer.processAsync(context).toProcessorResult();
             }
         }
 
@@ -168,7 +166,8 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                             return ProcessorResult.createRerun(ctx.internalContext);
                         }
 
-                        // reregister to listen for next operation
+                        // reregister to listen for next operation,
+                        // keeping the current Context
                         return ProcessorResult.createReregister();
                 }
             } while (prepareRemainder(ctx, FILTERS_STATE_ATTR.get(connection), ctx.getStartIdx(), end));

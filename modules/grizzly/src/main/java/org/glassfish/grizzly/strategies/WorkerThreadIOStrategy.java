@@ -78,14 +78,18 @@ public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
 
     @Override
     public boolean executeIoEvent(final Connection connection,
-                                  final IOEvent ioEvent) throws IOException {
+            final IOEvent ioEvent, final boolean isIoEventEnabled)
+            throws IOException {
 
-        final boolean disableInterest = isReadWrite(ioEvent);
+        final boolean isReadOrWriteEvent = isReadWrite(ioEvent);
 
         final IOEventProcessingHandler pp;
-        if (disableInterest) {
-            connection.disableIOEvent(ioEvent);
-            pp = enableInterestProcessingHandler;
+        if (isReadOrWriteEvent) {
+            if (isIoEventEnabled) {
+                connection.disableIOEvent(ioEvent);
+            }
+            
+            pp = ENABLE_INTEREST_PROCESSING_HANDLER;
         } else {
             pp = null;
         }

@@ -119,16 +119,6 @@ public class UDPNIOTransportBuilder extends NIOTransportBuilder<UDPNIOTransportB
     }
 
     /**
-     * @see UDPNIOTransport#setTemporarySelectorIO(org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO)
-     *
-     * @return this <code>UDPNIOTransport</code>
-     */
-    public UDPNIOTransportBuilder setTemporarySelectorIO(TemporarySelectorIO temporarySelectorIO) {
-        udpTransport.setTemporarySelectorIO(temporarySelectorIO);
-        return getThis();
-    }
-
-    /**
      * {@inheritDoc}
      */
     @Override

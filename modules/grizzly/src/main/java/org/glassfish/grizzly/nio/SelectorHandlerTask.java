@@ -49,6 +49,6 @@ import java.io.IOException;
  * @author Alexey Stashok
  */
 public interface SelectorHandlerTask {
-    public void run(SelectorRunner selectorRunner) throws IOException;
+    public boolean run(SelectorRunner selectorRunner) throws IOException;
     public void cancel();
 }

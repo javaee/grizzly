@@ -309,16 +309,17 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
         @Override
         public void onReregister(final Context context) throws IOException {
-            onComplete(context);
+            onComplete(context, null);
         }
 
         @Override
         public void onNotRun(final Context context) throws IOException {
-            onComplete(context);
+            onComplete(context, null);
         }
         
         @Override
-        public void onComplete(final Context context) throws IOException {
+        public void onComplete(final Context context, final Object data)
+                throws IOException {
             final NIOConnection connection = (NIOConnection) context.getConnection();
 
             if (completionHandler != null) {

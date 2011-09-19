@@ -49,6 +49,7 @@ import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.utils.DebugPoint;
 import java.util.concurrent.Future;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.impl.FutureImpl;
 
 /**
  * {@link AsyncQueue} read element unit
@@ -69,7 +70,6 @@ public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult> {
         
         if (asyncReadQueueRecord != null) {
             asyncReadQueueRecord.isRecycled = false;
-            asyncReadQueueRecord.originalMessage = message;
             asyncReadQueueRecord.interceptor = interceptor;
             asyncReadQueueRecord.set(connection, message, future, currentResult,
                     completionHandler);
@@ -80,10 +80,7 @@ public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult> {
                 currentResult, completionHandler, interceptor);
     }
 
-    protected Object originalMessage;
     protected Interceptor interceptor;
-    private Buffer remainderBuffer;
-    
     
     private AsyncReadQueueRecord(final Connection connection,
             final Buffer message, final Future future,
@@ -92,34 +89,41 @@ public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult> {
             final Interceptor<ReadResult> interceptor) {
         
         super(connection, message, future, currentResult, completionHandler);
-        this.originalMessage = message;
         this.interceptor = interceptor;
     }
 
-    public Buffer getRemainderBuffer() {
-        checkRecycled();
-        return remainderBuffer;
-    }
-
-    public void setRemainderBuffer(final Buffer remainderBuffer) {
-        checkRecycled();
-        this.remainderBuffer = remainderBuffer;
-    }
-
-    public Object getOriginalMessage() {
-        checkRecycled();
-        return originalMessage;
-    }
-    
     public final Interceptor getInterceptor() {
         checkRecycled();
         return interceptor;
     }
 
+    @SuppressWarnings("unchecked")
+    public final void notifyComplete() {
+        final FutureImpl futureImpl = (FutureImpl) future;
+        
+        if (futureImpl != null) {
+            futureImpl.result(currentResult);
+        }
+
+        if (completionHandler != null) {
+            completionHandler.completed(currentResult);
+        }
+    }   
+
+    @SuppressWarnings("unchecked")
+    public final void notifyIncomplete() {
+        if (completionHandler != null) {
+            completionHandler.updated(currentResult);
+        }
+    }
+    
+    public boolean isFinished() {
+        return currentResult.getReadSize() > 0
+                || !((Buffer) message).hasRemaining();
+    }
+    
     protected final void reset() {
         set(null, null, null, null, null);
-        remainderBuffer = null;
-        originalMessage = null;
         interceptor = null;
     }
 

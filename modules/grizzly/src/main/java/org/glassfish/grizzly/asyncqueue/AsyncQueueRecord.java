@@ -46,6 +46,7 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.utils.DebugPoint;
 
 /**
@@ -96,11 +97,6 @@ public abstract class AsyncQueueRecord<R> implements Cacheable {
         this.message = message;
     }
 
-    public final Future getFuture() {
-        checkRecycled();
-        return future;
-    }
-
     public void setFuture(final Future future) {
         checkRecycled();
         this.future = future;
@@ -111,11 +107,22 @@ public abstract class AsyncQueueRecord<R> implements Cacheable {
         return currentResult;
     }
 
-    public final CompletionHandler getCompletionHandler() {
-        checkRecycled();
-        return completionHandler;
-    }
+    public void notifyFailure(final Throwable e) {
+        final FutureImpl futureImpl = (FutureImpl) future;
+        final boolean hasFuture = (futureImpl != null);
+        
+        if (!hasFuture || !futureImpl.isDone()) {
 
+            if (completionHandler != null) {
+                completionHandler.failed(e);
+            }
+
+            if (hasFuture) {
+                futureImpl.failure(e);
+            }
+        }
+    }
+    
     protected final void checkRecycled() {
         if (Grizzly.isTrackingThreadCache() && isRecycled) {
             final DebugPoint track = recycleTrack;

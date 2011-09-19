@@ -78,7 +78,10 @@ public final class SelectorRunner implements Runnable {
     private final AtomicReference<State> stateHolder;
     
     private final Queue<SelectorHandlerTask> pendingTasks;
-    private final Queue<SelectorHandlerTask> postponedTasks;
+    
+    private Queue<SelectorHandlerTask> currentPostponedTasks;
+    private final Queue<SelectorHandlerTask> evenPostponedTasks;
+    private final Queue<SelectorHandlerTask> oddPostponedTasks;
 
     private volatile int dumbVolatile = 1;
     private Selector selector;
@@ -108,7 +111,9 @@ public final class SelectorRunner implements Runnable {
         stateHolder = new AtomicReference<State>(State.STOP);
 
         pendingTasks = new ConcurrentLinkedQueue<SelectorHandlerTask>();
-        postponedTasks = new ArrayDeque<SelectorHandlerTask>();
+        evenPostponedTasks = new ArrayDeque<SelectorHandlerTask>();
+        oddPostponedTasks = new ArrayDeque<SelectorHandlerTask>();
+        currentPostponedTasks = evenPostponedTasks;
     }
 
     public NIOTransport getTransport() {
@@ -216,7 +221,8 @@ public final class SelectorRunner implements Runnable {
         }
 
         abortTasksInQueue(pendingTasks);
-        abortTasksInQueue(postponedTasks);
+        abortTasksInQueue(evenPostponedTasks);
+        abortTasksInQueue(oddPostponedTasks);
     }
 
     public void wakeupSelector() {
@@ -302,17 +308,23 @@ public final class SelectorRunner implements Runnable {
             if (isResume) {
                 // If resume SelectorRunner - finish postponed keys
                 isResume = false;
-                if (keyReadyOps != 0) {
-                    if (!iterateKeyEvents()) return false;
-                }
                 
-                if (!iterateKeys()) return false;
-                readyKeySet.clear();
+                // readyKeySet==null means execution was suspended on preSelect(..)
+                if (readyKeySet != null) {
+                    if (keyReadyOps != 0) {
+                        if (!iterateKeyEvents()) return false;
+                    }
+
+                    if (!iterateKeys()) return false;
+                    readyKeySet.clear();
+                }
             }
 
             lastSelectedKeysCount = 0;
 
-            selectorHandler.preSelect(this);
+            if (!selectorHandler.preSelect(this)) {
+                return false;
+            }
 
             readyKeySet = selectorHandler.select(this);
             selectorWakeupFlag.set(false);
@@ -401,9 +413,16 @@ public final class SelectorRunner implements Runnable {
     }
 
     public Queue<SelectorHandlerTask> getPostponedTasks() {
-        return postponedTasks;
+        return currentPostponedTasks;
     }
 
+    public Queue<SelectorHandlerTask> obtainPostponedTasks() {
+        final Queue<SelectorHandlerTask> tasksToReturn = currentPostponedTasks;
+        currentPostponedTasks = (currentPostponedTasks == evenPostponedTasks) ?
+                oddPostponedTasks : evenPostponedTasks;
+        return tasksToReturn;
+    }
+    
     boolean isStop() {
         final State state = stateHolder.get();
 

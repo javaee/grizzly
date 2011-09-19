@@ -94,18 +94,25 @@ public final class SimpleDynamicNIOStrategy implements IOStrategy {
 
     }
 
+    @Override
+    public boolean executeIoEvent(Connection connection, IOEvent ioEvent) throws IOException {
+        return executeIoEvent(connection, ioEvent, true);
+    }
+
 
     // ------------------------------------------------- Methods from IOStrategy
 
 
     @Override
     public boolean executeIoEvent(final Connection connection,
-                                  final IOEvent ioEvent) throws IOException {
+            final IOEvent ioEvent, final boolean isIoEventEnabled)
+            throws IOException {
+        
         final int lastSelectedKeysCount = getLastSelectedKeysCount(connection);
 
         return ((lastSelectedKeysCount <= WORKER_THREAD_THRESHOLD)
-                     ? sameThreadStrategy.executeIoEvent(connection, ioEvent)
-                     : workerThreadStrategy.executeIoEvent(connection, ioEvent));
+                     ? sameThreadStrategy.executeIoEvent(connection, ioEvent, isIoEventEnabled)
+                     : workerThreadStrategy.executeIoEvent(connection, ioEvent, isIoEventEnabled));
     }
 
     @Override

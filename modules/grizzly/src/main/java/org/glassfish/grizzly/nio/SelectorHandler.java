@@ -60,7 +60,7 @@ public interface SelectorHandler {
 
     long getSelectTimeout();
 
-    void preSelect(SelectorRunner selectorRunner) throws IOException;
+    boolean preSelect(SelectorRunner selectorRunner) throws IOException;
     
     Set<SelectionKey> select(SelectorRunner selectorRunner) throws IOException;
     
@@ -113,10 +113,42 @@ public interface SelectorHandler {
     throws IOException;
 
 
-    GrizzlyFuture<Runnable> executeInSelectorThread(
+    /**
+     * Execute task in a selector thread.
+     * Unlike {@link #enque(org.glassfish.grizzly.nio.SelectorRunner, org.glassfish.grizzly.nio.SelectorHandler.Task, org.glassfish.grizzly.CompletionHandler)},
+     * this operation will execute the task immediately if the current
+     * is a selector thread.
+     * 
+     * @param selectorRunner
+     * @param task
+     * @param completionHandler
+     * @return 
+     */
+    GrizzlyFuture<Task> execute(
                                     final SelectorRunner selectorRunner,
-                                    final Runnable runnableTask,
-                                    final CompletionHandler<Runnable> completionHandler);
+                                    final Task task,
+                                    final CompletionHandler<Task> completionHandler);
+
+    /**
+     * Execute task in a selector thread.
+     * Unlike {@link #execute(org.glassfish.grizzly.nio.SelectorRunner, org.glassfish.grizzly.nio.SelectorHandler.Task, org.glassfish.grizzly.CompletionHandler)},
+     * this operation will postpone the task execution if current thread
+     * is a selector thread, and execute it during the next
+     * {@link #select(org.glassfish.grizzly.nio.SelectorRunner)} iteration.
+     * 
+     * @param selectorRunner
+     * @param task
+     * @param completionHandler
+     * @return 
+     */
+    GrizzlyFuture<Task> enque(
+                                    final SelectorRunner selectorRunner,
+                                    final Task task,
+                                    final CompletionHandler<Task> completionHandler);
 
     boolean onSelectorClosed(SelectorRunner selectorRunner);
+    
+    public static interface Task {
+        public boolean run() throws Exception;
+    }        
 }
