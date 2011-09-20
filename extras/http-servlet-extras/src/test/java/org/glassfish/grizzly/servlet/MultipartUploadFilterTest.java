@@ -110,6 +110,7 @@ public class MultipartUploadFilterTest extends TestCase {
                 Reader r = new InputStreamReader(new FileInputStream(f));
                 char[] buf = new char[512];
                 int read = r.read(buf);
+                r.close();
                 Assert.assertEquals(fileContent, new String(buf, 0, read));
                 Assert.assertTrue(f.exists());
                 Assert.assertTrue(f.canRead());
