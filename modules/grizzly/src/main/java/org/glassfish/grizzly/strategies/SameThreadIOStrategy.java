@@ -129,7 +129,7 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
 
         @Override
         public void onComplete(final Context context, final Object data) throws IOException {
-            if (isIOEventDisabled(context)) {
+            if (context.wasSuspended() || context.isManualIOEventControl()) {
                 final IOEvent ioEvent = context.getIoEvent();
                 final Connection connection = context.getConnection();
                 
@@ -144,7 +144,7 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
         @Override
         public void onContextSuspend(final Context context) throws IOException {
             // check manual io event control, to not disable ioevent twice
-            if (!isIOEventDisabled(context)) {
+            if (!context.isManualIOEventControl()) {
                 disableIOEvent(context);
             }
         }
@@ -153,7 +153,7 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
         public void onContextManualIOEventControl(final Context context)
                 throws IOException {
             // check suspended mode, to not disable ioevent twice
-            if (!isIOEventDisabled(context)) {
+            if (!context.wasSuspended()) {
                 disableIOEvent(context);
             }
         }
@@ -164,10 +164,7 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
             final IOEvent ioEvent = context.getIoEvent();
             connection.disableIOEvent(ioEvent);
         }
-        
-        private static boolean isIOEventDisabled(final Context context) {
-            return context.wasSuspended() || context.isManualIOEventControl();
-        }
+
     }
     
     private static final class InterestProcessingHandlerWhenIoDisabled
