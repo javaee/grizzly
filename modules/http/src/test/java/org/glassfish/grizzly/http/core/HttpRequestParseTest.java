@@ -197,8 +197,9 @@ public class HttpRequestParseTest extends TestCase {
 
             @Override
             protected void onHttpError(final HttpHeader httpHeader,
-                    final FilterChainContext ctx) throws IOException {
-                throw new IllegalStateException();
+                    final FilterChainContext ctx,
+                    final Throwable t) throws IOException {
+                throw new IllegalStateException(t);
             }
         };
         FilterChainContext ctx = FilterChainContext.create(new StandaloneConnection());

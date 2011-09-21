@@ -259,9 +259,11 @@ public abstract class HttpCodecFilter extends BaseFilter
      *
      * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
      * @param ctx the {@link FilterChainContext} processing this request
+     * @param t the cause of the error
      */
     protected abstract void onHttpError(HttpHeader httpHeader,
-                                        FilterChainContext ctx) throws IOException;
+                                        FilterChainContext ctx,
+                                        Throwable t) throws IOException;
 
     /**
      * Constructor, which creates <tt>HttpCodecFilter</tt> instance, with the specific
@@ -493,7 +495,7 @@ public abstract class HttpCodecFilter extends BaseFilter
 
         } catch (RuntimeException re) {
             HttpProbeNotifier.notifyProbesError(this, connection, httpHeader, re);
-            onHttpError(httpHeader, ctx);
+            onHttpError(httpHeader, ctx, re);
 
             // make the connection deaf to any following input
             // onHttpError call will take care of error processing

@@ -349,7 +349,8 @@ public class HttpServerFilter extends HttpCodecFilter {
 
     @Override
     protected void onHttpError(final HttpHeader httpHeader,
-            final FilterChainContext ctx) throws IOException {
+                               final FilterChainContext ctx,
+                               final Throwable t) throws IOException {
 
         final HttpRequestPacketImpl request = (HttpRequestPacketImpl) httpHeader;
         final HttpResponsePacket response = request.getResponse();
