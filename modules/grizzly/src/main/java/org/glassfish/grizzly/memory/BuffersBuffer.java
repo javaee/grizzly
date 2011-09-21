@@ -200,7 +200,11 @@ public final class BuffersBuffer extends CompositeBuffer {
     }
 
     @Override
-    public BuffersBuffer append(Buffer buffer) {
+    public BuffersBuffer append(final Buffer buffer) {
+        if (buffer == this) {
+            throw new IllegalArgumentException("CompositeBuffer can not append itself");
+        }
+        
         checkDispose();
         checkReadOnly();
 
@@ -213,12 +217,16 @@ public final class BuffersBuffer extends CompositeBuffer {
         limit = capacity;
 
         resetLastLocation();
-
+        
         return this;
     }
 
     @Override
-    public BuffersBuffer prepend(Buffer buffer) {
+    public BuffersBuffer prepend(final Buffer buffer) {
+        if (buffer == this) {
+            throw new IllegalArgumentException("CompositeBuffer can not append itself");
+        }
+        
         checkDispose();
         checkReadOnly();
 
@@ -237,6 +245,10 @@ public final class BuffersBuffer extends CompositeBuffer {
 
     @Override
     public boolean replace(final Buffer oldBuffer, final Buffer newBuffer) {
+        if (newBuffer == this) {
+            throw new IllegalArgumentException("CompositeBuffer can not append itself");
+        }
+        
         for (int i = 0; i < buffersSize; i++) {
             if (buffers[i] == oldBuffer) {
                 buffers[i] = newBuffer;

@@ -49,11 +49,12 @@ import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.NIOTransportBuilder;
 import org.glassfish.grizzly.TransformationException;
 import org.glassfish.grizzly.TransformationResult;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.ByteBufferArray;
+import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
@@ -91,7 +92,7 @@ public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buf
 
     @Override
     protected TransformationResult<Buffer, Buffer> transformImpl(
-            AttributeStorage state, Buffer originalMessage)
+            final AttributeStorage state, final Buffer originalMessage)
             throws TransformationException {
 
         final SSLEngine sslEngine = SSLUtils.getSSLEngine(state);
@@ -99,78 +100,130 @@ public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buf
             return HANDSHAKE_NOT_EXECUTED_RESULT;
         }
 
-        final Buffer targetBuffer = memoryManager.allocate(
-                    sslEngine.getSession().getPacketBufferSize());
-
-        TransformationResult<Buffer, Buffer> transformationResult = null;
-
-        try {
-            if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "SSLEncoder engine: {0} input: {1} output: {2}",
-                        new Object[]{sslEngine, originalMessage, targetBuffer});
-            }
-
-            final int pos = originalMessage.position();
-            final SSLEngineResult sslEngineResult;
-            if (!originalMessage.isComposite()) {
-                sslEngineResult = sslEngine.wrap(originalMessage.toByteBuffer(),
-                        targetBuffer.toByteBuffer());
-            } else {
-                final int appBufferSize = sslEngine.getSession().getApplicationBufferSize();
-                final ByteBuffer originalByteBuffer =
-                        originalMessage.toByteBuffer(pos,
-                        pos + Math.min(appBufferSize, originalMessage.remaining()));
-
-                sslEngineResult = sslEngine.wrap(originalByteBuffer,
-                        targetBuffer.toByteBuffer());
-
-            }
-
-            originalMessage.position(pos + sslEngineResult.bytesConsumed());
-            targetBuffer.position(sslEngineResult.bytesProduced());
-            
-            final SSLEngineResult.Status status = sslEngineResult.getStatus();
-
-            if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "SSLEncoder done engine: {0} result: {1} input: {2} output: {3}",
-                        new Object[]{sslEngine, sslEngineResult, originalMessage, targetBuffer});
-            }
-            
-            if (status == SSLEngineResult.Status.OK) {
-                targetBuffer.trim();
-                
-                transformationResult =
-                        TransformationResult.createCompletedResult(
-                        targetBuffer, originalMessage);
-            } else if (status == SSLEngineResult.Status.CLOSED) {
-                targetBuffer.dispose();
-                
-                transformationResult =
-                        TransformationResult.createCompletedResult(
-                        Buffers.EMPTY_BUFFER, originalMessage);
-            } else {
-                targetBuffer.dispose();
-
-                if (status == SSLEngineResult.Status.BUFFER_UNDERFLOW) {
-                    transformationResult =
-                            TransformationResult.createErrorResult(
-                            BUFFER_UNDERFLOW_ERROR,
-                            "Buffer underflow during wrap operation");
-                } else if (status == SSLEngineResult.Status.BUFFER_OVERFLOW) {
-                    transformationResult =
-                            TransformationResult.createErrorResult(
-                            BUFFER_OVERFLOW_ERROR,
-                            "Buffer overflow during wrap operation");
-                }
-            }
-        } catch (SSLException e) {
-            targetBuffer.dispose();
-            throw new TransformationException(e);
+        synchronized(state) {   // synchronize parallel writers here
+            return wrapAll(sslEngine, originalMessage);
         }
-
-        return transformationResult;
     }
 
+    private TransformationResult<Buffer, Buffer> wrapAll(
+            final SSLEngine sslEngine,
+            final Buffer originalMessage) throws TransformationException {
+
+        TransformationResult<Buffer, Buffer> transformationResult = null;
+        
+        Buffer targetBuffer = null;
+        Buffer currentTargetBuffer = null;
+        
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "SSLEncoder engine: {0} input: {1} output: {2}",
+                    new Object[]{sslEngine, originalMessage, targetBuffer});
+        }
+
+        final ByteBufferArray originalByteBufferArray =
+                originalMessage.toByteBufferArray();
+
+        for (int i = 0; i < originalByteBufferArray.size(); i++) {
+            final ByteBuffer originalByteBuffer = originalByteBufferArray.getArray()[i];
+            
+            currentTargetBuffer = allowDispose(memoryManager.allocate(
+                    sslEngine.getSession().getPacketBufferSize()));
+            
+            final ByteBuffer currentTargetByteBuffer =
+                    currentTargetBuffer.toByteBuffer();
+
+            try {
+                final SSLEngineResult sslEngineResult =
+                        sslEngine.wrap(originalByteBuffer,
+                        currentTargetByteBuffer);
+
+                originalMessage.position(
+                        originalMessage.position() + sslEngineResult.bytesConsumed());
+
+                final SSLEngineResult.Status status = sslEngineResult.getStatus();
+
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, "SSLEncoder done engine: {0} result: {1} input: {2} output: {3}",
+                            new Object[]{sslEngine, sslEngineResult, originalMessage, targetBuffer});
+                }
+
+                if (status == SSLEngineResult.Status.OK) {
+                    currentTargetBuffer.position(sslEngineResult.bytesProduced());
+                    currentTargetBuffer.trim();
+                    targetBuffer = Buffers.appendBuffers(memoryManager,
+                            targetBuffer, currentTargetBuffer);
+
+                } else if (status == SSLEngineResult.Status.CLOSED) {
+                    transformationResult =
+                            TransformationResult.createCompletedResult(
+                            Buffers.EMPTY_BUFFER, originalMessage);
+                    break;
+                } else {
+                    if (status == SSLEngineResult.Status.BUFFER_UNDERFLOW) {
+                        transformationResult =
+                                TransformationResult.createErrorResult(
+                                BUFFER_UNDERFLOW_ERROR,
+                                "Buffer underflow during wrap operation");
+                    } else if (status == SSLEngineResult.Status.BUFFER_OVERFLOW) {
+                        transformationResult =
+                                TransformationResult.createErrorResult(
+                                BUFFER_OVERFLOW_ERROR,
+                                "Buffer overflow during wrap operation");
+                    }
+                    break;
+                }
+            } catch (SSLException e) {
+                disposeBuffers(currentTargetBuffer, targetBuffer);
+
+                originalByteBufferArray.restore();
+
+                throw new TransformationException(e);
+            }
+            
+            if (originalByteBuffer.hasRemaining()) { // Keep working with the current source ByteBuffer
+                i--;
+            }
+        }
+
+        originalByteBufferArray.restore();
+        originalByteBufferArray.recycle();
+        
+        if (transformationResult != null) { // transformation error case
+            disposeBuffers(currentTargetBuffer, targetBuffer);
+            
+            return transformationResult;
+        }
+        
+        assert !originalMessage.hasRemaining();
+        
+        return TransformationResult.createCompletedResult(
+                allowDispose(targetBuffer), originalMessage);      
+    }
+
+    private static void disposeBuffers(final Buffer currentBuffer, final Buffer bigBuffer) {
+        if (currentBuffer != null) {
+            currentBuffer.dispose();
+        }
+
+        if (bigBuffer != null) {
+            bigBuffer.allowBufferDispose(true);
+            if (bigBuffer.isComposite()) {
+                ((CompositeBuffer) bigBuffer).allowInternalBuffersDispose(true);
+            }
+            
+            bigBuffer.dispose();
+        }
+    }
+    
+    private static Buffer allowDispose(final Buffer buffer) {
+        buffer.allowBufferDispose(true);
+        if (buffer.isComposite()) {
+            ((CompositeBuffer) buffer).allowInternalBuffersDispose(true);
+        }
+        
+        return buffer;
+    }
+    
+    
     @Override
     public boolean hasInputRemaining(AttributeStorage storage, Buffer input) {
         return input != null && input.hasRemaining();

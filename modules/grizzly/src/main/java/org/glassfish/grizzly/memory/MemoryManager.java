@@ -112,7 +112,7 @@ public interface MemoryManager<E extends Buffer>
     
     /**
      * Return <tt>true</tt> if next {@link #allocate(int)} or {@link #allocateAtLeast(int)} call,
-     * made in the current thread for the give memory size, going to return a {@link Buffer} based
+     * made in the current thread for the given memory size, going to return a {@link Buffer} based
      * on direct {@link java.nio.ByteBuffer}, or <tt>false</tt> otherwise.
      * 
      * @param size
