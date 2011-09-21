@@ -114,11 +114,6 @@ public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buf
         Buffer targetBuffer = null;
         Buffer currentTargetBuffer = null;
         
-        if (LOGGER.isLoggable(Level.FINE)) {
-            LOGGER.log(Level.FINE, "SSLEncoder engine: {0} input: {1} output: {2}",
-                    new Object[]{sslEngine, originalMessage, targetBuffer});
-        }
-
         final ByteBufferArray originalByteBufferArray =
                 originalMessage.toByteBufferArray();
 
@@ -132,6 +127,11 @@ public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buf
                     currentTargetBuffer.toByteBuffer();
 
             try {
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, "SSLEncoder engine: {0} input: {1} output: {2}",
+                            new Object[]{sslEngine, originalByteBuffer, currentTargetByteBuffer});
+                }
+                
                 final SSLEngineResult sslEngineResult =
                         sslEngine.wrap(originalByteBuffer,
                         currentTargetByteBuffer);
@@ -143,7 +143,7 @@ public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buf
 
                 if (LOGGER.isLoggable(Level.FINE)) {
                     LOGGER.log(Level.FINE, "SSLEncoder done engine: {0} result: {1} input: {2} output: {3}",
-                            new Object[]{sslEngine, sslEngineResult, originalMessage, targetBuffer});
+                            new Object[]{sslEngine, sslEngineResult, originalByteBuffer, currentTargetByteBuffer});
                 }
 
                 if (status == SSLEngineResult.Status.OK) {
