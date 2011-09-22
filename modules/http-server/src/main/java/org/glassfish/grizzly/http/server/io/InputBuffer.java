@@ -59,6 +59,7 @@ import java.nio.charset.CodingErrorAction;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
+import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
@@ -70,6 +71,11 @@ import org.glassfish.grizzly.utils.Exceptions;
  */
 public class InputBuffer {
 
+    /**
+     * The {@link org.glassfish.grizzly.http.server.Request} associated with this <code>InputBuffer</code>
+     */
+    private Request serverRequest;
+    
     /**
      * The {@link org.glassfish.grizzly.http.HttpRequestPacket} associated with this <code>InputBuffer</code>
      */
@@ -174,7 +180,8 @@ public class InputBuffer {
      */
     private float averageCharsPerByte = 1.0f;
 
-
+    private boolean isWaitingDataAsynchronously;
+    
     // ------------------------------------------------------------ Constructors
 
 
@@ -187,16 +194,18 @@ public class InputBuffer {
      * @param request the current request
      * @param ctx the FilterChainContext for the chain processing this request
      */
-    public void initialize(final HttpRequestPacket request,
+    public void initialize(final Request serverRequest,
             final FilterChainContext ctx) {
 
-        if (request == null) {
+        if (serverRequest == null) {
             throw new IllegalArgumentException("request cannot be null.");
         }
         if (ctx == null) {
             throw new IllegalArgumentException("ctx cannot be null.");
         }
-        this.request = request;
+        this.serverRequest = serverRequest;
+        this.request = serverRequest.getRequest();
+        
         this.ctx = ctx;
         connection = ctx.getConnection();
         final Object message = ctx.getMessage();
@@ -246,6 +255,8 @@ public class InputBuffer {
         readCount = 0;
 
         averageCharsPerByte = 1.0f;
+        
+        isWaitingDataAsynchronously = false;
 
         encoding = DEFAULT_CHARACTER_ENCODING;
 
@@ -742,6 +753,10 @@ public class InputBuffer {
         requestedSize = size;
         this.handler = handler;
 
+        if (!isWaitingDataAsynchronously) {
+            isWaitingDataAsynchronously = true;
+            serverRequest.initiateAsyncronousDataReceiving();
+        }
     }
 
 

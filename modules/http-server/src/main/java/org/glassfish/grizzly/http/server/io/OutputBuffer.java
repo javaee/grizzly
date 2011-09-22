@@ -67,6 +67,7 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.http.server.Constants;
+import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.util.Charsets;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
@@ -141,10 +142,10 @@ public class OutputBuffer {
     // ---------------------------------------------------------- Public Methods
 
 
-    public void initialize(HttpResponsePacket response,
-                           FilterChainContext ctx) {
+    public void initialize(final Response response,
+                           final FilterChainContext ctx) {
 
-        this.response = response;
+        this.response = response.getResponse();
         this.ctx = ctx;
         memoryManager = ctx.getMemoryManager();
         final Connection c = ctx.getConnection();

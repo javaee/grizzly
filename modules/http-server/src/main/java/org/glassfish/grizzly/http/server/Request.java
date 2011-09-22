@@ -431,7 +431,7 @@ public class Request {
         this.request = request;
         this.ctx = ctx;
         this.httpServerFilter = httpServerFilter;
-        inputBuffer.initialize(request, ctx);
+        inputBuffer.initialize(this, ctx);
 
         parameters.setHeaders(request.getHeaders());
         parameters.setQuery(request.getQueryStringDC());
@@ -2312,6 +2312,18 @@ public class Request {
 
         this.requestedSessionURL = flag;
 
+    }
+
+    /**
+     * Initiates asynchronous data receiving.
+     * 
+     * This is service method, usually users don't have to call it explicitly.
+     */
+    public void initiateAsyncronousDataReceiving() {
+        httpServerFilter.reregisterForReadAttr.set(ctx, Boolean.TRUE);
+        // resume context to pass control to HttpServerFilter, which is going to
+        // check the reregisterForReadAttr and enable asynchronous reading.
+        ctx.resume();
     }
 
     private final static class SimpleDateFormats {

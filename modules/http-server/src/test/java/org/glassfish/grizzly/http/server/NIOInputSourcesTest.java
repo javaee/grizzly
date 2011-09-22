@@ -72,6 +72,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -83,6 +84,7 @@ import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.ByteBufferManager;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
+import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 
 /**
  * Test case to exercise <code>AsyncStreamReader</code>.
@@ -273,6 +275,57 @@ public class NIOInputSourcesTest extends TestCase {
         
         transport.setMemoryManager(memoryManager);
         doTest(httpServer, httpHandler, request, expected, testResult, strategy, 30);
+    }
+    
+    public void testAsyncReadStartedOutsideHttpHandler() throws Throwable {
+
+        final ExecutorService threadPool = GrizzlyExecutorService.createInstance();
+        try {
+            final FutureImpl<String> testResult = SafeFutureImpl.create();
+            final EchoHandler httpHandler = new EchoHttpHandler2(testResult, 0, threadPool);
+            final String expected = buildString(5000);
+
+            final HttpRequestPacket.Builder b = HttpRequestPacket.builder();
+            b.method("POST").protocol(Protocol.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost:" + PORT);
+            b.contentLength(expected.length());
+            final HttpRequestPacket request = b.build();
+
+            final WriteStrategy strategy = new WriteStrategy() {
+                @Override
+                public void doWrite(FilterChainContext ctx) throws IOException {
+
+                    ctx.write(request);
+                    MemoryManager mm = ctx.getMemoryManager();
+
+                    for (int i = 0, count = (5000 / 1000); i < count; i++) {
+                        int start = 0;
+                        if (i != 0) {
+                            start = i * 1000;
+                        }
+                        int end = start + 1000;
+                        String content = expected.substring(start, end);
+                        Buffer buf = mm.allocate(content.length());
+                        buf.put(content.getBytes());
+                        buf.flip();
+                        HttpContent.Builder cb = request.httpContentBuilder();
+                        cb.content(buf);
+                        HttpContent ct = cb.build();
+                        ctx.write(ct);
+                        try {
+                            Thread.sleep(300);
+                        } catch (InterruptedException ie) {
+                            ie.printStackTrace();
+                            testResult.failure(ie);
+                            break;
+                        }
+                    }
+                }
+            };
+            doTest(httpHandler, request, expected, testResult, strategy, 3000);
+        } finally {
+            threadPool.shutdownNow();
+        }
+        
     }
     
     /*
@@ -605,7 +658,7 @@ public class NIOInputSourcesTest extends TestCase {
             Connection connection = null;
             try {
                 connection = connectFuture.get(timeout, TimeUnit.SECONDS);
-                String res = testResult.get();
+                String res = testResult.get(timeout, TimeUnit.SECONDS);
                 if (res != null) {
                     assertEquals("Expected a return content length of " + expectedResult.length() + ", received: " + res.length(),
                             expectedResult.length(),
@@ -774,7 +827,102 @@ public class NIOInputSourcesTest extends TestCase {
 
     } // END EchoHttpHandler
 
+    private static class EchoHttpHandler2 extends EchoHandler {
 
+        private final FutureImpl<String> testResult;
+        private final int readSize;
+        private final ExecutorService threadPool;
+
+        private final StringBuffer echoedString = new StringBuffer();
+
+        // -------------------------------------------------------- Constructors
+
+
+        EchoHttpHandler2(final FutureImpl<String> testResult, final int readSize,
+                final ExecutorService threadPool) {
+
+            this.testResult = testResult;
+            this.readSize = readSize;
+            this.threadPool = threadPool;
+
+        }
+
+
+        // ----------------------------------------- Methods from HttpHandler
+
+        @Override
+        public void service(final Request req,
+                            final Response res)
+                throws Exception {
+
+            try {
+                res.suspend();
+
+                threadPool.execute(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        final NIOInputStream reader = req.getNIOInputStream();
+                        final NIOOutputStream writer = res.getNIOOutputStream();
+                        
+                        reader.notifyAvailable(new ReadHandler() {
+
+                            @Override
+                            public void onDataAvailable() {
+                                try {
+                                    echo(reader, writer, echoedString);
+                                } catch (Exception ioe) {
+                                    testResult.failure(ioe);
+                                }
+                                reader.notifyAvailable(this, readSize);
+                            }
+
+                            @Override
+                            public void onAllDataRead() {
+                                try {
+                                    echo(reader, writer, echoedString);
+                                } catch (Exception ioe) {
+                                    testResult.failure(ioe);
+                                }
+                                res.resume();
+
+                            }
+
+                            @Override
+                            public void onError(Throwable t) {
+                                res.resume();
+                                throw new RuntimeException(t);
+                            }
+                        }, readSize);
+                    }
+                });
+            } catch (Throwable t) {
+                testResult.failure(t);
+            }
+
+        }
+
+        private static void echo(NIOInputStream reader, NIOOutputStream writer,
+                StringBuffer sb) throws IOException {
+            
+            int available = reader.readyData();
+            if (available > 0) {
+                byte[] b = new byte[available];
+                int read = reader.read(b);
+                sb.append(new String(b, 0, read));
+                writer.write(b, 0, read);
+            }
+        }
+
+        @Override
+        public String getEchoedString() {
+            return echoedString.toString();
+        }
+
+
+    } // END EchoHttpHandler
+    
+    
     private static class DirectBufferEchoHttpHandler extends EchoHandler {
 
         private final FutureImpl<String> testResult;

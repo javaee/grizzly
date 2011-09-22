@@ -269,7 +269,7 @@ public class Response {
                            final DelayedExecutor.DelayQueue<Response> delayQueue) {
         this.request = request;
         this.response = response;
-        outputBuffer.initialize(response, ctx);
+        outputBuffer.initialize(this, ctx);
         this.ctx = ctx;
         this.delayQueue = delayQueue;
         
