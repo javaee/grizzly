@@ -466,7 +466,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
         usingReader = true;
         //inputBuffer.checkConverter();
         if (reader == null) {
-            reader = new ServletReaderImpl(request.getReader(false));
+            reader = new ServletReaderImpl(request.getReader());
         }
         
         return reader;

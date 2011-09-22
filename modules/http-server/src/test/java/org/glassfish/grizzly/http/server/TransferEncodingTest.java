@@ -372,7 +372,7 @@ public class TransferEncodingTest extends TestCase {
                 sb.append((char) ('0' + (i % 10)));
             }
             
-            response.getWriter().write(sb.toString());
+            response.getNIOWriter().write(sb.toString());
         }
 
     }
@@ -392,7 +392,7 @@ public class TransferEncodingTest extends TestCase {
                 sb.append((char) ('0' + (i % 10)));
             }
 
-            response.getWriter().write(sb.toString());
+            response.getNIOWriter().write(sb.toString());
         }
     }
 
@@ -410,7 +410,7 @@ public class TransferEncodingTest extends TestCase {
                 sb.append((char) ('0' + (i % 10)));
             }
 
-            response.getWriter().write(sb.toString());
+            response.getNIOWriter().write(sb.toString());
         }
     }
 
@@ -423,8 +423,8 @@ public class TransferEncodingTest extends TestCase {
 
             response.suspend();
 
-            final NIOInputStream inputStream = request.getInputStream(false);
-            final NIOOutputStream outputStream = response.getOutputStream();
+            final NIOInputStream inputStream = request.getNIOInputStream();
+            final NIOOutputStream outputStream = response.getNIOOutputStream();
             
             inputStream.notifyAvailable(new ReadHandler() {
 

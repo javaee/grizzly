@@ -96,7 +96,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter();
+                Writer writer = response.getNIOWriter();
                 for (int i = 0, len = content.length; i < len; i++) {
                     writer.write(content[i]);
                 }
@@ -125,7 +125,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter();
+                Writer writer = response.getNIOWriter();
                 for (int i = 0, len = content.length; i < len; i++) {
                     writer.write(content[i]);
                 }
@@ -144,7 +144,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter();
+                Writer writer = response.getNIOWriter();
                 writer.write(sb.toString());
             }
         };
@@ -154,7 +154,7 @@ public class HttpResponseStreamsTest extends TestCase {
         s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter();
+                Writer writer = response.getNIOWriter();
                 writer.write(sb.toString().toCharArray());
             }
         };
@@ -171,7 +171,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter();
+                Writer writer = response.getNIOWriter();
                 writer.write(sb.toString());
             }
         };
@@ -181,7 +181,7 @@ public class HttpResponseStreamsTest extends TestCase {
         s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter();
+                Writer writer = response.getNIOWriter();
                 writer.write(sb.toString().toCharArray());
             }
         };
@@ -198,7 +198,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter();
+                Writer writer = response.getNIOWriter();
                 for (int i = 0, len = sb.length(); i < len; i++) {
                     writer.write(sb.charAt(i));
                 }
@@ -217,7 +217,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter();
+                Writer writer = response.getNIOWriter();
                 for (int i = 0, len = sb.length(); i < len; i++) {
                     writer.write(sb.charAt(i));
                 }
@@ -237,7 +237,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter();
+                Writer writer = response.getNIOWriter();
                 writer.write(sb.toString());
             }
         };
@@ -255,7 +255,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter();
+                Writer writer = response.getNIOWriter();
                 writer.write(sb.toString().toCharArray());
             }
         };
@@ -273,7 +273,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter();
+                Writer writer = response.getNIOWriter();
                 writer.write(sb.toString().toCharArray());
             }
         };
@@ -291,7 +291,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter();
+                Writer writer = response.getNIOWriter();
                 // write in 3k chunks
                 int off = 0;
                 int writeLen = 1024 * 3;
@@ -317,7 +317,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter();
+                Writer writer = response.getNIOWriter();
                 // write in 3k chunks
                 int off = 0;
                 int writeLen = 1024 * 3;
@@ -344,7 +344,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter();
+                Writer writer = response.getNIOWriter();
                 // write in 9k chunks
                 int off = 0;
                 int writeLen = 1024 * 9;
@@ -370,7 +370,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter();
+                Writer writer = response.getNIOWriter();
                 // write in 9k chunks
                 int off = 0;
                 int writeLen = 1024 * 9;
@@ -406,7 +406,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter(true);
+                Writer writer = response.getWriter();
                 for (int i = 0, len = content.length; i < len; i++) {
                     writer.write(content[i]);
                 }
@@ -435,7 +435,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter(true);
+                Writer writer = response.getWriter();
                 for (int i = 0, len = content.length; i < len; i++) {
                     writer.write(content[i]);
                 }
@@ -454,7 +454,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter(true);
+                Writer writer = response.getWriter();
                 writer.write(sb.toString());
             }
         };
@@ -464,7 +464,7 @@ public class HttpResponseStreamsTest extends TestCase {
         s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter();
+                Writer writer = response.getNIOWriter();
                 writer.write(sb.toString().toCharArray());
             }
         };
@@ -481,7 +481,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter(true);
+                Writer writer = response.getWriter();
                 writer.write(sb.toString());
             }
         };
@@ -491,7 +491,7 @@ public class HttpResponseStreamsTest extends TestCase {
         s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter();
+                Writer writer = response.getNIOWriter();
                 writer.write(sb.toString().toCharArray());
             }
         };
@@ -508,7 +508,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter(true);
+                Writer writer = response.getWriter();
                 for (int i = 0, len = sb.length(); i < len; i++) {
                     writer.write(sb.charAt(i));
                 }
@@ -527,7 +527,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter(true);
+                Writer writer = response.getWriter();
                 for (int i = 0, len = sb.length(); i < len; i++) {
                     writer.write(sb.charAt(i));
                 }
@@ -547,7 +547,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter(true);
+                Writer writer = response.getWriter();
                 writer.write(sb.toString());
             }
         };
@@ -565,7 +565,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter(true);
+                Writer writer = response.getWriter();
                 writer.write(sb.toString().toCharArray());
             }
         };
@@ -583,7 +583,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter(true);
+                Writer writer = response.getWriter();
                 writer.write(sb.toString().toCharArray());
             }
         };
@@ -601,7 +601,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter(true);
+                Writer writer = response.getWriter();
                 // write in 3k chunks
                 int off = 0;
                 int writeLen = 1024 * 3;
@@ -627,7 +627,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter(true);
+                Writer writer = response.getWriter();
                 // write in 3k chunks
                 int off = 0;
                 int writeLen = 1024 * 3;
@@ -654,7 +654,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter(true);
+                Writer writer = response.getWriter();
                 // write in 9k chunks
                 int off = 0;
                 int writeLen = 1024 * 9;
@@ -680,7 +680,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                Writer writer = response.getWriter(true);
+                Writer writer = response.getWriter();
                 // write in 9k chunks
                 int off = 0;
                 int writeLen = 1024 * 9;
@@ -718,7 +718,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                OutputStream out = response.getOutputStream();
+                OutputStream out = response.getNIOOutputStream();
                 for (int i = 0, len = content.length; i < len; i++) {
                     out.write(content[i]);
                 }
@@ -737,7 +737,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                OutputStream out = response.getOutputStream();
+                OutputStream out = response.getNIOOutputStream();
                 for (int i = 0, len = sb.length(); i < len; i++) {
                     out.write(sb.charAt(i));
                 }
@@ -756,7 +756,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                OutputStream out = response.getOutputStream();
+                OutputStream out = response.getNIOOutputStream();
                 for (int i = 0, len = sb.length(); i < len; i++) {
                     out.write(sb.charAt(i));
                 }
@@ -776,7 +776,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                OutputStream out = response.getOutputStream();
+                OutputStream out = response.getNIOOutputStream();
                 out.write(sb.toString().getBytes());
             }
         };
@@ -794,7 +794,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                OutputStream out = response.getOutputStream();
+                OutputStream out = response.getNIOOutputStream();
                 out.write(sb.toString().getBytes());
             }
         };
@@ -812,7 +812,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                OutputStream out = response.getOutputStream();
+                OutputStream out = response.getNIOOutputStream();
                 // write in 3k chunks
                 int off = 0;
                 int writeLen = 1024 * 3;
@@ -838,7 +838,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                OutputStream out = response.getOutputStream();
+                OutputStream out = response.getNIOOutputStream();
                 // write in 9k chunks
                 int off = 0;
                 int writeLen = 1024 * 9;
@@ -872,7 +872,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                OutputStream out = response.getOutputStream(true);
+                OutputStream out = response.getOutputStream();
                 for (int i = 0, len = content.length; i < len; i++) {
                     out.write(content[i]);
                 }
@@ -891,7 +891,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                OutputStream out = response.getOutputStream(true);
+                OutputStream out = response.getOutputStream();
                 for (int i = 0, len = sb.length(); i < len; i++) {
                     out.write(sb.charAt(i));
                 }
@@ -910,7 +910,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                OutputStream out = response.getOutputStream(true);
+                OutputStream out = response.getOutputStream();
                 for (int i = 0, len = sb.length(); i < len; i++) {
                     out.write(sb.charAt(i));
                 }
@@ -930,7 +930,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                OutputStream out = response.getOutputStream(true);
+                OutputStream out = response.getOutputStream();
                 out.write(sb.toString().getBytes());
             }
         };
@@ -948,7 +948,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                OutputStream out = response.getOutputStream(true);
+                OutputStream out = response.getOutputStream();
                 out.write(sb.toString().getBytes());
             }
         };
@@ -966,7 +966,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                OutputStream out = response.getOutputStream(true);
+                OutputStream out = response.getOutputStream();
                 // write in 3k chunks
                 int off = 0;
                 int writeLen = 1024 * 3;
@@ -992,7 +992,7 @@ public class HttpResponseStreamsTest extends TestCase {
         WriteStrategy s = new WriteStrategy() {
             @Override public void doWrite(Response response)
                   throws IOException {
-                OutputStream out = response.getOutputStream(true);
+                OutputStream out = response.getOutputStream();
                 // write in 9k chunks
                 int off = 0;
                 int writeLen = 1024 * 9;

@@ -72,7 +72,7 @@ public class CometTestHttpHandler extends HttpHandler {
 
     private void doEvent(CometEvent event, CometHandler handler) throws IOException {
         if (event.getType() == CometEvent.Type.NOTIFY) {
-            final NIOOutputStream outputStream = handler.getResponse().getOutputStream();
+            final NIOOutputStream outputStream = handler.getResponse().getNIOOutputStream();
             outputStream.write((Byte) event.attachment());
             outputStream.flush();
             if (!useStreaming) {

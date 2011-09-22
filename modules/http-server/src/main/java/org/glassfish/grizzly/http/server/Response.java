@@ -59,6 +59,8 @@
 package org.glassfish.grizzly.http.server;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.Writer;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.AccessController;
@@ -580,53 +582,35 @@ public class Response {
 
     /**
      * <p>
-     * Create and return the {@link NIOOutputStream} associated with this {@link Response}.
-     * </p>
-     *
-     * @param blocking flag indicating if content written using this
-     *  {@link NIOOutputStream} will block or not.
-     *
-     * @return the {@link NIOOutputStream} associated with this {@link Response}.
-     *
-     * @since 2.2
-     */
-    public NIOOutputStream createOutputStream(final boolean blocking) {
-        outputBuffer.setAsyncEnabled(!blocking);
-        outputStream.setOutputBuffer(outputBuffer);
-        return outputStream;
-    }
-    
-    /**
-     * <p>
      * Return the {@link NIOOutputStream} associated with this {@link Response}.
      * This {@link NIOOutputStream} will write content in a non-blocking manner.
      * </p>
      *
-    * @throws IllegalStateException if {@link #getWriter()} or {@link #getWriter(boolean)}
+    * @throws IllegalStateException if {@link #getWriter()} or {@link #getNIOWriter()}
      *  were already invoked.
      */
-    public NIOOutputStream getOutputStream() {
-
-        return getOutputStream(false);
-
+    public NIOOutputStream getNIOOutputStream() {
+        return getOutputStream0(false);
     }
 
     /**
      * <p>
-     * Return the {@link NIOOutputStream} associated with this {@link Response}.
+     * Return the {@link OutputStream} associated with this {@link Response}.
+     * This {@link OutputStream} will write content in a blocking manner.
      * </p>
-     *
-     * @param blocking flag indicating if content written using this
-     *  {@link NIOOutputStream} will block or not.
      *
      * @return the {@link NIOOutputStream} associated with this {@link Response}.
      *
-     * @throws IllegalStateException if {@link #getWriter()} or {@link #getWriter(boolean)}
+     * @throws IllegalStateException if {@link #getWriter()} or {@link #getNIOWriter()}
      *  were already invoked.
      *
      * @since 2.1.2
      */
-    public NIOOutputStream getOutputStream(final boolean blocking) {
+    public OutputStream getOutputStream() {
+        return getOutputStream0(true);
+    }
+
+    private NIOOutputStream getOutputStream0(final boolean blocking) {
 
         if (usingWriter)
             throw new IllegalStateException("Illegal attempt to call getOutputStream() after getWriter() has already been called.");
@@ -637,7 +621,6 @@ public class Response {
         return outputStream;
 
     }
-
 
     /**
      * Return the Locale assigned to this response.
@@ -655,16 +638,16 @@ public class Response {
 
     /**
      * <p>
-     * Return the {@link NIOWriter} associated with this {@link Response}.
-     * The {@link NIOWriter} will write content in a non-blocking manner.
+     * Return the {@link Writer} associated with this {@link Response}.
+     * The {@link Writer} will write content in a blocking manner.
      * </p>
      *
      * @throws IllegalStateException if {@link #getOutputStream()} or
-     *  {@link #getOutputStream(boolean)} were already invoked.
+     *  {@link #getNIOOutputStream()} were already invoked.
      */
-    public NIOWriter getWriter() {
+    public Writer getWriter() {
 
-        return getWriter(false);
+        return getWriter0(true);
 
     }
 
@@ -672,20 +655,21 @@ public class Response {
     /**
      * <p>
      * Return the {@link NIOWriter} associated with this {@link Response}.
+     * The {@link NIOWriter} will write content in a non-blocking manner.
      * </p>
-     *
-     * @param blocking flag indicating if content written using this
-     *  {@link NIOWriter} will block or not.
      *
      * @return the {@link NIOWriter} associated with this {@link Response}.
      *
      * @throws IllegalStateException if {@link #getOutputStream()} or
-     *  {@link #getOutputStream(boolean)} were already invoked.
+     *  {@link #getNIOOutputStream()} were already invoked.
      *
      * @since 2.1.2
      */
-    public NIOWriter getWriter(boolean blocking) {
+    public NIOWriter getNIOWriter() {
+        return getWriter0(false);
+    }
 
+    private NIOWriter getWriter0(final boolean blocking) {
         if (usingOutputStream)
             throw new IllegalStateException("Illegal attempt to call getWriter() after getOutputStream() has already been called.");
 

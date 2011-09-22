@@ -96,7 +96,7 @@ public class HttpInputStreamsTest extends TestCase {
                     throws IOException {
 
                 // test issues a GET, so the InputStream should be inert
-                InputStream in = request.getInputStream(true);
+                InputStream in = request.getInputStream();
                 assertNotNull(in);
                 assertEquals(0, in.available());
                 assertEquals(-1, in.read());
@@ -118,7 +118,7 @@ public class HttpInputStreamsTest extends TestCase {
         ReadStrategy reader = new ReadStrategy() {
             @Override public boolean doRead(Request request)
                     throws IOException {
-                InputStream in = request.getInputStream(true);
+                InputStream in = request.getInputStream();
                 try {
                     in.reset();
                     fail();
@@ -141,7 +141,7 @@ public class HttpInputStreamsTest extends TestCase {
             @Override public boolean doRead(Request request)
             throws IOException {
                 StringBuilder sb = new StringBuilder(expected.length());
-                InputStream in = request.getInputStream(true);
+                InputStream in = request.getInputStream();
 
                 for (int j = 0; j < 5; j++) {
                     sb.append((char) in.read());
@@ -180,7 +180,7 @@ public class HttpInputStreamsTest extends TestCase {
             @Override public boolean doRead(Request request)
                     throws IOException {
                 StringBuilder sb = new StringBuilder(5);
-                InputStream in = request.getInputStream(true);
+                InputStream in = request.getInputStream();
 
                 for (int j = 0; j < 5; j++) {
                     sb.append((char) in.read());
@@ -216,7 +216,7 @@ public class HttpInputStreamsTest extends TestCase {
             public boolean doRead(Request request)
                     throws IOException {
                 StringBuilder sb = new StringBuilder(5);
-                InputStream in = request.getInputStream(true);
+                InputStream in = request.getInputStream();
 
                 for (int j = 0; j < 5; j++) {
                     sb.append((char) in.read());
@@ -266,7 +266,7 @@ public class HttpInputStreamsTest extends TestCase {
             public boolean doRead(Request request)
                     throws IOException {
                 StringBuilder sb = new StringBuilder(16);
-                InputStream in = request.getInputStream(true);
+                InputStream in = request.getInputStream();
                 long skipped = in.skip(0);
                 assertEquals(0, skipped);
                 skipped = in.skip(-1000);
@@ -297,7 +297,7 @@ public class HttpInputStreamsTest extends TestCase {
             @Override
             public boolean doRead(Request request)
                     throws IOException {
-                InputStream in = request.getInputStream(true);
+                InputStream in = request.getInputStream();
                 long skipped = in.skip(100);
                 assertEquals(26, skipped);
                 assertEquals(0, in.available());
@@ -320,7 +320,7 @@ public class HttpInputStreamsTest extends TestCase {
             @Override
             public boolean doRead(Request request)
                     throws IOException {
-                InputStream in = request.getInputStream(true);
+                InputStream in = request.getInputStream();
                 byte[] b = new byte[expected.length()];
                 assertEquals(26, in.read(b));
                 assertEquals(expected, new String(b));
@@ -342,7 +342,7 @@ public class HttpInputStreamsTest extends TestCase {
             @Override
             public boolean doRead(Request request)
                     throws IOException {
-                InputStream in = request.getInputStream(true);
+                InputStream in = request.getInputStream();
                 byte[] b = new byte[14];
                 assertEquals(5, in.read(b, 2, 5));
                 assertTrue(in.available() > 0);
@@ -364,7 +364,7 @@ public class HttpInputStreamsTest extends TestCase {
             @Override
             public boolean doRead(Request request)
                     throws IOException {
-                InputStream in = request.getInputStream(true);
+                InputStream in = request.getInputStream();
                 byte[] b = new byte[expected.length() - 2];
                 assertEquals(24, in.read(b));
                 assertEquals(expected.substring(0, 24), new String(b));
@@ -396,7 +396,7 @@ public class HttpInputStreamsTest extends TestCase {
         ReadStrategy reader = new ReadStrategy() {
             @Override public boolean doRead(Request request)
                     throws IOException {
-                InputStream in = request.getInputStream(true);
+                InputStream in = request.getInputStream();
                 StringBuilder sb = new StringBuilder();
                 byte[] buf = new byte[512];
                 for (int i = in.read(buf); i != -1; i = in.read(buf)) {
@@ -429,7 +429,7 @@ public class HttpInputStreamsTest extends TestCase {
         ReadStrategy reader = new ReadStrategy() {
             @Override public boolean doRead(Request request)
                     throws IOException {
-                InputStream in = request.getInputStream(true);
+                InputStream in = request.getInputStream();
                 StringBuilder sb = new StringBuilder();
                 byte[] buf = new byte[512];
                 for (int i = in.read(buf); i != -1; i = in.read(buf)) {
@@ -456,7 +456,7 @@ public class HttpInputStreamsTest extends TestCase {
         ReadStrategy reader = new ReadStrategy() {
             @Override public boolean doRead(Request request)
                     throws IOException {
-                Reader in = request.getReader(true);
+                Reader in = request.getReader();
                 try {
                     in.reset();
                     fail();
@@ -479,7 +479,7 @@ public class HttpInputStreamsTest extends TestCase {
             @Override public boolean doRead(Request request)
             throws IOException {
                 StringBuilder sb = new StringBuilder(expected.length());
-                NIOReader in = request.getReader(true);
+                Reader in = request.getReader();
 
                 for (int j = 0; j < 5; j++) {
                     sb.append((char) in.read());
@@ -498,7 +498,7 @@ public class HttpInputStreamsTest extends TestCase {
                 }
 
                 in.close();
-                assertEquals(0, in.readyData());
+                assertFalse(in.ready());
                 StringBuilder exp = new StringBuilder(expected);
                 exp.insert(5, expected.substring(5, 10));
                 assertEquals(exp.toString(), sb.toString());
@@ -517,7 +517,7 @@ public class HttpInputStreamsTest extends TestCase {
             @Override public boolean doRead(Request request)
             throws IOException {
                 StringBuilder sb = new StringBuilder(expected.length());
-                NIOReader in = request.getReader(true);
+                Reader in = request.getReader();
 
                 for (int j = 0; j < 5; j++) {
                     sb.append((char) in.read());
@@ -536,7 +536,7 @@ public class HttpInputStreamsTest extends TestCase {
                 }
 
                 in.close();
-                assertEquals(0, in.readyData());
+                assertFalse(in.ready());
                 StringBuilder exp = new StringBuilder(expected);
                 exp.insert(5, expected.substring(5, 10));
                 assertEquals(exp.toString(), sb.toString());
@@ -556,7 +556,7 @@ public class HttpInputStreamsTest extends TestCase {
             @Override public boolean doRead(Request request)
                     throws IOException {
                 StringBuilder sb = new StringBuilder(5);
-                NIOReader in = request.getReader(true);
+                Reader in = request.getReader();
 
                 for (int j = 0; j < 5; j++) {
                     sb.append((char) in.read());
@@ -590,7 +590,7 @@ public class HttpInputStreamsTest extends TestCase {
             @Override public boolean doRead(Request request)
                     throws IOException {
                 StringBuilder sb = new StringBuilder(5);
-                NIOReader in = request.getReader(true);
+                Reader in = request.getReader();
 
                 for (int j = 0; j < 5; j++) {
                     sb.append((char) in.read());
@@ -625,7 +625,7 @@ public class HttpInputStreamsTest extends TestCase {
             public boolean doRead(Request request)
                     throws IOException {
                 StringBuilder sb = new StringBuilder(5);
-                NIOReader in = request.getReader(true);
+                Reader in = request.getReader();
 
                 for (int j = 0; j < 5; j++) {
                     sb.append((char) in.read());
@@ -674,7 +674,7 @@ public class HttpInputStreamsTest extends TestCase {
             public boolean doRead(Request request)
                     throws IOException {
                 StringBuilder sb = new StringBuilder(5);
-                NIOReader in = request.getReader(true);
+                Reader in = request.getReader();
 
                 for (int j = 0; j < 5; j++) {
                     sb.append((char) in.read());
@@ -722,7 +722,7 @@ public class HttpInputStreamsTest extends TestCase {
             @Override public boolean doRead(Request request)
                     throws IOException {
                 StringBuilder sb = new StringBuilder(26);
-                Reader in = request.getReader(true);
+                Reader in = request.getReader();
                 for (int i = in.read(); i != -1; i = in.read()) {
                     sb.append((char) i);
                 }
@@ -748,7 +748,7 @@ public class HttpInputStreamsTest extends TestCase {
             @Override
             public boolean doRead(Request request)
                     throws IOException {
-                Reader in = request.getReader(true);
+                Reader in = request.getReader();
                 char[] b = new char[expected.length()];
                 assertEquals(26, in.read(b));
                 assertEquals(expected, new String(b));
@@ -772,7 +772,7 @@ public class HttpInputStreamsTest extends TestCase {
             @Override
             public boolean doRead(Request request)
                     throws IOException {
-                Reader in = request.getReader(true);
+                Reader in = request.getReader();
                 char[] b = new char[14];
                 assertEquals(5, in.read(b, 2, 5));
                 in.close();
@@ -795,7 +795,7 @@ public class HttpInputStreamsTest extends TestCase {
             @Override
             public boolean doRead(Request request)
                     throws IOException {
-                Reader in = request.getReader(true);
+                Reader in = request.getReader();
                 char[] b = new char[expected.length() - 2];
                 assertEquals(24, in.read(b));
                 assertEquals(expected.substring(0, 24), new String(b));
@@ -829,7 +829,7 @@ public class HttpInputStreamsTest extends TestCase {
             @Override
             public boolean doRead(Request request)
                     throws IOException {
-                Reader in = request.getReader(true);
+                Reader in = request.getReader();
                 StringBuilder sb = new StringBuilder();
                 char[] buf = new char[512];
                 for (int i = in.read(buf); i != -1; i = in.read(buf)) {
@@ -863,7 +863,7 @@ public class HttpInputStreamsTest extends TestCase {
             @Override
             public boolean doRead(Request request)
                     throws IOException {
-                Reader in = request.getReader(true);
+                Reader in = request.getReader();
                 StringBuilder sb = new StringBuilder();
                 char[] buf = new char[512];
                 for (int i = in.read(buf); i != -1; i = in.read(buf)) {
@@ -896,7 +896,7 @@ public class HttpInputStreamsTest extends TestCase {
             @Override
             public boolean doRead(Request request)
                     throws IOException {
-                Reader in = request.getReader(true);
+                Reader in = request.getReader();
                 StringBuilder sb = new StringBuilder();
                 char[] buf = new char[1024 * 9];
                 for (int i = in.read(buf); i != -1; i = in.read(buf)) {
@@ -921,7 +921,7 @@ public class HttpInputStreamsTest extends TestCase {
             public boolean doRead(Request request)
                     throws IOException {
                 CharBuffer cbuf = CharBuffer.allocate(52);
-                Reader in = request.getReader(true);
+                Reader in = request.getReader();
                 int read = in.read(cbuf);
                 assertEquals(expected.length(), read);
                 assertEquals(-1, in.read());
@@ -944,7 +944,7 @@ public class HttpInputStreamsTest extends TestCase {
             @Override
             public boolean doRead(Request request)
                     throws IOException {
-                Reader in = request.getReader(true);
+                Reader in = request.getReader();
                 CharBuffer cbuf = CharBuffer.allocate(expected.length() / 2);
                 StringBuilder sb = new StringBuilder(expected.length());
                 for (int i = in.read(cbuf); i != -1; i = in.read(cbuf)) {
@@ -978,7 +978,7 @@ public class HttpInputStreamsTest extends TestCase {
             @Override
             public boolean doRead(Request request)
                     throws IOException {
-                Reader in = request.getReader(true);
+                Reader in = request.getReader();
                 CharBuffer cbuf = CharBuffer.allocate(1024 / 2);
                 StringBuilder sb = new StringBuilder(len);
                 for (int i = in.read(cbuf); i != -1; i = in.read(cbuf)) {
@@ -1003,7 +1003,7 @@ public class HttpInputStreamsTest extends TestCase {
             @Override public boolean doRead(Request request)
                     throws IOException {
                 StringBuilder sb = new StringBuilder(26);
-                Reader in = request.getReader(true);
+                Reader in = request.getReader();
                 for (int i = in.read(); i != -1; i = in.read()) {
                     sb.append((char) i);
                 }
@@ -1028,7 +1028,7 @@ public class HttpInputStreamsTest extends TestCase {
             public boolean doRead(Request request)
                     throws IOException {
                 StringBuilder sb = new StringBuilder(26);
-                Reader in = request.getReader(true);
+                Reader in = request.getReader();
                 assertTrue(in.ready());
                 for (int i = in.read(); i != -1; i = in.read()) {
                     sb.append((char) i);
@@ -1105,7 +1105,7 @@ public class HttpInputStreamsTest extends TestCase {
             public boolean doRead(Request request)
                     throws IOException {
                 StringBuilder sb = new StringBuilder(16);
-                Reader in = request.getReader(true);
+                Reader in = request.getReader();
                 long skipped = in.skip(0);
                 assertEquals(0, skipped);
                 try {
@@ -1139,7 +1139,7 @@ public class HttpInputStreamsTest extends TestCase {
             @Override
             public boolean doRead(Request request)
                     throws IOException {
-                Reader in = request.getReader(true);
+                Reader in = request.getReader();
                 long skipped = in.skip(100);
                 assertEquals(26, skipped);
                 assertEquals(-1, in.read());
@@ -1170,7 +1170,7 @@ public class HttpInputStreamsTest extends TestCase {
             public boolean doRead(Request request)
                     throws IOException {
                 int skipLen = 9000;
-                Reader in = request.getReader(true);
+                Reader in = request.getReader();
                 long skipped = in.skip(skipLen);
                 while (skipped != skipLen) {
                     skipped += in.skip(skipLen - skipped);

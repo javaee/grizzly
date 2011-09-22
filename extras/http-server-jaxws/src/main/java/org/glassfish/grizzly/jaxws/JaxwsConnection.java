@@ -146,7 +146,7 @@ final class JaxwsConnection extends WSHTTPConnection implements WebServiceContex
     @NotNull
     @Override
     public InputStream getInput() throws IOException {
-        return request.getInputStream(true);
+        return request.getInputStream();
     }
 
     @NotNull
@@ -156,7 +156,7 @@ final class JaxwsConnection extends WSHTTPConnection implements WebServiceContex
         outputWritten = true;
 
         response.setStatus(getStatus());
-        return response.getOutputStream(true);
+        return response.getOutputStream();
     }
 
     @NotNull

@@ -109,7 +109,7 @@ public class MultipartBasicTests {
                         @Override
                         public void completed(Request result) {
                             try {
-                                response.getOutputStream().write("TRUE".getBytes(Charsets.ASCII_CHARSET));
+                                response.getNIOOutputStream().write("TRUE".getBytes(Charsets.ASCII_CHARSET));
                             } catch (IOException e) {
                             } finally {
                                 response.resume();
@@ -119,7 +119,7 @@ public class MultipartBasicTests {
                         @Override
                         public void failed(Throwable throwable) {
                             try {
-                                response.getOutputStream().write("FALSE".getBytes(Charsets.ASCII_CHARSET));
+                                response.getNIOOutputStream().write("FALSE".getBytes(Charsets.ASCII_CHARSET));
                             } catch (IOException e) {
                             } finally {
                                 response.resume();
@@ -175,7 +175,7 @@ public class MultipartBasicTests {
                         @Override
                         public void completed(Request result) {
                             try {
-                                response.getOutputStream().write("TRUE".getBytes(Charsets.ASCII_CHARSET));
+                                response.getNIOOutputStream().write("TRUE".getBytes(Charsets.ASCII_CHARSET));
                             } catch (IOException e) {
                             } finally {
                                 response.resume();
@@ -185,7 +185,7 @@ public class MultipartBasicTests {
                         @Override
                         public void failed(Throwable throwable) {
                             try {
-                                response.getOutputStream().write("FALSE".getBytes(Charsets.ASCII_CHARSET));
+                                response.getNIOOutputStream().write("FALSE".getBytes(Charsets.ASCII_CHARSET));
                             } catch (IOException e) {
                             } finally {
                                 response.resume();

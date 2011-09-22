@@ -99,7 +99,7 @@ public class MultipartScanner {
                 boundaryValue = boundaryValue.substring(1, boundaryValue.length() - 1);
             }
 
-            final NIOInputStream nioInputStream = request.getInputStream(false);
+            final NIOInputStream nioInputStream = request.getNIOInputStream();
 
             nioInputStream.notifyAvailable(new MultipartReadHandler(request,
                     partHandler, completionHandler, boundaryValue));

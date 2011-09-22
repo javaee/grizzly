@@ -114,7 +114,7 @@ public class UploaderHttpHandler extends HttpHandler {
                 // Compose a server response.
                 try {
                     response.setContentType("text/plain");
-                    final Writer writer = response.getWriter();
+                    final Writer writer = response.getNIOWriter();
                     writer.write("Completed. " + bytesUploaded + " bytes uploaded.");
                 } catch (IOException ignored) {
                 }

@@ -71,13 +71,13 @@ public class DefaultTestCometHandler extends DefaultCometHandler<String> impleme
     public void onTerminate(CometEvent event) throws IOException {
         Utils.dumpOut("    -> onTerminate Handler:" + hashCode());
         onTerminateCalled.set(true);
-        getResponse().getWriter().write(BasicCometTest.onTerminate);
+        getResponse().getNIOWriter().write(BasicCometTest.onTerminate);
     }
 
     public void onInterrupt(CometEvent event) throws IOException {
         Utils.dumpOut("    -> onInterrupt Handler:" + hashCode());
         onInterruptCalled.set(true);
-        getResponse().getWriter().write(BasicCometTest.onInterrupt);
+        getResponse().getNIOWriter().write(BasicCometTest.onInterrupt);
     }
 
     @Override

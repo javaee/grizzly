@@ -46,7 +46,7 @@ package org.glassfish.grizzly.servlet;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import org.glassfish.grizzly.http.server.io.NIOWriter;
+import java.io.Writer;
 
 /**
  *
@@ -60,11 +60,11 @@ public class ServletWriterImpl extends PrintWriter {
     private static final char[] LINE_SEP =
             System.getProperty("line.separator").toCharArray();
     // ----------------------------------------------------- Instance Variables
-    protected NIOWriter ob;
+    protected Writer ob;
     protected boolean error = false;
 
     // ----------------------------------------------------------- Constructors
-    public ServletWriterImpl(NIOWriter ob) {
+    public ServletWriterImpl(Writer ob) {
         super(ob);
         this.ob = ob;
     }
@@ -296,7 +296,7 @@ public class ServletWriterImpl extends PrintWriter {
         println();
     }
 
-    public NIOWriter getOutputBuffer() {
-        return ob;
-    }
+//    public NIOWriter getOutputBuffer() {
+//        return (NIOWriter) ob;
+//    }
 }

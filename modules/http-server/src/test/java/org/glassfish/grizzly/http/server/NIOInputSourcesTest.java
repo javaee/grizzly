@@ -435,7 +435,7 @@ public class NIOInputSourcesTest extends TestCase {
             public void service(final Request request,
                     final Response response) throws Exception {
                 response.suspend();
-                final NIOInputStream inputStream = request.getInputStream(false);
+                final NIOInputStream inputStream = request.getNIOInputStream();
 
                 inputStream.notifyAvailable(new ReadHandler() {
 
@@ -714,8 +714,8 @@ public class NIOInputSourcesTest extends TestCase {
                 throws Exception {
 
             try {
-                final NIOInputStream reader = req.getInputStream(false);
-                final NIOOutputStream writer = res.getOutputStream();                
+                final NIOInputStream reader = req.getNIOInputStream();
+                final NIOOutputStream writer = res.getNIOOutputStream();                
 
                 res.suspend();
 
@@ -801,8 +801,8 @@ public class NIOInputSourcesTest extends TestCase {
                 throws Exception {
 
             try {
-                final NIOInputStream reader = req.getInputStream(false);
-                final NIOOutputStream writer = res.getOutputStream();                
+                final NIOInputStream reader = req.getNIOInputStream();
+                final NIOOutputStream writer = res.getNIOOutputStream();                
 
                 res.suspend();
 
@@ -897,12 +897,12 @@ public class NIOInputSourcesTest extends TestCase {
                 if (encoding != null) {
                     res.setContentType("text/plain;charset=" + encoding);
                 }
-                final NIOReader reader = req.getReader(false);
+                final NIOReader reader = req.getNIOReader();
                 int available = reader.readyData();
                 if (available > 0) {
                     char[] b = new char[available];
                     int read = reader.read(b);
-                    res.getWriter().write(b, 0, read);
+                    res.getNIOWriter().write(b, 0, read);
                 }
                 if (reader.isFinished()) {
                     return;
@@ -930,7 +930,7 @@ public class NIOInputSourcesTest extends TestCase {
                             testResult.failure(ioe);
                         }
                         try {
-                            res.getWriter().write(sb.toString());
+                            res.getNIOWriter().write(sb.toString());
                         } catch (Exception e) {
                             testResult.failure(e);
                         }

@@ -91,8 +91,8 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
  *       BlockingEchoHandler: This {@link HttpHandler} is installed to the
  *                            {@link org.glassfish.grizzly.http.server.HttpServer} instance and associated
  *                            with the path <code>/echo</code>.  This {@link HttpHandler}
- *                            is fairly simple.  The handler uses the {@link org.glassfish.grizzly.http.server.io.NIOReader}
- *                            returned by {@link org.glassfish.grizzly.http.server.Request#getReader(boolean)} in blocking
+ *                            is fairly simple.  The handler uses the {@link java.io.Reader}
+ *                            returned by {@link org.glassfish.grizzly.http.server.Request#getReader()} in blocking
  *                            mode.  As data is received, the same data is then immediately
  *                            written to the response.
  *    </li>
@@ -311,7 +311,7 @@ public class BlockingHttpHandlerSample {
             Reader in = null;
             Writer out = null;
             try {
-                in = request.getReader(true); // true argument puts the stream in blocking mode
+                in = request.getReader(); // put the stream in blocking mode
                 out = response.getWriter();
 
                 int read;

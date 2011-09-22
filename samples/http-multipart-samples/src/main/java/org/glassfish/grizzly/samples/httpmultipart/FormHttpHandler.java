@@ -57,7 +57,7 @@ public class FormHttpHandler extends HttpHandler {
         response.setContentType("text/html");
 
         // Return the HTML upload form
-        response.getWriter().write(
+        response.getNIOWriter().write(
                 "<form action=\"upload\" method=\"post\" enctype=\"multipart/form-data\">"
                 + "Description: <input name=\"description\"/><br/>"
                 + "Select File: <input type=\"file\" name=\"fileName\"/><br/>"

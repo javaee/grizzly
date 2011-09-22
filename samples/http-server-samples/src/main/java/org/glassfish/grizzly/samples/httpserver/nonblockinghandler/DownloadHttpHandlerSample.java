@@ -140,8 +140,8 @@ public class DownloadHttpHandlerSample {
             // Disable internal Response buffering
             response.setBufferSize(0);
             
-            // false argument puts the stream in non-blocking mode
-            final NIOOutputStream output = response.getOutputStream(false);
+            // put the stream in non-blocking mode
+            final NIOOutputStream output = response.getNIOOutputStream();
             
             // get file path
             final String path = request.getDecodedRequestURI();

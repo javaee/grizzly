@@ -45,13 +45,13 @@ import org.osgi.service.http.HttpContext;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
-import org.glassfish.grizzly.http.server.io.NIOOutputStream;
 import org.glassfish.grizzly.http.server.util.MimeType;
 import org.glassfish.grizzly.servlet.HttpServletRequestImpl;
 import org.glassfish.grizzly.servlet.HttpServletResponseImpl;
@@ -130,7 +130,7 @@ public class OSGiResourceHandler extends HttpHandler implements OSGiHandler {
             final URLConnection urlConnection = resource.openConnection();
             final int length = urlConnection.getContentLength();
             final InputStream is = urlConnection.getInputStream();
-            final NIOOutputStream os = response.getOutputStream();
+            final OutputStream os = response.getOutputStream();
 
             byte buff[] = new byte[1024*8];
             int read, total = 0;

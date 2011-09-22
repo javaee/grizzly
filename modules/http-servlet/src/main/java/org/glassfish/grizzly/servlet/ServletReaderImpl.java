@@ -47,7 +47,7 @@ package org.glassfish.grizzly.servlet;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import org.glassfish.grizzly.http.server.io.NIOReader;
+import java.io.Reader;
 
 /**
  *
@@ -67,7 +67,7 @@ public class ServletReaderImpl extends BufferedReader {
     // ----------------------------------------------------- Instance Variables
 
 
-    protected NIOReader ib;
+    protected Reader ib;
 
     protected char[] lineBuffer = null;
 
@@ -75,7 +75,7 @@ public class ServletReaderImpl extends BufferedReader {
     // ----------------------------------------------------------- Constructors
 
 
-    public ServletReaderImpl(NIOReader ib) {
+    public ServletReaderImpl(Reader ib) {
         super(ib, 1);
         this.ib = ib;
     }
@@ -239,8 +239,8 @@ public class ServletReaderImpl extends BufferedReader {
 
     }
 
-    public NIOReader getNIOReader(){
-        return ib;
-    }
+//    public NIOReader getNIOReader(){
+//        return (NIOReader) ib;
+//    }
 
 }

@@ -114,7 +114,7 @@ public class SkipRemainderTest {
             @Override
             public void service(Request req, Response res)
                     throws Exception {
-                InputStream is = req.getInputStream(true);
+                InputStream is = req.getInputStream();
                 try {
                     for (int i = 0; i < contentSizeHalf; i++) {
                         int c = is.read();
@@ -125,7 +125,7 @@ public class SkipRemainderTest {
                         }
                     }
 
-                    OutputStream os = res.getOutputStream();
+                    OutputStream os = res.getNIOOutputStream();
                     os.write("OK".getBytes());
                     os.flush();
                 } catch (Exception e) {
