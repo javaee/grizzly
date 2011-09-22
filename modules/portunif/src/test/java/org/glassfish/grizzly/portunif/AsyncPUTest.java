@@ -40,7 +40,13 @@
 
 package org.glassfish.grizzly.portunif;
 
-import java.util.concurrent.TimeUnit;
+import org.glassfish.grizzly.attributes.NullaryFunction;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.glassfish.grizzly.attributes.Attribute;
+import java.util.logging.Logger;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import java.util.concurrent.Executors;
 import java.nio.charset.Charset;
 
 import org.glassfish.grizzly.filterchain.FilterChain;
@@ -50,32 +56,58 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import java.util.concurrent.Future;
 
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.utils.EchoFilter;
 import org.glassfish.grizzly.utils.StringFilter;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
 /**
- * Simple port-unification test
+ * Asynchronous port-unification tests
  * 
  * @author Alexey Stashok
  */
 @SuppressWarnings("unchecked")
-public class BasicPUTest {
+public class AsyncPUTest {
     public static final int PORT = 17400;
     public static final Charset CHARSET = Charset.forName("UTF-8");
     
+    private static final Logger LOGGER = Grizzly.logger(AsyncPUTest.class);
+
+    private static ScheduledExecutorService tp;
+
+    @BeforeClass
+    public static void before() {
+        tp = Executors.newScheduledThreadPool(1, new ThreadFactory() {
+
+            @Override
+            public Thread newThread(final Runnable r) {
+                final Thread t = new Thread(r);
+                t.setDaemon(true);
+                return t;
+            }
+        });
+    }
+    
+    @AfterClass
+    public static void after() {
+        tp.shutdownNow();
+    }
+    
     @Test
-    public void protocolsXYZ() throws Exception {
+    public void suspendingStopActionTest() throws Exception {
         final String[] protocols = {"X", "Y", "Z"};
 
         Connection connection = null;
@@ -104,7 +136,7 @@ public class BasicPUTest {
                         FilterChainBuilder.stateless()
                         .add(new TransportFilter())
                         .add(new StringFilter(CHARSET))
-                        .add(new ClientResultFilter(protocol, resultFuture))
+                        .add(new ClientResultFilter(protocol, resultFuture, 1))
                         .build();
 
                 final SocketConnectorHandler connectorHandler =
@@ -130,155 +162,77 @@ public class BasicPUTest {
         }
     }
 
-
     @Test
-    public void testGrizzly1031_001() throws Exception {
+    public void suspendingStopAction2Test() throws Exception {
+        final String[] protocols = {"X", "Y", "Z"};
 
-        final TestPUFilter puFilter = new TestPUFilter();
-        final TestFinder f1 =  new TestFinder() {
-            @Override
-            public Result find(PUContext puContext, FilterChainContext ctx) {
-                invocationCount++;
-                if (invocationCount <= 1) {
-                    return Result.NEED_MORE_DATA;
-                } else {
-                    return Result.NOT_FOUND;
-                }
+        Connection connection = null;
+
+        final PUFilter puFilter = new PUFilter();
+        for (final String protocol : protocols) {
+            puFilter.register(createProtocol2(puFilter, protocol, 2));
+        }
+
+        FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.stateless()
+                .add(new TransportFilter())
+                .add(new StringFilter(CHARSET))
+                .add(puFilter);
+
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+        transport.setProcessor(puFilterChainBuilder.build());
+
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            for (final String protocol : protocols) {
+                final FutureImpl<Boolean> resultFuture = SafeFutureImpl.create();
+                
+                final FilterChain clientFilterChain =
+                        FilterChainBuilder.stateless()
+                        .add(new TransportFilter())
+                        .add(new StringFilter(CHARSET))
+                        .add(new ClientResultFilter(protocol, resultFuture, 2))
+                        .build();
+
+                final SocketConnectorHandler connectorHandler =
+                        TCPNIOConnectorHandler.builder(transport)
+                        .processor(clientFilterChain)
+                        .build();
+
+                Future<Connection> future = connectorHandler.connect("localhost", PORT);
+                connection = future.get(10, TimeUnit.SECONDS);
+                assertTrue(connection != null);
+
+                connection.write(protocol);
+
+                assertTrue(resultFuture.get(10, TimeUnit.SECONDS));
             }
-        };
-        final TestFinder f2 = new TestFinder() {
-            @Override
-            public Result find(PUContext puContext, FilterChainContext ctx) {
-                invocationCount++;
-                if (invocationCount <= 3) {
-                    return Result.NEED_MORE_DATA;
-                } else {
-                    return Result.NOT_FOUND;
-                }
+
+        } finally {
+            if (connection != null) {
+                connection.close();
             }
-        };
-        final TestFinder f3 = new TestFinder() {
-            @Override
-            public Result find(PUContext puContext, FilterChainContext ctx) {
-                invocationCount++;
-                if (invocationCount <= 2) {
-                    return Result.NEED_MORE_DATA;
-                } else {
-                    return Result.NOT_FOUND;
-                }
-            }
-        };
-        final TestFinder f4 = new TestFinder() {
-            @Override
-            public Result find(PUContext puContext, FilterChainContext ctx) {
-                invocationCount++;
-                if (invocationCount == 5) {
-                    return Result.FOUND;
-                } else {
-                    return Result.NEED_MORE_DATA;
-                }
-            }
-        };
-        puFilter.register(f1, puFilter.getPUFilterChainBuilder().add(new EchoFilter()).build());
-        puFilter.register(f2, puFilter.getPUFilterChainBuilder().add(new EchoFilter()).build());
-        puFilter.register(f3, puFilter.getPUFilterChainBuilder().add(new EchoFilter()).build());
-        puFilter.register(f4, puFilter.getPUFilterChainBuilder().add(new EchoFilter()).build());
 
-        final FilterChainContext ctx = new FilterChainContext();
-        final PUContext puContext = new PUContext(puFilter);
-
-        puFilter.findProtocol(puContext, ctx);
-        assertTrue(!puContext.noProtocolsFound());
-        assertEquals(1, f1.invocationCount);
-        assertEquals(1, f2.invocationCount);
-        assertEquals(1, f3.invocationCount);
-        assertEquals(1, f4.invocationCount);
-
-        puFilter.findProtocol(puContext, ctx);
-        assertTrue(!puContext.noProtocolsFound());
-        assertEquals(2, f1.invocationCount);
-        assertEquals(2, f2.invocationCount);
-        assertEquals(2, f3.invocationCount);
-        assertEquals(2, f4.invocationCount);
-
-        puFilter.findProtocol(puContext, ctx);
-        assertTrue(!puContext.noProtocolsFound());
-        assertEquals(2, f1.invocationCount);
-        assertEquals(3, f2.invocationCount);
-        assertEquals(3, f3.invocationCount);
-        assertEquals(3, f4.invocationCount);
-
-        puFilter.findProtocol(puContext, ctx);
-        assertTrue(!puContext.noProtocolsFound());
-        assertEquals(2, f1.invocationCount);
-        assertEquals(4, f2.invocationCount);
-        assertEquals(3, f3.invocationCount);
-        assertEquals(4, f4.invocationCount);
-
-        puFilter.findProtocol(puContext, ctx);
-        assertTrue(!puContext.noProtocolsFound());
-        assertEquals(2, f1.invocationCount);
-        assertEquals(4, f2.invocationCount);
-        assertEquals(3, f3.invocationCount);
-        assertEquals(5, f4.invocationCount);
-
+            transport.stop();
+        }
     }
-
-    @Test
-    public void testGrizzly1031_002() throws Exception {
-
-        final TestPUFilter puFilter = new TestPUFilter();
-        final TestFinder f1 =  new TestFinder() {
-            @Override
-            public Result find(PUContext puContext, FilterChainContext ctx) {
-                invocationCount++;
-                return Result.NOT_FOUND;
-            }
-        };
-        final TestFinder f2 = new TestFinder() {
-            @Override
-            public Result find(PUContext puContext, FilterChainContext ctx) {
-                invocationCount++;
-                return Result.NOT_FOUND;
-            }
-        };
-        final TestFinder f3 = new TestFinder() {
-            @Override
-            public Result find(PUContext puContext, FilterChainContext ctx) {
-                invocationCount++;
-                return Result.NOT_FOUND;
-            }
-        };
-        final TestFinder f4 = new TestFinder() {
-            @Override
-            public Result find(PUContext puContext, FilterChainContext ctx) {
-                invocationCount++;
-                return Result.NOT_FOUND;
-            }
-        };
-        puFilter.register(f1, puFilter.getPUFilterChainBuilder().add(new EchoFilter()).build());
-        puFilter.register(f2, puFilter.getPUFilterChainBuilder().add(new EchoFilter()).build());
-        puFilter.register(f3, puFilter.getPUFilterChainBuilder().add(new EchoFilter()).build());
-        puFilter.register(f4, puFilter.getPUFilterChainBuilder().add(new EchoFilter()).build());
-
-        final FilterChainContext ctx = new FilterChainContext();
-        final PUContext puContext = new PUContext(puFilter);
-
-        puFilter.findProtocol(puContext, ctx);
-        assertTrue(puContext.noProtocolsFound());
-        assertEquals(1, f1.invocationCount);
-        assertEquals(1, f2.invocationCount);
-        assertEquals(1, f3.invocationCount);
-        assertEquals(1, f4.invocationCount);
-
-    }
-
 
     // --------------------------------------------------------- Private Methods
 
 
     private PUProtocol createProtocol(final PUFilter puFilter, final String name) {
         final FilterChain chain = puFilter.getPUFilterChainBuilder()
+                .add(new SimpleResponseFilter(name))
+                .build();
+        
+        return new PUProtocol(new SimpleProtocolFinder(name), chain);
+    }
+
+    private PUProtocol createProtocol2(final PUFilter puFilter, final String name,
+            final int duplications) {
+        final FilterChain chain = puFilter.getPUFilterChainBuilder()
+                .add(new StringDuplicatorFilter(duplications))
                 .add(new SimpleResponseFilter(name))
                 .build();
         
@@ -301,7 +255,7 @@ public class BasicPUTest {
         }
     }
 
-    private static final class SimpleResponseFilter extends BaseFilter {
+    private static final class SimpleResponseFilter extends BaseFilter {        
         private final String name;
 
         public SimpleResponseFilter(String name) {
@@ -310,27 +264,55 @@ public class BasicPUTest {
         
         @Override
         public NextAction handleRead(final FilterChainContext ctx) throws IOException {
-            ctx.write(makeResponseMessage(name));
+            tp.schedule(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        ctx.write(makeResponseMessage(name));
+                    } catch (IOException e) {
+                        LOGGER.log(Level.SEVERE, "Error", e);
+                    }
+                    
+//                    ctx.completeAndRecycle();
+                }
+            }, 1, TimeUnit.SECONDS);
 
-            return ctx.getStopAction();
+            return ctx.getSuspendingStopAction();
         }
-
     }
 
     private static final class ClientResultFilter extends BaseFilter {
+        private static Attribute<AtomicInteger> responseCounterAttr =
+                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+                ClientResultFilter.class.getName() + ".responseCounter",
+                new NullaryFunction<AtomicInteger>() {
+
+                    @Override
+                    public AtomicInteger evaluate() {
+                        return new AtomicInteger();
+                    }
+                });
+        
         private final String expectedResponse;
         private final FutureImpl<Boolean> resultFuture;
+        private final int expectedResponseCount;
 
-        public ClientResultFilter(String name, FutureImpl<Boolean> future) {
+        public ClientResultFilter(String name, FutureImpl<Boolean> future,
+                int expectedResponseCount) {
             this.resultFuture = future;
             expectedResponse = makeResponseMessage(name);
+            this.expectedResponseCount = expectedResponseCount;
         }
 
         @Override
         public NextAction handleRead(final FilterChainContext ctx) throws IOException {
+            final Connection connection = ctx.getConnection();
             final String response = ctx.getMessage();
+            
             if (expectedResponse.equals(response)) {
-                resultFuture.result(Boolean.TRUE);
+                if (responseCounterAttr.get(connection).incrementAndGet() == expectedResponseCount) {
+                    resultFuture.result(Boolean.TRUE);
+                }
             } else {
                 resultFuture.failure(new IllegalStateException(
                         "Unexpected response. Expect=" + expectedResponse +
@@ -342,27 +324,39 @@ public class BasicPUTest {
 
     }
 
+    private static class StringDuplicatorFilter extends BaseFilter {
+        private static final Attribute<AtomicInteger> duplicationsCounterAttribute =
+                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.<AtomicInteger>createAttribute(
+                StringDuplicatorFilter.class.getName() + ".duplicationsCounterAttribute",
+                new NullaryFunction<AtomicInteger>() {
+
+                    @Override
+                    public AtomicInteger evaluate() {
+                        return new AtomicInteger();
+                    }
+                });
+        private final int duplications;
+        
+        private StringDuplicatorFilter(int duplications) {
+            this.duplications = duplications;
+        }
+
+        @Override
+        public NextAction handleRead(final FilterChainContext ctx)
+                throws IOException {
+            final Connection connection = ctx.getConnection();
+            final String message = ctx.getMessage();
+            
+            if (duplicationsCounterAttribute.get(connection).incrementAndGet() < duplications) {
+                return ctx.getInvokeAction(message);
+            }
+            
+            return ctx.getInvokeAction();
+        }
+        
+    }
+    
     private static String makeResponseMessage(String protocolName) {
         return "Protocol-" + protocolName;
     }
-
-
-    // ---------------------------------------------------------- Nested Classes
-
-
-    private static final class TestPUFilter extends PUFilter {
-
-        @Override
-        protected void findProtocol(PUContext puContext, FilterChainContext ctx) {
-            super.findProtocol(puContext, ctx);    //To change body of overridden methods use File | Settings | File Templates.
-        }
-
-    }
-
-    private static abstract class TestFinder implements ProtocolFinder {
-
-        int invocationCount = 0;
-
-    }
-
 }

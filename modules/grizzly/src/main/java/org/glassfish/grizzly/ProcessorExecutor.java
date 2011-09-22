@@ -79,9 +79,9 @@ public final class ProcessorExecutor {
             status = result.getStatus();
             isRerun = (status == ProcessorResult.Status.RERUN);
             if (isRerun) {
-                final Object resultContext = result.getData();
-                rerun(context);
-                context = (Context) resultContext;
+                final Context newContext = (Context) result.getData();
+                rerun(context, newContext);
+                context = newContext;
             }
         } while (isRerun);
         
@@ -164,12 +164,14 @@ public final class ProcessorExecutor {
         }
     }
 
-    private static void rerun(final Context context) throws IOException {
+    private static void rerun(final Context context, final Context newContext)
+            throws IOException {
+        
         final IOEventProcessingHandler processingHandler =
                 context.getProcessingHandler();
 
         if (processingHandler != null) {
-            processingHandler.onRerun(context);
+            processingHandler.onRerun(context, newContext);
         }
     }
 

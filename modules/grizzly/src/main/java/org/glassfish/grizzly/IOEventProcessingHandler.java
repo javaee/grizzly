@@ -111,10 +111,11 @@ public interface IOEventProcessingHandler {
     /**
      * Re-run {@link IOEvent} processing.
      *
-     * @param context
+     * @param context original {@link Context} to be rerun
+     * @param newContext new context, which will replace original {@link Context}
      * @throws IOException
      */
-    public void onRerun(Context context) throws IOException;
+    public void onRerun(Context context, Context newContext) throws IOException;
 
     /**
      * Error occurred during {@link IOEvent} processing.

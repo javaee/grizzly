@@ -75,16 +75,20 @@ public class PUFilter extends BaseFilter {
             new ArraySet<PUProtocol>(PUProtocol.class);
     
     final Attribute<PUContext> puContextAttribute;
-    final Attribute<Boolean> isProcessingAttribute;
+//    final Attribute<Boolean> isProcessingAttribute;
+    final Attribute<NextAction> terminateNextActionAttribute;
     final Attribute<FilterChainContext> suspendedContextAttribute;
 
     public PUFilter() {
         puContextAttribute =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
                         PUFilter.class.getName() + '-' + hashCode() + ".puContext");
-        isProcessingAttribute =
+//        isProcessingAttribute =
+//                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+//                PUFilter.class.getName() + '-' + hashCode() + ".isProcessing");
+        terminateNextActionAttribute =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-                PUFilter.class.getName() + '-' + hashCode() + ".isProcessing");
+                PUFilter.class.getName() + '-' + hashCode() + ".terminateNextActionAttribute");
         suspendedContextAttribute =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
                         PUFilter.class.getName() + '-' + hashCode() + ".suspendedContext");
@@ -169,11 +173,11 @@ public class PUFilter extends BaseFilter {
 
     @Override
     public NextAction handleRead(final FilterChainContext ctx) throws IOException {
-        if (isProcessingAttribute.get(ctx) == Boolean.TRUE) {
+        final NextAction terminateNextAction;
+        if ((terminateNextAction = terminateNextActionAttribute.remove(ctx)) != null) {
             // We get here, when context is resumed after
             // child protocol chain execution is complete.
-            isProcessingAttribute.remove(ctx);
-            return ctx.getStopAction();
+            return terminateNextAction;
         }
 
         final Connection connection = ctx.getConnection();
@@ -200,7 +204,7 @@ public class PUFilter extends BaseFilter {
                 puContext.reset();
             }
             
-            isProcessingAttribute.set(ctx, Boolean.TRUE);
+            terminateNextActionAttribute.set(ctx, ctx.getStopAction());
 
             final FilterChain filterChain = protocol.getFilterChain();
 
@@ -208,7 +212,7 @@ public class PUFilter extends BaseFilter {
                     filterChain.obtainFilterChainContext(connection);
             final Context context = filterChainContext.getInternalContext();
             context.setIoEvent(IOEvent.READ);
-            context.setProcessingHandler(new InternalProcessingHandler());
+            context.setProcessingHandler(new InternalProcessingHandler(ctx));
             filterChainContext.setAddress(ctx.getAddress());
             filterChainContext.setMessage(ctx.getMessage());
             suspendedContextAttribute.set(context, ctx);
@@ -239,7 +243,7 @@ public class PUFilter extends BaseFilter {
             final PUContext puContext = puContextAttribute.get(connection);
             final PUProtocol protocol;
             if (puContext != null && (protocol = puContext.protocol) != null) {
-                isProcessingAttribute.set(ctx, Boolean.TRUE);
+                terminateNextActionAttribute.set(ctx, ctx.getStopAction());
 
                 final FilterChain filterChain = protocol.getFilterChain();
                 final FilterChainContext context = filterChain.obtainFilterChainContext(connection);
@@ -296,22 +300,48 @@ public class PUFilter extends BaseFilter {
 
 
     private class InternalProcessingHandler extends EmptyIOEventProcessingHandler {
+        private final FilterChainContext parentContext;
+        
+        private InternalProcessingHandler(final FilterChainContext parentContext) {
+            this.parentContext = parentContext;
+        }
         
         @Override
         public void onReregister(final Context context) throws IOException {
-            onComplete(context, null);
+            FilterChainContext suspendedContext =
+                    suspendedContextAttribute.get(context);
+
+            assert suspendedContext != null;
+            
+            terminateNextActionAttribute.set(parentContext,
+                    parentContext.getSuspendingStopAction());
+            
+            suspendedContext.resume();
         }
 
         @Override
         public void onComplete(final Context context, final Object data)
                 throws IOException {
-            final FilterChainContext suspendedContext =
+            FilterChainContext suspendedContext =
                     suspendedContextAttribute.remove(context);
 
             assert suspendedContext != null;
-
+            
+            terminateNextActionAttribute.set(suspendedContext,
+                    suspendedContext.getStopAction());                
+            
             suspendedContext.resume();
         }
+
+        @Override
+        public void onRerun(final Context context, final Context newContext)
+                throws IOException {
+            if (!suspendedContextAttribute.isSet(newContext)) {
+                suspendedContextAttribute.set(newContext, parentContext.copy());
+            }
+        }
+        
+        
     }
 
     private static class InternalCompletionHandler implements
@@ -325,7 +355,7 @@ public class PUFilter extends BaseFilter {
 
         @Override
         public void cancelled() {
-            suspendedContext.fail(new CancellationException());
+            failed(new CancellationException());
         }
 
         @Override

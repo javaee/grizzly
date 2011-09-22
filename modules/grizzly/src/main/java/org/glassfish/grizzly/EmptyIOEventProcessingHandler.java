@@ -102,7 +102,7 @@ public class EmptyIOEventProcessingHandler implements IOEventProcessingHandler {
      * {@inheritDoc}
      */
     @Override
-    public void onRerun(Context context) throws IOException {
+    public void onRerun(Context context, Context newContext) throws IOException {
     }
 
     /**
