@@ -58,9 +58,13 @@ import java.nio.ByteBuffer;
 public class AjpTestBase {
     protected static final int PORT = 19012;
     private SelectorThread selectorThread;
+    private Socket socket;
 
     @After
-    public void after() {
+    public void after() throws IOException {
+        if (socket != null) {
+            socket.close();
+        }
         if (selectorThread != null) {
             selectorThread.stopEndpoint();
         }
@@ -104,21 +108,24 @@ public class AjpTestBase {
     }
 
     @SuppressWarnings({"unchecked"})
-    protected ByteBuffer send(int port, ByteBuffer request) throws IOException {
+    protected void send(ByteBuffer request) throws IOException {
         ByteChunk response = new ByteChunk();
-        Socket socket = new Socket("localhost", port);
-        try {
-            byte[] data = new byte[request.limit() - request.position()];
-            request.get(data);
-            socket.getOutputStream().write(data);
-            final InputStream stream = socket.getInputStream();
-            byte[] bytes = new byte[8192];
-            int read;
-            while ((read = stream.read(bytes)) != -1) {
-                response.append(bytes, 0, read);
-            }
-        } finally {
-            socket.close();
+        if (socket == null || socket.isClosed()) {
+            socket = new Socket("localhost", PORT);
+        }
+        byte[] data = new byte[request.limit() - request.position()];
+        request.get(data);
+        socket.getOutputStream().write(data);
+    }
+
+    @SuppressWarnings({"unchecked"})
+    protected ByteBuffer readResponses() throws IOException {
+        ByteChunk response = new ByteChunk();
+        final InputStream stream = socket.getInputStream();
+        byte[] bytes = new byte[8192];
+        int read;
+        while ((read = stream.read(bytes)) != -1) {
+            response.append(bytes, 0, read);
         }
 
         return response.getLength() == 0 ? ByteBuffer.allocate(0) : response.toByteBuffer();
@@ -134,6 +141,7 @@ public class AjpTestBase {
         selectorThread.setAdapter(adapter);
         selectorThread.setTcpNoDelay(true);
         selectorThread.setUseChunking(false);
+        selectorThread.setKeepAliveTimeoutInSeconds(1);
 
         selectorThread.listen();
     }

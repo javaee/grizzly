@@ -59,40 +59,55 @@ public class AjpInputBuffer extends InternalInputBuffer {
 
     @Override
     public void parseRequestLine() throws IOException {
+        readPacket();
+        final AjpHttpRequest ajpRequest = (AjpHttpRequest) request;
+        if(ajpRequest.isExpectContent()) {
+            readPacket();
+        }
+    }
+
+    private void readPacket() throws IOException {
         if (pos >= lastValid) {
-            if (!fill())
+            if (!fill()) {
                 throw new EOFException(sm.getString("iib.eof.error"));
+            }
         }
 
-        buffer = ByteBuffer.wrap(buf, pos, lastValid);
+        try {
+            buffer = ByteBuffer.wrap(buf, pos, lastValid - pos);
+        } catch (IndexOutOfBoundsException e) {
+            System.out.println("pos = " + pos);
+            System.out.println("lastValid = " + lastValid);
+            throw e;
+        }
         final short magic = buffer.getShort();
-        if(magic != 0x1234) {
+        if (magic != 0x1234) {
             throw new RuntimeException("Invalid packet magic number: " + Integer.toHexString(magic));
         }
-        buffer.getShort();
+        final short size = buffer.getShort();
 
-        final int type = extractType();
+        final int type = buffer.get();
 
         switch (type) {
             case AjpConstants.JK_AJP13_FORWARD_REQUEST:
                 processForwardRequest();
                 break;
-            case AjpConstants.JK_AJP13_DATA:
-                processData();
-                break;
-            case AjpConstants.JK_AJP13_SHUTDOWN:
+//            case AjpConstants.JK_AJP13_SHUTDOWN:
 //                return processShutdown(chunk);
-                break;
-            case AjpConstants.JK_AJP13_CPING_REQUEST:
+//                break;
+//            case AjpConstants.JK_AJP13_CPING_REQUEST:
 //                return processCPing();
-                break;
+//                break;
             default:
-                throw new IllegalStateException("Unknown message " + type);
+                processData(size);
+                break;
         }
+        pos = buffer.position();
     }
 
     @Override
-    public void parseHeaders() throws IOException {
+    public boolean parseHeader() throws IOException {
+        return false;
     }
 
     /**
@@ -108,19 +123,6 @@ public class AjpInputBuffer extends InternalInputBuffer {
 
         secret = properties.getProperty("request.secret", secret);
         isTomcatAuthentication = Boolean.parseBoolean(properties.getProperty("tomcatAuthentication", "true"));
-    }
-
-    private byte extractType() throws IOException {
-        final byte type;
-//        if (!httpRequestInProcessAttr.isSet(connection)) {
-        // if request is no in process - it should be a new Ajp message
-        type = buffer.get();
-//        } else {
-//            Ajp Data Packet
-//            type = AjpConstants.JK_AJP13_DATA;
-//        }
-
-        return type;
     }
 
     private void processForwardRequest() throws IOException {
@@ -146,21 +148,19 @@ public class AjpInputBuffer extends InternalInputBuffer {
             ajpRequest.setExpectContent(false);
         }
     }
-    
-    private void processData() {
-        if (buffer.hasRemaining()) {
-            // Skip the content length field - we know the size from the packet header
-            buffer.position(buffer.position() + 2);
-        }
+
+    private void processData(short size) {
 
         final AjpHttpRequest ajpRequest = (AjpHttpRequest) request;
 
+        final short bufferSize = buffer.get();// consume length byte
+        
         // Figure out if the content is last
         if (ajpRequest.isExpectContent()) {
             int contentBytesRemaining = ajpRequest.getContentBytesRemaining();
             // if we know the content-length
             if (contentBytesRemaining > 0) {
-                contentBytesRemaining -= buffer.remaining();
+                contentBytesRemaining -= (short) (size - 2);
                 ajpRequest.setContentBytesRemaining(contentBytesRemaining);
                 // do we have more content remaining?
                 if (contentBytesRemaining <= 0) {

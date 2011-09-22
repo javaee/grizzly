@@ -1196,11 +1196,14 @@ public class ProcessorTask extends TaskBase implements Processor,
 
         } else if (actionCode == ActionCode.ACTION_REQ_LOCALPORT_ATTRIBUTE) {
 
-            if (localPort == -1 && socket !=null) {
-                localPort = socket.getLocalPort();
+            if (localPort == -1) {
+                if (request.getLocalPort() != -1) {
+                    localPort = request.getLocalPort();
+                } else if(socket != null) {
+                    localPort = socket.getLocalPort();
+                    request.setLocalPort(localPort);
+                }
             }
-            request.setLocalPort(localPort);
-
         } else if (actionCode == ActionCode.ACTION_REQ_SSL_CERTIFICATE) {
             if( sslSupport != null) {
                 /*

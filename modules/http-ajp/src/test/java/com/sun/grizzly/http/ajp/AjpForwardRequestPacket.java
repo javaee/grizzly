@@ -47,7 +47,7 @@ import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class AjpForwardRequestPacket {
+public class AjpForwardRequestPacket extends AjpPacket {
     private final String method;
     private final String resource;
     private final MimeHeaders headers = new MimeHeaders();
@@ -59,24 +59,14 @@ public class AjpForwardRequestPacket {
         this.resource = resource;
         this.port = port;
         attributes.put("AJP_REMOTE_PORT", remotePort + "");
-
     }
 
-    public ByteBuffer toBuffer() {
-        if(headers.getValue("host") == null) {
-            headers.addValue("host").setString("localhost:" + port);
-        }
-        ByteBuffer header = headerBuffer();
-        ByteBuffer pktHeader = buildPacketHeader((short) header.remaining());
-
-        ByteBuffer packet = ByteBuffer.allocate(pktHeader.remaining()+ header.remaining());
-        packet.put(pktHeader);
-        packet.put(header);
-        packet.flip();
-        return packet;
+    public void addHeader(String header, String value) {
+        headers.addValue(header).setString(value);
     }
 
-    private ByteBuffer headerBuffer() {
+    @Override
+    protected ByteBuffer buildContent() {
         ByteBuffer header = ByteBuffer.allocate(2);
         header.put(AjpConstants.JK_AJP13_FORWARD_REQUEST);
         header.put(AjpConstants.getMethodCode(method));
@@ -87,7 +77,6 @@ public class AjpForwardRequestPacket {
         header = putString(header, "localhost");
         header = putShort(header, (short) port);
         header = ensureCapacity(header, 1).put((byte) 0);
-        header = putShort(header, (short) headers.size());
         header = putHeaders(header);
         header = putAttributes(header);
 
@@ -112,6 +101,10 @@ public class AjpForwardRequestPacket {
 
     private ByteBuffer putHeaders(ByteBuffer header) {
         ByteBuffer buffer = header;
+        if(headers.getValue("host") == null) {
+            headers.addValue("host").setString("localhost:" + port);
+        }
+        buffer = putShort(buffer, (short) headers.size());
         final Enumeration<String> enumeration = headers.names();
         while (enumeration.hasMoreElements()) {
             final String name = enumeration.nextElement();
@@ -126,61 +119,4 @@ public class AjpForwardRequestPacket {
 
         return buffer;
     }
-
-/*
-    private ByteChunk bodyBuffer() throws IOException {
-        final byte[] bytes = resource.getBytes();
-        ByteChunk body = new ByteChunk(bytes.length + 3);
-        AjpMessageUtils.putShort(body, (short) bytes.length);
-        body.append(bytes, 0, bytes.length);
-        body.append((byte) 0);
-        return body;
-    }
-*/
-
-    private ByteBuffer buildPacketHeader(final short size) {
-        ByteBuffer pktHeader = ByteBuffer.allocate(4);
-        pktHeader.put((byte) 0x12);
-        pktHeader.put((byte) 0x34);
-        pktHeader.putShort(size);
-        pktHeader.flip();
-        return pktHeader;
-    }
-
-    public void addHeader(String header, String value) {
-        headers.addValue(header).setString(value);
-    }
-
-    public static ByteBuffer putShort(ByteBuffer target, short value) {
-        return ensureCapacity(target, 2)
-                .putShort(value);
-    }
-
-    public static ByteBuffer putString(ByteBuffer target, String value) {
-        ByteBuffer buffer;
-        if (value == null) {
-            buffer = ensureCapacity(target, 2)
-                    .putShort((short) 0xFFFF);
-        } else {
-            final byte[] bytes = value.getBytes();
-            buffer = ensureCapacity(target, 3 + bytes.length)
-                    .putShort((short) bytes.length);
-            buffer.put(value.getBytes());
-            buffer.put((byte) 0);
-        }
-
-        return buffer;
-    }
-
-    private static ByteBuffer ensureCapacity(ByteBuffer buffer, int additional) {
-        if (buffer.remaining() < additional) {
-            final ByteBuffer expanded = ByteBuffer.allocate(buffer.capacity() + additional);
-            buffer.flip();
-            expanded.put(buffer);
-            return expanded;
-        }
-        return buffer;
-    }
-
-
 }

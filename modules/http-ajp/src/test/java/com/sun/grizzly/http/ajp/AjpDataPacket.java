@@ -40,34 +40,23 @@
 
 package com.sun.grizzly.http.ajp;
 
-import org.junit.Assert;
-import org.junit.Test;
+import java.nio.ByteBuffer;
 
-import java.io.IOException;
+public class AjpDataPacket extends AjpPacket {
+    private byte[] data;
 
-public class AjpPacketTest extends AjpTestBase {
-    @Test
-    public void forwardWgetRequest() throws IOException {
-        AjpForwardRequestPacket forward = new AjpForwardRequestPacket("GET", "//ajpindex.html", 1025, 61878);
-        forward.addHeader("User-Agent", "Wget/1.13 (darwin10.8.0)");
-        forward.addHeader("Accept", "*/*");
-        forward.addHeader("Host", "localhost:1025");
-        forward.addHeader("Connection", "Keep-Alive");
-
-        Assert.assertArrayEquals(read("/request.txt").array(), forward.toBuffer().array());
+    public AjpDataPacket(byte[] data) {
+        this.data = data;
     }
 
-    @Test
-    public void forwardFireFoxRequest() throws IOException {
-        AjpForwardRequestPacket forward = new AjpForwardRequestPacket("GET", "//index.html", 1025, 56599);
-        forward.addHeader("Host", "localhost:1025");
-        forward.addHeader("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:5.0.1) Gecko/20100101 Firefox/5.0.1");
-        forward.addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
-        forward.addHeader("Accept-Language", "en-us,en;q=0.5");
-        forward.addHeader("Accept-Encoding", "gzip, deflate");
-        forward.addHeader("Accept-Charset", "ISO-8859-1,utf-8;q=0.7,*;q=0.7");
-        forward.addHeader("Connection", "keep-alive");
+    @Override
+    protected ByteBuffer buildContent() {
+        final ByteBuffer buffer = ByteBuffer.allocate(data.length + 2);
+        buffer.put((byte) 0);
+        buffer.put((byte) data.length);
+        buffer.put(data);
+        buffer.flip();
 
-        Assert.assertArrayEquals(read("/request2.txt").array(), forward.toBuffer().array());
+        return buffer;
     }
 }

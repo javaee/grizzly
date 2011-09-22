@@ -50,8 +50,10 @@ import org.junit.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Test simple Ajp communication usecases.
@@ -65,28 +67,42 @@ public class BasicAjpTest extends AjpTestBase {
     public void testStaticRequests() throws IOException, InstantiationException {
         configureHttpServer(new StaticResourcesAdapter("src/test/resources"));
 
-        final String[] files = {"/ajpindex.html", "/ajplarge.html"};
+        final String[] files = {/*"/ajpindex.html", */"/ajplarge.html"};
         for (String file : files) {
             try {
                 requestFile(file);
-            } catch (RuntimeException e) {
+            } catch (Exception e) {
                 throw new RuntimeException("Testing file " + file + ": " + e.getMessage(), e);
             }
         }
     }
 
     @Test
-    public void dumpTable() throws IOException {
-        final ByteBuffer content = read("/request.txt");
-        final String example = new String(readFile("src/test/resources/request.txt"));
-        String table = AjpMessageUtils.dumpByteTable(content);
-        Assert.assertEquals(example, table);
+    public void testDynamicRequests() throws IOException, InstantiationException {
+        final String message = "Test Message";
+        final StringBuilder builder = new StringBuilder();
+        while (builder.length() < 10000) {
+            builder.append(message);
+        }
+        for (String test : new String[]{message, builder.toString()}) {
+            dynamicRequest(test);
+        }
     }
-    
+
     private void requestFile(String file) throws IOException {
         AjpForwardRequestPacket forward = new AjpForwardRequestPacket("GET", file, PORT, 0);
-        final ByteBuffer response = send(PORT, forward.toBuffer());
-        List<AjpResponse> responses = AjpMessageUtils.parseResponse(response);
+        send(forward.toBuffer());
+/*
+        boolean wait = true;
+        while (wait) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e.getMessage(), e);
+            }
+        }
+*/
+        List<AjpResponse> responses = AjpMessageUtils.parseResponse(readResponses());
 
         final Iterator<AjpResponse> iterator = responses.iterator();
         AjpResponse next = iterator.next();
@@ -105,34 +121,31 @@ public class BasicAjpTest extends AjpTestBase {
         Assert.assertEquals("Testing file " + file, AjpConstants.JK_AJP13_END_RESPONSE, next.getType());
     }
 
-    @Test
-    public void testDynamicRequests() throws IOException, InstantiationException {
-        final String message = "Test Message";
-        final StringBuilder builder = new StringBuilder();
-        while (builder.length() < 10000) {
-            builder.append(message);
-        }
-        for (String test : new String[]{message, builder.toString()}) {
-            dynamicRequest(test);
-        }
-    }
-
     private void dynamicRequest(final String message) throws IOException, InstantiationException {
         try {
             configureHttpServer(new GrizzlyAdapter() {
                 @Override
                 public void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
+                    response.setContentLength(message.length());
+                    response.setContentType("text");
+                    response.setLocale(Locale.US);
+                    for (int i = 1; i <= 10; i++) {
+                        response.addHeader("grizzly", "request" + i);
+                    }
+
                     response.getOutputBuffer().write(message);
                 }
             });
             AjpForwardRequestPacket forward = new AjpForwardRequestPacket("GET", "/bob", PORT, 0);
-            final ByteBuffer response = send(PORT, forward.toBuffer());
-            List<AjpResponse> responses = AjpMessageUtils.parseResponse(response);
+            send(forward.toBuffer());
+            List<AjpResponse> responses = AjpMessageUtils.parseResponse(readResponses());
 
             final Iterator<AjpResponse> iterator = responses.iterator();
             AjpResponse next = iterator.next();
             Assert.assertEquals(200, next.getResponseCode());
             Assert.assertEquals("OK", next.getResponseMessage());
+            Assert.assertEquals("Should get all the grizzly headers back", 10,
+                    Collections.list(next.getHeaders().values("grizzly")).size());
 
             ByteArrayOutputStream stream = new ByteArrayOutputStream();
             do {
@@ -158,7 +171,8 @@ public class BasicAjpTest extends AjpTestBase {
         request.put(AjpConstants.JK_AJP13_CPING_REQUEST);
         request.flip();
 
-        final ByteBuffer response = send(PORT, request);
+        send(request);
+        final ByteBuffer response = readResponses();
         Assert.assertEquals((byte) 'A', response.get());
         Assert.assertEquals((byte) 'B', response.get());
         Assert.assertEquals((short) 1, response.getShort());

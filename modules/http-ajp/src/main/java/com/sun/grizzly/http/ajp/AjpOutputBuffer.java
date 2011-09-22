@@ -118,6 +118,7 @@ public class AjpOutputBuffer extends SocketChannelOutputBuffer {
     public void endRequest() throws IOException {
         if (!finished) {
             super.endRequest();
+            flushBuffer();
             ((SocketChannel) channel).write(END_RESPONSE_AJP_PACKET);
             END_RESPONSE_AJP_PACKET.position(0);
             flushBuffer();

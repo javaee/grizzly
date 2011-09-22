@@ -68,8 +68,6 @@ final class AjpMessageUtils {
 
     public static void decodeForwardRequest(ByteBuffer buffer, boolean tomcatAuthentication, AjpHttpRequest request)
             throws IOException {
-        // FORWARD_REQUEST handler
-
         // Translate the HTTP method code to a String.
         byte methodCode = buffer.get();
         if (methodCode != AjpConstants.SC_M_JK_STORED) {
@@ -79,15 +77,8 @@ final class AjpMessageUtils {
 
         getBytesToByteChunk(buffer, request.protocol());
         getBytesToByteChunk(buffer, request.requestURI());
-//        final int requestURILen = getShort(buffer);
-//        request.requestURI().setBytes(buffer, index + 2, index + 2 + requestURILen);
-        // Don't forget to skip the terminating \0 (that's why "+ 1")
-//        index += 2 + requestURILen + 1;
-
         getBytesToByteChunk(buffer, request.remoteAddr());
-
         getBytesToByteChunk(buffer, request.remoteHost());
-
         getBytesToByteChunk(buffer, request.localName());
 
         request.setLocalPort(getShort(buffer));
@@ -99,8 +90,8 @@ final class AjpMessageUtils {
         decodeHeaders(request, buffer);
 
         decodeAttributes(buffer, request, tomcatAuthentication);
-
-//        parseHost(request.getMimeHeaders().getValue("host"), request);
+        request.unparsedURI().setString(request.requestURI() +
+                (request.queryString().getLength() != 0 ? "?" + request.queryString() : ""));
     }
 
     private static void decodeAttributes(final ByteBuffer requestContent,
@@ -203,7 +194,7 @@ final class AjpMessageUtils {
     private static void decodeHeaders(final Request req, final ByteBuffer buf) {
         // Decode headers
         final MimeHeaders headers = req.getMimeHeaders();
-        
+
         final int hCount = getShort(buf);
 
         for (int i = 0; i < hCount; i++) {
@@ -292,7 +283,7 @@ final class AjpMessageUtils {
                 message = HttpMessages.getMessage(response.getStatus());
             }
 
-            putBytes(headerBuffer, message.getBytes());
+            putBytes(headerBuffer, message.getBytes());;
 
             if (false/*response.isAcknowledgement()*/) {
                 // If it's acknowledgment packet - don't encode the headers
@@ -320,9 +311,11 @@ final class AjpMessageUtils {
                 final Enumeration<String> names = headers.names();
                 while (names.hasMoreElements()) {
                     final String name = names.nextElement();
-                    final String value = headers.getHeader(name);
-                    putBytes(headerBuffer, name.getBytes());
-                    putBytes(headerBuffer, value.getBytes());
+                    final Enumeration<String> value = headers.values(name);
+                    while (value.hasMoreElements()) {
+                        putBytes(headerBuffer, name.getBytes());
+                        putBytes(headerBuffer, value.nextElement().getBytes());
+                    }
                 }
             }
 
@@ -331,7 +324,7 @@ final class AjpMessageUtils {
             encodedBuffer.append((byte) 'A');
             encodedBuffer.append((byte) 'B');
 
-            putShort(encodedBuffer, (short) headerBuffer.getEnd());
+            putShort(encodedBuffer, (short) headerBuffer.getLength());
             encodedBuffer.append(headerBuffer);
 
             return encodedBuffer;
@@ -411,6 +404,13 @@ final class AjpMessageUtils {
         chunk.append((byte) (value & 0xFF));
     }
 
+    private static void putString(ByteChunk dstBuffer, String value) throws IOException {
+        byte[] bytes = value.getBytes();
+        putShort(dstBuffer, (short) bytes.length);
+        dstBuffer.append(bytes, 0, bytes.length);
+        dstBuffer.append((byte) 0);
+    }
+
     private static void putBytes(ByteChunk dstBuffer, final ByteChunk chunk) throws IOException {
         if (!chunk.isNull()) {
             putBytes(dstBuffer, chunk.getBytes());
@@ -442,10 +442,10 @@ final class AjpMessageUtils {
             final int position = buffer.position();
             final short magic = buffer.getShort();
             if (magic != 0x4142) {
-                throw new RuntimeException("Invalid magic number: " + magic + " buffer: " + buffer);
+                throw new RuntimeException("Invalid magic number: " + magic + " buffer: \n" + dumpByteTable(buffer));
             }
             final short packetSize = buffer.getShort();
-            if(packetSize > AjpConstants.MAX_PACKET_SIZE - 2) {
+            if (packetSize > AjpConstants.MAX_PACKET_SIZE - 2) {
                 throw new RuntimeException("Packet size too large: " + packetSize);
             }
             int start = buffer.position();
@@ -484,7 +484,7 @@ final class AjpMessageUtils {
     }
 
     public static byte[] toBytes(short size) {
-        return new byte[] {(byte) (size >> 8), (byte) (size & 0xFF)};
+        return new byte[]{(byte) (size >> 8), (byte) (size & 0xFF)};
     }
 
     public static String dumpByteTable(ByteBuffer buffer) {
@@ -493,31 +493,34 @@ final class AjpMessageUtils {
         StringBuilder chars = new StringBuilder();
         StringBuilder table = new StringBuilder();
         int count = 0;
-        while(buffer.remaining() > 0) {
+        while (buffer.remaining() > 0) {
             count++;
             byte cur = buffer.get();
             bytes.append(String.format("%02x ", cur));
             chars.append(printable(cur));
-            if(count % 16 == 0) {
+            if (count % 16 == 0) {
                 table.append(String.format("%s   %s", bytes, chars).trim());
                 table.append("\n");
                 chars = new StringBuilder();
                 bytes = new StringBuilder();
-            } else if(count % 8 == 0) {
+            } else if (count % 8 == 0) {
                 table.append(String.format("%s   ", bytes));
                 bytes = new StringBuilder();
             }
         }
-        if(bytes.length() > 0) {
-            table.append(String.format("%-51s   %s", bytes, chars).trim());
+        if (bytes.length() > 0) {
+            final int i = 50 - count % 8;
+            final String format = "%-" + i + "s   %s";
+            System.out.println("format = " + format);
+            table.append(String.format(format, bytes, chars).trim());
         }
         buffer.position(pos);
-        
+
         return table.toString();
     }
 
     private static char printable(byte cur) {
-        if((cur & (byte)0xa0) == 0xa0) {
+        if ((cur & (byte) 0xa0) == 0xa0) {
             return '?';
         }
         return cur < 127 && cur > 31 || Character.isLetterOrDigit(cur) ? (char) cur : '.';

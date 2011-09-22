@@ -40,34 +40,65 @@
 
 package com.sun.grizzly.http.ajp;
 
-import org.junit.Assert;
-import org.junit.Test;
+import java.lang.String;
+import java.nio.ByteBuffer;
 
-import java.io.IOException;
-
-public class AjpPacketTest extends AjpTestBase {
-    @Test
-    public void forwardWgetRequest() throws IOException {
-        AjpForwardRequestPacket forward = new AjpForwardRequestPacket("GET", "//ajpindex.html", 1025, 61878);
-        forward.addHeader("User-Agent", "Wget/1.13 (darwin10.8.0)");
-        forward.addHeader("Accept", "*/*");
-        forward.addHeader("Host", "localhost:1025");
-        forward.addHeader("Connection", "Keep-Alive");
-
-        Assert.assertArrayEquals(read("/request.txt").array(), forward.toBuffer().array());
+public abstract class AjpPacket {
+    public static ByteBuffer putShort(ByteBuffer target, short value) {
+        return ensureCapacity(target, 2)
+                .putShort(value);
     }
 
-    @Test
-    public void forwardFireFoxRequest() throws IOException {
-        AjpForwardRequestPacket forward = new AjpForwardRequestPacket("GET", "//index.html", 1025, 56599);
-        forward.addHeader("Host", "localhost:1025");
-        forward.addHeader("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:5.0.1) Gecko/20100101 Firefox/5.0.1");
-        forward.addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
-        forward.addHeader("Accept-Language", "en-us,en;q=0.5");
-        forward.addHeader("Accept-Encoding", "gzip, deflate");
-        forward.addHeader("Accept-Charset", "ISO-8859-1,utf-8;q=0.7,*;q=0.7");
-        forward.addHeader("Connection", "keep-alive");
+    public static ByteBuffer putString(ByteBuffer target, String value) {
+        ByteBuffer buffer;
+        if (value == null) {
+            buffer = ensureCapacity(target, 2)
+                    .putShort((short) 0xFFFF);
+        } else {
+            final byte[] bytes = value.getBytes();
+            buffer = ensureCapacity(target, 3 + bytes.length)
+                    .putShort((short) bytes.length);
+            buffer.put(value.getBytes());
+            buffer.put((byte) 0);
+        }
 
-        Assert.assertArrayEquals(read("/request2.txt").array(), forward.toBuffer().array());
+        return buffer;
     }
+
+    protected static ByteBuffer ensureCapacity(ByteBuffer buffer, int additional) {
+        if (buffer.remaining() < additional) {
+            final ByteBuffer expanded = ByteBuffer.allocate(buffer.capacity() + additional);
+            buffer.flip();
+            expanded.put(buffer);
+            return expanded;
+        }
+        return buffer;
+    }
+
+    protected ByteBuffer buildPacketHeader(final short size) {
+        ByteBuffer pktHeader = ByteBuffer.allocate(4);
+        pktHeader.put((byte) 0x12);
+        pktHeader.put((byte) 0x34);
+        pktHeader.putShort(size);
+        pktHeader.flip();
+        return pktHeader;
+    }
+
+    public ByteBuffer toBuffer() {
+        ByteBuffer header = buildContent();
+        ByteBuffer pktHeader = buildPacketHeader((short) header.remaining());
+
+        ByteBuffer packet = ByteBuffer.allocate(pktHeader.remaining()+ header.remaining());
+        packet.put(pktHeader);
+        packet.put(header);
+        packet.flip();
+        return packet;
+    }
+
+    public String toString() {
+        final ByteBuffer buffer = toBuffer();
+        return new String(buffer.array(), buffer.position(), buffer.limit() - buffer.position());
+    }
+
+    protected abstract ByteBuffer buildContent();
 }
