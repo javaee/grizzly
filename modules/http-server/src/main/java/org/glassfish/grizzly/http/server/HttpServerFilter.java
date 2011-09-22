@@ -73,6 +73,8 @@ public class HttpServerFilter extends BaseFilter
 
 
     private final Attribute<Request> httpRequestInProcessAttr;
+    final Attribute<Boolean> reregisterForReadAttr;
+    
     private final DelayedExecutor.DelayQueue<Response> suspendedResponseQueue;
 
     private volatile HttpHandler httpHandler;
@@ -102,7 +104,8 @@ public class HttpServerFilter extends BaseFilter
         suspendedResponseQueue = Response.createDelayQueue(delayedExecutor);
         httpRequestInProcessAttr = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.
                 createAttribute("HttpServerFilter.Request");
-
+        reregisterForReadAttr = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.
+                createAttribute("HttpServerFilter.reregisterForReadAttr");
     }
 
     @SuppressWarnings({"UnusedDeclaration"})
@@ -173,12 +176,13 @@ public class HttpServerFilter extends BaseFilter
                 } finally {
                     if (!suspendStatus.get()) {
                         afterService(connection, handlerRequest, handlerResponse);
-                    } else {
-                        if (handlerRequest.asyncInput()) {
-                            return ctx.getSuspendingStopAction();
-                        } else {
+                    }
+                    else {
+//                        if (handlerRequest.asyncInput()) {
+//                            return ctx.getSuspendingStopAction();
+//                        } else {
                             return ctx.getSuspendAction();
-                        }
+//                        }
                     }
                 }
             } else {
@@ -210,10 +214,16 @@ public class HttpServerFilter extends BaseFilter
                     }
                 }
             }
-        } else { // this code will be run, when we resume after suspend
-            final Response response = (Response) message;
-            final Request request = response.getRequest();
-            afterService(connection, request, response);
+        } else { // this code will be run, when we resume the context
+            if (Boolean.TRUE.equals(reregisterForReadAttr.remove(ctx))) {
+                // Do we want to reregister OP_READ to get more data async?
+                return ctx.getSuspendingStopAction();
+            } else {
+                // We're finishing the request processing
+                final Response response = (Response) message;
+                final Request request = response.getRequest();
+                afterService(connection, request, response);
+            }
         }
 
         return ctx.getStopAction();
