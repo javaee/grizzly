@@ -79,7 +79,7 @@ public final class ProcessorExecutor {
             status = result.getStatus();
             isRerun = (status == ProcessorResult.Status.RERUN);
             if (isRerun) {
-                final Object resultContext = result.getContext();
+                final Object resultContext = result.getData();
                 rerun(context);
                 context = (Context) resultContext;
             }
