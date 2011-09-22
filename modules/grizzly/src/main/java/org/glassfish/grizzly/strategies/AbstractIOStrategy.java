@@ -130,11 +130,12 @@ public abstract class AbstractIOStrategy implements IOStrategy {
         
         @Override
         public void onReregister(final Context context) throws IOException {
-            onComplete(context);
+            onComplete(context, null);
         }
 
         @Override
-        public void onComplete(final Context context) throws IOException {
+        public void onComplete(final Context context, final Object data)
+                throws IOException {
             final IOEvent ioEvent = context.getIoEvent();
             final Connection connection = context.getConnection();
             connection.enableIOEvent(ioEvent);

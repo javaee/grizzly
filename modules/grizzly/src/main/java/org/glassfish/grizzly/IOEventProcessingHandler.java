@@ -89,7 +89,7 @@ public interface IOEventProcessingHandler {
      * @param context 
      * @throws IOException
      */
-    public void onComplete(Context context) throws IOException;
+    public void onComplete(Context context, Object data) throws IOException;
 
     /**
      * Detaching {@link IOEvent} processing out of this {@link Context}.
@@ -111,17 +111,18 @@ public interface IOEventProcessingHandler {
     /**
      * Re-run {@link IOEvent} processing.
      *
-     * @param context
+     * @param context original {@link Context} to be rerun
+     * @param newContext new context, which will replace original {@link Context}
      * @throws IOException
      */
-    public void onRerun(Context context) throws IOException;
+    public void onRerun(Context context, Context newContext) throws IOException;
 
     /**
      * Error occurred during {@link IOEvent} processing.
      *
      * @param context
      */
-    public void onError(Context context) throws IOException;
+    public void onError(Context context, Object description) throws IOException;
 
     /**
      * {@link IOEvent} wasn't processed.

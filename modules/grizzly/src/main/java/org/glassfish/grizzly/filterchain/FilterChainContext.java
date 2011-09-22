@@ -733,6 +733,21 @@ public final class FilterChainContext implements AttributeStorage {
         return (getConnection().getTransport().getMemoryManager());
     }
 
+    public FilterChainContext copy() {
+        final FilterChain p = getFilterChain();
+        final FilterChainContext newContext =
+                p.obtainFilterChainContext(getConnection());
+        newContext.setOperation(getOperation());
+        
+        internalContext.softCopyTo(newContext.internalContext);
+        
+        newContext.setStartIdx(getStartIdx());
+        newContext.setEndIdx(getEndIdx());
+        newContext.setFilterIdx(getFilterIdx());
+
+        return newContext;        
+    }
+    
     /**
      * Release the context associated resources.
      */

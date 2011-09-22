@@ -162,7 +162,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                         if (idx != -1) {
                             // if there is a remainder associated with the connection
                             // rerun the filter chain with the new context right away
-                            ctx = cloneContext(ctx);
+                            ctx = ctx.copy();
                             ctx.setMessage(null);
                             ctx.setFilterIdx(idx);
                             return ProcessorResult.createRerun(ctx.internalContext);
@@ -597,23 +597,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         }
     }
 
-    private FilterChainContext cloneContext(final FilterChainContext ctx) {
-
-        final FilterChain p = ctx.getFilterChain();
-        final FilterChainContext newContext =
-                p.obtainFilterChainContext(ctx.getConnection());
-        newContext.setOperation(ctx.getOperation());
-        
-        ctx.internalContext.softCopyTo(newContext.internalContext);
-        
-        newContext.setStartIdx(ctx.getStartIdx());
-        newContext.setEndIdx(ctx.getEndIdx());
-        newContext.setFilterIdx(ctx.getFilterIdx());
-
-        return newContext;
-    }
-
-    private void notifyFailure(FilterChainContext context, Throwable e) {
+    private void notifyFailure(final FilterChainContext context, final Throwable e) {
 
         final CompletionHandler completionHandler = context.operationCompletionHandler;
         final FutureImpl future = context.operationCompletionFuture;

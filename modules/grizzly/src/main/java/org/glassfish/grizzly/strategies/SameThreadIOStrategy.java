@@ -117,11 +117,12 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
 
         @Override
         public void onReregister(final Context context) throws IOException {
-            onComplete(context);
+            onComplete(context, null);
         }
 
         @Override
-        public void onComplete(final Context context) throws IOException {
+        public void onComplete(final Context context, final Object data)
+                throws IOException {
             if (context.wasSuspended() || context.isManualIOEventControl()) {
                 final IOEvent ioEvent = context.getIoEvent();
                 final Connection connection = context.getConnection();

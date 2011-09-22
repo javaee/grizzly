@@ -79,15 +79,15 @@ public final class ProcessorExecutor {
             status = result.getStatus();
             isRerun = (status == ProcessorResult.Status.RERUN);
             if (isRerun) {
-                final Object resultContext = result.getData();
-                rerun(context);
-                context = (Context) resultContext;
+                final Context newContext = (Context) result.getData();
+                rerun(context, newContext);
+                context = newContext;
             }
         } while (isRerun);
         
         switch (status) {
             case COMPLETE:
-                complete(context);
+                complete(context, result.getData());
                 return true;
 
             case LEAVE:
@@ -103,7 +103,7 @@ public final class ProcessorExecutor {
                 return true;
 
             case ERROR:
-                error(context);
+                error(context, result.getData());
                 return false;
 
             case NOT_RUN:
@@ -118,14 +118,15 @@ public final class ProcessorExecutor {
         return execute(context);
     }
 
-    private static void complete(final Context context) throws IOException {
+    private static void complete(final Context context, final Object data)
+            throws IOException {
 
         final IOEventProcessingHandler processingHandler =
                 context.getProcessingHandler();
         
         try {
             if (processingHandler != null) {
-                processingHandler.onComplete(context);
+                processingHandler.onComplete(context, data);
             }
         } finally {
             context.recycle();
@@ -163,22 +164,25 @@ public final class ProcessorExecutor {
         }
     }
 
-    private static void rerun(final Context context) throws IOException {
+    private static void rerun(final Context context, final Context newContext)
+            throws IOException {
+        
         final IOEventProcessingHandler processingHandler =
                 context.getProcessingHandler();
 
         if (processingHandler != null) {
-            processingHandler.onRerun(context);
+            processingHandler.onRerun(context, newContext);
         }
     }
 
-    private static void error(final Context context) throws IOException {
+    private static void error(final Context context, final Object description)
+            throws IOException {
         final IOEventProcessingHandler processingHandler =
                 context.getProcessingHandler();
         
         try {
             if (processingHandler != null) {
-                processingHandler.onError(context);
+                processingHandler.onError(context, description);
             }
         } finally {
             context.recycle();
