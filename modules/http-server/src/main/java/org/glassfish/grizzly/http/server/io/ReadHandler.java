@@ -89,7 +89,8 @@ public interface ReadHandler {
 
     /**
      * <p>
-     * Invoked when data is available to be read without blocking.
+     * Invoked when data is available to be read without blocking.  Data must
+     * be consumed by the handler implementation before re-registering.
      * </p>
      *
      * @throws Exception, {@link Exception} might be thrown by the custom
