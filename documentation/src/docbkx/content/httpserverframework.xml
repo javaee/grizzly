@@ -959,28 +959,30 @@ private static class NonBlockingEchoHandler extends HttpHandler {
                         final Response response) throws Exception {
 
         final char[] buf = new char[128];
-        final NIOReader in = request.getReader(false); // false argument puts the stream in non-blocking mode
-        final NIOWriter out = response.getWriter();
+        final NIOReader in = request.getNIOReader(); // put the stream in non-blocking mode
+        final NIOWriter out = response.getNIOWriter();
 
         response.suspend();
 
         // If we don't have more data to read - onAllDataRead() will be called
-         in.notifyAvailable(new ReadHandler() {
+        in.notifyAvailable(new ReadHandler() {
 
             @Override
             public void onDataAvailable() throws Exception {
-                System.out.println("[onDataAvailable] length: " + in.readyData());
+                System.out.printf("[onDataAvailable] echoing %d bytes\n", in.readyData());
+                echoAvailableData(in, out, buf);
                 in.notifyAvailable(this);
             }
 
             @Override
             public void onError(Throwable t) {
                 System.out.println("[onError]" + t);
+                response.resume();
             }
 
             @Override
             public void onAllDataRead() throws Exception {
-                System.out.println("[onAllDataRead] length: " + in.readyData());
+                System.out.printf("[onAllDataRead] length: %d\n", in.readyData());
                 try {
                     echoAvailableData(in, out, buf);
                 } finally {
@@ -1002,7 +1004,7 @@ private static class NonBlockingEchoHandler extends HttpHandler {
     }
 
     private void echoAvailableData(NIOReader in, NIOWriter out, char[] buf)
-    throws IOException {
+            throws IOException {
             
         while(in.isReady()) {
             int len = in.read(buf);
@@ -1119,7 +1121,7 @@ private static class NonBlockingEchoHandler extends HttpHandler {
                     Buffer b = Buffers.wrap(mm, CONTENT[i]);
                     contentBuilder.content(b);
                     HttpContent content = contentBuilder.build();
-                    System.out.println(b.toStringContent());
+                    System.out.printf("(Client writing: %s)\n", b.toStringContent());
                     ctx.write(content);
                     try {
                         Thread.sleep(2000);
@@ -1278,9 +1280,9 @@ private static class NonBlockingEchoHandler extends HttpHandler {
     what's going on here. When running the complete example the output will
     look something like:</para>
 
-    <screen>Mar 17, 2011 4:00:57 PM org.glassfish.grizzly.http.server.NetworkListener start
+    <screen>Sep 22, 2011 3:22:58 PM org.glassfish.grizzly.http.server.NetworkListener start
 INFO: Started listener bound to [0.0.0.0:8080]
-Mar 17, 2011 4:00:57 PM org.glassfish.grizzly.http.server.HttpServer start
+Sep 22, 2011 3:22:58 PM org.glassfish.grizzly.http.server.HttpServer start
 INFO: [HttpServer] Started.
 
 Client connected!
@@ -1296,29 +1298,30 @@ HttpRequestPacket (
    headers=[
       Host=localhost:8080]
 )
-WRITE: contentA-
-[onDataAvailable] length: 9
+(Client writing: contentA-)
+[onDataAvailable] echoing 9 bytes
 
 (delay 2 seconds)
 
-WRITE: contentB-
-[onDataAvailable] length: 18
+(Client writing: contentB-)
+[onDataAvailable] echoing 9 bytes
 
 (delay 2 seconds)
 
-WRITE: contentC-
-[onDataAvailable] length: 27
+(Client writing: contentC-)
+[onDataAvailable] echoing 9 bytes
 
 (delay 2 seconds)
 
-WRITE: contentD
-[onDataAvailable] length: 35
+(Client writing: contentD)
+[onDataAvailable] echoing 8 bytes
 
-[onAllDataRead] length: 35
+
+[onAllDataRead] length: 0
 
 Echoed POST Data: contentA-contentB-contentC-contentD
 
-Mar 17, 2011 4:01:05 PM org.glassfish.grizzly.http.server.NetworkListener stop
+Sep 22, 2011 3:23:06 PM org.glassfish.grizzly.http.server.NetworkListener stop
 INFO: Stopped listener bound to [0.0.0.0:8080]</screen>
 
     <para>A quick note about the output above, the (delay 2 seconds) isn't
