@@ -243,7 +243,7 @@ public class NonBlockingHttpHandlerSample {
                     Buffer b = Buffers.wrap(mm, CONTENT[i]);
                     contentBuilder.content(b);
                     HttpContent content = contentBuilder.build();
-                    System.out.println("WRITE: " + b.toStringContent());
+                    System.out.printf("(Client writing: %s)\n", b.toStringContent());
                     ctx.write(content);
                     try {
                         Thread.sleep(2000);
@@ -329,18 +329,20 @@ public class NonBlockingHttpHandlerSample {
 
                 @Override
                 public void onDataAvailable() throws Exception {
-                    System.out.println("[onDataAvailable] length: " + in.readyData());
+                    System.out.printf("[onDataAvailable] echoing %d bytes\n", in.readyData());
+                    echoAvailableData(in, out, buf);
                     in.notifyAvailable(this);
                 }
 
                 @Override
                 public void onError(Throwable t) {
                     System.out.println("[onError]" + t);
+                    response.resume();
                 }
 
                 @Override
                 public void onAllDataRead() throws Exception {
-                    System.out.println("[onAllDataRead] length: " + in.readyData());
+                    System.out.printf("[onAllDataRead] length: %d\n", in.readyData());
                     try {
                         echoAvailableData(in, out, buf);
                     } finally {

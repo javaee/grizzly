@@ -237,6 +237,8 @@ public class CometContext<E> {
             if (!nioInputStream.isFinished()) {
                 nioInputStream.notifyAvailable(new CometInputHandler(nioInputStream, handler));
                 notifyOnAsyncRead(handler);
+            } else {
+                response.getRequest().initiateAsyncronousDataReceiving();
             }
         } catch (IOException e) {
             throw new RuntimeException(e.getMessage(), e);
