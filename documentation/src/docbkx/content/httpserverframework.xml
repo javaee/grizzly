@@ -959,8 +959,8 @@ private static class NonBlockingEchoHandler extends HttpHandler {
                         final Response response) throws Exception {
 
         final char[] buf = new char[128];
-        final NIOReader in = request.getNIOReader(); // put the stream in non-blocking mode
-        final NIOWriter out = response.getNIOWriter();
+        final NIOReader in = request.getReader(false); // put the stream in non-blocking mode
+        final NIOWriter out = response.getWriter();
 
         response.suspend();
 
