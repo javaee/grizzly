@@ -862,8 +862,8 @@ public class NIOInputSourcesTest extends TestCase {
 
                     @Override
                     public void run() {
-                        final NIOInputStream reader = req.getNIOInputStream();
-                        final NIOOutputStream writer = res.getNIOOutputStream();
+                        final NIOInputStream reader = req.getInputStream();
+                        final NIOOutputStream writer = res.getOutputStream();
                         
                         reader.notifyAvailable(new ReadHandler() {
 
