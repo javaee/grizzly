@@ -1311,9 +1311,6 @@ public abstract class HttpCodecFilter extends BaseFilter
         final ContentEncoding[] encodingsLibrary = contentEncodings.getArray();
         if (encodingsLibrary == null) return;
 
-        // If content-length is explicitly set - we don't apply any additional content encoding
-        if (httpHeader.getContentLength() >= 0) return;        
-        
         final DataChunk bc =
                 httpHeader.getHeaders().getValue(Header.ContentEncoding);
         final boolean isSomeEncodingApplied = bc != null && bc.getLength() > 0;

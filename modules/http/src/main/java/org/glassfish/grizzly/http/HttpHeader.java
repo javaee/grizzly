@@ -343,6 +343,9 @@ public abstract class HttpHeader extends HttpPacket
      */
     public void setContentLength(final int len) {
         this.contentLength = len;
+        if (len < 0) {
+            headers.removeHeader(Header.ContentLength);
+        }
     }
 
     /**
@@ -354,6 +357,9 @@ public abstract class HttpHeader extends HttpPacket
      */
     public void setContentLengthLong(final long contentLength) {
         this.contentLength = contentLength;
+        if (contentLength < 0) {
+            headers.removeHeader(Header.ContentLength);
+        }
     }
 
     /**
