@@ -808,6 +808,8 @@ public class GenericGrizzlyListener implements GrizzlyListener {
                     
                     // If force mode, always compress (test purposes only)
                     if (compressionLevel == COMPRESSION_LEVEL.FORCE) {
+                        responsePacket.setChunked(true);
+                        responsePacket.setContentLength(-1);
                         return true;
                     }
                     // Check for incompatible Browser
@@ -825,10 +827,18 @@ public class GenericGrizzlyListener implements GrizzlyListener {
                         || contentLength > compressionMinSize) {
                         // Check for compatible MIME-TYPE
                         if (compressableMimeTypes.length > 0) {
-                            return indexOfStartsWith(compressableMimeTypes,
-                                responsePacket.getContentType()) != -1;
+                            final boolean found =
+                                    indexOfStartsWith(compressableMimeTypes,
+                                                      responsePacket.getContentType()) != -1;
+                            if (found) {
+                                responsePacket.setChunked(true);
+                                responsePacket.setContentLength(-1);
+                            }
+                            return found;
                         }
                     }
+                    responsePacket.setChunked(true);
+                    responsePacket.setContentLength(-1);
                     return true;
             }
         }
