@@ -287,8 +287,10 @@ public class GenericGrizzlyListener implements GrizzlyListener {
             final FilterChainBuilder filterChainBuilder) {
         
         if (Boolean.valueOf(protocol.getSecurityEnabled())) {
-            configureSsl(habitat, networkListener, protocol.getSsl(),
-                    filterChainBuilder);
+            configureSsl(habitat, 
+                         networkListener, 
+                         getSsl(protocol),
+                         filterChainBuilder);
         }
         configureSubProtocol(habitat, networkListener, protocol,
                 filterChainBuilder);
@@ -335,8 +337,9 @@ public class GenericGrizzlyListener implements GrizzlyListener {
                     // If subprotocol is secured - we need to wrap it under SSLProtocolFinder
                     if (Boolean.valueOf(subProtocol.getSecurityEnabled())) {
                         final PUFilter extraSslPUFilter = new PUFilter();
+                        
                         configureSsl(habitat, networkListener,
-                                subProtocol.getSsl(), subProtocolFilterChainBuilder);
+                                getSsl(subProtocol), subProtocolFilterChainBuilder);
                         
                         subProtocolFilterChainBuilder.add(extraSslPUFilter);
                         final FilterChainBuilder extraSslPUFilterChainBuilder =
@@ -867,5 +870,13 @@ public class GenericGrizzlyListener implements GrizzlyListener {
             }
         }
         return -1;
+    }
+
+    private static Ssl getSsl(Protocol protocol) {
+        Ssl ssl = protocol.getSsl();
+        if (ssl == null) {
+            ssl = (Ssl) DefaultProxy.createDummyProxy(protocol, Ssl.class);
+        }
+        return ssl;
     }
 }
