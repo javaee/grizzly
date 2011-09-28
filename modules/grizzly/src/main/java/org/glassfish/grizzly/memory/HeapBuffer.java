@@ -502,7 +502,7 @@ public class HeapBuffer implements Buffer {
 
     @Override
     public ByteOrder order() {
-        return ByteOrder.BIG_ENDIAN;
+        return order;
     }
 
     @Override
