@@ -148,7 +148,6 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      */
     public T setIOStrategy(final IOStrategy strategy) {
         transport.setIOStrategy(strategy);
-        transport.setWorkerThreadPoolConfig(strategy.createDefaultWorkerPoolConfig(transport));
         return getThis();
     }
 
