@@ -319,6 +319,7 @@ public abstract class AbstractTransport implements Transport {
     @Override
     public void setIOStrategy(IOStrategy IOStrategy) {
         this.strategy = IOStrategy;
+        setWorkerThreadPoolConfig(strategy.createDefaultWorkerPoolConfig(this));
         notifyProbesConfigChanged(this);
     }
 
