@@ -52,6 +52,7 @@ import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.util.MimeHeaders;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.HeapBuffer;
 import org.glassfish.grizzly.websockets.HandShake;
 import org.glassfish.grizzly.websockets.HandshakeException;
@@ -127,7 +128,7 @@ public class HandShake76 extends HandShake {
                     getLocation(), serverLocation));
         }
         final byte[] clientKey = SecKey.generateServerKey(key1, key2, key3);
-        final Buffer buffer = null; // = content.getContent();
+        final Buffer buffer = Buffers.EMPTY_BUFFER; // = content.getContent();
         byte[] serverKey = new byte[16];
         buffer.get(serverKey);
         if (!Arrays.equals(clientKey, serverKey)) {
