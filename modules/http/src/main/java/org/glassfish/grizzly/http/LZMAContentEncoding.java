@@ -47,7 +47,7 @@ import org.glassfish.grizzly.compression.lzma.LZMAEncoder;
 
 public class LZMAContentEncoding implements ContentEncoding {
 
-    public static final String[] ALIASES = { "lzma" };
+    private static final String[] ALIASES = { "lzma" };
 
     private static final String NAME = "lzma";
 
@@ -94,7 +94,11 @@ public class LZMAContentEncoding implements ContentEncoding {
 
     @Override
     public String[] getAliases() {
-        return ALIASES;
+        return ALIASES.clone();
+    }
+    
+    public static String[] getLzmaAliases() {
+        return ALIASES.clone();
     }
 
     @Override
