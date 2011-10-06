@@ -57,7 +57,7 @@ public class GZipContentEncoding implements ContentEncoding {
     public static final int DEFAULT_IN_BUFFER_SIZE = 512;
     public static final int DEFAULT_OUT_BUFFER_SIZE = 512;
 
-    public static final String[] ALIASES = {"gzip", "deflate"};
+    private static final String[] ALIASES = {"gzip", "deflate"};
 
     private final String name = "gzip";
     
@@ -119,7 +119,11 @@ public class GZipContentEncoding implements ContentEncoding {
 
     @Override
     public String[] getAliases() {
-        return ALIASES;
+        return ALIASES.clone();
+    }
+    
+    public static String[] getGzipAliases() {
+        return ALIASES.clone();
     }
 
     @Override

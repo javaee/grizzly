@@ -50,7 +50,10 @@ import java.util.List;
  * @author Jean-Francois Arcand
  */
 public class Utils {
-    public static boolean VERBOSE_TESTS = false;
+    private static boolean VERBOSE_TESTS;
+    static {
+        VERBOSE_TESTS = Boolean.valueOf(System.getProperty("org.glassfish.grizzly.VERBOSE_TESTS", "false"));
+    }
 
     public static boolean isDebugVM() {
         boolean debugMode = false;

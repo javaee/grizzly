@@ -693,11 +693,11 @@ public class GenericGrizzlyListener implements GrizzlyListener {
             new CompressionEncodingFilter(compressionLevel, compressionMinSize,
                 compressableMimeTypes,
                 noCompressionUserAgents,
-                GZipContentEncoding.ALIASES));
+                GZipContentEncoding.getGzipAliases()));
         final ContentEncoding lzmaEncoding = new LZMAContentEncoding(new CompressionEncodingFilter(compressionLevel, compressionMinSize,
                 compressableMimeTypes,
                 noCompressionUserAgents,
-                LZMAContentEncoding.ALIASES));
+                LZMAContentEncoding.getLzmaAliases()));
         final Set<ContentEncoding> set = new HashSet<ContentEncoding>(2);
         set.add(gzipContentEncoding);
         set.add(lzmaEncoding);

@@ -116,7 +116,7 @@ public class ResourceAllocationFilter extends BaseFilter {
      * The thread ratio used when an application isn't listed as a privileged
      * application.
      */
-    protected static double leftRatio = 1;
+    protected double leftRatio = 1;
 
 
     /**
@@ -125,7 +125,7 @@ public class ResourceAllocationFilter extends BaseFilter {
      * With Reserve policy, if 100% reservation is made by other apps,
      * cancel the request processing.
      */
-    protected static String allocationPolicy = RESERVE;
+    protected String allocationPolicy = RESERVE;
 
 
     /**
@@ -135,46 +135,9 @@ public class ResourceAllocationFilter extends BaseFilter {
 
     private final int standardThreadPoolSize;
 
-    static {
-        try{
-            if (System.getProperty(RULE_TOKENS) != null){
-                StringTokenizer privList =
-                        new StringTokenizer(System.getProperty(RULE_TOKENS),",");
-                StringTokenizer privElement;
-                String tokens;
-                double countRatio = 0;
-                double tokenValue;
-                while (privList.hasMoreElements()){
-                    privElement = new StringTokenizer(privList.nextToken());
+    
 
-                    while (privElement.hasMoreElements()){
-                        tokens = privElement.nextToken();
-                        int index = tokens.indexOf("|");
-                        tokenValue = Double.valueOf(tokens.substring(index+1));
-                        privilegedTokens.put
-                                (tokens.substring(0, index),tokenValue);
-                        countRatio += tokenValue;
-                    }
-                }
-                if ( countRatio > 1 ) {
-                    logger.info("Thread ratio too high. The total must be lower or equal to 1");
-                }  else {
-                    leftRatio = 1 - countRatio;
-                }
-            }
-        } catch (Exception ex){
-            logger.log(Level.SEVERE,"Unable to set the ratio",ex);
-        }
 
-        if (System.getProperty(ALLOCATION_MODE) != null){
-            allocationPolicy = System.getProperty(ALLOCATION_MODE);
-            if ( !RESERVE.equals(allocationPolicy) &&
-                    !CEILING.equals(allocationPolicy)) {
-                logger.info("Invalid allocation policy");
-                allocationPolicy = RESERVE;
-            }
-        }
-    }
 
 
     public ResourceAllocationFilter() {
@@ -183,6 +146,7 @@ public class ResourceAllocationFilter extends BaseFilter {
 
     public ResourceAllocationFilter(int standardThreadPoolSize) {
         this.standardThreadPoolSize = standardThreadPoolSize;
+        init();
     }
 
     @Override
@@ -360,4 +324,45 @@ public class ResourceAllocationFilter extends BaseFilter {
             Buffers.setPositionLimit(inputMessage, pos, lim);
         }
     }
+
+    private void init() {
+            try{
+                if (System.getProperty(RULE_TOKENS) != null){
+                    StringTokenizer privList =
+                            new StringTokenizer(System.getProperty(RULE_TOKENS),",");
+                    StringTokenizer privElement;
+                    String tokens;
+                    double countRatio = 0;
+                    double tokenValue;
+                    while (privList.hasMoreElements()){
+                        privElement = new StringTokenizer(privList.nextToken());
+
+                        while (privElement.hasMoreElements()){
+                            tokens = privElement.nextToken();
+                            int index = tokens.indexOf("|");
+                            tokenValue = Double.valueOf(tokens.substring(index+1));
+                            privilegedTokens.put
+                                    (tokens.substring(0, index),tokenValue);
+                            countRatio += tokenValue;
+                        }
+                    }
+                    if ( countRatio > 1 ) {
+                        logger.info("Thread ratio too high. The total must be lower or equal to 1");
+                    }  else {
+                        leftRatio = 1 - countRatio;
+                    }
+                }
+            } catch (Exception ex){
+                logger.log(Level.SEVERE,"Unable to set the ratio",ex);
+            }
+
+            if (System.getProperty(ALLOCATION_MODE) != null){
+                allocationPolicy = System.getProperty(ALLOCATION_MODE);
+                if ( !RESERVE.equals(allocationPolicy) &&
+                        !CEILING.equals(allocationPolicy)) {
+                    logger.info("Invalid allocation policy");
+                    allocationPolicy = RESERVE;
+                }
+            }
+        }
 }
