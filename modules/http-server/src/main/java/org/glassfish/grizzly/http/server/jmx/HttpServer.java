@@ -137,7 +137,9 @@ public class HttpServer extends JmxObject {
             if (currentListener != l) {
                 if (currentListener != null) {
                     final JmxObject listenerJmx = listenersJmx.get(l.getName());
-                    mom.deregister(listenerJmx);
+                    if (listenerJmx != null) {
+                        mom.deregister(listenerJmx);
+                    }
 
                     currentListeners.remove(l.getName());
                     listenersJmx.remove(l.getName());

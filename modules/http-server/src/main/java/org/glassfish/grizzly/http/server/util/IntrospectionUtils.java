@@ -935,18 +935,24 @@ public final class IntrospectionUtils {
                     }
                 }
                 if (params == null) {
-                    if (methodParams == null || methodParams.length == 0) {
+                    if (methodParams.length == 0) {
                         return methods[i];
                     }
                 }
-                if (params.length != methodParams.length) {
-                    continue;
+                if (params != null && methodParams != null) {
+                    if (params.length != methodParams.length) {
+                        continue;
+                    }
                 }
                 boolean found = true;
-                for (int j = 0; j < params.length; j++) {
-                    if (params[j] != methodParams[j]) {
-                        found = false;
-                        break;
+                if (params != null) {
+                    for (int j = 0; j < params.length; j++) {
+                        if (methodParams != null) {
+                            if (params[j] != methodParams[j]) {
+                                found = false;
+                                break;
+                            }
+                        }
                     }
                 }
                 if (found) {
@@ -1021,7 +1027,7 @@ public final class IntrospectionUtils {
     public static Object callMethod0(Object target, String methodN)
             throws Exception {
         if (target == null) {
-            d("Assert: Illegal params " + target);
+            d("Assert: Illegal params: target is null");
             return null;
         }
         if (dbg > 0) {

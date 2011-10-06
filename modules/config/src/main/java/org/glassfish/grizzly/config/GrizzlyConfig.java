@@ -133,7 +133,10 @@ public class GrizzlyConfig {
     }
 
     public static boolean toBoolean(String value) {
-        final String v = value == null ? value : value.trim();
+        if (value == null || value.length() == 0) {
+            return false;
+        }
+        final String v = value.trim();
         return "true".equals(v) || "yes".equals(v) || "on".equals(v) || "1".equals(v);
     }
 

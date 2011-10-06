@@ -125,7 +125,7 @@ public class JaxwsHandler extends HttpHandler {
      * @param isAsync if <tt>true</tt> the handler will execute WebService in
      *          asynchronous mode, otherwise synchronous.
      * @param metadata
-     *      Other documents that become {@link SDDocument}s. Can be null.
+     *      Other documents that become {@link com.sun.xml.ws.api.server.SDDocument}s. Can be null.
      * @param properties extra properties to be used, when constructing WebService {@link WSEndpoint}.
      */
     public JaxwsHandler(final Object implementor, final boolean isAsync,
@@ -280,7 +280,6 @@ public class JaxwsHandler extends HttpHandler {
         List<SDDocumentSource> r = new ArrayList<SDDocumentSource>();
 
         if (metadata != null) {
-            Transformer transformer = XmlUtil.newTransformer();
             for (Source source : metadata) {
                 try {
                     XMLStreamBufferResult xsbr = XmlUtil.identityTransform(source, new XMLStreamBufferResult());

@@ -880,7 +880,7 @@ public class ServletHandler extends HttpHandler {
      *
      * @author Craig R. McClanahan
      */
-    private final class FilterChainImpl implements FilterChain {
+    private static final class FilterChainImpl implements FilterChain {
 
         /**
          * The servlet instance to be executed by this chain.

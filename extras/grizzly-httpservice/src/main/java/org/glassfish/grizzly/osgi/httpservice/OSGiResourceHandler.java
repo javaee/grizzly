@@ -185,7 +185,7 @@ public class OSGiResourceHandler extends HttpHandler implements OSGiHandler {
         return lock.writeLock();
     }
 
-    private class OSGiHttpServletRequest extends HttpServletRequestImpl {
+    private static class OSGiHttpServletRequest extends HttpServletRequestImpl {
         public OSGiHttpServletRequest(
                 Request request, OSGiServletContext context) throws IOException {
             super();

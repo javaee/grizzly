@@ -74,6 +74,8 @@ import java.io.Serializable;
  */
 public final class CharChunk implements Chunk, Cloneable, Serializable {
 
+    private static final long serialVersionUID = -1L;
+
     // Input interface, used when the buffer is emptied.
     public interface CharInputChannel {
         /**
@@ -563,9 +565,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
 
     @Override
     public String toString() {
-        if (null == buff) {
-            return null;
-        } else if (end-start == 0) {
+        if (null == buff || end - start == 0) {
             return "";
         } else if (cachedString != null) {
             return cachedString;

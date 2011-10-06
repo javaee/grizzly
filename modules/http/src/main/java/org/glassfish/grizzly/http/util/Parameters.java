@@ -71,7 +71,7 @@ import org.glassfish.grizzly.Grizzly;
 /**
  * @author Costin Manolache
  */
-public final class Parameters extends MultiMap {
+public final class Parameters {
     /**
      * Default Logger.
      */
@@ -104,13 +104,6 @@ public final class Parameters extends MultiMap {
     Charset encoding = null;
     Charset queryStringEncoding = null;
 
-    /**
-     *
-     */
-    public Parameters() {
-        super(INITIAL_SIZE);
-    }
-
     public void setQuery(final DataChunk queryBC) {
         this.queryDC = queryBC;
     }
@@ -133,9 +126,9 @@ public final class Parameters extends MultiMap {
         }
     }
 
-    @Override
+
     public void recycle() {
-        super.recycle();
+
         paramHashStringArray.clear();
         didQueryParameters = false;
         currentChild = null;

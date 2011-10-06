@@ -71,6 +71,7 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.locks.Lock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
@@ -206,7 +207,8 @@ public final class TCPNIOTransport extends NIOTransport implements
 
     @Override
     public void start() throws IOException {
-        state.getStateLocker().writeLock().lock();
+        final Lock lock = state.getStateLocker().writeLock();
+        lock.lock();
         try {
             State currentState = state.getState();
             if (currentState != State.STOP) {
@@ -279,7 +281,7 @@ public final class TCPNIOTransport extends NIOTransport implements
 
             notifyProbesStart(this);
         } finally {
-            state.getStateLocker().writeLock().unlock();
+            lock.unlock();
         }
     }
 
@@ -302,8 +304,8 @@ public final class TCPNIOTransport extends NIOTransport implements
 
     @Override
     public void stop() throws IOException {
-        state.getStateLocker().writeLock().lock();
-
+        final Lock lock = state.getStateLocker().writeLock();
+        lock.lock();
         try {
             unbindAll();
             state.setState(State.STOP);
@@ -322,14 +324,14 @@ public final class TCPNIOTransport extends NIOTransport implements
 
             notifyProbesStop(this);
         } finally {
-            state.getStateLocker().writeLock().unlock();
+            lock.unlock();
         }
     }
 
     @Override
     public void pause() throws IOException {
-        state.getStateLocker().writeLock().lock();
-
+        final Lock lock = state.getStateLocker().writeLock();
+        lock.lock();
         try {
             if (state.getState() != State.START) {
                 LOGGER.log(Level.WARNING,
@@ -338,14 +340,14 @@ public final class TCPNIOTransport extends NIOTransport implements
             state.setState(State.PAUSE);
             notifyProbesPause(this);
         } finally {
-            state.getStateLocker().writeLock().unlock();
+            lock.unlock();
         }
     }
 
     @Override
     public void resume() throws IOException {
-        state.getStateLocker().writeLock().lock();
-
+        final Lock lock = state.getStateLocker().writeLock();
+        lock.lock();
         try {
             if (state.getState() != State.PAUSE) {
                 LOGGER.log(Level.WARNING,
@@ -354,7 +356,7 @@ public final class TCPNIOTransport extends NIOTransport implements
             state.setState(State.START);
             notifyProbesResume(this);
         } finally {
-            state.getStateLocker().writeLock().unlock();
+            lock.unlock();
         }
     }
 
@@ -400,8 +402,8 @@ public final class TCPNIOTransport extends NIOTransport implements
     public TCPNIOServerConnection bind(final SocketAddress socketAddress,
             final int backlog)
             throws IOException {
-        state.getStateLocker().writeLock().lock();
-
+        final Lock lock = state.getStateLocker().writeLock();
+        lock.lock();
         TCPNIOServerConnection serverConnection = null;
         final ServerSocketChannel serverSocketChannel =
                 ServerSocketChannel.open();
@@ -440,7 +442,7 @@ public final class TCPNIOTransport extends NIOTransport implements
             
             throw Exceptions.makeIOException(e);
         } finally {
-            state.getStateLocker().writeLock().unlock();
+            lock.unlock();
         }
     }
 
@@ -479,8 +481,8 @@ public final class TCPNIOTransport extends NIOTransport implements
      */
     @Override
     public void unbind(Connection connection) throws IOException {
-        state.getStateLocker().writeLock().lock();
-
+        final Lock lock = state.getStateLocker().writeLock();
+        lock.lock();
         try {
             if (connection != null
                     && serverConnections.remove(connection)) {
@@ -494,14 +496,14 @@ public final class TCPNIOTransport extends NIOTransport implements
                 }
             }
         } finally {
-            state.getStateLocker().writeLock().unlock();
+            lock.unlock();
         }
     }
 
     @Override
     public void unbindAll() throws IOException {
-        state.getStateLocker().writeLock().lock();
-
+        final Lock lock = state.getStateLocker().writeLock();
+        lock.lock();
         try {
             for (Connection serverConnection : serverConnections) {
                 try {
@@ -515,7 +517,7 @@ public final class TCPNIOTransport extends NIOTransport implements
 
             serverConnections.clear();
         } finally {
-            state.getStateLocker().writeLock().unlock();
+            lock.unlock();
         }
     }
 

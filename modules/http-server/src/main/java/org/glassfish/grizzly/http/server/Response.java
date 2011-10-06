@@ -1780,7 +1780,6 @@ public class Response {
         volatile CompletionHandler<Response> completionHandler;
         volatile TimeoutHandler timeoutHandler;
         long delayMillis;
-        boolean isResuming;
         volatile long timeoutTimeMillis;
 
         /**
@@ -1795,8 +1794,6 @@ public class Response {
             final Connection connection = ctx.getConnection();
 
             connection.removeCloseListener(this);
-
-            isResuming = true;
 
             if (completionHandler != null) {
                 completionHandler.completed(Response.this);
@@ -1822,8 +1819,6 @@ public class Response {
             final Connection connection = ctx.getConnection();
 
             connection.removeCloseListener(this);
-
-            isResuming = true;
 
             if (completionHandler != null) {
                 completionHandler.cancelled();
@@ -1859,7 +1854,6 @@ public class Response {
             timeoutTimeMillis = DelayedExecutor.UNSET_TIMEOUT;
             completionHandler = null;
             timeoutHandler = null;
-            isResuming = false;
         }
 
         @Override

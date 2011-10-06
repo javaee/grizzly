@@ -550,7 +550,7 @@ public class StringCache {
 
         int i;
         while (true) {
-            i = (b + a) / 2;
+            i = (b + a) >>> 1;
             int result = compare(name, array[i].name);
             if (result == 1) {
                 a = i;
@@ -642,7 +642,7 @@ public class StringCache {
 
         int i;
         while (true) {
-            i = (b + a) / 2;
+            i = (b + a) >>> 1;
             int result = compare(name, array[i].name);
             if (result == 1) {
                 a = i;

@@ -423,7 +423,6 @@ public class ServletContextImpl implements ServletContext {
         path = normalize( path );
         if( path == null )
             return null;
-        pos = path.length();
 
         // Use the thread local URI and mapping data
         DispatchData dd = dispatchData.get();
