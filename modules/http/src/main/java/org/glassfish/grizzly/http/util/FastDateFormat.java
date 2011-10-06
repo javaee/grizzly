@@ -79,7 +79,7 @@ public class FastDateFormat extends DateFormat {
     final DateFormat    df;
     long          lastSec = -1;
     final StringBuffer  sb      = new StringBuffer();
-    final FieldPosition fp      = new FieldPosition(DateFormat.MILLISECOND_FIELD);
+    final transient FieldPosition fp      = new FieldPosition(DateFormat.MILLISECOND_FIELD);
 
     public FastDateFormat(DateFormat df) {
         this.df = df;

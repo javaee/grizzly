@@ -152,7 +152,9 @@ public class ExpandJar {
         File appBase = new File(dirname);
         File docBase = new File(appBase, pathname);
         // Create the new document base directory
-        docBase.mkdir();
+        if (!docBase.mkdir()) {
+            throw new IllegalStateException(String.format("Unable to create directory: %s", docBase.getAbsolutePath()));
+        }
 
         // Expand the jar into the new document base directory
         JarURLConnection juc = (JarURLConnection) jar.openConnection();
@@ -169,7 +171,9 @@ public class ExpandJar {
                 if (last >= 0) {
                     File parent = new File(docBase,
                                            name.substring(0, last));
-                    parent.mkdirs();
+                    if (!parent.mkdirs()) {
+                        throw new IllegalStateException(String.format("Unable to create directory: %s", parent.getAbsolutePath()));
+                    }
                 }
                 if (name.endsWith("/")) {
                     continue;
@@ -188,16 +192,14 @@ public class ExpandJar {
             if (input != null) {
                 try {
                     input.close();
-                } catch (Throwable t) {
-                    ;
+                } catch (Throwable ignored) {
                 }
                 input = null;
             }
             if (jarFile != null) {
                 try {
                     jarFile.close();
-                } catch (Throwable t) {
-                    ;
+                } catch (Throwable ignored) {
                 }
                 jarFile = null;
             }
@@ -249,13 +251,13 @@ public class ExpandJar {
                     if (ic != null) {
                         try {
                             ic.close();
-                        } catch (IOException e) {
+                        } catch (IOException ignored) {
                         }
                     }
                     if (oc != null) {
                         try {
                             oc.close();
-                        } catch (IOException e) {
+                        } catch (IOException ignored) {
                         }
                     }
                 }
@@ -298,7 +300,9 @@ public class ExpandJar {
             if (file.isDirectory()) {
                 deleteDir(file);
             } else {
-                file.delete();
+                if (!file.delete()) {
+                    throw new IllegalStateException(String.format("Unable to delete file: %s",file.getAbsolutePath()));
+                }
             }
         }
         return dir.delete();
@@ -335,7 +339,7 @@ public class ExpandJar {
             if (output != null) {
                 try {
                     output.close();
-                } catch (IOException e) {
+                } catch (IOException ignored) {
                     // Ignore
                 }
             }

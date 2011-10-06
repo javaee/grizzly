@@ -94,4 +94,23 @@ final class TemporaryHeapBuffer extends HeapBuffer {
     boolean isDisposed() {
         return isDisposed;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof TemporaryHeapBuffer)) return false;
+        if (!super.equals(o)) return false;
+
+        TemporaryHeapBuffer that = (TemporaryHeapBuffer) o;
+
+        return (isDisposed == that.isDisposed);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + (isDisposed ? 1 : 0);
+        return result;
+    }
 }

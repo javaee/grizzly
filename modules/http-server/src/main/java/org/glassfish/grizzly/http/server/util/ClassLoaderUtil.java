@@ -44,6 +44,8 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Grizzly;
@@ -84,7 +86,7 @@ public class ClassLoaderUtil {
                             + File.separator + jars[i]).getCanonicalFile().toURI().toURL().toString();
                     urls[i] = new URL(path);
                 }
-                urlClassloader = new URLClassLoader(urls, cl);
+                urlClassloader = createClassLoaderWithSecCheck(urls, cl);
             }
         }
         return urlClassloader;
@@ -152,7 +154,7 @@ public class ClassLoaderUtil {
         urls[urls.length - 3] = new URL("file://" + path + "/WEB-INF/classes/");
         urls[urls.length - 4] = new URL("file://" + path);
 
-        return new URLClassLoader(urls, Thread.currentThread().getContextClassLoader());
+        return createClassLoaderWithSecCheck(urls, Thread.currentThread().getContextClassLoader());
     }
 
     /**
@@ -200,5 +202,18 @@ public class ClassLoaderUtil {
         }
 
         return null;
+    }
+
+    private static URLClassLoader createClassLoaderWithSecCheck(final URL[] urls,
+                                                                final ClassLoader parent) {
+        if (System.getSecurityManager() == null) {
+            return new URLClassLoader(urls, parent);
+        } else {
+            return AccessController.doPrivileged(new PrivilegedAction<URLClassLoader>() {
+                public URLClassLoader run() {
+                    return new URLClassLoader(urls, parent);
+                }
+            });
+        }
     }
 }

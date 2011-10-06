@@ -89,6 +89,8 @@ import java.io.Serializable;
  */
 public final class ByteChunk implements Cloneable, Serializable {
 
+    private static final long serialVersionUID = -1L;
+
     // Input interface, used when the buffer is emptied.
     public static interface ByteInputChannel {
         /**
@@ -502,9 +504,7 @@ public final class ByteChunk implements Cloneable, Serializable {
     // -------------------- Conversion and getters --------------------
 
     public String toString() {
-        if (null == buff) {
-            return null;
-        } else if (end-start == 0) {
+        if (null == buff || end - start == 0) {
             return "";
         }
         return StringCache.toString(this);

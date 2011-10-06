@@ -58,7 +58,6 @@ import org.glassfish.grizzly.websockets.frametypes.TextFrameType;
 
 public abstract class ProtocolHandler {
     protected Connection connection;
-    private boolean isHeaderParsed;
     private WebSocket webSocket;
     protected byte inFragmentedType;
     protected byte outFragmentedType;
@@ -149,10 +148,6 @@ public abstract class ProtocolHandler {
         });
     }
 
-    private GrizzlyFuture<DataFrame> write(final DataFrame frame) {
-        return write(frame, null);
-    }
-    
     @SuppressWarnings({"unchecked"})
     private GrizzlyFuture<DataFrame> write(final DataFrame frame,
             final CompletionHandler<DataFrame> completionHandler) {

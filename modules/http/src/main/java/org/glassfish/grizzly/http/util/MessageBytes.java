@@ -250,7 +250,7 @@ public final class MessageBytes implements Cloneable, Serializable {
                 strValue=byteC.toString();
                 return strValue;
         }
-        return null;
+        return "";
     }
 
     //----------------------------------------

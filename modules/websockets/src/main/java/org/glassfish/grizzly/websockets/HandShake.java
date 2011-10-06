@@ -279,7 +279,8 @@ public abstract class HandShake {
         }
         checkForHeader(headers, WebSocketEngine.UPGRADE, WebSocketEngine.WEBSOCKET);
         checkForHeader(headers, WebSocketEngine.CONNECTION, WebSocketEngine.UPGRADE);
-        if (!getSubProtocol().isEmpty() && headers.getHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER) == null) {
+        if (!getSubProtocol().isEmpty()) {
+            checkForHeader(headers, WebSocketEngine.SEC_WS_PROTOCOL_HEADER, WebSocketEngine.SEC_WS_PROTOCOL_HEADER);
         }
     }
 

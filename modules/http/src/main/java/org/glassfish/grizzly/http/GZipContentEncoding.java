@@ -59,7 +59,7 @@ public class GZipContentEncoding implements ContentEncoding {
 
     private static final String[] ALIASES = {"gzip", "deflate"};
 
-    private final String name = "gzip";
+    private static final String name = "gzip";
     
     private final GZipDecoder decoder;
     private final GZipEncoder encoder;
