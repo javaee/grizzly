@@ -277,8 +277,7 @@ public final class RequestDispatcherImpl implements RequestDispatcher {
         if( ( hrequest == null ) || ( hresponse == null ) ) {
             // Handle a non-HTTP forward
             DispatchedHttpServletRequest wrequest = wrapRequest( state );
-            processRequest( request, response, state,
-                            wrequest.getRequestFacade(), dispatcherType );
+            processRequest( request, response, state, dispatcherType );
             unwrapRequest( state );
             wrequest.recycle();
         } else if( ( servletPath == null ) && ( pathInfo == null ) ) {
@@ -289,7 +288,7 @@ public final class RequestDispatcherImpl implements RequestDispatcher {
             wrequest.setServletPath( hrequest.getServletPath() );
             wrequest.setPathInfo( hrequest.getPathInfo() );
             wrequest.setQueryString( hrequest.getQueryString() );
-            processRequest( request, response, state, wrequest.getRequestFacade(), dispatcherType );
+            processRequest( request, response, state, dispatcherType );
             unwrapRequest( state );
             wrequest.recycle();
         } else {
@@ -327,7 +326,7 @@ public final class RequestDispatcherImpl implements RequestDispatcher {
                 wrequest.setQueryString( queryString );
             }
 
-            processRequest( request, response, state, wrequest.getRequestFacade(), dispatcherType);
+            processRequest( request, response, state, dispatcherType);
 
             unwrapRequest( state );
             wrequest.recycle();
@@ -347,15 +346,14 @@ public final class RequestDispatcherImpl implements RequestDispatcher {
     private void processRequest( ServletRequest request,
                                  ServletResponse response,
                                  State state,
-                                 HttpServletRequestImpl requestFacade,
                                  DispatcherType dispatcherType)
             throws IOException, ServletException {
         if( request != null ) {
             if( state.dispatcherType != DispatcherType.ERROR ) {
                 state.outerRequest.setAttribute( Globals.DISPATCHER_REQUEST_PATH_ATTR, getCombinedPath() );
-                invoke( state.outerRequest, response, requestFacade, dispatcherType );
+                invoke( state.outerRequest, response, dispatcherType );
             } else {
-                invoke( state.outerRequest, response, requestFacade, dispatcherType );
+                invoke( state.outerRequest, response, dispatcherType );
             }
         }
     }
@@ -424,7 +422,7 @@ public final class RequestDispatcherImpl implements RequestDispatcher {
             wrequest.setAttribute( Globals.NAMED_DISPATCHER_ATTR, name );
             wrequest.setAttribute( Globals.DISPATCHER_REQUEST_PATH_ATTR, getCombinedPath() );
             try {
-                invoke( state.outerRequest, state.outerResponse, wrequest.getRequestFacade() , INCLUDE);
+                invoke( state.outerRequest, state.outerResponse, INCLUDE);
             } finally {
                 unwrapRequest( state );
                 unwrapResponse( state );
@@ -443,7 +441,7 @@ public final class RequestDispatcherImpl implements RequestDispatcher {
             }
             wrequest.setAttribute( Globals.DISPATCHER_REQUEST_PATH_ATTR,getCombinedPath() );
             try {
-                invoke( state.outerRequest, state.outerResponse, wrequest.getRequestFacade(), INCLUDE);
+                invoke( state.outerRequest, state.outerResponse, INCLUDE);
             } finally {
                 unwrapRequest( state );
                 unwrapResponse( state );
@@ -468,15 +466,14 @@ public final class RequestDispatcherImpl implements RequestDispatcher {
      */
     private void invoke(final ServletRequest request,
                         final ServletResponse response,
-                        final HttpServletRequestImpl requestFacade,
                         final DispatcherType dispatcherType)
             throws IOException, ServletException {
         boolean crossContext = false;
-        if( crossContextFlag != null && crossContextFlag.booleanValue() ) {
+        if( crossContextFlag != null && crossContextFlag) {
             crossContext = true;
         }
         try {
-            doInvoke(request, response, crossContext, requestFacade, dispatcherType);
+            doInvoke(request, response, crossContext, dispatcherType);
         } finally {
             crossContextFlag = null;
         }
@@ -500,7 +497,6 @@ public final class RequestDispatcherImpl implements RequestDispatcher {
     private void doInvoke(ServletRequest request,
                           ServletResponse response,
                           boolean crossContext,
-                          HttpServletRequestImpl requestFacade,
                           DispatcherType dispatcherType)
             throws IOException, ServletException {
         ClassLoader oldCCL = null;
@@ -608,9 +604,6 @@ public final class RequestDispatcherImpl implements RequestDispatcher {
             if( current instanceof DispatchedHttpServletRequest ) {
                 break;
             }
-            if( current instanceof HttpServletRequestImpl ) {
-                break;
-            }
 
             previous = current;
             current = ( (ServletRequestWrapper)current ).getRequest();
@@ -621,9 +614,8 @@ public final class RequestDispatcherImpl implements RequestDispatcher {
 
         // Compute a crossContext flag
         HttpServletRequest hcurrent = (HttpServletRequest)current;
-        boolean crossContext = !( wrapper.getContextPath().equals( hcurrent.getContextPath() ) );
         //START OF 6364900
-        crossContextFlag = Boolean.valueOf( crossContext );
+        crossContextFlag = !(wrapper.getContextPath().equals( hcurrent.getContextPath()));
 
         // Instantiate a new wrapper and insert it in the chain
         DispatchedHttpServletRequest wrapper = new DispatchedHttpServletRequest( hcurrent, state.dispatcherType );
@@ -652,8 +644,6 @@ public final class RequestDispatcherImpl implements RequestDispatcher {
             if( !( current instanceof ServletResponseWrapper ) )
                 break;
             if( current instanceof DispatchedHttpServletResponse )
-                break;
-            if( current instanceof HttpServletResponseImpl )
                 break;
 
             previous = current;
@@ -687,13 +677,10 @@ public final class RequestDispatcherImpl implements RequestDispatcher {
                 ServletOutputStream stream = response.getOutputStream();
                 stream.flush();
                 stream.close();
-            } catch( IllegalStateException f ) {
-                ;
-            } catch( IOException f ) {
-                ;
+            } catch(IllegalStateException ignored) {
+            } catch(IOException ignored) {
             }
-        } catch( IOException e ) {
-            ;
+        } catch(IOException ignored) {
         }
     }
 
