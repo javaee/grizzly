@@ -603,8 +603,10 @@ public class ServletHandler extends HttpHandler {
      */
     public void setServletPath(String servletPath) {
         this.servletPath = servletPath;
-        if (servletPath.length() != 0 && !servletPath.startsWith("/")) {
-            servletPath = "/" + servletPath;
+        if (servletPath != null
+                && servletPath.length() != 0
+                && !servletPath.startsWith("/")) {
+            this.servletPath = "/" + servletPath;
         }
     }
 
