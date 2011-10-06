@@ -997,6 +997,7 @@ public final class IntrospectionUtils {
             Object param1, String typeParam1, ClassLoader cl) throws Exception {
         if (target == null || param1 == null) {
             d("Assert: Illegal params " + target + " " + param1);
+            return null;
         }
         if (dbg > 0) {
             d("callMethod1 " + target.getClass().getName() + " "
