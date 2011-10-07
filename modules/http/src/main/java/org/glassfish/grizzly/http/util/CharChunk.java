@@ -60,6 +60,7 @@ package org.glassfish.grizzly.http.util;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Arrays;
 
 /**
  * Utilities to manipluate char chunks. While String is
@@ -597,6 +598,44 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
     }
 
     // -------------------- equals --------------------
+
+
+    @Override
+    public int hashCode() {
+        int result = Arrays.hashCode(buff);
+        result = 31 * result + start;
+        result = 31 * result + end;
+        result = 31 * result + (isSet ? 1 : 0);
+        result = 31 * result + limit;
+        result = 31 * result + in.hashCode();
+        result = 31 * result + out.hashCode();
+        result = 31 * result + (optimizedWrite ? 1 : 0);
+        result = 31 * result + cachedString.hashCode();
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        CharChunk charChunk = (CharChunk) o;
+
+        if (end != charChunk.end) return false;
+        if (isSet != charChunk.isSet) return false;
+        if (limit != charChunk.limit) return false;
+        if (optimizedWrite != charChunk.optimizedWrite) return false;
+        if (start != charChunk.start) return false;
+        if (!Arrays.equals(buff, charChunk.buff)) return false;
+        if (cachedString != null ? !cachedString.equals(charChunk.cachedString) : charChunk.cachedString != null)
+            return false;
+        if (in != null ? !in.equals(charChunk.in) : charChunk.in != null)
+            return false;
+        if (out != null ? !out.equals(charChunk.out) : charChunk.out != null)
+            return false;
+
+        return true;
+    }
 
     /**
      * Compares the message bytes to the specified String object.

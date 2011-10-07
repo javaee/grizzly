@@ -93,6 +93,33 @@ public class HttpServerFilter extends HttpCodecFilter {
 
     private static final FlushAndCloseHandler FLUSH_AND_CLOSE_HANDLER =
             new FlushAndCloseHandler();
+    /**
+     * Close bytes.
+     */
+    private static final byte[] CLOSE_BYTES = {
+        (byte) 'c',
+        (byte) 'l',
+        (byte) 'o',
+        (byte) 's',
+        (byte) 'e'
+    };
+    /**
+     * Keep-alive bytes.
+     */
+    private static final byte[] KEEPALIVE_BYTES = {
+        (byte) 'k',
+        (byte) 'e',
+        (byte) 'e',
+        (byte) 'p',
+        (byte) '-',
+        (byte) 'a',
+        (byte) 'l',
+        (byte) 'i',
+        (byte) 'v',
+        (byte) 'e'
+    };
+    
+    private static final int[] DEC = HexUtils.getDecBytes();
 
     private final Attribute<HttpRequestPacketImpl> httpRequestInProcessAttr;
     private final Attribute<KeepAliveContext> keepAliveContextAttr;
@@ -739,12 +766,12 @@ public class HttpServerFilter extends HttpCodecFilter {
         // ------ Set keep-alive flag
         final DataChunk connectionValueDC = headers.getValue(Header.Connection);
         final boolean isConnectionClose = (connectionValueDC != null &&
-                connectionValueDC.getBufferChunk().equalsIgnoreCaseLowerCase(Constants.CLOSE_BYTES));
+                connectionValueDC.getBufferChunk().equalsIgnoreCaseLowerCase(CLOSE_BYTES));
 
         if (!isConnectionClose) {
             state.keepAlive = isHttp11 ||
                     (connectionValueDC != null &&
-                    connectionValueDC.getBufferChunk().equalsIgnoreCaseLowerCase(Constants.KEEPALIVE_BYTES));
+                    connectionValueDC.getBufferChunk().equalsIgnoreCaseLowerCase(KEEPALIVE_BYTES));
         }
         // --------------------------
 
@@ -848,7 +875,7 @@ public class HttpServerFilter extends HttpCodecFilter {
             int port = 0;
             int mult = 1;
             for (int i = valueL - 1; i > colonPos; i--) {
-                int charValue = HexUtils.DEC[(int) valueB.get(i + valueS)];
+                int charValue = DEC[(int) valueB.get(i + valueS)];
                 if (charValue == -1) {
                     // Invalid character
                     state.error = true; 

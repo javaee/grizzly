@@ -72,7 +72,7 @@ import org.glassfish.grizzly.Grizzly;
  * 
  * @author Grizzly team
  */
-public class CookieUtils {
+public final class CookieUtils {
     private static final Logger LOGGER = Grizzly.logger(CookieUtils.class);
 
     /**
@@ -102,10 +102,10 @@ public class CookieUtils {
     '\t':9 ' ':32 '\"':34 '\'':39 '(':40 ')':41 ',':44 ':':58 ';':59 '<':60
     '=':61 '>':62 '?':63 '@':64 '[':91 '\\':92 ']':93 '{':123 '}':125
      */
-    public static final char SEPARATORS[] = {'\t', ' ', '\"', '\'', '(', ')', ',',
+    static final char SEPARATORS[] = {'\t', ' ', '\"', '\'', '(', ')', ',',
         ':', ';', '<', '=', '>', '?', '@', '[', '\\', ']', '{', '}'};
 
-    protected static final boolean separators[] = new boolean[128];
+    static final boolean separators[] = new boolean[128];
     static {
         for (int i = 0; i < 128; i++) {
             separators[i] = false;

@@ -76,6 +76,7 @@ import java.text.SimpleDateFormat;
  * @author Alex Chaffee
  **/
 public class FastDateFormat extends DateFormat {
+    private static final long serialVersionUID = -1L;
     final DateFormat    df;
     long          lastSec = -1;
     final StringBuffer  sb      = new StringBuffer();

@@ -63,6 +63,8 @@ import java.util.List;
 import org.glassfish.grizzly.http.util.BufferChunk;
 import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.ssl.SSLUtils;
+
+import static org.glassfish.grizzly.http.util.Charsets.ASCII_CHARSET;
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 
 /**
@@ -86,6 +88,17 @@ public abstract class HttpCodecFilter extends BaseFilter
         implements JmxMonitoringAware<HttpProbe> {
 
     public static final int DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE = 8192;
+
+    private final static byte[] CHUNKED_ENCODING_BYTES =
+            Constants.CHUNKED_ENCODING.getBytes(ASCII_CHARSET);
+    /**
+     * Colon bytes.
+     */
+    static final byte[] COLON_BYTES = {(byte) ':', (byte) ' '};
+    /**
+     * CRLF bytes.
+     */
+    static final byte[] CRLF_BYTES = {(byte) '\r', (byte) '\n'};
 
     private final ArraySet<TransferEncoding> transferEncodings =
             new ArraySet<TransferEncoding>(TransferEncoding.class);
@@ -684,10 +697,10 @@ public abstract class HttpCodecFilter extends BaseFilter
                                                       memoryManager);
                     encodedBuffer = put(memoryManager,
                                         encodedBuffer,
-                                        Constants.CRLF_BYTES);
+                                        CRLF_BYTES);
                     encodedBuffer = put(memoryManager,
                                         encodedBuffer,
-                                        Constants.CRLF_BYTES);
+                                        CRLF_BYTES);
                     onInitialLineEncoded(httpHeader, ctx);
                     encodedBuffer.trim();
                     encodedBuffer.allowBufferDispose(true);
@@ -707,7 +720,7 @@ public abstract class HttpCodecFilter extends BaseFilter
             encodedBuffer = memoryManager.allocateAtLeast(2048);
 
             encodedBuffer = encodeInitialLine(httpHeader, encodedBuffer, memoryManager);
-            encodedBuffer = put(memoryManager, encodedBuffer, Constants.CRLF_BYTES);
+            encodedBuffer = put(memoryManager, encodedBuffer, CRLF_BYTES);
             onInitialLineEncoded(httpHeader, ctx);
 
             encodedBuffer = encodeKnownHeaders(memoryManager, encodedBuffer,
@@ -716,7 +729,7 @@ public abstract class HttpCodecFilter extends BaseFilter
             final MimeHeaders mimeHeaders = httpHeader.getHeaders();
             encodedBuffer = encodeMimeHeaders(memoryManager, encodedBuffer, mimeHeaders);
             onHttpHeadersEncoded(httpHeader, ctx);
-            encodedBuffer = put(memoryManager, encodedBuffer, Constants.CRLF_BYTES);
+            encodedBuffer = put(memoryManager, encodedBuffer, CRLF_BYTES);
             encodedBuffer.trim();
             encodedBuffer.allowBufferDispose(true);
             
@@ -805,7 +818,7 @@ public abstract class HttpCodecFilter extends BaseFilter
             needComma = true;
         }
 
-        buffer = put(memoryManager, buffer, Constants.CRLF_BYTES);
+        buffer = put(memoryManager, buffer, CRLF_BYTES);
         
         return buffer;
     }
@@ -832,11 +845,11 @@ public abstract class HttpCodecFilter extends BaseFilter
             final boolean encodeLastCRLF) {
 
         buffer = put(memoryManager, buffer, name);
-        buffer = put(memoryManager, buffer, Constants.COLON_BYTES);
+        buffer = put(memoryManager, buffer, HttpCodecFilter.COLON_BYTES);
         buffer = put(memoryManager, buffer, value);
         
         if (encodeLastCRLF) {
-            buffer = put(memoryManager, buffer, Constants.CRLF_BYTES);
+            buffer = put(memoryManager, buffer, CRLF_BYTES);
         }
 
         return buffer;
@@ -1052,7 +1065,7 @@ public abstract class HttpCodecFilter extends BaseFilter
             parsingState.isContentLengthHeader = false;
         } else if (parsingState.isTransferEncodingHeader) {
             if (BufferChunk.startsWith(input, start, end,
-                    Constants.CHUNKED_ENCODING_BYTES)) {
+                    CHUNKED_ENCODING_BYTES)) {
                 httpHeader.setChunked(true);
             }
             parsingState.isTransferEncodingHeader = false;            

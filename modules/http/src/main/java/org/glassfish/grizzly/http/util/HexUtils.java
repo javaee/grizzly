@@ -77,7 +77,7 @@ public final class HexUtils {
     /**
      *  Table "isHexDigit".
      */
-    public static final boolean[] IS_HEX_DIGIT = {
+    static final boolean[] IS_HEX_DIGIT = {
         false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
         false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
         false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
@@ -99,7 +99,7 @@ public final class HexUtils {
     /**
      *  Table for HEX to DEC byte translation.
      */
-    public static final int[] DEC = {
+    static final int[] DEC = {
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
@@ -122,7 +122,7 @@ public final class HexUtils {
     /**
      * Table for DEC to HEX byte translation.
      */
-    public static final byte[] HEX = 
+    static final byte[] HEX =
     { (byte) '0', (byte) '1', (byte) '2', (byte) '3', (byte) '4', (byte) '5', 
       (byte) '6', (byte) '7', (byte) '8', (byte) '9', (byte) 'a', (byte) 'b', 
       (byte) 'c', (byte) 'd', (byte) 'e', (byte) 'f' };
@@ -223,7 +223,9 @@ public final class HexUtils {
 	return len;
     }
 
-
+    public static int[] getDecBytes() {
+        return DEC.clone();
+    }
 
     /**
      * [Private] Convert the specified value (0 .. 15) to the corresponding
