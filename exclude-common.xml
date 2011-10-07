@@ -49,6 +49,14 @@
         <Bug pattern="SIC_INNER_SHOULD_BE_STATIC_ANON"/>
     </Match>
 
+    <!-- 
+        We use switches with fall-throughs on purpose for state
+        parsing.
+    -->
+    <Match>
+        <Bug pattern="SF_SWITCH_FALLTHROUGH"/>
+    </Match>
+
     <!--
         We ignore Exception all over the place.  Mostly it's on purpose.
     -->
