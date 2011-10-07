@@ -40,6 +40,7 @@
 package org.glassfish.grizzly.websockets.draft06;
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.List;
 
 import org.glassfish.grizzly.http.HttpContent;
@@ -53,8 +54,8 @@ import org.glassfish.grizzly.websockets.WebSocketEngine;
 
 public class HandShake06 extends HandShake {
     private final SecKey secKey;
-    private List<String> enabledExtensions;
-    private List<String> enabledProtocols;
+    private List<String> enabledExtensions = Collections.emptyList();
+    private List<String> enabledProtocols = Collections.emptyList();
 
     public HandShake06(URI url) {
         super(url);
@@ -71,7 +72,7 @@ public class HandShake06 extends HandShake {
     public void setHeaders(HttpResponsePacket response) {
         response.setReasonPhrase(WebSocketEngine.RESPONSE_CODE_MESSAGE);
         response.setHeader(WebSocketEngine.SEC_WS_ACCEPT, secKey.getSecKey());
-        if (getEnabledExtensions() != null) {
+        if (!getEnabledExtensions().isEmpty()) {
             response.setHeader(WebSocketEngine.SEC_WS_EXTENSIONS_HEADER, join(getSubProtocol()));
         }
     }

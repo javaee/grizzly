@@ -71,7 +71,7 @@ import java.util.logging.Logger;
  *
  * @author Remy Maucherat
  */
-public class StringCache {
+public final class StringCache {
 
     /**
      * Default Logger.
@@ -85,70 +85,70 @@ public class StringCache {
     /**
      * Enabled ?
      */
-    protected static boolean byteEnabled = 
+    static boolean byteEnabled =
         ("true".equals(System.getProperty("tomcat.util.buf.StringCache.byte.enabled", "false")));
 
     
-    protected static boolean charEnabled = 
+    static boolean charEnabled =
         ("true".equals(System.getProperty("tomcat.util.buf.StringCache.char.enabled", "false")));
 
     
-    protected static int trainThreshold = 
+    static int trainThreshold =
         Integer.parseInt(System.getProperty("tomcat.util.buf.StringCache.trainThreshold", "20000"));
     
 
-    protected static int cacheSize = 
+    static int cacheSize =
         Integer.parseInt(System.getProperty("tomcat.util.buf.StringCache.cacheSize", "200"));
     
 
     /**
      * Statistics hash map for byte chunk.
      */
-    protected static final HashMap<ByteEntry, int[]> bcStats =
+    static final HashMap<ByteEntry, int[]> bcStats =
         new HashMap<ByteEntry, int[]>(cacheSize);
 
     
     /**
      * toString count for byte chunk.
      */
-    protected static int bcCount = 0;
+    static int bcCount = 0;
     
     
     /**
      * Cache for byte chunk.
      */
-    protected static ByteEntry[] bcCache = null;
+    static ByteEntry[] bcCache = null;
     
 
     /**
      * Statistics hash map for char chunk.
      */
-    protected static final HashMap<CharEntry, int[]> ccStats =
+    static final HashMap<CharEntry, int[]> ccStats =
         new HashMap<CharEntry, int[]>(cacheSize);
 
 
     /**
      * toString count for char chunk.
      */
-    protected static int ccCount = 0; 
+    static int ccCount = 0;
     
 
     /**
      * Cache for char chunk.
      */
-    protected static CharEntry[] ccCache = null;
+    static CharEntry[] ccCache = null;
 
     
     /**
      * Access count.
      */
-    protected static int accessCount = 0;
+    static int accessCount = 0;
     
 
     /**
      * Hit count.
      */
-    protected static int hitCount = 0;
+    static int hitCount = 0;
     
 
     // ------------------------------------------------------------ Properties

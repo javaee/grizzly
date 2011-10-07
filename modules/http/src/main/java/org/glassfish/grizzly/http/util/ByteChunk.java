@@ -60,6 +60,7 @@ package org.glassfish.grizzly.http.util;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Arrays;
 
 /*
  * In a server it is very important to be able to operate on
@@ -545,6 +546,44 @@ public final class ByteChunk implements Cloneable, Serializable {
 
 
     // -------------------- equals --------------------
+
+
+    @Override
+    public int hashCode() {
+        int result = Arrays.hashCode(buff);
+        result = 31 * result + start;
+        result = 31 * result + end;
+        result = 31 * result + enc.hashCode();
+        result = 31 * result + (isSet ? 1 : 0);
+        result = 31 * result + limit;
+        result = 31 * result + in.hashCode();
+        result = 31 * result + out.hashCode();
+        result = 31 * result + (optimizedWrite ? 1 : 0);
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        ByteChunk byteChunk = (ByteChunk) o;
+
+        if (end != byteChunk.end) return false;
+        if (isSet != byteChunk.isSet) return false;
+        if (limit != byteChunk.limit) return false;
+        if (optimizedWrite != byteChunk.optimizedWrite) return false;
+        if (start != byteChunk.start) return false;
+        if (!Arrays.equals(buff, byteChunk.buff)) return false;
+        if (enc != null ? !enc.equals(byteChunk.enc) : byteChunk.enc != null)
+            return false;
+        if (in != null ? !in.equals(byteChunk.in) : byteChunk.in != null)
+            return false;
+        if (out != null ? !out.equals(byteChunk.out) : byteChunk.out != null)
+            return false;
+
+        return true;
+    }
 
     /**
      * Compares the message bytes to the specified String object.

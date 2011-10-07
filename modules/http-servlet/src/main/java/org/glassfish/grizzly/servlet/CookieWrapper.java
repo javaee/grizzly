@@ -430,16 +430,7 @@ public class CookieWrapper extends Cookie {
 	wrappedCookie.setVersion(v);
     }
 
-    /**
-     *
-     * Overrides the standard <code>java.lang.Object.clone</code> 
-     * method to return a copy of this cookie.
-     *		
-     *
-     */
-
-    @Override
-    public Object clone() {
+   public Object cloneCookie() {
         return wrappedCookie.clone();
    }
 

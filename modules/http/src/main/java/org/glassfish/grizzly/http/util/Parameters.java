@@ -61,6 +61,7 @@ import java.io.CharConversionException;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -326,10 +327,10 @@ public final class Parameters {
     // START PWC 6057385
     private static void merge2(LinkedHashMap<String, String[]> one,
         LinkedHashMap<String, String[]> two) {
-        for (final String name : two.keySet()) {
-            // END PWC 6057385
+        for (final Map.Entry<String,String[]> entry : two.entrySet()) {
+            final String name = entry.getKey();
             String[] oneValue = one.get(name);
-            String[] twoValue = two.get(name);
+            String[] twoValue = entry.getValue();
             String[] combinedValue;
             if (twoValue == null) {
             } else {

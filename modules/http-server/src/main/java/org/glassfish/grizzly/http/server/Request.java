@@ -2020,9 +2020,8 @@ public class Request {
 
         // Process the quality values in highest->lowest order (due to
         // negating the Double value when creating the key)
-        for (Double key : localLocales.keySet()) {
-            List<Locale> list = localLocales.get(key);
-            for (Locale locale : list) {
+        for (List<Locale> locales: localLocales.values()) {
+            for (Locale locale : locales) {
                 addLocale(locale);
             }
         }

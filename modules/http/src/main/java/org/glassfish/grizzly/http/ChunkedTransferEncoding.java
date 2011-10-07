@@ -51,6 +51,8 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
+
+import static org.glassfish.grizzly.http.util.Charsets.ASCII_CHARSET;
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 
 /**
@@ -62,6 +64,8 @@ import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
  */
 public final class ChunkedTransferEncoding implements TransferEncoding {
     private static final int MAX_HTTP_CHUNK_SIZE_LENGTH = 16;
+    private static final byte[] LAST_CHUNK_CRLF_BYTES = "0\r\n".getBytes(ASCII_CHARSET);
+    private static final int[] DEC = HexUtils.getDecBytes();
     
     private final int maxHeadersSize;
 
@@ -274,7 +278,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
 
                             return true;
                         } else if (parsingState.checkpoint == -1) {
-                            value = value * 16 + (HexUtils.DEC[b]);
+                            value = value * 16 + (DEC[b]);
                         } else {
                             throw new IllegalStateException("Unexpected HTTP chunk header");
                         }
@@ -335,7 +339,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
 
         Ascii.intToHexString(httpChunkBuffer, chunkSize);
         httpChunkBuffer = put(memoryManager, httpChunkBuffer,
-                Constants.CRLF_BYTES);
+                HttpCodecFilter.CRLF_BYTES);
         httpChunkBuffer.trim();
         httpChunkBuffer.allowBufferDispose(true);
 
@@ -365,9 +369,9 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
 
             if (hasContent) {
                 httpChunkTrailer = put(memoryManager, httpChunkTrailer,
-                        Constants.CRLF_BYTES);
+                        HttpCodecFilter.CRLF_BYTES);
                 httpChunkTrailer = put(memoryManager, httpChunkTrailer,
-                        Constants.LAST_CHUNK_CRLF_BYTES);
+                        LAST_CHUNK_CRLF_BYTES);
             }
 
             if (isTrailer) {
@@ -380,7 +384,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
         }
         
         httpChunkTrailer = put(memoryManager, httpChunkTrailer,
-                Constants.CRLF_BYTES);
+                HttpCodecFilter.CRLF_BYTES);
 
         httpChunkTrailer.trim();
         httpChunkTrailer.allowBufferDispose(true);

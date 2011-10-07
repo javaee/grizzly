@@ -59,6 +59,8 @@ import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
  * @author Alexey Stashok
  */
 final class AjpMessageUtils {
+    
+    private static final int[] DEC = HexUtils.getDecBytes();
 
     static void decodeRequest(final Buffer requestContent,
             final AjpHttpRequest req, final boolean tomcatAuthentication)
@@ -326,7 +328,7 @@ final class AjpMessageUtils {
             int port = 0;
             int mult = 1;
             for (int i = valueL - 1; i > colonPos; i--) {
-                int charValue = HexUtils.DEC[(int) valueB.get(i + valueS)];
+                int charValue = DEC[(int) valueB.get(i + valueS)];
                 if (charValue == -1) {
                     // Invalid character
                     throw new CharConversionException("Invalid char in port: " + valueB.get(i + valueS));

@@ -472,7 +472,7 @@ public abstract class HttpHeader extends HttpPacket
 
         if (contentType != null) {
             buffer = put(memoryManager, buffer, Header.ContentType.getBytes());
-            buffer = put(memoryManager, buffer, Constants.COLON_BYTES);
+            buffer = put(memoryManager, buffer, HttpCodecFilter.COLON_BYTES);
             buffer = put(memoryManager, buffer, contentType);
 
             if (quotedCharsetValue != null && charsetSet) {
@@ -480,14 +480,14 @@ public abstract class HttpHeader extends HttpPacket
                 buffer = put(memoryManager, buffer, quotedCharsetValue);
             }
             
-            buffer = put(memoryManager, buffer, Constants.CRLF_BYTES);
+            buffer = put(memoryManager, buffer, HttpCodecFilter.CRLF_BYTES);
         } else {
             final String defaultType = getDefaultContentType();
             if (defaultType != null) {
                 buffer = put(memoryManager, buffer, Header.ContentType.getBytes());
-                buffer = put(memoryManager, buffer, Constants.COLON_BYTES);
+                buffer = put(memoryManager, buffer, HttpCodecFilter.COLON_BYTES);
                 buffer = put(memoryManager, buffer, defaultType);
-                buffer = put(memoryManager, buffer, Constants.CRLF_BYTES);
+                buffer = put(memoryManager, buffer, HttpCodecFilter.CRLF_BYTES);
             }
         }
         
