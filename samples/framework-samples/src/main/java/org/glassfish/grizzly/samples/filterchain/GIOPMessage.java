@@ -203,7 +203,7 @@ public class GIOPMessage {
         hash = 97 * hash + this.flags;
         hash = 97 * hash + this.value;
         hash = 97 * hash + this.bodyLength;
-        hash = 97 * hash + (this.body != null ? this.body.hashCode() : 0);
+        hash = 97 * hash + (this.body != null ? Arrays.hashCode(this.body) : 0);
         return hash;
     }
 }
