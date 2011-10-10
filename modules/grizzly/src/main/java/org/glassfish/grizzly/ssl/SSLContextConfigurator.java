@@ -344,28 +344,28 @@ public class SSLContextConfigurator {
                 keyManagerFactory.init(keyStore, keyPass != null ? keyPass
                         : keyStorePass);
             } catch (KeyStoreException e) {
-                LOGGER.log(Level.FINE, "Error initializing key store", e);
+                LOGGER.log(Level.WARNING, "Error initializing key store", e);
                 valid = false;
             } catch (CertificateException e) {
-                LOGGER.log(Level.FINE, "Key store certificate exception.", e);
+                LOGGER.log(Level.WARNING, "Key store certificate exception.", e);
                 valid = false;
             } catch (UnrecoverableKeyException e) {
-                LOGGER.log(Level.FINE, "Key store unrecoverable exception.", e);
+                LOGGER.log(Level.WARNING, "Key store unrecoverable exception.", e);
                 valid = false;
             } catch (FileNotFoundException e) {
-                LOGGER.log(Level.FINE, "Can't find key store file: "
+                LOGGER.log(Level.WARNING, "Can't find key store file: "
                         + keyStoreFile, e);
                 valid = false;
             } catch (IOException e) {
-                LOGGER.log(Level.FINE, "Error loading key store from file: "
+                LOGGER.log(Level.WARNING, "Error loading key store from file: "
                         + keyStoreFile, e);
                 valid = false;
             } catch (NoSuchAlgorithmException e) {
-                LOGGER.log(Level.FINE,
+                LOGGER.log(Level.WARNING,
                         "Error initializing key manager factory (no such algorithm)", e);
                 valid = false;
             } catch (NoSuchProviderException e) {
-                LOGGER.log(Level.FINE,
+                LOGGER.log(Level.WARNING,
                         "Error initializing key store (no such provider)", e);
                 valid = false;
             } finally {
@@ -419,28 +419,28 @@ public class SSLContextConfigurator {
                         .getInstance(tmfAlgorithm);
                 trustManagerFactory.init(trustStore);
             } catch (KeyStoreException e) {
-                LOGGER.log(Level.FINE, "Error initializing trust store", e);
+                LOGGER.log(Level.WARNING, "Error initializing trust store", e);
                 valid = false;
             } catch (CertificateException e) {
-                LOGGER.log(Level.FINE, "Trust store certificate exception.", e);
+                LOGGER.log(Level.WARNING, "Trust store certificate exception.", e);
                 valid = false;
             } catch (FileNotFoundException e) {
-                LOGGER.log(Level.FINE, "Can't find trust store file: "
+                LOGGER.log(Level.WARNING, "Can't find trust store file: "
                         + trustStoreFile, e);
                 valid = false;
             } catch (IOException e) {
-                LOGGER.log(Level.FINE, "Error loading trust store from file: "
+                LOGGER.log(Level.WARNING, "Error loading trust store from file: "
                         + trustStoreFile, e);
                 valid = false;
             } catch (NoSuchAlgorithmException e) {
                 LOGGER
                         .log(
-                                Level.FINE,
+                                Level.WARNING,
                                 "Error initializing trust manager factory (no such algorithm)",
                                 e);
                 valid = false;
             } catch (NoSuchProviderException e) {
-                LOGGER.log(Level.FINE,
+                LOGGER.log(Level.WARNING,
                         "Error initializing trust store (no such provider)", e);
                 valid = false;
             } finally {
@@ -500,28 +500,28 @@ public class SSLContextConfigurator {
                     keyManagerFactory.init(keyStore, keyPass != null ? keyPass
                             : keyStorePass);
                 } catch (KeyStoreException e) {
-                    LOGGER.log(Level.FINE, "Error initializing key store", e);
+                    LOGGER.log(Level.WARNING, "Error initializing key store", e);
                 } catch (CertificateException e) {
-                    LOGGER.log(Level.FINE, "Key store certificate exception.",
+                    LOGGER.log(Level.WARNING, "Key store certificate exception.",
                             e);
                 } catch (UnrecoverableKeyException e) {
-                    LOGGER.log(Level.FINE,
+                    LOGGER.log(Level.WARNING,
                             "Key store unrecoverable exception.", e);
                 } catch (FileNotFoundException e) {
-                    LOGGER.log(Level.FINE, "Can't find key store file: "
+                    LOGGER.log(Level.WARNING, "Can't find key store file: "
                             + keyStoreFile, e);
                 } catch (IOException e) {
-                    LOGGER.log(Level.FINE,
+                    LOGGER.log(Level.WARNING,
                             "Error loading key store from file: "
                                     + keyStoreFile, e);
                 } catch (NoSuchAlgorithmException e) {
                     LOGGER
                             .log(
-                                    Level.FINE,
+                                    Level.WARNING,
                                     "Error initializing key manager factory (no such algorithm)",
                                     e);
                 } catch (NoSuchProviderException e) {
-                    LOGGER.log(Level.FINE,
+                    LOGGER.log(Level.WARNING,
                             "Error initializing key store (no such provider)",
                             e);
                 }
@@ -567,27 +567,27 @@ public class SSLContextConfigurator {
                             .getInstance(tmfAlgorithm);
                     trustManagerFactory.init(trustStore);
                 } catch (KeyStoreException e) {
-                    LOGGER.log(Level.FINE, "Error initializing trust store", e);
+                    LOGGER.log(Level.WARNING, "Error initializing trust store", e);
                 } catch (CertificateException e) {
-                    LOGGER.log(Level.FINE,
+                    LOGGER.log(Level.WARNING,
                             "Trust store certificate exception.", e);
                 } catch (FileNotFoundException e) {
-                    LOGGER.log(Level.FINE, "Can't find trust store file: "
+                    LOGGER.log(Level.WARNING, "Can't find trust store file: "
                             + trustStoreFile, e);
                 } catch (IOException e) {
-                    LOGGER.log(Level.FINE,
+                    LOGGER.log(Level.WARNING,
                             "Error loading trust store from file: "
                                     + trustStoreFile, e);
                 } catch (NoSuchAlgorithmException e) {
                     LOGGER
                             .log(
-                                    Level.FINE,
+                                    Level.WARNING,
                                     "Error initializing trust manager factory (no such algorithm)",
                                     e);
                 } catch (NoSuchProviderException e) {
                     LOGGER
                             .log(
-                                    Level.FINE,
+                                    Level.WARNING,
                                     "Error initializing trust store (no such provider)",
                                     e);
                 }
@@ -603,9 +603,9 @@ public class SSLContextConfigurator {
                     trustManagerFactory != null ? trustManagerFactory
                             .getTrustManagers() : null, null);
         } catch (KeyManagementException e) {
-            LOGGER.log(Level.FINE, "Key management error.", e);
+            LOGGER.log(Level.WARNING, "Key management error.", e);
         } catch (NoSuchAlgorithmException e) {
-            LOGGER.log(Level.FINE, "Error initializing algorithm.", e);
+            LOGGER.log(Level.WARNING, "Error initializing algorithm.", e);
         }
 
         return sslContext;
