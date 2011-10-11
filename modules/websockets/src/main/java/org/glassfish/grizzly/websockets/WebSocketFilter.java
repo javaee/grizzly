@@ -40,7 +40,6 @@
 package org.glassfish.grizzly.websockets;
 
 import java.io.IOException;
-import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -59,6 +58,7 @@ import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.utils.IdleTimeoutFilter;
 import org.glassfish.grizzly.websockets.WebSocketEngine.WebSocketHolder;
 
 /**
@@ -70,9 +70,24 @@ import org.glassfish.grizzly.websockets.WebSocketEngine.WebSocketHolder;
  * @author Alexey Stashok
  */
 public class WebSocketFilter extends BaseFilter {
+    
     private static final Logger logger = Grizzly.logger(WebSocketFilter.class);
-    private static final Random random = new Random();
 
+    private final long wsTimeout;
+    
+    
+    // ------------------------------------------------------------ Constructors
+    
+    
+    public WebSocketFilter()  {
+        wsTimeout = IdleTimeoutFilter.FOREVER;
+    }
+    
+    public WebSocketFilter(final long wsTimeout) {
+        this.wsTimeout = wsTimeout;
+    }
+    
+    // ----------------------------------------------------- Methods from Filter
     /**
      * Method handles Grizzly {@link Connection} connect phase. Check if the {@link Connection} is a client-side {@link
      * WebSocket}, if yes - creates websocket handshake packet and send it to a server. Otherwise, if it's not websocket
@@ -229,6 +244,9 @@ public class WebSocketFilter extends BaseFilter {
         // invoke next filter in the chain
         return ctx.getInvokeAction();
     }
+    
+    
+    // --------------------------------------------------------- Private Methods
 
     /**
      * Handle websocket handshake
@@ -247,7 +265,7 @@ public class WebSocketFilter extends BaseFilter {
             : handleClientHandShake(ctx, content);
     }
 
-    private NextAction handleClientHandShake(FilterChainContext ctx, HttpContent content) {
+    private static NextAction handleClientHandShake(FilterChainContext ctx, HttpContent content) {
         final WebSocketHolder holder = WebSocketEngine.getEngine().getWebSocketHolder(ctx.getConnection());
 /*
         if (response.getStatus() != 101) {
@@ -270,30 +288,43 @@ public class WebSocketFilter extends BaseFilter {
      *
      * @throws {@link IOException}
      */
-    private NextAction handleServerHandshake(FilterChainContext ctx, HttpContent requestContent) throws IOException {
+    private NextAction handleServerHandshake(final FilterChainContext ctx,
+                                             final HttpContent requestContent)
+    throws IOException {
+
         // get HTTP request headers
         final HttpRequestPacket request = (HttpRequestPacket) requestContent.getHttpHeader();
         try {
             WebSocketEngine.getEngine().upgrade(ctx, requestContent);
+            setIdleTimeout(ctx);
         } catch (HandshakeException e) {
             ctx.write(composeHandshakeError(request, e));
         }
         ctx.flush(null);
         return ctx.getStopAction();
+
     }
 
-    private WebSocket getWebSocket(Connection connection) {
+    private static WebSocket getWebSocket(final Connection connection) {
         return WebSocketEngine.getEngine().getWebSocket(connection);
     }
 
-    private boolean webSocketInProgress(Connection connection) {
+    private static boolean webSocketInProgress(final Connection connection) {
         return WebSocketEngine.getEngine().webSocketInProgress(connection);
     }
 
-    private HttpResponsePacket composeHandshakeError(HttpRequestPacket request, HandshakeException e) {
+    private static HttpResponsePacket composeHandshakeError(final HttpRequestPacket request,
+                                                            final HandshakeException e) {
         final HttpResponsePacket response = request.getResponse();
         response.setStatus(e.getCode());
         response.setReasonPhrase(e.getMessage());
         return response;
+    }
+    
+    private void setIdleTimeout(final FilterChainContext ctx) {
+        final FilterChain filterChain = ctx.getFilterChain();
+        if (filterChain.indexOfType(IdleTimeoutFilter.class) >= 0) {
+            IdleTimeoutFilter.setCustomTimeout(ctx.getConnection(), wsTimeout);
+        }
     }
 }

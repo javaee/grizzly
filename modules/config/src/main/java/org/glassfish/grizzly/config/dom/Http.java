@@ -77,6 +77,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     int REQUEST_TIMEOUT = 900;
     int SEND_BUFFER_LENGTH = 8192;
     int TIMEOUT = 30;
+    long WEBSOCKETS_TIMEOUT = Long.MAX_VALUE;
     String COMPRESSABLE_MIME_TYPE = "text/html,text/xml,text/plain";
     String COMPRESSION = "off";
     String COMPRESSION_PATTERN = "on|off|force|\\d+";
@@ -262,6 +263,16 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     String getTimeoutSeconds();
 
     void setTimeoutSeconds(String timeout);
+
+    /**
+     * Max time a connection may be idle before being closed.
+     *
+     * @since 2.1.5
+     */
+    @Attribute(defaultValue = "" + WEBSOCKETS_TIMEOUT, dataType = Long.class)
+    String getWebsocketsTimeoutSeconds();
+    
+    void setWebsocketsTimeoutSeconds(String timeout);
 
     @Attribute(defaultValue = "" + TRACE_ENABLED, dataType = Boolean.class)
     String getTraceEnabled();

@@ -85,6 +85,10 @@ public class IdleTimeoutFilter extends BaseFilter {
         }
     });
     
+    private static final String CUSTOM_IDLE_ATTRIBUTE_NAME = "custom-connection-idle-attribute";
+    private static final Attribute<TimeoutResolver> CUSTOM_IDLE_ATTR =
+            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(CUSTOM_IDLE_ATTRIBUTE_NAME);
+    
     private final TimeoutResolver timeoutResolver;
     private final DelayedExecutor.DelayQueue<Connection> queue;
     private final DelayedExecutor.Resolver<Connection> resolver;
@@ -105,6 +109,7 @@ public class IdleTimeoutFilter extends BaseFilter {
     }
 
 
+    @SuppressWarnings("UnusedDeclaration")
     public IdleTimeoutFilter(final DelayedExecutor executor,
                              final TimeoutResolver timeoutResolver) {
         this(executor, timeoutResolver, null);
@@ -118,7 +123,7 @@ public class IdleTimeoutFilter extends BaseFilter {
 
         this(executor,
              new DefaultWorker(handler),
-             new DefaultTimeoutResolver(
+             new IdleTimeoutResolver(
                      TimeUnit.MILLISECONDS.convert(timeout, timeoutUnit)));
 
     }
@@ -189,6 +194,7 @@ public class IdleTimeoutFilter extends BaseFilter {
     // ---------------------------------------------------------- Public Methods
 
 
+    @SuppressWarnings("UnusedDeclaration")
     public DelayedExecutor.Resolver<Connection> getResolver() {
         return resolver;
     }
@@ -221,6 +227,24 @@ public class IdleTimeoutFilter extends BaseFilter {
                                    ((checkIntervalUnit != null)
                                        ? checkIntervalUnit
                                        : TimeUnit.MILLISECONDS));
+
+    }
+
+
+    /**
+     * Provides an override mechanism for the default timeout.  
+     * 
+     * @param c The {@link Connection} which is having the idle detection
+     *          adjusted.
+     * @param timeout the new idle timeout.
+     */
+    public static void setCustomTimeout(final Connection c,
+                                        final long timeout) {
+        if (timeout < 0 || timeout == Long.MAX_VALUE) {
+            CUSTOM_IDLE_ATTR.set(c, new IdleTimeoutResolver(FOREVER));
+        } else {
+            CUSTOM_IDLE_ATTR.set(c, new IdleTimeoutResolver(timeout));
+        }
 
     }
 
@@ -265,9 +289,23 @@ public class IdleTimeoutFilter extends BaseFilter {
             // Small trick to not synchronize this block and queueAction();
             idleRecord.timeoutMillis.set(FOREVER_SPECIAL);
             if (idleRecord.counter.decrementAndGet() == 0) {
-                idleRecord.timeoutMillis.compareAndSet(FOREVER_SPECIAL,
-                        System.currentTimeMillis() + timeoutResolver.getTimeout(ctx));
+                final long timeout = getTimeout(ctx);
+                if (timeout == FOREVER) {
+                    idleRecord.timeoutMillis.compareAndSet(FOREVER_SPECIAL, FOREVER);
+                } else {
+                    idleRecord.timeoutMillis.compareAndSet(FOREVER_SPECIAL,
+                        System.currentTimeMillis() + timeout);
+                }
             }
+        }
+        
+        private long getTimeout(final FilterChainContext ctx) {
+
+            TimeoutResolver resolver = CUSTOM_IDLE_ATTR.get(ctx.getConnection());
+            return ((resolver != null)
+                        ? resolver.getTimeout(ctx)
+                        : timeoutResolver.getTimeout(ctx));
+
         }
 
     } // END ContextCompletionListener
@@ -275,13 +313,13 @@ public class IdleTimeoutFilter extends BaseFilter {
 
     // ---------------------------------------------------------- Nested Classes
 
-    private static final class DefaultTimeoutResolver implements TimeoutResolver {
+    private static final class IdleTimeoutResolver implements TimeoutResolver {
 
         private final long timeout;
         // -------------------------------------------------------- Constructors
 
 
-        DefaultTimeoutResolver(final long timeout) {
+        IdleTimeoutResolver(final long timeout) {
             this.timeout = timeout;
         }
 
