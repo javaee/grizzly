@@ -568,11 +568,23 @@ public class GenericGrizzlyListener implements GrizzlyListener {
             final Http http, final FilterChainBuilder filterChainBuilder) {
         final boolean websocketsSupportEnabled = Boolean.parseBoolean(http.getWebsocketsSupportEnabled());
         if (websocketsSupportEnabled) {
-            final AddOn websocketAddOn = loadAddOn(habitat, "websocket",
-                    "org.glassfish.grizzly.websockets.WebSocketAddOn");
-            if (websocketAddOn != null) {
-                configureElement(habitat, networkListener, http, websocketAddOn);
-                websocketAddOn.setup(null, filterChainBuilder);
+            final long timeout = Long.parseLong(http.getWebsocketsTimeoutSeconds());
+            Filter f;
+            if (timeout != Http.WEBSOCKETS_TIMEOUT) {
+                f = loadFilter(habitat,
+                               "websockets",
+                               "org.glassfish.grizzly.websockets.WebSocketFilter",
+                               new Class<?>[] { Long.TYPE },
+                               new Object[] { timeout });
+                
+            } else {
+                f = loadFilter(habitat, "websockets", "org.glassfish.grizzly.websockets.WebSocketFilter");
+            }
+            final int httpServerFilterIdx = filterChainBuilder.indexOfType(HttpServerFilter.class);
+
+            if (httpServerFilterIdx >= 0) {
+                // Insert the WebSocketFilter right after HttpCodecFilter
+                filterChainBuilder.add(httpServerFilterIdx, f);
             }
         }
     }
@@ -608,6 +620,14 @@ public class GenericGrizzlyListener implements GrizzlyListener {
      */
     private Filter loadFilter(Habitat habitat, String name, String filterClassName) {
         return Utils.newInstance(habitat, Filter.class, name, filterClassName);
+    }
+    
+    private Filter loadFilter(Habitat habitat,
+                              String name, 
+                              String filterClassName, 
+                              Class<?>[] ctorArgTypes, 
+                              Object[] ctorArgs) {
+        return Utils.newInstance(habitat, Filter.class, name, filterClassName, ctorArgTypes, ctorArgs);
     }
 
     protected ServerFilterConfiguration getHttpServerFilterConfiguration(Http http) {

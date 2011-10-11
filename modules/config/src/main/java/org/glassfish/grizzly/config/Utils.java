@@ -52,6 +52,7 @@ import javax.xml.stream.XMLInputFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.Constructor;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Enumeration;
@@ -143,6 +144,7 @@ public class Utils {
         return habitat;
     }
     
+    @SuppressWarnings("UnusedDeclaration")
     public static String composeThreadPoolName(final NetworkListener networkListener) {
         return networkListener.getThreadPool() + '-' + networkListener.getPort();
     }
@@ -160,31 +162,64 @@ public class Utils {
     @SuppressWarnings({"unchecked"})
     public static <E> E newInstance(Habitat habitat, Class<E> clazz,
             final String name, final String realClassName) {
-        boolean isInitialized = false;
-
-        E instance = habitat.getComponent(clazz, name);
-        if (instance == null) {
-            try {
-                instance = (E) newInstance(realClassName);
-                isInitialized = true;
-            } catch (Exception ignored) {
-            }
-        } else {
-            isInitialized = true;
-        }
-
-        if (!isInitialized) {
-            LOGGER.log(Level.WARNING, "Instance could not be initialized. "
-                    + "Class={0}, name={1}, realClassName={2}",
-                    new Object[]{clazz, name, realClassName});
-            return null;
-        }
-
-        return instance;
+        return newInstance(habitat, clazz, name, realClassName, null, null);
     }
+    
+    /**
+         * Load or create an Object with the specific service name and class name.
+         *
+         * @param habitat the HK2 {@link Habitat}
+         * @param clazz the class as mapped within the {@link Habitat}
+         * @param name the service name
+         * @param realClassName the class name of the service
+         * @return a service matching based on name and realClassName input
+         *  arguments.
+         */
+        @SuppressWarnings({"unchecked"})
+        public static <E> E newInstance(Habitat habitat, 
+                                        Class<E> clazz,
+                                        final String name, 
+                                        final String realClassName, 
+                                        Class<?>[] argTypes, 
+                                        Object[] args) {
+            boolean isInitialized = false;
+    
+            E instance = habitat.getComponent(clazz, name);
+            if (instance == null) {
+                try {
+                    if (argTypes == null || argTypes.length == 0) {
+                        instance = (E) newInstance(realClassName);
+                    } else {
+                        instance = (E) newInstance(realClassName, argTypes, args);
+                    }
+                    isInitialized = true;
+                } catch (Exception ignored) {
+                }
+            } else {
+                isInitialized = true;
+            }
+    
+            if (!isInitialized) {
+                LOGGER.log(Level.WARNING, "Instance could not be initialized. "
+                        + "Class={0}, name={1}, realClassName={2}",
+                        new Object[]{clazz, name, realClassName});
+                return null;
+            }
+    
+            return instance;
+        }
 
     public static Object newInstance(String classname) throws Exception {
         return loadClass(classname).newInstance();
+    }
+    
+    public static Object newInstance(String classname, 
+                                     Class<?>[] argTypes, 
+                                     Object[] args) throws Exception {
+        final Class<?> clazz = loadClass(classname);        
+        final Constructor c = clazz.getConstructor(argTypes);
+        assert (c != null);
+        return c.newInstance(args);
     }
 
     public static Class loadClass(String classname) throws ClassNotFoundException {
