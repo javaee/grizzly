@@ -72,19 +72,31 @@ import org.glassfish.grizzly.websockets.WebSocketEngine.WebSocketHolder;
 public class WebSocketFilter extends BaseFilter {
     
     private static final Logger logger = Grizzly.logger(WebSocketFilter.class);
-
-    private final long wsTimeout;
+    private static final long DEFAULT_WS_IDLE_TIMEOUT_IN_SECONDS = 15 * 60;
+    private final long wsTimeoutMS;
     
     
     // ------------------------------------------------------------ Constructors
-    
-    
+
+
+    /**
+     * Constructs a new <code>WebSocketFilter</code> with a default idle connection
+     * timeout of 15 minutes;
+     */
     public WebSocketFilter()  {
-        wsTimeout = IdleTimeoutFilter.FOREVER;
+        this(DEFAULT_WS_IDLE_TIMEOUT_IN_SECONDS);
     }
-    
-    public WebSocketFilter(final long wsTimeout) {
-        this.wsTimeout = wsTimeout;
+
+    /**
+     * Constructs a new <code>WebSocketFilter</code> with a default idle connection
+     * timeout of 15 minutes;
+     */
+    public WebSocketFilter(final long wsTimeoutInSeconds) {
+        if (wsTimeoutInSeconds <= 0) {
+            this.wsTimeoutMS = IdleTimeoutFilter.FOREVER;
+        } else {
+            this.wsTimeoutMS = wsTimeoutInSeconds * 1000;
+        }
     }
     
     // ----------------------------------------------------- Methods from Filter
@@ -324,7 +336,7 @@ public class WebSocketFilter extends BaseFilter {
     private void setIdleTimeout(final FilterChainContext ctx) {
         final FilterChain filterChain = ctx.getFilterChain();
         if (filterChain.indexOfType(IdleTimeoutFilter.class) >= 0) {
-            IdleTimeoutFilter.setCustomTimeout(ctx.getConnection(), wsTimeout);
+            IdleTimeoutFilter.setCustomTimeout(ctx.getConnection(), wsTimeoutMS);
         }
     }
 }

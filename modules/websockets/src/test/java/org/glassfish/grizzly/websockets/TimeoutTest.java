@@ -96,7 +96,7 @@ public class TimeoutTest extends BaseWebSocketTestUtilities {
 
             if (httpServerFilterIdx >= 0) {
                 // Insert the WebSocketFilter right after HttpCodecFilter
-                c.add(httpServerFilterIdx, new WebSocketFilter(8000));
+                c.add(httpServerFilterIdx, new WebSocketFilter(8)); // in seconds
             }
         }
 
