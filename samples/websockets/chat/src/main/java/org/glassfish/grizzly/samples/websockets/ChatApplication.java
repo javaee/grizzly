@@ -77,7 +77,7 @@ public class ChatApplication extends WebSocketApplication {
 
     @Override
     public boolean isApplicationRequest(HttpRequestPacket request) {
-        return "/chat".equals(request.getRequestURI());
+        return "/grizzly-websockets-chat/chat".equals(request.getRequestURI());
     }
 
     /**
