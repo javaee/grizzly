@@ -568,14 +568,14 @@ public class GenericGrizzlyListener implements GrizzlyListener {
             final Http http, final FilterChainBuilder filterChainBuilder) {
         final boolean websocketsSupportEnabled = Boolean.parseBoolean(http.getWebsocketsSupportEnabled());
         if (websocketsSupportEnabled) {
-            final long timeout = Long.parseLong(http.getWebsocketsTimeoutSeconds());
+            final long timeoutSeconds = Integer.parseInt(http.getWebsocketsTimeoutSeconds());
             Filter f;
-            if (timeout != Http.WEBSOCKETS_TIMEOUT) {
+            if (timeoutSeconds != Http.WEBSOCKETS_TIMEOUT) {
                 f = loadFilter(habitat,
                                "websockets",
                                "org.glassfish.grizzly.websockets.WebSocketFilter",
-                               new Class<?>[] { Long.TYPE },
-                               new Object[] { timeout });
+                               new Class<?>[] { Integer.TYPE },
+                               new Object[] { timeoutSeconds });
                 
             } else {
                 f = loadFilter(habitat, "websockets", "org.glassfish.grizzly.websockets.WebSocketFilter");

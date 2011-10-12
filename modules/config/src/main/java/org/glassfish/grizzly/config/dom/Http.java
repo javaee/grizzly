@@ -77,7 +77,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     int REQUEST_TIMEOUT = 900;
     int SEND_BUFFER_LENGTH = 8192;
     int TIMEOUT = 30;
-    long WEBSOCKETS_TIMEOUT = Long.MAX_VALUE;
+    int WEBSOCKETS_TIMEOUT = 15 * 60;
     String COMPRESSABLE_MIME_TYPE = "text/html,text/xml,text/plain";
     String COMPRESSION = "off";
     String COMPRESSION_PATTERN = "on|off|force|\\d+";
@@ -269,7 +269,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
      *
      * @since 2.1.5
      */
-    @Attribute(defaultValue = "" + WEBSOCKETS_TIMEOUT, dataType = Long.class)
+    @Attribute(defaultValue = "" + WEBSOCKETS_TIMEOUT, dataType = Integer.class)
     String getWebsocketsTimeoutSeconds();
     
     void setWebsocketsTimeoutSeconds(String timeout);
