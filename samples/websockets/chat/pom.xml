@@ -51,7 +51,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.glassfish.grizzly.samples</groupId>
     <artifactId>grizzly-websockets-chat</artifactId>
-    <packaging>bundle</packaging>
+    <packaging>war</packaging>
     <version>2.2-SNAPSHOT</version>
     <name>grizzly-websockets-chat</name>
     <url>http://maven.apache.org</url>
