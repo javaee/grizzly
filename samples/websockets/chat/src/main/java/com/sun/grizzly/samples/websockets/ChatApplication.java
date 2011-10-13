@@ -71,6 +71,9 @@ public class ChatApplication extends WebSocketApplication {
     private void broadcast(String text) {
         WebSocketsServlet.logger.info("Broadcasting : " + text);
         for (WebSocket webSocket : getWebSockets()) {
+            if (!webSocket.isConnected()) {
+               continue;
+            }
             try {
                 send((ChatWebSocket) webSocket, text);
             } catch (WebSocketException e) {
