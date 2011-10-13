@@ -118,6 +118,9 @@ public class ChatApplication extends WebSocketApplication {
     private void broadcast(String user, String text) {
         logger.log(Level.INFO, "Broadcasting: {0} from: {1}", new Object[]{text, user});
         for (WebSocket websocket : getWebSockets()) {
+            if (!websocket.isConnected()) {
+                continue;
+            }
             final ChatWebSocket chat = (ChatWebSocket) websocket;
             if (chat.getUser() != null) {  // it may happen some websocket is on the list, but not logged in to the chat
                 chat.sendJson(user, text);
