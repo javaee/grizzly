@@ -269,7 +269,7 @@ public class SSLConnectorHandler
         
         this.selectorHandler = selectorHandler;
         if (callbackHandler == null){
-            callbackHandler = new DefaultCallbackHandler(this);
+            this.callbackHandler = new DefaultCallbackHandler(this);
         } else {
             this.callbackHandler = callbackHandler;
         }

@@ -59,13 +59,13 @@ import java.util.Collections;
 public class StatsThreadPool extends GrizzlyExecutorService {
     // Min number of worker threads in a pool
 
-    public static int DEFAULT_MIN_THREAD_COUNT = 5;
+    public static final int DEFAULT_MIN_THREAD_COUNT = 5;
     // Max number of worker threads in a pool
-    public static int DEFAULT_MAX_THREAD_COUNT = 5;
+    public static final int DEFAULT_MAX_THREAD_COUNT = 5;
     // Max number of tasks thread pool can enqueue
-    public static int DEFAULT_MAX_TASKS_QUEUED = Integer.MAX_VALUE;
+    public static final int DEFAULT_MAX_TASKS_QUEUED = Integer.MAX_VALUE;
     // Timeout, after which idle thread will be stopped and excluded from pool
-    public static int DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT = 30000;
+    public static final int DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT = 30000;
     /**
      * Port, which is served by this thread pool
      */

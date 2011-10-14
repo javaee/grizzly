@@ -75,7 +75,7 @@ import java.util.logging.Logger;
  */
 public class SocketChannelOutputBuffer extends InternalOutputBuffer
         implements FileOutputBuffer {
-    protected static Logger logger = SelectorThread.logger();
+    protected static final Logger logger = SelectorThread.logger();
 
     protected static final int DEFAULT_BUFFER_POOL_SIZE = 16384;
 

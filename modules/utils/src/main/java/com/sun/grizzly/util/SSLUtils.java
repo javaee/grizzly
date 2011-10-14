@@ -83,7 +83,7 @@ public class SSLUtils {
     /**
      * The time to wait before timing out when reading bytes
      */
-    public static int DEFAULT_SSL_INACTIVITY_TIMEOUT = 30 * 1000;
+    public static final int DEFAULT_SSL_INACTIVITY_TIMEOUT = 30 * 1000;
 
     /**
      * Read and decrypt bytes from the underlying SSL connections.

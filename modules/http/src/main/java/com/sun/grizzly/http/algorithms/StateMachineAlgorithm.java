@@ -244,7 +244,7 @@ public final class StateMachineAlgorithm extends StreamAlgorithmBase{
                         else state = 11;
                         break;
                     case 19: // -
-                        if (c == 0x2D || c == 0x2D)
+                        if (c == 0x2D)
                             state = 20;
                         else state = 11;
                         break;

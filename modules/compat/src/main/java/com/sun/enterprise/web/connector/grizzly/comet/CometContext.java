@@ -82,44 +82,16 @@ public class CometContext<E> extends com.sun.grizzly.comet.CometContext<E>{
     
     /**
      * {@inheritDoc}
-     */ 
-    public int addCometHandler(CometHandler handler, boolean completeExecution){
-        return super.addCometHandler(handler, completeExecution);
-    }
-    
-    /**
-     * {@inheritDoc}
-     */     
-    public int addCometHandler(CometHandler handler){
-        return super.addCometHandler(handler);
-    }
-    
-    /**
-     * {@inheritDoc}
      */     
     @Override
     public CometHandler getCometHandler(int hashCode){
         return (CometHandler) super.getCometHandler(hashCode);
     }      
     
-    /**
-     * {@inheritDoc}
-     */ 
-    public void removeCometHandler(CometHandler handler){
-        super.removeCometHandler(handler);
-    }  
 
     /**
-     * {@inheritDoc}
-     */     
-    @Override
-    public boolean removeCometHandler(int hashCode){
-        return super.removeCometHandler(hashCode);
-    }
-    
-    /**
      * Resume the Comet request and remove it from the active {@link CometHandler} list. Once resumed,
-     * a CometHandler must never manipulate the {@link HttpServletRequest} or {@link HttpServletResponse} as
+     * a CometHandler must never manipulate the <code>HttpServletRequest</code> or <code>HttpServletResponse</code> as
      * those object will be recycled and may be re-used to serve another request.
      *
      * If you cache them for later reuse by another thread there is a
@@ -132,7 +104,7 @@ public class CometContext<E> extends com.sun.grizzly.comet.CometContext<E>{
         if (status){
             try {
                 handler.onTerminate(eventTerminate);
-            } catch (IOException ex) { }
+            } catch (IOException ignored) { }
         }
         return status;
     }
@@ -150,15 +122,6 @@ public class CometContext<E> extends com.sun.grizzly.comet.CometContext<E>{
         resetSuspendIdleTimeout();
     }
 
-    
-    /**
-     * {@inheritDoc}
-     */ 
-    public boolean isActive(CometHandler cometHandler){
-        return super.isActive(cometHandler);
-    }
-    
-    
     /**
      * {@inheritDoc}
      */  

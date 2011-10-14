@@ -64,13 +64,4 @@ public class CometEvent<E> extends com.sun.grizzly.comet.CometEvent {
         super.setType(type);
     }
     
-    /**
-     * {@inheritDoc}
-     */     
-    protected void setCometContext(CometContext cometContext) {
-        super.setCometContext(cometContext);
-    }
-
-
-    
 }

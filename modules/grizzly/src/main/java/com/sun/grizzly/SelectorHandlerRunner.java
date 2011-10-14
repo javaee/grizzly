@@ -70,7 +70,7 @@ public class SelectorHandlerRunner implements Runnable {
     /**
      * Default Logger.
      */
-    protected static Logger logger = Logger.getLogger("grizzly");
+    protected static final Logger logger = Logger.getLogger("grizzly");
 
     /**
      * The threshold for detecting selector.select spin on linux,

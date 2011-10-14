@@ -231,7 +231,7 @@ public class GrizzlyRequest {
     /**
      * The string manager for this package.
      */
-    protected static StringManager sm =
+    protected static final StringManager sm =
         StringManager.getManager(Constants.Package,
                                  Constants.class.getClassLoader());
 
@@ -270,7 +270,7 @@ public class GrizzlyRequest {
     /**
      * The default Locale if none are specified.
      */
-    protected static Locale defaultLocale = Locale.getDefault();
+    protected static final Locale defaultLocale = Locale.getDefault();
 
 
     /**
@@ -380,7 +380,7 @@ public class GrizzlyRequest {
     /**
      * Post data buffer.
      */
-    protected static int CACHED_POST_LEN = 8192;
+    protected static final int CACHED_POST_LEN = 8192;
     protected byte[] postData = null;
 
 
@@ -1395,7 +1395,7 @@ public class GrizzlyRequest {
         // END S1AS 6179607
 
         // Save the validated encoding
-        request.setCharacterEncoding(enc);
+        request.setCharacterEncoding(dummy);
 
     }
 

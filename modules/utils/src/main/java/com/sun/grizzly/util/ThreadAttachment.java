@@ -63,14 +63,14 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
     private long transactionTimeout = UNLIMITED_TIMEOUT;
 
     public static class Mode {
-        public static int ATTRIBUTES_ONLY = 0;
-        public static int BYTE_BUFFER = 2;
-        public static int INPUT_BB = 4;
-        public static int OUTPUT_BB = 8;
-        public static int SECURE_BUFFERS = 12;
-        public static int SSL_ENGINE = 16;
-        public static int SSL_ARTIFACTS = 28;
-        public static int STORE_ALL = 31;
+        public static final int ATTRIBUTES_ONLY = 0;
+        public static final int BYTE_BUFFER = 2;
+        public static final int INPUT_BB = 4;
+        public static final int OUTPUT_BB = 8;
+        public static final int SECURE_BUFFERS = 12;
+        public static final int SSL_ENGINE = 16;
+        public static final int SSL_ARTIFACTS = 28;
+        public static final int STORE_ALL = 31;
     }
 
     private final ReentrantLock threadLock = new ReentrantLock();

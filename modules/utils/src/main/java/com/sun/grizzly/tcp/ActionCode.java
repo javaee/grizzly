@@ -184,9 +184,9 @@ public final class ActionCode {
      */
     public static final ActionCode RESET_SUSPEND_TIMEOUT = new ActionCode(22);
     
-    public static ActionCode ACTION_FINISH_RESPONSE  = new ActionCode(23);
+    public static final ActionCode ACTION_FINISH_RESPONSE  = new ActionCode(23);
     
-    public static ActionCode ACTION_DISCARD_UPSTREAM_WRITE  = new ActionCode(24);    
+    public static final ActionCode ACTION_DISCARD_UPSTREAM_WRITE  = new ActionCode(24);
 
     // ----------------------------------------------------------- Constructors
     int code;

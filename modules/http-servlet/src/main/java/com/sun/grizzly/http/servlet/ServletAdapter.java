@@ -668,7 +668,7 @@ public class ServletAdapter extends GrizzlyAdapter {
     public void setServletPath(String servletPath) {
         this.servletPath = servletPath;
         if (!servletPath.equals("") && !servletPath.startsWith("/")){
-            servletPath = "/" + servletPath;
+            this.servletPath = "/" + servletPath;
         }
     }
    

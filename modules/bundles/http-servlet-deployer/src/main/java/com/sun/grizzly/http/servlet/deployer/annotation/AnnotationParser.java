@@ -736,7 +736,6 @@ public class AnnotationParser {
 	    	  
 	      }
 	    }
-	    tabCounter--;
 
 	    return list;
 	  }
