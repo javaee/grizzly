@@ -44,6 +44,7 @@ import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.util.net.URL;
 import com.sun.grizzly.websockets.HandShake;
 import com.sun.grizzly.websockets.draft07.Draft07Handler;
+import com.sun.grizzly.websockets.draft08.HandShake08;
 
 public class Draft09Handler extends Draft07Handler {
     public Draft09Handler(boolean mask) {
