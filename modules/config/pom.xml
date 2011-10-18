@@ -55,31 +55,6 @@
     <version>1.9.37-SNAPSHOT</version>
     <name>grizzly-config</name>
     <url>https://grizzly.dev.java.net</url>
-    <repositories>
-        <repository>
-            <id>glassfish</id>
-            <name>Nexus repository collection for Glassfish</name>
-            <url>http://download.java.net/maven/glassfish</url>
-            <snapshots>
-                <updatePolicy>never</updatePolicy>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>java.net</id>
-            <name>Java.net Repository for Grizzly</name>
-            <url>http://download.java.net/maven/2</url>
-        </repository>
-    </repositories>
-    <pluginRepositories>
-        <pluginRepository>
-            <id>glassfish</id>
-            <name>Nexus repository collection for Glassfish</name>
-            <url>http://download.java.net/maven/glassfish</url>
-            <snapshots>
-                <updatePolicy>never</updatePolicy>
-            </snapshots>
-        </pluginRepository>
-    </pluginRepositories>
 
     <build>
         <defaultGoal>install</defaultGoal>
@@ -195,11 +170,5 @@
             <scope>test</scope>
         </dependency>
 
-<!--        <dependency>
-            <groupId>com.sun.grizzly</groupId>
-            <artifactId>grizzly-websockets</artifactId>
-            <version>${project.version}</version>
-            <scope>provided</scope>
-        </dependency>-->
     </dependencies>
 </project>
