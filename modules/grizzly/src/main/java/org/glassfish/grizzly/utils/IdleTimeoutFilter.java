@@ -85,10 +85,6 @@ public class IdleTimeoutFilter extends BaseFilter {
         }
     });
     
-    private static final String CUSTOM_IDLE_ATTRIBUTE_NAME = "custom-connection-idle-attribute";
-    private static final Attribute<TimeoutResolver> CUSTOM_IDLE_ATTR =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(CUSTOM_IDLE_ATTRIBUTE_NAME);
-    
     private final TimeoutResolver timeoutResolver;
     private final DelayedExecutor.DelayQueue<Connection> queue;
     private final DelayedExecutor.Resolver<Connection> resolver;
@@ -234,20 +230,15 @@ public class IdleTimeoutFilter extends BaseFilter {
     /**
      * Provides an override mechanism for the default timeout.  
      * 
-     * @param c The {@link Connection} which is having the idle detection
+     * @param connection The {@link Connection} which is having the idle detection
      *          adjusted.
      * @param timeout the new idle timeout.
      */
-    public static void setCustomTimeout(final Connection c,
+    public static void setCustomTimeout(final Connection connection,
                                         final long timeout) {
-        if (timeout < 0 || timeout == Long.MAX_VALUE) {
-            CUSTOM_IDLE_ATTR.set(c, new IdleTimeoutResolver(FOREVER));
-        } else {
-            CUSTOM_IDLE_ATTR.set(c, new IdleTimeoutResolver(timeout));
-        }
-
+        IDLE_ATTR.get(connection).setInitialTimeoutMillis(
+                timeout >= 0 ? timeout : FOREVER);
     }
-
 
     // ------------------------------------------------------- Protected Methods
 
@@ -289,7 +280,7 @@ public class IdleTimeoutFilter extends BaseFilter {
             // Small trick to not synchronize this block and queueAction();
             idleRecord.timeoutMillis.set(FOREVER_SPECIAL);
             if (idleRecord.counter.decrementAndGet() == 0) {
-                final long timeout = getTimeout(ctx);
+                final long timeout = timeoutResolver.getTimeout(ctx);
                 if (timeout == FOREVER) {
                     idleRecord.timeoutMillis.compareAndSet(FOREVER_SPECIAL, FOREVER);
                 } else {
@@ -298,16 +289,6 @@ public class IdleTimeoutFilter extends BaseFilter {
                 }
             }
         }
-        
-        private long getTimeout(final FilterChainContext ctx) {
-
-            TimeoutResolver resolver = CUSTOM_IDLE_ATTR.get(ctx.getConnection());
-            return ((resolver != null)
-                        ? resolver.getTimeout(ctx)
-                        : timeoutResolver.getTimeout(ctx));
-
-        }
-
     } // END ContextCompletionListener
 
 
@@ -315,21 +296,20 @@ public class IdleTimeoutFilter extends BaseFilter {
 
     private static final class IdleTimeoutResolver implements TimeoutResolver {
 
-        private final long timeout;
+        private final long defaultTimeoutMillis;
         // -------------------------------------------------------- Constructors
 
 
-        IdleTimeoutResolver(final long timeout) {
-            this.timeout = timeout;
+        IdleTimeoutResolver(final long defaultTimeoutMillis) {
+            this.defaultTimeoutMillis = defaultTimeoutMillis;
         }
-
 
         // ---------------------------------------- Methods from TimeoutResolver
 
 
         @Override
-        public long getTimeout(FilterChainContext ctx) {
-            return timeout;
+        public long getTimeout(final FilterChainContext ctx) {
+            return IDLE_ATTR.get(ctx.getConnection()).getInitialTimeoutMillis(defaultTimeoutMillis);
         }
     }
 
@@ -357,12 +337,23 @@ public class IdleTimeoutFilter extends BaseFilter {
 
     private static final class IdleRecord {
 
+        private volatile boolean isInitialSet = false;
+        private long initialTimeoutMillis;
         private final AtomicLong timeoutMillis;
         private final AtomicInteger counter;
 
-        public IdleRecord() {
+        private IdleRecord() {
             counter = new AtomicInteger();
             timeoutMillis = new AtomicLong();
+        }
+
+        private long getInitialTimeoutMillis(final long defaultTimeoutMillis) {
+            return isInitialSet ? initialTimeoutMillis : defaultTimeoutMillis;
+        }
+        
+        private void setInitialTimeoutMillis(final long initialTimeoutMillis) {
+            this.initialTimeoutMillis = initialTimeoutMillis;
+            isInitialSet = true;
         }
 
     } // END IdleRecord
