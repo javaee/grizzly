@@ -165,7 +165,9 @@ public class WebSocketEngine {
                     }
                 } catch (HandshakeException e) {
                     logger.log(Level.SEVERE, e.getMessage(), e);
-                    socket.close();
+                    if (socket != null) {
+                        socket.close();
+                    }
                 }
             } catch (WebSocketException e) {
                 return false;
