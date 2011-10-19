@@ -59,7 +59,7 @@ public class WebSocketCloseHandler implements ConnectionCloseHandler {
         }
     }
 
-    public void remotlyClosed(SelectionKey key) {
-        System.out.println("WebSocketCloseHandler.remotlyClosed: key = " + key);
+    public void remotelyClosed(SelectionKey key) {
+        System.out.println("WebSocketCloseHandler.remotelyClosed: key = " + key);
     }
 }

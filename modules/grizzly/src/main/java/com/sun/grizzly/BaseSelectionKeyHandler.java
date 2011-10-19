@@ -230,7 +230,7 @@ public class BaseSelectionKeyHandler implements SelectionKeyHandler, ConnectionC
      */
     public void notifyRemotlyClose(SelectionKey key) {
         for (ConnectionCloseHandler handler : cchSet) {
-            handler.remotlyClosed(key);
+            handler.remotelyClosed(key);
         }
     }
     

@@ -46,9 +46,9 @@ import java.nio.channels.SelectionKey;
  * Simple listener to be used when an application needs to be notified when a 
  * a {@link SelectorHandler}, {@link ConnectionHandler} or {@link SelectionKeyHandler}
  * close a connection ({@link ConnectionCloseHandler#locallyClosed}), or when a 
- * remote client close the connection ({@link ConnectionCloseHandler#remotlyClosed}).
+ * remote client close the connection ({@link ConnectionCloseHandler#remotelyClosed}).
  * 
- * Note that when the connection is closed remotly, the ({@link ConnectionCloseHandler#remotlyClosed})
+ * Note that when the connection is closed remotly, the ({@link ConnectionCloseHandler#remotelyClosed})
  * will be invoked immediately followed by a ({@link ConnectionCloseHandler#locallyClosed}), as
  * Grizzly will discard the server side dirty {@link SelectionKey}.
  * 
@@ -70,6 +70,6 @@ public interface ConnectionCloseHandler{
      * 
      * @param  key a {@link SelectionKey}
      */
-    void remotlyClosed(SelectionKey key);
+    void remotelyClosed(SelectionKey key);
     
 }
