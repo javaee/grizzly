@@ -54,7 +54,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
@@ -77,7 +76,7 @@ public class HttpProtocolFinder extends com.sun.grizzly.http.portunif.HttpProtoc
     private volatile Ssl ssl;
     private volatile SSLConfigHolder sslConfigHolder;
 
-    private final AtomicBoolean isConfigured = new AtomicBoolean();
+    private volatile boolean isConfigured;
 
     public void configure(Habitat habitat, ProtocolFinder configuration) {
         Protocol protocol = configuration.findProtocol();
@@ -93,9 +92,7 @@ public class HttpProtocolFinder extends com.sun.grizzly.http.portunif.HttpProtoc
             }
 
             if (!SSLConfigHolder.isAllowLazyInit(ssl)) {
-                if (!isConfigured.getAndSet(true)) {
-                    sslConfigHolder.configureSSL();
-                }
+                configureSSLIfNeeded();
             }
         }
     }
@@ -105,9 +102,7 @@ public class HttpProtocolFinder extends com.sun.grizzly.http.portunif.HttpProtoc
             throws IOException {
 
         if (isSecured) {
-            if (!isConfigured.getAndSet(true)) {
-                sslConfigHolder.configureSSL();
-            }
+            configureSSLIfNeeded();
 
             SelectionKey key = context.getSelectionKey();
             SelectableChannel channel = key.channel();
@@ -240,6 +235,20 @@ public class HttpProtocolFinder extends com.sun.grizzly.http.portunif.HttpProtoc
             return null;
         } else {
             return super.find(context, protocolRequest);
+        }
+    }
+
+    /**
+     * Configure SSL
+     */
+    private void configureSSLIfNeeded() {
+        if (!isConfigured) {
+            synchronized(sync) {
+                if (!isConfigured) {
+                    sslConfigHolder.configureSSL();
+                    isConfigured = true;
+                }
+            }
         }
     }
 }
