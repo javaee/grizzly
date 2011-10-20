@@ -206,9 +206,14 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
      * Sets the underlying selection key of the output channel.
      * @param selectionKey the underlying selection key of the output channel.
      */
-    public void setSelectionKey(SelectionKey selectionKey) {
+    public void setSelectionKey(final SelectionKey selectionKey) {
         this.selectionKey = selectionKey;
-        channel = selectionKey.channel();
+        
+        if (selectionKey != null) {
+            channel = selectionKey.channel();
+        } else {
+            channel = null;
+        }
     }
 
     /**
