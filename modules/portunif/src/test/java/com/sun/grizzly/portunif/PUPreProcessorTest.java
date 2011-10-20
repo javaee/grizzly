@@ -48,11 +48,11 @@ import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.SSLConfig;
 import com.sun.grizzly.TCPSelectorHandler;
 import com.sun.grizzly.filter.EchoFilter;
-import com.sun.grizzly.utils.ControllerUtils;
-import com.sun.grizzly.utils.NonBlockingIOClient;
-import com.sun.grizzly.utils.NonBlockingSSLIOClient;
-import com.sun.grizzly.utils.NonBlockingTCPIOClient;
-import com.sun.grizzly.utils.Utils;
+import com.sun.grizzly.portunif.utils.ControllerUtils;
+import com.sun.grizzly.portunif.utils.NonBlockingIOClient;
+import com.sun.grizzly.portunif.utils.NonBlockingSSLIOClient;
+import com.sun.grizzly.portunif.utils.NonBlockingTCPIOClient;
+import com.sun.grizzly.portunif.utils.Utils;
 
 import java.io.File;
 import java.io.IOException;
