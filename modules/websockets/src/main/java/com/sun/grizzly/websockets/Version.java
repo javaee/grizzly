@@ -47,7 +47,18 @@ import com.sun.grizzly.websockets.draft08.Draft08Handler;import com.sun.grizzly.
 import com.sun.grizzly.websockets.draft76.HandShake76;
 
 public enum Version {
-    DRAFT08 {
+    DRAFT17("13") {
+            @Override
+            public ProtocolHandler createHandler(boolean mask) {
+                return new Draft08Handler(mask);
+            }
+
+            @Override
+            public boolean validate(MimeHeaders headers) {
+                return "13".equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
+            }
+        },
+    DRAFT08("8") {
         @Override
         public ProtocolHandler createHandler(boolean mask) {
             return new Draft08Handler(mask);
@@ -58,7 +69,7 @@ public enum Version {
             return "8".equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
         }
     },
-    DRAFT07 {
+    DRAFT07("7") {
         @Override
         public ProtocolHandler createHandler(boolean mask) {
             return new Draft07Handler(mask);
@@ -69,7 +80,7 @@ public enum Version {
             return "7".equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
         }
     },
-    DRAFT06 {
+    DRAFT06("6") {
         @Override
         public ProtocolHandler createHandler(boolean mask) {
             return new Draft06Handler(mask);
@@ -80,7 +91,7 @@ public enum Version {
             return "6".equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
         }
     },
-    DRAFT76 {
+    DRAFT76("") {
         @Override
         public ProtocolHandler createHandler(boolean mask) {
             return new Draft76Handler();
@@ -101,6 +112,11 @@ public enum Version {
 
     public abstract boolean validate(MimeHeaders headers);
 
+    private String wireProtocolVersion;
+    
+    private Version(final String wireProtocolVersion) {
+        this.wireProtocolVersion = wireProtocolVersion;
+    }
 
     @Override
     public String toString() {
@@ -109,5 +125,16 @@ public enum Version {
 
     public boolean isFragmentationSupported() {
         return true;
+    }
+    
+    public static String getSupportedWireProtocolVersions() {
+        final StringBuilder sb = new StringBuilder();
+        for (Version v : Version.values()) {
+            if (v.wireProtocolVersion.length() > 0) {
+                sb.append(v.wireProtocolVersion).append(", ");
+            }
+        }
+        return sb.substring(0, sb.length() - 2);
+            
     }
 }

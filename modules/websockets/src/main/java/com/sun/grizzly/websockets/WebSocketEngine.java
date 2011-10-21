@@ -45,9 +45,11 @@ import com.sun.grizzly.arp.AsyncExecutor;
 import com.sun.grizzly.arp.AsyncProcessorTask;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.tcp.Request;
+import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.http.MimeHeaders;
 
+import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
 import java.util.List;
@@ -119,8 +121,7 @@ public class WebSocketEngine {
                 return version.createHandler(false);
             }
         }
-
-        throw new HandshakeException("Unknown specification version");
+        return null;
     }
 
     public WebSocketApplication getApplication(Request request) {
@@ -146,6 +147,13 @@ public class WebSocketEngine {
                         final SelectionKey key = task.getSelectionKey();
 
                         final ProtocolHandler protocolHandler = loadHandler(mimeHeaders);
+                        if (protocolHandler == null) {
+                            try {
+                                handleUnsupportedVersion(request.getResponse());
+                                return true;
+                            } catch (IOException ignored) {
+                            }
+                        }
                         final ServerNetworkHandler handler = new ServerNetworkHandler(request, request.getResponse());
                         protocolHandler.setNetworkHandler(handler);
 
@@ -175,6 +183,15 @@ public class WebSocketEngine {
         }
 
         return false;
+    }
+
+    private static void handleUnsupportedVersion(final Response response) 
+    throws IOException {
+        response.setStatus(400);
+        response.setMessage("Bad Request");
+        response.addHeader(WebSocketEngine.SEC_WS_VERSION, Version.getSupportedWireProtocolVersions());
+        response.sendHeaders();
+        response.flush();
     }
 
     private boolean isUpgradable(Request request) {

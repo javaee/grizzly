@@ -47,6 +47,14 @@ import java.nio.channels.SelectionKey;
 public class WebSocketCloseHandler implements ConnectionCloseHandler {
 
     public void locallyClosed(SelectionKey key) {
+        doClose(key);
+    }
+
+    public void remotelyClosed(SelectionKey key) {
+        doClose(key);
+    }
+
+    private static void doClose(final SelectionKey key) {
         final Object o = key.attachment();
         if (o instanceof WebSocketSelectionKeyAttachment) {
             final WebSocketSelectionKeyAttachment attachment = (WebSocketSelectionKeyAttachment) key.attachment();
@@ -57,9 +65,5 @@ public class WebSocketCloseHandler implements ConnectionCloseHandler {
                 key.cancel();
             }
         }
-    }
-
-    public void remotelyClosed(SelectionKey key) {
-        System.out.println("WebSocketCloseHandler.remotelyClosed: key = " + key);
     }
 }
