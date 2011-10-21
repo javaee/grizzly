@@ -571,6 +571,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         setMaxKeepAliveRequests(Integer.parseInt(http.getMaxConnections()));
         setProperty("authPassthroughEnabled", GrizzlyConfig.toBoolean(http.getAuthPassThroughEnabled()));
         setMaxPostSize(Integer.parseInt(http.getMaxPostSizeBytes()));
+        setMaxSwallowingInputBytes(Long.parseLong(http.getMaxSwallowingInputBytes()));
         setCompression(http.getCompression());
         setCompressableMimeTypes(http.getCompressableMimeType());
         setSendBufferSize(Integer.parseInt(http.getSendBufferSizeBytes()));

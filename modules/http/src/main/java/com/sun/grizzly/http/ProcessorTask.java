@@ -600,7 +600,7 @@ public class ProcessorTask extends TaskBase implements Processor,
      * Pre process the request by decoding the request line and the header.
      */
     public void preProcess() throws Exception {
-        preProcess(inputStream,outputStream);
+        preProcess(inputStream, outputStream);
     }
 
 
@@ -610,7 +610,7 @@ public class ProcessorTask extends TaskBase implements Processor,
      * @param output the OutputStream to write bytes
      */
     public void preProcess(InputStream input, OutputStream output)
-                                                            throws Exception {
+            throws Exception {
 
         // Make sure this object has been initialized.
         if ( !started ){
@@ -618,6 +618,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         }
         // Setting up the I/O
         inputBuffer.setInputStream(input);
+        inputBuffer.setMaxSwallowingInputBytes(selectorThread.getMaxSwallowingInputBytes());
         if (key != null) {
             inputStream = input;
             outputBuffer.setAsyncHttpWriteEnabled(
@@ -958,11 +959,20 @@ public class ProcessorTask extends TaskBase implements Processor,
      * commited.
      */
     public void postProcess() throws Exception {
-        if (response.isSuspended() || isProcessingCompleted ||
+        if (response.isSuspended() ||
                 SuspendResponseUtils.isSuspendedInCurrentThread()) {
             return;
         }
 
+        if (error) {
+            keepAlive = false;
+            connectionHeaderValueSet = false;
+        }
+
+        if (isProcessingCompleted) {
+            return;
+        }
+        
         inputBuffer.recycle();
         outputBuffer.recycle();
 
@@ -971,11 +981,6 @@ public class ProcessorTask extends TaskBase implements Processor,
         
         // Recycle ssl info
         sslSupport = null;
-
-        if (error){
-            keepAlive = false;
-            connectionHeaderValueSet = false;
-        }
     }
 
 

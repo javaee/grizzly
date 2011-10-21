@@ -153,7 +153,22 @@ public class InternalInputBuffer implements InputBuffer {
      * Swallow input ? (in the case of an expectation)
      */
     protected boolean swallowInput;
+    
+    /**
+     * Flag, which indicates if we're currently swallowing this request input
+     */
+    private boolean isSwallowingInput;
+    
+    /**
+     * Number of bytes being read in "input-swallow" mode
+     */
+    private long swallowedBytesCounter;
 
+    /**
+     * Max number of bytes Grizzly will try to swallow in order to read off
+     * the current request payload and prepare input to process next request.
+     */
+    private long maxSwallowingInputBytes = -1;
 
     /**
      * Pointer to the current read buffer.
@@ -231,7 +246,7 @@ public class InternalInputBuffer implements InputBuffer {
         this.inputStream = inputStream;
     }
 
-
+    
     /**
      * Get the underlying socket input stream.
      */
@@ -239,7 +254,33 @@ public class InternalInputBuffer implements InputBuffer {
         return inputStream;
     }
 
+    /**
+     * Get the max number of bytes Grizzly will try to swallow in order
+     * to read off from the current request payload and prepare input to
+     * process next request.
+     * 
+     * @return the max number of bytes Grizzly will try to swallow in order
+     * to read off from the current request payload and prepare input to
+     * process next request.
+     */
+    public long getMaxSwallowingInputBytes() {
+        return maxSwallowingInputBytes;
+    }
 
+    /**
+     * Set the max number of bytes Grizzly will try to swallow in order
+     * to read off from the current request payload and prepare input to
+     * process next request.
+     * 
+     * @param maxSwallowingInputBytes  the max number of bytes Grizzly will try
+     * to swallow in order to read off from the current request payload and
+     * prepare input to process next request.
+     */
+    public void setMaxSwallowingInputBytes(long maxSwallowingInputBytes) {
+        this.maxSwallowingInputBytes = maxSwallowingInputBytes;
+    }
+
+        
     /**
      * Add an input filter to the filter library.
      */
@@ -323,6 +364,8 @@ public class InternalInputBuffer implements InputBuffer {
         lastActiveFilter = -1;
         parsingHeader = true;
         swallowInput = true;
+        isSwallowingInput = false;
+        swallowedBytesCounter = 0;
     }
 
 
@@ -360,18 +403,22 @@ public class InternalInputBuffer implements InputBuffer {
         lastActiveFilter = -1;
         parsingHeader = true;
         swallowInput = true;
+        isSwallowingInput = false;
+        swallowedBytesCounter = 0;
     }
 
 
     /**
      * End request (consumes leftover bytes).
      * 
-     * @throws IOException an undelying I/O error occured
+     * @throws IOException an underlying I/O error occurred
      */
     public void endRequest()
         throws IOException {
 
         if (swallowInput && (lastActiveFilter != -1)) {
+            isSwallowingInput = true;
+            
             int extraBytes = (int) activeFilters[lastActiveFilter].end();
             pos = pos - extraBytes;
         }
@@ -750,12 +797,17 @@ public class InternalInputBuffer implements InputBuffer {
 
 
     /**
-     * Fill the internal buffer using data from the undelying input stream.
+     * Fill the internal buffer using data from the underlying input stream.
      * 
      * @return false if at end of stream
      */
     protected boolean fill()
         throws IOException {
+
+        if (isSwallowingInput && maxSwallowingInputBytes >= 0
+                && swallowedBytesCounter >= maxSwallowingInputBytes) {
+            throw new EOFException("Can not skip more than " + maxSwallowingInputBytes + " bytes");
+        }
 
         int nRead = 0;
 
@@ -787,10 +839,16 @@ public class InternalInputBuffer implements InputBuffer {
             }
 
         }
-        return (nRead > 0);
+        
+        final boolean success = nRead > 0;
+        
+        if (success && isSwallowingInput) {
+            swallowedBytesCounter += nRead;
+        }
+        
+        return success;
 
     }
-
 
     // ------------------------------------- InputStreamInputBuffer Inner Class
 

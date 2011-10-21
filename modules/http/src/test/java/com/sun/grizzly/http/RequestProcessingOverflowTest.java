@@ -181,6 +181,35 @@ public class RequestProcessingOverflowTest extends TestCase {
         
     }
 
+    public void testMaxSwallowInputBytes() {
+
+        Socket s = initClientSocket();
+        final int postSize = 1024 * 1024 * 512;
+        final long maxSwallowingInputBytes = 65536;
+        
+        webServer.getSelectorThread().setMaxSwallowingInputBytes(maxSwallowingInputBytes);
+
+        try {
+            OutputStream out = s.getOutputStream();
+            
+            out.write("POST /test HTTP/1.1\r\n".getBytes());
+            out.write("Host: localhost\r\n".getBytes());
+            out.write("Content-Type: application/octet-stream\r\n".getBytes());
+            out.write(("Content-Length: " + postSize + "\r\n").getBytes());
+            out.write("\r\n".getBytes());
+
+            byte[] payloadChunk = new byte[8192];
+            long counter = 0;
+            while (counter < postSize) {
+                out.write(payloadChunk);
+                counter += payloadChunk.length;
+            }
+            
+            fail("Unexpected success");
+            
+        } catch (IOException e) {
+        }        
+    }
 
     // --------------------------------------------------------- Private Methods
 

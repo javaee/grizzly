@@ -219,6 +219,12 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     protected int maxPostSize = 2 * 1024 * 1024;
 
     /**
+     * Max number of bytes Grizzly will try to swallow in order to read off
+     * the current request payload and prepare input to process next request.
+     */
+    protected long maxSwallowingInputBytes = -1;
+    
+    /**
      * Size of the ByteBuffer used to store the bytes before flushing.
      */
     private int sendBufferSize = Constants.SEND_BUFFER_SIZE;
@@ -2339,6 +2345,31 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         this.maxPostSize = maxPostSize;
     }
       
+    /**
+     * Get the max number of bytes Grizzly will try to swallow in order
+     * to read off from the current request payload and prepare input to
+     * process next request.
+     * 
+     * @return the max number of bytes Grizzly will try to swallow in order
+     * to read off from the current request payload and prepare input to
+     * process next request.
+     */
+    public long getMaxSwallowingInputBytes() {
+        return maxSwallowingInputBytes;
+    }
+
+    /**
+     * Set the max number of bytes Grizzly will try to swallow in order
+     * to read off from the current request payload and prepare input to
+     * process next request.
+     * 
+     * @param maxSwallowingInputBytes  the max number of bytes Grizzly will try
+     * to swallow in order to read off from the current request payload and
+     * prepare input to process next request.
+     */
+    public void setMaxSwallowingInputBytes(long maxSwallowingInputBytes) {
+        this.maxSwallowingInputBytes = maxSwallowingInputBytes;
+    }
     
     public void setReuseAddress(boolean reuseAddress){
         this.reuseAddress = reuseAddress;
