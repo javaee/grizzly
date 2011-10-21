@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -48,6 +48,7 @@ import com.sun.grizzly.Context;
 import com.sun.grizzly.portunif.DefaultFilterChainProtocolHandler;
 import com.sun.grizzly.portunif.PUProtocolRequest;
 import com.sun.grizzly.util.WorkerThread;
+import javax.net.ssl.SSLEngine;
 
 /**
  * This class maps the current request to its associated Container.
@@ -109,8 +110,16 @@ public class WebProtocolHandler extends DefaultFilterChainProtocolHandler {
     @Override
     public ByteBuffer getByteBuffer() {
         final WorkerThread workerThread = (WorkerThread) Thread.currentThread();
-        if (workerThread.getSSLEngine() != null) {
-            return workerThread.getInputBB();
+        final SSLEngine sslEngine = workerThread.getSSLEngine();
+        if (sslEngine != null) {
+            ByteBuffer secureInputBuffer = workerThread.getInputBB();
+            if (secureInputBuffer == null) {
+                final int securedBBSize = sslEngine.getSession().getPacketBufferSize();
+                secureInputBuffer = ByteBuffer.allocate(securedBBSize * 2);
+                workerThread.setInputBB(secureInputBuffer);
+            }
+            
+            return secureInputBuffer;
         }
         return null;
     }
