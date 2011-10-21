@@ -55,7 +55,7 @@ public enum Version {
 
             @Override
             public boolean validate(MimeHeaders headers) {
-                return "13".equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
+                return this.wireProtocolVersion.equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
             }
         },
     DRAFT08("8") {
@@ -66,7 +66,7 @@ public enum Version {
 
         @Override
         public boolean validate(MimeHeaders headers) {
-            return "8".equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
+            return this.wireProtocolVersion.equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
         }
     },
     DRAFT07("7") {
@@ -77,7 +77,7 @@ public enum Version {
 
         @Override
         public boolean validate(MimeHeaders headers) {
-            return "7".equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
+            return this.wireProtocolVersion.equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
         }
     },
     DRAFT06("6") {
@@ -88,7 +88,7 @@ public enum Version {
 
         @Override
         public boolean validate(MimeHeaders headers) {
-            return "6".equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
+            return this.wireProtocolVersion.equals(headers.getHeader(WebSocketEngine.SEC_WS_VERSION));
         }
     },
     DRAFT76("") {
@@ -112,7 +112,7 @@ public enum Version {
 
     public abstract boolean validate(MimeHeaders headers);
 
-    private String wireProtocolVersion;
+    String wireProtocolVersion;
     
     private Version(final String wireProtocolVersion) {
         this.wireProtocolVersion = wireProtocolVersion;
