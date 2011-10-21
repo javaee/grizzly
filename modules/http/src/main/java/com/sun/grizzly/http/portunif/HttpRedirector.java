@@ -50,7 +50,6 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectableChannel;
 import java.nio.channels.SocketChannel;
 import javax.net.ssl.SSLEngine;
 
@@ -244,14 +243,18 @@ public class HttpRedirector {
     private static void redirect(Context context, String httpHeaders)
     throws IOException{
 
-        final SelectableChannel channel = context.getSelectionKey().channel();
+        final SocketChannel channel =
+                (SocketChannel) context.getSelectionKey().channel();
 
-        OutputWriter.flushChannel(channel,
-                SC_FOUND.slice());
-        OutputWriter.flushChannel(channel,
-                ByteBuffer.wrap((httpHeaders +
+        final ByteBuffer[] byteBuffers = new ByteBuffer[2];
+        final ByteBuffer statusLineBuffer = SC_FOUND.slice();
+        final ByteBuffer headersBuffer = ByteBuffer.wrap((httpHeaders +
                 new String((byte[]) context.getAttribute(HttpProtocolFinder.HTTP_REQUEST_URL)) +
-                headers).getBytes()));
+                headers).getBytes());
+        byteBuffers[0] = statusLineBuffer;
+        byteBuffers[1] = headersBuffer;
+        
+        OutputWriter.flushChannel(channel, byteBuffers);
     }
 
 
@@ -268,15 +271,24 @@ public class HttpRedirector {
                                     ByteBuffer outputBB,
                                     String httpHeaders) throws IOException {
 
-        final SelectableChannel channel = context.getSelectionKey().channel();
-        SSLOutputWriter.flushChannel(channel,
-                SC_FOUND.slice(),
-                outputBB,
-                sslEngine);
-        SSLOutputWriter.flushChannel(channel,
-                ByteBuffer.wrap((httpHeaders +
+        final SocketChannel channel =
+                (SocketChannel) context.getSelectionKey().channel();
+
+        final ByteBuffer statusLineBuffer = SC_FOUND.slice();
+        final ByteBuffer headersBuffer = ByteBuffer.wrap((httpHeaders +
                 new String((byte[]) context.getAttribute(HttpProtocolFinder.HTTP_REQUEST_URL)) +
-                headers).getBytes()),
+                headers).getBytes());
+        
+        // Do extra copy, but anyways it's cheaper than calling flushChannel
+        // two time for each buffer
+        final ByteBuffer singleBuffer = ByteBuffer.allocate(
+                statusLineBuffer.remaining() + headersBuffer.remaining());
+        singleBuffer.put(statusLineBuffer);
+        singleBuffer.put(headersBuffer);
+        singleBuffer.flip();
+        
+        SSLOutputWriter.flushChannel(channel,
+                singleBuffer,
                 outputBB,
                 sslEngine);
     }
