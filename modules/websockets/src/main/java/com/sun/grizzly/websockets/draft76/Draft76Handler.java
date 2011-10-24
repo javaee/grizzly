@@ -45,6 +45,7 @@ import com.sun.grizzly.util.net.URL;
 import com.sun.grizzly.websockets.DataFrame;
 import com.sun.grizzly.websockets.FramingException;
 import com.sun.grizzly.websockets.HandShake;
+import com.sun.grizzly.websockets.ProtocolError;
 import com.sun.grizzly.websockets.ProtocolHandler;
 import com.sun.grizzly.websockets.WebSocketException;
 
@@ -74,7 +75,7 @@ public class Draft76Handler extends ProtocolHandler {
                 frame = new DataFrame(Draft76FrameType.CLOSING, new byte[]{b, handler.get()});
                 break;
             default:
-                throw new FramingException("Unknown frame type: " + b);
+                throw new ProtocolError("Unknown frame type: " + b);
         }
 
         return frame;

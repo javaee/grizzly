@@ -40,30 +40,33 @@
 
 package com.sun.grizzly.websockets.frametypes;
 
+import com.sun.grizzly.util.Charsets;
 import com.sun.grizzly.websockets.BaseFrameType;
 import com.sun.grizzly.websockets.DataFrame;
 import com.sun.grizzly.websockets.FramingException;
+import com.sun.grizzly.websockets.StrictUtf8;
 import com.sun.grizzly.websockets.WebSocket;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CodingErrorAction;
 
 public class TextFrameType extends BaseFrameType {
     @Override
     public void setPayload(DataFrame frame, byte[] data) {
-        try {
-            frame.setPayload(new String(data, "UTF-8"));
-        } catch (UnsupportedEncodingException e) {
-            throw new FramingException(e.getMessage(), e);
-        }
+        frame.setPayload(data);
     }
 
     @Override
     public byte[] getBytes(DataFrame dataFrame) {
-        try {
-            return dataFrame.getTextPayload().getBytes("UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new FramingException(e.getMessage(), e);
+        final byte[] bytes = dataFrame.getBytes();
+        if (bytes == null) {
+            setPayload(dataFrame, dataFrame.getTextPayload().getBytes(new StrictUtf8()));
         }
+        return dataFrame.getBytes();
     }
 
     public void respond(WebSocket socket, DataFrame frame) {

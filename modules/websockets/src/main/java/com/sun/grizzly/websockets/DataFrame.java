@@ -87,11 +87,6 @@ public class DataFrame {
 
     public final void setPayload(String payload) {
         this.payload = payload;
-        try {
-            bytes = payload != null ? payload.getBytes("UTF-8") : null;
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e.getMessage(), e);
-        }
     }
 
     public void setPayload(byte[] bytes) {
@@ -99,6 +94,9 @@ public class DataFrame {
     }
 
     public byte[] getBytes() {
+        if (bytes == null) {
+            bytes = payload.getBytes(new StrictUtf8());
+        }
         return bytes;
     }
 

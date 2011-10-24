@@ -144,6 +144,8 @@ public class WebSocketEngine {
                     if (app != null) {
 
                         ProcessorTask task = asyncExecutor.getProcessorTask();
+                        AsyncProcessorTask asyncTask =
+                                (AsyncProcessorTask) asyncExecutor.getAsyncTask();
                         final SelectionKey key = task.getSelectionKey();
 
                         final ProtocolHandler protocolHandler = loadHandler(mimeHeaders);
@@ -156,16 +158,22 @@ public class WebSocketEngine {
                         }
                         final ServerNetworkHandler handler = new ServerNetworkHandler(request, request.getResponse());
                         protocolHandler.setNetworkHandler(handler);
+                        protocolHandler.setKey(key);
+                        protocolHandler.setProcessorTask(task);
+                        protocolHandler.setAsyncTask(asyncTask);
 
-                        final HandShake handshake = protocolHandler.handshake(app, request);
+                        protocolHandler.handshake(app, request);
 
                         socket = app.createWebSocket(protocolHandler, app, new KeyWebSocketListener(key));
 
                         ((BaseSelectionKeyHandler) task.getSelectorHandler().getSelectionKeyHandler())
                                 .setConnectionCloseHandler(closeHandler);
 
-                        key.attach(new WebSocketSelectionKeyAttachment(protocolHandler, handler, task,
-                                (AsyncProcessorTask) asyncExecutor.getAsyncTask()));
+                        key.attach(
+                                new WebSocketSelectionKeyAttachment(protocolHandler,
+                                                                    handler,
+                                                                    task,
+                                                                    asyncTask));
                         
                         socket.onConnect();
                         enableRead(task, key);

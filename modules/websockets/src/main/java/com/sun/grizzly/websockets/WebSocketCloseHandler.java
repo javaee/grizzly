@@ -40,6 +40,8 @@
 
 package com.sun.grizzly.websockets;
 
+import com.sun.grizzly.arp.AsyncProcessorTask;
+import com.sun.grizzly.arp.AsyncTask;
 import com.sun.grizzly.util.ConnectionCloseHandler;
 
 import java.nio.channels.SelectionKey;
@@ -61,8 +63,15 @@ public class WebSocketCloseHandler implements ConnectionCloseHandler {
             final ProtocolHandler handler = attachment.getHandler();
             final WebSocket webSocket = handler.getWebSocket();
             webSocket.onClose(null);
-            if (!webSocket.isConnected()) {
-                key.cancel();
+            //if (!webSocket.isConnected()) {
+            //    key.cancel();
+            //}
+            AsyncProcessorTask task = attachment.getAsyncProcessorTask();
+            task.setStage(AsyncTask.FINISH);
+            try {
+                task.doTask();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }

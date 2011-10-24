@@ -47,6 +47,7 @@ import com.sun.grizzly.websockets.FrameType;
 import com.sun.grizzly.websockets.FramingException;
 import com.sun.grizzly.websockets.HandShake;
 import com.sun.grizzly.websockets.Masker;
+import com.sun.grizzly.websockets.ProtocolError;
 import com.sun.grizzly.websockets.ProtocolHandler;
 import com.sun.grizzly.websockets.WebSocketEngine;
 import com.sun.grizzly.websockets.frametypes.BinaryFrameType;
@@ -105,6 +106,7 @@ public class Draft06Handler extends ProtocolHandler {
             masker.setMask(handler.get(WebSocketEngine.MASK_SIZE));
         }
         byte opcode = masker.unmask();
+        final boolean controlFrame = isControlFrame(opcode);
         boolean finalFragment = (opcode & 0x80) == 0x80;
         opcode &= 0x7F;
         FrameType type = valueOf(inFragmentedType, opcode);
@@ -112,8 +114,6 @@ public class Draft06Handler extends ProtocolHandler {
             if(inFragmentedType == 0) {
                 inFragmentedType = opcode;
             }
-        } else {
-            inFragmentedType = 0;
         }
 
         byte lengthCode = masker.unmask();
@@ -125,12 +125,21 @@ public class Draft06Handler extends ProtocolHandler {
         }
         final byte[] data = masker.unmask((int) length);
         if (data.length != length) {
-            final FramingException e = new FramingException(String.format("Data read (%s) is not the expected" +
+            final FramingException e = new ProtocolError(String.format("Data read (%s) is not the expected" +
                     " size (%s)", data.length, length));
             e.printStackTrace();
             throw e;
         }
-        return type.create(finalFragment, data);
+        DataFrame dataFrame = type.create(finalFragment, data);
+
+        if (!controlFrame && (isTextFrame(opcode) || inFragmentedType == 4)) {
+            utf8Decode(finalFragment, data, dataFrame);
+        }
+
+        if (!controlFrame && finalFragment) {
+            inFragmentedType = 0;
+        }
+        return dataFrame;
     }
 
     @Override
@@ -138,6 +147,10 @@ public class Draft06Handler extends ProtocolHandler {
         return opcode == 0x01
                 || opcode == 0x02
                 || opcode == 0x03;
+    }
+
+    private boolean isTextFrame(byte opcode) {
+            return opcode == 4;
     }
 
     private byte getOpcode(FrameType type) {
@@ -153,7 +166,7 @@ public class Draft06Handler extends ProtocolHandler {
             return 0x05;
         }
 
-        throw new FramingException("Unknown frame type: " + type.getClass().getName());
+        throw new ProtocolError("Unknown frame type: " + type.getClass().getName());
     }
 
     private FrameType valueOf(byte fragmentType, byte value) {
@@ -172,7 +185,7 @@ public class Draft06Handler extends ProtocolHandler {
             case 0x05:
                 return new BinaryFrameType();
             default:
-                throw new FramingException("Unknown frame type: " + value);
+                throw new ProtocolError("Unknown frame type: " + value);
         }
     }
 }

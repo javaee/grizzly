@@ -81,7 +81,7 @@ public interface WebSocket {
      * e.g. without sending or receiving a Close control frame.
      */
     int ABNORMAL_CLOSE = 1006;
-
+    
     /**
      * Write the data to the socket.  This text will be converted to a UTF-8 encoded byte[] prior to sending.
      *

@@ -40,13 +40,23 @@
 
 package com.sun.grizzly.websockets;
 
+import com.sun.grizzly.arp.AsyncProcessorTask;
+import com.sun.grizzly.arp.AsyncTask;
+import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.util.net.URL;
 import com.sun.grizzly.websockets.draft06.ClosingFrame;
 import com.sun.grizzly.websockets.frametypes.BinaryFrameType;
 import com.sun.grizzly.websockets.frametypes.TextFrameType;
+import com.sun.grizzly.websockets.frametypes.Utf8DecodingError;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CoderResult;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.TreeMap;
@@ -55,9 +65,16 @@ public abstract class ProtocolHandler {
     protected NetworkHandler handler;
     private boolean isHeaderParsed;
     private WebSocket webSocket;
+    protected boolean processingFragment;
     protected byte inFragmentedType;
     protected byte outFragmentedType;
     protected final boolean maskData;
+    protected SelectionKey key;
+    protected AsyncProcessorTask asyncTask;
+    protected ProcessorTask processorTask;
+    protected Charset utf8 = new StrictUtf8();
+    protected CharsetDecoder currentDecoder = utf8.newDecoder();
+    protected ByteBuffer remainder;
 
     public ProtocolHandler(boolean maskData) {
         this.maskData = maskData;
@@ -129,8 +146,7 @@ public abstract class ProtocolHandler {
                 unframe().respond(getWebSocket());
             } catch (FramingException fe) {
                 fe.printStackTrace();
-                System.out.println("handler = " + handler);
-                getWebSocket().close();
+                getWebSocket().close(fe.getClosingCode());
             }
         }
     }
@@ -144,7 +160,9 @@ public abstract class ProtocolHandler {
     }
 
     public void send(String data) {
-        send(new DataFrame(new TextFrameType(), data));
+        final DataFrame frame = new DataFrame(new TextFrameType(), data);
+        frame.setPayload(data.getBytes(utf8));
+        send(frame);
     }
 
     public void stream(boolean last, byte[] bytes, int off, int len) {
@@ -157,6 +175,10 @@ public abstract class ProtocolHandler {
 
     public void close(int code, String reason) {
         send(new ClosingFrame(code, reason));
+        if (processorTask != null) {
+            processorTask.setAptCancelKey(true);
+            processorTask.terminateProcess();
+        }
     }
 
     public void close(DataFrame frame) {
@@ -232,5 +254,79 @@ public abstract class ProtocolHandler {
             local |= 0x80;
         }
         return local;
+    }
+
+    protected SelectionKey getKey() {
+        return key;
+    }
+
+    protected void setKey(SelectionKey key) {
+        this.key = key;
+    }
+
+    protected AsyncProcessorTask getAsyncTask() {
+        return asyncTask;
+    }
+
+    protected void setAsyncTask(AsyncProcessorTask asyncTask) {
+        this.asyncTask = asyncTask;
+    }
+
+    protected ProcessorTask getProcessorTask() {
+        return processorTask;
+    }
+
+    protected void setProcessorTask(ProcessorTask processorTask) {
+        this.processorTask = processorTask;
+    }
+
+    protected void utf8Decode(boolean finalFragment, byte[] data, DataFrame dataFrame) {
+        final ByteBuffer b = getByteBuffer(data);
+        int n = (int) (b.remaining() * currentDecoder.averageCharsPerByte());
+        CharBuffer cb = CharBuffer.allocate(n);
+        for (; ; ) {
+            CoderResult result = currentDecoder.decode(b, cb, finalFragment);
+            if (result.isUnderflow()) {
+                if (finalFragment) {
+                    currentDecoder.flush(cb);
+                    if (b.hasRemaining()) {
+                        throw new IllegalStateException("Final UTF-8 fragment received, but not all bytes consumed by decode process");
+                    }
+                    currentDecoder.reset();
+                } else {
+                    if (b.hasRemaining()) {
+                        remainder = b;
+                    }
+                }
+                cb.flip();
+                dataFrame.setPayload(cb.toString());
+                dataFrame.setPayload(dataFrame.getTextPayload().getBytes(utf8)); // yuck
+                break;
+            }
+            if (result.isOverflow()) {
+                CharBuffer tmp = CharBuffer.allocate(2 * n + 1);
+                cb.flip();
+                tmp.put(cb);
+                cb = tmp;
+                continue;
+            }
+            if (result.isError() || result.isMalformed()) {
+                throw new Utf8DecodingError("Illegal UTF-8 Sequence");
+            }
+        }
+    }
+
+    protected ByteBuffer getByteBuffer(final byte[] data) {
+        if (remainder == null) {
+            return ByteBuffer.wrap(data);
+        } else {
+            final int rem = remainder.remaining();
+            final byte[] orig = remainder.array();
+            byte[] b = new byte[rem + data.length];
+            System.arraycopy(orig, orig.length - rem, b, 0, rem);
+            System.arraycopy(data, 0, b, rem, data.length);
+            remainder = null;
+            return ByteBuffer.wrap(b);
+        }
     }
 }

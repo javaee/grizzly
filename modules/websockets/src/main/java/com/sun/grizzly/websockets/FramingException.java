@@ -40,7 +40,12 @@
 
 package com.sun.grizzly.websockets;
 
-public class FramingException extends RuntimeException {
+public abstract class FramingException extends RuntimeException {
+
+
+    // ------------------------------------------------------------ Constructors
+
+
     public FramingException(String s) {
         super(s);
     }
@@ -52,4 +57,7 @@ public class FramingException extends RuntimeException {
     public FramingException(Throwable throwable) {
         super(throwable);
     }
+    
+    public abstract int getClosingCode();
+
 }

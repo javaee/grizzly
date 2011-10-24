@@ -66,6 +66,10 @@ public class WebSocketSelectionKeyAttachment extends SelectedKeyAttachmentLogic 
         return false;
     }
 
+    public AsyncProcessorTask getAsyncProcessorTask() {
+        return asyncProcessorTask;
+    }
+
     @Override
     public boolean handleSelectedKey(SelectionKey key) {
         if (key.isReadable()) {

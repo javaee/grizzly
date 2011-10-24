@@ -37,59 +37,28 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+package com.sun.grizzly.websockets;
 
-package com.sun.grizzly.websockets.draft76;
+public class ProtocolError extends FramingException {
 
-import com.sun.grizzly.websockets.DataFrame;
-import com.sun.grizzly.websockets.FrameType;
-import com.sun.grizzly.websockets.FramingException;
-import com.sun.grizzly.websockets.WebSocket;
-import com.sun.grizzly.websockets.frametypes.Utf8DecodingError;
 
-import java.io.ByteArrayOutputStream;
-import java.io.UnsupportedEncodingException;
+    // ------------------------------------------------------------ Constructors
 
-enum Draft76FrameType implements FrameType {
-    TEXT {
-        public void setPayload(DataFrame frame, byte[] data) {
-            try {
-                frame.setPayload(new String(data, "UTF-8"));
-            } catch (UnsupportedEncodingException e) {
-                throw new Utf8DecodingError(e.getMessage(), e);
-            }
-        }
 
-        public byte[] getBytes(DataFrame frame) {
-            final byte[] data = frame.getBytes();
-            ByteArrayOutputStream out = new ByteArrayOutputStream(data.length + 2);
-            out.write((byte) 0x00);
-            out.write(data, 0, data.length);
-            out.write((byte) 0xFF);
-            return out.toByteArray();
-        }
-
-        public void respond(WebSocket socket, DataFrame frame) {
-            socket.onMessage(frame.getTextPayload());
-        }
-    },
-
-    CLOSING {
-        public void setPayload(DataFrame frame, byte[] data) {
-            frame.setPayload(data);
-        }
-
-        public byte[] getBytes(DataFrame frame) {
-            return new byte[]{(byte) 0xFF, 0x00};
-        }
-
-        public void respond(WebSocket socket, DataFrame frame) {
-            socket.onClose(frame);
-            socket.close();
-        }
-    };
-
-    public DataFrame create(boolean fin, byte[] data) {
-        return new DataFrame(this, data);
+    public ProtocolError(String s) {
+        super(s);
     }
 
+    public ProtocolError(String s, Throwable throwable) {
+        super(s, throwable);
+    }
+
+    public ProtocolError(Throwable throwable) {
+        super(throwable);
+    }
+
+    @Override
+    public int getClosingCode() {
+        return WebSocket.PROTOCOL_ERROR;
+    }
 }

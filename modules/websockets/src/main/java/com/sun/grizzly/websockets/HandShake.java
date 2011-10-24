@@ -106,7 +106,7 @@ public abstract class HandShake {
 
         subProtocol = split(mimeHeaders.getHeader(WebSocketEngine.SEC_WS_PROTOCOL_HEADER));
 
-        if (serverHostName == null || origin == null) {
+        if (serverHostName == null) {
             throw new HandshakeException("Missing required headers for WebSocket negotiation");
         }
 

@@ -44,9 +44,9 @@ import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.util.net.URL;
 import com.sun.grizzly.websockets.DataFrame;
 import com.sun.grizzly.websockets.FrameType;
-import com.sun.grizzly.websockets.FramingException;
 import com.sun.grizzly.websockets.HandShake;
 import com.sun.grizzly.websockets.Masker;
+import com.sun.grizzly.websockets.ProtocolError;
 import com.sun.grizzly.websockets.ProtocolHandler;
 import com.sun.grizzly.websockets.WebSocketEngine;
 import com.sun.grizzly.websockets.frametypes.BinaryFrameType;
@@ -55,6 +55,11 @@ import com.sun.grizzly.websockets.frametypes.ContinuationFrameType;
 import com.sun.grizzly.websockets.frametypes.PingFrameType;
 import com.sun.grizzly.websockets.frametypes.PongFrameType;
 import com.sun.grizzly.websockets.frametypes.TextFrameType;
+import com.sun.grizzly.websockets.frametypes.Utf8DecodingError;
+
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.CoderResult;
 
 public class Draft07Handler extends ProtocolHandler {
     public Draft07Handler(boolean maskData) {
@@ -88,15 +93,37 @@ public class Draft07Handler extends ProtocolHandler {
     @Override
     public DataFrame unframe() {
         byte opcode = handler.get();
-        boolean finalFragment = (opcode & 0x80) == 0x80;
+        boolean rsvBitSet = isBitSet(opcode, 6) 
+                || isBitSet(opcode, 5)
+                || isBitSet(opcode, 4);
+        if (rsvBitSet) {
+            throw new ProtocolError("RSV bit(s) incorrectly set.");
+        }
+        final boolean finalFragment = isBitSet(opcode, 7);
+        final boolean controlFrame = isControlFrame(opcode);
         opcode &= 0x7F;
         FrameType type = valueOf(inFragmentedType, opcode);
-        if (!finalFragment) {
-            if (inFragmentedType == 0) {
-                inFragmentedType = opcode;
+        if (!finalFragment && controlFrame) {
+            throw new ProtocolError("Fragmented control frame");
+        }
+
+        if (!controlFrame) {
+            if (isContinuationFrame(opcode) && !processingFragment) {
+                throw new ProtocolError("End fragment sent, but wasn't processing any previous fragments");
             }
-        } else {
-            inFragmentedType = 0;
+            if (processingFragment && !isContinuationFrame(opcode)) {
+                throw new ProtocolError("Fragment sent but opcode was 0");
+            }
+            if (!finalFragment && !isContinuationFrame(opcode)) {
+                processingFragment = true;
+            }
+            if (!finalFragment) {
+                if (inFragmentedType == 0) {
+                    inFragmentedType = opcode;
+                }
+            } else {
+                processingFragment = false;
+            }
         }
 
         byte lengthCode = handler.get();
@@ -110,6 +137,9 @@ public class Draft07Handler extends ProtocolHandler {
         if (lengthCode <= 125) {
             length = lengthCode;
         } else {
+            if (controlFrame) {
+                throw new ProtocolError("Control frame payloads must be no greater than 125 bytes.");
+            }
             length = decodeLength(handler.get(lengthCode == 126 ? 2 : 8));
         }
         if (masked) {
@@ -117,15 +147,39 @@ public class Draft07Handler extends ProtocolHandler {
         }
         final byte[] data = masker.unmask((int) length);
         if (data.length != length) {
-            throw new FramingException(String.format("Data read (%s) is not the expected" +
+            throw new ProtocolError(String.format("Data read (%s) is not the expected" +
                     " size (%s)", data.length, length));
         }
-        return type.create(finalFragment, data);
+
+        DataFrame dataFrame = type.create(finalFragment, data);
+
+        if (!controlFrame && (isTextFrame(opcode) || inFragmentedType == 1)) {
+            utf8Decode(finalFragment, data, dataFrame);
+        }
+
+        if (!controlFrame && finalFragment) {
+            inFragmentedType = 0;
+        }
+        return dataFrame;
     }
+
+
 
     @Override
     protected boolean isControlFrame(byte opcode) {
         return (opcode & 0x08) == 0x08;
+    }
+    
+    private boolean isBitSet(final byte b, int bit) {
+        return ((b >> bit & 1) != 0);
+    }
+
+    private boolean isContinuationFrame(byte opcode) {
+        return opcode == 0;
+    }
+
+    private boolean isTextFrame(byte opcode) {
+        return opcode == 1;
     }
 
     private byte getOpcode(FrameType type) {
@@ -141,7 +195,7 @@ public class Draft07Handler extends ProtocolHandler {
             return 0x0A;
         }
 
-        throw new FramingException("Unknown frame type: " + type.getClass().getName());
+        throw new ProtocolError("Unknown frame type: " + type.getClass().getName());
     }
 
     private FrameType valueOf(byte fragmentType, byte value) {
@@ -160,7 +214,7 @@ public class Draft07Handler extends ProtocolHandler {
             case 0x0A:
                 return new PongFrameType();
             default:
-                throw new FramingException(String.format("Unknown frame type: %s, %s",
+                throw new ProtocolError(String.format("Unknown frame type: %s, %s",
                         Integer.toHexString(opcode & 0xFF).toUpperCase(), handler));
         }
     }
