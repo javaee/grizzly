@@ -68,6 +68,8 @@ public class RequestProcessingOverflowTest extends TestCase {
         webServer = new GrizzlyWebServer(PORT);
         webServer.addGrizzlyAdapter(new ContentEncodingTest.MessageAdapter(MESSAGE),
                 new String[]{"/test"});
+        webServer.getSelectorThread().setCoreThreads(1);
+        webServer.getSelectorThread().setMaxThreads(1);
         webServer.start();
     }
 
@@ -138,6 +140,36 @@ public class RequestProcessingOverflowTest extends TestCase {
             fail("Unable to read response from local test server: " + e.toString());
         }
 
+        // Make a "good" request, to make sure server worker thread is still operable.
+        s = initClientSocket();
+
+        try {
+            OutputStream out = new BufferedOutputStream(s.getOutputStream(), bufferSize);
+
+            out.write("GET /test/good HTTP/1.1\n".getBytes());
+            out.write("Host: localhost\n".getBytes());
+            out.write("Host: localhost\n".getBytes());
+            out.write("\n".getBytes());
+            out.flush();
+        } catch (SocketException ignored) {
+            // If it's SocketException - probably it's "broken pipe",
+            // which occurred cause the server closed connection before
+            // read out entire request.
+            // It's expected. Let the client read the response
+        } catch (IOException e) {
+            fail("Unable to complete test request to local test server: " + e.toString());
+        }
+
+        try {
+            InputStream in = s.getInputStream();
+            BufferedReader reader =
+                  new BufferedReader(new InputStreamReader(in));
+            String responseStatus = reader.readLine();
+            String control = "HTTP/1.1 200 OK";
+            assertEquals(control, control, responseStatus);
+        } catch (IOException e) {
+            fail("Unable to read response from local test server: " + e.toString());
+        }
     }
 
 
@@ -179,6 +211,36 @@ public class RequestProcessingOverflowTest extends TestCase {
             fail("Unable to read response from local test server: " + e.toString());
         }
         
+        // Make a "good" request, to make sure server worker thread is still operable.
+        s = initClientSocket();
+
+        try {
+            OutputStream out = new BufferedOutputStream(s.getOutputStream(), bufferSize);
+
+            out.write("GET /test/good HTTP/1.1\n".getBytes());
+            out.write("Host: localhost\n".getBytes());
+            out.write("Host: localhost\n".getBytes());
+            out.write("\n".getBytes());
+            out.flush();
+        } catch (SocketException ignored) {
+            // If it's SocketException - probably it's "broken pipe",
+            // which occurred cause the server closed connection before
+            // read out entire request.
+            // It's expected. Let the client read the response
+        } catch (IOException e) {
+            fail("Unable to complete test request to local test server: " + e.toString());
+        }
+
+        try {
+            InputStream in = s.getInputStream();
+            BufferedReader reader =
+                  new BufferedReader(new InputStreamReader(in));
+            String responseStatus = reader.readLine();
+            String control = "HTTP/1.1 200 OK";
+            assertEquals(control, control, responseStatus);
+        } catch (IOException e) {
+            fail("Unable to read response from local test server: " + e.toString());
+        }
     }
 
     public void testMaxSwallowInputBytes() {
