@@ -213,8 +213,10 @@ public class SSLUtils {
     public static ByteBuffer unwrapAll(ByteBuffer byteBuffer, 
             ByteBuffer inputBB, SSLEngine sslEngine) throws IOException{
         
-        SSLEngineResult result = null;
+        SSLEngineResult result;
         do {
+            result = null;
+            
             try {
                result = unwrap(byteBuffer,inputBB,sslEngine);
             } catch (Throwable ex){
