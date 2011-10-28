@@ -929,16 +929,18 @@ public final class TCPNIOTransport extends NIOTransport implements
                 if (!memoryManager.willAllocateDirect(receiveBufferSize)) {
                     final DirectByteBufferRecord directByteBufferRecord =
                             obtainDirectByteBuffer(receiveBufferSize);
-                    final ByteBuffer directByteBuffer = directByteBufferRecord.strongRef;
-                    read = readSimpleByteBuffer(tcpConnection,
-                            directByteBuffer, isSelectorThread);
+                    try {
+                        final ByteBuffer directByteBuffer = directByteBufferRecord.strongRef;
+                        read = readSimpleByteBuffer(tcpConnection,
+                                directByteBuffer, isSelectorThread);
 
-                    directByteBuffer.flip();
+                        directByteBuffer.flip();
 
-                    buffer = memoryManager.allocate(read);
-                    buffer.put(directByteBuffer);
-
-                    releaseDirectByteBuffer(directByteBufferRecord);
+                        buffer = memoryManager.allocate(read);
+                        buffer.put(directByteBuffer);
+                    } finally {
+                        releaseDirectByteBuffer(directByteBufferRecord);
+                    }
                 } else {
                     buffer = memoryManager.allocateAtLeast(receiveBufferSize);
                     read = readSimple(tcpConnection, buffer, isSelectorThread);
