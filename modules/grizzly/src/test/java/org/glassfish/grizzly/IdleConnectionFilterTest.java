@@ -170,5 +170,58 @@ public class IdleConnectionFilterTest extends GrizzlyTestCase {
             transport.stop();
         }
     }
+    
+    public void testInfiniteIdleTimeout() throws Exception {
+        Connection connection = null;
 
+        final CountDownLatch latch = new CountDownLatch(1);
+        final DelayedExecutor timeoutExecutor = IdleTimeoutFilter.createDefaultIdleDelayedExecutor();
+        timeoutExecutor.start();
+        IdleTimeoutFilter idleTimeoutFilter =
+                new IdleTimeoutFilter(timeoutExecutor, -1, TimeUnit.SECONDS);
+
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(idleTimeoutFilter);
+        filterChainBuilder.add(new BaseFilter() {
+                private volatile Connection acceptedConnection;
+                @Override
+                public NextAction handleAccept(FilterChainContext ctx)
+                        throws IOException {
+                    acceptedConnection = ctx.getConnection();
+                    return ctx.getInvokeAction();
+                }
+
+                @Override
+                public NextAction handleClose(FilterChainContext ctx)
+                        throws IOException {
+                    if (ctx.getConnection().equals(acceptedConnection)) {
+                        latch.countDown();
+                    }
+
+                    return ctx.getInvokeAction();
+                }
+
+            });
+
+        TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+        transport.setProcessor(filterChainBuilder.build());
+        
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            Future<Connection> future = transport.connect("localhost", PORT);
+            connection = future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
+
+            assertFalse(latch.await(2, TimeUnit.SECONDS));
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+            timeoutExecutor.stop();
+            transport.stop();
+        }
+    }
 }

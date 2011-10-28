@@ -40,6 +40,7 @@
 package org.glassfish.grizzly.websockets;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -336,7 +337,8 @@ public class WebSocketFilter extends BaseFilter {
     private void setIdleTimeout(final FilterChainContext ctx) {
         final FilterChain filterChain = ctx.getFilterChain();
         if (filterChain.indexOfType(IdleTimeoutFilter.class) >= 0) {
-            IdleTimeoutFilter.setCustomTimeout(ctx.getConnection(), wsTimeoutMS);
+            IdleTimeoutFilter.setCustomTimeout(ctx.getConnection(),
+                    wsTimeoutMS, TimeUnit.MILLISECONDS);
         }
     }
 }

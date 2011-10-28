@@ -59,6 +59,7 @@ import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -246,6 +247,200 @@ public class KeepAliveTest extends TestCase {
                 assertTrue("IOException expected, but got" + cause.getClass() +
                         " " + cause.getMessage(), cause instanceof IOException);
             }
+        } catch (IOException e) {
+            e.printStackTrace();
+            fail();
+        } finally {
+            client.close();
+            clientTransport.stop();
+            server.stop();
+        }
+    }
+    
+    public void testIdleTimeoutAfterConnect() throws Exception {
+        final int idleTimeoutSeconds = 2;
+        
+        HttpServer server = createServer(new HttpHandler() {
+            @Override
+            public void service(Request request,
+                    Response response) throws Exception {
+            }
+        }, "/path");
+
+        server.getListener("grizzly").getKeepAlive().setIdleTimeoutInSeconds(idleTimeoutSeconds);
+        final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
+        final HttpClient client = new HttpClient(clientTransport);
+
+        try {
+            server.start();
+            clientTransport.start();
+
+            Future<Connection> connectFuture = client.connect("localhost", PORT);
+            final Connection clientConnection = connectFuture.get(10, TimeUnit.SECONDS);
+            
+            final CountDownLatch latch = new CountDownLatch(1);
+            clientConnection.addCloseListener(new CloseListener() {
+
+                @Override
+                public void onClosed(Connection connection, CloseType type) throws IOException {
+                    latch.countDown();
+                }
+            });
+            
+            assertTrue(latch.await(idleTimeoutSeconds * 4, TimeUnit.SECONDS));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        } finally {
+            client.close();
+            clientTransport.stop();
+            server.stop();
+        }
+    }
+
+    public void testIdleTimeoutBetweenRequests() throws Exception {
+        final int idleTimeoutSeconds = 2;
+        final String msg = "Hello world #";
+        
+        HttpServer server = createServer(new HttpHandler() {
+            private final AtomicInteger ai = new AtomicInteger();
+            
+            @Override
+            public void service(Request request,
+                    Response response) throws Exception {
+                response.setContentType("text/plain");
+                response.getWriter().write(msg + ai.getAndIncrement());
+            }
+
+        }, "/path");
+        server.getListener("grizzly").getKeepAlive().setIdleTimeoutInSeconds(idleTimeoutSeconds);
+
+        final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
+        final HttpClient client = new HttpClient(clientTransport);
+
+        try {
+            server.start();
+            clientTransport.start();
+
+            Future<Connection> connectFuture = client.connect("localhost", PORT);
+            Connection clientConnection = connectFuture.get(10, TimeUnit.SECONDS);
+
+            final CountDownLatch latch = new CountDownLatch(1);
+            clientConnection.addCloseListener(new CloseListener() {
+
+                @Override
+                public void onClosed(Connection connection, CloseType type) throws IOException {
+                    latch.countDown();
+                }
+            });
+
+            Future<Buffer> resultFuture = client.get(HttpRequestPacket.builder().method("GET")
+                        .uri("/path").protocol(Protocol.HTTP_1_1)
+                        .header("Host", "localhost:" + PORT).build());
+
+            Buffer buffer = resultFuture.get(10, TimeUnit.SECONDS);
+
+            assertEquals("Hello world #0", buffer.toStringContent());
+
+            assertTrue(latch.await(idleTimeoutSeconds * 4, TimeUnit.SECONDS));
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            fail();
+        } finally {
+            client.close();
+            clientTransport.stop();
+            server.stop();
+        }
+    }
+
+    public void testInfiniteIdleTimeoutAfterConnect() throws Exception {
+        final int idleTimeoutSeconds = -1;
+        
+        HttpServer server = createServer(new HttpHandler() {
+            @Override
+            public void service(Request request,
+                    Response response) throws Exception {
+            }
+        }, "/path");
+
+        server.getListener("grizzly").getKeepAlive().setIdleTimeoutInSeconds(idleTimeoutSeconds);
+        final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
+        final HttpClient client = new HttpClient(clientTransport);
+
+        try {
+            server.start();
+            clientTransport.start();
+
+            Future<Connection> connectFuture = client.connect("localhost", PORT);
+            final Connection clientConnection = connectFuture.get(10, TimeUnit.SECONDS);
+            
+            final CountDownLatch latch = new CountDownLatch(1);
+            clientConnection.addCloseListener(new CloseListener() {
+
+                @Override
+                public void onClosed(Connection connection, CloseType type) throws IOException {
+                    latch.countDown();
+                }
+            });
+            
+            assertFalse(latch.await(5, TimeUnit.SECONDS));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        } finally {
+            client.close();
+            clientTransport.stop();
+            server.stop();
+        }
+    }    
+
+    public void testInfiniteIdleTimeoutBetweenRequests() throws Exception {
+        final int idleTimeoutSeconds = -1;
+        final String msg = "Hello world #";
+        
+        HttpServer server = createServer(new HttpHandler() {
+            private final AtomicInteger ai = new AtomicInteger();
+            
+            @Override
+            public void service(Request request,
+                    Response response) throws Exception {
+                response.setContentType("text/plain");
+                response.getWriter().write(msg + ai.getAndIncrement());
+            }
+
+        }, "/path");
+        server.getListener("grizzly").getKeepAlive().setIdleTimeoutInSeconds(idleTimeoutSeconds);
+
+        final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
+        final HttpClient client = new HttpClient(clientTransport);
+
+        try {
+            server.start();
+            clientTransport.start();
+
+            Future<Connection> connectFuture = client.connect("localhost", PORT);
+            Connection clientConnection = connectFuture.get(10, TimeUnit.SECONDS);
+
+            final CountDownLatch latch = new CountDownLatch(1);
+            clientConnection.addCloseListener(new CloseListener() {
+
+                @Override
+                public void onClosed(Connection connection, CloseType type) throws IOException {
+                    latch.countDown();
+                }
+            });
+
+            Future<Buffer> resultFuture = client.get(HttpRequestPacket.builder().method("GET")
+                        .uri("/path").protocol(Protocol.HTTP_1_1)
+                        .header("Host", "localhost:" + PORT).build());
+
+            Buffer buffer = resultFuture.get(10, TimeUnit.SECONDS);
+
+            assertEquals("Hello world #0", buffer.toStringContent());
+
+            assertFalse(latch.await(5, TimeUnit.SECONDS));
+
         } catch (IOException e) {
             e.printStackTrace();
             fail();

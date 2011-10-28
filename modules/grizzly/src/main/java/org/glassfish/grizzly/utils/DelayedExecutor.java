@@ -72,6 +72,10 @@ public class DelayedExecutor {
 
     public DelayedExecutor(final ExecutorService threadPool,
             final long checkInterval, final TimeUnit timeunit) {
+        if (checkInterval < 0) {
+            throw new IllegalArgumentException("check interval can't be negative");
+        }
+        
         this.threadPool = threadPool;
         this.checkIntervalMillis = TimeUnit.MILLISECONDS.convert(checkInterval, timeunit);
     }
