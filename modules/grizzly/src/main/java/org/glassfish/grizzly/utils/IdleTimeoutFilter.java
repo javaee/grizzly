@@ -114,14 +114,12 @@ public class IdleTimeoutFilter extends BaseFilter {
 
     public IdleTimeoutFilter(final DelayedExecutor executor,
                              final long timeout,
-                             final TimeUnit timeoutUnit,
+                             final TimeUnit timeUnit,
                              final TimeoutHandler handler) {
 
         this(executor,
-             new DefaultWorker(handler),
-             new IdleTimeoutResolver(
-                     TimeUnit.MILLISECONDS.convert(timeout, timeoutUnit)));
-
+                new DefaultWorker(handler),
+                new IdleTimeoutResolver(convertToMillis(timeout, timeUnit)));
     }
 
 
@@ -233,11 +231,13 @@ public class IdleTimeoutFilter extends BaseFilter {
      * @param connection The {@link Connection} which is having the idle detection
      *          adjusted.
      * @param timeout the new idle timeout.
+     * @param timeunit {@link TimeUnit}.
      */
     public static void setCustomTimeout(final Connection connection,
-                                        final long timeout) {
+                                        final long timeout,
+                                        final TimeUnit timeunit) {
         IDLE_ATTR.get(connection).setInitialTimeoutMillis(
-                timeout >= 0 ? timeout : FOREVER);
+                convertToMillis(timeout, timeunit));
     }
 
     // ------------------------------------------------------- Protected Methods
@@ -253,6 +253,11 @@ public class IdleTimeoutFilter extends BaseFilter {
         ctx.addCompletionListener(contextCompletionListener);
     }
 
+    // ------------------------------------------------------- Private Methods
+    
+    private static long convertToMillis(final long time, final TimeUnit timeUnit) {
+        return time >= 0 ? TimeUnit.MILLISECONDS.convert(time, timeUnit) : FOREVER;
+    }
 
     // ----------------------------------------------------------- Inner Classes
 
