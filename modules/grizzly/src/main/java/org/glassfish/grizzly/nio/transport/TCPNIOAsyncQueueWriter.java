@@ -105,15 +105,17 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
         } else {
             final DirectByteBufferRecord directByteBufferRecord =
                     TCPNIOTransport.obtainDirectByteBuffer(bufferSize);
-                                    
-            final ByteBuffer directByteBuffer = directByteBufferRecord.strongRef;
-            final SocketChannel socketChannel = (SocketChannel) connection.getChannel();
-                        
-            fillByteBuffer(buffer, 0, bufferSize, directByteBuffer);
-            written = TCPNIOTransport.flushByteBuffer(
-                    socketChannel, directByteBuffer);
             
-            TCPNIOTransport.releaseDirectByteBuffer(directByteBufferRecord);
+            try {
+                final ByteBuffer directByteBuffer = directByteBufferRecord.strongRef;
+                final SocketChannel socketChannel = (SocketChannel) connection.getChannel();
+
+                fillByteBuffer(buffer, 0, bufferSize, directByteBuffer);
+                written = TCPNIOTransport.flushByteBuffer(
+                        socketChannel, directByteBuffer);
+            } finally {
+                TCPNIOTransport.releaseDirectByteBuffer(directByteBufferRecord);
+            }
 
         }
 
