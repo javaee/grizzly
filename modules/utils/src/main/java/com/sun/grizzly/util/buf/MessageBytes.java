@@ -59,6 +59,7 @@
 package com.sun.grizzly.util.buf;
 
 
+import java.nio.charset.Charset;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Locale;
@@ -179,13 +180,13 @@ public final class MessageBytes implements Cloneable, Serializable {
      *  previous conversion is reset.
      *  If no encoding is set, we'll use 8859-1.
      */
-    public void setEncoding( String enc ) {
+    public void setCharset(Charset charset) {
         if( !byteC.isNull() ) {
             // if the encoding changes we need to reset the converion results
             charC.recycle();
             hasStrValue=false;
         }
-        byteC.setEncoding(enc);
+        byteC.setCharset(charset);
     }
     
     /**

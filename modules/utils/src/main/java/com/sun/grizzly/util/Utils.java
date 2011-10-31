@@ -50,6 +50,7 @@ import java.nio.channels.Selector;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -72,6 +73,9 @@ public class Utils {
      * @return {@link Charset}
      */
     public static Charset lookupCharset(String charsetName) {
+        // Encoding names should all be ASCII
+        charsetName = charsetName.toLowerCase(Locale.US);
+
         Charset charset = ALIAS_MAP.get(charsetName);
         if (charset == null) {
             charset = Charset.forName(charsetName);

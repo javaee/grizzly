@@ -60,10 +60,12 @@ package com.sun.grizzly.util.buf;
 
 
 import com.sun.grizzly.util.LoggerUtils;
+import com.sun.grizzly.util.Utils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -183,7 +185,7 @@ public class B2CConverterBlocking {
     {
         // destroy the reader/iis
         iis=new IntermediateInputStream();
-        conv=new ReadConvertor( iis, encoding );
+        conv=new ReadConvertor(iis, Utils.lookupCharset(encoding));
     }
 
     private final int debug=0;
@@ -259,10 +261,8 @@ final class  ReadConvertor extends InputStreamReader {
 
     /** Create a converter.
      */
-    public ReadConvertor( IntermediateInputStream in, String enc )
-        throws UnsupportedEncodingException
-    {
-        super( in, enc );
+    public ReadConvertor(IntermediateInputStream in, Charset charset) {
+        super(in, charset);
     }
 
     /** Overriden - will do nothing but reset internal state.

@@ -59,12 +59,18 @@
 package com.sun.grizzly.util.http;
 
 import com.sun.grizzly.util.LoggerUtils;
+import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.buf.CharChunk;
 import com.sun.grizzly.util.buf.MessageBytes;
 import com.sun.grizzly.util.buf.UDecoder;
+import com.sun.grizzly.util.res.StringManager;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.IllegalCharsetNameException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
@@ -88,9 +94,14 @@ public final class Parameters {
     /* START PWC 6057385
     private Hashtable paramHashStringArray=new Hashtable();
     */
+
+    protected static final StringManager sm =
+        StringManager.getManager("com.sun.grizzly.util.http",
+                                 Parameters.class.getClassLoader());
+
     // START PWC 6057385
-    private LinkedHashMap<String, String[]> paramHashStringArray =
-            new LinkedHashMap<String, String[]>();
+    private LinkedHashMap<String, ArrayList<String>> paramHashValues =
+            new LinkedHashMap<String, ArrayList<String>>();
     // END PWC 6057385
     private boolean didQueryParameters = false;
     private boolean didMerge = false;
@@ -114,6 +125,9 @@ public final class Parameters {
     String encoding = null;
     String queryStringEncoding = null;
 
+    private int limit = -1;
+    private int parameterCount = 0;
+
     /**
      *
      */
@@ -122,6 +136,10 @@ public final class Parameters {
 
     public void setQuery(MessageBytes queryMB) {
         this.queryMB = queryMB;
+    }
+
+    public void setLimit(int limit) {
+        this.limit = limit;
     }
 
     public void setHeaders(MimeHeaders headers) {
@@ -143,7 +161,8 @@ public final class Parameters {
     }
 
     public void recycle() {
-        paramHashStringArray.clear();
+        parameterCount = 0;
+        paramHashValues.clear();
         didQueryParameters = false;
         currentChild = null;
         didMerge = false;
@@ -220,30 +239,31 @@ public final class Parameters {
         if (key == null) {
             return;
         }
-        String values[];
-        if (paramHashStringArray.containsKey(key)) {
-            String oldValues[] = paramHashStringArray.get(key);
-            values = new String[oldValues.length + newValues.length];
-            System.arraycopy(oldValues, 0, values, 0, oldValues.length);
-            System.arraycopy(newValues, 0, values, oldValues.length, newValues.length);
+        ArrayList<String> values = null;
+        if (paramHashValues.containsKey(key)) {
+            values = paramHashValues.get(key);
         } else {
-            values = newValues;
+            values = new ArrayList<String>(1);
+            paramHashValues.put(key, values);
         }
-
-        paramHashStringArray.put(key, values);
+        values.ensureCapacity(values.size() + newValues.length);
+        for (String newValue : newValues) {
+            values.add(newValue);
+        }
     }
 
     public String[] getParameterValues(String name) {
         handleQueryParameters();
+        ArrayList<String> values = null;
         // sub-request
         if (currentChild != null) {
             currentChild.merge();
-            return currentChild.paramHashStringArray.get(name);
+            values = currentChild.paramHashValues.get(name);
+        } else {
+            // no "facade"
+            values = paramHashValues.get(name);
         }
-
-        // no "facade"
-        String values[] = paramHashStringArray.get(name);
-        return values;
+        return ((values != null) ? values.toArray(new String[values.size()]) : null);
     }
 
     public Enumeration<String> getParameterNames() {
@@ -256,7 +276,7 @@ public final class Parameters {
             */
             // START PWC 6057385
             return Collections.enumeration(
-                    currentChild.paramHashStringArray.keySet());
+                    currentChild.paramHashValues.keySet());
             // END PWC 6057385
         }
 
@@ -265,7 +285,7 @@ public final class Parameters {
         return paramHashStringArray.keys();
         */
         // START PWC 6057385
-        return Collections.enumeration(paramHashStringArray.keySet());
+        return Collections.enumeration(paramHashValues.keySet());
         // END PWC 6057385
     }
 
@@ -297,9 +317,9 @@ public final class Parameters {
         Hashtable parentProps=parent.paramHashStringArray;
         */
         // START PWC 6057385
-        LinkedHashMap<String, String[]> parentProps = parent.paramHashStringArray;
+        LinkedHashMap<String, ArrayList<String>> parentProps = parent.paramHashValues;
         // END PWC 6057385
-        merge2(paramHashStringArray, parentProps);
+        merge2(paramHashValues, parentProps);
         didMerge = true;
         if (debug > 0) {
             log("After " + paramsAsString());
@@ -310,12 +330,12 @@ public final class Parameters {
     // Shortcut.
 
     public String getParameter(String name) {
-        String[] values = getParameterValues(name);
+        ArrayList<String> values = paramHashValues.get(name);
         if (values != null) {
-            if (values.length == 0) {
+            if (values.size() == 0) {
                 return "";
             }
-            return values[0];
+            return values.get(0);
         } else {
             return null;
         }
@@ -366,31 +386,27 @@ public final class Parameters {
             String name = (String) e.nextElement();
     */
     // START PWC 6057385
-    private static void merge2(LinkedHashMap<String, String[]> one,
-            LinkedHashMap<String, String[]> two) {
+    private static void merge2(LinkedHashMap<String, ArrayList<String>> one,
+            LinkedHashMap<String, ArrayList<String>> two) {
         Iterator<String> e = two.keySet().iterator();
 
         while (e.hasNext()) {
             String name = e.next();
             // END PWC 6057385
-            String[] oneValue = one.get(name);
-            String[] twoValue = two.get(name);
-            String[] combinedValue;
+            ArrayList<String> oneValue = one.get(name);
+            ArrayList<String> twoValue = two.get(name);
+            ArrayList<String> combinedValue;
 
             if (twoValue == null) {
                 continue;
             } else {
                 if (oneValue == null) {
-                    combinedValue = new String[twoValue.length];
-                    System.arraycopy(twoValue, 0, combinedValue,
-                            0, twoValue.length);
+                    combinedValue = new ArrayList<String>(oneValue);
                 } else {
-                    combinedValue = new String[oneValue.length +
-                            twoValue.length];
-                    System.arraycopy(oneValue, 0, combinedValue, 0,
-                            oneValue.length);
-                    System.arraycopy(twoValue, 0, combinedValue,
-                            oneValue.length, twoValue.length);
+                    combinedValue = new ArrayList<String>(oneValue.size() +
+                            twoValue.size());
+                    combinedValue.addAll(oneValue);
+                    combinedValue.addAll(twoValue);
                 }
                 one.put(name, combinedValue);
             }
@@ -404,19 +420,15 @@ public final class Parameters {
         if (key == null) {
             return;
         }
-        String values[];
-        if (paramHashStringArray.containsKey(key)) {
-            String oldValues[] = paramHashStringArray.get(key);
-            values = new String[oldValues.length + 1];
-            System.arraycopy(oldValues, 0, values, 0, oldValues.length);
-            values[oldValues.length] = value;
+        ArrayList<String> values = null;
+        if (paramHashValues.containsKey(key)) {
+            values = paramHashValues.get(key);
         } else {
-            values = new String[1];
-            values[0] = value;
+            values = new ArrayList<String>(1);
+            paramHashValues.put(key, values);
         }
 
-
-        paramHashStringArray.put(key, values);
+        values.add(value);
     }
 
     public void setURLDecoder(UDecoder u) {
@@ -432,103 +444,192 @@ public final class Parameters {
     // if needed
     ByteChunk tmpName = new ByteChunk();
     ByteChunk tmpValue = new ByteChunk();
+    private ByteChunk origName=new ByteChunk();
+    private ByteChunk origValue=new ByteChunk();
     CharChunk tmpNameC = new CharChunk(1024);
     CharChunk tmpValueC = new CharChunk(1024);
+    public static final String DEFAULT_ENCODING = "ISO-8859-1";
+    public static final Charset DEFAULT_CHARSET = Charset.forName(DEFAULT_ENCODING);
 
     public void processParameters(byte bytes[], int start, int len) {
-        processParameters(bytes, start, len, encoding);
+        processParameters(bytes, start, len, getCharset(encoding));
     }
 
     public void processParameters(byte bytes[], int start, int len,
-            String enc) {
+            Charset charset) {
+
+        if (debug > 0) {
+            log(sm.getString("parameters.bytes",
+                    new String(bytes, start, len, DEFAULT_CHARSET)));
+        }
+
+        int decodeFailCount = 0;
+
         int end = start + len;
         int pos = start;
 
-        if (debug > 0) {
-            log("Bytes: " + new String(bytes, start, len));
-        }
+        while (pos < end) {
+            parameterCount++;
 
-        do {
-            boolean noEq = false;
-            int valStart = -1;
-            int valEnd = -1;
-
+            if (limit > -1 && parameterCount >= limit) {
+                logger.warning(sm.getString("parameters.maxCountFail",
+                        Integer.valueOf(limit)));
+                break;
+            }
             int nameStart = pos;
-            int nameEnd = ByteChunk.indexOf(bytes, nameStart, end, '=');
-            // Workaround for a&b&c encoding
-            int nameEnd2 = ByteChunk.indexOf(bytes, nameStart, end, '&');
-            if ((nameEnd2 != -1) &&
-                    (nameEnd == -1 || nameEnd > nameEnd2)) {
-                nameEnd = nameEnd2;
-                noEq = true;
-                valStart = nameEnd;
-                valEnd = nameEnd;
-                if (debug > 0) {
-                    log("no equal " + nameStart + " " + nameEnd + " " + new String(bytes, nameStart,
-                            nameEnd - nameStart));
+            int nameEnd = -1;
+            int valueStart = -1;
+            int valueEnd = -1;
+
+            boolean parsingName = true;
+            boolean decodeName = false;
+            boolean decodeValue = false;
+            boolean parameterComplete = false;
+
+            do {
+                switch(bytes[pos]) {
+                    case '=':
+                        if (parsingName) {
+                            // Name finished. Value starts from next character
+                            nameEnd = pos;
+                            parsingName = false;
+                            valueStart = ++pos;
+                        } else {
+                            // Equals character in value
+                            pos++;
+                        }
+                        break;
+                    case '&':
+                        if (parsingName) {
+                            // Name finished. No value.
+                            nameEnd = pos;
+                        } else {
+                            // Value finished
+                            valueEnd  = pos;
+                        }
+                        parameterComplete = true;
+                        pos++;
+                        break;
+                    case '%':
+                        // Decoding required
+                        if (parsingName) {
+                            decodeName = true;
+                        } else {
+                            decodeValue = true;
+                        }
+                        pos ++;
+                        break;
+                    default:
+                        pos ++;
+                        break;
+                }
+            } while (!parameterComplete && pos < end);
+
+            if (pos == end) {
+                if (nameEnd == -1) {
+                    nameEnd = pos;
+                } else if (valueStart > -1 && valueEnd == -1) {
+                    valueEnd = pos;
                 }
             }
-            if (nameEnd == -1) {
-                nameEnd = end;
-            }
 
-            if (!noEq) {
-                valStart = (nameEnd < end) ? nameEnd + 1 : end;
-                valEnd = ByteChunk.indexOf(bytes, valStart, end, '&');
-                if (valEnd == -1) {
-                    valEnd = (valStart < end) ? end : valStart;
-                }
+            if (debug > 0 && valueStart == -1) {
+                log(sm.getString("parameters.noequal",
+                        Integer.valueOf(nameStart), Integer.valueOf(nameEnd),
+                        new String(bytes, nameStart, nameEnd-nameStart,
+                                DEFAULT_CHARSET)));
             }
-
-            pos = valEnd + 1;
 
             if (nameEnd <= nameStart) {
+                if (logger.isLoggable(Level.INFO)) {
+                    String extract;
+                    if (valueEnd >= nameStart) {
+                        extract = new String(bytes, nameStart,
+                                valueEnd - nameStart, DEFAULT_CHARSET);
+                        logger.info(sm.getString("parameters.invalidChunk",
+                                Integer.valueOf(nameStart),
+                                Integer.valueOf(valueEnd),
+                                extract));
+                    } else {
+                        logger.info(sm.getString("parameters.invalidChunk",
+                                Integer.valueOf(nameStart),
+                                Integer.valueOf(nameEnd),
+                               null));
+                    }
+                }
                 continue;
                 // invalid chunk - it's better to ignore
-                // XXX log it ?
             }
+
             tmpName.setBytes(bytes, nameStart, nameEnd - nameStart);
-            tmpValue.setBytes(bytes, valStart, valEnd - valStart);
+            tmpValue.setBytes(bytes, valueStart, valueEnd - valueStart);
+
+            // Take copies as if anything goes wrong originals will be
+            // corrupted. This means original values can be logged.
+            // For performance - only done for debug
+            if (debug > 0) {
+                try {
+                    origName.append(bytes, nameStart, nameEnd - nameStart);
+                    origValue.append(bytes, valueStart, valueEnd - valueStart);
+                } catch (IOException ioe) {
+                    // Should never happen...
+                    logger.log(Level.SEVERE, sm.getString("paramerers.copyFail"), ioe);
+                }
+            }
 
             try {
-                addParam(urlDecode(tmpName, enc), urlDecode(tmpValue, enc));
+                String name;
+                String value;
+
+                if (decodeName) {
+                    name = urlDecode(tmpName, charset);
+                } else {
+                    name = tmpName.toString();
+                }
+
+                if (decodeValue) {
+                    value = urlDecode(tmpValue, charset);
+                } else {
+                    value = tmpValue.toString();
+                }
+
+                addParam(name, value);
             } catch (IOException e) {
-                // Exception during character decoding: skip parameter
+                decodeFailCount++;
+                if (decodeFailCount == 1 || debug > 0) {
+                    if (debug > 0) {
+                        log(sm.getString("parameters.decodeFail.debug",
+                                origName.toString(), origValue.toString()), e);
+                    } else if (logger.isLoggable(Level.INFO)) {
+                        logger.log(Level.INFO, sm.getString("parameters.decodeFail.info",
+                                tmpName.toString(), tmpValue.toString()), e);
+                    }
+                }
             }
 
             tmpName.recycle();
             tmpValue.recycle();
+            // Only recycle copies if we used them
+            if (debug > 0) {
+                origName.recycle();
+                origValue.recycle();
+            }
+        }
 
-        } while (pos < end);
+        if (decodeFailCount > 1 && debug <= 0) {
+            logger.info(sm.getString("parameters.multipleDecodingFail",
+                        Integer.valueOf(decodeFailCount)));
+        }
     }
 
-    private String urlDecode(ByteChunk bc, String enc)
+    private String urlDecode(ByteChunk bc, Charset charset)
             throws IOException {
         if (urlDec == null) {
             urlDec = new UDecoder();
         }
         urlDec.convert(bc);
-        String result = null;
-        if (enc != null) {
-            bc.setEncoding(enc);
-            result = bc.toString();
-        } else {
-            CharChunk cc = tmpNameC;
-            int length = bc.getLength();
-            cc.allocate(length, -1);
-            // Default encoding: fast conversion
-            byte[] bbuf = bc.getBuffer();
-            char[] cbuf = cc.getBuffer();
-            int start = bc.getStart();
-            for (int i = 0; i < length; i++) {
-                cbuf[i] = (char) (bbuf[i + start] & 0xff);
-            }
-            cc.setChars(cbuf, 0, length);
-            result = cc.toString();
-            cc.recycle();
-        }
-
-        return result;
+        bc.setCharset(charset);
+        return bc.toString();
     }
 
     public void processParameters(char chars[], int start, int len) {
@@ -619,7 +720,7 @@ public final class Parameters {
         if (data.getType() == MessageBytes.T_BYTES) {
             ByteChunk bc = data.getByteChunk();
             processParameters(bc.getBytes(), bc.getOffset(),
-                    bc.getLength(), encoding);
+                    bc.getLength(), getCharset(encoding));
         } else {
             if (data.getType() != MessageBytes.T_CHARS) {
                 data.toChars();
@@ -641,14 +742,16 @@ public final class Parameters {
             String k=(String)en.nextElement();
         */
         // START PWC 6057385
-        Iterator<String> en = paramHashStringArray.keySet().iterator();
+        Iterator<String> en = paramHashValues.keySet().iterator();
         while (en.hasNext()) {
             String k = en.next();
             // END PWC 6057385
             sb.append(k).append("=");
-            String v[] = paramHashStringArray.get(k);
-            for (int i = 0; i < v.length; i++) {
-                sb.append(v[i]).append(",");
+            ArrayList<String> values = paramHashValues.get(k);
+            if (values != null) {
+                for (String value : values) {
+                    sb.append(value).append(",");
+                }
             }
             sb.append("\n");
         }
@@ -660,6 +763,12 @@ public final class Parameters {
     private void log(String s) {
         if (logger.isLoggable(Level.FINEST)) {
             logger.log(Level.FINEST, "Parameters: " + s);
+        }
+    }
+
+    private void log(String s, Throwable t) {
+        if (logger.isLoggable(Level.FINEST)) {
+            logger.log(Level.FINEST, "Parameters: " + s, t);
         }
     }
 
@@ -833,4 +942,14 @@ public final class Parameters {
         } while (pos < end);
     }
 
+    private Charset getCharset(String encoding) {
+        if (encoding == null) {
+            return DEFAULT_CHARSET;
+        }
+        try {
+            return Utils.lookupCharset(encoding);
+        } catch(IllegalArgumentException e) {
+            return DEFAULT_CHARSET;
+        }
+    }
 }
