@@ -69,7 +69,6 @@ import com.sun.grizzly.util.res.StringManager;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
-import java.nio.charset.IllegalCharsetNameException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -459,8 +458,13 @@ public final class Parameters {
             Charset charset) {
 
         if (debug > 0) {
-            log(sm.getString("parameters.bytes",
-                    new String(bytes, start, len, DEFAULT_CHARSET)));
+            try {
+                log(sm.getString("parameters.bytes",
+    //                    new String(bytes, start, len, DEFAULT_CHARSET)));
+                        // JDK 1.5 compliant
+                        new String(bytes, start, len, DEFAULT_CHARSET.name())));
+            } catch (UnsupportedEncodingException ignored) {                
+            }
         }
 
         int decodeFailCount = 0;
@@ -534,22 +538,31 @@ public final class Parameters {
             }
 
             if (debug > 0 && valueStart == -1) {
-                log(sm.getString("parameters.noequal",
-                        Integer.valueOf(nameStart), Integer.valueOf(nameEnd),
-                        new String(bytes, nameStart, nameEnd-nameStart,
-                                DEFAULT_CHARSET)));
+                try {
+                    log(sm.getString("parameters.noequal",
+                            Integer.valueOf(nameStart), Integer.valueOf(nameEnd),
+//                          new String(bytes, nameStart, nameEnd-nameStart,
+//                                    DEFAULT_CHARSET)));
+                            // JDK 1.5 compliant
+                            new String(bytes, nameStart, nameEnd-nameStart,
+                                    DEFAULT_CHARSET.name())));
+                } catch (UnsupportedEncodingException ignored) {
+                }
             }
 
             if (nameEnd <= nameStart) {
                 if (logger.isLoggable(Level.INFO)) {
                     String extract;
                     if (valueEnd >= nameStart) {
-                        extract = new String(bytes, nameStart,
-                                valueEnd - nameStart, DEFAULT_CHARSET);
-                        logger.info(sm.getString("parameters.invalidChunk",
-                                Integer.valueOf(nameStart),
-                                Integer.valueOf(valueEnd),
-                                extract));
+                        try {
+                            extract = new String(bytes, nameStart,
+                                    valueEnd - nameStart, DEFAULT_CHARSET.name());
+                            logger.info(sm.getString("parameters.invalidChunk",
+                                    Integer.valueOf(nameStart),
+                                    Integer.valueOf(valueEnd),
+                                    extract));
+                        } catch (UnsupportedEncodingException ignored) {
+                        }
                     } else {
                         logger.info(sm.getString("parameters.invalidChunk",
                                 Integer.valueOf(nameStart),
