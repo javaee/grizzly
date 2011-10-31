@@ -460,10 +460,11 @@ public final class Parameters {
         if (debug > 0) {
             try {
                 log(sm.getString("parameters.bytes",
-    //                    new String(bytes, start, len, DEFAULT_CHARSET)));
                         // JDK 1.5 compliant
-                        new String(bytes, start, len, DEFAULT_CHARSET.name())));
-            } catch (UnsupportedEncodingException ignored) {                
+                        new String(bytes, start, len, DEFAULT_ENCODING)));
+            } catch(UnsupportedEncodingException e) {
+                // Should never happen...
+                logger.log(Level.SEVERE, sm.getString("parameters.convertBytesFail"), e);
             }
         }
 
@@ -541,12 +542,12 @@ public final class Parameters {
                 try {
                     log(sm.getString("parameters.noequal",
                             Integer.valueOf(nameStart), Integer.valueOf(nameEnd),
-//                          new String(bytes, nameStart, nameEnd-nameStart,
-//                                    DEFAULT_CHARSET)));
                             // JDK 1.5 compliant
                             new String(bytes, nameStart, nameEnd-nameStart,
-                                    DEFAULT_CHARSET.name())));
-                } catch (UnsupportedEncodingException ignored) {
+                                    DEFAULT_ENCODING)));
+                } catch(UnsupportedEncodingException e) {
+                    // Should never happen...
+                    logger.log(Level.SEVERE, sm.getString("parameters.convertBytesFail"), e);
                 }
             }
 
@@ -555,13 +556,12 @@ public final class Parameters {
                     String extract;
                     if (valueEnd >= nameStart) {
                         try {
+                            // JDK 1.5 compliant
                             extract = new String(bytes, nameStart,
-                                    valueEnd - nameStart, DEFAULT_CHARSET.name());
-                            logger.info(sm.getString("parameters.invalidChunk",
-                                    Integer.valueOf(nameStart),
-                                    Integer.valueOf(valueEnd),
-                                    extract));
-                        } catch (UnsupportedEncodingException ignored) {
+                                    valueEnd - nameStart, DEFAULT_ENCODING);
+                        } catch(UnsupportedEncodingException e) {
+                            // Should never happen...
+                            logger.log(Level.SEVERE, sm.getString("parameters.convertBytesFail"), e);
                         }
                     } else {
                         logger.info(sm.getString("parameters.invalidChunk",
