@@ -407,7 +407,6 @@ final class AjpMessageUtils {
         tmpDataChunk.recycle();
 
         req.setAttribute(key, value);
-        // Don't forget to skip the terminating \0 (that's why "+ 1")
         return offset;
     }
 
