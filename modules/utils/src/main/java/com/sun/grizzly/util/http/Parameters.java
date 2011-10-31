@@ -400,7 +400,7 @@ public final class Parameters {
                 continue;
             } else {
                 if (oneValue == null) {
-                    combinedValue = new ArrayList<String>(oneValue);
+                    combinedValue = new ArrayList<String>(twoValue);
                 } else {
                     combinedValue = new ArrayList<String>(oneValue.size() +
                             twoValue.size());
