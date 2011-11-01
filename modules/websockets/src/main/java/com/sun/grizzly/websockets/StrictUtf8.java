@@ -86,8 +86,14 @@ public class StrictUtf8 extends Charset
         return (char) ((codePoint & 0x3ff) + Character.MIN_LOW_SURROGATE);
     }
 
-    private static void updatePositions(Buffer src, int sp,
-                                        Buffer dst, int dp) {
+    private static void updatePositions(ByteBuffer src, int sp,
+                                        CharBuffer dst, int dp) {
+        src.position(sp - src.arrayOffset());
+        dst.position(dp - dst.arrayOffset());
+    }
+
+    private static void updatePositions(CharBuffer src, int sp,
+                                        ByteBuffer dst, int dp) {
         src.position(sp - src.arrayOffset());
         dst.position(dp - dst.arrayOffset());
     }
@@ -214,8 +220,8 @@ public class StrictUtf8 extends Charset
         }
 
 
-        private static CoderResult xflow(Buffer src, int sp, int sl,
-                                         Buffer dst, int dp, int nb) {
+        private static CoderResult xflow(ByteBuffer src, int sp, int sl,
+                                         CharBuffer dst, int dp, int nb) {
             updatePositions(src, sp, dst, dp);
             return (nb == 0 || sl - sp < nb)
                    ? CoderResult.UNDERFLOW : CoderResult.OVERFLOW;

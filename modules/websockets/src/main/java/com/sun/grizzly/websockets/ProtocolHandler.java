@@ -161,7 +161,7 @@ public abstract class ProtocolHandler {
 
     public void send(String data) {
         final DataFrame frame = new DataFrame(new TextFrameType(), data);
-        frame.setPayload(data.getBytes(utf8));
+        frame.setPayload(Utf8Utils.encode(new StrictUtf8(), data));
         send(frame);
     }
 
@@ -299,8 +299,9 @@ public abstract class ProtocolHandler {
                     }
                 }
                 cb.flip();
-                dataFrame.setPayload(cb.toString());
-                dataFrame.setPayload(dataFrame.getTextPayload().getBytes(utf8)); // yuck
+                String res = cb.toString();
+                dataFrame.setPayload(res);
+                dataFrame.setPayload(Utf8Utils.encode(new StrictUtf8(), res));
                 break;
             }
             if (result.isOverflow()) {

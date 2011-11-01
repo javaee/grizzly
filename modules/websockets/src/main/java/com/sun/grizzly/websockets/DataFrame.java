@@ -41,6 +41,7 @@
 package com.sun.grizzly.websockets;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.CharBuffer;
 
 /**
  * In memory representation of a websocket frame.
@@ -95,7 +96,7 @@ public class DataFrame {
 
     public byte[] getBytes() {
         if (bytes == null) {
-            bytes = payload.getBytes(new StrictUtf8());
+            bytes = Utf8Utils.encode(new StrictUtf8(), payload);
         }
         return bytes;
     }

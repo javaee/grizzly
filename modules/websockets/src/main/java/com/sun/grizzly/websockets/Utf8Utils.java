@@ -37,44 +37,66 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+package com.sun.grizzly.websockets;
 
-package com.sun.grizzly.websockets.frametypes;
-
-import com.sun.grizzly.util.Charsets;
-import com.sun.grizzly.websockets.BaseFrameType;
-import com.sun.grizzly.websockets.DataFrame;
-import com.sun.grizzly.websockets.FramingException;
-import com.sun.grizzly.websockets.StrictUtf8;
-import com.sun.grizzly.websockets.Utf8Utils;
-import com.sun.grizzly.websockets.WebSocket;
-
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CodingErrorAction;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetEncoder;
+import java.nio.charset.CoderResult;
+import java.util.Arrays;
 
-public class TextFrameType extends BaseFrameType {
-    @Override
-    public void setPayload(DataFrame frame, byte[] data) {
-        frame.setPayload(data);
-    }
+public class Utf8Utils {
 
-    @Override
-    public byte[] getBytes(DataFrame dataFrame) {
-        final byte[] bytes = dataFrame.getBytes();
-        if (bytes == null) {
-            setPayload(dataFrame, Utf8Utils.encode(new StrictUtf8(), dataFrame.getTextPayload()));
+
+    public static byte[] encode(Charset charset, String string) {
+        CharsetEncoder ce = charset.newEncoder();
+        int en = scale(string.length(), ce.maxBytesPerChar());
+        byte[] ba = new byte[en];
+        if (string.length() == 0)
+            return ba;
+
+        ce.reset();
+        ByteBuffer bb = ByteBuffer.wrap(ba);
+        CharBuffer cb = CharBuffer.wrap(string);
+        try {
+            CoderResult cr = ce.encode(cb, bb, true);
+            if (!cr.isUnderflow())
+                cr.throwException();
+            cr = ce.flush(bb);
+            if (!cr.isUnderflow())
+                cr.throwException();
+        } catch (CharacterCodingException x) {
+            // Substitution is always enabled,
+            // so this shouldn't happen
+            throw new Error(x);
         }
-        return dataFrame.getBytes();
+        return safeTrim(ba, bb.position());
     }
 
-    public void respond(WebSocket socket, DataFrame frame) {
-        if(frame.isLast()) {
-            socket.onMessage(frame.getTextPayload());
+    private static int scale(int len, float expansionFactor) {
+        // We need to perform double, not float, arithmetic; otherwise
+        // we lose low order bits when len is larger than 2**24.
+        return (int) (len * (double) expansionFactor);
+    }
+
+    // Trim the given byte array to the given length
+    //
+    private static byte[] safeTrim(byte[] ba, int len) {
+        if (len == ba.length
+                && (System.getSecurityManager() == null)) {
+            return ba;
         } else {
-            socket.onFragment(frame.isLast(), frame.getTextPayload());
+            return copyOf(ba, len);
         }
     }
+
+    private static byte[] copyOf(byte[] original, int newLength) {
+        byte[] copy = new byte[newLength];
+        System.arraycopy(original, 0, copy, 0,
+                Math.min(original.length, newLength));
+        return copy;
+    }
+
 }
