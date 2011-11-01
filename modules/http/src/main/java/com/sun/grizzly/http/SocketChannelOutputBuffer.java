@@ -90,7 +90,7 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
     /**
      * {@link ByteBufferCloner} implementation, which is called by Grizzly
      * framework at the time, when asynchronous write queue can not write
-     * the buffer direcly on socket and instead will put it in queue.
+     * the buffer directly on socket and instead will put it in queue.
      * This implementation tries to get temporary ByteBuffer from the pool,
      * if no ByteBuffer is available - then new one will be created.
      */

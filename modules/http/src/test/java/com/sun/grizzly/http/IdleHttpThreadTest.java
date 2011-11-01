@@ -138,10 +138,13 @@ public class IdleHttpThreadTest extends TestCase {
                         Utils.dumpOut("Pausing for 5 seconds");
                         Thread.currentThread().join();
                     } catch (Throwable t) {
+                        Thread.interrupted();
                         t.printStackTrace();
                     } finally {
+                        final String response = testString + "\n";
+                        res.setContentLength(response.length());
                         ByteChunk bc = new ByteChunk();
-                        bc.append(testString.getBytes(), 0, testString.length());
+                        bc.append(response.getBytes(), 0, response.length());
                         res.doWrite(bc);
                     }
                 }
@@ -150,7 +153,6 @@ public class IdleHttpThreadTest extends TestCase {
                 public void afterService(final Request req, final Response res) {
                     try {
                         super.afterService(req, res);
-                        return;
                     } catch (Exception ex) {
                         ex.printStackTrace();
                         fail(ex.getMessage());
@@ -158,10 +160,10 @@ public class IdleHttpThreadTest extends TestCase {
                 }
             });
 
-                st.setTransactionTimeout(5 * 1000);
+            st.setTransactionTimeout(5 * 1000);
 
-                st.listen();
-                st.enableMonitoring();
+            st.listen();
+            st.enableMonitoring();
 
             Socket s = new Socket("localhost", PORT);
             s.setSoTimeout(10 * 1000);
@@ -170,6 +172,7 @@ public class IdleHttpThreadTest extends TestCase {
             Utils.dumpOut("GET / HTTP/1.1\n");
             os.write("GET / HTTP/1.1\n".getBytes());
             os.write(("Host: localhost:" + PORT + "\n").getBytes());
+            os.write(("Connection: close\n").getBytes());
             os.write("\n".getBytes());
 
             String line;
@@ -185,7 +188,8 @@ public class IdleHttpThreadTest extends TestCase {
                 //ex.printStackTrace();
                 Utils.dumpOut("Timeout!");
             }
-            assertNotSame(testString, response);
+            
+            assertTrue("response doesn't match!\n" + response, testString.equals(response));
         } finally {
             SelectorThreadUtils.stopSelectorThread(st);
             pe.shutdown();

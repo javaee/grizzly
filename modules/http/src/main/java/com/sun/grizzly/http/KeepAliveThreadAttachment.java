@@ -132,7 +132,10 @@ public class KeepAliveThreadAttachment extends ThreadAttachment{
                 logger.log(Level.WARNING,
                            LogMessages.WARNING_GRIZZLY_HTTP_IDLE_THREAD_INTERRUPT(t.getName()));
             }
+            
+            setIdleTimeoutDelay(UNLIMITED_TIMEOUT);
             t.interrupt();
+            return false;
         }
         return true;
     }
